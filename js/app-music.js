@@ -31,7 +31,7 @@ songsLove.forEach(function(x){ x.plays = 0; });
 function fmtPlays(n){if(n>=1e6)return(n/1e6).toFixed(1).replace('.0','')+'M';if(n>=1e3)return(n/1e3).toFixed(1).replace('.0','')+'k';return n?String(n):'—';}
 
 function savePlays(file){
-  fetch(SB_URL + '/rest/v1/rpc/increment_play', {
+  fetch(SB2_URL + '/rest/v1/rpc/increment_play', {
     method: 'POST',
     headers: sbHeaders({'Prefer': 'return=representation'}),
     body: JSON.stringify({ p_song_key: file })
@@ -716,7 +716,7 @@ function filterSongs(q){
     if(note) payload.note = note;
     if(sgGender) payload.gender = sgGender;
 
-    var url = SB_URL + '/rest/v1/suggestion_songs';
+    var url = SB2_URL + '/rest/v1/v2_suggestion_songs';
     fetch(url, {
       method: 'POST',
       headers: sbHeaders({'Prefer': 'return=representation'}),
@@ -851,7 +851,7 @@ function filterSongs(q){
     btn.textContent = '⏳'; btn.disabled = true;
     var payload = { title: title, artist: artist };
     if(note) payload.note = note; else payload.note = null;
-    fetch(SB_URL + '/rest/v1/suggestion_songs?id=eq.' + _sgEditId, {
+    fetch(SB2_URL + '/rest/v1/v2_suggestion_songs?id=eq.' + _sgEditId, {
       method: 'PATCH',
       headers: sbHeaders({'Prefer': 'return=representation'}),
       body: JSON.stringify(payload)
@@ -918,7 +918,7 @@ function toggleFavorite(file, btn){
 
   if(current === file){
     // Retirer le coup de cœur
-    fetch(SB_URL+'/rest/v1/favorites?profile=eq.'+profile+'&song_file=eq.'+encodeURIComponent(file), {
+    fetch(SB2_URL+'/rest/v1/v2_favorites?profile=eq.'+profile+'&song_file=eq.'+encodeURIComponent(file), {
       method:'DELETE', headers:sbHeaders()
     }).then(function(){
       delete favoritesCache[profile];
@@ -927,7 +927,7 @@ function toggleFavorite(file, btn){
   } else {
     // Supprimer l'ancien puis ajouter le nouveau
     var doAdd = function(){
-      fetch(SB_URL+'/rest/v1/favorites', {
+      fetch(SB2_URL+'/rest/v1/v2_favorites', {
         method:'POST',
         headers:sbHeaders({'Prefer':'return=representation'}),
         body:JSON.stringify({ profile: profile, song_file: file })
@@ -937,7 +937,7 @@ function toggleFavorite(file, btn){
       });
     };
     if(current){
-      fetch(SB_URL+'/rest/v1/favorites?profile=eq.'+profile+'&song_file=eq.'+encodeURIComponent(current), {
+      fetch(SB2_URL+'/rest/v1/v2_favorites?profile=eq.'+profile+'&song_file=eq.'+encodeURIComponent(current), {
         method:'DELETE', headers:sbHeaders()
       }).then(doAdd);
     } else {
@@ -952,7 +952,7 @@ loadFavorites();
 (function(){
   var KEY      = 'jayana_profile';
   var MOOD_KEY = 'jayana_mood';
-  var MOOD_TABLE = 'moods';
+  var MOOD_TABLE = 'v2_moods';
   var EMOJIS   = { neutral:'👤', girl:'👧', boy:'👦' };
   var OTHER    = { girl:'boy', boy:'girl' };
   var MOODS    = ['😊','😍','🥰','😴','😔','🥺','😂','🔥','😎','🤩','😤','🥳','😇','🤗','💪','😏'];
@@ -983,10 +983,10 @@ loadFavorites();
   function saveMood(sender, emoji){
     var today = getTodayStr();
     // Upsert : si une humeur existe déjà aujourd'hui pour ce sender, on la met à jour
-    fetch(SB_URL + '/rest/v1/' + MOOD_TABLE + '?sender=eq.' + sender + '&date=eq.' + today, {
+    fetch(SB2_URL + '/rest/v1/' + MOOD_TABLE + '?sender=eq.' + sender + '&date=eq.' + today, {
       method: 'DELETE', headers: sbHeaders()
     }).then(function(){
-      fetch(SB_URL + '/rest/v1/' + MOOD_TABLE, {
+      fetch(SB2_URL + '/rest/v1/' + MOOD_TABLE, {
         method: 'POST',
         headers: sbHeaders({'Prefer':'return=minimal'}),
         body: JSON.stringify({ sender: sender, emoji: emoji, date: today })
@@ -1012,7 +1012,7 @@ loadFavorites();
 
   function loadMoods(){
     var today = getTodayStr();
-    fetch(SB_URL + '/rest/v1/' + MOOD_TABLE + '?date=eq.' + today, {
+    fetch(SB2_URL + '/rest/v1/' + MOOD_TABLE + '?date=eq.' + today, {
       headers: sbHeaders()
     })
     .then(function(r){ return r.json(); })
@@ -1119,7 +1119,7 @@ loadFavorites();
   // ── Picker humeur ──
   function deleteMood(sender){
     var today = getTodayStr();
-    fetch(SB_URL + '/rest/v1/' + MOOD_TABLE + '?sender=eq.' + sender + '&date=eq.' + today, {
+    fetch(SB2_URL + '/rest/v1/' + MOOD_TABLE + '?sender=eq.' + sender + '&date=eq.' + today, {
       method: 'DELETE', headers: sbHeaders()
     }).catch(function(){});
   }
@@ -1393,7 +1393,7 @@ loadFavorites();
 ══════════════════════════════════════════════════════ */
 (function(){
 
-  var NL_TABLE = 'now_listening';
+  var NL_TABLE = 'v2_now_listening';
 
   var _nlBoyFile        = null;
   var _nlGirlFile       = null;
@@ -1484,7 +1484,7 @@ loadFavorites();
 
   /* ── Poll Supabase toutes les 5s ── */
   function nlPoll(){
-    var url = SB_URL + '/rest/v1/' + NL_TABLE + '?select=sender,song_file&order=updated_at.desc';
+    var url = SB2_URL + '/rest/v1/' + NL_TABLE + '?select=sender,song_file&order=updated_at.desc';
     fetch(url, { headers: sbHeaders() })
       .then(function(r){ return r.ok ? r.json() : null; })
       .then(function(rows){
@@ -1516,7 +1516,7 @@ loadFavorites();
     if(_nlLastPushRemote === (normalized || 'null')) return;
     _nlLastPushRemote = normalized || 'null';
 
-    fetch(SB_URL + '/rest/v1/' + NL_TABLE, {
+    fetch(SB2_URL + '/rest/v1/' + NL_TABLE, {
       method: 'POST',
       headers: sbHeaders({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
       body: JSON.stringify({ sender: profile, song_file: normalized })
@@ -1586,7 +1586,7 @@ loadFavorites();
   window.addEventListener('beforeunload', function(){
     var profile = getProfile();
     if(!profile) return;
-    fetch(SB_URL + '/rest/v1/' + NL_TABLE, {
+    fetch(SB2_URL + '/rest/v1/' + NL_TABLE, {
       method: 'POST',
       headers: sbHeaders({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
       body: JSON.stringify({ sender: profile, song_file: null }),
