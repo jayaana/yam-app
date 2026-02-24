@@ -26,10 +26,10 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
       + '<div style="font-size:12px;color:var(--muted);margin-bottom:20px;">Connecte-toi d\'abord pour accéder aux bêtises</div>'
       + '<div style="display:flex;gap:10px;justify-content:center;margin-bottom:16px;">'
       +   '<button id="betisesLoginGirl" style="flex:1;padding:12px 8px;border-radius:14px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;font-family:\'DM Sans\',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px;">'
-      +     '<span style="font-size:26px;">👧</span><span style="font-size:13px;font-weight:700;color:var(--text);">'+(typeof v2GetDisplayName==="function"?v2GetDisplayName('girl'):'Elle 👧')+'</span>'
+      +     '<span style="font-size:26px;">👧</span><span style="font-size:13px;font-weight:700;color:var(--text);">'+(typeof v2GetDisplayName==="function"?v2GetDisplayName('girl'):'Elle')+'</span>'
       +   '</button>'
       +   '<button id="betisesLoginBoy" style="flex:1;padding:12px 8px;border-radius:14px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;font-family:\'DM Sans\',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px;">'
-      +     '<span style="font-size:26px;">👦</span><span style="font-size:13px;font-weight:700;color:var(--text);">'+(typeof v2GetDisplayName==="function"?v2GetDisplayName('boy'):'Lui 👦')+'</span>'
+      +     '<span style="font-size:26px;">👦</span><span style="font-size:13px;font-weight:700;color:var(--text);">'+(typeof v2GetDisplayName==="function"?v2GetDisplayName('boy'):'Lui')+'</span>'
       +   '</button>'
       + '</div>'
       + '<span id="betisesLoginCancel" style="font-size:11px;color:var(--muted);cursor:pointer;">Annuler</span>'
@@ -89,7 +89,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   window.openPrankMenu = function(){
     var profile = getProfile();
     if(!profile){ showPrankToast('🔒 Connecte-toi d\'abord !'); return; }
-    var victim = (typeof v2GetDisplayName==="function") ? v2GetDisplayName(profile==='boy'?'girl':'boy') : (profile==='boy'?'Elle':'Lui');
+    var victim = (typeof v2GetDisplayName==="function"?v2GetDisplayName(profile==="boy"?"girl":"boy"):(profile==="boy"?"Elle":"Lui"));
     var el = document.getElementById('prankVictimName');
     if(el) el.textContent = victim;
     var menu = document.getElementById('prankMenu');
@@ -765,7 +765,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
 
   /* ════ BÊTISE 13 : FAUSSE NOTIF ════ */
   function startNotif(p){
-    var authorName = (typeof v2GetDisplayName==="function") ? v2GetDisplayName(p.author) : (p.author==="boy"?"Lui 👦":"Elle 👧");
+    var authorName = (typeof v2GetDisplayName==="function"?v2GetDisplayName(p.author):(p.author==="boy"?"Lui":"Elle"));
     var avatar = p.author === 'boy' ? '💙' : '💖';
     document.getElementById('pnAvatar').textContent = avatar;
     document.getElementById('pnApp').textContent = 'Nouveau message';
@@ -872,7 +872,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
 
   /* ── Écran gotcha ── */
   function showGotcha(p){
-    var authorName = (typeof v2GetDisplayName==="function") ? v2GetDisplayName(p.author) : (p.author==="boy"?"Lui 👦":"Elle 👧");
+    var authorName = (typeof v2GetDisplayName==="function"?v2GetDisplayName(p.author):(p.author==="boy"?"Lui":"Elle"));
     document.getElementById('gotchaMsg').textContent = p.message || '😈';
     document.getElementById('prankGotcha').classList.add('show');
   }
@@ -1127,7 +1127,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   var _lockPrank = null;
   function startLock(p){
     _lockPrank = p;
-    var authorName = (typeof v2GetDisplayName==="function") ? v2GetDisplayName(p.author) : (p.author==="boy"?"Lui 👦":"Elle 👧");
+    var authorName = (typeof v2GetDisplayName==="function"?v2GetDisplayName(p.author):(p.author==="boy"?"Lui":"Elle"));
     document.getElementById('prankLockTitle').textContent = '🔐 Accès bloqué par ' + authorName;
     document.getElementById('prankLockInput').value = '';
     document.getElementById('prankLockErr').textContent = '';
@@ -1296,4 +1296,3 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
 })();
 
 console.log('✨ Jayana UX v.UX1 chargé');
-
