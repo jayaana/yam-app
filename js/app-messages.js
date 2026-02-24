@@ -233,20 +233,15 @@
         updateProfilePill('home');
       }
     }
-    // Si session déjà valide, pas de code
-    if(sbLoadSession(g)){
+    // v2 : session active → pas de code demandé
+    if(typeof v2LoadSession === 'function' && v2LoadSession()){
       if(window._profileSave) window._profileSave(g);
       if(window._profileApply) window._profileApply(g);
       afterAuth();
       return;
     }
-    // Sinon demander le code — ne rien sauvegarder avant succès
-    showProfileCodeModal(g, function(){
-      if(window._profileSave) window._profileSave(g);
-      if(window._profileApply) window._profileApply(g);
-      if(window._profileLoadMoods) window._profileLoadMoods();
-      afterAuth();
-    });
+    // Pas de session v2 → rediriger vers login
+    if(window.v2ShowLogin) window.v2ShowLogin();
   };
 
   /* ══ CHAT ══ */
