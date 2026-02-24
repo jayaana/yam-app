@@ -130,7 +130,11 @@ function v2GetUser(){
 function v2Auth(action, payload){
   return fetch(SB2_EDGE_AUTH, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-app-secret': SB2_APP_SECRET },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-app-secret': SB2_APP_SECRET,
+      'Authorization': 'Bearer ' + SB2_KEY
+    },
     body: JSON.stringify(Object.assign({ action: action }, payload))
   }).then(function(r){ return r.json(); });
 }
