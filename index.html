@@ -159,15 +159,16 @@ function v2DoRegister(){
   var pseudo   = document.getElementById('v2RegPseudo').value.trim();
   var password = document.getElementById('v2RegPassword').value;
   if(!pseudo || !password){ v2SetError('Remplis tous les champs'); return; }
-  if(!_v2SelectedRole){ v2SetError('Choisis Zelda ou Link'); return; }
+  if(!_v2SelectedRole){ v2SetError('Choisis ton rôle (Elle ou Lui)'); return; }
   v2SetError(''); v2SetLoading(true);
   v2Register(pseudo, password, _v2SelectedRole).then(function(res){
     v2SetLoading(false);
     if(!res.ok){ v2SetError(res.error); return; }
     var info = document.getElementById('v2RegInfo');
-    info.innerHTML = '🎉 Compte créé !<br>Ton code couple : <strong>' + res.data.couple_code + '</strong><br>Partage-le à ton partenaire pour qu\'il rejoigne.';
+    var codeHtml = '<span id="v2CoupleCodeDisplay" style="display:inline-block;background:var(--s2);border:2px solid var(--green);border-radius:10px;padding:8px 18px;font-size:20px;font-weight:800;letter-spacing:3px;cursor:pointer;margin:6px 0;" onclick="v2CopyCode(this,\''+res.data.couple_code+'\')" title="Appuie pour copier">'+res.data.couple_code+'</span>';
+    info.innerHTML = '🎉 Compte créé !<br><span style="font-size:12px;color:var(--muted)">Ton code couple :</span><br>'+codeHtml+'<br><span style="font-size:11px;color:var(--muted)">👆 Appuie pour copier · partage-le à ton partenaire</span>';
     info.style.display = 'block';
-    setTimeout(function(){ v2CloseLogin(); if(window.setProfile) window.setProfile(res.data.user.role); }, 3000);
+    setTimeout(function(){ v2CloseLogin(); if(window.setProfile) window.setProfile(res.data.user.role); }, 6000);
   });
 }
 
@@ -183,6 +184,21 @@ function v2DoJoin(){
     if(!res.ok){ v2SetError(res.error); return; }
     v2CloseLogin(); if(window.setProfile) window.setProfile(res.data.user.role);
   });
+}
+
+function v2CopyCode(el, code){
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(code).then(function(){
+      el.textContent = '✅ Copié !';
+      setTimeout(function(){ el.textContent = code; }, 2000);
+    }).catch(function(){
+      el.textContent = '✅ Copié !';
+      setTimeout(function(){ el.textContent = code; }, 2000);
+    });
+  } else {
+    el.textContent = '✅ Copié !';
+    setTimeout(function(){ el.textContent = code; }, 2000);
+  }
 }
 
 function v2CloseLogin(){
