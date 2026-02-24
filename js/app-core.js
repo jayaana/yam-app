@@ -126,6 +126,29 @@ function v2GetUser(){
   return s ? s.user : null;
 }
 
+// Retourne le pseudo de l'utilisateur connecté (ou null)
+function v2GetPseudo(){
+  var u = v2GetUser();
+  return (u && u.pseudo) ? u.pseudo : null;
+}
+
+// Retourne le pseudo du partenaire (ou null)
+// Nécessite que le couple_id et les données partenaire soient stockés en session
+function v2GetPartnerPseudo(){
+  var u = v2GetUser();
+  return (u && u.partner_pseudo) ? u.partner_pseudo : null;
+}
+
+// Retourne le pseudo d'un profil — avec fallback sur "Zelda"/"Link"
+// Utiliser cette fonction partout où on affiche le nom d'un profil
+function v2GetDisplayName(role){
+  var u = v2GetUser();
+  if(u && u.role === role && u.pseudo) return u.pseudo;
+  if(u && u.role !== role && u.partner_pseudo) return u.partner_pseudo;
+  // Fallback : noms génériques selon le rôle
+  return role === 'girl' ? 'Elle 👧' : 'Lui 👦';
+}
+
 // Appel à l'Edge Function auth-v2
 function v2Auth(action, payload){
   return fetch(SB2_EDGE_AUTH, {
