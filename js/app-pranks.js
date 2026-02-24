@@ -57,7 +57,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
 ══════════════════════════════════════════════ */
 
 (function(){
-  var PRANK_TABLE = 'pranks';
+  var PRANK_TABLE = 'v2_pranks';
   var _selectedType = null;
   var _activePrank  = null;
 
@@ -157,7 +157,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     var btn = document.getElementById('prankCancelAllBtn');
     if(btn) btn.textContent = '⏳ Annulation…';
     // PATCH active=false au lieu de DELETE — permet à la victime de détecter l'annulation en cours
-    fetch(SB_URL+'/rest/v1/'+PRANK_TABLE+'?author=eq.'+profile+'&victim=eq.'+victim+'&active=eq.true', {
+    fetch(SB2_URL+'/rest/v1/'+PRANK_TABLE+'?author=eq.'+profile+'&victim=eq.'+victim+'&active=eq.true', {
       method: 'PATCH',
       headers: sbHeaders({'Content-Type':'application/json','Prefer':'return=minimal'}),
       body: JSON.stringify({ active: false })
@@ -223,7 +223,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     if(!profile) return;
     var victim = profile === 'boy' ? 'girl' : 'boy';
     var body = { type: type, author: profile, victim: victim, message: '', active: true };
-    fetch(SB_URL+'/rest/v1/'+PRANK_TABLE, {
+    fetch(SB2_URL+'/rest/v1/'+PRANK_TABLE, {
       method:'POST', headers: sbHeaders({'Prefer':'return=minimal'}),
       body: JSON.stringify(body)
     }).then(function(){
@@ -260,7 +260,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     var body = { type: _selectedType, author: profile, victim: victim, message: msg, active: true };
     if(lockWord) body.lock_word = lockWord;
     // On insère directement sans effacer les bêtises précédentes — la file d'attente s'en charge
-    fetch(SB_URL+'/rest/v1/'+PRANK_TABLE, {
+    fetch(SB2_URL+'/rest/v1/'+PRANK_TABLE, {
       method:'POST', headers: sbHeaders({'Prefer':'return=minimal'}),
       body: JSON.stringify(body)
     }).then(function(){
@@ -278,7 +278,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
 
   /* ── Vérification au login de la victime ── */
   window.checkActivePrank = function(profile){
-    fetch(SB_URL+'/rest/v1/'+PRANK_TABLE+'?victim=eq.'+profile+'&active=eq.true&order=created_at.asc', {
+    fetch(SB2_URL+'/rest/v1/'+PRANK_TABLE+'?victim=eq.'+profile+'&active=eq.true&order=created_at.asc', {
       headers: sbHeaders()
     })
     .then(function(r){ return r.json(); })
@@ -752,7 +752,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     setTimeout(function(){
       msg.classList.remove('show');
       if(_activePrank){
-        fetch(SB_URL+'/rest/v1/'+PRANK_TABLE+'?id=eq.'+_activePrank.id, {
+        fetch(SB2_URL+'/rest/v1/'+PRANK_TABLE+'?id=eq.'+_activePrank.id, {
           method:'PATCH',
           headers: sbHeaders({'Content-Type':'application/json','Prefer':'return=minimal'}),
           body: JSON.stringify({ active: false })
@@ -803,7 +803,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     document.body.style.top = '';
     setTimeout(function(){
       if(_activePrank){
-        fetch(SB_URL+'/rest/v1/'+PRANK_TABLE+'?id=eq.'+_activePrank.id, {
+        fetch(SB2_URL+'/rest/v1/'+PRANK_TABLE+'?id=eq.'+_activePrank.id, {
           method:'PATCH',
           headers: sbHeaders({'Content-Type':'application/json','Prefer':'return=minimal'}),
           body: JSON.stringify({ active: false })
@@ -859,7 +859,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   /* ── Marquer la bêtise comme terminée ── */
   function prankDone(){
     if(!_activePrank) return;
-    fetch(SB_URL+'/rest/v1/'+PRANK_TABLE+'?id=eq.'+_activePrank.id, {
+    fetch(SB2_URL+'/rest/v1/'+PRANK_TABLE+'?id=eq.'+_activePrank.id, {
       method:'PATCH',
       headers: sbHeaders({'Content-Type':'application/json','Prefer':'return=minimal'}),
       body: JSON.stringify({ active: false })
@@ -1168,7 +1168,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     _prankPollTimer = setInterval(function(){
       if(_activePrank){
         // Vérifier si la bêtise en cours a été annulée par l'auteur
-        fetch(SB_URL+'/rest/v1/'+PRANK_TABLE+'?id=eq.'+_activePrank.id+'&select=active', {
+        fetch(SB2_URL+'/rest/v1/'+PRANK_TABLE+'?id=eq.'+_activePrank.id+'&select=active', {
           headers: sbHeaders()
         }).then(function(r){ return r.json(); })
         .then(function(rows){
