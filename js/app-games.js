@@ -428,7 +428,7 @@ function plbRender(rows){
 // ── PUZZLE ──
 // ══════════════════════════════════════════
 // ── PUZZLE GÉNÉRATION PROCÉDURALE ──
-var PUZZLE_IMAGES=(function(){var b=SB_URL+'/storage/v1/object/public/images/';return['image-1.jpg','image-2.jpg','image-3.jpg','image-4.jpg','image-5.jpg','image-6.jpg','image-7.jpg','image-8.jpg','image-9.jpg','image-10.jpg'].map(function(f){return b+f;});})();
+var PUZZLE_IMAGES=(function(){var b=SB2_URL+'/storage/v1/object/public/images/';return['image-1.jpg','image-2.jpg','image-3.jpg','image-4.jpg','image-5.jpg','image-6.jpg','image-7.jpg','image-8.jpg','image-9.jpg','image-10.jpg'].map(function(f){return b+f;});})();
 var puzzleDataURLCurrent='', puzzleLastImage='';
 
 // Thèmes de génération
@@ -1043,8 +1043,8 @@ function renderLb(elId, rows, detailFn){
    SKYJO — JEU DE CARTES MULTIJOUEUR (v3 - sync robuste)
 ══════════════════════════════════════════════════════ */
 (function(){
-  var SKYJO_TABLE    = 'skyjo_games';
-  var SKYJO_PRESENCE = 'skyjo_presence';
+  var SKYJO_TABLE    = 'v2_skyjo_games';
+  var SKYJO_PRESENCE = 'v2_skyjo_presence';
   // ─── État global ──────────────────────────────────────
   var _gameId        = null;
   var _me            = null;   // 'girl' | 'boy'
@@ -1182,7 +1182,7 @@ function renderLb(elId, rows, detailFn){
     if(document.hidden) return; // page cachée → updated_at gèle dans Supabase, détection d'absence OK
     _lastPresenceSent = Date.now();
     function doPost(){
-      fetch(SB_URL+'/rest/v1/'+SKYJO_PRESENCE,{
+      fetch(SB2_URL+'/rest/v1/'+SKYJO_PRESENCE,{
         method:'POST',
         headers:sbHeaders({'Prefer':'resolution=merge-duplicates,return=minimal'}),
         body:JSON.stringify({profile:_me,updated_at:new Date().toISOString()})
@@ -1197,7 +1197,7 @@ function renderLb(elId, rows, detailFn){
   function deletePresence(){
     if(!_me) return;
     // keepalive:true → survit à la fermeture de page (pagehide)
-    fetch(SB_URL+'/rest/v1/'+SKYJO_PRESENCE+'?profile=eq.'+_me,{
+    fetch(SB2_URL+'/rest/v1/'+SKYJO_PRESENCE+'?profile=eq.'+_me,{
       method:'DELETE', headers:sbHeaders(), keepalive:true
     }).catch(function(){});
   }
@@ -1250,8 +1250,8 @@ function renderLb(elId, rows, detailFn){
 
     // Vérifier partie playing ET présence en même temps
     Promise.all([
-      fetch(SB_URL+'/rest/v1/'+SKYJO_TABLE+'?status=eq.playing&order=created_at.desc&limit=1&select=id,status,state,created_by',{headers:sbHeaders()}).then(function(r){return r.json();}),
-      fetch(SB_URL+'/rest/v1/'+SKYJO_PRESENCE+'?select=profile',{headers:sbHeaders()}).then(function(r){return r.json();})
+      fetch(SB2_URL+'/rest/v1/'+SKYJO_TABLE+'?status=eq.playing&order=created_at.desc&limit=1&select=id,status,state,created_by',{headers:sbHeaders()}).then(function(r){return r.json();}),
+      fetch(SB2_URL+'/rest/v1/'+SKYJO_PRESENCE+'?select=profile',{headers:sbHeaders()}).then(function(r){return r.json();})
     ])
     .then(function(results){
       var rows          = results[0];
@@ -1261,7 +1261,7 @@ function renderLb(elId, rows, detailFn){
       if(Array.isArray(rows) && rows[0]){
         if(presenceEmpty){
           // Partie fantôme (plus personne présent) → supprimer et aller en attente
-          fetch(SB_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+rows[0].id,{
+          fetch(SB2_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+rows[0].id,{
             method:'DELETE', headers:sbHeaders()
           }).catch(function(){});
         } else {
@@ -1300,7 +1300,7 @@ function renderLb(elId, rows, detailFn){
 
   // Nettoyer les vieilles parties "waiting" créées par moi (évite qu'on rejoigne une vieille partie)
   function cleanMyOldGames(cb){
-    fetch(SB_URL+'/rest/v1/'+SKYJO_TABLE+'?status=eq.waiting&created_by=eq.'+_me,{
+    fetch(SB2_URL+'/rest/v1/'+SKYJO_TABLE+'?status=eq.waiting&created_by=eq.'+_me,{
       method:'DELETE',headers:sbHeaders()
     }).then(function(){if(cb)cb();}).catch(function(){if(cb)cb();});
   }
@@ -1326,7 +1326,7 @@ function renderLb(elId, rows, detailFn){
 
     // Cas 1 : on a déjà un gameId → surveiller si ça passe à playing
     if(_gameId){
-      fetch(SB_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+_gameId+'&select=id,status,state,created_by',{
+      fetch(SB2_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+_gameId+'&select=id,status,state,created_by',{
         headers:sbHeaders()
       })
       .then(function(r){return r.json();})
@@ -1341,7 +1341,7 @@ function renderLb(elId, rows, detailFn){
     }
 
     // Cas 2 : vérifier présences
-    fetch(SB_URL+'/rest/v1/'+SKYJO_PRESENCE+'?select=profile,updated_at',{
+    fetch(SB2_URL+'/rest/v1/'+SKYJO_PRESENCE+'?select=profile,updated_at',{
       headers:sbHeaders()
     })
     .then(function(r){return r.json();})
@@ -1376,7 +1376,7 @@ function renderLb(elId, rows, detailFn){
   function doMatchmaking(){
     if(_launched) return;
 
-    fetch(SB_URL+'/rest/v1/'+SKYJO_TABLE+'?status=in.(waiting,playing)&order=created_at.desc&limit=1&select=id,status,state,created_by',{
+    fetch(SB2_URL+'/rest/v1/'+SKYJO_TABLE+'?status=in.(waiting,playing)&order=created_at.desc&limit=1&select=id,status,state,created_by',{
       headers:sbHeaders()
     })
     .then(function(r){return r.json();})
@@ -1400,7 +1400,7 @@ function renderLb(elId, rows, detailFn){
         } else {
           // C'est la partie de l'autre → je la rejoins (PATCH conditionnel anti-race)
           _gameId=game.id;
-          fetch(SB_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+game.id+'&status=eq.waiting',{
+          fetch(SB2_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+game.id+'&status=eq.waiting',{
             method:'PATCH',
             headers:sbHeaders({'Prefer':'return=representation'}),
             body:JSON.stringify({status:'playing'})
@@ -1438,7 +1438,7 @@ function renderLb(elId, rows, detailFn){
       round:1,scores:{girl:0,boy:0},
       held_card:null,must_flip:null,last_player:null,round_closer:null
     };
-    fetch(SB_URL+'/rest/v1/'+SKYJO_TABLE,{
+    fetch(SB2_URL+'/rest/v1/'+SKYJO_TABLE,{
       method:'POST',
       headers:sbHeaders({'Prefer':'return=representation'}),
       body:JSON.stringify({status:'waiting',created_by:_me,state:state})
@@ -1492,8 +1492,8 @@ function renderLb(elId, rows, detailFn){
     if(!_gameId||_saving) return;
     var oppKey = _me==='girl' ? 'boy' : 'girl';
     Promise.all([
-      fetch(SB_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+_gameId+'&select=id,status,state,created_by',{headers:sbHeaders()}).then(function(r){return r.json();}),
-      fetch(SB_URL+'/rest/v1/'+SKYJO_PRESENCE+'?select=profile,updated_at',{headers:sbHeaders()}).then(function(r){return r.json();})
+      fetch(SB2_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+_gameId+'&select=id,status,state,created_by',{headers:sbHeaders()}).then(function(r){return r.json();}),
+      fetch(SB2_URL+'/rest/v1/'+SKYJO_PRESENCE+'?select=profile,updated_at',{headers:sbHeaders()}).then(function(r){return r.json();})
     ])
     .then(function(results){
       if(_saving) return;
@@ -1534,12 +1534,12 @@ function renderLb(elId, rows, detailFn){
         resetState();
         // Supprimer la partie côté Supabase
         if(gid){
-          fetch(SB_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+gid,{
+          fetch(SB2_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+gid,{
             method:'DELETE', headers:sbHeaders()
           }).catch(function(){});
         }
         // Supprimer les deux présences (nettoyage complet)
-        fetch(SB_URL+'/rest/v1/'+SKYJO_PRESENCE,{
+        fetch(SB2_URL+'/rest/v1/'+SKYJO_PRESENCE,{
           method:'DELETE', headers:sbHeaders()
         }).catch(function(){});
         // Afficher le message puis retour au lobby
@@ -2471,7 +2471,7 @@ function renderLb(elId, rows, detailFn){
   // ─── RPC : appel atomique côté serveur ──────────────────
   function callRpc(fnName, params, livePayload){
     sjShowLoader();
-    return fetch(SB_URL+'/rest/v1/rpc/'+fnName,{
+    return fetch(SB2_URL+'/rest/v1/rpc/'+fnName,{
       method:'POST',
       headers:sbHeaders(),
       body:JSON.stringify(params)
@@ -2674,7 +2674,7 @@ function renderLb(elId, rows, detailFn){
 
   function saveState(ns){
     if(!_gameId) return;
-    fetch(SB_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+_gameId,{
+    fetch(SB2_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+_gameId,{
       method:'PATCH',
       headers:sbHeaders({'Prefer':'return=representation'}),
       body:JSON.stringify({state:ns})
@@ -2698,7 +2698,7 @@ function renderLb(elId, rows, detailFn){
     // Merge le champ live dans le state courant et PATCH
     var patch = JSON.parse(JSON.stringify(_gameState));
     patch.live = liveObj; // ex: {action:'draw_deck', val:7, ts:Date.now()}
-    fetch(SB_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+_gameId,{
+    fetch(SB2_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+_gameId,{
       method:'PATCH',
       headers:sbHeaders({'Prefer':'return=minimal'}),
       body:JSON.stringify({state:patch})
@@ -2710,7 +2710,7 @@ function renderLb(elId, rows, detailFn){
     if(!_gameId||!_gameState) return;
     var patch = JSON.parse(JSON.stringify(_gameState));
     delete patch.live;
-    fetch(SB_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+_gameId,{
+    fetch(SB2_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+_gameId,{
       method:'PATCH',
       headers:sbHeaders({'Prefer':'return=minimal'}),
       body:JSON.stringify({state:patch})
@@ -2835,7 +2835,7 @@ function renderLb(elId, rows, detailFn){
       scores:_gameState?_gameState.scores:{girl:0,boy:0},
       held_card:null,must_flip:null,last_player:null,round_closer:null
     };
-    fetch(SB_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+_gameId,{
+    fetch(SB2_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+_gameId,{
       method:'PATCH',
       headers:sbHeaders({'Prefer':'return=representation'}),
       body:JSON.stringify({status:'playing',state:ns})
@@ -2892,7 +2892,7 @@ function renderLb(elId, rows, detailFn){
   window.skyjoNewGame=function(){
     if(!_gameId) return;
     stopPoll();
-    fetch(SB_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+_gameId,{
+    fetch(SB2_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+_gameId,{
       method:'DELETE',headers:sbHeaders()
     }).then(function(){
       document.getElementById('skyjoGameEnd').style.display='none';
@@ -2930,7 +2930,7 @@ function renderLb(elId, rows, detailFn){
         resetState();
         // Supprimer la partie côté Supabase
         if(gid){
-          fetch(SB_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+gid,{
+          fetch(SB2_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+gid,{
             method:'DELETE', headers:sbHeaders()
           }).catch(function(){});
         }
@@ -2977,7 +2977,7 @@ function renderLb(elId, rows, detailFn){
       document.body.removeChild(overlay);
       resetState();
       if(gid){
-        fetch(SB_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+gid,{
+        fetch(SB2_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+gid,{
           method:'DELETE', headers:sbHeaders()
         }).catch(function(){});
       }
@@ -3088,13 +3088,13 @@ function renderLb(elId, rows, detailFn){
           // 1) Signaler l'abandon → l'adversaire le voit instantanément
           // 2) Supprimer la partie 3s après pour lui laisser le temps de lire
           var gid = _gameId;
-          fetch(SB_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+gid,{
+          fetch(SB2_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+gid,{
             method:'PATCH',
             headers:sbHeaders({'Prefer':'return=minimal'}),
             body:JSON.stringify({status:'abandoned'})
           }).catch(function(){});
           setTimeout(function(){
-            fetch(SB_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+gid,{
+            fetch(SB2_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+gid,{
               method:'DELETE',headers:sbHeaders()
             }).catch(function(){});
           }, 3000);
@@ -3131,7 +3131,7 @@ function renderLb(elId, rows, detailFn){
     // Supprimer UNIQUEMENT les parties en attente (waiting)
     // Les parties en cours (playing) restent dans Supabase → l'autre peut attendre le retour
     if(_gameId && _phase !== 'play' && _phase !== 'init1' && _phase !== 'roundEnd'){
-      fetch(SB_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+_gameId+'&status=eq.waiting',{
+      fetch(SB2_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+_gameId+'&status=eq.waiting',{
         method:'DELETE',headers:sbHeaders()
       }).catch(function(){});
     }
