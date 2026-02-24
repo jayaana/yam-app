@@ -1218,20 +1218,14 @@ function renderLb(elId, rows, detailFn){
 
   window.skyjoAuthSelect = function(profile){
     document.getElementById('skyjoAuthModal').style.display='none';
-    // Connexion réelle obligatoire : le token Supabase est requis pour skyjo_presence
-    if(typeof sbLoadSession === 'function' && sbLoadSession(profile)){
-      // Session valide → token chargé, entrer directement
+    // v2 : session active → entrée directe
+    if(typeof v2LoadSession === 'function' && v2LoadSession()){
       if(window._profileSave) window._profileSave(profile);
       if(window._profileApply) window._profileApply(profile);
       _openSkyjoWithProfile(profile);
-    } else if(window.showProfileCodeModal){
-      // Pas de session → vrai login avec code
-      window.showProfileCodeModal(profile, function(){
-        if(window._profileSave) window._profileSave(profile);
-        if(window._profileApply) window._profileApply(profile);
-        if(window._profileLoadMoods) window._profileLoadMoods();
-        _openSkyjoWithProfile(profile);
-      });
+    } else {
+      // Pas de session v2 → rediriger vers login
+      if(window.v2ShowLogin) window.v2ShowLogin();
     }
   };
 
