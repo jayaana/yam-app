@@ -965,10 +965,11 @@ function spawnHeart(){
   // Incrémenter le compteur Supabase
   var profile = getProfile() || null;
   if(!profile) return; // pas de profil = animation only
+  var cid = (typeof getCoupleId === 'function') ? getCoupleId() : 'shared';
   fetch(SB2_URL+'/rest/v1/rpc/increment_like_counter', {
     method:'POST',
     headers:sbHeaders(),
-    body:JSON.stringify({ p_profile: profile })
+    body:JSON.stringify({ p_profile: profile, p_couple_id: cid })
   }).then(function(){ loadLikeCounters(); }).catch(function(){});
 }
 
@@ -980,7 +981,11 @@ function fmtLikes(n){
 }
 
 function loadLikeCounters(){
-  sbGet('like_counters','select=profile,total').then(function(rows){
+  var cid = (typeof getCoupleId === 'function') ? getCoupleId() : 'shared';
+  var params = 'couple_id=eq.' + encodeURIComponent(cid) + '&select=profile,total';
+  fetch(SB2_URL + '/rest/v1/v2_like_counters?' + params, { headers: sbHeaders() })
+  .then(function(r){ return r.json(); })
+  .then(function(rows){
     if(!Array.isArray(rows)) return;
     rows.forEach(function(r){
       if(r.profile==='girl') document.getElementById('likeNumGirl').textContent = fmtLikes(r.total);
