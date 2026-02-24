@@ -88,7 +88,7 @@ var SB_IMG = SB_URL + '/storage/v1/object/public/images/';
 var SB2_URL        = 'https://jstiwtbgkbedtldqjdhp.supabase.co';
 var SB2_KEY        = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdGl3dGJna2JlZHRsZHFqZGhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4OTI1NTgsImV4cCI6MjA4NzQ2ODU1OH0.3W1u55aIakQxW5EyF0Sahc6Pjak1JqWhcX1ZifePH98';
 var SB2_EDGE_AUTH  = SB2_URL + '/functions/v1/auth-v2';
-var SB2_APP_SECRET = 'uj-Y_&yj8KUF37i';
+var SB2_APP_SECRET = 'ujY-yj8KUF37i';
 
 // Clé localStorage pour la session v2
 var V2_SESSION_KEY = 'yam_v2_session';
