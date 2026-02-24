@@ -74,9 +74,9 @@ async function nativeLogout(){
 
 // SUPABASE CONFIG — ancien projet (tables existantes inchangées)
 // ════════════════════════════════════════════
-var SB_URL = 'https://zjmbyjpxqrojnuymnpcf.supabase.co';
-var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqbWJ5anB4cXJvam51eW1ucGNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0MzEzNjcsImV4cCI6MjA4NzAwNzM2N30.vNRgLgCNqZ9g351YmodZoXYDqars-thVDFmri2Z3oxE';
-var SB_IMG = SB_URL + '/storage/v1/object/public/images/';
+// SB_URL (ancien projet) — supprimé, tout passe sur SB2
+// SB_KEY (ancien projet) — remplacé par SB2_KEY
+var SB_IMG = SB2_URL + '/storage/v1/object/public/images/';
 
 // SUPABASE V2 CONFIG — nouveau projet auth
 // ════════════════════════════════════════════
@@ -203,8 +203,7 @@ function escHtml(str){
 }
 // ── Init images Supabase Storage ──
 (function(){
-  document.querySelectorAll('img[src^="https://zjmbyjpxqrojnuymnpcf.supabase.co/storage/v1/object/public/images/"]').forEach(function(img){
-    img.src = img.src.replace('https://zjmbyjpxqrojnuymnpcf.supabase.co/storage/v1/object/public/images/', SB_IMG);
+  // (remplacement URLs ancien projet supprimé — plus nécessaire)
   });
 })();
 
@@ -213,7 +212,7 @@ function escHtml(str){
 // via la variable d'environnement Deno.env.get('APP_SECRET').
 var _sbAccessToken = null;
 var SB_SESSION_KEY = 'jayana_sb_session';
-var SB_EDGE_FN     = SB_URL + '/functions/v1/get-token';
+// var SB_EDGE_FN = SB2_URL + '/functions/v1/get-token';
 var SB_APP_SECRET  = 'JayanaSecret2025!';
 
 // Charge session depuis sessionStorage (plus sûr que localStorage)
@@ -251,25 +250,25 @@ function sbLogin(gender){
 }
 
 function sbHeaders(extra){
-  var token = _sbAccessToken || SB_KEY;
-  return Object.assign({'apikey':SB_KEY,'Authorization':'Bearer '+token,'Content-Type':'application/json'},extra||{});
+  var token = _sbAccessToken || SB2_KEY;
+  return Object.assign({'apikey':SB2_KEY,'Authorization':'Bearer '+token,'Content-Type':'application/json'},extra||{});
 }
 function sbGet(table,params){
-  var url=SB_URL+'/rest/v1/'+table+'?'+(params||'order=created_at.desc');
+  var url=SB2_URL+'/rest/v1/'+table+'?'+(params||'order=created_at.desc');
   return fetch(url,{headers:sbHeaders()}).then(function(r){return r.json();});
 }
 function sbPost(table,body){
-  return fetch(SB_URL+'/rest/v1/'+table,{
+  return fetch(SB2_URL+'/rest/v1/'+table,{
     method:'POST',headers:sbHeaders({'Prefer':'return=representation'}),body:JSON.stringify(body)
   }).then(function(r){return r.json();});
 }
 function sbPatch(table,id,body){
-  return fetch(SB_URL+'/rest/v1/'+table+'?id=eq.'+id,{
+  return fetch(SB2_URL+'/rest/v1/'+table+'?id=eq.'+id,{
     method:'PATCH',headers:sbHeaders({'Prefer':'return=representation'}),body:JSON.stringify(body)
   }).then(function(r){return r.json();});
 }
 function sbDelete(table,id){
-  return fetch(SB_URL+'/rest/v1/'+table+'?id=eq.'+id,{
+  return fetch(SB2_URL+'/rest/v1/'+table+'?id=eq.'+id,{
     method:'DELETE',headers:sbHeaders()
   });
 }
@@ -318,13 +317,22 @@ window.setProfile = function(gender){
 })();
 
 // ── COMPTEUR ──
+// startDate est dynamique : mis à jour par app-account.js depuis v2_couples
 var startDate = new Date('2024-10-29T00:00:00');
 function updateCounter() {
-  var d = Math.floor((new Date() - startDate) / 1000);
-  document.getElementById('cnt-days').textContent  = Math.floor(d / 86400);
-  document.getElementById('cnt-hours').textContent = String(Math.floor((d % 86400) / 3600)).padStart(2,'0');
-  document.getElementById('cnt-mins').textContent  = String(Math.floor((d % 3600) / 60)).padStart(2,'0');
-  document.getElementById('cnt-secs').textContent  = String(d % 60).padStart(2,'0');
+  // Utilise window.YAM_COUPLE.start_date si disponible (chargé depuis Supabase)
+  var ref = (window.YAM_COUPLE && window.YAM_COUPLE.start_date)
+    ? new Date(window.YAM_COUPLE.start_date)
+    : startDate;
+  var d = Math.floor((new Date() - ref) / 1000);
+  var dEl = document.getElementById('cnt-days');
+  var hEl = document.getElementById('cnt-hours');
+  var mEl = document.getElementById('cnt-mins');
+  var sEl = document.getElementById('cnt-secs');
+  if(dEl) dEl.textContent  = Math.floor(d / 86400);
+  if(hEl) hEl.textContent = String(Math.floor((d % 86400) / 3600)).padStart(2,'0');
+  if(mEl) mEl.textContent  = String(Math.floor((d % 3600) / 60)).padStart(2,'0');
+  if(sEl) sEl.textContent  = String(d % 60).padStart(2,'0');
 }
 updateCounter(); setInterval(updateCounter, 1000);
 
@@ -422,7 +430,7 @@ document.addEventListener('DOMContentLoaded', function(){
    - visibilitychange : pause heartbeat quand page cachée
 ════════════════════════════════════════════ */
 (function(){
-  var PRESENCE_TABLE  = 'presence';
+  var PRESENCE_TABLE  = 'v2_presence';
   var HEARTBEAT_MS    = 10000;   // envoyer toutes les 10s
   var POLL_MS         = 10000;   // lire toutes les 10s
   var OFFLINE_AFTER   = 20000;   // ms sans signal = offline
@@ -442,7 +450,7 @@ document.addEventListener('DOMContentLoaded', function(){
   function presencePush() {
     var profile = getProfile();
     if (!profile) return;
-    fetch(SB_URL + '/rest/v1/' + PRESENCE_TABLE, {
+    fetch(SB2_URL + '/rest/v1/' + PRESENCE_TABLE, {
       method: 'POST',
       headers: sbHeaders({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
       body: JSON.stringify({
@@ -458,7 +466,7 @@ document.addEventListener('DOMContentLoaded', function(){
     var profile = getProfile();
     if (!profile) return;
     var other = profile === 'girl' ? 'boy' : 'girl';
-    fetch(SB_URL + '/rest/v1/' + PRESENCE_TABLE + '?player=eq.' + other + '&select=last_seen,is_playing', {
+    fetch(SB2_URL + '/rest/v1/' + PRESENCE_TABLE + '?player=eq.' + other + '&select=last_seen,is_playing', {
       headers: sbHeaders()
     })
     .then(function(r){ return r.ok ? r.json() : null; })
