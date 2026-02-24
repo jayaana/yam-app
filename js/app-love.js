@@ -2,7 +2,7 @@
 // app-love.js — Page Nous : Photos Elle/Lui · Raisons · Post-its · Memo
 
 // ════════════════════════════════════════════
-// SECTION ELLE — Upload Supabase Storage (Link only)
+// SECTION ELLE — Upload Supabase Storage (boy only)
 // ════════════════════════════════════════════
 (function(){
   var SB_BUCKET = 'images';
@@ -40,13 +40,13 @@
   // ── Afficher/masquer les boutons selon profil ──
   function elleSyncEditMode(){
     var profile = getProfile();
-    var isLink = (profile === 'boy');
+    var isBoy = (profile === 'boy');
     SLOTS.forEach(function(slot){
       var btn = document.getElementById('elle-btn-' + slot);
       if(btn) btn.style.display = isLink ? '' : 'none';
       var desc = document.getElementById('elle-desc-' + slot);
       if(desc){
-        if(isLink) desc.classList.add('lui-desc-editable');
+        if(isBoy) desc.classList.add('lui-desc-editable');
         else desc.classList.remove('lui-desc-editable');
       }
     });
@@ -216,7 +216,7 @@
   // ── Afficher/masquer les boutons selon profil ──
   function luiSyncEditMode(){
     var profile = getProfile();
-    var isZelda = (profile === 'girl');
+    var isGirl = (profile === 'girl');
     SLOTS.forEach(function(slot){
       var btn = document.getElementById('lui-btn-' + slot);
       if(btn) btn.style.display = isZelda ? '' : 'none';
@@ -363,11 +363,11 @@
 
   function luiSyncDescs(){
     var profile = getProfile();
-    var isZelda = (profile === 'girl');
+    var isGirl = (profile === 'girl');
     SLOTS.forEach(function(slot){
       var el = document.getElementById('lui-desc-' + slot);
       if(!el) return;
-      if(isZelda){
+      if(isGirl){
         el.classList.add('lui-desc-editable');
       } else {
         el.classList.remove('lui-desc-editable');
@@ -713,7 +713,7 @@ buildStack();
         if(_prevUnreadCount >= 0 && unread > _prevUnreadCount && window._currentTab !== 'messages'){
           var last = rows[0]; // le plus récent (order desc)
           var emoji = other === 'girl' ? '👧' : '👦';
-          var name  = other === 'girl' ? 'Zelda' : 'Link';
+          var name  = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName(other) : emoji;
           var txt   = (last && last.text) ? last.text : '💬 Nouveau message';
           if(window.showMsgHeaderPill) window.showMsgHeaderPill(emoji, name, txt);
         }
