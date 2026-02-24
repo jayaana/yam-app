@@ -1238,7 +1238,7 @@ loadFavorites();
     modal.id = 'profileAuthModal';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;';
     var icon = gender==='girl' ? '👧' : '👦';
-    var name = gender==='girl' ? 'Zelda' : 'Link';
+    var name = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName(gender) : (gender==='girl' ? 'Elle 👧' : 'Lui 👦');
     modal.innerHTML = '<div style="background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:28px 22px;width:100%;max-width:320px;text-align:center;box-shadow:var(--shadow);">'
       +'<div style="font-size:36px;margin-bottom:8px;">'+icon+'</div>'
       +'<div style="font-family:serif;font-size:19px;font-weight:700;color:var(--text);margin-bottom:4px;">Profil '+name+'</div>'
@@ -1511,8 +1511,8 @@ loadFavorites();
         ind.className = sameSong ? 'nl-ind-together' : ('nl-ind-' + otherWho);
         if(lbl){
           if(sameSong)       lbl.textContent = 'On écoute ensemble';
-          else if(otherWho === 'girl') lbl.textContent = 'Zelda écoute';
-          else               lbl.textContent = 'Link écoute';
+          else if(otherWho === 'girl') lbl.textContent = (typeof v2GetDisplayName === 'function' ? v2GetDisplayName('girl') : 'Elle') + ' écoute';
+          else               lbl.textContent = (typeof v2GetDisplayName === 'function' ? v2GetDisplayName('boy') : 'Lui') + ' écoute';
         }
       }
     }
