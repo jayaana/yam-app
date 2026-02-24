@@ -530,48 +530,33 @@ function toggleLockPopup(){
   document.getElementById('libraryPopup').style.display = 'none';
   if(isOpen){
     lockPopup.style.display = 'none';
-    // Restore scroll
     document.body.style.overflow   = '';
     document.body.style.position   = '';
     document.body.style.width      = '';
   } else {
-    // Si un profil est déjà connecté, accès direct sans mot de passe
-    var _prof = localStorage.getItem('jayana_profile');
-    if(_prof === 'girl' || _prof === 'boy'){
+    // Si session v2 active → accès direct sans code
+    if(typeof v2LoadSession === 'function' && v2LoadSession()){
       openHiddenPage();
       return;
     }
+    // Sinon → rediriger vers l'écran login v2
+    if(window.v2ShowLogin){ window.v2ShowLogin(); return; }
     lockError.style.display = 'none';
     lockInput.value = '';
     lockPopup.style.display = 'block';
-    // Positionne immédiatement avant que le clavier s'ouvre
     if(window._positionLockPopup) window._positionLockPopup();
-    // Re-positionne après l'animation d'ouverture du clavier (~350ms)
     setTimeout(function(){ if(window._positionLockPopup) window._positionLockPopup(); }, 100);
     setTimeout(function(){ if(window._positionLockPopup) window._positionLockPopup(); }, 400);
   }
 }
-var _HASH_NEMO='eb38eebd7bef45d49aef46835c8460fc98c9af3f68f6af759a08173709cd76ea';
-var _HASH_KEVIN='a586ffe3acf28484d17760d1ddaa2af699666c870aaaa66f8cfc826a528429ce';
-var _S=(function(){var p=['Pl@','ylis','t_J4','yana','_202','5!xK','9'];return p.join('');})();
-async function _sha256(str){var buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str+_S));return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');}
+// checkCode — conservé uniquement pour le cas où le lockPopup s'affiche encore
+// (ne devrait plus arriver si v2 est bien configuré, mais garde le comportement de fallback)
 var _lockFailCount=0, _lockBlocked=false;
 async function checkCode(){
-  if(_lockBlocked) return;
-  var val=lockInput.value.trim().toUpperCase();lockError.style.display='none';
-  var h=await _sha256(val);
-  if(h===_HASH_NEMO){_lockFailCount=0;lockPopup.style.display='none';document.getElementById('prankOverlay').classList.add('show');return;}
-  if(h===_HASH_KEVIN){_lockFailCount=0;lockPopup.style.display='none';openHiddenPage();return;}
-  _lockFailCount++;
-  lockError.style.display='block';lockInput.value='';
-  if(_lockFailCount>=5){
-    _lockBlocked=true;
-    lockError.textContent='⛔ Trop de tentatives — attends 30s';
-    lockInput.disabled=true;
-    setTimeout(function(){_lockBlocked=false;_lockFailCount=0;lockInput.disabled=false;lockError.style.display='none';},30000);
-  } else {
-    lockError.textContent='❌ Code incorrect, recommence ! ('+_lockFailCount+'/5)';
-  }
+  // Avec v2, le lockPopup ne devrait plus jamais s'afficher pour une auth normale
+  // Si on arrive ici, rediriger vers v2
+  lockPopup.style.display = 'none';
+  if(window.v2ShowLogin) window.v2ShowLogin();
 }
 function closePrank(){document.getElementById('prankOverlay').classList.remove('show');lockPopup.style.display='block';lockInput.value='';}
 function openHiddenPage(){
@@ -593,22 +578,16 @@ window.instaloveAuthSelect = function(p){
     document.getElementById('hiddenPage').classList.add('active');
     particleActive=false;hideDance();window.scrollTo(0,0);
     _dmUpdateHeaderAvatars();
-    // Aller à l'écran intermédiaire avec la carte conv
-    if(window.dmShowConv) window.dmShowConv();
+    if(window._dmRawShowHome) window._dmRawShowHome();
   }
-  if(typeof sbLoadSession==='function' && sbLoadSession(p)){
+  // v2 : session valide → appliquer profil directement
+  if(typeof v2LoadSession === 'function' && v2LoadSession()){
     if(window._profileSave) window._profileSave(p);
     if(window._profileApply) window._profileApply(p);
     _afterAuth();
-  } else if(window.showProfileCodeModal){
-    window.showProfileCodeModal(p, function(){
-      if(window._profileSave) window._profileSave(p);
-      if(window._profileApply) window._profileApply(p);
-      if(window._profileLoadMoods) window._profileLoadMoods();
-      _afterAuth();
-    });
   } else {
-    _afterAuth();
+    // Pas de session v2 → rediriger vers le login v2
+    if(window.v2ShowLogin) window.v2ShowLogin();
   }
 };
 window.instaloveAuthClose = function(){
@@ -841,8 +820,8 @@ function goTo(id){resetZoom();closeAllViews();document.getElementById('libraryPo
 
     } else if(e.type === 'dm'){
       var s = e.screen;
-      var _profCheck = localStorage.getItem('jayana_profile');
-      if(_profCheck !== 'girl' && _profCheck !== 'boy') return;
+      var _profCheck = (typeof getProfile === 'function') ? getProfile() : null;
+      if(!_profCheck) return;
       var hp2 = document.getElementById('hiddenPage');
       if(!hp2 || !hp2.classList.contains('active'))
         if(window._dmRawOpen) window._dmRawOpen();
@@ -1821,4 +1800,3 @@ setTimeout(function(){
   }, 2000);
 
 })();
-
