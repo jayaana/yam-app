@@ -391,7 +391,7 @@ function validateImageFile(file){
           '<div class="album-banner">' + escHtml(book.title || 'Livre') + '</div>' +
           (canEdit ? '<div class="lui-upload-btn" onclick="booksEditClick(' + i + ')" style="opacity:0;position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:inherit;cursor:pointer;transition:opacity 0.2s;"><div style="font-size:20px;">✏️</div><div style="font-size:11px;font-weight:700;color:#fff;margin-top:4px;">Modifier</div></div>' : '') +
         '</div>' +
-        '<div class="album-desc">' + escHtml(book.desc || '') + '</div>';
+        '<div class="album-desc">' + escHtml(book.description || '') + '</div>';
 
       // Hover show edit overlay
       if(canEdit){
@@ -459,7 +459,7 @@ function validateImageFile(file){
     // Remplir
     document.getElementById('booksModalTitle').textContent = book ? 'Modifier le livre' : 'Ajouter un livre';
     document.getElementById('booksTitleInput').value = book ? (book.title || '') : '';
-    document.getElementById('booksDescInput').value  = book ? (book.desc  || '') : '';
+    document.getElementById('booksDescInput').value  = book ? (book.description  || '') : '';
     document.getElementById('booksDeleteBtn').style.display = book ? '' : 'none';
     document.getElementById('booksModalMsg').textContent = '';
 
@@ -534,7 +534,7 @@ function validateImageFile(file){
       couple_id:  cid,
       idx:        idx,
       title:      title,
-      desc:       desc,
+      description: desc,
       has_image:  hasImage,
       position:   (_editIdx !== null && _booksData[_editIdx]) ? (_booksData[_editIdx].position || _editIdx) : _booksData.length
     };
