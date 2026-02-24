@@ -62,15 +62,10 @@
 })();
 
 async function nativeLogout(){
-  // Invalide le token côté serveur si une session active existe
-  if(_sbAccessToken){
-    await fetch(SB_URL+'/auth/v1/logout', {
-      method:'POST', headers:{'apikey':SB_KEY,'Authorization':'Bearer '+_sbAccessToken}
-    }).catch(function(){});
-  }
-  sessionStorage.removeItem('jayana_sb_session');
-  localStorage.removeItem('jayana_profile');
+  // Purge session v2 + compat
   localStorage.removeItem(V2_SESSION_KEY || 'yam_v2_session');
+  localStorage.removeItem('jayana_profile');
+  sessionStorage.removeItem('jayana_sb_session');
   _sbAccessToken = null;
   location.reload();
 }
@@ -278,6 +273,49 @@ function sbDelete(table,id){
     method:'DELETE',headers:sbHeaders()
   });
 }
+
+/* ════════════════════════════════════════════
+   setProfile — NOUVEAU système v2 uniquement
+   Remplace l'ancienne logique éparpillée dans app-music.js
+   Appelé par index.html (v2DoLogin/Register/Join) et par app-nav.js
+════════════════════════════════════════════ */
+window.setProfile = function(gender){
+  var s = v2LoadSession();
+  if(!s || !s.user){
+    if(window.v2ShowLogin) window.v2ShowLogin();
+    return;
+  }
+  localStorage.setItem('jayana_profile', gender);
+  if(window._profileApply) window._profileApply(gender);
+  if(window._profileLoadMoods) window._profileLoadMoods();
+  if(window._checkUnread) window._checkUnread();
+  // Mettre à jour les noms dans le popup profil
+  var u = v2GetUser();
+  var btnGirl = document.getElementById('ppBtnGirl');
+  var btnBoy  = document.getElementById('ppBtnBoy');
+  if(btnGirl && u) btnGirl.innerHTML = '<span class="profile-popup-dot girl"></span>' + escHtml(u.role==='girl' ? (u.pseudo||'Elle') : (u.partner_pseudo||'Elle'));
+  if(btnBoy  && u) btnBoy.innerHTML  = '<span class="profile-popup-dot boy"></span>'  + escHtml(u.role==='boy'  ? (u.pseudo||'Lui')  : (u.partner_pseudo||'Lui'));
+  var pp = document.getElementById('profilePopup');
+  if(pp) pp.classList.remove('open');
+  if(window._presencePush) window._presencePush();
+};
+
+/* ════════════════════════════════════════════
+   Init au chargement : si session v2 active, sync localStorage
+════════════════════════════════════════════ */
+(function(){
+  var s = v2LoadSession();
+  if(!s || !s.user) return;
+  localStorage.setItem('jayana_profile', s.user.role);
+  document.addEventListener('DOMContentLoaded', function(){
+    var u = v2GetUser();
+    if(!u) return;
+    var btnGirl = document.getElementById('ppBtnGirl');
+    var btnBoy  = document.getElementById('ppBtnBoy');
+    if(btnGirl) btnGirl.innerHTML = '<span class="profile-popup-dot girl"></span>' + escHtml(u.role==='girl' ? (u.pseudo||'Elle') : (u.partner_pseudo||'Elle'));
+    if(btnBoy)  btnBoy.innerHTML  = '<span class="profile-popup-dot boy"></span>'  + escHtml(u.role==='boy'  ? (u.pseudo||'Lui')  : (u.partner_pseudo||'Lui'));
+  });
+})();
 
 // ── COMPTEUR ──
 var startDate = new Date('2024-10-29T00:00:00');
