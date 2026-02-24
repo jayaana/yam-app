@@ -397,7 +397,7 @@
     var bar  = $('dmReplyBar');
     var txt  = $('dmReplyBarText');
     if(!bar || !txt) return;
-    var who  = msg.sender === 'girl' ? 'Zelda' : 'Link';
+    var who  = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName(msg.sender) : (msg.sender === 'girl' ? '👧' : '👦');
     var preview = msg.message_type === 'audio' ? '🎤 Vocal' : (msg.text || '');
     if(preview.length > 40) preview = preview.slice(0,40) + '…';
     txt.textContent = who + ' : ' + preview;
@@ -540,7 +540,7 @@
             flashNewMsg();
             // Pilule notif dans le header (seulement si pas sur onglet messages)
             if(window._currentTab !== 'messages'){
-              var senderName = msg.sender === 'girl' ? 'Zelda 👧' : 'Link 👦';
+              var senderName = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName(msg.sender) : (msg.sender === 'girl' ? '👧' : '👦');
               var senderEmoji = msg.sender === 'girl' ? '👧' : '👦';
               showMsgHeaderPill(senderEmoji, senderName, msg.text || '💬');
             }
@@ -811,7 +811,7 @@
     if(msg.reply_to_text && !msg.deleted){
       var rp = document.createElement('div');
       rp.className = 'dm-reply-preview';
-      var rpWho = msg.reply_to_sender === 'girl' ? 'Zelda' : 'Link';
+      var rpWho = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName(msg.reply_to_sender) : (msg.reply_to_sender === 'girl' ? '👧' : '👦');
       var rpTxt = msg.reply_to_text.length > 45 ? msg.reply_to_text.slice(0,45)+'…' : msg.reply_to_text;
       rp.textContent = rpWho + ' : ' + rpTxt;
       bbl.appendChild(rp);
@@ -1136,7 +1136,7 @@
       var b = $('dmHomeBadge');
 
       if(p && last){
-        var who = last.sender === 'girl' ? 'Zelda' : 'Link';
+        var who = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName(last.sender) : (last.sender === 'girl' ? '👧' : '👦');
         var txt = last.deleted ? '🚫 Message supprimé' : (last.message_type === 'audio' ? '🎤 Vocal' : (last.text || ''));
         if(txt.length > 34) txt = txt.slice(0,34) + '…';
       }
