@@ -1281,7 +1281,17 @@ loadFavorites();
   }
 
   window.setProfile = function(gender){
-    // Si session déjà valide pour ce profil, pas de code demandé
+    // Vérifier d'abord la session v2
+    if(typeof v2LoadSession === 'function' && v2LoadSession()){
+      save(gender);
+      apply(gender);
+      var pp2 = document.getElementById('profilePopup');
+      if(pp2) pp2.classList.remove('open');
+      loadMoods();
+      setTimeout(function(){ location.reload(); }, 300);
+      return;
+    }
+    // Si session v1 déjà valide pour ce profil, pas de code demandé
     if(sbLoadSession(gender)){
       save(gender);
       apply(gender);
