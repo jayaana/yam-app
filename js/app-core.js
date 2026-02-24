@@ -217,9 +217,12 @@ document.getElementById('floatingThemeBtn').addEventListener('click', applyTheme
   });
 })();
 
+// ── IDs des sous-vues (partagé avec app-pranks.js pour les MutationObservers) ──
+var _subviewIds = ['gamesView','memoryView','penduView','puzzleView','snakeView','skyjoView','quizView','hiddenPage','prankMenu'];
+
 // Gestion de la visibilité du bouton flottant selon la vue active
 function updateFloatingThemeBtn() {
-  var subviews = ['gamesView','memoryView','penduView','puzzleView','snakeView','skyjoView','quizView','hiddenPage'];
+  var subviews = _subviewIds;
   var open = subviews.some(function(id) {
     var el = document.getElementById(id);
     return el && (el.classList.contains('active') || el.style.display === 'block');
