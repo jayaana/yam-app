@@ -177,7 +177,7 @@ function v2DoJoin(){
   var password = document.getElementById('v2JoinPassword').value;
   var code     = document.getElementById('v2JoinCode').value.trim().toUpperCase();
   if(!pseudo || !password || !code){ v2SetError('Remplis tous les champs'); return; }
-  if(!_v2SelectedJoinRole){ v2SetError('Choisis Zelda ou Link'); return; }
+  if(!_v2SelectedJoinRole){ v2SetError('Choisis Elle ou Lui'); return; }
   v2SetError(''); v2SetLoading(true);
   v2Join(pseudo, password, _v2SelectedJoinRole, code).then(function(res){
     v2SetLoading(false);
@@ -203,13 +203,107 @@ function v2CopyCode(el, code){
 
 function v2CloseLogin(){
   document.getElementById('v2LoginOverlay').classList.remove('active');
+  // Après connexion, appliquer les noms dynamiques partout dans l'UI
+  setTimeout(v2ApplyDynamicNames, 100);
 }
 
 function v2ShowLogin(){
   document.getElementById('v2LoginOverlay').classList.add('active');
 }
 
-// Afficher l'écran login si pas de session v2 active
+/* ════════════════════════════════════════════
+   v2ApplyDynamicNames — Remplace Zelda/Link par les vrais pseudos
+   Appelée après la connexion et au chargement si session active
+════════════════════════════════════════════ */
+function v2ApplyDynamicNames(){
+  if(typeof v2GetUser !== 'function') return;
+  var u = v2GetUser();
+  if(!u) return;
+
+  var girlName = u.role === 'girl' ? (u.pseudo||'Elle') : (u.partner_pseudo||'Elle');
+  var boyName  = u.role === 'boy'  ? (u.pseudo||'Lui')  : (u.partner_pseudo||'Lui');
+
+  // Popup profil
+  var btnGirl = document.getElementById('ppBtnGirl');
+  var btnBoy  = document.getElementById('ppBtnBoy');
+  if(btnGirl) btnGirl.innerHTML = '<span class="profile-popup-dot girl"></span>' + girlName;
+  if(btnBoy)  btnBoy.innerHTML  = '<span class="profile-popup-dot boy"></span>'  + boyName;
+
+  // Bloc météo humeur (onglet home)
+  var elleEl = document.getElementById('yamMoodElleName');
+  var luiEl  = document.getElementById('yamMoodLuiName');
+  if(elleEl) elleEl.textContent = girlName;
+  if(luiEl)  luiEl.textContent  = boyName;
+
+  // En-têtes InstaLove (DM)
+  var dmGirl = document.getElementById('dmIdNameGirl');
+  var dmBoy  = document.getElementById('dmIdNameBoy');
+  if(dmGirl) dmGirl.textContent = girlName;
+  if(dmBoy)  dmBoy.textContent  = boyName;
+
+  // Sélecteurs de jeux — cibler les textes par span ID ou innerHTML simple
+  var gameGirlBtns = ['penduGenderGirl','puzzleGenderGirl','snakeGenderGirl'];
+  var gameBoyBtns  = ['penduGenderBoy', 'puzzleGenderBoy', 'snakeGenderBoy'];
+  gameGirlBtns.forEach(function(id){
+    var el = document.getElementById(id); if(!el) return;
+    var icon = el.querySelector('.gender-select-icon'); el.textContent = ''; if(icon) el.appendChild(icon); el.appendChild(document.createTextNode(girlName));
+  });
+  gameBoyBtns.forEach(function(id){
+    var el = document.getElementById(id); if(!el) return;
+    var icon = el.querySelector('.gender-select-icon'); el.textContent = ''; if(icon) el.appendChild(icon); el.appendChild(document.createTextNode(boyName));
+  });
+
+  // Memory — cibler les spans de nom
+  var mgn = document.getElementById('memGenderGirlName'); if(mgn) mgn.textContent = girlName;
+  var mbn = document.getElementById('memGenderBoyName');  if(mbn) mbn.textContent = boyName;
+
+  // Skyjo auth modal
+  var sgn = document.getElementById('skyjoAuthGirlName'); if(sgn) sgn.textContent = girlName;
+  var sbn = document.getElementById('skyjoAuthBoyName');  if(sbn) sbn.textContent = boyName;
+
+  // Labels Skyjo (opponent = l'autre, my = moi)
+  var skyjoOpp = document.getElementById('skyjoOpponentLabel');
+  var skyjoMy  = document.getElementById('skyjoMyLabel');
+  if(u.role === 'girl'){
+    if(skyjoMy)  skyjoMy.textContent  = girlName;
+    if(skyjoOpp) skyjoOpp.textContent = boyName;
+  } else {
+    if(skyjoMy)  skyjoMy.textContent  = boyName;
+    if(skyjoOpp) skyjoOpp.textContent = girlName;
+  }
+  var rlLeft  = document.getElementById('skyjoRoundLabelLeft');
+  var rlRight = document.getElementById('skyjoRoundLabelRight');
+  if(rlLeft)  rlLeft.textContent  = '👧 ' + girlName;
+  if(rlRight) rlRight.textContent = '👦 ' + boyName;
+  var flLeft  = document.getElementById('skyjoFinalLabelLeft');
+  var flRight = document.getElementById('skyjoFinalLabelRight');
+  if(flLeft)  flLeft.textContent  = girlName;
+  if(flRight) flRight.textContent = boyName;
+
+  // Labels Skyjo wait screen
+  var swg = document.getElementById('skyjoWaitNameGirl'); if(swg) swg.textContent = girlName;
+  var swb = document.getElementById('skyjoWaitNameBoy');  if(swb) swb.textContent = boyName;
+
+  // InstaLove auth modal
+  var iag = document.getElementById('instaloveAuthGirlName'); if(iag) iag.textContent = girlName;
+  var iab = document.getElementById('instaloveAuthBoyName');  if(iab) iab.textContent = boyName;
+
+  // Boutons suggestion chanson
+  var sgGirl = document.getElementById('sgBtnGirlName'); if(sgGirl) sgGirl.textContent = girlName;
+  var sgBoy  = document.getElementById('sgBtnBoyName');  if(sgBoy)  sgBoy.textContent  = boyName;
+
+  // Bêtises
+  var prankLockTitle = document.getElementById('prankLockTitle');
+  if(prankLockTitle) prankLockTitle.textContent = 'Accès bloqué par ' + boyName;
+
+  // Appliquer aussi les noms dans le profilePopup (compat app-core.js)
+  if(typeof escHtml === 'function'){
+    if(btnGirl) btnGirl.innerHTML = '<span class="profile-popup-dot girl"></span>' + escHtml(girlName);
+    if(btnBoy)  btnBoy.innerHTML  = '<span class="profile-popup-dot boy"></span>'  + escHtml(boyName);
+  }
+}
+
+// Appliquer au chargement si session déjà active
 (function(){
   function checkV2Session(){
     try{
@@ -218,7 +312,12 @@ function v2ShowLogin(){
     }catch(e){}
     return false;
   }
-  if(!checkV2Session()) v2ShowLogin();
+  if(!checkV2Session()){
+    v2ShowLogin();
+  } else {
+    // Session active : appliquer les noms après chargement des scripts
+    window.addEventListener('load', function(){ setTimeout(v2ApplyDynamicNames, 200); });
+  }
 })();
 </script>
 
@@ -341,7 +440,7 @@ function v2ShowLogin(){
     <div class="yam-mood-card" id="yamMoodElle">
       <div class="yam-mood-avatar" id="yamMoodElleAvatar">👧</div>
       <div class="yam-mood-info">
-        <div class="yam-mood-name">Zelda</div>
+        <div class="yam-mood-name elle-name" id="yamMoodElleName">Zelda</div>
         <div class="yam-mood-state" id="yamMoodElleState">—</div>
         <div class="yam-mood-likes" id="likeBadgeGirl"><span id="likeNumGirl" style="font-weight:700;color:#e879a0;">—</span> <span style="color:#e879a0;">♥</span></div>
       </div>
@@ -362,7 +461,7 @@ function v2ShowLogin(){
     <div class="yam-mood-card" id="yamMoodLui">
       <div class="yam-mood-avatar" id="yamMoodLuiAvatar">👦</div>
       <div class="yam-mood-info">
-        <div class="yam-mood-name">Link</div>
+        <div class="yam-mood-name lui-name" id="yamMoodLuiName">Link</div>
         <div class="yam-mood-state" id="yamMoodLuiState">—</div>
         <div class="yam-mood-likes" id="likeBadgeBoy"><span id="likeNumBoy" style="font-weight:700;color:#5b9cf6;">—</span> <span style="color:#5b9cf6;">♥</span></div>
       </div>
@@ -1114,12 +1213,12 @@ function v2ShowLogin(){
       <div class="dm-id-btns">
         <button id="dmIdBtnGirl" class="dm-id-btn dm-id-girl" onclick="dmSetIdentity('girl')">
           <div class="dm-avatar dm-avatar-girl dm-id-av" style="font-size:22px;background:none;">👧</div>
-          <span class="dm-id-name">Zelda</span>
+          <span class="dm-id-name" id="dmIdNameGirl">Zelda</span>
           <span class="dm-id-sub2">Elle 💕</span>
         </button>
         <button id="dmIdBtnBoy" class="dm-id-btn dm-id-boy" onclick="dmSetIdentity('boy')">
           <div class="dm-avatar dm-avatar-boy dm-id-av" style="font-size:22px;background:none;">👦</div>
-          <span class="dm-id-name">Link</span>
+          <span class="dm-id-name" id="dmIdNameBoy">Link</span>
           <span class="dm-id-sub2">Lui 💙</span>
         </button>
       </div>
@@ -1232,11 +1331,11 @@ function v2ShowLogin(){
       <div class="gender-select-btns">
         <button class="gender-select-btn" id="memGenderGirl" onclick="memorySelectGender('girl')">
           <span class="gender-select-icon girl-dot"></span>
-          Zelda
+          <span id="memGenderGirlName">Zelda</span>
         </button>
         <button class="gender-select-btn" id="memGenderBoy" onclick="memorySelectGender('boy')">
           <span class="gender-select-icon boy-dot"></span>
-          Link
+          <span id="memGenderBoyName">Link</span>
         </button>
       </div>
     </div>
@@ -1467,13 +1566,13 @@ function v2ShowLogin(){
       <div style="display:flex;gap:12px;align-items:center;margin-top:4px;">
         <div class="skyjo-player-bubble" id="skyjoWaitBubbleGirl">
           <span style="font-size:22px">👧</span>
-          <div style="font-size:10px;font-weight:700;color:var(--sub)">Zelda</div>
+          <div style="font-size:10px;font-weight:700;color:var(--sub)" id="skyjoWaitNameGirl">Zelda</div>
           <div class="skyjo-presence-dot" id="skyjoPresenceGirl"></div>
         </div>
         <div style="font-size:24px;color:var(--muted)">vs</div>
         <div class="skyjo-player-bubble" id="skyjoWaitBubbleBoy">
           <span style="font-size:22px">👦</span>
-          <div style="font-size:10px;font-weight:700;color:var(--sub)">Link</div>
+          <div style="font-size:10px;font-weight:700;color:var(--sub)" id="skyjoWaitNameBoy">Link</div>
           <div class="skyjo-presence-dot" id="skyjoPresenceBoy"></div>
         </div>
       </div>
@@ -1868,11 +1967,11 @@ function v2ShowLogin(){
     <div class="sg-gender-row">
       <button class="sg-gender-btn" id="sgBtnGirl" onclick="sgSelectGender('girl')">
         <span class="sg-gender-icon girl-icon"></span>
-        Zelda
+        <span id="sgBtnGirlName">Zelda</span>
       </button>
       <button class="sg-gender-btn" id="sgBtnBoy" onclick="sgSelectGender('boy')">
         <span class="sg-gender-icon boy-icon"></span>
-        Link
+        <span id="sgBtnBoyName">Link</span>
       </button>
     </div>
     <div class="sg-field-label">Titre de la musique *</div>
@@ -1977,11 +2076,11 @@ function v2ShowLogin(){
     <div style="display:flex;gap:10px;margin-bottom:16px;">
       <button onclick="instaloveAuthSelect('girl')" style="flex:1;padding:14px 0;background:rgba(232,121,160,0.12);color:#e879a0;border:1.5px solid rgba(232,121,160,0.4);border-radius:14px;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;">
         <span style="font-size:24px;">👧</span>
-        <span>Zelda</span>
+        <span id="instaloveAuthGirlName">Zelda</span>
       </button>
       <button onclick="instaloveAuthSelect('boy')" style="flex:1;padding:14px 0;background:rgba(91,156,246,0.12);color:#5b9cf6;border:1.5px solid rgba(91,156,246,0.4);border-radius:14px;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;">
         <span style="font-size:24px;">👦</span>
-        <span>Link</span>
+        <span id="instaloveAuthBoyName">Link</span>
       </button>
     </div>
     <span onclick="instaloveAuthClose()" style="font-size:12px;color:var(--muted);cursor:pointer;">Annuler</span>
@@ -1994,13 +2093,13 @@ function v2ShowLogin(){
     <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;">Skyjo</div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Choisis ton profil pour jouer</div>
     <div style="display:flex;gap:10px;margin-bottom:16px;">
-      <button onclick="skyjoAuthSelect('girl')" style="flex:1;padding:14px 0;background:rgba(232,121,160,0.12);color:#e879a0;border:1.5px solid rgba(232,121,160,0.4);border-radius:14px;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <button id="skyjoAuthGirl" onclick="skyjoAuthSelect('girl')" style="flex:1;padding:14px 0;background:rgba(232,121,160,0.12);color:#e879a0;border:1.5px solid rgba(232,121,160,0.4);border-radius:14px;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;">
         <span style="font-size:24px;">👧</span>
-        <span>Zelda</span>
+        <span id="skyjoAuthGirlName">Zelda</span>
       </button>
-      <button onclick="skyjoAuthSelect('boy')" style="flex:1;padding:14px 0;background:rgba(91,156,246,0.12);color:#5b9cf6;border:1.5px solid rgba(91,156,246,0.4);border-radius:14px;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <button id="skyjoAuthBoy" onclick="skyjoAuthSelect('boy')" style="flex:1;padding:14px 0;background:rgba(91,156,246,0.12);color:#5b9cf6;border:1.5px solid rgba(91,156,246,0.4);border-radius:14px;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;">
         <span style="font-size:24px;">👦</span>
-        <span>Link</span>
+        <span id="skyjoAuthBoyName">Link</span>
       </button>
     </div>
     <span onclick="skyjoAuthClose()" style="font-size:12px;color:var(--muted);cursor:pointer;">Annuler</span>
