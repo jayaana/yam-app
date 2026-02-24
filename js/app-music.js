@@ -1229,88 +1229,18 @@ loadFavorites();
     }
   });
 
-  // Modal de code profil
-  window.showProfileCodeModal = function showProfileCodeModal(gender, onSuccess){
-    // Crée la modal si elle n'existe pas
-    var existing = document.getElementById('profileAuthModal');
-    if(existing) existing.remove();
-    var modal = document.createElement('div');
-    modal.id = 'profileAuthModal';
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;';
-    var icon = gender==='girl' ? '👧' : '👦';
-    var name = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName(gender) : (gender==='girl' ? 'Elle 👧' : 'Lui 👦');
-    modal.innerHTML = '<div style="background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:28px 22px;width:100%;max-width:320px;text-align:center;box-shadow:var(--shadow);">'
-      +'<div style="font-size:36px;margin-bottom:8px;">'+icon+'</div>'
-      +'<div style="font-family:serif;font-size:19px;font-weight:700;color:var(--text);margin-bottom:4px;">Profil '+name+'</div>'
-      +'<div style="font-size:12px;color:var(--muted);margin-bottom:18px;">Entre le code pour te connecter</div>'
-      +'<input id="profileAuthInput" type="password" placeholder="Code..." autocomplete="off" style="width:100%;padding:11px 14px;font-size:15px;border:1px solid var(--border);border-radius:8px;background:var(--s2);color:var(--text);font-family:sans-serif;outline:none;text-align:center;letter-spacing:3px;box-sizing:border-box;">'
-      +'<div id="profileAuthErr" style="font-size:11px;color:#e05555;margin-top:8px;display:none;">❌ Code incorrect, réessaie !</div>'
-      +'<button id="profileAuthBtn" style="width:100%;padding:12px;margin-top:10px;background:var(--green);color:#000;font-weight:700;font-size:14px;font-family:sans-serif;border:none;border-radius:8px;cursor:pointer;">Valider</button>'
-      +'<span id="profileAuthCancel" style="font-size:11px;color:var(--muted);cursor:pointer;margin-top:10px;display:block;">Annuler</span>'
-      +'</div>';
-    document.body.appendChild(modal);
-    var input = document.getElementById('profileAuthInput');
-    var err   = document.getElementById('profileAuthErr');
-    var btn   = document.getElementById('profileAuthBtn');
-    var cancel= document.getElementById('profileAuthCancel');
-    setTimeout(function(){ input.focus(); }, 80);
-    var _S2 = atob('UGxAeWxpc3RfSjR5YW5hXzIwMjUheEs5');
-    var _HASH_BILOUTE = 'a586ffe3acf28484d17760d1ddaa2af699666c870aaaa66f8cfc826a528429ce';
-    async function tryAuth(){
-      var val = input.value.trim().toUpperCase();
-      var h = await _sha256(val);
-      if(h !== _HASH_BILOUTE){ err.style.display='block'; input.value=''; input.focus(); return; }
-      btn.textContent = '⏳ Connexion...';
-      btn.disabled = true;
-      var ok = await sbLogin(gender);
-      if(ok){
-        modal.remove();
-        onSuccess();
-      } else {
-        btn.textContent = 'Valider';
-        btn.disabled = false;
-        err.style.display = 'block';
-        err.textContent = '❌ Erreur de connexion, réessaie !';
-        input.value = '';
-        input.focus();
-      }
-    }
-    btn.addEventListener('click', tryAuth);
-    input.addEventListener('keydown', function(e){ if(e.key==='Enter') tryAuth(); });
-    cancel.addEventListener('click', function(){ modal.remove(); });
-  }
-
-  window.setProfile = function(gender){
-    // Vérifier d'abord la session v2
+  // showProfileCodeModal et setProfile sont désormais gérés dans app-core.js (système v2)
+  // Ces stubs permettent la compatibilité si un autre fichier les appelle encore
+  window.showProfileCodeModal = function(gender, onSuccess){
+    // Système v2 : si session active, appeler directement onSuccess
     if(typeof v2LoadSession === 'function' && v2LoadSession()){
-      save(gender);
-      apply(gender);
-      var pp2 = document.getElementById('profilePopup');
-      if(pp2) pp2.classList.remove('open');
-      loadMoods();
-      setTimeout(function(){ location.reload(); }, 300);
+      if(window._profileSave) window._profileSave(gender);
+      if(window._profileApply) window._profileApply(gender);
+      if(onSuccess) onSuccess();
       return;
     }
-    // Si session v1 déjà valide pour ce profil, pas de code demandé
-    if(sbLoadSession(gender)){
-      save(gender);
-      apply(gender);
-      var pp = document.getElementById('profilePopup');
-      if(pp) pp.classList.remove('open');
-      loadMoods();
-      setTimeout(function(){ location.reload(); }, 300);
-      return;
-    }
-    // Sinon, demander le code une fois
-    var pp = document.getElementById('profilePopup');
-    if(pp) pp.classList.remove('open');
-    showProfileCodeModal(gender, function(){
-      save(gender);
-      apply(gender);
-      loadMoods();
-      if(window._checkUnread) window._checkUnread();
-      setTimeout(function(){ location.reload(); }, 300);
-    });
+    // Sinon : afficher l'écran login v2
+    if(window.v2ShowLogin) window.v2ShowLogin();
   };
 
   window.toggleProfilePopup = function(){
@@ -1331,10 +1261,10 @@ loadFavorites();
       picker.classList.remove('open');
   });
 
-  // Au démarrage : charger la session Supabase si un profil est déjà mémorisé
+  // Au démarrage : charger l'état depuis la session v2
   (function(){
     var saved = get();
-    if(saved) sbLoadSession(saved); // restaure le token en mémoire si valide
+    // Plus besoin de sbLoadSession ici — app-core.js gère la session v2
   })();
   apply(get());
   if(get()) loadMoods();
