@@ -109,217 +109,7 @@
 .v2-loader { font-size: 20px; margin-top: 8px; }
 </style>
 
-<script>
-// ══════════════════════════════════════════
-// LOGIN V2 — Interface
-// ══════════════════════════════════════════
-var _v2SelectedRole     = null;
-var _v2SelectedJoinRole = null;
 
-function v2SwitchTab(tab){
-  ['login','register','join'].forEach(function(t){
-    document.getElementById('v2Tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active', t===tab);
-    document.getElementById('v2Form'+t.charAt(0).toUpperCase()+t.slice(1)).style.display = t===tab ? 'flex' : 'none';
-  });
-  document.getElementById('v2LoginError').textContent = '';
-}
-
-function v2SelectRole(role){
-  _v2SelectedRole = role;
-  document.getElementById('v2RoleGirl').classList.toggle('selected', role==='girl');
-  document.getElementById('v2RoleBoy').classList.toggle('selected',  role==='boy');
-}
-
-function v2SelectJoinRole(role){
-  _v2SelectedJoinRole = role;
-  document.getElementById('v2JoinRoleGirl').classList.toggle('selected', role==='girl');
-  document.getElementById('v2JoinRoleBoy').classList.toggle('selected',  role==='boy');
-}
-
-function v2SetError(msg){ document.getElementById('v2LoginError').textContent = msg || ''; }
-function v2SetLoading(on){
-  document.getElementById('v2LoginLoader').style.display = on ? 'block' : 'none';
-  document.querySelectorAll('.v2-btn').forEach(function(b){ b.disabled = on; });
-}
-
-function v2DoLogin(){
-  var pseudo   = document.getElementById('v2LoginPseudo').value.trim();
-  var password = document.getElementById('v2LoginPassword').value;
-  if(!pseudo || !password){ v2SetError('Remplis tous les champs'); return; }
-  v2SetError(''); v2SetLoading(true);
-  v2Login(pseudo, password).then(function(res){
-    v2SetLoading(false);
-    if(!res.ok){ v2SetError(res.error); return; }
-    v2CloseLogin();
-    if(window.setProfile) window.setProfile(res.data.user.role);
-  });
-}
-
-function v2DoRegister(){
-  var pseudo   = document.getElementById('v2RegPseudo').value.trim();
-  var password = document.getElementById('v2RegPassword').value;
-  if(!pseudo || !password){ v2SetError('Remplis tous les champs'); return; }
-  if(!_v2SelectedRole){ v2SetError('Choisis ton rôle (Elle ou Lui)'); return; }
-  v2SetError(''); v2SetLoading(true);
-  v2Register(pseudo, password, _v2SelectedRole).then(function(res){
-    v2SetLoading(false);
-    if(!res.ok){ v2SetError(res.error); return; }
-    var info = document.getElementById('v2RegInfo');
-    var codeHtml = '<span id="v2CoupleCodeDisplay" style="display:inline-block;background:var(--s2);border:2px solid var(--green);border-radius:10px;padding:8px 18px;font-size:20px;font-weight:800;letter-spacing:3px;cursor:pointer;margin:6px 0;" onclick="v2CopyCode(this,\''+res.data.couple_code+'\')" title="Appuie pour copier">'+res.data.couple_code+'</span>';
-    info.innerHTML = '🎉 Compte créé !<br><span style="font-size:12px;color:var(--muted)">Ton code couple :</span><br>'+codeHtml+'<br><span style="font-size:11px;color:var(--muted)">👆 Appuie pour copier · partage-le à ton partenaire</span>';
-    info.style.display = 'block';
-    setTimeout(function(){ v2CloseLogin(); if(window.setProfile) window.setProfile(res.data.user.role); }, 6000);
-  });
-}
-
-function v2DoJoin(){
-  var pseudo   = document.getElementById('v2JoinPseudo').value.trim();
-  var password = document.getElementById('v2JoinPassword').value;
-  var code     = document.getElementById('v2JoinCode').value.trim().toUpperCase();
-  if(!pseudo || !password || !code){ v2SetError('Remplis tous les champs'); return; }
-  if(!_v2SelectedJoinRole){ v2SetError('Choisis Elle ou Lui'); return; }
-  v2SetError(''); v2SetLoading(true);
-  v2Join(pseudo, password, _v2SelectedJoinRole, code).then(function(res){
-    v2SetLoading(false);
-    if(!res.ok){ v2SetError(res.error); return; }
-    v2CloseLogin(); if(window.setProfile) window.setProfile(res.data.user.role);
-  });
-}
-
-function v2CopyCode(el, code){
-  if(navigator.clipboard){
-    navigator.clipboard.writeText(code).then(function(){
-      el.textContent = '✅ Copié !';
-      setTimeout(function(){ el.textContent = code; }, 2000);
-    }).catch(function(){
-      el.textContent = '✅ Copié !';
-      setTimeout(function(){ el.textContent = code; }, 2000);
-    });
-  } else {
-    el.textContent = '✅ Copié !';
-    setTimeout(function(){ el.textContent = code; }, 2000);
-  }
-}
-
-function v2CloseLogin(){
-  document.getElementById('v2LoginOverlay').classList.remove('active');
-  // Après connexion, appliquer les noms dynamiques partout dans l'UI
-  setTimeout(v2ApplyDynamicNames, 100);
-}
-
-function v2ShowLogin(){
-  document.getElementById('v2LoginOverlay').classList.add('active');
-}
-
-/* ════════════════════════════════════════════
-   v2ApplyDynamicNames — Remplace Zelda/Link par les vrais pseudos
-   Appelée après la connexion et au chargement si session active
-════════════════════════════════════════════ */
-function v2ApplyDynamicNames(){
-  if(typeof v2GetUser !== 'function') return;
-  var u = v2GetUser();
-  if(!u) return;
-
-  var girlName = u.role === 'girl' ? (u.pseudo||'Elle') : (u.partner_pseudo||'Elle');
-  var boyName  = u.role === 'boy'  ? (u.pseudo||'Lui')  : (u.partner_pseudo||'Lui');
-
-  // Popup profil
-  var btnGirl = document.getElementById('ppBtnGirl');
-  var btnBoy  = document.getElementById('ppBtnBoy');
-  if(btnGirl) btnGirl.innerHTML = '<span class="profile-popup-dot girl"></span>' + girlName;
-  if(btnBoy)  btnBoy.innerHTML  = '<span class="profile-popup-dot boy"></span>'  + boyName;
-
-  // Bloc météo humeur (onglet home)
-  var elleEl = document.getElementById('yamMoodElleName');
-  var luiEl  = document.getElementById('yamMoodLuiName');
-  if(elleEl) elleEl.textContent = girlName;
-  if(luiEl)  luiEl.textContent  = boyName;
-
-  // En-têtes InstaLove (DM)
-  var dmGirl = document.getElementById('dmIdNameGirl');
-  var dmBoy  = document.getElementById('dmIdNameBoy');
-  if(dmGirl) dmGirl.textContent = girlName;
-  if(dmBoy)  dmBoy.textContent  = boyName;
-
-  // Sélecteurs de jeux — cibler les textes par span ID ou innerHTML simple
-  var gameGirlBtns = ['penduGenderGirl','puzzleGenderGirl','snakeGenderGirl'];
-  var gameBoyBtns  = ['penduGenderBoy', 'puzzleGenderBoy', 'snakeGenderBoy'];
-  gameGirlBtns.forEach(function(id){
-    var el = document.getElementById(id); if(!el) return;
-    var icon = el.querySelector('.gender-select-icon'); el.textContent = ''; if(icon) el.appendChild(icon); el.appendChild(document.createTextNode(girlName));
-  });
-  gameBoyBtns.forEach(function(id){
-    var el = document.getElementById(id); if(!el) return;
-    var icon = el.querySelector('.gender-select-icon'); el.textContent = ''; if(icon) el.appendChild(icon); el.appendChild(document.createTextNode(boyName));
-  });
-
-  // Memory — cibler les spans de nom
-  var mgn = document.getElementById('memGenderGirlName'); if(mgn) mgn.textContent = girlName;
-  var mbn = document.getElementById('memGenderBoyName');  if(mbn) mbn.textContent = boyName;
-
-  // Skyjo auth modal
-  var sgn = document.getElementById('skyjoAuthGirlName'); if(sgn) sgn.textContent = girlName;
-  var sbn = document.getElementById('skyjoAuthBoyName');  if(sbn) sbn.textContent = boyName;
-
-  // Labels Skyjo (opponent = l'autre, my = moi)
-  var skyjoOpp = document.getElementById('skyjoOpponentLabel');
-  var skyjoMy  = document.getElementById('skyjoMyLabel');
-  if(u.role === 'girl'){
-    if(skyjoMy)  skyjoMy.textContent  = girlName;
-    if(skyjoOpp) skyjoOpp.textContent = boyName;
-  } else {
-    if(skyjoMy)  skyjoMy.textContent  = boyName;
-    if(skyjoOpp) skyjoOpp.textContent = girlName;
-  }
-  var rlLeft  = document.getElementById('skyjoRoundLabelLeft');
-  var rlRight = document.getElementById('skyjoRoundLabelRight');
-  if(rlLeft)  rlLeft.textContent  = '👧 ' + girlName;
-  if(rlRight) rlRight.textContent = '👦 ' + boyName;
-  var flLeft  = document.getElementById('skyjoFinalLabelLeft');
-  var flRight = document.getElementById('skyjoFinalLabelRight');
-  if(flLeft)  flLeft.textContent  = girlName;
-  if(flRight) flRight.textContent = boyName;
-
-  // Labels Skyjo wait screen
-  var swg = document.getElementById('skyjoWaitNameGirl'); if(swg) swg.textContent = girlName;
-  var swb = document.getElementById('skyjoWaitNameBoy');  if(swb) swb.textContent = boyName;
-
-  // InstaLove auth modal
-  var iag = document.getElementById('instaloveAuthGirlName'); if(iag) iag.textContent = girlName;
-  var iab = document.getElementById('instaloveAuthBoyName');  if(iab) iab.textContent = boyName;
-
-  // Boutons suggestion chanson
-  var sgGirl = document.getElementById('sgBtnGirlName'); if(sgGirl) sgGirl.textContent = girlName;
-  var sgBoy  = document.getElementById('sgBtnBoyName');  if(sgBoy)  sgBoy.textContent  = boyName;
-
-  // Bêtises
-  var prankLockTitle = document.getElementById('prankLockTitle');
-  if(prankLockTitle) prankLockTitle.textContent = 'Accès bloqué par ' + boyName;
-
-  // Appliquer aussi les noms dans le profilePopup (compat app-core.js)
-  if(typeof escHtml === 'function'){
-    if(btnGirl) btnGirl.innerHTML = '<span class="profile-popup-dot girl"></span>' + escHtml(girlName);
-    if(btnBoy)  btnBoy.innerHTML  = '<span class="profile-popup-dot boy"></span>'  + escHtml(boyName);
-  }
-}
-
-// Appliquer au chargement si session déjà active
-(function(){
-  function checkV2Session(){
-    try{
-      var s = JSON.parse(localStorage.getItem('yam_v2_session')||'null');
-      if(s && s.token && s.expires_at && new Date(s.expires_at) > new Date()) return true;
-    }catch(e){}
-    return false;
-  }
-  if(!checkV2Session()){
-    v2ShowLogin();
-  } else {
-    // Session active : appliquer les noms après chargement des scripts
-    window.addEventListener('load', function(){ setTimeout(v2ApplyDynamicNames, 200); });
-  }
-})();
-</script>
 
 <div id="pullRefreshIndicator">
   <span class="ptr-arrow" id="ptrArrow">↓</span>
@@ -580,7 +370,7 @@ function v2ApplyDynamicNames(){
     <div class="album-card lui-card-wrap" data-slot="elle-animal">
       <div class="album-image">
         <span class="album-heart">🤍</span>
-        <img id="elle-img-animal" loading="lazy" decoding="async" src="" onerror="this.onerror=null;this.src='assets/images/image-1.jpg'" onload="this.classList.add('loaded')">
+        <img id="elle-img-animal" loading="lazy" decoding="async" src="https://zjmbyjpxqrojnuymnpcf.supabase.co/storage/v1/object/public/images/image-1.jpg" onerror="this.onerror=null;this.src='assets/images/image-1.jpg'" onload="this.classList.add('loaded')">
         <div class="skeleton-overlay" id="skel-elle-animal"></div>
         <div class="album-banner">Animal</div>
         <div class="lui-upload-btn" id="elle-btn-animal" onclick="elleUploadClick('animal')">
@@ -597,7 +387,7 @@ function v2ApplyDynamicNames(){
     <div class="album-card lui-card-wrap" data-slot="elle-fleurs">
       <div class="album-image">
         <span class="album-heart">🤍</span>
-        <img id="elle-img-fleurs" loading="lazy" decoding="async" src="" onerror="this.onerror=null;this.src='assets/images/image-2.jpg'" onload="this.classList.add('loaded')">
+        <img id="elle-img-fleurs" loading="lazy" decoding="async" src="https://zjmbyjpxqrojnuymnpcf.supabase.co/storage/v1/object/public/images/image-2.jpg" onerror="this.onerror=null;this.src='assets/images/image-2.jpg'" onload="this.classList.add('loaded')">
         <div class="skeleton-overlay" id="skel-elle-fleurs"></div>
         <div class="album-banner">Fleurs</div>
         <div class="lui-upload-btn" id="elle-btn-fleurs" onclick="elleUploadClick('fleurs')">
@@ -614,7 +404,7 @@ function v2ApplyDynamicNames(){
     <div class="album-card lui-card-wrap" data-slot="elle-personnage">
       <div class="album-image">
         <span class="album-heart">🤍</span>
-        <img id="elle-img-personnage" loading="lazy" decoding="async" src="" onerror="this.onerror=null;this.src='assets/images/image-3.jpg'" onload="this.classList.add('loaded')">
+        <img id="elle-img-personnage" loading="lazy" decoding="async" src="https://zjmbyjpxqrojnuymnpcf.supabase.co/storage/v1/object/public/images/image-3.jpg" onerror="this.onerror=null;this.src='assets/images/image-3.jpg'" onload="this.classList.add('loaded')">
         <div class="skeleton-overlay" id="skel-elle-personnage"></div>
         <div class="album-banner">Personnage</div>
         <div class="lui-upload-btn" id="elle-btn-personnage" onclick="elleUploadClick('personnage')">
@@ -631,7 +421,7 @@ function v2ApplyDynamicNames(){
     <div class="album-card lui-card-wrap" data-slot="elle-saison">
       <div class="album-image">
         <span class="album-heart">🤍</span>
-        <img id="elle-img-saison" loading="lazy" decoding="async" src="" onerror="this.onerror=null;this.src='assets/images/image-4.jpg'" onload="this.classList.add('loaded')">
+        <img id="elle-img-saison" loading="lazy" decoding="async" src="https://zjmbyjpxqrojnuymnpcf.supabase.co/storage/v1/object/public/images/image-4.jpg" onerror="this.onerror=null;this.src='assets/images/image-4.jpg'" onload="this.classList.add('loaded')">
         <div class="skeleton-overlay" id="skel-elle-saison"></div>
         <div class="album-banner">Saison</div>
         <div class="lui-upload-btn" id="elle-btn-saison" onclick="elleUploadClick('saison')">
@@ -648,7 +438,7 @@ function v2ApplyDynamicNames(){
     <div class="album-card lui-card-wrap" data-slot="elle-repas">
       <div class="album-image">
         <span class="album-heart">🤍</span>
-        <img id="elle-img-repas" loading="lazy" decoding="async" src="" onerror="this.onerror=null;this.src='assets/images/image-5.jpg'" onload="this.classList.add('loaded')">
+        <img id="elle-img-repas" loading="lazy" decoding="async" src="https://zjmbyjpxqrojnuymnpcf.supabase.co/storage/v1/object/public/images/image-5.jpg" onerror="this.onerror=null;this.src='assets/images/image-5.jpg'" onload="this.classList.add('loaded')">
         <div class="skeleton-overlay" id="skel-elle-repas"></div>
         <div class="album-banner">Repas</div>
         <div class="lui-upload-btn" id="elle-btn-repas" onclick="elleUploadClick('repas')">
@@ -822,15 +612,14 @@ function v2ApplyDynamicNames(){
 </div>
 
 <div class="section fade-in" id="Books">
-  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
-    <span>Idées livre 📚</span>
-    <button id="booksAddBtn" onclick="booksAddClick()" style="display:none;background:var(--green);color:#000;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;">+ Ajouter</button>
+  <div class="section-label">Idées livre 📚</div>
+  <div class="slider">
+    <div class="album-card"><div class="album-image"><a href="https://booknode.com/la_saga_des_impossibles_tome_1_adam_03666756" target="_blank" rel="noopener noreferrer"><img src="https://zjmbyjpxqrojnuymnpcf.supabase.co/storage/v1/object/public/images/image-6.jpg" onerror="this.onerror=null;this.src='assets/images/image-6.jpg'"></a><div class="album-banner">Adam</div></div><div class="album-desc">Une romance qui touche l'âme ✨</div></div>
+    <div class="album-card"><div class="album-image"><a href="https://www.fnac.com/a18261401/Emma-Green-Ce-qui-nous-rend-vivants" target="_blank" rel="noopener noreferrer"><img src="https://zjmbyjpxqrojnuymnpcf.supabase.co/storage/v1/object/public/images/image-7.jpg" onerror="this.onerror=null;this.src='assets/images/image-7.jpg'"></a><div class="album-banner">Ce qui nous rend vivants</div></div><div class="album-desc">Quand l'amour révèle tout 💖</div></div>
+    <div class="album-card"><div class="album-image"><a href="https://www.fnac.com/a17088484/Captive-Tome-1-Captive-Sarah-Rivens" target="_blank" rel="noopener noreferrer"><img src="https://zjmbyjpxqrojnuymnpcf.supabase.co/storage/v1/object/public/images/image-8.jpg" onerror="this.onerror=null;this.src='assets/images/image-8.jpg'"></a><div class="album-banner">Captive</div></div><div class="album-desc">Passion et suspense 🔥</div></div>
+    <div class="album-card"><div class="album-image"><a href="https://booknode.com/avant_toi_0690393" target="_blank" rel="noopener noreferrer"><img src="https://zjmbyjpxqrojnuymnpcf.supabase.co/storage/v1/object/public/images/image-9.jpg" onerror="this.onerror=null;this.src='assets/images/image-9.jpg'"></a><div class="album-banner">Avant toi</div></div><div class="album-desc">Un amour impossible 💔</div></div>
+    <div class="album-card"><div class="album-image"><a href="https://www.fnac.com/a7792857/Katarina-Bivald-La-Bibliotheque-des-coeurs-cabosses" target="_blank" rel="noopener noreferrer"><img src="https://zjmbyjpxqrojnuymnpcf.supabase.co/storage/v1/object/public/images/image-10.jpg" onerror="this.onerror=null;this.src='assets/images/image-10.jpg'"></a><div class="album-banner">La bibliothèque des cœurs cabossés</div></div><div class="album-desc">Émotions à chaque page 📚</div></div>
   </div>
-  <div class="slider" id="booksSlider">
-    <div class="memo-loading" style="padding:20px;color:var(--muted);font-size:13px;text-align:center;">Chargement...</div>
-  </div>
-  <!-- Input fichier image caché -->
-  <input type="file" id="booksFileInput" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="booksHandleFile(this)">
 </div>
 
 <div id="wheelSection" class="fade-in">
@@ -2130,5 +1919,217 @@ function v2ApplyDynamicNames(){
 <script src="js/app-messages.js"></script>
 <script src="js/app-events.js"></script>
 <script src="js/app-nav.js"></script>
+
+<script>
+// ══════════════════════════════════════════
+// LOGIN V2 — Interface
+// ══════════════════════════════════════════
+var _v2SelectedRole     = null;
+var _v2SelectedJoinRole = null;
+
+function v2SwitchTab(tab){
+  ['login','register','join'].forEach(function(t){
+    document.getElementById('v2Tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active', t===tab);
+    document.getElementById('v2Form'+t.charAt(0).toUpperCase()+t.slice(1)).style.display = t===tab ? 'flex' : 'none';
+  });
+  document.getElementById('v2LoginError').textContent = '';
+}
+
+function v2SelectRole(role){
+  _v2SelectedRole = role;
+  document.getElementById('v2RoleGirl').classList.toggle('selected', role==='girl');
+  document.getElementById('v2RoleBoy').classList.toggle('selected',  role==='boy');
+}
+
+function v2SelectJoinRole(role){
+  _v2SelectedJoinRole = role;
+  document.getElementById('v2JoinRoleGirl').classList.toggle('selected', role==='girl');
+  document.getElementById('v2JoinRoleBoy').classList.toggle('selected',  role==='boy');
+}
+
+function v2SetError(msg){ document.getElementById('v2LoginError').textContent = msg || ''; }
+function v2SetLoading(on){
+  document.getElementById('v2LoginLoader').style.display = on ? 'block' : 'none';
+  document.querySelectorAll('.v2-btn').forEach(function(b){ b.disabled = on; });
+}
+
+function v2DoLogin(){
+  var pseudo   = document.getElementById('v2LoginPseudo').value.trim();
+  var password = document.getElementById('v2LoginPassword').value;
+  if(!pseudo || !password){ v2SetError('Remplis tous les champs'); return; }
+  v2SetError(''); v2SetLoading(true);
+  v2Login(pseudo, password).then(function(res){
+    v2SetLoading(false);
+    if(!res.ok){ v2SetError(res.error); return; }
+    v2CloseLogin();
+    if(window.setProfile) window.setProfile(res.data.user.role);
+  });
+}
+
+function v2DoRegister(){
+  var pseudo   = document.getElementById('v2RegPseudo').value.trim();
+  var password = document.getElementById('v2RegPassword').value;
+  if(!pseudo || !password){ v2SetError('Remplis tous les champs'); return; }
+  if(!_v2SelectedRole){ v2SetError('Choisis ton rôle (Elle ou Lui)'); return; }
+  v2SetError(''); v2SetLoading(true);
+  v2Register(pseudo, password, _v2SelectedRole).then(function(res){
+    v2SetLoading(false);
+    if(!res.ok){ v2SetError(res.error); return; }
+    var info = document.getElementById('v2RegInfo');
+    var codeHtml = '<span id="v2CoupleCodeDisplay" style="display:inline-block;background:var(--s2);border:2px solid var(--green);border-radius:10px;padding:8px 18px;font-size:20px;font-weight:800;letter-spacing:3px;cursor:pointer;margin:6px 0;" onclick="v2CopyCode(this,\''+res.data.couple_code+'\')" title="Appuie pour copier">'+res.data.couple_code+'</span>';
+    info.innerHTML = '🎉 Compte créé !<br><span style="font-size:12px;color:var(--muted)">Ton code couple :</span><br>'+codeHtml+'<br><span style="font-size:11px;color:var(--muted)">👆 Appuie pour copier · partage-le à ton partenaire</span>';
+    info.style.display = 'block';
+    setTimeout(function(){ v2CloseLogin(); if(window.setProfile) window.setProfile(res.data.user.role); }, 6000);
+  });
+}
+
+function v2DoJoin(){
+  var pseudo   = document.getElementById('v2JoinPseudo').value.trim();
+  var password = document.getElementById('v2JoinPassword').value;
+  var code     = document.getElementById('v2JoinCode').value.trim().toUpperCase();
+  if(!pseudo || !password || !code){ v2SetError('Remplis tous les champs'); return; }
+  if(!_v2SelectedJoinRole){ v2SetError('Choisis Elle ou Lui'); return; }
+  v2SetError(''); v2SetLoading(true);
+  v2Join(pseudo, password, _v2SelectedJoinRole, code).then(function(res){
+    v2SetLoading(false);
+    if(!res.ok){ v2SetError(res.error); return; }
+    v2CloseLogin(); if(window.setProfile) window.setProfile(res.data.user.role);
+  });
+}
+
+function v2CopyCode(el, code){
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(code).then(function(){
+      el.textContent = '✅ Copié !';
+      setTimeout(function(){ el.textContent = code; }, 2000);
+    }).catch(function(){
+      el.textContent = '✅ Copié !';
+      setTimeout(function(){ el.textContent = code; }, 2000);
+    });
+  } else {
+    el.textContent = '✅ Copié !';
+    setTimeout(function(){ el.textContent = code; }, 2000);
+  }
+}
+
+function v2CloseLogin(){
+  document.getElementById('v2LoginOverlay').classList.remove('active');
+  // Après connexion, appliquer les noms dynamiques partout dans l'UI
+  setTimeout(v2ApplyDynamicNames, 100);
+}
+
+function v2ShowLogin(){
+  document.getElementById('v2LoginOverlay').classList.add('active');
+}
+
+/* ════════════════════════════════════════════
+   v2ApplyDynamicNames — Remplace Zelda/Link par les vrais pseudos
+   Appelée après la connexion et au chargement si session active
+════════════════════════════════════════════ */
+function v2ApplyDynamicNames(){
+  if(typeof v2GetUser !== 'function') return;
+  var u = v2GetUser();
+  if(!u) return;
+
+  var girlName = u.role === 'girl' ? (u.pseudo||'Elle') : (u.partner_pseudo||'Elle');
+  var boyName  = u.role === 'boy'  ? (u.pseudo||'Lui')  : (u.partner_pseudo||'Lui');
+
+  // Popup profil
+  var btnGirl = document.getElementById('ppBtnGirl');
+  var btnBoy  = document.getElementById('ppBtnBoy');
+  if(btnGirl) btnGirl.innerHTML = '<span class="profile-popup-dot girl"></span>' + girlName;
+  if(btnBoy)  btnBoy.innerHTML  = '<span class="profile-popup-dot boy"></span>'  + boyName;
+
+  // Bloc météo humeur (onglet home)
+  var elleEl = document.getElementById('yamMoodElleName');
+  var luiEl  = document.getElementById('yamMoodLuiName');
+  if(elleEl) elleEl.textContent = girlName;
+  if(luiEl)  luiEl.textContent  = boyName;
+
+  // En-têtes InstaLove (DM)
+  var dmGirl = document.getElementById('dmIdNameGirl');
+  var dmBoy  = document.getElementById('dmIdNameBoy');
+  if(dmGirl) dmGirl.textContent = girlName;
+  if(dmBoy)  dmBoy.textContent  = boyName;
+
+  // Sélecteurs de jeux — cibler les textes par span ID ou innerHTML simple
+  var gameGirlBtns = ['penduGenderGirl','puzzleGenderGirl','snakeGenderGirl'];
+  var gameBoyBtns  = ['penduGenderBoy', 'puzzleGenderBoy', 'snakeGenderBoy'];
+  gameGirlBtns.forEach(function(id){
+    var el = document.getElementById(id); if(!el) return;
+    var icon = el.querySelector('.gender-select-icon'); el.textContent = ''; if(icon) el.appendChild(icon); el.appendChild(document.createTextNode(girlName));
+  });
+  gameBoyBtns.forEach(function(id){
+    var el = document.getElementById(id); if(!el) return;
+    var icon = el.querySelector('.gender-select-icon'); el.textContent = ''; if(icon) el.appendChild(icon); el.appendChild(document.createTextNode(boyName));
+  });
+
+  // Memory — cibler les spans de nom
+  var mgn = document.getElementById('memGenderGirlName'); if(mgn) mgn.textContent = girlName;
+  var mbn = document.getElementById('memGenderBoyName');  if(mbn) mbn.textContent = boyName;
+
+  // Skyjo auth modal
+  var sgn = document.getElementById('skyjoAuthGirlName'); if(sgn) sgn.textContent = girlName;
+  var sbn = document.getElementById('skyjoAuthBoyName');  if(sbn) sbn.textContent = boyName;
+
+  // Labels Skyjo (opponent = l'autre, my = moi)
+  var skyjoOpp = document.getElementById('skyjoOpponentLabel');
+  var skyjoMy  = document.getElementById('skyjoMyLabel');
+  if(u.role === 'girl'){
+    if(skyjoMy)  skyjoMy.textContent  = girlName;
+    if(skyjoOpp) skyjoOpp.textContent = boyName;
+  } else {
+    if(skyjoMy)  skyjoMy.textContent  = boyName;
+    if(skyjoOpp) skyjoOpp.textContent = girlName;
+  }
+  var rlLeft  = document.getElementById('skyjoRoundLabelLeft');
+  var rlRight = document.getElementById('skyjoRoundLabelRight');
+  if(rlLeft)  rlLeft.textContent  = '👧 ' + girlName;
+  if(rlRight) rlRight.textContent = '👦 ' + boyName;
+  var flLeft  = document.getElementById('skyjoFinalLabelLeft');
+  var flRight = document.getElementById('skyjoFinalLabelRight');
+  if(flLeft)  flLeft.textContent  = girlName;
+  if(flRight) flRight.textContent = boyName;
+
+  // Labels Skyjo wait screen
+  var swg = document.getElementById('skyjoWaitNameGirl'); if(swg) swg.textContent = girlName;
+  var swb = document.getElementById('skyjoWaitNameBoy');  if(swb) swb.textContent = boyName;
+
+  // InstaLove auth modal
+  var iag = document.getElementById('instaloveAuthGirlName'); if(iag) iag.textContent = girlName;
+  var iab = document.getElementById('instaloveAuthBoyName');  if(iab) iab.textContent = boyName;
+
+  // Boutons suggestion chanson
+  var sgGirl = document.getElementById('sgBtnGirlName'); if(sgGirl) sgGirl.textContent = girlName;
+  var sgBoy  = document.getElementById('sgBtnBoyName');  if(sgBoy)  sgBoy.textContent  = boyName;
+
+  // Bêtises
+  var prankLockTitle = document.getElementById('prankLockTitle');
+  if(prankLockTitle) prankLockTitle.textContent = 'Accès bloqué par ' + boyName;
+
+  // Appliquer aussi les noms dans le profilePopup (compat app-core.js)
+  if(typeof escHtml === 'function'){
+    if(btnGirl) btnGirl.innerHTML = '<span class="profile-popup-dot girl"></span>' + escHtml(girlName);
+    if(btnBoy)  btnBoy.innerHTML  = '<span class="profile-popup-dot boy"></span>'  + escHtml(boyName);
+  }
+}
+
+// Appliquer au chargement si session déjà active
+(function(){
+  function checkV2Session(){
+    try{
+      var s = JSON.parse(localStorage.getItem('yam_v2_session')||'null');
+      if(s && s.token && s.expires_at && new Date(s.expires_at) > new Date()) return true;
+    }catch(e){}
+    return false;
+  }
+  if(!checkV2Session()){
+    v2ShowLogin();
+  } else {
+    // Session active : appliquer les noms après chargement des scripts
+    window.addEventListener('load', function(){ setTimeout(v2ApplyDynamicNames, 200); });
+  }
+})();
+</script>
 </body>
 </html>
