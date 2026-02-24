@@ -2,19 +2,69 @@
 // app-love.js — Page Nous : Photos Elle/Lui · Raisons · Post-its · Memo
 
 // ════════════════════════════════════════════
-// SECTION ELLE — Upload Supabase Storage (Link only)
+// HELPER STORAGE — couple-aware
+// Toutes les images sont stockées sous :
+//   images/{couple_id}/elle/{slot}.jpg
+//   images/{couple_id}/lui/{slot}.jpg
+//   images/{couple_id}/livres/{idx}.jpg
+// ════════════════════════════════════════════
+function getCoupleId(){
+  var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+  return (u && u.couple_id) ? u.couple_id : 'shared';
+}
+
+function storagePublicUrl(folder, filename){
+  return SB2_URL + '/storage/v1/object/public/images/' + getCoupleId() + '/' + folder + '/' + filename + '?t=' + Date.now();
+}
+
+function storageUploadUrl(folder, filename){
+  return SB2_URL + '/storage/v1/object/images/' + getCoupleId() + '/' + folder + '/' + filename;
+}
+
+// Upload générique vers Supabase Storage SB2 (bucket "images")
+function storageUpload(folder, filename, file, onProgress, onDone, onError){
+  var url = storageUploadUrl(folder, filename);
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'apikey':          SB2_KEY,
+      'Authorization':   'Bearer ' + SB2_KEY,
+      'Content-Type':    file.type,
+      'x-upsert':        'true'
+    },
+    body: file
+  })
+  .then(function(r){
+    return r.text().then(function(body){
+      if(r.ok){ if(onDone) onDone(); }
+      else { if(onError) onError('Erreur ' + r.status + ' : ' + body); }
+    });
+  })
+  .catch(function(err){ if(onError) onError('Erreur réseau : ' + err); });
+}
+
+// Probe si une image existe dans Storage
+function storageProbe(url, onExist, onMissing){
+  var img = new Image();
+  img.onload  = function(){ if(onExist)   onExist(url); };
+  img.onerror = function(){ if(onMissing) onMissing(); };
+  img.src = url;
+}
+
+// Validation fichier image
+function validateImageFile(file){
+  var ALLOWED = ['image/jpeg','image/jpg','image/png','image/webp'];
+  if(ALLOWED.indexOf(file.type) === -1) return 'Format non autorisé. Utilise JPEG, PNG ou WebP.';
+  if(file.size > 8 * 1024 * 1024) return 'Image trop lourde (max 8 Mo)';
+  return null;
+}
+
+// ════════════════════════════════════════════
+// SECTION ELLE — modifiable par ELLE uniquement
 // ════════════════════════════════════════════
 (function(){
-  var SB_BUCKET = 'images';
-  var SB_FOLDER = 'elle';
-  var SLOTS = ['animal','fleurs','personnage','saison','repas'];
-  var SB_DEFAULTS = {
-    animal:     'https://zjmbyjpxqrojnuymnpcf.supabase.co/storage/v1/object/public/images/image-1.jpg',
-    fleurs:     'https://zjmbyjpxqrojnuymnpcf.supabase.co/storage/v1/object/public/images/image-2.jpg',
-    personnage: 'https://zjmbyjpxqrojnuymnpcf.supabase.co/storage/v1/object/public/images/image-3.jpg',
-    saison:     'https://zjmbyjpxqrojnuymnpcf.supabase.co/storage/v1/object/public/images/image-4.jpg',
-    repas:      'https://zjmbyjpxqrojnuymnpcf.supabase.co/storage/v1/object/public/images/image-5.jpg'
-  };
+  var FOLDER = 'elle';
+  var SLOTS  = ['animal','fleurs','personnage','saison','repas'];
   var ELLE_DESC_DEFAULTS = {
     animal:     'Un regard doux 💫',
     fleurs:     'Pleine de couleurs 💕',
@@ -24,107 +74,73 @@
   };
   var _currentSlot = null;
 
-  // ── Charger les images depuis Supabase (dossier elle/) si uploadées ──
   function elleLoadImages(){
     SLOTS.forEach(function(slot){
-      var url = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + SB_FOLDER + '/' + slot + '.jpg?t=' + Date.now();
+      var url = storagePublicUrl(FOLDER, slot + '.jpg');
       var img = document.getElementById('elle-img-' + slot);
       if(!img) return;
-      var probe = new Image();
-      probe.onload = function(){ img.src = url; };
-      // Si pas d'image custom, garder l'image par défaut déjà dans le src
-      probe.src = url;
+      storageProbe(url,
+        function(u){ img.src = u; img.classList.add('loaded'); },
+        null // pas d'image → on garde le src vide, le slot reste vide
+      );
     });
   }
 
-  // ── Afficher/masquer les boutons selon profil ──
   function elleSyncEditMode(){
+    // Elle peut modifier ses propres photos, Lui peut seulement voir
     var profile = getProfile();
-    var isLink = (profile === 'boy');
+    var canEdit = (profile === 'girl');
     SLOTS.forEach(function(slot){
-      var btn = document.getElementById('elle-btn-' + slot);
-      if(btn) btn.style.display = isLink ? '' : 'none';
+      var btn  = document.getElementById('elle-btn-' + slot);
       var desc = document.getElementById('elle-desc-' + slot);
+      if(btn)  btn.style.display = canEdit ? '' : 'none';
       if(desc){
-        if(isLink) desc.classList.add('lui-desc-editable');
-        else desc.classList.remove('lui-desc-editable');
+        if(canEdit) desc.classList.add('lui-desc-editable');
+        else        desc.classList.remove('lui-desc-editable');
       }
     });
   }
 
-  // ── Clic upload ──
   window.elleUploadClick = function(slot){
-    if(getProfile() !== 'boy') return;
+    if(getProfile() !== 'girl'){ return; }
     _currentSlot = slot;
     var input = document.getElementById('elleFileInput');
-    input.value = '';
-    input.click();
+    input.value = ''; input.click();
   };
 
-  // ── Traitement fichier ──
   window.elleHandleFile = function(input){
     if(!input.files || !input.files[0]) return;
     var file = input.files[0];
     var slot = _currentSlot;
     if(!slot) return;
 
-    // SÉCURITÉ : validation du type MIME avant upload
-    var ALLOWED_TYPES = ['image/jpeg','image/jpg','image/png','image/webp','image/gif'];
-    if(ALLOWED_TYPES.indexOf(file.type) === -1){
-      alert('Format non autorisé. Utilise une image JPEG, PNG ou WebP.');
-      input.value = '';
-      return;
-    }
-
-    if(file.size > 5 * 1024 * 1024){ alert('Image trop lourde (max 5 Mo)'); return; }
+    var err = validateImageFile(file);
+    if(err){ alert(err); input.value = ''; return; }
 
     var loading = document.getElementById('elle-loading-' + slot);
-    var bar = document.getElementById('elle-bar-' + slot);
+    var bar     = document.getElementById('elle-bar-' + slot);
     if(loading) loading.classList.add('show');
     if(bar){ bar.style.width = '0%'; setTimeout(function(){ bar.style.width = '60%'; }, 100); }
 
-    var path = SB_FOLDER + '/' + slot + '.jpg';
-    var elleDoUpload = function(){
-      fetch(SB_URL + '/storage/v1/object/' + SB_BUCKET + '/' + path, {
-        method: 'POST',
-        headers: {
-          'apikey': SB_KEY,
-          'Authorization': 'Bearer ' + _sbAccessToken,
-          'Content-Type': file.type,
-          'x-upsert': 'true'
-        },
-        body: file
-      })
-      .then(function(r){
-        if(bar) bar.style.width = '100%';
-        return r.text().then(function(body){
-          if(loading) loading.classList.remove('show');
-          if(r.ok){
-            var img = document.getElementById('elle-img-' + slot);
-            if(img) img.src = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + SB_FOLDER + '/' + slot + '.jpg?t=' + Date.now();
-          } else {
-            alert('Erreur ' + r.status + ' : ' + body);
-          }
-        });
-      })
-      .catch(function(err){
+    storageUpload(FOLDER, slot + '.jpg', file,
+      null,
+      function(){
+        if(bar)     bar.style.width = '100%';
         if(loading) loading.classList.remove('show');
-        alert('Erreur réseau : ' + err);
-      });
-    };
-    if(_sbAccessToken){
-      elleDoUpload();
-    } else {
-      sbLogin('boy').then(function(ok){
-        if(ok){ elleDoUpload(); }
-        else { if(loading) loading.classList.remove('show'); alert('Erreur de connexion Supabase'); }
-      });
-    }
+        var img = document.getElementById('elle-img-' + slot);
+        if(img){ img.src = storagePublicUrl(FOLDER, slot + '.jpg'); img.classList.add('loaded'); }
+      },
+      function(errMsg){
+        if(loading) loading.classList.remove('show');
+        alert(errMsg);
+      }
+    );
   };
 
-  // ── Descriptions éditables — sauvegarde Supabase ──
+  // Descriptions — filtrées par couple_id
   function elleLoadDescs(){
-    fetch(SB_URL + '/rest/v1/photo_descs?category=eq.elle&select=slot,description', {
+    var cid = getCoupleId();
+    fetch(SB2_URL + '/rest/v1/v2_photo_descs?couple_id=eq.' + encodeURIComponent(cid) + '&category=eq.elle&select=slot,description', {
       headers: sbHeaders()
     })
     .then(function(r){ return r.ok ? r.json() : []; })
@@ -135,27 +151,21 @@
         if(el && row.description) el.textContent = row.description;
       });
     })
-    .catch(function(){
-      SLOTS.forEach(function(slot){
-        var saved = localStorage.getItem('elle_desc_' + slot);
-        var el = document.getElementById('elle-desc-' + slot);
-        if(el && saved) el.textContent = saved;
-      });
-    });
+    .catch(function(){});
   }
 
   function elleSaveDesc(slot, val){
-    fetch(SB_URL + '/rest/v1/photo_descs', {
+    var cid = getCoupleId();
+    fetch(SB2_URL + '/rest/v1/v2_photo_descs', {
       method: 'POST',
       headers: sbHeaders({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
-      body: JSON.stringify({ category: 'elle', slot: slot, description: val })
+      body: JSON.stringify({ couple_id: cid, category: 'elle', slot: slot, description: val })
     }).catch(function(){});
-    localStorage.setItem('elle_desc_' + slot, val);
   }
 
   var SLOT_LABELS = { animal:'Son animal', fleurs:'Ses fleurs', personnage:'Son personnage', saison:'Sa saison', repas:'Son repas' };
   window.elleEditDesc = function(slot){
-    if(getProfile() !== 'boy') return;
+    if(getProfile() !== 'girl') return;
     var el = document.getElementById('elle-desc-' + slot);
     if(!el) return;
     descEditOpen(el.textContent.trim(), 'Légende · ' + (SLOT_LABELS[slot] || slot), function(val){
@@ -165,162 +175,115 @@
     });
   };
 
-  // ── Init ──
-  elleLoadImages();
-  elleLoadDescs();
-  elleSyncEditMode();
+  function init(){
+    elleLoadImages();
+    elleLoadDescs();
+    elleSyncEditMode();
+  }
+  init();
 
-  // ── Resync si profil change ──
-  var _origSetProfileElle = window.setProfile;
-  window.setProfile = function(gender){
-    if(_origSetProfileElle) _origSetProfileElle.apply(this, arguments);
-    setTimeout(elleSyncEditMode, 300);
+  var _origSP = window.setProfile;
+  window.setProfile = function(g){
+    if(_origSP) _origSP.apply(this, arguments);
+    setTimeout(function(){ elleSyncEditMode(); elleLoadImages(); elleLoadDescs(); }, 400);
   };
-
 })();
 
 // ════════════════════════════════════════════
-// SECTION LUI — Upload Supabase Storage
+// SECTION LUI — modifiable par LUI uniquement
 // ════════════════════════════════════════════
 (function(){
-  var SB_BUCKET = 'images';
-  var SB_FOLDER = 'lui';
-  var SLOTS = ['animal','fleurs','personnage','saison','repas'];
+  var FOLDER = 'lui';
+  var SLOTS  = ['animal','fleurs','personnage','saison','repas'];
+  var LUI_DESC_DEFAULTS = {
+    animal:     'Son animal 🐾',
+    fleurs:     'Ses fleurs 🌸',
+    personnage: 'Son personnage 💙',
+    saison:     'Sa saison 🍂',
+    repas:      'Son repas préféré 🍽️'
+  };
   var _currentSlot = null;
 
-  // ── Charger les images déjà uploadées ──
   function luiLoadImages(){
     SLOTS.forEach(function(slot){
-      var url = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + SB_FOLDER + '/' + slot + '.jpg?t=' + Date.now();
-      var img = document.getElementById('lui-img-' + slot);
+      var url   = storagePublicUrl(FOLDER, slot + '.jpg');
+      var img   = document.getElementById('lui-img-' + slot);
       var empty = document.getElementById('lui-empty-' + slot);
-      var btn = document.getElementById('lui-btn-' + slot);
+      var btn   = document.getElementById('lui-btn-' + slot);
       if(!img) return;
-      // Tester si l'image existe
-      var probe = new Image();
-      probe.onload = function(){
-        img.src = url;
-        img.style.display = '';
-        if(empty) empty.style.display = 'none';
-        if(btn){ btn.classList.remove('empty'); }
-      };
-      probe.onerror = function(){
-        img.style.display = 'none';
-        if(empty) empty.style.display = '';
-        if(btn){ btn.classList.add('empty'); }
-      };
-      probe.src = url;
+      storageProbe(url,
+        function(u){
+          img.src = u; img.style.display = '';
+          if(empty) empty.style.display = 'none';
+          if(btn)   btn.classList.remove('empty');
+        },
+        function(){
+          img.style.display = 'none';
+          if(empty) empty.style.display = '';
+          if(btn)   btn.classList.add('empty');
+        }
+      );
     });
   }
 
-  // ── Afficher/masquer les boutons selon profil ──
   function luiSyncEditMode(){
     var profile = getProfile();
-    var isZelda = (profile === 'girl');
+    var canEdit = (profile === 'boy');
     SLOTS.forEach(function(slot){
-      var btn = document.getElementById('lui-btn-' + slot);
-      if(btn) btn.style.display = isZelda ? '' : 'none';
+      var btn  = document.getElementById('lui-btn-' + slot);
+      var desc = document.getElementById('lui-desc-' + slot);
+      if(btn)  btn.style.display = canEdit ? '' : 'none';
+      if(desc){
+        if(canEdit) desc.classList.add('lui-desc-editable');
+        else        desc.classList.remove('lui-desc-editable');
+      }
     });
   }
 
-  // ── Clic sur une pochette ──
   window.luiUploadClick = function(slot){
-    var profile = getProfile();
-    if(profile !== 'girl'){
-      return; // sécurité
-    }
+    if(getProfile() !== 'boy') return;
     _currentSlot = slot;
     var input = document.getElementById('luiFileInput');
-    input.value = '';
-    input.click();
+    input.value = ''; input.click();
   };
 
-  // ── Traitement du fichier sélectionné ──
   window.luiHandleFile = function(input){
     if(!input.files || !input.files[0]) return;
     var file = input.files[0];
     var slot = _currentSlot;
     if(!slot) return;
 
-    // SÉCURITÉ : validation du type MIME avant upload
-    var ALLOWED_TYPES = ['image/jpeg','image/jpg','image/png','image/webp','image/gif'];
-    if(ALLOWED_TYPES.indexOf(file.type) === -1){
-      alert('Format non autorisé. Utilise une image JPEG, PNG ou WebP.');
-      input.value = '';
-      return;
-    }
+    var err = validateImageFile(file);
+    if(err){ alert(err); input.value = ''; return; }
 
-    // Vérif taille max 5 Mo
-    if(file.size > 5 * 1024 * 1024){
-      alert('Image trop lourde (max 5 Mo)');
-      return;
-    }
-
-    // Afficher progress
     var loading = document.getElementById('lui-loading-' + slot);
-    var bar = document.getElementById('lui-bar-' + slot);
+    var bar     = document.getElementById('lui-bar-' + slot);
     if(loading) loading.classList.add('show');
     if(bar){ bar.style.width = '0%'; setTimeout(function(){ bar.style.width = '60%'; }, 100); }
 
-    // Upload vers Supabase Storage
-    var path = SB_FOLDER + '/' + slot + '.jpg';
-    var uploadUrl = SB_URL + '/storage/v1/object/' + SB_BUCKET + '/' + path;
-
-    var luiDoUpload = function(){
-      fetch(uploadUrl, {
-        method: 'POST',
-        headers: {
-          'apikey': SB_KEY,
-          'Authorization': 'Bearer ' + _sbAccessToken,
-          'Content-Type': file.type,
-          'x-upsert': 'true'
-        },
-        body: file
-      })
-      .then(function(r){
-        if(bar) bar.style.width = '100%';
-        return r.text().then(function(body){
-          if(loading) loading.classList.remove('show');
-          if(r.ok){
-            var img = document.getElementById('lui-img-' + slot);
-            var empty = document.getElementById('lui-empty-' + slot);
-            var btn = document.getElementById('lui-btn-' + slot);
-            var newUrl = SB_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + SB_FOLDER + '/' + slot + '.jpg?t=' + Date.now();
-            if(img){ img.src = newUrl; img.style.display = ''; }
-            if(empty) empty.style.display = 'none';
-            if(btn) btn.classList.remove('empty');
-          } else {
-            console.error('Upload error', r.status, body);
-            alert('Erreur ' + r.status + ' : ' + body);
-          }
-        });
-      })
-      .catch(function(err){
+    storageUpload(FOLDER, slot + '.jpg', file,
+      null,
+      function(){
+        if(bar)     bar.style.width = '100%';
         if(loading) loading.classList.remove('show');
-        alert('Erreur réseau : ' + err);
-      });
-    };
-    if(_sbAccessToken){
-      luiDoUpload();
-    } else {
-      sbLogin('girl').then(function(ok){
-        if(ok){ luiDoUpload(); }
-        else { if(loading) loading.classList.remove('show'); alert('Erreur de connexion Supabase'); }
-      });
-    }
-  };
-
-  // ── Descriptions éditables — sauvegarde Supabase ──
-  var LUI_DESC_DEFAULTS = {
-    animal: 'Son animal 🐾',
-    fleurs: 'Ses fleurs 🌸',
-    personnage: 'Son personnage 💙',
-    saison: 'Sa saison 🍂',
-    repas: 'Son repas préféré 🍽️'
+        var img   = document.getElementById('lui-img-' + slot);
+        var empty = document.getElementById('lui-empty-' + slot);
+        var btn   = document.getElementById('lui-btn-' + slot);
+        var url   = storagePublicUrl(FOLDER, slot + '.jpg');
+        if(img){ img.src = url; img.style.display = ''; }
+        if(empty) empty.style.display = 'none';
+        if(btn)   btn.classList.remove('empty');
+      },
+      function(errMsg){
+        if(loading) loading.classList.remove('show');
+        alert(errMsg);
+      }
+    );
   };
 
   function luiLoadDescs(){
-    fetch(SB_URL + '/rest/v1/photo_descs?category=eq.lui&select=slot,description', {
+    var cid = getCoupleId();
+    fetch(SB2_URL + '/rest/v1/v2_photo_descs?couple_id=eq.' + encodeURIComponent(cid) + '&category=eq.lui&select=slot,description', {
       headers: sbHeaders()
     })
     .then(function(r){ return r.ok ? r.json() : []; })
@@ -331,64 +294,318 @@
         if(el && row.description) el.textContent = row.description;
       });
     })
-    .catch(function(){
-      SLOTS.forEach(function(slot){
-        var saved = localStorage.getItem('lui_desc_' + slot);
-        var el = document.getElementById('lui-desc-' + slot);
-        if(el && saved) el.textContent = saved;
-      });
-    });
+    .catch(function(){});
   }
 
   function luiSaveDesc(slot, val){
-    fetch(SB_URL + '/rest/v1/photo_descs', {
+    var cid = getCoupleId();
+    fetch(SB2_URL + '/rest/v1/v2_photo_descs', {
       method: 'POST',
       headers: sbHeaders({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
-      body: JSON.stringify({ category: 'lui', slot: slot, description: val })
+      body: JSON.stringify({ couple_id: cid, category: 'lui', slot: slot, description: val })
     }).catch(function(){});
-    localStorage.setItem('lui_desc_' + slot, val);
   }
 
   window.luiEditDesc = function(slot){
-    if(getProfile() !== 'girl') return;
+    if(getProfile() !== 'boy') return;
     var el = document.getElementById('lui-desc-' + slot);
     if(!el) return;
-    var SLOT_LABELS_LUI = { animal:'Son animal', fleurs:'Ses fleurs', personnage:'Son personnage', saison:'Sa saison', repas:'Son repas' };
-    descEditOpen(el.textContent.trim(), 'Légende · ' + (SLOT_LABELS_LUI[slot] || slot), function(val){
+    var LABELS = { animal:'Son animal', fleurs:'Ses fleurs', personnage:'Son personnage', saison:'Sa saison', repas:'Son repas' };
+    descEditOpen(el.textContent.trim(), 'Légende · ' + (LABELS[slot] || slot), function(val){
       val = val || LUI_DESC_DEFAULTS[slot];
       el.textContent = val;
       luiSaveDesc(slot, val);
     });
   };
 
-  function luiSyncDescs(){
-    var profile = getProfile();
-    var isZelda = (profile === 'girl');
-    SLOTS.forEach(function(slot){
-      var el = document.getElementById('lui-desc-' + slot);
-      if(!el) return;
-      if(isZelda){
-        el.classList.add('lui-desc-editable');
-      } else {
-        el.classList.remove('lui-desc-editable');
+  function init(){
+    luiLoadImages();
+    luiLoadDescs();
+    luiSyncEditMode();
+  }
+  init();
+
+  var _origSP = window.setProfile;
+  window.setProfile = function(g){
+    if(_origSP) _origSP.apply(this, arguments);
+    setTimeout(function(){ luiSyncEditMode(); luiLoadImages(); luiLoadDescs(); }, 400);
+  };
+})();
+
+
+// ════════════════════════════════════════════
+// SECTION LIVRES — modifiable par Elle ET Lui
+// Stocké dans v2_books (couple_id, idx, title, desc, url, img)
+// Image dans Storage : images/{couple_id}/livres/{idx}.jpg
+// ════════════════════════════════════════════
+(function(){
+  var FOLDER     = 'livres';
+  var MAX_BOOKS  = 8;   // max 8 livres par couple
+  var _editIdx   = null; // index du livre en cours d'édition (null = nouveau)
+  var _booksData = [];   // cache local
+
+  // ── Charger les livres depuis v2_books ──
+  function booksLoad(){
+    var cid = getCoupleId();
+    if(cid === 'shared') return; // pas encore de couple_id = on attend
+    fetch(SB2_URL + '/rest/v1/v2_books?couple_id=eq.' + encodeURIComponent(cid) + '&order=position.asc,created_at.asc', {
+      headers: sbHeaders()
+    })
+    .then(function(r){ return r.ok ? r.json() : []; })
+    .then(function(rows){
+      _booksData = Array.isArray(rows) ? rows : [];
+      booksRender();
+    })
+    .catch(function(){ booksRender(); });
+  }
+
+  // ── Render ──
+  function booksRender(){
+    var slider   = document.getElementById('booksSlider');
+    var addBtn   = document.getElementById('booksAddBtn');
+    if(!slider) return;
+
+    var canEdit  = !!getProfile();
+    if(addBtn) addBtn.style.display = (canEdit && _booksData.length < MAX_BOOKS) ? '' : 'none';
+
+    slider.innerHTML = '';
+
+    if(!_booksData.length){
+      slider.innerHTML = '<div style="padding:20px 8px;color:var(--muted);font-size:13px;text-align:center;">Aucun livre ajouté — soyez les premiers ! 📖</div>';
+      return;
+    }
+
+    _booksData.forEach(function(book, i){
+      var card = document.createElement('div');
+      card.className = 'album-card';
+
+      var imgSrc = storagePublicUrl(FOLDER, book.idx + '.jpg');
+      var hasImg = !!book.has_image; // flag stocké en base
+
+      card.innerHTML =
+        '<div class="album-image" style="position:relative;">' +
+          (hasImg
+            ? '<img id="book-img-' + book.idx + '" src="' + escHtml(imgSrc) + '" loading="lazy" decoding="async" onload="this.classList.add(\'loaded\')" style="width:100%;height:100%;object-fit:cover;">'
+            : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:40px;background:var(--s2);">📚</div>'
+          ) +
+          '<div class="album-banner">' + escHtml(book.title || 'Livre') + '</div>' +
+          (canEdit ? '<div class="lui-upload-btn" onclick="booksEditClick(' + i + ')" style="opacity:0;position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:inherit;cursor:pointer;transition:opacity 0.2s;"><div style="font-size:20px;">✏️</div><div style="font-size:11px;font-weight:700;color:#fff;margin-top:4px;">Modifier</div></div>' : '') +
+        '</div>' +
+        '<div class="album-desc">' + escHtml(book.desc || '') + '</div>';
+
+      // Hover show edit overlay
+      if(canEdit){
+        var overlay = card.querySelector('.lui-upload-btn');
+        if(overlay){
+          card.addEventListener('mouseenter', function(){ overlay.style.opacity = '1'; });
+          card.addEventListener('mouseleave', function(){ overlay.style.opacity = '0'; });
+          card.addEventListener('touchstart', function(){ overlay.style.opacity = '1'; }, {passive:true});
+        }
       }
+
+      slider.appendChild(card);
     });
   }
 
-  // ── Init au chargement ──
-  luiLoadImages();
-  luiLoadDescs();
-  luiSyncEditMode();
-  luiSyncDescs();
-
-  // ── Resync si profil change ──
-  var _origSetProfile = window.setProfile;
-  window.setProfile = function(gender){
-    if(_origSetProfile) _origSetProfile.apply(this, arguments);
-    setTimeout(function(){ luiSyncEditMode(); luiSyncDescs(); }, 300);
+  // ── Clic "Ajouter" ──
+  window.booksAddClick = function(){
+    if(!getProfile()) return;
+    _editIdx = null;
+    booksOpenModal(null);
   };
 
+  // ── Clic "Modifier" sur un livre existant ──
+  window.booksEditClick = function(i){
+    if(!getProfile()) return;
+    _editIdx = i;
+    booksOpenModal(_booksData[i]);
+  };
+
+  // ── Modal édition livre ──
+  function booksOpenModal(book){
+    // Créer la modal si elle n'existe pas
+    var modal = document.getElementById('booksModal');
+    if(!modal){
+      modal = document.createElement('div');
+      modal.id = 'booksModal';
+      modal.style.cssText = 'display:none;position:fixed;inset:0;z-index:2500;background:rgba(0,0,0,0.7);align-items:flex-end;justify-content:center;';
+      modal.innerHTML =
+        '<div id="booksSheet" style="width:100%;max-width:480px;background:var(--s1);border-radius:24px 24px 0 0;border-top:1px solid var(--border);padding:20px 20px calc(env(safe-area-inset-bottom,0px)+24px);font-family:\'DM Sans\',sans-serif;max-height:80vh;overflow-y:auto;">' +
+          '<div style="display:flex;justify-content:center;margin-bottom:16px;"><div style="width:40px;height:4px;border-radius:2px;background:var(--border);"></div></div>' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">' +
+            '<div id="booksModalTitle" style="font-size:17px;font-weight:700;color:var(--text);">Ajouter un livre</div>' +
+            '<button onclick="booksCloseModal()" style="background:var(--s2);border:none;border-radius:50%;width:30px;height:30px;color:var(--muted);font-size:15px;cursor:pointer;">✕</button>' +
+          '</div>' +
+          // Image upload
+          '<div onclick="document.getElementById(\'booksFileInput\').click()" id="booksImgPreview" style="width:100%;height:160px;background:var(--s2);border:2px dashed var(--border);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;margin-bottom:14px;overflow:hidden;position:relative;">' +
+            '<div id="booksImgPlaceholder" style="display:flex;flex-direction:column;align-items:center;gap:8px;"><span style="font-size:36px;">📷</span><span style="font-size:13px;color:var(--muted);">Ajouter une photo de couverture</span></div>' +
+            '<img id="booksImgThumb" src="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:12px;">' +
+          '</div>' +
+          // Titre
+          '<input type="text" id="booksTitleInput" placeholder="Titre du livre..." maxlength="50" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-size:14px;font-family:\'DM Sans\',sans-serif;outline:none;box-sizing:border-box;margin-bottom:10px;">' +
+          // Description
+          '<input type="text" id="booksDescInput" placeholder="Courte description..." maxlength="60" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-size:14px;font-family:\'DM Sans\',sans-serif;outline:none;box-sizing:border-box;margin-bottom:14px;">' +
+          // Actions
+          '<div style="display:flex;gap:8px;">' +
+            '<button onclick="booksSave()" style="flex:1;padding:13px;background:var(--green);color:#000;border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:\'DM Sans\',sans-serif;cursor:pointer;">Sauvegarder 💾</button>' +
+            '<button id="booksDeleteBtn" onclick="booksDelete()" style="padding:13px 16px;background:rgba(224,85,85,0.1);border:1.5px solid rgba(224,85,85,0.4);color:#e05555;border-radius:10px;font-size:13px;font-weight:700;font-family:\'DM Sans\',sans-serif;cursor:pointer;display:none;">🗑️</button>' +
+          '</div>' +
+          '<div id="booksModalMsg" style="font-size:12px;color:var(--green);text-align:center;margin-top:10px;min-height:18px;"></div>' +
+        '</div>';
+      document.body.appendChild(modal);
+      modal.addEventListener('click', function(e){ if(e.target===this) booksCloseModal(); });
+    }
+
+    // Remplir
+    document.getElementById('booksModalTitle').textContent = book ? 'Modifier le livre' : 'Ajouter un livre';
+    document.getElementById('booksTitleInput').value = book ? (book.title || '') : '';
+    document.getElementById('booksDescInput').value  = book ? (book.desc  || '') : '';
+    document.getElementById('booksDeleteBtn').style.display = book ? '' : 'none';
+    document.getElementById('booksModalMsg').textContent = '';
+
+    // Thumb image existante
+    var thumb = document.getElementById('booksImgThumb');
+    var placeholder = document.getElementById('booksImgPlaceholder');
+    if(book && book.has_image){
+      thumb.src = storagePublicUrl(FOLDER, book.idx + '.jpg');
+      thumb.style.display = '';
+      placeholder.style.display = 'none';
+    } else {
+      thumb.src = ''; thumb.style.display = 'none';
+      placeholder.style.display = 'flex';
+    }
+
+    // Afficher
+    modal.style.display = 'flex';
+    var sheet = document.getElementById('booksSheet');
+    sheet.style.transform = 'translateY(100%)';
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){ sheet.style.transform = 'translateY(0)'; sheet.style.transition = 'transform 0.3s'; });
+    });
+  }
+
+  window.booksCloseModal = function(){
+    var modal = document.getElementById('booksModal');
+    var sheet = document.getElementById('booksSheet');
+    if(!modal) return;
+    if(sheet){ sheet.style.transform = 'translateY(100%)'; }
+    setTimeout(function(){ modal.style.display = 'none'; }, 300);
+    _editIdx = null;
+    _pendingFile = null;
+  };
+
+  // Fichier image sélectionné
+  var _pendingFile = null;
+  window.booksHandleFile = function(input){
+    if(!input.files || !input.files[0]) return;
+    var file = input.files[0];
+    var err = validateImageFile(file);
+    if(err){ alert(err); input.value=''; return; }
+    _pendingFile = file;
+    // Preview
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var thumb = document.getElementById('booksImgThumb');
+      var placeholder = document.getElementById('booksImgPlaceholder');
+      if(thumb){ thumb.src = e.target.result; thumb.style.display = ''; }
+      if(placeholder) placeholder.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Sauvegarder
+  window.booksSave = function(){
+    var title = (document.getElementById('booksTitleInput').value || '').trim();
+    var desc  = (document.getElementById('booksDescInput').value  || '').trim();
+    var msg   = document.getElementById('booksModalMsg');
+    if(!title){ msg.textContent = '⚠️ Titre obligatoire'; msg.style.color='#e05555'; return; }
+
+    var cid = getCoupleId();
+    if(cid === 'shared'){ msg.textContent = '⚠️ Compte non lié'; msg.style.color='#e05555'; return; }
+
+    msg.textContent = '⏳ Enregistrement...'; msg.style.color = 'var(--muted)';
+
+    // Générer un idx unique (timestamp ou position)
+    var idx = (_editIdx !== null && _booksData[_editIdx]) ? _booksData[_editIdx].idx : Date.now();
+    var hasImage = (_editIdx !== null && _booksData[_editIdx]) ? !!_booksData[_editIdx].has_image : false;
+    if(_pendingFile) hasImage = true;
+
+    var bookPayload = {
+      couple_id:  cid,
+      idx:        idx,
+      title:      title,
+      desc:       desc,
+      has_image:  hasImage,
+      position:   (_editIdx !== null && _booksData[_editIdx]) ? (_booksData[_editIdx].position || _editIdx) : _booksData.length
+    };
+
+    var doSave = function(){
+      fetch(SB2_URL + '/rest/v1/v2_books', {
+        method: 'POST',
+        headers: sbHeaders({ 'Prefer': 'resolution=merge-duplicates,return=representation' }),
+        body: JSON.stringify(bookPayload)
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        if(res && res.error){ msg.textContent='❌ '+res.error; msg.style.color='#e05555'; return; }
+        msg.textContent = '✅ Sauvegardé !'; msg.style.color = 'var(--green)';
+        _pendingFile = null;
+        setTimeout(function(){ booksCloseModal(); booksLoad(); }, 800);
+      })
+      .catch(function(){ msg.textContent='❌ Erreur réseau'; msg.style.color='#e05555'; });
+    };
+
+    // Upload image si nécessaire
+    if(_pendingFile){
+      storageUpload(FOLDER, idx + '.jpg', _pendingFile, null, doSave, function(e){ msg.textContent='❌ '+e; msg.style.color='#e05555'; });
+    } else {
+      doSave();
+    }
+  };
+
+  // Supprimer un livre
+  window.booksDelete = function(){
+    if(_editIdx === null) return;
+    var book = _booksData[_editIdx];
+    if(!book) return;
+    var msg = document.getElementById('booksModalMsg');
+    msg.textContent = '⏳ Suppression...'; msg.style.color = 'var(--muted)';
+    var cid = getCoupleId();
+    fetch(SB2_URL + '/rest/v1/v2_books?couple_id=eq.' + encodeURIComponent(cid) + '&idx=eq.' + book.idx, {
+      method: 'DELETE',
+      headers: sbHeaders()
+    })
+    .then(function(){ setTimeout(function(){ booksCloseModal(); booksLoad(); }, 300); })
+    .catch(function(){ msg.textContent='❌ Erreur'; msg.style.color='#e05555'; });
+  };
+
+  // Init + resync après login
+  function init(){
+    var cid = getCoupleId();
+    if(cid !== 'shared') booksLoad();
+    var addBtn = document.getElementById('booksAddBtn');
+    if(addBtn) addBtn.style.display = getProfile() ? '' : 'none';
+  }
+  init();
+
+  var _origSP = window.setProfile;
+  window.setProfile = function(g){
+    if(_origSP) _origSP.apply(this, arguments);
+    setTimeout(booksLoad, 500);
+  };
+
+  // Charger aussi dès que couple_id est disponible (après loadCoupleConfig)
+  var _booksLoaded = false;
+  var _booksCheckIv = setInterval(function(){
+    if(getCoupleId() !== 'shared' && !_booksLoaded){
+      _booksLoaded = true;
+      clearInterval(_booksCheckIv);
+      booksLoad();
+    }
+  }, 1000);
+
 })();
+
 
 // ── FADE-IN ──
 var fadeObs = new IntersectionObserver(function(entries) {
@@ -399,6 +616,7 @@ var fadeObs = new IntersectionObserver(function(entries) {
 document.querySelectorAll('.fade-in').forEach(function(el){ fadeObs.observe(el); });
 
 // ── RAISONS ──
+// Les raisons peuvent être overridées par app-account.js via window.YAM_COUPLE.reasons
 var reasons = [
   "Ta personnalité. Elle est unique, elle est toi, et j'arrête pas de la découvrir 💫",
   "Le fait que tu te bats pour t'améliorer tout le temps. Ça me rend vraiment fier de toi 🌱",
@@ -467,6 +685,18 @@ document.getElementById('reasonBox').addEventListener('click', function() {
   var i = _reasonDeck[_reasonDeckPos++];
   showReason(i);
 });
+
+// ── Permet à app-account.js de mettre à jour les raisons depuis Supabase ──
+window.reloadReasons = function(newReasons){
+  if(!Array.isArray(newReasons) || !newReasons.length) return;
+  reasons.length = 0;
+  newReasons.forEach(function(r){ reasons.push(r); });
+  _reasonDeck = _buildDeck();
+  _reasonDeckPos = 0;
+  var i = _reasonDeck[_reasonDeckPos++];
+  var rText = document.getElementById('reasonText');
+  if(rText) showReason(i);
+};
 
 // ── POSTIT ──
 var postitData = [
@@ -695,7 +925,7 @@ buildStack();
     if(!profile) return; // pas connecté, rien à vérifier
     var other = profile === 'girl' ? 'boy' : 'girl';
     // Récupérer les messages non lus envoyés par l'autre
-    fetch(SB_URL + '/rest/v1/dm_messages?sender=eq.' + other + '&seen=eq.false&deleted=eq.false&order=created_at.desc&limit=99', {
+    fetch(SB2_URL + '/rest/v1/v2_dm_messages?sender=eq.' + other + '&seen=eq.false&deleted=eq.false&order=created_at.desc&limit=99', {
       headers: sbHeaders()
     })
     .then(function(r){ return r.json(); })
@@ -735,7 +965,7 @@ function spawnHeart(){
   // Incrémenter le compteur Supabase
   var profile = getProfile() || null;
   if(!profile) return; // pas de profil = animation only
-  fetch(SB_URL+'/rest/v1/rpc/increment_like_counter', {
+  fetch(SB2_URL+'/rest/v1/rpc/increment_like_counter', {
     method:'POST',
     headers:sbHeaders(),
     body:JSON.stringify({ p_profile: profile })
