@@ -70,21 +70,102 @@ async function nativeLogout(){
   }
   sessionStorage.removeItem('jayana_sb_session');
   localStorage.removeItem('jayana_profile');
+  localStorage.removeItem(V2_SESSION_KEY || 'yam_v2_session');
   _sbAccessToken = null;
   location.reload();
 }
 
 
 
-// SUPABASE CONFIG
+// SUPABASE CONFIG — ancien projet (tables existantes inchangées)
 // ════════════════════════════════════════════
 var SB_URL = 'https://zjmbyjpxqrojnuymnpcf.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqbWJ5anB4cXJvam51eW1ucGNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0MzEzNjcsImV4cCI6MjA4NzAwNzM2N30.vNRgLgCNqZ9g351YmodZoXYDqars-thVDFmri2Z3oxE';
 var SB_IMG = SB_URL + '/storage/v1/object/public/images/';
 
+// SUPABASE V2 CONFIG — nouveau projet auth
+// ════════════════════════════════════════════
+var SB2_URL        = 'https://jstiwtbgkbedtldqjdhp.supabase.co';
+var SB2_KEY        = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdGl3dGJna2JlZHRsZHFqZGhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4OTI1NTgsImV4cCI6MjA4NzQ2ODU1OH0.3W1u55aIakQxW5EyF0Sahc6Pjak1JqWhcX1ZifePH98';
+var SB2_EDGE_AUTH  = SB2_URL + '/functions/v1/auth-v2';
+var SB2_APP_SECRET = 'uj-Y_&yj8KUF37i';
+
+// Clé localStorage pour la session v2
+var V2_SESSION_KEY = 'yam_v2_session';
+
+// Sauvegarde session v2 dans localStorage
+function v2SaveSession(data){
+  localStorage.setItem(V2_SESSION_KEY, JSON.stringify({
+    token:     data.token,
+    expires_at: data.expires_at,
+    user:      data.user
+  }));
+}
+
+// Charge session v2 depuis localStorage
+function v2LoadSession(){
+  try{
+    var s = JSON.parse(localStorage.getItem(V2_SESSION_KEY)||'null');
+    if(s && s.token && s.expires_at && new Date(s.expires_at) > new Date()) return s;
+  }catch(e){}
+  return null;
+}
+
+// Retourne le profil courant (role: 'girl' ou 'boy') depuis la session v2
+// Fallback sur l'ancien système pour ne pas casser l'app actuelle
 function getProfile(){
+  var s = v2LoadSession();
+  if(s && s.user && (s.user.role === 'girl' || s.user.role === 'boy')) return s.user.role;
   var v = localStorage.getItem('jayana_profile');
   return (v === 'boy' || v === 'girl') ? v : null;
+}
+
+// Retourne l'objet user complet de la session v2
+function v2GetUser(){
+  var s = v2LoadSession();
+  return s ? s.user : null;
+}
+
+// Appel à l'Edge Function auth-v2
+function v2Auth(action, payload){
+  return fetch(SB2_EDGE_AUTH, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-app-secret': SB2_APP_SECRET },
+    body: JSON.stringify(Object.assign({ action: action }, payload))
+  }).then(function(r){ return r.json(); });
+}
+
+// Connexion : pseudo + password
+function v2Login(pseudo, password){
+  return v2Auth('login', { pseudo: pseudo, password: password })
+    .then(function(data){
+      if(data.error) return { ok: false, error: data.error };
+      v2SaveSession(data);
+      localStorage.setItem('jayana_profile', data.user.role); // compat ancien système
+      return { ok: true, data: data };
+    });
+}
+
+// Inscription : pseudo + password + role → génère un code couple
+function v2Register(pseudo, password, role){
+  return v2Auth('register', { pseudo: pseudo, password: password, role: role })
+    .then(function(data){
+      if(data.error) return { ok: false, error: data.error };
+      v2SaveSession(data);
+      localStorage.setItem('jayana_profile', data.user.role);
+      return { ok: true, data: data };
+    });
+}
+
+// Rejoindre un couple : pseudo + password + role + code couple
+function v2Join(pseudo, password, role, coupleCode){
+  return v2Auth('join', { pseudo: pseudo, password: password, role: role, couple_code: coupleCode })
+    .then(function(data){
+      if(data.error) return { ok: false, error: data.error };
+      v2SaveSession(data);
+      localStorage.setItem('jayana_profile', data.user.role);
+      return { ok: true, data: data };
+    });
 }
 
 // SÉCURITÉ — Fonction globale d'échappement HTML
