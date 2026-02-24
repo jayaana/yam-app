@@ -5,7 +5,7 @@
 // DM — INSTALOVE
 // ══════════════════════════════════════════
 (function(){
-  var TABLE = 'dm_messages';
+  var TABLE = 'v2_dm_messages';
   var identity = null;  // 'girl' | 'boy'
   var cache    = [];
   var pollId   = null;
@@ -316,7 +316,7 @@
   }
 
   /* ══ TYPING INDICATOR ══ */
-  var TYPING_TABLE = 'dm_typing';
+  var TYPING_TABLE = 'v2_dm_typing';
   var typingEl     = null;
   var typingTimer  = null;
   var myTypingTs   = 0;
@@ -348,16 +348,16 @@
     var now = Date.now();
     if(now - myTypingTs < 2000) return; // debounce 2s
     myTypingTs = now;
-    fetch(SB_URL + '/rest/v1/' + TYPING_TABLE + '?sender=eq.' + identity, {
+    fetch(SB2_URL + '/rest/v1/' + TYPING_TABLE + '?sender=eq.' + identity, {
       method: 'GET', headers: sbHeaders()
     }).then(function(r){ return r.json(); }).then(function(rows){
       var body = { sender: identity, updated_at: new Date().toISOString() };
       if(Array.isArray(rows) && rows.length){
-        fetch(SB_URL + '/rest/v1/' + TYPING_TABLE + '?sender=eq.' + identity, {
+        fetch(SB2_URL + '/rest/v1/' + TYPING_TABLE + '?sender=eq.' + identity, {
           method: 'PATCH', headers: sbHeaders(), body: JSON.stringify(body)
         }).catch(function(){});
       } else {
-        fetch(SB_URL + '/rest/v1/' + TYPING_TABLE, {
+        fetch(SB2_URL + '/rest/v1/' + TYPING_TABLE, {
           method: 'POST', headers: sbHeaders({'Prefer':'return=minimal'}), body: JSON.stringify(body)
         }).catch(function(){});
       }
@@ -366,7 +366,7 @@
 
   function pollTyping(){
     var other = identity === 'girl' ? 'boy' : 'girl';
-    fetch(SB_URL + '/rest/v1/' + TYPING_TABLE + '?sender=eq.' + other, {
+    fetch(SB2_URL + '/rest/v1/' + TYPING_TABLE + '?sender=eq.' + other, {
       headers: sbHeaders()
     }).then(function(r){ return r.json(); }).then(function(rows){
       if(!Array.isArray(rows) || !rows.length){ hideTyping(); return; }
@@ -458,7 +458,7 @@
       }
       if(meta) meta.style.display = '';
       if(String(msg.id).indexOf('tmp_') === 0) return;
-      fetch(SB_URL + '/rest/v1/' + TABLE + '?id=eq.' + msg.id, {
+      fetch(SB2_URL + '/rest/v1/' + TABLE + '?id=eq.' + msg.id, {
         method: 'PATCH', headers: sbHeaders(),
         body: JSON.stringify({ text: newText, edited: true })
       }).catch(function(err){ console.error('[DM] edit err:', err); });
@@ -503,7 +503,7 @@
   }
 
   function fetchMsgs(){
-    fetch(SB_URL + '/rest/v1/' + TABLE + '?order=created_at.asc&limit=300&select=*', {
+    fetch(SB2_URL + '/rest/v1/' + TABLE + '?order=created_at.asc&limit=300&select=*', {
       headers: sbHeaders()
     })
     .then(function(r){
@@ -735,7 +735,7 @@
     }
     // Persist Supabase
     if(String(msg.id).indexOf('tmp_') === 0) return;
-    fetch(SB_URL + '/rest/v1/' + TABLE + '?id=eq.' + msg.id, {
+    fetch(SB2_URL + '/rest/v1/' + TABLE + '?id=eq.' + msg.id, {
       method: 'PATCH',
       headers: sbHeaders(),
       body: JSON.stringify({ reaction: reaction })
@@ -754,7 +754,7 @@
 
     if(String(msg.id).indexOf('tmp_') === 0){ wrap.remove(); return; }
     // Soft delete Supabase
-    fetch(SB_URL + '/rest/v1/' + TABLE + '?id=eq.' + msg.id, {
+    fetch(SB2_URL + '/rest/v1/' + TABLE + '?id=eq.' + msg.id, {
       method: 'PATCH',
       headers: sbHeaders(),
       body: JSON.stringify({ deleted: true, text: 'Message supprimé' })
@@ -940,7 +940,7 @@
     if(replyText) body.reply_to_text   = replyText;
     if(replySender) body.reply_to_sender = replySender;
 
-    fetch(SB_URL + '/rest/v1/' + TABLE, {
+    fetch(SB2_URL + '/rest/v1/' + TABLE, {
       method: 'POST',
       headers: sbHeaders({'Prefer': 'return=representation'}),
       body: JSON.stringify(body)
@@ -1046,7 +1046,7 @@
         appendBubble(tmpMsg, cache.length-1, cache);
         scrollBottom();
 
-        fetch(SB_URL + '/rest/v1/' + TABLE, {
+        fetch(SB2_URL + '/rest/v1/' + TABLE, {
           method: 'POST',
           headers: sbHeaders({'Prefer':'return=representation'}),
           body: JSON.stringify({
@@ -1087,7 +1087,7 @@
 
   function markSeen(id){
     if(!id || String(id).indexOf('tmp_') === 0) return;
-    fetch(SB_URL + '/rest/v1/' + TABLE + '?id=eq.' + id, {
+    fetch(SB2_URL + '/rest/v1/' + TABLE + '?id=eq.' + id, {
       method: 'PATCH',
       headers: sbHeaders(),
       body: JSON.stringify({ seen: true })
@@ -1107,7 +1107,7 @@
 
   /* ══ PREVIEW ACCUEIL ══ */
   function loadHomePreview(){
-    fetch(SB_URL + '/rest/v1/' + TABLE + '?order=created_at.desc&limit=50&select=id,sender,text,message_type,seen,created_at,reaction,deleted,audio_duration', {
+    fetch(SB2_URL + '/rest/v1/' + TABLE + '?order=created_at.desc&limit=50&select=id,sender,text,message_type,seen,created_at,reaction,deleted,audio_duration', {
       headers: sbHeaders()
     })
     .then(function(r){ return r.json(); })
