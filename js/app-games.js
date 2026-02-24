@@ -28,7 +28,7 @@ function memorySelectGender(gender) {
   document.getElementById('memGenderGirl').className = 'gender-select-btn' + (gender === 'girl' ? ' girl' : '');
   document.getElementById('memGenderBoy').className  = 'gender-select-btn' + (gender === 'boy'  ? ' boy'  : '');
   // Afficher titre personnalisé
-  document.getElementById('memoryStartTitle').textContent = (typeof v2GetDisplayName==="function" ? 'Jeu de mémoire — '+v2GetDisplayName(gender) : (gender==="girl"?'Jeu de mémoire — Elle 🩷':'Jeu de mémoire — Lui 💙'));
+  document.getElementById('memoryStartTitle').textContent = (typeof v2GetDisplayName==="function"?'Jeu de mémoire — '+v2GetDisplayName(gender):(gender==="girl"?'Jeu de mémoire — Elle 🩷':'Jeu de mémoire — Lui 💙'));
   // Transition vers écran de départ
   document.getElementById('memoryGenderScreen').style.display = 'none';
   document.getElementById('memoryStartScreen').style.display  = 'flex';
@@ -93,7 +93,7 @@ function memoryWinFn(){
   var win=document.getElementById('memoryWin');win.classList.add('show');
   var stars=memMoves<=20?'🌟🌟🌟':memMoves<=30?'🌟🌟':'🌟';
   var timeStr = document.getElementById('memTime').textContent;
-  var who = (typeof v2GetDisplayName==="function" ? v2GetDisplayName(memCurrentPlayer) : (memCurrentPlayer==="girl"?'Elle':'Lui'));
+  var who = (typeof v2GetDisplayName==="function"?v2GetDisplayName(memCurrentPlayer):(memCurrentPlayer==="girl"?"Elle":"Lui"));
   var msg = memMoves<=20 ? 'Parfait '+who+' ! '+memMoves+' coups en '+timeStr+' 💕' : memMoves<=30 ? 'Bien joué '+who+' ! '+memMoves+' coups en '+timeStr+' 😊' : 'Bravo '+who+' ! '+memMoves+' coups en '+timeStr+' 😏';
   document.getElementById('memoryWinTitle').textContent=stars+' Terminé !';
   document.getElementById('memoryWinSub').textContent=msg;
@@ -152,7 +152,7 @@ function lbRender(rows) {
   list.innerHTML = top.map(function(row, i) {
     var rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
     var rankDisplay = i < 3 ? rankIcons[i] : (i + 1);
-    var playerLabel = (typeof v2GetDisplayName==="function" ? v2GetDisplayName(row.player) : (row.player==="girl"?'Elle':'Lui'));
+    var playerLabel = (typeof v2GetDisplayName==="function"?v2GetDisplayName(row.player):(row.player==="girl"?"Elle":"Lui"));
     var dotClass = row.player === 'girl' ? 'girl' : 'boy';
     var m = Math.floor(parseInt(row.time_seconds||0) / 60), s = parseInt(row.time_seconds||0) % 60;
     var timeStr = m ? m + 'm' + String(s).padStart(2,'0') + 's' : s + 's';
@@ -1035,7 +1035,7 @@ function renderLb(elId, rows, detailFn){
   var icons=['🥇','🥈','🥉'];
   list.innerHTML=top.map(function(r,i){
     var rc=i===0?'gold':i===1?'silver':i===2?'bronze':'';
-    return '<div class="lb-row"><div class="lb-rank '+rc+'">'+(i<3?icons[i]:i+1)+'</div><div class="lb-dot '+(r.player==='girl'?'girl':'boy')+'"></div><div class="lb-name">'+((typeof v2GetDisplayName==="function"?v2GetDisplayName(r.player):(r.player==="girl"?"Elle":"Lui")))+'</div><div class="lb-score">'+detailFn(r)+'</div></div>';
+    return '<div class="lb-row"><div class="lb-rank '+rc+'">'+(i<3?icons[i]:i+1)+'</div><div class="lb-dot '+(r.player==='girl'?'girl':'boy')+'"></div><div class="lb-name">'+(r.player==='girl'?(typeof v2GetDisplayName==="function"?v2GetDisplayName(r.player):(r.player==="girl"?"Elle":"Lui")))+'</div><div class="lb-score">'+detailFn(r)+'</div></div>';
   }).join('');
 }
 
@@ -1251,8 +1251,8 @@ function renderLb(elId, rows, detailFn){
     resetState();
     _me   =getProfile();
     _other=_me==='girl'?'boy':'girl';
-    var myName=(typeof v2GetDisplayName==="function"?v2GetDisplayName(_me):((_me==="girl")?"Elle":"Lui"));
-    var otherName=(typeof v2GetDisplayName==="function"?v2GetDisplayName(_me==="girl"?"boy":"girl"):((_me==="girl")?"Lui":"Elle"));
+    var myName=(typeof v2GetDisplayName==="function"?v2GetDisplayName(_me):(_me==="girl"?"Elle":"Lui"));
+    var otherName=(typeof v2GetDisplayName==="function"?v2GetDisplayName(_me==="girl"?"boy":"girl"):(_me==="girl"?"Lui":"Elle"));
 
     // Vérifier partie playing ET présence en même temps
     Promise.all([
@@ -1566,7 +1566,7 @@ function renderLb(elId, rows, detailFn){
           // On NE stoppe PAS le poll ici — il doit continuer à tourner
           // pour que fetchState() puisse détecter bothAbsent à 40s.
           // Le popup s'affiche à 20s mais le poll reste actif en arrière-plan.
-          var oppName=(typeof v2GetDisplayName==="function"?v2GetDisplayName(_me==="girl"?"boy":"girl"):((_me==="girl")?"Lui":"Elle"));
+          var oppName = (typeof v2GetDisplayName==="function"?v2GetDisplayName(_me==="girl"?"boy":"girl"):(_me==="girl"?"Lui":"Elle"));
           showSkyjoChoice(
             '😔',
             oppName+' est déconnecté(e)',
@@ -1666,8 +1666,8 @@ function renderLb(elId, rows, detailFn){
 
     var myCards  =_me==='girl'?state.girl_cards:state.boy_cards;
     var oppCards =_me==='girl'?state.boy_cards:state.girl_cards;
-    var myName=(typeof v2GetDisplayName==="function"?v2GetDisplayName(_me):((_me==="girl")?"Elle":"Lui"));
-    var oppName=(typeof v2GetDisplayName==="function"?v2GetDisplayName(_me==="girl"?"boy":"girl"):((_me==="girl")?"Lui":"Elle"));
+    var myName   =(typeof v2GetDisplayName==="function"?v2GetDisplayName(_me):(_me==="girl"?"Elle":"Lui"));
+    var oppName  =(typeof v2GetDisplayName==="function"?v2GetDisplayName(_me==="girl"?"boy":"girl"):(_me==="girl"?"Lui":"Elle"));
     var isMyTurn =state.turn===_me;
     var iHoldCard=state.held_card&&state.held_card.holder===_me;
 
@@ -2793,7 +2793,7 @@ function renderLb(elId, rows, detailFn){
     var rb=state.round_scores?state.round_scores.boy:0;
     var tg=state.scores?state.scores.girl:0;
     var tb=state.scores?state.scores.boy:0;
-    var winner=(typeof v2GetDisplayName==="function"?(rg<rb?v2GetDisplayName('girl')+' 👧':(rb<rg?v2GetDisplayName('boy')+' 👦':null)):(rg<rb?'Elle 👧':(rb<rg?'Lui 👦':null)));
+    var winner=rg<rb?(typeof v2GetDisplayName==="function"?v2GetDisplayName('girl')+' 👧':'Elle 👧'):(rb<rg?(typeof v2GetDisplayName==="function"?v2GetDisplayName('boy')+' 👦':'Lui 👦'):null);
     document.getElementById('skyjoRoundEndEmoji').textContent=!winner?'🤝':'🏆';
     document.getElementById('skyjoRoundEndTitle').textContent=!winner?'Manche nulle !':(winner+' gagne la manche !');
     document.getElementById('skyjoRoundEndSub').textContent='Manche '+(state.round||1);
@@ -2802,8 +2802,8 @@ function renderLb(elId, rows, detailFn){
     var oppR  = _me==='girl' ? rb : rg;
     var myT   = _me==='girl' ? tg : tb;
     var oppT  = _me==='girl' ? tb : tg;
-    var myName2  = (typeof v2GetDisplayName==="function"?('👧 '+v2GetDisplayName('girl')):"👧 Elle");
-    var oppName2 = (typeof v2GetDisplayName==="function"?('👦 '+v2GetDisplayName('boy')):"👦 Lui");
+    var myName2  = (typeof v2GetDisplayName==="function"?'👧 '+v2GetDisplayName('girl'):'👧 Elle');
+    var oppName2 = (typeof v2GetDisplayName==="function"?'👦 '+v2GetDisplayName('boy'):'👦 Lui');
     // Mettre à jour les labels du popup (moi à gauche, adversaire à droite)
     var lblLeft  = document.getElementById('skyjoRoundLabelLeft');
     var lblRight = document.getElementById('skyjoRoundLabelRight');
@@ -2866,7 +2866,7 @@ function renderLb(elId, rows, detailFn){
     var isDraw=gg===gb;
     var girlWins=gg<gb;
     document.getElementById('skyjoGameEndEmoji').textContent=isDraw?'🤝':(girlWins?'👧':'👦');
-    document.getElementById('skyjoGameEndTitle').textContent=isDraw?'Égalité !':((typeof v2GetDisplayName==="function"?(girlWins?v2GetDisplayName('girl')+' 👧':v2GetDisplayName('boy')+' 👦'):(girlWins?'Elle 👧':'Lui 👦')))+' gagne la partie !';
+    document.getElementById('skyjoGameEndTitle').textContent=isDraw?'Égalité !':(girlWins?(typeof v2GetDisplayName==="function"?v2GetDisplayName('girl')+' 👧':'Elle 👧'):(typeof v2GetDisplayName==="function"?v2GetDisplayName('boy')+' 👦':'Lui 👦'))+' gagne la partie !';
     // Afficher MOI à gauche (Girl-slot), ADVERSAIRE à droite (Boy-slot)
     var myFinal  = _me==='girl' ? gg : gb;
     var oppFinal = _me==='girl' ? gb : gg;
@@ -2877,8 +2877,8 @@ function renderLb(elId, rows, detailFn){
     // Labels fin de partie (moi à gauche, adversaire à droite)
     var fLblLeft  = document.getElementById('skyjoFinalLabelLeft');
     var fLblRight = document.getElementById('skyjoFinalLabelRight');
-    if(fLblLeft)  fLblLeft.textContent  = (typeof v2GetDisplayName==="function"?v2GetDisplayName(_me):((_me==="girl")?"Elle":"Lui"));
-    if(fLblRight) fLblRight.textContent = (typeof v2GetDisplayName==="function"?v2GetDisplayName(_me==="girl"?"boy":"girl"):((_me==="girl")?"Lui":"Elle"));
+    if(fLblLeft)  fLblLeft.textContent  = (typeof v2GetDisplayName==="function"?v2GetDisplayName(_me):(_me==="girl"?"Elle":"Lui"));
+    if(fLblRight) fLblRight.textContent = (typeof v2GetDisplayName==="function"?v2GetDisplayName(_me==="girl"?"boy":"girl"):(_me==="girl"?"Lui":"Elle"));
     var fEmoLeft  = document.getElementById('skyjoFinalEmojiLeft');
     var fEmoRight = document.getElementById('skyjoFinalEmojiRight');
     if(fEmoLeft)  fEmoLeft.textContent  = _me==='girl'?'👧':'👦';
@@ -3226,4 +3226,3 @@ function renderLb(elId, rows, detailFn){
 
   console.log('⚡ [v3.6] Skyjo bg-pause: visibilitychange+pagehide+blur/focus installés');
 })();
-
