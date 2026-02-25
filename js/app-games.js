@@ -2670,6 +2670,7 @@ function renderLb(elId, rows, detailFn){
       ns.discard=[top];
     }
     ns.held_card = {value:drawnVal, holder:_me};
+    ns.live = {action:'draw_deck', player:_me, ts:Date.now()};
     saveState(ns);
   };
 
@@ -2697,6 +2698,7 @@ function renderLb(elId, rows, detailFn){
     var ns = deepCopy(_gameState);
     var drawnVal = ns.discard.pop();
     ns.held_card = {value:drawnVal, holder:_me};
+    ns.live = {action:'draw_discard', val:drawnVal, player:_me, ts:Date.now()};
     saveState(ns);
   };
 
@@ -2736,6 +2738,11 @@ function renderLb(elId, rows, detailFn){
     // La carte tenue prend la place, révélée
     ns[key][idx] = {value:heldVal, revealed:true};
     ns.held_card = null;
+    // Signal live pour l'animation adversaire (coordonnées destination capturées avant renderGrid)
+    var _liveDestRect = targetEl ? targetEl.getBoundingClientRect() : null;
+    ns.live = {action:'replace', idx:idx, val:heldVal, player:_me,
+      destRect: _liveDestRect ? {left:_liveDestRect.left, top:_liveDestRect.top, width:_liveDestRect.width, height:_liveDestRect.height} : null,
+      ts:Date.now()};
     // Vérifier colonnes identiques
     checkAndRemoveColumns(ns[key]);
     // Vérifier si toutes révélées → fermeture de manche
@@ -2764,6 +2771,7 @@ function renderLb(elId, rows, detailFn){
 
     var ns = deepCopy(_gameState);
     ns.discard.push(ns.held_card.value);
+    ns.live = {action:'discard_held', val:ns.held_card.value, player:_me, ts:Date.now()};
     ns.held_card = null;
     ns.must_flip = _me; // doit retourner une carte cachée
     saveState(ns);
@@ -3237,10 +3245,10 @@ function renderLb(elId, rows, detailFn){
           }, 3000);
         }
         resetState();
-        document.getElementById('skyjoView').classList.remove('active');
-        document.querySelector('.bottom-nav').style.display='';
         var btn=document.getElementById('skyjoAbandonBtn');
         if(btn) btn.style.display='none';
+        _yamSlide(document.getElementById('gamesView'), document.getElementById('skyjoView'), 'backward');
+        document.querySelector('.bottom-nav').style.display='';
       }
     );
   };
