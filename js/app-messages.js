@@ -348,25 +348,21 @@
     var now = Date.now();
     if(now - myTypingTs < 2000) return; // debounce 2s
     myTypingTs = now;
-    fetch(SB2_URL + '/rest/v1/' + TYPING_TABLE + '?sender=eq.' + identity, {
-      method: 'GET', headers: sb2Headers()
-    }).then(function(r){ return r.json(); }).then(function(rows){
-      var body = { sender: identity, updated_at: new Date().toISOString() };
-      if(Array.isArray(rows) && rows.length){
-        fetch(SB2_URL + '/rest/v1/' + TYPING_TABLE + '?sender=eq.' + identity, {
-          method: 'PATCH', headers: sb2Headers(), body: JSON.stringify(body)
-        }).catch(function(){});
-      } else {
-        fetch(SB2_URL + '/rest/v1/' + TYPING_TABLE, {
-          method: 'POST', headers: sb2Headers({'Prefer':'return=minimal'}), body: JSON.stringify(body)
-        }).catch(function(){});
-      }
+    var coupleId = _getCoupleId();
+    if(!coupleId) return;
+    // Upsert direct sur (couple_id, sender) — plus simple et atomique
+    fetch(SB2_URL + '/rest/v1/' + TYPING_TABLE, {
+      method: 'POST',
+      headers: sb2Headers({'Prefer': 'resolution=merge-duplicates,return=minimal'}),
+      body: JSON.stringify({ couple_id: coupleId, sender: identity, updated_at: new Date().toISOString() })
     }).catch(function(){});
   }
 
   function pollTyping(){
     var other = identity === 'girl' ? 'boy' : 'girl';
-    fetch(SB2_URL + '/rest/v1/' + TYPING_TABLE + '?sender=eq.' + other, {
+    var coupleId = _getCoupleId();
+    if(!coupleId) return;
+    fetch(SB2_URL + '/rest/v1/' + TYPING_TABLE + '?couple_id=eq.' + coupleId + '&sender=eq.' + other, {
       headers: sb2Headers()
     }).then(function(r){ return r.json(); }).then(function(rows){
       if(!Array.isArray(rows) || !rows.length){ hideTyping(); return; }
@@ -502,8 +498,16 @@
     wrap.insertAdjacentElement('afterend', lbl);
   }
 
+  function _getCoupleId(){
+    var s = null;
+    try { s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null'); } catch(e){}
+    return s && s.user ? s.user.couple_id : null;
+  }
+
   function fetchMsgs(){
-    fetch(SB2_URL + '/rest/v1/' + TABLE + '?order=created_at.asc&limit=300&select=*', {
+    var coupleId = _getCoupleId();
+    if(!coupleId) return; // pas de session = rien à charger
+    fetch(SB2_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId + '&order=created_at.asc&limit=300&select=*', {
       headers: sb2Headers()
     })
     .then(function(r){
@@ -935,7 +939,7 @@
     appendBubble(tmpMsg, cache.length - 1, cache);
     scrollBottom();
 
-    var body = { sender: identity, text: text };
+    var body = { couple_id: _getCoupleId(), sender: identity, text: text };
     if(replyId)   body.reply_to_id     = replyId;
     if(replyText) body.reply_to_text   = replyText;
     if(replySender) body.reply_to_sender = replySender;
@@ -1050,6 +1054,7 @@
           method: 'POST',
           headers: sb2Headers({'Prefer':'return=representation'}),
           body: JSON.stringify({
+            couple_id: _getCoupleId(),
             sender: identity, text: '',
             message_type: 'audio', audio_data: b64,
             audio_duration: Math.round(duration)
@@ -1107,7 +1112,9 @@
 
   /* ══ PREVIEW ACCUEIL ══ */
   function loadHomePreview(){
-    fetch(SB2_URL + '/rest/v1/' + TABLE + '?order=created_at.desc&limit=50&select=id,sender,text,message_type,seen,created_at,reaction,deleted,audio_duration', {
+    var coupleId = _getCoupleId();
+    if(!coupleId) return;
+    fetch(SB2_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId + '&order=created_at.desc&limit=50&select=id,sender,text,message_type,seen,created_at,reaction,deleted,audio_duration', {
       headers: sb2Headers()
     })
     .then(function(r){ return r.json(); })
