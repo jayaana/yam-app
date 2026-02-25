@@ -1,5 +1,6 @@
 // ═══════════════════════════════════════════════════════════
 // app-messages.js — InstaLove · DM · Notif pilule
+// ✅ VERSION CORRIGÉE V3.3 — Isolation couple_id complète
 
 // ══════════════════════════════════════════
 // DM — INSTALOVE
@@ -344,24 +345,40 @@
     if(typingEl){ typingEl.remove(); typingEl = null; }
   }
 
+  // ✅ CORRECTION BUG #1b — Typing Indicator avec couple_id
   function sendTypingPing(){
     var now = Date.now();
     if(now - myTypingTs < 2000) return; // debounce 2s
     myTypingTs = now;
-    var coupleId = _getCoupleId();
+    
+    // Récupérer couple_id
+    var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
+    var coupleId = s && s.user ? s.user.couple_id : null;
     if(!coupleId) return;
-    // Upsert direct sur (couple_id, sender) — plus simple et atomique
-    fetch(SB2_URL + '/rest/v1/' + TYPING_TABLE, {
-      method: 'POST',
-      headers: sb2Headers({'Prefer': 'resolution=merge-duplicates,return=minimal'}),
-      body: JSON.stringify({ couple_id: coupleId, sender: identity, updated_at: new Date().toISOString() })
+    
+    fetch(SB2_URL + '/rest/v1/' + TYPING_TABLE + '?couple_id=eq.' + coupleId + '&sender=eq.' + identity, {
+      method: 'GET', headers: sb2Headers()
+    }).then(function(r){ return r.json(); }).then(function(rows){
+      var body = { couple_id: coupleId, sender: identity, updated_at: new Date().toISOString() };
+      if(Array.isArray(rows) && rows.length){
+        fetch(SB2_URL + '/rest/v1/' + TYPING_TABLE + '?couple_id=eq.' + coupleId + '&sender=eq.' + identity, {
+          method: 'PATCH', headers: sb2Headers(), body: JSON.stringify(body)
+        }).catch(function(){});
+      } else {
+        fetch(SB2_URL + '/rest/v1/' + TYPING_TABLE, {
+          method: 'POST', headers: sb2Headers({'Prefer':'return=minimal'}), body: JSON.stringify(body)
+        }).catch(function(){});
+      }
     }).catch(function(){});
   }
 
+  // ✅ CORRECTION BUG #1c — Poll Typing avec couple_id
   function pollTyping(){
-    var other = identity === 'girl' ? 'boy' : 'girl';
-    var coupleId = _getCoupleId();
+    var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
+    var coupleId = s && s.user ? s.user.couple_id : null;
     if(!coupleId) return;
+    
+    var other = identity === 'girl' ? 'boy' : 'girl';
     fetch(SB2_URL + '/rest/v1/' + TYPING_TABLE + '?couple_id=eq.' + coupleId + '&sender=eq.' + other, {
       headers: sb2Headers()
     }).then(function(r){ return r.json(); }).then(function(rows){
@@ -498,15 +515,16 @@
     wrap.insertAdjacentElement('afterend', lbl);
   }
 
-  function _getCoupleId(){
-    var s = null;
-    try { s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null'); } catch(e){}
-    return s && s.user ? s.user.couple_id : null;
-  }
-
+  // ✅ CORRECTION BUG #1a — Fetch Messages avec couple_id
   function fetchMsgs(){
-    var coupleId = _getCoupleId();
-    if(!coupleId) return; // pas de session = rien à charger
+    // Récupérer le couple_id depuis la session
+    var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
+    var coupleId = s && s.user ? s.user.couple_id : null;
+    if(!coupleId){
+      console.warn('[DM] fetchMsgs: couple_id manquant');
+      return;
+    }
+    
     fetch(SB2_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId + '&order=created_at.asc&limit=300&select=*', {
       headers: sb2Headers()
     })
@@ -913,6 +931,7 @@
   }
 
   /* ══ ENVOI ══ */
+  // ✅ CORRECTION BUG #1d — Envoi message texte avec couple_id
   function doSend(){
     if(!identity){
       showIdentityOverlay();
@@ -924,6 +943,14 @@
     if(!text) return;
     input.value = '';
     updateSendBtn();
+
+    // Récupérer couple_id
+    var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
+    var coupleId = s && s.user ? s.user.couple_id : null;
+    if(!coupleId){
+      console.error('[DM] doSend: couple_id manquant');
+      return;
+    }
 
     // Capture reply avant de le cancel
     var replyId   = _replyMsg ? _replyMsg.id   : null;
@@ -939,7 +966,7 @@
     appendBubble(tmpMsg, cache.length - 1, cache);
     scrollBottom();
 
-    var body = { couple_id: _getCoupleId(), sender: identity, text: text };
+    var body = { couple_id: coupleId, sender: identity, text: text };
     if(replyId)   body.reply_to_id     = replyId;
     if(replyText) body.reply_to_text   = replyText;
     if(replySender) body.reply_to_sender = replySender;
@@ -973,6 +1000,7 @@
   window.dmSend = doSend;
 
   /* ══ ENREGISTREMENT VOCAL ══ */
+  // ✅ CORRECTION BUG #1e — Envoi message audio avec couple_id
   (function(){
     var micBtn     = $('dmMicBtn');
     var recInd     = $('dmRecIndicator');
@@ -1036,6 +1064,13 @@
     }
 
     function sendAudio(blob, duration){
+      var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
+      var coupleId = s && s.user ? s.user.couple_id : null;
+      if(!coupleId){
+        console.error('[DM] sendAudio: couple_id manquant');
+        return;
+      }
+      
       var reader = new FileReader();
       reader.onloadend = function(){
         var b64 = reader.result.split(',')[1];
@@ -1054,7 +1089,7 @@
           method: 'POST',
           headers: sb2Headers({'Prefer':'return=representation'}),
           body: JSON.stringify({
-            couple_id: _getCoupleId(),
+            couple_id: coupleId,
             sender: identity, text: '',
             message_type: 'audio', audio_data: b64,
             audio_duration: Math.round(duration)
@@ -1111,9 +1146,12 @@
   }
 
   /* ══ PREVIEW ACCUEIL ══ */
+  // ✅ CORRECTION BUG #1f — loadHomePreview avec couple_id
   function loadHomePreview(){
-    var coupleId = _getCoupleId();
+    var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
+    var coupleId = s && s.user ? s.user.couple_id : null;
     if(!coupleId) return;
+    
     fetch(SB2_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId + '&order=created_at.desc&limit=50&select=id,sender,text,message_type,seen,created_at,reaction,deleted,audio_duration', {
       headers: sb2Headers()
     })
