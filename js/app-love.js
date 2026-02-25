@@ -628,8 +628,8 @@ buildStack();
   var _prevUnreadCount = -1; // -1 = pas encore initialisé, évite la notif au premier check
 
   function checkUnread(){
-    // Ne pas vérifier si InstaLove est ouvert (il gère lui-même)
-    if(document.getElementById('hiddenPage').classList.contains('active')) return;
+    // Ne pas vérifier si on est sur l'onglet messages (il gère lui-même)
+    if(window._currentTab === 'messages') return;
     var profile = getProfile();
     if(!profile) return; // pas connecté, rien à vérifier
     var other = profile === 'girl' ? 'boy' : 'girl';
