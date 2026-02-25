@@ -633,12 +633,11 @@ buildStack();
     var profile = getProfile();
     if(!profile) return; // pas connecté, rien à vérifier
     var other = profile === 'girl' ? 'boy' : 'girl';
-    // Récupérer le couple_id depuis la session
-    var _s = null;
-    try { _s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null'); } catch(e){}
-    var coupleId = _s && _s.user ? _s.user.couple_id : null;
-    if(!coupleId) return;
-    // Récupérer les messages non lus envoyés par l'autre, filtrés par couple
+    // Récupérer couple_id pour filtrer
+    var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
+    var coupleId = s && s.user ? s.user.couple_id : null;
+    if(!coupleId) return; // pas de couple_id, impossible de filtrer
+    // Récupérer les messages non lus envoyés par l'autre FILTRÉS PAR COUPLE
     fetch(SB2_URL + '/rest/v1/v2_dm_messages?couple_id=eq.' + coupleId + '&sender=eq.' + other + '&seen=eq.false&deleted=eq.false&order=created_at.desc&limit=99', {
       headers: sb2Headers()
     })
