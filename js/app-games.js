@@ -2208,30 +2208,7 @@ function renderLb(elId, rows, detailFn){
     });
   }
 
-  // ─── Actions joueur ──────────────────────────────────
-  window.skyjoFlipInit=function(idx){
-    if(!_gameState||_phase!=='init1') return;
-    // Phase init : chaque joueur retourne 2 cartes LIBREMENT (simultané, pas de tour)
-    var key=_me+'_cards';
-    var ns=deepCopy(_gameState);
-    if(ns[key][idx].revealed) return;
-    ns[key][idx].revealed=true;
-
-    var myFlipped  =ns[key].filter(function(c){return c.revealed;}).length;
-    var otherKey   =(_me==='girl'?'boy':'girl')+'_cards';
-    var otherFlipped=ns[otherKey].filter(function(c){return c.revealed;}).length;
-
-    // Les deux ont retourné leurs 2 cartes → passer en play
-    if(myFlipped>=2 && otherFlipped>=2){
-      var myTot  =ns[key].filter(function(c){return c.revealed;}).reduce(function(a,c){return a+c.value;},0);
-      var othTot =ns[otherKey].filter(function(c){return c.revealed;}).reduce(function(a,c){return a+c.value;},0);
-      // Celui avec le PLUS GRAND total commence (règle Skyjo)
-      ns.turn  = myTot>=othTot ? _me : _other;
-      ns.phase = 'play';
-    }
-    // Sinon : je sauvegarde juste mon flip, l'autre verra et pourra continuer
-    saveState(ns);
-  };
+  // ─── Actions joueur (définies plus bas) ──────────────
 
   // ─── Helpers animations ──────────────────────────────
 
@@ -2552,27 +2529,79 @@ function renderLb(elId, rows, detailFn){
   }
 
   // ─── RPC : appel atomique côté serveur ──────────────────
-  function callRpc(fnName, params, livePayload){
-    sjShowLoader();
-    return fetch(SB2_URL+'/rest/v1/rpc/'+fnName,{
-      method:'POST',
-      headers:sb2Headers(),
-      body:JSON.stringify(params)
-    })
-    .then(function(r){
-      if(!r.ok){ return r.text().then(function(t){ throw new Error(t); }); }
-      return r.json();
-    })
-    .then(function(state){
-      sjHideLoader();
-      if(state && typeof state === 'object' && !Array.isArray(state)){
-        renderState({id:_gameId, state:state});
-        // Écrire le live IMMÉDIATEMENT après renderState, dans le même tick
-        if(livePayload) _writeLive(livePayload);
+  // ─── Helpers logique jeu ─────────────────────────────
+
+  // Vérifie si une colonne entière (3 cartes) est révélée avec la même valeur → retirer
+  // Skyjo : 4 colonnes (indices col 0..3), chaque col = idx col, col+4, col+8
+  function checkAndRemoveColumns(cards){
+    var changed = false;
+    for(var col=0; col<4; col++){
+      var i0=col, i1=col+4, i2=col+8;
+      var c0=cards[i0], c1=cards[i1], c2=cards[i2];
+      if(!c0||!c1||!c2) continue;
+      if(c0.removed||c1.removed||c2.removed) continue;
+      if(c0.revealed&&c1.revealed&&c2.revealed&&c0.value===c1.value&&c1.value===c2.value){
+        cards[i0].removed=true; cards[i1].removed=true; cards[i2].removed=true;
+        changed=true;
       }
-    })
-    .catch(function(e){ sjHideLoader(); console.error('[SKYJO] RPC',fnName,'err:',e.message); });
+    }
+    return changed;
   }
+
+  // Calcule le score d'un joueur (cartes non-removed révélées + cartes cachées)
+  function calcPlayerScore(cards){
+    return cards.reduce(function(s,c){ return s+(c.removed?0:c.value); },0);
+  }
+
+  // Vérifie si toutes les cartes non-removed sont révélées → fermeture de manche
+  function allRevealed(cards){
+    return cards.every(function(c){ return c.removed||c.revealed; });
+  }
+
+  // Avance le tour à l'autre joueur
+  function nextTurn(ns){
+    ns.turn = (ns.turn==='girl'?'boy':'girl');
+  }
+
+  // Gère la fin de manche après qu'un joueur a tout révélé
+  // closer = profil qui a fermé, last_player = l'autre joueur doit encore jouer
+  function handleRoundClose(ns, closerKey){
+    if(ns.phase==='roundEnd') return; // déjà géré
+    if(!ns.round_closer){
+      // Premier joueur à fermer
+      ns.round_closer = closerKey;
+      ns.last_player  = (closerKey==='girl'?'boy':'girl');
+      // L'autre joueur joue son dernier tour
+      ns.turn = ns.last_player;
+    } else {
+      // Le dernier joueur vient de jouer → fin de manche
+      _finishRound(ns);
+    }
+  }
+
+  function _finishRound(ns){
+    // Révéler toutes les cartes cachées pour le comptage
+    ['girl_cards','boy_cards'].forEach(function(key){
+      ns[key].forEach(function(c){ if(!c.removed) c.revealed=true; });
+    });
+    var gs = calcPlayerScore(ns.girl_cards);
+    var gb = calcPlayerScore(ns.boy_cards);
+    // Pénalité Skyjo : si le joueur qui a fermé n'a PAS le score le plus bas, son score est doublé
+    if(ns.round_closer==='girl' && gs >= gb) gs *= 2;
+    if(ns.round_closer==='boy'  && gb >= gs) gb *= 2;
+    ns.scores = ns.scores || {girl:0, boy:0};
+    ns.scores.girl = (ns.scores.girl||0) + gs;
+    ns.scores.boy  = (ns.scores.boy||0)  + gb;
+    ns.round_scores = {girl:gs, boy:gb};
+    // Fin de partie si un joueur dépasse 100 pts
+    if(ns.scores.girl>=100||ns.scores.boy>=100){
+      ns.phase='gameEnd';
+    } else {
+      ns.phase='roundEnd';
+    }
+  }
+
+  // ─── Actions joueur ──────────────────────────────────
 
   window.skyjoFlipInit=function(idx){
     if(!_gameState||_phase!=='init1') return;
@@ -2580,37 +2609,43 @@ function renderLb(elId, rows, detailFn){
     var flipped=_gameState[key].filter(function(c){return c.revealed;}).length;
     if(flipped>=2) return;
 
-    // Animation flip in-place immédiate (avant RPC)
+    // Animation flip in-place immédiate (optimiste, avant sauvegarde)
     var cardEl = sjGetCardEl('skyjoMyGrid', idx);
     if(cardEl && cardEl.classList.contains('skyjo-card-hidden')){
       cardEl.style.pointerEvents = 'none';
       cardEl.classList.remove('skyjo-card-clickable');
-      // Lancer l'anim flip, puis RPC
-      sjAnimFlipInPlace(cardEl, _gameState[key][idx].value, function(){
-        // La valeur sera correctement rendue par renderState, pas besoin de la pré-appliquer
-      });
+      sjAnimFlipInPlace(cardEl, _gameState[key][idx].value, null);
     }
 
-    setTimeout(function(){
-      callRpc('skyjo_flip_init',{p_game_id:_gameId, p_player:_me, p_idx:idx});
-    }, 60);
+    var ns = deepCopy(_gameState);
+    ns[key][idx].revealed = true;
+
+    var myFlipped    = ns[key].filter(function(c){return c.revealed;}).length;
+    var otherKey     = (_me==='girl'?'boy':'girl')+'_cards';
+    var otherFlipped = ns[otherKey].filter(function(c){return c.revealed;}).length;
+
+    // Les deux ont retourné leurs 2 cartes → passer en play
+    if(myFlipped>=2 && otherFlipped>=2){
+      var myTot  = ns[key].reduce(function(a,c){return a+(c.revealed?c.value:0);},0);
+      var othTot = ns[otherKey].reduce(function(a,c){return a+(c.revealed?c.value:0);},0);
+      ns.turn  = myTot>=othTot ? _me : _other;
+      ns.phase = 'play';
+    }
+    saveState(ns);
   };
 
   window.skyjoDrawFromDeck=function(){
     if(!_gameState||_phase!=='play') return;
     if(_gameState.turn!==_me||_gameState.held_card) return;
+    if(!_gameState.deck||!_gameState.deck.length) return;
 
-    // Retirer le pulse immédiatement dès le clic
     var _d1=document.getElementById('skyjoDeckCard');
     var _d2=document.getElementById('skyjoDiscardCard');
     if(_d1) _d1.classList.remove('sj-selectable');
     if(_d2) _d2.classList.remove('sj-selectable');
 
-    var deckEl  = document.getElementById('skyjoDeckCard');
-    var heldEl  = document.getElementById('skyjoHeldCard');
-    var wrap    = document.getElementById('skyjoHeldCardWrap');
-
-    // Rebond sur la pioche
+    var deckEl = document.getElementById('skyjoDeckCard');
+    var heldEl = document.getElementById('skyjoHeldCard');
     if(deckEl){
       deckEl.animate([
         { transform: 'scale(1) translateY(0)' },
@@ -2619,25 +2654,23 @@ function renderLb(elId, rows, detailFn){
         { transform: 'scale(1) translateY(0)' }
       ], { duration: 300, easing: 'cubic-bezier(.4,0,.2,1)' });
     }
-
-    // Vol de la pioche → held
-    // Le wrap est toujours dans le flux (visibility:hidden), getBoundingClientRect() est valide directement
-    if(deckEl && heldEl && wrap){
+    if(deckEl && heldEl){
       var sRect = deckEl.getBoundingClientRect();
       var dRect = heldEl.getBoundingClientRect();
-
-      // Fallback si taille 0 pour une raison quelconque
-      if(!dRect || dRect.width === 0){
-        dRect = { left: sRect.left - 80, top: sRect.top, width: sRect.width, height: sRect.height };
-      }
-
+      if(!dRect||dRect.width===0) dRect={left:sRect.left-80,top:sRect.top,width:sRect.width,height:sRect.height};
       sjAnimFly(sRect, dRect, null, { duration: 440, flip: false });
     }
 
-    var _livePayloadDeck = {action:'draw_deck', player:_me, ts:Date.now()};
-    setTimeout(function(){
-      callRpc('skyjo_draw_deck',{p_game_id:_gameId, p_player:_me}, _livePayloadDeck);
-    }, 180);
+    var ns = deepCopy(_gameState);
+    var drawnVal = ns.deck.pop();
+    // Reconstituer la pioche si vide
+    if(ns.deck.length===0 && ns.discard.length>1){
+      var top=ns.discard.pop();
+      ns.deck=shuffle(ns.discard.slice());
+      ns.discard=[top];
+    }
+    ns.held_card = {value:drawnVal, holder:_me};
+    saveState(ns);
   };
 
   window.skyjoDrawFromDiscard=function(){
@@ -2645,7 +2678,6 @@ function renderLb(elId, rows, detailFn){
     if(_gameState.turn!==_me||_gameState.held_card) return;
     if(!_gameState.discard||!_gameState.discard.length) return;
 
-    // Retirer le pulse immédiatement dès le clic
     var _d1=document.getElementById('skyjoDeckCard');
     var _d2=document.getElementById('skyjoDiscardCard');
     if(_d1) _d1.classList.remove('sj-selectable');
@@ -2654,19 +2686,18 @@ function renderLb(elId, rows, detailFn){
     var discardEl = document.getElementById('skyjoDiscardCard');
     var heldEl    = document.getElementById('skyjoHeldCard');
     var topVal    = _gameState.discard[_gameState.discard.length-1];
-
     if(discardEl && heldEl){
       var sRect = discardEl.getBoundingClientRect();
-      var dRect = heldEl.getBoundingClientRect && heldEl.getBoundingClientRect().width > 0
+      var dRect = heldEl.getBoundingClientRect && heldEl.getBoundingClientRect().width>0
         ? heldEl.getBoundingClientRect()
-        : { left: sRect.left - 70, top: sRect.top, width: sRect.width, height: sRect.height };
+        : {left:sRect.left-70,top:sRect.top,width:sRect.width,height:sRect.height};
       sjAnimFly(sRect, dRect, topVal, { duration: 440, flip: false });
     }
 
-    var _livePayloadDisc = {action:'draw_discard', val:topVal, player:_me, ts:Date.now()};
-    setTimeout(function(){
-      callRpc('skyjo_draw_discard',{p_game_id:_gameId, p_player:_me}, _livePayloadDisc);
-    }, 150);
+    var ns = deepCopy(_gameState);
+    var drawnVal = ns.discard.pop();
+    ns.held_card = {value:drawnVal, holder:_me};
+    saveState(ns);
   };
 
   window.skyjoReplaceCard=function(idx){
@@ -2674,46 +2705,49 @@ function renderLb(elId, rows, detailFn){
     if(_gameState.turn!==_me) return;
     if(!_gameState.held_card||_gameState.held_card.holder!==_me) return;
 
-    var heldEl   = document.getElementById('skyjoHeldCard');
-    var targetEl = sjGetCardEl('skyjoMyGrid', idx);
-    var heldVal  = _gameState.held_card.value;
-    var key      = _me+'_cards';
+    var heldEl    = document.getElementById('skyjoHeldCard');
+    var targetEl  = sjGetCardEl('skyjoMyGrid', idx);
+    var key       = _me+'_cards';
+    var heldVal   = _gameState.held_card.value;
     var wasHidden = _gameState[key][idx] && !_gameState[key][idx].revealed;
     var targetVal = _gameState[key][idx] ? _gameState[key][idx].value : null;
 
-    // Désactiver les clics pendant l'animation
     var grid = document.getElementById('skyjoMyGrid');
     if(grid) grid.querySelectorAll('.skyjo-card').forEach(function(c){ c.style.pointerEvents='none'; c.classList.remove('skyjo-card-clickable'); });
     var discardBtn = document.getElementById('skyjoDiscardBtn');
     if(discardBtn) discardBtn.disabled = true;
 
     if(heldEl && targetEl){
-      // La carte remplacée part vers la défausse APRÈS que la held arrive sur la case
-      sjAnimHeldToGrid(heldEl, targetEl, heldVal, wasHidden ? null : targetVal, wasHidden, function(){
-        // Si la case était déjà révélée, la vieille carte part en défausse
-        if(!wasHidden && targetVal !== null){
+      sjAnimHeldToGrid(heldEl, targetEl, heldVal, wasHidden?null:targetVal, wasHidden, function(){
+        if(!wasHidden && targetVal!==null){
           var newTargetEl = sjGetCardEl('skyjoMyGrid', idx);
           var discardEl   = document.getElementById('skyjoDiscardCard');
           if(newTargetEl && discardEl){
-            var sRect = newTargetEl.getBoundingClientRect();
-            var dRect = discardEl.getBoundingClientRect();
-            // Petite carte clone de la vieille valeur part vers défausse
-            sjAnimFly(sRect, dRect, targetVal, { duration: 360, flip: false });
+            sjAnimFly(newTargetEl.getBoundingClientRect(), discardEl.getBoundingClientRect(), targetVal, {duration:360,flip:false});
           }
         }
       });
     }
 
-    // Signal live : capturé maintenant (DOM stable), écrit APRÈS la réponse du RPC
-    // pour survivre à l'écrasement du state par le RPC et rester visible 2s pour le poll adv.
-    var _liveDestRect = targetEl ? targetEl.getBoundingClientRect() : null;
-    var _livePayload = {action:'replace', idx:idx, val:heldVal, player:_me,
-      destRect: _liveDestRect ? {left:_liveDestRect.left, top:_liveDestRect.top, width:_liveDestRect.width, height:_liveDestRect.height} : null,
-      ts:Date.now()};
-
-    setTimeout(function(){
-      callRpc('skyjo_replace_card',{p_game_id:_gameId, p_player:_me, p_idx:idx}, _livePayload);
-    }, 80);
+    var ns = deepCopy(_gameState);
+    var oldCard = ns[key][idx];
+    // La carte remplacée va à la défausse
+    ns.discard.push(oldCard.value);
+    // La carte tenue prend la place, révélée
+    ns[key][idx] = {value:heldVal, revealed:true};
+    ns.held_card = null;
+    // Vérifier colonnes identiques
+    checkAndRemoveColumns(ns[key]);
+    // Vérifier si toutes révélées → fermeture de manche
+    if(allRevealed(ns[key])){
+      handleRoundClose(ns, _me);
+    } else if(ns.round_closer && ns.last_player===_me){
+      // C'était mon dernier tour
+      _finishRound(ns);
+    } else {
+      nextTurn(ns);
+    }
+    saveState(ns);
   };
 
   window.skyjoDiscardHeld=function(){
@@ -2724,15 +2758,15 @@ function renderLb(elId, rows, detailFn){
     var heldEl    = document.getElementById('skyjoHeldCard');
     var discardEl = document.getElementById('skyjoDiscardCard');
     var heldVal   = _gameState.held_card.value;
-
     if(heldEl && discardEl){
       sjAnimHeldToDiscard(heldEl, discardEl, heldVal, null);
     }
 
-    var _livePayloadDiscard = {action:'discard_held', val:heldVal, player:_me, ts:Date.now()};
-    setTimeout(function(){
-      callRpc('skyjo_discard_held',{p_game_id:_gameId, p_player:_me}, _livePayloadDiscard);
-    }, 100);
+    var ns = deepCopy(_gameState);
+    ns.discard.push(ns.held_card.value);
+    ns.held_card = null;
+    ns.must_flip = _me; // doit retourner une carte cachée
+    saveState(ns);
   };
 
   window.skyjoFlipReveal=function(idx){
@@ -2741,7 +2775,6 @@ function renderLb(elId, rows, detailFn){
     var key=_me+'_cards';
     if(_gameState[key][idx].revealed) return;
 
-    // Animation flip immédiate
     var cardEl  = sjGetCardEl('skyjoMyGrid', idx);
     var cardVal = _gameState[key][idx].value;
     if(cardEl){
@@ -2749,14 +2782,29 @@ function renderLb(elId, rows, detailFn){
       sjAnimFlipInPlace(cardEl, cardVal, null);
     }
 
-    setTimeout(function(){
-      callRpc('skyjo_flip_reveal',{p_game_id:_gameId, p_player:_me, p_idx:idx});
-    }, 60);
+    var ns = deepCopy(_gameState);
+    ns[key][idx].revealed = true;
+    ns.must_flip = null;
+    // Vérifier colonnes identiques
+    checkAndRemoveColumns(ns[key]);
+    // Vérifier si toutes révélées → fermeture de manche
+    if(allRevealed(ns[key])){
+      handleRoundClose(ns, _me);
+    } else if(ns.round_closer && ns.last_player===_me){
+      _finishRound(ns);
+    } else {
+      nextTurn(ns);
+    }
+    saveState(ns);
   };
 
 
   function saveState(ns){
     if(!_gameId) return;
+    // Mise à jour optimiste immédiate : le poll ne peut pas écraser pendant le PATCH
+    _gameState = ns;
+    _phase = ns.phase;
+    _saving = true;
     fetch(SB2_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+_gameId,{
       method:'PATCH',
       headers:sb2Headers({'Prefer':'return=representation'}),
@@ -2769,8 +2817,14 @@ function renderLb(elId, rows, detailFn){
       }
       return r.json();
     })
-    .then(function(rows){if(rows&&Array.isArray(rows)&&rows[0]) renderState(rows[0]);})
-    .catch(function(e){ console.error('[SKYJO] saveState err', e); });
+    .then(function(rows){
+      _saving = false;
+      if(rows&&Array.isArray(rows)&&rows[0]) renderState(rows[0]);
+    })
+    .catch(function(e){
+      _saving = false;
+      console.error('[SKYJO] saveState err', e);
+    });
   }
 
   /* ── Live signal : écrit un événement instantané dans le state pour que
