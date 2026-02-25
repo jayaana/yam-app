@@ -56,6 +56,7 @@
     var _pollTimer     = null;
     var _oppGoneTimer  = null;
     var OPP_GRACE_MS   = 20000;
+    var _presenceActive = false; // verrou : bloque upsertPresence après stopAll/leave
 
     var _waitingForReconnect = false;
     var _reconnectTimer      = null;
@@ -88,6 +89,7 @@
 
     // ─── Stop tous les timers ─────────────────────────
     function stopAll(){
+      _presenceActive = false;
       if(_presTimer)  { clearInterval(_presTimer);   _presTimer   = null; }
       if(_lobbyTimer) { clearInterval(_lobbyTimer);  _lobbyTimer  = null; }
       if(_pollTimer)  { clearInterval(_pollTimer);   _pollTimer   = null; }
@@ -100,6 +102,7 @@
 
     // ─── Présence ─────────────────────────────────────
     function startPresence(){
+      _presenceActive = true;
       upsertPresence();
       var interval = document.hidden ? 30000 : 4000;
       _presTimer = setInterval(upsertPresence, interval);
@@ -117,6 +120,7 @@
     }
 
     function upsertPresence(){
+      if(!_presenceActive) return; // stopAll/leave a désactivé la présence
       if(!_me) return;
       if(document.hidden) return;
       _lastPresenceSent = Date.now();
@@ -133,6 +137,14 @@
       if(!_me) return;
       var coupleId = _getCoupleId();
       if(!coupleId) return;
+      // 1) Patch updated_at dans le passé (-60s) : ainsi même si le DELETE race-conditionne
+      //    avec un dernier heartbeat, fetchState() voit un timestamp trop vieux → isOnline=false immédiat
+      var staleTime = new Date(Date.now() - 60000).toISOString();
+      fetch(SB2_URL+'/rest/v1/'+PRESENCE_TABLE+'?couple_id=eq.'+coupleId+'&profile=eq.'+_me, {
+        method:'PATCH', headers:sb2Headers({'Prefer':'return=minimal'}),
+        body: JSON.stringify({updated_at: staleTime})
+      }).catch(function(){});
+      // 2) Puis DELETE pour nettoyer la ligne
       fetch(SB2_URL+'/rest/v1/'+PRESENCE_TABLE+'?couple_id=eq.'+coupleId+'&profile=eq.'+_me, {
         method:'DELETE', headers:sb2Headers(), keepalive:true
       }).catch(function(){});
@@ -507,6 +519,7 @@
 
     // ─── Quitter proprement ───────────────────────────
     function leave(){
+      _presenceActive = false; // couper AVANT deletePresence pour éviter un heartbeat parasite
       stopAll(); stopReconnectWait(); _waitingForReconnect = false;
       deletePresence();
       if(_gameId && cfg.deleteOnLeave){
