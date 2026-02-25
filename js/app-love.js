@@ -674,14 +674,22 @@ function spawnHeart(){
   var h=document.createElement('div');h.className='like-heart';h.textContent='🤍';document.body.appendChild(h);setTimeout(function(){h.remove();},600);
 
   var profile = getProfile() || null;
-  if(!profile) return;
+  if(!profile){
+    console.log('[SPAWN HEART] Pas de profil sélectionné');
+    return;
+  }
 
   var coupleId = null;
   try{
     var s = JSON.parse(localStorage.getItem('yam_v2_session')||'null');
     if(s && s.user) coupleId = s.user.couple_id;
   }catch(e){}
-  if(!coupleId) return;
+  if(!coupleId){
+    console.log('[SPAWN HEART] Pas de couple_id');
+    return;
+  }
+
+  console.log('[SPAWN HEART] Profile:', profile, 'Couple ID:', coupleId);
 
   // Mise à jour optimiste : incrémenter l'affichage immédiatement
   var numEl = document.getElementById(profile==='girl' ? 'likeNumGirl' : 'likeNumBoy');
@@ -691,10 +699,12 @@ function spawnHeart(){
     if(txt.endsWith('M')) cur = parseFloat(txt) * 1000000;
     else if(txt.endsWith('k')) cur = parseFloat(txt) * 1000;
     else cur = parseInt(txt) || 0;
+    console.log('[SPAWN HEART] Valeur actuelle:', cur, '→ Nouvelle valeur optimiste:', cur + 1);
     numEl.textContent = fmtLikes(cur + 1);
   }
 
   // Appel RPC increment_like_counter pour incrémentation atomique en base
+  console.log('[SPAWN HEART] Envoi RPC increment_like_counter...');
   fetch(SB2_URL+'/rest/v1/rpc/increment_like_counter', {
     method:'POST',
     headers: Object.assign({'Content-Type':'application/json'}, sb2Headers()),
@@ -705,19 +715,20 @@ function spawnHeart(){
   })
   .then(function(r){ 
     if(!r.ok){
-      console.error('Erreur RPC increment_like_counter:', r.status);
+      console.error('[SPAWN HEART] Erreur RPC:', r.status);
       return r.text().then(function(txt){ 
-        console.error('Détail:', txt);
+        console.error('[SPAWN HEART] Détail erreur:', txt);
         // En cas d'erreur, recharger pour corriger l'affichage optimiste
         loadLikeCounters();
       });
     }
+    console.log('[SPAWN HEART] ✅ RPC réussie (204)');
     // ✅ RPC réussie (204) — la base est à jour
     // Programmer une synchro après 800ms (si l'utilisateur arrête de cliquer)
     if(window.scheduleLikeSync) window.scheduleLikeSync();
   })
   .catch(function(err){ 
-    console.error('Erreur réseau likes:', err);
+    console.error('[SPAWN HEART] Erreur réseau:', err);
     // En cas d'erreur réseau, recharger pour corriger l'affichage
     loadLikeCounters();
   });
@@ -736,21 +747,47 @@ function loadLikeCounters(){
     var s = JSON.parse(localStorage.getItem('yam_v2_session')||'null');
     if(s && s.user) coupleId = s.user.couple_id;
   }catch(e){}
-  if(!coupleId) return;
+  if(!coupleId){
+    console.log('[LIKES] Pas de couple_id, impossible de charger les compteurs');
+    return;
+  }
+
+  console.log('[LIKES] Chargement des compteurs pour couple_id:', coupleId);
 
   fetch(SB2_URL+'/rest/v1/v2_like_counters?couple_id=eq.'+coupleId+'&select=profile,total', {
     headers: sb2Headers()
   })
-  .then(function(r){ return r.ok ? r.json() : []; })
+  .then(function(r){ 
+    console.log('[LIKES] Réponse serveur:', r.status);
+    return r.ok ? r.json() : []; 
+  })
   .then(function(rows){
+    console.log('[LIKES] Données reçues:', rows);
     if(!Array.isArray(rows)) return;
+    
+    // Initialiser à 0 si aucune donnée
+    var elGirl = document.getElementById('likeNumGirl');
+    var elBoy  = document.getElementById('likeNumBoy');
+    var foundGirl = false;
+    var foundBoy = false;
+    
     rows.forEach(function(r){
-      var elGirl = document.getElementById('likeNumGirl');
-      var elBoy  = document.getElementById('likeNumBoy');
-      if(r.profile==='girl' && elGirl) elGirl.textContent = fmtLikes(r.total);
-      if(r.profile==='boy'  && elBoy)  elBoy.textContent  = fmtLikes(r.total);
+      if(r.profile==='girl' && elGirl){
+        elGirl.textContent = fmtLikes(r.total);
+        foundGirl = true;
+      }
+      if(r.profile==='boy' && elBoy){
+        elBoy.textContent = fmtLikes(r.total);
+        foundBoy = true;
+      }
     });
-  }).catch(function(){});
+    
+    // Si aucune ligne trouvée, initialiser à 0
+    if(!foundGirl && elGirl) elGirl.textContent = '0';
+    if(!foundBoy && elBoy) elBoy.textContent = '0';
+  }).catch(function(err){
+    console.error('[LIKES] Erreur chargement:', err);
+  });
 }
 
 // Exposer globalement pour le refresh par onglet
