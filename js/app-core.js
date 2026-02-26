@@ -596,11 +596,34 @@ document.addEventListener('DOMContentLoaded', function(){
   document.addEventListener('visibilitychange', function() {
     if (document.hidden) {
       clearInterval(_heartbeatIv); _heartbeatIv = null;
+      // ✅ FIX v3.7 : aussi suspendre presencePoll quand page cachée
+      clearInterval(_pollIv); _pollIv = null;
     } else {
       presencePush(); // signal immédiat au retour
       _heartbeatIv = setInterval(presencePush, HEARTBEAT_MS);
+      // ✅ FIX v3.7 : reprendre presencePoll seulement si Skyjo n'est pas actif
+      // (pendant Skyjo, app-multiplayer.js gère la présence)
+      if (!window._skyjoPresenceActive) {
+        presencePoll();
+        _pollIv = setInterval(presencePoll, POLL_MS);
+      }
     }
   });
+
+  /* ✅ FIX v3.7 : Suspension du presencePoll de core pendant Skyjo
+     Pendant une partie Skyjo, app-multiplayer.js fait déjà des polls de présence
+     toutes les 4s → le poll core toutes les 10s est un doublon inutile */
+  window._corePresenceSuspend = function() {
+    window._skyjoPresenceActive = true;
+    clearInterval(_pollIv); _pollIv = null;
+  };
+  window._corePresenceResume = function() {
+    window._skyjoPresenceActive = false;
+    if (!_pollIv) {
+      presencePoll();
+      _pollIv = setInterval(presencePoll, POLL_MS);
+    }
+  };
 
   /* Démarrer quand un profil est choisi */
   var _origSetProfile = window.setProfile;
