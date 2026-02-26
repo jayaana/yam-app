@@ -1272,22 +1272,33 @@ setTimeout(function(){
 
     haptic('light');
 
-    // Animation slide-out de l'écran visible vers la droite avant le retour
+    // Animation slide-out de l'écran visible vers la droite
     var visible = ['dmChatScreen','dmHomeScreen'].reduce(function(found, id){
       if(found) return found;
       var el = document.getElementById(id);
       return (el && el.style.display !== 'none') ? el : null;
     }, null);
+
+    function doAction(){
+      if(sc === 'conv'){
+        // Conv = premier écran réel → fermer directement, pas de fenêtre fantôme possible
+        if(window.closeHiddenPage) window.closeHiddenPage();
+      } else {
+        // Chat → retour vers conv via la pile
+        history.go(-1);
+      }
+    }
+
     if(visible){
       visible.style.transition = 'transform 0.25s cubic-bezier(.4,0,.2,1)';
       visible.style.transform  = 'translateX(100%)';
       setTimeout(function(){
         visible.style.transition = '';
         visible.style.transform  = '';
-        history.go(-1);
+        doAction();
       }, 240);
     } else {
-      history.go(-1);
+      doAction();
     }
   }, { passive: true });
 
