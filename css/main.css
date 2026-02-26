@@ -261,6 +261,49 @@ body:has(#hiddenPage.active) #yamStickyHeader {
   display: none;
 }
 
+/* ════════════════════════════════════════════
+   INSTALOVE — Écran "Messages" (liste conv)
+   Header grand style YAM + layout colonne
+════════════════════════════════════════════ */
+
+/* L'écran conv s'affiche en colonne */
+.dm-home-conv-screen {
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  padding: 0 !important;
+  cursor: default !important;
+  overflow-y: auto;
+  width: 100%;
+}
+
+/* Header "Messages" style YAM */
+.dm-yam-header {
+  padding: 20px 16px 14px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Carte conv avec padding horizontal */
+.dm-home-conv-screen .dm-home-conv {
+  margin: 0 16px;
+  border-radius: 14px;
+}
+
+/* Footer centré */
+.dm-home-conv-screen .dm-home-footer {
+  text-align: center;
+  padding: 16px;
+}
+
+/* ── Topbar minimaliste du chat (écran messages) : safe-area via CSS ── */
+/* Le style inline a déjà padding-top:calc(var(--safe-top) + 10px)
+   Cette règle sert de fallback + garantit l'alignement vertical */
+.dm-topbar {
+  align-items: flex-end !important;
+  padding-bottom: 10px !important;
+}
+
 /* ══ FOCUS STYLES ACCESSIBILITÉ ══ */
 button:focus-visible, [onclick]:focus-visible {
   outline: 2px solid var(--green);
