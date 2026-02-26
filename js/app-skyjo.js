@@ -282,10 +282,7 @@
     var prevTurn=prevState?prevState.turn:null;
     var turnChanged=prevTurn!==state.turn;
 
-    if(turnChanged&&isMyTurn&&prevTurn!==null){
-      setTimeout(function(){_doRenderState(gameRow);},1000);
-      return;
-    }
+
     if(turnChanged&&isMyTurn){
       var _ohw=document.getElementById('skyjoOppHeldWrap');
       if(_ohw) _ohw.classList.remove('sj-held-visible');
@@ -466,8 +463,11 @@
       }
     } else if(!oppHoldsCard&&oppHeldWrap&&!isNewLive){ oppHeldWrap.classList.remove('sj-held-visible'); }
 
-    renderGrid('skyjoMyGrid',myCards,true,isMyTurn,state,iHoldCard);
-    renderGrid('skyjoOpponentGrid',oppCards,false,false,state,false);
+    // skipFlipIdx : index dont le flip est déjà géré par l'animation live 'replace'
+    // → évite le sjAnimFlipInPlace parasite dans renderGrid
+    var _skipFlipIdx = (_pendingLiveAnim && _pendingLiveAnim.type==='replace') ? _pendingLiveAnim.idx : -1;
+    renderGrid('skyjoMyGrid',myCards,true,isMyTurn,state,iHoldCard,-1);
+    renderGrid('skyjoOpponentGrid',oppCards,false,false,state,false,_skipFlipIdx);
 
     // ── Lancer les animations live ──
     if(_pendingLiveAnim){
@@ -540,7 +540,7 @@
     else if(state.phase==='gameEnd'){if(_mp)_mp.stopPoll();showGameEnd(state);}
   }
 
-  function renderGrid(gridId,cards,isMe,isMyTurn,state,iHold){
+  function renderGrid(gridId,cards,isMe,isMyTurn,state,iHold,skipFlipIdx){
     var grid=document.getElementById(gridId);
     var prevEls=Array.from(grid.querySelectorAll('.skyjo-card'));
     var prevStates=prevEls.map(function(el){
@@ -577,7 +577,8 @@
       } else if(card.revealed){
         el.setAttribute('data-val',card.value);
         el.innerHTML='<div class="sj-pip-top">'+card.value+'</div><span class="sj-num">'+card.value+'</span><div class="sj-pip-bot">'+card.value+'</div>';
-        if(prev.hidden&&!isFirstRender&&!isMe){
+        // Ne pas rejouer le flip si l'animation live 'replace' l'a déjà géré pour cet index
+        if(prev.hidden&&!isFirstRender&&!isMe&&idx!==skipFlipIdx){
           var _elRef=el,_val=card.value,_delay=idx*55+80;
           setTimeout(function(){if(!_elRef||!_elRef.isConnected)return;sjAnimFlipInPlace(_elRef,_val,null);},_delay);
         }
