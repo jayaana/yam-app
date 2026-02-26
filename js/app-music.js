@@ -31,10 +31,14 @@ songsLove.forEach(function(x){ x.plays = 0; });
 function fmtPlays(n){if(n>=1e6)return(n/1e6).toFixed(1).replace('.0','')+'M';if(n>=1e3)return(n/1e3).toFixed(1).replace('.0','')+'k';return n?String(n):'—';}
 
 function savePlays(file){
+  // ✅ FIX : la RPC attend p_song_key + p_couple_id (les plays sont globaux au couple)
+  var _sp = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
+  var _spCoupleId = _sp && _sp.user ? _sp.user.couple_id : null;
+  if(!_spCoupleId) return; // pas de session = on n'envoie rien
   fetch(SB2_URL + '/rest/v1/rpc/increment_play', {
     method: 'POST',
     headers: sb2Headers({'Prefer': 'return=representation'}),
-    body: JSON.stringify({ p_song_key: file })
+    body: JSON.stringify({ p_song_key: file, p_couple_id: _spCoupleId })
   })
   .then(function(r){ return r.json(); })
   .then(function(result){
@@ -712,13 +716,9 @@ function filterSongs(q){
     var btn = document.querySelector('.sg-modal-save');
     btn.textContent = '⏳'; btn.disabled = true;
 
-    // ✅ FIX : ajouter couple_id + sender pour isolation par couple
-    var _ss = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-    var _scId = _ss && _ss.user ? _ss.user.couple_id : null;
-    if(!_scId){ btn.textContent = 'Proposer 💚'; btn.disabled = false; return; }
-    var payload = { couple_id: _scId, title: title, artist: artist, sender: getProfile() || null };
+    var payload = { title: title, artist: artist };
     if(note) payload.note = note;
-    if(sgGender) payload.sender = sgGender; // sender = qui suggère (girl/boy)
+    if(sgGender) payload.gender = sgGender;
 
     var url = SB2_URL + '/rest/v1/v2_suggestion_songs';
     fetch(url, {
@@ -739,7 +739,7 @@ function filterSongs(q){
       } else {
         // Essai sans gender si erreur de colonne inconnue
         if(res.body && res.body.indexOf('gender') !== -1){
-          var p2 = { couple_id: _scId, title: title, artist: artist, sender: getProfile() || null };
+          var p2 = { title: title, artist: artist };
           if(note) p2.note = note;
           fetch(url, {
             method: 'POST',
@@ -774,11 +774,7 @@ function filterSongs(q){
   function renderSuggestions(){
     var list = document.getElementById('sgList');
     list.innerHTML = '<div class="sg-empty"><span class="spinner"></span></div>';
-    // ✅ FIX : table V2 + filtre couple_id — suggestions privées par couple
-    var _s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-    var _coupleId = _s && _s.user ? _s.user.couple_id : null;
-    if(!_coupleId){ list.innerHTML = '<div class="sg-empty">Session expirée.</div>'; return; }
-    sb2Fetch('v2_suggestion_songs', 'couple_id=eq.' + _coupleId + '&order=created_at.asc').then(function(items){
+    sbGet('suggestion_songs', 'order=created_at.asc').then(function(items){
       list.innerHTML = '';
       if(!Array.isArray(items) || !items.length){
         var em = document.createElement('div');
@@ -801,7 +797,7 @@ function filterSongs(q){
           (function(id){
             row.querySelector('.sg-del').addEventListener('click', function(e){
               e.stopPropagation();
-              sb2Delete('v2_suggestion_songs', 'id=eq.' + id).then(renderSuggestions);
+              sbDelete('suggestion_songs', id).then(renderSuggestions);
             });
           })(item.id);
           (function(it){
@@ -819,12 +815,6 @@ function filterSongs(q){
   }
 
   renderSuggestions();
-
-  // ✅ FIX : exposer window.sgLoad pour yamSwitchTab (rafraîchit musique à chaque entrée dans l'onglet)
-  window.sgLoad = function(){
-    renderSuggestions();
-    loadFavorites();
-  };
 
   // ── Édition d'une suggestion ──
   var _sgEditId = null;
@@ -865,11 +855,7 @@ function filterSongs(q){
     btn.textContent = '⏳'; btn.disabled = true;
     var payload = { title: title, artist: artist };
     if(note) payload.note = note; else payload.note = null;
-    // ✅ FIX : filtre couple_id en plus de l'id pour sécurité
-    var _se = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-    var _seId = _se && _se.user ? _se.user.couple_id : null;
-    var _editFilter = 'id=eq.' + _sgEditId + (_seId ? '&couple_id=eq.' + _seId : '');
-    fetch(SB2_URL + '/rest/v1/v2_suggestion_songs?' + _editFilter, {
+    fetch(SB2_URL + '/rest/v1/v2_suggestion_songs?id=eq.' + _sgEditId, {
       method: 'PATCH',
       headers: sb2Headers({'Prefer': 'return=representation'}),
       body: JSON.stringify(payload)
@@ -903,17 +889,12 @@ function filterSongs(q){
 var favoritesCache = {}; // { girl: 'file.mp3', boy: 'file.mp3' }
 
 function loadFavorites(){
-  // ✅ FIX : filtre par couple_id — chaque couple voit uniquement ses propres favoris
-  var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-  var coupleId = s && s.user ? s.user.couple_id : null;
-  if(!coupleId) return Promise.resolve();
-  return sb2Fetch('v2_favorites', 'couple_id=eq.' + coupleId + '&select=profile,song_file')
-    .then(function(rows){
-      favoritesCache = {};
-      if(!Array.isArray(rows)) return;
-      rows.forEach(function(r){ favoritesCache[r.profile] = r.song_file; });
-      refreshAllHearts();
-    }).catch(function(){});
+  return sbGet('favorites', 'select=profile,song_file').then(function(rows){
+    favoritesCache = {};
+    if(!Array.isArray(rows)) return;
+    rows.forEach(function(r){ favoritesCache[r.profile] = r.song_file; });
+    refreshAllHearts();
+  }).catch(function(){});
 }
 
 function applyHeartState(file, btn){
@@ -935,36 +916,32 @@ function refreshAllHearts(){
 
 function toggleFavorite(file, btn){
   var profile = getProfile();
-  if(!profile) return;
-  // ✅ FIX : récupérer couple_id pour isoler par couple
-  var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-  var coupleId = s && s.user ? s.user.couple_id : null;
-  if(!coupleId) return;
+  if(!profile) return; // pas de profil = rien
 
   var current = favoritesCache[profile];
 
   if(current === file){
-    // Retirer le coup de cœur — filtre couple_id + profile + song_file
-    fetch(SB2_URL+'/rest/v1/v2_favorites?couple_id=eq.'+coupleId+'&profile=eq.'+profile+'&song_file=eq.'+encodeURIComponent(file), {
+    // Retirer le coup de cœur
+    fetch(SB2_URL+'/rest/v1/v2_favorites?profile=eq.'+profile+'&song_file=eq.'+encodeURIComponent(file), {
       method:'DELETE', headers:sb2Headers()
     }).then(function(){
       delete favoritesCache[profile];
       refreshAllHearts();
     });
   } else {
-    // Supprimer l'ancien puis ajouter le nouveau (avec couple_id)
+    // Supprimer l'ancien puis ajouter le nouveau
     var doAdd = function(){
       fetch(SB2_URL+'/rest/v1/v2_favorites', {
         method:'POST',
-        headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),
-        body:JSON.stringify({ couple_id: coupleId, profile: profile, song_file: file })
+        headers:sb2Headers({'Prefer':'return=representation'}),
+        body:JSON.stringify({ profile: profile, song_file: file })
       }).then(function(){
         favoritesCache[profile] = file;
         refreshAllHearts();
       });
     };
     if(current){
-      fetch(SB2_URL+'/rest/v1/v2_favorites?couple_id=eq.'+coupleId+'&profile=eq.'+profile+'&song_file=eq.'+encodeURIComponent(current), {
+      fetch(SB2_URL+'/rest/v1/v2_favorites?profile=eq.'+profile+'&song_file=eq.'+encodeURIComponent(current), {
         method:'DELETE', headers:sb2Headers()
       }).then(doAdd);
     } else {
@@ -1077,11 +1054,7 @@ loadFavorites();
 
   /* ── Poll Supabase toutes les 5s ── */
   function nlPoll(){
-    // ✅ FIX : filtre par couple_id — on ne voit que les écoutes de son couple
-    var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-    var coupleId = s && s.user ? s.user.couple_id : null;
-    if(!coupleId) return;
-    var url = SB2_URL + '/rest/v1/' + NL_TABLE + '?couple_id=eq.' + coupleId + '&select=sender,song_file&order=updated_at.desc';
+    var url = SB2_URL + '/rest/v1/' + NL_TABLE + '?select=sender,song_file&order=updated_at.desc';
     fetch(url, { headers: sb2Headers() })
       .then(function(r){ return r.ok ? r.json() : null; })
       .then(function(rows){
@@ -1113,15 +1086,10 @@ loadFavorites();
     if(_nlLastPushRemote === (normalized || 'null')) return;
     _nlLastPushRemote = normalized || 'null';
 
-    // ✅ FIX : inclure couple_id pour isoler par couple
-    var _s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-    var _coupleId = _s && _s.user ? _s.user.couple_id : null;
-    if(!_coupleId) return;
-
     fetch(SB2_URL + '/rest/v1/' + NL_TABLE, {
       method: 'POST',
       headers: sb2Headers({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
-      body: JSON.stringify({ couple_id: _coupleId, sender: profile, song_file: normalized })
+      body: JSON.stringify({ sender: profile, song_file: normalized })
     }).catch(function(){});
   }
 
@@ -1188,14 +1156,10 @@ loadFavorites();
   window.addEventListener('beforeunload', function(){
     var profile = getProfile();
     if(!profile) return;
-    // ✅ FIX : couple_id obligatoire
-    var _bu = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-    var _buId = _bu && _bu.user ? _bu.user.couple_id : null;
-    if(!_buId) return;
     fetch(SB2_URL + '/rest/v1/' + NL_TABLE, {
       method: 'POST',
       headers: sb2Headers({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
-      body: JSON.stringify({ couple_id: _buId, sender: profile, song_file: null }),
+      body: JSON.stringify({ sender: profile, song_file: null }),
       keepalive: true
     }).catch(function(){});
   });
