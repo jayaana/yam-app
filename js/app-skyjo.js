@@ -385,6 +385,7 @@
     if(oppTotEl) oppTotEl.textContent=oppRevTotal;
 
     var banner=document.getElementById('skyjoTurnBanner');
+    var bannerTextEl=document.getElementById('skyjoTurnBannerText');
     var newBannerClass, newBannerText;
     if(state.phase==='init1'){
       newBannerText='🃏 Phase d\'initialisation — retourne 2 cartes';
@@ -398,7 +399,7 @@
       newBannerText='⏳ Tour de '+oppName+'…';
       newBannerClass='skyjo-turn-banner their-turn';
     }
-    banner.textContent=newBannerText;
+    if(bannerTextEl) bannerTextEl.textContent=newBannerText;
     if(banner.className!==newBannerClass||turnChanged){
       banner.className=newBannerClass;
       if(turnChanged){ sjAnimBanner(banner,newBannerClass.indexOf('my-turn')>=0); }
@@ -1117,6 +1118,12 @@
 
   // Clé unique par tour : empêche de rejouer si le state se re-poll
   function _sjMakeTurnKey(state){
+    // En init1 : on inclut le nombre de cartes retournées pour relancer le timer après chaque flip
+    if(state.phase === 'init1'){
+      var myKey = _me + '_cards';
+      var flipped = state[myKey] ? state[myKey].filter(function(c){return c.revealed;}).length : 0;
+      return 'init1_' + _me + '_f' + flipped + '_r' + (state.round||1);
+    }
     return (state.turn||'') + '_r' + (state.round||1) + '_ts' + (state.ts_turn||0);
   }
 
@@ -1128,13 +1135,12 @@
     // Hors phase active → pas de timer
     if(phase !== 'play' && phase !== 'init1'){ _sjStopTimer(); return; }
 
-    // En phase init1, tout le monde est actif → pas de timer par tour
+    // Phase init1 : timer pour MOI tant que je n'ai pas retourné mes 2 cartes
     if(phase === 'init1'){
       var myKey   = _me + '_cards';
       var myFlipped = state[myKey] ? state[myKey].filter(function(c){return c.revealed;}).length : 0;
+      var key = _sjMakeTurnKey(state); // clé change à chaque flip (inclut le compte)
       if(myFlipped < 2){
-        // C'est encore MON action à faire en init
-        var key = _sjMakeTurnKey(state);
         if(key !== _sjTimerTurnKey){ _sjStartMyTimer(state); }
       } else {
         _sjStopTimer();
@@ -1145,10 +1151,8 @@
     // Phase play
     var key = _sjMakeTurnKey(state);
     if(isMyTurn){
-      // Mon tour : démarrer le timer si pas déjà en cours pour CE tour
       if(key !== _sjTimerTurnKey){ _sjStartMyTimer(state); }
     } else {
-      // Tour adverse : barre spectateur synchronisée sur ts_turn
       if(key !== _sjTimerTurnKey){ _sjStartOppTimer(state); }
     }
   }
@@ -1159,14 +1163,19 @@
     var state = _gameState;
     var phase = state.phase;
 
-    // Phase init1 : retourner une carte cachée aléatoire
+    // Phase init1 : retourner UNE carte cachée aléatoire (le timer se relancera si il en manque encore)
     if(phase === 'init1'){
-      var key = _me + '_cards';
+      var myKey = _me + '_cards';
+      var myFlipped = state[myKey] ? state[myKey].filter(function(c){return c.revealed;}).length : 0;
+      if(myFlipped >= 2) return; // déjà fait
       var hidden = [];
-      (state[key]||[]).forEach(function(c,i){ if(!c.revealed && !c.removed) hidden.push(i); });
+      (state[myKey]||[]).forEach(function(c,i){ if(!c.revealed && !c.removed) hidden.push(i); });
       if(!hidden.length) return;
       var idx = hidden[Math.floor(Math.random() * hidden.length)];
       window.skyjoFlipInit(idx);
+      // Si on n'en avait retourné aucune, après ce flip il en manquera encore 1 →
+      // _doRenderState recevra le nouveau state avec flipped=1, _sjHandleTimer
+      // détectera la nouvelle clé et relancera un timer de 25s pour la 2e carte.
       return;
     }
 
