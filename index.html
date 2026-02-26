@@ -57,6 +57,28 @@
 <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
+
+<!-- ═══════════════════════════════════════════
+     STICKY MINI HEADER — Apparaît au scroll
+     Nom de l'onglet actif, fond flouté
+════════════════════════════════════════════ -->
+<div id="yamStickyHeader">
+  <!-- Spacer gauche (symétrie) -->
+  <div style="width:56px;flex-shrink:0;"></div>
+  <!-- Titre centré -->
+  <span id="yamStickyHeaderTitle">Accueil</span>
+  <!-- Avatars à droite — miniatures des avatars du grand header -->
+  <div id="yamStickyAvatars">
+    <div id="yamStickyAvatarOther">
+      <span id="yamStickyAvatarOtherEmoji">👤</span>
+    </div>
+    <div id="yamStickyAvatarSelf" onclick="toggleProfilePopup()">
+      <span id="yamStickyAvatarSelfEmoji">👤</span>
+      <div id="yamStickyPresenceDot"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════════════════════════════════════════════════════
      ÉCRAN LOGIN V2
 ════════════════════════════════════════════════════════════ -->
@@ -2361,6 +2383,173 @@ function v2ApplyDynamicNames(){
     };
   }
   patchYamSwitchTab();
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════
+     STICKY MINI HEADER — Script
+     • Détecte le scroll et affiche/masque le mini header
+     • Met à jour le titre selon l'onglet actif
+     • Masqué sur Messages (topbar propre InstaLove)
+════════════════════════════════════════════ -->
+<script>
+(function(){
+
+  // Titres par onglet
+  var TAB_TITLES = {
+    home:    'Accueil',
+    jeux:    'Jeux',
+    musique: 'Musique',
+    nous:    'Nous',
+    messages: null  // masqué sur Messages
+  };
+
+  var currentTab = 'home';
+  var stickyEl   = null;
+  var titleEl    = null;
+  var ticking    = false;
+
+  // Seuil de scroll : on attend que le grand header soit presque sorti
+  // Le header fait ~120px + safe-area. On déclenche à 80px de scroll.
+  var SCROLL_THRESHOLD = 80;
+
+  // ── Sync avatars depuis le grand header vers le sticky ──
+  function syncAvatars() {
+    // Avatar self
+    var selfEmoji   = document.getElementById('profileAvatarEmoji');
+    var stickyEmoji = document.getElementById('yamStickyAvatarSelfEmoji');
+    var stickyAvatar = document.getElementById('yamStickyAvatarSelf');
+    var mainAvatar   = document.getElementById('profileAvatar');
+
+    if (selfEmoji && stickyEmoji) {
+      stickyEmoji.textContent = selfEmoji.textContent;
+    }
+    // Copier la classe girl/boy
+    if (mainAvatar && stickyAvatar) {
+      stickyAvatar.className = mainAvatar.className.replace(/[^a-z ]/gi, '').trim();
+      if (mainAvatar.classList.contains('girl')) stickyAvatar.classList.add('girl');
+      else if (mainAvatar.classList.contains('boy')) stickyAvatar.classList.add('boy');
+    }
+
+    // Avatar other
+    var otherEmoji        = document.getElementById('profileAvatarOtherEmoji');
+    var stickyOtherEmoji  = document.getElementById('yamStickyAvatarOtherEmoji');
+    var stickyOther       = document.getElementById('yamStickyAvatarOther');
+    var mainOther         = document.getElementById('profileAvatarOther');
+
+    if (otherEmoji && stickyOtherEmoji) {
+      stickyOtherEmoji.textContent = otherEmoji.textContent;
+    }
+    if (mainOther && stickyOther) {
+      if (mainOther.classList.contains('visible')) {
+        stickyOther.classList.add('visible');
+      } else {
+        stickyOther.classList.remove('visible');
+      }
+    }
+
+    // Point présence
+    var mainDot   = document.getElementById('presenceDot');
+    var stickyDot = document.getElementById('yamStickyPresenceDot');
+    if (mainDot && stickyDot) {
+      if (mainDot.style.display !== 'none' && mainDot.style.display !== '') {
+        stickyDot.classList.add('online');
+      } else {
+        stickyDot.classList.remove('online');
+      }
+    }
+
+    // Sync l'image de profil si c'est une <img> dans l'avatar
+    var mainAvatarImg   = mainAvatar ? mainAvatar.querySelector('img') : null;
+    var stickyAvatarEl  = document.getElementById('yamStickyAvatarSelf');
+    var stickyAvatarImg = stickyAvatarEl ? stickyAvatarEl.querySelector('img') : null;
+    if (mainAvatarImg && stickyAvatarEl) {
+      if (!stickyAvatarImg) {
+        // Créer l'img dans le sticky si pas encore là
+        var img = document.createElement('img');
+        img.style.cssText = 'width:100%;height:100%;border-radius:50%;object-fit:cover;position:absolute;inset:0;';
+        stickyAvatarEl.appendChild(img);
+        stickyAvatarImg = img;
+      }
+      stickyAvatarImg.src = mainAvatarImg.src;
+    } else if (!mainAvatarImg && stickyAvatarImg) {
+      stickyAvatarImg.remove();
+    }
+  }
+
+  function onScroll() {
+    if (!ticking) {
+      window.requestAnimationFrame(updateSticky);
+      ticking = true;
+    }
+  }
+
+  function updateSticky() {
+    ticking = false;
+    if (!stickyEl) return;
+
+    // Ne pas afficher sur Messages
+    if (currentTab === 'messages') {
+      stickyEl.classList.remove('visible');
+      return;
+    }
+
+    var scrollY = window.scrollY || window.pageYOffset;
+    if (scrollY > SCROLL_THRESHOLD) {
+      stickyEl.classList.add('visible');
+    } else {
+      stickyEl.classList.remove('visible');
+    }
+  }
+
+  function setTab(tab) {
+    currentTab = tab;
+    if (!titleEl) return;
+
+    var title = TAB_TITLES[tab];
+    if (title) {
+      titleEl.textContent = title;
+    }
+
+    // Forcer le recalcul immédiat (le scroll est remis à 0 lors du switch)
+    updateSticky();
+  }
+
+  function init() {
+    stickyEl = document.getElementById('yamStickyHeader');
+    titleEl  = document.getElementById('yamStickyHeaderTitle');
+
+    if (!stickyEl || !titleEl) return;
+
+    // Écouter le scroll
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    // Sync avatars toutes les 2s (couvre présence, humeurs, changement profil)
+    syncAvatars();
+    setInterval(syncAvatars, 2000);
+
+    // Patcher yamSwitchTab pour mettre à jour le titre
+    function patchTitle() {
+      if (typeof window.yamSwitchTab !== 'function') {
+        setTimeout(patchTitle, 150);
+        return;
+      }
+      var _orig = window.yamSwitchTab;
+      window.yamSwitchTab = function(tab) {
+        _orig(tab);
+        setTab(tab);
+      };
+    }
+    patchTitle();
+  }
+
+  // Lancer après chargement complet
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
 })();
 </script>
 </body>
