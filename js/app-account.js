@@ -849,11 +849,14 @@ function _acLoadAvatarPhoto(u){
 }
 
 function _acSyncAvatarTopbar(url, role){
-  // Alimenter le cache central
-  if(window._yamRealAvatars) window._yamRealAvatars[role] = url;
-  // ✅ FIX — mettre à jour uniquement le src de l'img existante, sans toucher au positionnement
-  var mainEmoji = document.getElementById('profileAvatarEmoji');
-  if(mainEmoji) mainEmoji.src = url;
+  // Propager sur TOUS les éléments du rôle (topbar, mood cards, DM, Skyjo...)
+  if(window._yamSyncAllAvatarsForRole) window._yamSyncAllAvatarsForRole(role, url);
+  else {
+    // Fallback si _yamSyncAllAvatarsForRole pas encore dispo
+    if(window._yamRealAvatars) window._yamRealAvatars[role] = url;
+    var mainEmoji = document.getElementById('profileAvatarEmoji');
+    if(mainEmoji) mainEmoji.src = url;
+  }
 }
 
 // ✅ FIX — Charge l'avatar du partenaire depuis Supabase Storage et propage partout
