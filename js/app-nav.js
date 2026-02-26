@@ -874,10 +874,10 @@ function goTo(id){resetZoom();closeAllViews();document.getElementById('libraryPo
       if(!hp2 || !hp2.classList.contains('active'))
         if(window._dmRawOpen) window._dmRawOpen();
       if(s === 'conv') {
-        if(window._dmRawShowHome) window._dmRawShowHome();
+        // Ne pas appeler _dmRawShowHome — ça afficherait le logo fantôme
         if(window._dmRawShowConv) window._dmRawShowConv('backward');
       } else if(s === 'chat') {
-        if(window._dmRawShowHome) window._dmRawShowHome();
+        if(window._dmRawShowConv) window._dmRawShowConv();
         if(window._dmRawShowChat) window._dmRawShowChat('backward');
       }
     }
@@ -1279,12 +1279,13 @@ setTimeout(function(){
       return (el && el.style.display !== 'none') ? el : null;
     }, null);
 
-    function doAction(){
+    function doSwipeBack(){
       if(sc === 'conv'){
-        // Conv = premier écran réel → fermer directement, pas de fenêtre fantôme possible
+        // Conv = premier écran réel, on ferme directement sans passer par la pile
+        // (évite la fenêtre fantôme logo qui apparaîtrait via applyTop)
         if(window.closeHiddenPage) window.closeHiddenPage();
       } else {
-        // Chat → retour vers conv via la pile
+        // Chat → retour vers conv via la pile normale
         history.go(-1);
       }
     }
@@ -1295,10 +1296,10 @@ setTimeout(function(){
       setTimeout(function(){
         visible.style.transition = '';
         visible.style.transform  = '';
-        doAction();
+        doSwipeBack();
       }, 240);
     } else {
-      doAction();
+      doSwipeBack();
     }
   }, { passive: true });
 
