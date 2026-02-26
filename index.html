@@ -2488,17 +2488,43 @@ function v2ApplyDynamicNames(){
     ticking = false;
     if (!stickyEl) return;
 
-    // Ne pas afficher sur Messages
+    // Masqué sur Messages
     if (currentTab === 'messages') {
+      stickyEl.style.transform = 'translateY(-100%)';
+      stickyEl.style.opacity   = '0';
       stickyEl.classList.remove('visible');
       return;
     }
 
     var scrollY = window.scrollY || window.pageYOffset;
-    if (scrollY > SCROLL_THRESHOLD) {
-      stickyEl.classList.add('visible');
-    } else {
+
+    // Zone de transition : entre SCROLL_START et SCROLL_END
+    // – En dessous de START : complètement caché
+    // – Au dessus de END    : complètement visible
+    // – Entre les deux      : progressif selon le scroll (suit le doigt)
+    var SCROLL_START = 40;   // px — début de l'apparition
+    var SCROLL_END   = 100;  // px — pleinement visible
+
+    if (scrollY <= SCROLL_START) {
+      // Caché
+      stickyEl.style.transform = 'translateY(-100%)';
+      stickyEl.style.opacity   = '0';
       stickyEl.classList.remove('visible');
+
+    } else if (scrollY >= SCROLL_END) {
+      // Pleinement visible
+      stickyEl.style.transform = 'translateY(0)';
+      stickyEl.style.opacity   = '1';
+      stickyEl.classList.add('visible');
+
+    } else {
+      // Zone de transition — progresse linéairement avec le scroll
+      var progress = (scrollY - SCROLL_START) / (SCROLL_END - SCROLL_START);
+      // translateY va de -100% à 0 proportionnellement
+      var translateY = -100 + (progress * 100);
+      stickyEl.style.transform = 'translateY(' + translateY + '%)';
+      stickyEl.style.opacity   = String(progress);
+      stickyEl.classList.add('visible'); // pointer-events actifs dès qu'on entre dans la zone
     }
   }
 
@@ -2511,8 +2537,17 @@ function v2ApplyDynamicNames(){
       titleEl.textContent = title;
     }
 
-    // Forcer le recalcul immédiat (le scroll est remis à 0 lors du switch)
-    updateSticky();
+    // Au switch d'onglet le scroll repasse à 0 → cacher immédiatement sans animation
+    if (stickyEl) {
+      stickyEl.style.transition = 'none';
+      stickyEl.style.transform  = 'translateY(-100%)';
+      stickyEl.style.opacity    = '0';
+      stickyEl.classList.remove('visible');
+      // Réactiver après un frame pour ne pas bloquer les futurs scrolls
+      requestAnimationFrame(function() {
+        if (stickyEl) stickyEl.style.transition = '';
+      });
+    }
   }
 
   function init() {
