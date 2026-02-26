@@ -2100,24 +2100,7 @@
      ⚡ JAYANA PERF v3.0 — Optimisations performances
      Zéro doublon. Zéro RAF inutile. iPhone 12 ready.
      ════════════════════════════════════════════════════ -->
-<div id="instaloveAuthModal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:24px;">
-  <div style="background:var(--s1);border:1px solid var(--border);border-radius:20px;padding:28px 24px;max-width:300px;width:100%;text-align:center;font-family:'DM Sans',sans-serif;">
-    <div style="font-size:40px;margin-bottom:10px;">💌</div>
-    <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;">InstaLove</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Choisis ton profil pour accéder à la messagerie</div>
-    <div style="display:flex;gap:10px;margin-bottom:16px;">
-      <button onclick="instaloveAuthSelect('girl')" style="flex:1;padding:14px 0;background:rgba(232,121,160,0.12);color:#e879a0;border:1.5px solid rgba(232,121,160,0.4);border-radius:14px;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;">
-        <img class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;display:block;">
-        <span id="instaloveAuthGirlName">Elle</span>
-      </button>
-      <button onclick="instaloveAuthSelect('boy')" style="flex:1;padding:14px 0;background:rgba(91,156,246,0.12);color:#5b9cf6;border:1.5px solid rgba(91,156,246,0.4);border-radius:14px;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;">
-        <img class="yam-av-img" src="assets/images/profil_boy.png" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;display:block;">
-        <span id="instaloveAuthBoyName">Lui</span>
-      </button>
-    </div>
-    <span onclick="instaloveAuthClose()" style="font-size:12px;color:var(--muted);cursor:pointer;">Annuler</span>
-  </div>
-</div>
+<!-- ✅ FIX — instaloveAuthModal supprimé (modal obsolète, connexion obligatoire) -->
 
 <div id="skyjoAuthModal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:24px;">
   <div style="background:var(--s1);border:1px solid var(--border);border-radius:20px;padding:28px 24px;max-width:300px;width:100%;text-align:center;font-family:'DM Sans',sans-serif;">
@@ -2338,9 +2321,7 @@ function v2ApplyDynamicNames(){
   var swg = document.getElementById('skyjoWaitNameGirl'); if(swg) swg.textContent = girlName;
   var swb = document.getElementById('skyjoWaitNameBoy');  if(swb) swb.textContent = boyName;
 
-  // InstaLove auth modal
-  var iag = document.getElementById('instaloveAuthGirlName'); if(iag) iag.textContent = girlName;
-  var iab = document.getElementById('instaloveAuthBoyName');  if(iab) iab.textContent = boyName;
+  // InstaLove auth modal — supprimé (modal obsolète)
 
   // Boutons suggestion chanson
   var sgGirl = document.getElementById('sgBtnGirlName'); if(sgGirl) sgGirl.textContent = girlName;
