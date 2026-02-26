@@ -288,6 +288,10 @@ body:has(#hiddenPage.active) #yamStickyHeader {
 .dm-home-conv-screen .dm-home-conv {
   margin: 0 16px;
   border-radius: 14px;
+  /* Empêcher le débordement à droite */
+  width: calc(100% - 32px);
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 /* Footer centré */
@@ -295,6 +299,13 @@ body:has(#hiddenPage.active) #yamStickyHeader {
   text-align: center;
   padding: 16px;
 }
+
+/* Mode chat : cacher le bloc dmHeaderAvatars (doublon — avatars déjà dans dmTopbarCenter) */
+#hiddenPage .dm-topbar-avatars ~ * #dmHeaderAvatars,
+body.dm-chat-active #dmHeaderAvatars { display: none !important; }
+
+/* Règle directe : quand dmTopbarCenter a la classe dm-topbar-avatars, cacher le bloc de droite */
+#dmHeaderAvatars.dm-hide { display: none !important; }
 
 /* ── Topbar minimaliste du chat (écran messages) : safe-area via CSS ── */
 /* Le style inline a déjà padding-top:calc(var(--safe-top) + 10px)
@@ -4016,7 +4027,8 @@ body.light .dm-id-overlay { background: transparent; }
 /* Chat */
 .dm-messages {
   flex:1; overflow-y:auto; width:100%;
-  padding:12px 12px 6px;
+  /* padding-top = hauteur topbar (calc 56px + safe-top) + marge confort */
+  padding: calc(var(--safe-top) + 56px + 12px) 12px 6px;
   display:flex; flex-direction:column;
   overscroll-behavior:contain;
 }
