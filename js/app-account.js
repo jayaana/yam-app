@@ -1442,12 +1442,15 @@ window.addEventListener('load', function(){
 
   // Fermer au clic extérieur
   document.addEventListener('click', function(e){
-    var wrap   = document.getElementById('profileAvatarWrap');
-    var pp     = document.getElementById('profilePopup');
-    var picker = document.getElementById('moodPicker');
-    if(pp && pp.classList.contains('open') && wrap && !wrap.contains(e.target))
+    var wrap        = document.getElementById('profileAvatarWrap');
+    var stickyAvatar = document.getElementById('yamStickyAvatarSelf');
+    var pp          = document.getElementById('profilePopup');
+    var picker      = document.getElementById('moodPicker');
+    // Considérer l'avatar du sticky header comme zone "intérieure" au même titre que wrap
+    var clickedInside = (wrap && wrap.contains(e.target)) || (stickyAvatar && stickyAvatar.contains(e.target));
+    if(pp && pp.classList.contains('open') && !clickedInside)
       pp.classList.remove('open');
-    if(picker && picker.classList.contains('open') && !picker.contains(e.target) && wrap && !wrap.contains(e.target))
+    if(picker && picker.classList.contains('open') && !picker.contains(e.target) && !clickedInside)
       picker.classList.remove('open');
   });
 
@@ -1572,4 +1575,3 @@ window.addEventListener('load', function(){
     };
   });
 })();
-
