@@ -2448,11 +2448,11 @@ function v2ApplyDynamicNames(){
       }
     }
 
-    // Point présence
+    // Point présence — le grand header l'active via la classe .visible (pas style.display)
     var mainDot   = document.getElementById('presenceDot');
     var stickyDot = document.getElementById('yamStickyPresenceDot');
     if (mainDot && stickyDot) {
-      if (mainDot.style.display !== 'none' && mainDot.style.display !== '') {
+      if (mainDot.classList.contains('visible')) {
         stickyDot.classList.add('online');
       } else {
         stickyDot.classList.remove('online');
