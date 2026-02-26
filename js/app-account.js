@@ -326,12 +326,13 @@ window.setProfile = function(g){
       // Avatar + nom
       '<div style="display:flex;align-items:center;gap:14px;background:var(--s2);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px;">' +
         // Avatar cliquable pour upload photo
-        '<div style="position:relative;flex-shrink:0;" onclick="acTriggerAvatarUpload()">' +
-          '<div id="acAvatarWrap" style="font-size:38px;width:56px;height:56px;background:var(--s1);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--border);overflow:hidden;cursor:pointer;">' +
+        '<div style="position:relative;flex-shrink:0;">' +
+          '<div id="acAvatarWrap" onclick="acTriggerAvatarUpload()" style="font-size:38px;width:56px;height:56px;background:var(--s1);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--border);overflow:hidden;cursor:pointer;">' +
             '<img id="acAvatarImg" src="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:none;" />' +
             '<span id="acAvatarEmoji" style="font-size:38px;line-height:1;">👤</span>' +
           '</div>' +
-          '<div style="position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;border:1.5px solid var(--s2);">📷</div>' +
+          '<div style="position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;border:1.5px solid var(--s2);cursor:pointer;" onclick="acTriggerAvatarUpload()">📷</div>' +
+          '<div id="acDeleteAvatarBtn" style="display:none;position:absolute;top:-4px;left:-4px;width:18px;height:18px;background:#e05555;border-radius:50%;align-items:center;justify-content:center;font-size:9px;border:1.5px solid var(--s2);cursor:pointer;" onclick="acDeleteAvatar()" title="Supprimer la photo">✕</div>' +
         '</div>' +
         '<input type="file" id="acAvatarInput" accept="image/*" style="display:none;" onchange="acHandleAvatarUpload(this)" />' +
         '<div style="flex:1;min-width:0;">' +
@@ -833,33 +834,26 @@ function _acLoadAvatarPhoto(u){
     if(emoji) emoji.style.display = 'none';
     // Mettre à jour l'avatar principal dans la topbar
     _acSyncAvatarTopbar(url, u.role);
+    // ✅ Afficher le bouton suppression si une photo existe
+    var delBtn = document.getElementById('acDeleteAvatarBtn');
+    if(delBtn) delBtn.style.display = 'flex';
   };
   probe.onerror = function(){
     img.style.display = 'none';
     if(emoji){ emoji.style.display = ''; emoji.textContent = u.role === 'girl' ? '👧' : '👦'; }
+    // Pas de photo → cacher le bouton suppression
+    var delBtn = document.getElementById('acDeleteAvatarBtn');
+    if(delBtn) delBtn.style.display = 'none';
   };
   probe.src = url;
 }
 
 function _acSyncAvatarTopbar(url, role){
-  // ✅ Alimenter le cache central — yamSetAvatar/yamAvatarSrc/yamAvatarHTML utiliseront la vraie photo
-  if(window._yamSyncAllAvatarsForRole) window._yamSyncAllAvatarsForRole(role, url);
-  // Avatar principal (profileAvatar wrap) — photo de profil haute résolution
+  // Alimenter le cache central
+  if(window._yamRealAvatars) window._yamRealAvatars[role] = url;
+  // ✅ FIX — mettre à jour uniquement le src de l'img existante, sans toucher au positionnement
   var mainEmoji = document.getElementById('profileAvatarEmoji');
-  var mainWrap  = document.getElementById('profileAvatar');
-  if(mainWrap && mainEmoji){
-    var existingImg = mainWrap.querySelector('img.ac-avatar-img');
-    if(!existingImg){
-      existingImg = document.createElement('img');
-      existingImg.className = 'ac-avatar-img';
-      existingImg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;';
-      mainWrap.style.position = 'relative';
-      mainWrap.insertBefore(existingImg, mainWrap.firstChild);
-    }
-    existingImg.src = url;
-    existingImg.style.display = '';
-    mainEmoji.style.display = 'none';
-  }
+  if(mainEmoji) mainEmoji.src = url;
 }
 
 // ✅ FIX — Charge l'avatar du partenaire depuis Supabase Storage et propage partout
@@ -875,26 +869,14 @@ window._acLoadPartnerAvatar = function(){
     var url = SB2_URL + '/storage/v1/object/public/images/avatars/' + partner.id + '.jpg?t=' + Date.now();
     var probe = new Image();
     probe.onload = function(){
-      // Alimenter le cache central et propager sur tous les éléments
-      if(window._yamSyncAllAvatarsForRole) window._yamSyncAllAvatarsForRole(partner.role, url);
-      // Avatar partenaire dans le header principal
-      var othWrap = document.getElementById('profileAvatarOther');
-      if(othWrap){
-        var othImg = othWrap.querySelector('img.ac-avatar-img');
-        if(!othImg){
-          othImg = document.createElement('img');
-          othImg.className = 'ac-avatar-img';
-          othImg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;';
-          othWrap.style.position = 'relative';
-          othWrap.insertBefore(othImg, othWrap.firstChild);
-        }
-        othImg.src = url;
-        othImg.style.display = '';
-        var othEmoji = document.getElementById('profileAvatarOtherEmoji');
-        if(othEmoji) othEmoji.style.display = 'none';
-      }
+      // Alimenter le cache central
+      if(window._yamRealAvatars) window._yamRealAvatars[partner.role] = url;
+      // ✅ FIX placement — mettre à jour UNIQUEMENT le src de l'img existante
+      // Ne JAMAIS toucher à othWrap.style.position (le CSS gère bottom:-4px;left:-10px)
+      var othEmoji = document.getElementById('profileAvatarOtherEmoji');
+      if(othEmoji) othEmoji.src = url;
     };
-    probe.onerror = function(){}; // Pas de photo → avatar par défaut conservé
+    probe.onerror = function(){};
     probe.src = url;
   })
   .catch(function(){});
@@ -947,6 +929,9 @@ window.acHandleAvatarUpload = function(input){
       var emoji = document.getElementById('acAvatarEmoji');
       if(img){ img.src = url; img.style.display = ''; }
       if(emoji) emoji.style.display = 'none';
+      // ✅ Afficher le bouton suppression
+      var delBtn = document.getElementById('acDeleteAvatarBtn');
+      if(delBtn) delBtn.style.display = 'flex';
       _acSyncAvatarTopbar(url, u.role);
       if(typeof showToast === 'function') showToast('✅ Photo de profil mise à jour !', 'success', 2000);
     } else {
@@ -954,6 +939,35 @@ window.acHandleAvatarUpload = function(input){
     }
   })
   .catch(function(err){ if(wrap) wrap.style.opacity = ''; alert('Erreur réseau : ' + err); });
+};
+
+// ✅ Suppression de la photo de profil
+window.acDeleteAvatar = function(){
+  var u = v2GetUser();
+  if(!u) return;
+  if(!confirm('Supprimer ta photo de profil ?')) return;
+  var path = 'avatars/' + u.id + '.jpg';
+  fetch(SB2_URL + '/storage/v1/object/' + _AVATAR_BUCKET + '/' + path, {
+    method: 'DELETE',
+    headers: sb2Headers()
+  })
+  .then(function(){
+    // Reset UI dans le modal
+    var img = document.getElementById('acAvatarImg');
+    var emoji = document.getElementById('acAvatarEmoji');
+    var delBtn = document.getElementById('acDeleteAvatarBtn');
+    if(img){ img.src = ''; img.style.display = 'none'; }
+    if(emoji) emoji.style.display = '';
+    if(delBtn) delBtn.style.display = 'none';
+    // Reset header — revenir à l'image par défaut
+    var defaultSrc = u.role === 'girl' ? 'assets/images/profil_girl.png' : 'assets/images/profil_boy.png';
+    if(window._yamRealAvatars) window._yamRealAvatars[u.role] = null;
+    var mainEmoji = document.getElementById('profileAvatarEmoji');
+    if(mainEmoji) mainEmoji.src = defaultSrc;
+    if(typeof showToast === 'function') showToast('🗑️ Photo supprimée', 'success', 2000);
+  })
+  .catch(function(err){ alert('Erreur suppression : ' + err); });
+};
 };
 
 
