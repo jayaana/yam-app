@@ -139,6 +139,127 @@ body.light #uxToast.success { border-color: rgba(200,24,94,0.3); color: var(--gr
 
 /* ══ SMOOTH SCROLL ENHANCED ══ */
 .section { scroll-margin-top: 16px; }
+/* ════════════════════════════════════════════
+   STICKY MINI HEADER — Apparaît au scroll
+   Inspiré de l'app Paired
+════════════════════════════════════════════ */
+#yamStickyHeader {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 990;
+
+  /* Hauteur : safe-area + barre compacte */
+  height: calc(var(--safe-top) + 44px);
+  padding-top: var(--safe-top);
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 10px;
+
+  /* Fond flouté comme iOS */
+  background: rgba(18, 18, 18, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+  /* Caché par défaut — glisse depuis le haut */
+  transform: translateY(-100%);
+  opacity: 0;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity   0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+#yamStickyHeader.visible {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Layout interne : titre centré + avatars à droite */
+#yamStickyHeader {
+  /* override pour layout flex avec 3 zones */
+  justify-content: space-between;
+  padding-left: 16px;
+  padding-right: 12px;
+  align-items: flex-end;
+}
+
+/* Zone avatars à droite */
+#yamStickyAvatars {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  position: relative;
+  width: 56px;
+  height: 34px;
+  flex-shrink: 0;
+  padding-bottom: 2px;
+}
+
+/* Avatar principal (self) */
+#yamStickyAvatarSelf {
+  position: absolute;
+  right: 0;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: #1a2a4a;
+  border: 1.5px solid rgba(91,156,246,0.4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  z-index: 2;
+  transition: border-color 0.3s;
+}
+#yamStickyAvatarSelf.girl { border-color: #e879a0; }
+#yamStickyAvatarSelf.boy  { border-color: #5b9cf6; }
+body.light #yamStickyAvatarSelf { background: rgba(200,24,94,0.08); }
+
+/* Avatar secondaire (other) */
+#yamStickyAvatarOther {
+  position: absolute;
+  right: 20px;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--s2);
+  border: 1.5px solid var(--border);
+  display: none;
+  align-items: center; justify-content: center;
+  font-size: 12px;
+  opacity: 0.6;
+  z-index: 1;
+}
+#yamStickyAvatarOther.visible { display: flex; }
+
+/* Point présence sur l'avatar sticky */
+#yamStickyPresenceDot {
+  display: none;
+  position: absolute;
+  bottom: -2px; right: -2px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  border: 1.5px solid var(--bg);
+  z-index: 5;
+}
+#yamStickyPresenceDot.online { display: block; }
+#yamStickyHeaderTitle {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.1px;
+  transition: opacity 0.15s ease;
+}
+/* Thème clair */
+body.light #yamStickyHeader {
+  background: rgba(255, 240, 246, 0.88);
+  border-bottom: 1px solid rgba(200, 24, 94, 0.12);
+}
+/* Masquer quand InstaLove est ouvert */
+body:has(#hiddenPage.active) #yamStickyHeader {
+  display: none;
+}
 
 /* ══ FOCUS STYLES ACCESSIBILITÉ ══ */
 button:focus-visible, [onclick]:focus-visible {
