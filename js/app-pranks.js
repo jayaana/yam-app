@@ -1307,4 +1307,4 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   if(document.readyState !== 'loading') rebuildPrankList();
 })();
 
-console.log('✨ Jayana UX v.UX1 chargé');
+console.log('✨ Jayana UX v.UX01 chargé');
