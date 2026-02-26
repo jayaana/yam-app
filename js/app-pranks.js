@@ -92,8 +92,8 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     var profile = getProfile();
     if(!profile){ showPrankToast('🔒 Connecte-toi d\'abord !'); return; }
     var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-    var coupleId = s && s.user ? s.user.couple_id : null;
-    if(!coupleId){ showPrankToast('🔒 Lie-toi à un couple d\'abord !'); return; }
+    var partnerPseudo = s && s.user ? s.user.partner_pseudo : null;
+    if(!partnerPseudo){ showPrankToast('🔒 Lie-toi à un couple d\'abord !'); return; }
     var victim = (typeof v2GetDisplayName==="function"?v2GetDisplayName(profile==="boy"?"girl":"boy"):(profile==="boy"?"Elle":"Lui"));
     var el = document.getElementById('prankVictimName');
     if(el) el.textContent = victim;
@@ -226,9 +226,11 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   function sendPrankDirect(type){
     var profile = getProfile();
     if(!profile) return;
-    var victim = profile === 'boy' ? 'girl' : 'boy';
     var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
     var coupleId = s && s.user ? s.user.couple_id : null;
+    var partnerPseudo = s && s.user ? s.user.partner_pseudo : null;
+    if(!partnerPseudo){ showPrankToast('🔒 Lie-toi à un couple d\'abord !'); return; }
+    var victim = profile === 'boy' ? 'girl' : 'boy';
     var body = { type: type, author: profile, victim: victim, couple_id: coupleId, message: '', active: true };
     fetch(SB2_URL+'/rest/v1/'+PRANK_TABLE, {
       method:'POST', headers: sb2Headers({'Prefer':'return=minimal'}),
@@ -259,6 +261,10 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   window.prankSend = function(){
     var profile = getProfile();
     if(!profile) return;
+    var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
+    var coupleId = s && s.user ? s.user.couple_id : null;
+    var partnerPseudo = s && s.user ? s.user.partner_pseudo : null;
+    if(!partnerPseudo){ showPrankToast('🔒 Lie-toi à un couple d\'abord !'); return; }
     var victim   = profile === 'boy' ? 'girl' : 'boy';
     var msg      = document.getElementById('prankMsgText').value.trim();
     var lockWord = (_selectedType === 'lock') ? (document.getElementById('prankLockWord').value.trim().toLowerCase()) : null;
