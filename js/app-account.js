@@ -1308,8 +1308,10 @@ window.addEventListener('load', function(){
     if(!av) return;
 
     var ppLabel = document.querySelector('#profilePopup .profile-popup-label');
+    var ppSep   = document.querySelector('#profilePopup .profile-popup-sep');
+
     if(!gender){
-      // Non connecté : avatar neutre seul, popup simplifié
+      // ── Non connecté : montrer le choix Elle/Lui ──
       if(avEmoji) avEmoji.textContent = EMOJIS.neutral;
       av.className = 'neutral';
       if(avOther) avOther.classList.remove('visible');
@@ -1319,11 +1321,11 @@ window.addEventListener('load', function(){
       if(bg) bg.style.display = 'flex';
       if(bb) bb.style.display = 'flex';
       if(ppLabel) ppLabel.textContent = 'Qui es-tu ?';
-      var ppSep = document.querySelector('#profilePopup .profile-popup-sep');
       if(ppSep) ppSep.style.display = 'none';
       var ppLogout2 = document.getElementById('ppBtnLogout');
       if(ppLogout2) ppLogout2.style.display = 'none';
     } else {
+      // ── Connecté : masquer Elle/Lui, afficher pseudo + actions ──
       if(avEmoji) avEmoji.textContent = EMOJIS[gender];
       av.className = gender;
       if(avOther && avOtherE){
@@ -1332,17 +1334,25 @@ window.addEventListener('load', function(){
       }
       var bandeau2 = document.getElementById('moodBandeau');
       if(bandeau2) bandeau2.classList.add('visible');
+
+      // Cacher les boutons Elle/Lui — inutiles une fois connecté
+      if(bg) bg.style.display = 'none';
+      if(bb) bb.style.display = 'none';
+
+      // Afficher le pseudo en couleur selon le genre (rose=girl, bleu=boy)
+      var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+      var displayName = u && u.pseudo ? u.pseudo : (gender === 'girl' ? 'Elle' : 'Lui');
+      var pseudoColor = gender === 'girl' ? '#e879a0' : '#5b9cf6';
+      if(ppLabel){
+        ppLabel.textContent = displayName;
+        ppLabel.style.cssText = 'font-size:16px;font-weight:700;color:' + pseudoColor + ';padding:0 16px 4px;letter-spacing:0;text-transform:none;border-bottom:none;';
+      }
+
       if(ppMood) ppMood.style.display = 'flex';
-      if(bg) bg.style.display = 'flex';
-      if(bb) bb.style.display = 'flex';
-      if(ppLabel) ppLabel.textContent = 'Je suis…';
-      var ppSep2 = document.querySelector('#profilePopup .profile-popup-sep');
-      if(ppSep2) ppSep2.style.display = '';
+      if(ppSep) ppSep.style.display = '';
       var ppLogout = document.getElementById('ppBtnLogout');
       if(ppLogout) ppLogout.style.display = 'flex';
     }
-    if(bg){ bg.className = 'profile-popup-btn' + (gender==='girl' ? ' sel-girl' : ''); }
-    if(bb){ bb.className = 'profile-popup-btn' + (gender==='boy'  ? ' sel-boy'  : ''); }
   }
 
   // ── Picker humeur ──
@@ -1474,7 +1484,11 @@ window.addEventListener('load', function(){
 
   window.toggleProfilePopup = function(){
     var pp = document.getElementById('profilePopup');
-    if(pp) pp.classList.toggle('open');
+    if(!pp) return;
+    var isOpening = !pp.classList.contains('open');
+    pp.classList.toggle('open');
+    // Rafraichir le contenu a chaque ouverture (pseudo a jour, boutons corrects)
+    if(isOpening) apply(get());
     var picker = document.getElementById('moodPicker');
     if(picker) picker.classList.remove('open');
   };
