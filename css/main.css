@@ -233,12 +233,14 @@ body.light #yamStickyAvatarSelf { background: rgba(200,24,94,0.08); }
 #yamStickyPresenceDot {
   display: none;
   position: absolute;
-  bottom: -2px; right: -2px;
+  /* Sur l'avatar du partenaire (other) — coin bas gauche */
+  bottom: -2px; left: -2px;
   width: 8px; height: 8px;
   border-radius: 50%;
   background: #22c55e;
   border: 1.5px solid var(--bg);
   z-index: 5;
+  animation: presencePulse 2s ease-in-out infinite;
 }
 #yamStickyPresenceDot.online { display: block; }
 #yamStickyHeaderTitle {
@@ -4703,7 +4705,7 @@ body.light .profile-popup-dot.boy  { background:#3b7dd8; box-shadow:0 0 5px rgba
 /* ── Picker humeur ── */
 #moodPicker {
   position: fixed;
-  top: 14px; right: 64px;
+  top: calc(var(--safe-top) + 14px); right: 64px;
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: 14px;
