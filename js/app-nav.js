@@ -909,10 +909,21 @@ function goTo(id){resetZoom();closeAllViews();document.getElementById('libraryPo
   window.addEventListener('popstate', function(){
     if(_busy) return;
     _busy = true;
-    // Si le swipe a déjà déclenché la fermeture avec animation, juste sync la pile
+    // Repousser la sentinelle immédiatement — bloque tout retour navigateur
+    history.pushState({ jy:'sentinel' }, '');
+
+    // Si on est sur conv → ignorer complètement le swipe natif du bord
+    // (conv n'a pas de retour — seul le bouton × ferme la vue)
+    var hp   = document.getElementById('hiddenPage');
+    var chat = document.getElementById('dmChatScreen');
+    if(hp && hp.classList.contains('active') && (!chat || chat.style.display === 'none')){
+      // On est sur conv : bloquer silencieusement, ne rien faire
+      setTimeout(function(){ _busy = false; }, 400);
+      return;
+    }
+
     if(!window._yamSwipeInProgress) goBack();
-    else _stack.pop(); // dépiler sans ré-animer
-    history.pushState({ jy:'sentinel' }, ''); // sentinelle repoussée
+    else _stack.pop();
     setTimeout(function(){ _busy = false; }, 400);
   });
 
