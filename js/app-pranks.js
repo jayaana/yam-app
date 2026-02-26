@@ -224,7 +224,9 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     var profile = getProfile();
     if(!profile) return;
     var victim = profile === 'boy' ? 'girl' : 'boy';
-    var body = { type: type, author: profile, victim: victim, message: '', active: true };
+    var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
+    var coupleId = s && s.user ? s.user.couple_id : null;
+    var body = { type: type, author: profile, victim: victim, couple_id: coupleId, message: '', active: true };
     fetch(SB2_URL+'/rest/v1/'+PRANK_TABLE, {
       method:'POST', headers: sb2Headers({'Prefer':'return=minimal'}),
       body: JSON.stringify(body)
@@ -259,7 +261,9 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     var lockWord = (_selectedType === 'lock') ? (document.getElementById('prankLockWord').value.trim().toLowerCase()) : null;
     if(!msg){ document.getElementById('prankMsgText').focus(); return; }
     if(_selectedType === 'lock' && !lockWord){ document.getElementById('prankLockWord').focus(); return; }
-    var body = { type: _selectedType, author: profile, victim: victim, message: msg, active: true };
+    var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
+    var coupleId = s && s.user ? s.user.couple_id : null;
+    var body = { type: _selectedType, author: profile, victim: victim, couple_id: coupleId, message: msg, active: true };
     if(lockWord) body.lock_word = lockWord;
     // On insère directement sans effacer les bêtises précédentes — la file d'attente s'en charge
     fetch(SB2_URL+'/rest/v1/'+PRANK_TABLE, {
@@ -280,7 +284,10 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
 
   /* ── Vérification au login de la victime ── */
   window.checkActivePrank = function(profile){
-    fetch(SB2_URL+'/rest/v1/'+PRANK_TABLE+'?victim=eq.'+profile+'&active=eq.true&order=created_at.asc', {
+    var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
+    var coupleId = s && s.user ? s.user.couple_id : null;
+    if(!coupleId) return;
+    fetch(SB2_URL+'/rest/v1/'+PRANK_TABLE+'?couple_id=eq.'+coupleId+'&victim=eq.'+profile+'&active=eq.true&order=created_at.asc', {
       headers: sb2Headers()
     })
     .then(function(r){ return r.json(); })
