@@ -2331,5 +2331,37 @@ function v2ApplyDynamicNames(){
   }
 })();
 </script>
+
+<!-- ═══════════════════════════════════════════
+     FIX PWA iOS — Safe Area & Scroll
+     • Force le scroll en haut au démarrage
+     • Force le scroll en haut à chaque switch d'onglet
+     • Empêche la nav bar de paraître "trop haute"
+       quand le contenu est court (ex: onglet Jeux)
+════════════════════════════════════════════ -->
+<script>
+(function(){
+  // 1. Scroll en haut dès que la page est prête
+  window.addEventListener('load', function(){
+    setTimeout(function(){ window.scrollTo(0, 0); }, 50);
+  });
+
+  // 2. Patch yamSwitchTab : scroll en haut à chaque changement d'onglet
+  //    On attend que app-nav.js ait défini la fonction, puis on la wrappe
+  function patchYamSwitchTab(){
+    if(typeof window.yamSwitchTab !== 'function'){
+      setTimeout(patchYamSwitchTab, 100);
+      return;
+    }
+    var _orig = window.yamSwitchTab;
+    window.yamSwitchTab = function(tab){
+      _orig(tab);
+      // Remettre le scroll en haut après la transition (200ms = délai du switch)
+      setTimeout(function(){ window.scrollTo(0, 0); }, 220);
+    };
+  }
+  patchYamSwitchTab();
+})();
+</script>
 </body>
 </html>
