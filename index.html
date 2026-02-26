@@ -201,6 +201,38 @@
   70% { transform: scale(1.15) rotate(4deg); }
   100%{ transform: scale(1) rotate(0deg); }
 }
+/* ── Timer bar ── */
+#sjTimerBar {
+  position: absolute;
+  top: 32px; /* juste sous la bannière */
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255,255,255,0.08);
+  z-index: 20;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+#sjTimerBar.active { opacity: 1; }
+#sjTimerBarFill {
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  background: linear-gradient(90deg, #00c9a7, #5b9cf6);
+  transition: background 0.5s;
+  will-change: transform;
+}
+#sjTimerBar.danger #sjTimerBarFill {
+  background: linear-gradient(90deg, #e05555, #f97316);
+}
+@keyframes sjTimerPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+#sjTimerBar.danger {
+  animation: sjTimerPulse 0.6s ease-in-out infinite;
+}
 </style>
 
 
@@ -1465,6 +1497,11 @@
 
       <!-- Bannière de tour -->
       <div id="skyjoTurnBanner" class="skyjo-turn-banner their-turn">⏳ …</div>
+
+      <!-- Barre de timer -->
+      <div id="sjTimerBar">
+        <div id="sjTimerBarFill"></div>
+      </div>
 
       <!-- Terrain vertical -->
       <div id="skyjoPlayField">
