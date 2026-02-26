@@ -2592,5 +2592,59 @@ function v2ApplyDynamicNames(){
 
 })();
 </script>
+
+<!-- ═══════════════════════════════════════════
+     DMSTATUS — Statut présence partenaire
+     Observe dmHeaderDotOther et met à jour
+     le texte "En ligne / Hors ligne" en temps réel
+════════════════════════════════════════════ -->
+<script>
+(function(){
+
+  var ONLINE_COLOR_PART = '34, 197, 94'; // #22c55e
+
+  function isOtherOnline() {
+    var dot = document.getElementById('dmHeaderDotOther');
+    if (!dot) return false;
+    var bg = window.getComputedStyle(dot).backgroundColor;
+    return bg.indexOf(ONLINE_COLOR_PART) !== -1;
+  }
+
+  function updateDmStatus() {
+    var status = document.getElementById('dmStatus');
+    if (!status) return;
+    if (isOtherOnline()) {
+      status.textContent = '• En ligne';
+      status.style.color = '#22c55e';
+    } else {
+      status.textContent = '• Hors ligne';
+      status.style.color = 'var(--muted)';
+    }
+  }
+
+  function startObserver() {
+    var dot = document.getElementById('dmHeaderDotOther');
+    if (!dot) return false;
+    var observer = new MutationObserver(function() {
+      setTimeout(updateDmStatus, 30);
+    });
+    observer.observe(dot, { attributes: true, attributeFilter: ['style'] });
+    return true;
+  }
+
+  function init() {
+    startObserver();
+    updateDmStatus();
+    setInterval(updateDmStatus, 3000);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+</script>
 </body>
 </html>
