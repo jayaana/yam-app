@@ -55,6 +55,43 @@
 </script>
 
 <link rel="stylesheet" href="css/main.css">
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   AVATARS PAR DÉFAUT — profil_girl.png / profil_boy.png
+   Remplace les emoji 👧👦 partout dans l'app
+   ════════════════════════════════════════════════════ */
+(function(){
+  var BASE = 'assets/images/';
+  var IMGS = { girl: BASE+'profil_girl.png', boy: BASE+'profil_boy.png' };
+
+  // Retourne une balise <img> HTML prête à l'emploi
+  window.yamAvatarHTML = function(role, sz){
+    sz = sz || '100%';
+    var src = IMGS[role] || IMGS.girl;
+    return '<img src="'+src+'" alt="" style="width:'+sz+';height:'+sz+';border-radius:50%;object-fit:cover;display:block;pointer-events:none;">';
+  };
+
+  // Injecte l'image dans un élément DOM (remplace l'emoji)
+  window.yamSetAvatar = function(el, role){
+    if(!el) return;
+    var src = IMGS[role] || IMGS.girl;
+    var img = el.querySelector('img.yam-av-img');
+    if(!img){
+      el.textContent = '';
+      img = document.createElement('img');
+      img.className = 'yam-av-img';
+      img.alt = '';
+      img.style.cssText = 'width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;';
+      el.appendChild(img);
+    }
+    img.src = src;
+  };
+
+  // Retourne le src pour un rôle
+  window.yamAvatarSrc = function(role){ return IMGS[role] || IMGS.girl; };
+})();
+</script>
 </head>
 <body>
 
@@ -70,11 +107,11 @@
   <!-- Avatars à droite — miniatures des avatars du grand header -->
   <div id="yamStickyAvatars">
     <div id="yamStickyAvatarOther">
-      <span id="yamStickyAvatarOtherEmoji">👤</span>
+      <img id="yamStickyAvatarOtherEmoji" class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;">
       <div id="yamStickyPresenceDot"></div>
     </div>
     <div id="yamStickyAvatarSelf" onclick="yamStickyOpenProfile()">
-      <span id="yamStickyAvatarSelfEmoji">👤</span>
+      <img id="yamStickyAvatarSelfEmoji" class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;">
     </div>
   </div>
 </div>
@@ -107,8 +144,8 @@
       <input class="v2-input" id="v2RegPseudo"   type="text"     placeholder="Choisis un pseudo" autocomplete="username" />
       <input class="v2-input" id="v2RegPassword" type="password" placeholder="Mot de passe" autocomplete="new-password" />
       <div id="v2RoleSelect">
-        <button class="v2-role-btn" id="v2RoleGirl" onclick="v2SelectRole('girl')">👧 Elle</button>
-        <button class="v2-role-btn" id="v2RoleBoy"  onclick="v2SelectRole('boy')">👦 Lui</button>
+        <button class="v2-role-btn" id="v2RoleGirl" onclick="v2SelectRole('girl')"><img src="assets/images/profil_girl.png" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:6px;"> Elle</button>
+        <button class="v2-role-btn" id="v2RoleBoy"  onclick="v2SelectRole('boy')"><img src="assets/images/profil_boy.png" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:6px;"> Lui</button>
       </div>
       <button class="v2-btn" onclick="v2DoRegister()">Créer mon compte</button>
       <div id="v2RegInfo" class="v2-info" style="display:none;"></div>
@@ -120,8 +157,8 @@
       <input class="v2-input" id="v2JoinPassword" type="password" placeholder="Mot de passe" autocomplete="new-password" />
       <input class="v2-input" id="v2JoinCode"     type="text"     placeholder="Code couple (ex: YAM-4X9K)" autocomplete="off" style="text-transform:uppercase;letter-spacing:2px;" />
       <div id="v2JoinRoleSelect">
-        <button class="v2-role-btn" id="v2JoinRoleGirl" onclick="v2SelectJoinRole('girl')">👧 Elle</button>
-        <button class="v2-role-btn" id="v2JoinRoleBoy"  onclick="v2SelectJoinRole('boy')">👦 Lui</button>
+        <button class="v2-role-btn" id="v2JoinRoleGirl" onclick="v2SelectJoinRole('girl')"><img src="assets/images/profil_girl.png" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:6px;"> Elle</button>
+        <button class="v2-role-btn" id="v2JoinRoleBoy"  onclick="v2SelectJoinRole('boy')"><img src="assets/images/profil_boy.png" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:6px;"> Lui</button>
       </div>
       <button class="v2-btn" onclick="v2DoJoin()">Rejoindre</button>
     </div>
@@ -327,7 +364,7 @@
   <div id="profileAvatarWrap">
     <!-- Avatar de l'autre (secondaire, bas-gauche) -->
     <div id="profileAvatarOther">
-      <span id="profileAvatarOtherEmoji">👤</span>
+      <img id="profileAvatarOtherEmoji" class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;">
       <div id="presenceDot"></div>
     </div>
     <!-- Bulle emoji humeur — positionnée en haut-gauche de l'avatar -->
@@ -339,7 +376,7 @@
     </div>
     <!-- Avatar principal (sélectionné) -->
     <div id="profileAvatar" onclick="toggleProfilePopup()">
-      <span id="profileAvatarEmoji">👤</span>
+      <img id="profileAvatarEmoji" class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;">
       <div id="profileMoodSelf"></div>
     </div>
   </div>
@@ -347,10 +384,10 @@
   <div id="profilePopup">
     <div class="profile-popup-label">Qui es-tu ?</div>
     <div class="profile-popup-btn" id="ppBtnGirl" onclick="setProfile('girl')">
-      <span class="profile-popup-dot girl"></span> <span id="profilePopupGirlName">Elle 👧</span>
+      <span class="profile-popup-dot girl"></span> <span id="profilePopupGirlName">Elle</span>
     </div>
     <div class="profile-popup-btn" id="ppBtnBoy" onclick="setProfile('boy')">
-      <span class="profile-popup-dot boy"></span> <span id="profilePopupBoyName">Lui 👦</span>
+      <span class="profile-popup-dot boy"></span> <span id="profilePopupBoyName">Lui</span>
     </div>
     <div class="profile-popup-sep" style="display:none;"></div>
     <div class="profile-popup-btn" id="ppBtnMood" onclick="openMoodPicker(event)" style="display:none;">
@@ -420,9 +457,9 @@
   <!-- Humeur du couple + compteurs cœurs -->
   <div class="yam-mood-strip">
     <div class="yam-mood-card" id="yamMoodElle">
-      <div class="yam-mood-avatar" id="yamMoodElleAvatar">👧</div>
+      <div class="yam-mood-avatar" id="yamMoodElleAvatar"><img class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;"></div>
       <div class="yam-mood-info">
-        <div class="yam-mood-name elle-name" id="yamMoodElleName">Elle 👧</div>
+        <div class="yam-mood-name elle-name" id="yamMoodElleName">Elle</div>
         <div class="yam-mood-state" id="yamMoodElleState">—</div>
         <div class="yam-mood-likes" id="likeBadgeGirl"><span id="likeNumGirl" style="font-weight:700;color:#e879a0;">—</span> <span style="color:#e879a0;">♥</span></div>
       </div>
@@ -441,9 +478,9 @@
       user-select:none;">💗</div>
 
     <div class="yam-mood-card" id="yamMoodLui">
-      <div class="yam-mood-avatar" id="yamMoodLuiAvatar">👦</div>
+      <div class="yam-mood-avatar" id="yamMoodLuiAvatar"><img class="yam-av-img" src="assets/images/profil_boy.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;"></div>
       <div class="yam-mood-info">
-        <div class="yam-mood-name lui-name" id="yamMoodLuiName">Lui 👦</div>
+        <div class="yam-mood-name lui-name" id="yamMoodLuiName">Lui</div>
         <div class="yam-mood-state" id="yamMoodLuiState">—</div>
         <div class="yam-mood-likes" id="likeBadgeBoy"><span id="likeNumBoy" style="font-weight:700;color:#5b9cf6;">—</span> <span style="color:#5b9cf6;">♥</span></div>
       </div>
@@ -1103,12 +1140,12 @@
       <div id="dmHeaderAvatars" style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
         <!-- Avatar de l'autre -->
         <div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;">
-          <div id="dmHeaderAvatarOther" style="width:30px;height:30px;border-radius:50%;background:var(--s2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;opacity:0.38;">👤</div>
+          <div id="dmHeaderAvatarOther" style="width:30px;height:30px;border-radius:50%;background:var(--s2);border:2px solid var(--border);overflow:hidden;opacity:0.38;"><img class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;"></div>
           <div id="dmHeaderDotOther" style="width:7px;height:7px;border-radius:50%;background:#555;position:absolute;bottom:0;right:0;border:1.5px solid var(--bg);"></div>
         </div>
         <!-- Avatar de soi -->
         <div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;">
-          <div id="dmHeaderAvatarSelf" style="width:34px;height:34px;border-radius:50%;background:var(--s2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:17px;">👤</div>
+          <div id="dmHeaderAvatarSelf" style="width:34px;height:34px;border-radius:50%;background:var(--s2);border:2px solid var(--border);overflow:hidden;"><img class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;"></div>
           <div id="dmHeaderDotSelf" style="width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 4px rgba(34,197,94,0.8);position:absolute;bottom:0;right:0;border:1.5px solid var(--bg);"></div>
         </div>
       </div>
@@ -1150,8 +1187,8 @@
       <!-- Carte Nous -->
       <div class="dm-home-conv" onclick="dmOpenMessaging()">
         <div class="dm-home-conv-avatars">
-          <div class="dm-avatar dm-avatar-girl" style="font-size:16px;background:none;">👧</div>
-          <div class="dm-avatar dm-avatar-boy" style="font-size:16px;background:none;">👦</div>
+          <div class="dm-avatar dm-avatar-girl" style="background:none;overflow:hidden;"><img class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;"></div>
+          <div class="dm-avatar dm-avatar-boy" style="background:none;overflow:hidden;"><img class="yam-av-img" src="assets/images/profil_boy.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;"></div>
         </div>
         <div class="dm-home-conv-info">
           <div class="dm-home-conv-name">Nous ❤️</div>
@@ -1177,13 +1214,13 @@
       <div class="dm-id-sub">Ton identité dans la conversation</div>
       <div class="dm-id-btns">
         <button id="dmIdBtnGirl" class="dm-id-btn dm-id-girl" onclick="dmSetIdentity('girl')">
-          <div class="dm-avatar dm-avatar-girl dm-id-av" style="font-size:22px;background:none;">👧</div>
-          <span class="dm-id-name" id="dmIdNameGirl">Elle 👧</span>
+          <div class="dm-avatar dm-avatar-girl dm-id-av" style="background:none;overflow:hidden;"><img class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;"></div>
+          <span class="dm-id-name" id="dmIdNameGirl">Elle</span>
           <span class="dm-id-sub2">Elle 💕</span>
         </button>
         <button id="dmIdBtnBoy" class="dm-id-btn dm-id-boy" onclick="dmSetIdentity('boy')">
-          <div class="dm-avatar dm-avatar-boy dm-id-av" style="font-size:22px;background:none;">👦</div>
-          <span class="dm-id-name" id="dmIdNameBoy">Lui 👦</span>
+          <div class="dm-avatar dm-avatar-boy dm-id-av" style="background:none;overflow:hidden;"><img class="yam-av-img" src="assets/images/profil_boy.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;"></div>
+          <span class="dm-id-name" id="dmIdNameBoy">Lui</span>
           <span class="dm-id-sub2">Lui 💙</span>
         </button>
       </div>
@@ -1296,11 +1333,11 @@
       <div class="gender-select-btns">
         <button class="gender-select-btn" id="memGenderGirl" onclick="memorySelectGender('girl')">
           <span class="gender-select-icon girl-dot"></span>
-          <span id="memGenderGirlName">Elle 👧</span>
+          <span id="memGenderGirlName">Elle</span>
         </button>
         <button class="gender-select-btn" id="memGenderBoy" onclick="memorySelectGender('boy')">
           <span class="gender-select-icon boy-dot"></span>
-          <span id="memGenderBoyName">Lui 👦</span>
+          <span id="memGenderBoyName">Lui</span>
         </button>
       </div>
     </div>
@@ -1363,8 +1400,8 @@
       <div class="gender-select-title">Qui joue ?</div>
       <div class="gender-select-sub">Choisis ton identité pour le classement</div>
       <div class="gender-select-btns">
-        <button class="gender-select-btn" id="penduGenderGirl" onclick="penduSelectGender('girl')"><span class="gender-select-icon girl-dot"></span><span id="penduGenderGirlName">Elle 👧</span></button>
-        <button class="gender-select-btn" id="penduGenderBoy"  onclick="penduSelectGender('boy')"><span class="gender-select-icon boy-dot"></span><span id="penduGenderBoyName">Lui 👦</span></button>
+        <button class="gender-select-btn" id="penduGenderGirl" onclick="penduSelectGender('girl')"><span class="gender-select-icon girl-dot"></span><span id="penduGenderGirlName">Elle</span></button>
+        <button class="gender-select-btn" id="penduGenderBoy"  onclick="penduSelectGender('boy')"><span class="gender-select-icon boy-dot"></span><span id="penduGenderBoyName">Lui</span></button>
       </div>
     </div>
     <div id="penduGameArea" style="display:none">
@@ -1416,8 +1453,8 @@
       <div class="gender-select-title">Qui joue ?</div>
       <div class="gender-select-sub">Choisis ton identité pour le classement</div>
       <div class="gender-select-btns">
-        <button class="gender-select-btn" id="puzzleGenderGirl" onclick="puzzleSelectGender('girl')"><span class="gender-select-icon girl-dot"></span><span id="puzzleGenderGirlName">Elle 👧</span></button>
-        <button class="gender-select-btn" id="puzzleGenderBoy"  onclick="puzzleSelectGender('boy')"><span class="gender-select-icon boy-dot"></span><span id="puzzleGenderBoyName">Lui 👦</span></button>
+        <button class="gender-select-btn" id="puzzleGenderGirl" onclick="puzzleSelectGender('girl')"><span class="gender-select-icon girl-dot"></span><span id="puzzleGenderGirlName">Elle</span></button>
+        <button class="gender-select-btn" id="puzzleGenderBoy"  onclick="puzzleSelectGender('boy')"><span class="gender-select-icon boy-dot"></span><span id="puzzleGenderBoyName">Lui</span></button>
       </div>
     </div>
     <div id="puzzleGameArea" style="display:none">
@@ -1469,8 +1506,8 @@
       <div class="gender-select-title">Qui joue ?</div>
       <div class="gender-select-sub">Choisis ton identité pour le classement</div>
       <div class="gender-select-btns">
-        <button class="gender-select-btn" id="snakeGenderGirl" onclick="snakeSelectGender('girl')"><span class="gender-select-icon girl-dot"></span><span id="snakeGenderGirlName">Elle 👧</span></button>
-        <button class="gender-select-btn" id="snakeGenderBoy"  onclick="snakeSelectGender('boy')"><span class="gender-select-icon boy-dot"></span><span id="snakeGenderBoyName">Lui 👦</span></button>
+        <button class="gender-select-btn" id="snakeGenderGirl" onclick="snakeSelectGender('girl')"><span class="gender-select-icon girl-dot"></span><span id="snakeGenderGirlName">Elle</span></button>
+        <button class="gender-select-btn" id="snakeGenderBoy"  onclick="snakeSelectGender('boy')"><span class="gender-select-icon boy-dot"></span><span id="snakeGenderBoyName">Lui</span></button>
       </div>
     </div>
     <div id="snakeGameArea" style="display:none">
@@ -1530,14 +1567,14 @@
       <div id="skyjoWaitMsg" style="font-size:14px;color:var(--sub);max-width:280px;line-height:1.6"></div>
       <div style="display:flex;gap:12px;align-items:center;margin-top:4px;">
         <div class="skyjo-player-bubble" id="skyjoWaitBubbleGirl">
-          <span style="font-size:22px">👧</span>
-          <div style="font-size:10px;font-weight:700;color:var(--sub)" id="skyjoWaitNameGirl">Elle 👧</div>
+          <img class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;display:block;">
+          <div style="font-size:10px;font-weight:700;color:var(--sub)" id="skyjoWaitNameGirl">Elle</div>
           <div class="skyjo-presence-dot" id="skyjoPresenceGirl"></div>
         </div>
         <div style="font-size:24px;color:var(--muted)">vs</div>
         <div class="skyjo-player-bubble" id="skyjoWaitBubbleBoy">
-          <span style="font-size:22px">👦</span>
-          <div style="font-size:10px;font-weight:700;color:var(--sub)" id="skyjoWaitNameBoy">Lui 👦</div>
+          <img class="yam-av-img" src="assets/images/profil_boy.png" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;display:block;">
+          <div style="font-size:10px;font-weight:700;color:var(--sub)" id="skyjoWaitNameBoy">Lui</div>
           <div class="skyjo-presence-dot" id="skyjoPresenceBoy"></div>
         </div>
       </div>
@@ -1567,8 +1604,8 @@
             <span id="skyjoLastRoundBadge" style="display:none;font-size:8px;font-weight:700;color:var(--muted);white-space:nowrap;"></span>
           </div>
           <div class="skyjo-player-info">
-            <div class="skyjo-avatar" id="skyjoAvatarOpp">👧</div>
-            <span class="skyjo-player-name" id="skyjoOpponentLabel">Elle 👧</span>
+            <div class="skyjo-avatar" id="skyjoAvatarOpp" style="overflow:hidden;"><img class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;"></div>
+            <span class="skyjo-player-name" id="skyjoOpponentLabel">Elle</span>
             <div id="skyjoOppPresenceDot" style="width:8px;height:8px;border-radius:50%;background:#555;transition:background 0.3s,box-shadow 0.3s;flex-shrink:0;" title="Hors ligne"></div>
             <span class="skyjo-player-score-badge" id="skyjoScoreGirl">0</span>
           </div>
@@ -1614,8 +1651,8 @@
         <!-- ═══ MOI (bas) ═══ -->
         <div class="skyjo-player-zone zone-me">
           <div class="skyjo-player-info">
-            <div class="skyjo-avatar" id="skyjoAvatarMe">👦</div>
-            <span class="skyjo-player-name" id="skyjoMyLabel">Lui 👦</span>
+            <div class="skyjo-avatar" id="skyjoAvatarMe" style="overflow:hidden;"><img class="yam-av-img" src="assets/images/profil_boy.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;"></div>
+            <span class="skyjo-player-name" id="skyjoMyLabel">Lui</span>
             <span class="skyjo-player-score-badge" id="skyjoScoreBoy">0</span>
           </div>
           <div style="display:flex;align-items:center;gap:6px;">
@@ -1666,14 +1703,14 @@
       <!-- Scores de la manche -->
       <div style="display:flex;gap:12px;width:100%;max-width:280px;">
         <div style="flex:1;background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:16px 12px;text-align:center;">
-          <div id="skyjoRoundLabelLeft" style="font-size:11px;color:var(--muted);margin-bottom:4px"><span id="skyjoRoundNameLeft">Elle 👧</span></div>
+          <div id="skyjoRoundLabelLeft" style="font-size:11px;color:var(--muted);margin-bottom:4px"><span id="skyjoRoundNameLeft">Elle</span></div>
           <div style="font-size:13px;color:var(--muted);margin-bottom:2px">Cette manche</div>
           <div style="font-size:28px;font-weight:800;color:var(--text)" id="skyjoRoundScoreGirl">0</div>
           <div style="font-size:11px;color:var(--muted);margin-top:6px">Total</div>
           <div style="font-size:16px;font-weight:700;color:var(--green)" id="skyjoTotalScoreGirl">0</div>
         </div>
         <div style="flex:1;background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:16px 12px;text-align:center;">
-          <div id="skyjoRoundLabelRight" style="font-size:11px;color:var(--muted);margin-bottom:4px"><span id="skyjoRoundNameRight">Lui 👦</span></div>
+          <div id="skyjoRoundLabelRight" style="font-size:11px;color:var(--muted);margin-bottom:4px"><span id="skyjoRoundNameRight">Lui</span></div>
           <div style="font-size:13px;color:var(--muted);margin-bottom:2px">Cette manche</div>
           <div style="font-size:28px;font-weight:800;color:var(--text)" id="skyjoRoundScoreBoy">0</div>
           <div style="font-size:11px;color:var(--muted);margin-top:6px">Total</div>
@@ -1695,14 +1732,14 @@
       <!-- Scores finaux -->
       <div style="display:flex;gap:12px;width:100%;max-width:280px;">
         <div style="flex:1;background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:16px 12px;text-align:center;">
-          <div id="skyjoFinalEmojiLeft" style="font-size:20px;margin-bottom:4px">👧</div>
-          <div id="skyjoFinalLabelLeft" style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px"><span id="skyjoFinalNameLeft">Elle 👧</span></div>
+          <div id="skyjoFinalEmojiLeft" style="width:36px;height:36px;border-radius:50%;overflow:hidden;margin:0 auto 4px;"><img class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div>
+          <div id="skyjoFinalLabelLeft" style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px"><span id="skyjoFinalNameLeft">Elle</span></div>
           <div style="font-size:32px;font-weight:800;color:var(--text)" id="skyjoFinalScoreGirl">0</div>
           <div style="font-size:10px;color:var(--muted);margin-top:2px">pts</div>
         </div>
         <div style="flex:1;background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:16px 12px;text-align:center;">
-          <div id="skyjoFinalEmojiRight" style="font-size:20px;margin-bottom:4px">👦</div>
-          <div id="skyjoFinalLabelRight" style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px"><span id="skyjoFinalNameRight">Lui 👦</span></div>
+          <div id="skyjoFinalEmojiRight" style="width:36px;height:36px;border-radius:50%;overflow:hidden;margin:0 auto 4px;"><img class="yam-av-img" src="assets/images/profil_boy.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div>
+          <div id="skyjoFinalLabelRight" style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px"><span id="skyjoFinalNameRight">Lui</span></div>
           <div style="font-size:32px;font-weight:800;color:var(--text)" id="skyjoFinalScoreBoy">0</div>
           <div style="font-size:10px;color:var(--muted);margin-top:2px">pts</div>
         </div>
@@ -1962,11 +1999,11 @@
     <div class="sg-gender-row">
       <button class="sg-gender-btn" id="sgBtnGirl" onclick="sgSelectGender('girl')">
         <span class="sg-gender-icon girl-icon"></span>
-        <span id="sgBtnGirlName">Elle 👧</span>
+        <span id="sgBtnGirlName">Elle</span>
       </button>
       <button class="sg-gender-btn" id="sgBtnBoy" onclick="sgSelectGender('boy')">
         <span class="sg-gender-icon boy-icon"></span>
-        <span id="sgBtnBoyName">Lui 👦</span>
+        <span id="sgBtnBoyName">Lui</span>
       </button>
     </div>
     <div class="sg-field-label">Titre de la musique *</div>
@@ -2070,12 +2107,12 @@
     <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Choisis ton profil pour accéder à la messagerie</div>
     <div style="display:flex;gap:10px;margin-bottom:16px;">
       <button onclick="instaloveAuthSelect('girl')" style="flex:1;padding:14px 0;background:rgba(232,121,160,0.12);color:#e879a0;border:1.5px solid rgba(232,121,160,0.4);border-radius:14px;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;">
-        <span style="font-size:24px;">👧</span>
-        <span id="instaloveAuthGirlName">Elle 👧</span>
+        <img class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;display:block;">
+        <span id="instaloveAuthGirlName">Elle</span>
       </button>
       <button onclick="instaloveAuthSelect('boy')" style="flex:1;padding:14px 0;background:rgba(91,156,246,0.12);color:#5b9cf6;border:1.5px solid rgba(91,156,246,0.4);border-radius:14px;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;">
-        <span style="font-size:24px;">👦</span>
-        <span id="instaloveAuthBoyName">Lui 👦</span>
+        <img class="yam-av-img" src="assets/images/profil_boy.png" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;display:block;">
+        <span id="instaloveAuthBoyName">Lui</span>
       </button>
     </div>
     <span onclick="instaloveAuthClose()" style="font-size:12px;color:var(--muted);cursor:pointer;">Annuler</span>
@@ -2089,12 +2126,12 @@
     <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Choisis ton profil pour jouer</div>
     <div style="display:flex;gap:10px;margin-bottom:16px;">
       <button id="skyjoAuthGirl" onclick="skyjoAuthSelect('girl')" style="flex:1;padding:14px 0;background:rgba(232,121,160,0.12);color:#e879a0;border:1.5px solid rgba(232,121,160,0.4);border-radius:14px;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;">
-        <span style="font-size:24px;">👧</span>
-        <span id="skyjoAuthGirlName">Elle 👧</span>
+        <img class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;display:block;">
+        <span id="skyjoAuthGirlName">Elle</span>
       </button>
       <button id="skyjoAuthBoy" onclick="skyjoAuthSelect('boy')" style="flex:1;padding:14px 0;background:rgba(91,156,246,0.12);color:#5b9cf6;border:1.5px solid rgba(91,156,246,0.4);border-radius:14px;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;">
-        <span style="font-size:24px;">👦</span>
-        <span id="skyjoAuthBoyName">Lui 👦</span>
+        <img class="yam-av-img" src="assets/images/profil_boy.png" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;display:block;">
+        <span id="skyjoAuthBoyName">Lui</span>
       </button>
     </div>
     <span onclick="skyjoAuthClose()" style="font-size:12px;color:var(--muted);cursor:pointer;">Annuler</span>
@@ -2106,7 +2143,7 @@
 
 <!-- Notif pilule message — fixed, visible sur tous les onglets -->
 <div id="msgHeaderPill" onclick="_hidePillAndOpenChat()">
-  <div class="mhp-avatar" id="mhpAvatar">👤</div>
+  <div class="mhp-avatar" id="mhpAvatar" style="overflow:hidden;"><img class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;"></div>
   <div class="mhp-content">
     <div class="mhp-name" id="mhpName">Message</div>
     <div class="mhp-text" id="mhpText">…</div>
@@ -2290,8 +2327,8 @@ function v2ApplyDynamicNames(){
   }
   var rlLeft  = document.getElementById('skyjoRoundLabelLeft');
   var rlRight = document.getElementById('skyjoRoundLabelRight');
-  if(rlLeft)  rlLeft.textContent  = '👧 ' + girlName;
-  if(rlRight) rlRight.textContent = '👦 ' + boyName;
+  if(rlLeft)  rlLeft.textContent  = girlName;
+  if(rlRight) rlRight.textContent = boyName;
   var flLeft  = document.getElementById('skyjoFinalLabelLeft');
   var flRight = document.getElementById('skyjoFinalLabelRight');
   if(flLeft)  flLeft.textContent  = girlName;
@@ -2406,65 +2443,49 @@ function v2ApplyDynamicNames(){
 
   // ── Sync avatars depuis le grand header vers le sticky ──
   function syncAvatars() {
-    // Avatar self
-    var selfEmoji   = document.getElementById('profileAvatarEmoji');
-    var stickyEmoji = document.getElementById('yamStickyAvatarSelfEmoji');
-    var stickyAvatar = document.getElementById('yamStickyAvatarSelf');
-    var mainAvatar   = document.getElementById('profileAvatar');
+    var profile = (typeof getProfile === 'function') ? getProfile() : null;
 
-    if (selfEmoji && stickyEmoji) {
-      stickyEmoji.textContent = selfEmoji.textContent;
-    }
-    // Copier la classe girl/boy
-    if (mainAvatar && stickyAvatar) {
-      stickyAvatar.className = mainAvatar.className.replace(/[^a-z ]/gi, '').trim();
-      if (mainAvatar.classList.contains('girl')) stickyAvatar.classList.add('girl');
-      else if (mainAvatar.classList.contains('boy')) stickyAvatar.classList.add('boy');
+    // ── Avatar self ──
+    var mainAvatar  = document.getElementById('profileAvatar');
+    var stickyAvSelf = document.getElementById('yamStickyAvatarSelf');
+
+    // Copier la classe girl/boy pour la couleur de bordure
+    if (mainAvatar && stickyAvSelf) {
+      if (mainAvatar.classList.contains('girl')) { stickyAvSelf.classList.add('girl'); stickyAvSelf.classList.remove('boy'); }
+      else if (mainAvatar.classList.contains('boy')) { stickyAvSelf.classList.add('boy'); stickyAvSelf.classList.remove('girl'); }
     }
 
-    // Avatar other
-    var otherEmoji        = document.getElementById('profileAvatarOtherEmoji');
-    var stickyOtherEmoji  = document.getElementById('yamStickyAvatarOtherEmoji');
-    var stickyOther       = document.getElementById('yamStickyAvatarOther');
-    var mainOther         = document.getElementById('profileAvatarOther');
-
-    if (otherEmoji && stickyOtherEmoji) {
-      stickyOtherEmoji.textContent = otherEmoji.textContent;
+    // Sync image : d'abord photo uploadée, sinon image par défaut selon le profil
+    var stickyImgSelf = document.getElementById('yamStickyAvatarSelfEmoji');
+    var mainImgSelf   = mainAvatar ? mainAvatar.querySelector('img.profile-photo, img:not(.yam-av-img)') : null;
+    var defaultSelf   = profile === 'boy' ? 'assets/images/profil_boy.png' : 'assets/images/profil_girl.png';
+    if (stickyImgSelf) {
+      stickyImgSelf.src = (mainImgSelf && mainImgSelf.src && !mainImgSelf.src.includes('profil_')) ? mainImgSelf.src : defaultSelf;
     }
+
+    // ── Avatar other ──
+    var mainOther    = document.getElementById('profileAvatarOther');
+    var stickyOther  = document.getElementById('yamStickyAvatarOther');
+    var otherProfile = profile === 'girl' ? 'boy' : 'girl';
+
     if (mainOther && stickyOther) {
-      if (mainOther.classList.contains('visible')) {
-        stickyOther.classList.add('visible');
-      } else {
-        stickyOther.classList.remove('visible');
-      }
+      if (mainOther.classList.contains('visible')) stickyOther.classList.add('visible');
+      else stickyOther.classList.remove('visible');
     }
 
-    // Point présence — le grand header l'active via la classe .visible (pas style.display)
+    var stickyImgOther = document.getElementById('yamStickyAvatarOtherEmoji');
+    var mainImgOther   = mainOther ? mainOther.querySelector('img.profile-photo, img:not(.yam-av-img)') : null;
+    var defaultOther   = otherProfile === 'boy' ? 'assets/images/profil_boy.png' : 'assets/images/profil_girl.png';
+    if (stickyImgOther) {
+      stickyImgOther.src = (mainImgOther && mainImgOther.src && !mainImgOther.src.includes('profil_')) ? mainImgOther.src : defaultOther;
+    }
+
+    // ── Point présence ──
     var mainDot   = document.getElementById('presenceDot');
     var stickyDot = document.getElementById('yamStickyPresenceDot');
     if (mainDot && stickyDot) {
-      if (mainDot.classList.contains('visible')) {
-        stickyDot.classList.add('online');
-      } else {
-        stickyDot.classList.remove('online');
-      }
-    }
-
-    // Sync l'image de profil si c'est une <img> dans l'avatar
-    var mainAvatarImg   = mainAvatar ? mainAvatar.querySelector('img') : null;
-    var stickyAvatarEl  = document.getElementById('yamStickyAvatarSelf');
-    var stickyAvatarImg = stickyAvatarEl ? stickyAvatarEl.querySelector('img') : null;
-    if (mainAvatarImg && stickyAvatarEl) {
-      if (!stickyAvatarImg) {
-        // Créer l'img dans le sticky si pas encore là
-        var img = document.createElement('img');
-        img.style.cssText = 'width:100%;height:100%;border-radius:50%;object-fit:cover;position:absolute;inset:0;';
-        stickyAvatarEl.appendChild(img);
-        stickyAvatarImg = img;
-      }
-      stickyAvatarImg.src = mainAvatarImg.src;
-    } else if (!mainAvatarImg && stickyAvatarImg) {
-      stickyAvatarImg.remove();
+      if (mainDot.classList.contains('visible')) stickyDot.classList.add('online');
+      else stickyDot.classList.remove('online');
     }
   }
 
@@ -2641,6 +2662,85 @@ function v2ApplyDynamicNames(){
     init();
   }
 
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════
+     PATCH AVATARS PAR DÉFAUT — initialise les images selon le profil
+     Appelé après tous les scripts, corrige aussi _acSyncAvatarTopbar
+════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  function initDefaultAvatars(){
+    var profile = (typeof getProfile === 'function') ? getProfile() : null;
+    var self    = profile || 'girl';
+    var other   = (self === 'girl') ? 'boy' : 'girl';
+
+    // Header principal
+    var elEmoji = document.getElementById('profileAvatarEmoji');
+    var othEmoji = document.getElementById('profileAvatarOtherEmoji');
+    if(elEmoji && elEmoji.tagName === 'IMG')  elEmoji.src  = window.yamAvatarSrc(self);
+    if(othEmoji && othEmoji.tagName === 'IMG') othEmoji.src = window.yamAvatarSrc(other);
+
+    // Mood avatars
+    var moodElle = document.getElementById('yamMoodElleAvatar');
+    var moodLui  = document.getElementById('yamMoodLuiAvatar');
+    if(moodElle){ var img = moodElle.querySelector('img'); if(img) img.src = window.yamAvatarSrc('girl'); }
+    if(moodLui) { var img2 = moodLui.querySelector('img');  if(img2) img2.src = window.yamAvatarSrc('boy'); }
+
+    // InstaLove header topbar
+    var dmSelf  = document.getElementById('dmHeaderAvatarSelf');
+    var dmOther = document.getElementById('dmHeaderAvatarOther');
+    if(dmSelf)  { var i1 = dmSelf.querySelector('img');  if(i1) i1.src = window.yamAvatarSrc(self);  }
+    if(dmOther) { var i2 = dmOther.querySelector('img'); if(i2) i2.src = window.yamAvatarSrc(other); }
+
+    // mhpAvatar (header notif pilule)
+    var mhp = document.getElementById('mhpAvatar');
+    if(mhp){ var im = mhp.querySelector('img'); if(im) im.src = window.yamAvatarSrc(self); }
+  }
+
+  // Patcher _acSyncAvatarTopbar pour qu'il mette aussi l'image par défaut
+  // (app-account.js y met l'emoji quand pas de photo — on override)
+  function patchAcSync(){
+    var orig = window._acSyncAvatarTopbar;
+    if(!orig){ setTimeout(patchAcSync, 200); return; }
+    window._acSyncAvatarTopbar = function(profile, avatarUrl){
+      if(orig) orig.apply(this, arguments);
+      // Après le sync original, si l'emoji est encore là, le remplacer par l'image par défaut
+      var avEl = document.getElementById('profileAvatarEmoji');
+      if(avEl && avEl.tagName === 'IMG'){
+        // Si app-account a mis une vraie photo, elle est dans un <img> séparé — ne pas écraser
+        // Sinon mettre le défaut selon le profil
+        if(!avatarUrl) avEl.src = window.yamAvatarSrc(profile || getProfile() || 'girl');
+      }
+      initDefaultAvatars();
+    };
+  }
+
+  // Initialiser au chargement
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){
+      initDefaultAvatars();
+      patchAcSync();
+    });
+  } else {
+    initDefaultAvatars();
+    patchAcSync();
+  }
+
+  // Ré-initialiser aussi quand le profil change (setProfile)
+  var _origSetProfile = window.setProfile;
+  function hookSetProfile(){
+    if(typeof window.setProfile !== 'function'){ setTimeout(hookSetProfile, 300); return; }
+    if(window._yamAvatarHooked) return;
+    window._yamAvatarHooked = true;
+    var orig = window.setProfile;
+    window.setProfile = function(p){
+      orig.apply(this, arguments);
+      setTimeout(initDefaultAvatars, 100);
+    };
+  }
+  setTimeout(hookSetProfile, 500);
 })();
 </script>
 </body>
