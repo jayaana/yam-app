@@ -877,6 +877,9 @@ body.light #loveBox .lb-label { color: rgba(200,24,94,0.65); }
 }
 .yam-tab-panel.active {
   display: block;
+  /* Hauteur minimale = viewport - header estimé - nav bar
+     Évite que la bottom-nav remonte sur les onglets au contenu court (ex: Jeux) */
+  min-height: calc(100dvh - var(--nav-height) - 120px);
 }
 
 /* ══ MESSAGES TAB ══ */
