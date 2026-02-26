@@ -1285,7 +1285,8 @@ setTimeout(function(){
     if(Math.abs(dy) > Math.abs(dx) * 0.7) return;
 
     var sc = dmScreen();
-    if(!sc) return;
+    // Sur conv : swipe désactivé — même comportement que les autres menus de l'appli
+    if(!sc || sc === 'conv') return;
 
     _throttle = true;
     setTimeout(function(){ _throttle = false; }, 500);
