@@ -111,6 +111,7 @@
     _sjTimerTurnKey=null;
     _sjTimerFired=false;
     _sjAutoWaitHeld=false;
+    _sjAutoWaitFlip=false;
   }
 
   // ─── Lock + Ouverture ─────────────────────────────────
@@ -299,6 +300,10 @@
     // Étape 2 auto-play : si on vient d'acquérir held_card après une pioche auto
     if(_sjAutoWaitHeld && state.held_card && state.held_card.holder === _me){
       _sjAutoStep2(state);
+    }
+    // Étape 3 auto-play : si on attend le must_flip après un discard auto
+    if(_sjAutoWaitFlip && state.must_flip === _me && !state.held_card){
+      _sjAutoFlip(state);
     }
 
     var myCards  =_me==='girl'?state.girl_cards:state.boy_cards;
@@ -1198,6 +1203,7 @@
   }
 
   var _sjAutoWaitHeld = false; // flag : attendre held_card pour jouer étape 2
+  var _sjAutoWaitFlip = false; // flag : attendre must_flip après un discard auto
 
   function _sjAutoStep2(state){
     _sjAutoWaitHeld = false;
@@ -1206,18 +1212,30 @@
     var cards = state[key] || [];
     var heldVal = state.held_card.value;
 
-    // Choisir : remplacer la carte avec la plus haute valeur, OU défausser (si la carte tenue est haute)
+    // Choisir : remplacer la carte avec la plus haute valeur, OU défausser
     var bestIdx = -1, bestVal = -Infinity;
     cards.forEach(function(c,i){
       if(!c.removed && c.value > bestVal){ bestVal = c.value; bestIdx = i; }
     });
 
-    // Si la carte tenue est inférieure à la plus haute → replace ; sinon → défausse + flip random
     if(bestIdx >= 0 && heldVal < bestVal){
       window.skyjoReplaceCard(bestIdx);
     } else {
+      // Défausse → after this state will have must_flip=_me, arm the flag
+      _sjAutoWaitFlip = true;
       window.skyjoDiscardHeld();
     }
+  }
+
+  function _sjAutoFlip(state){
+    _sjAutoWaitFlip = false;
+    var key = _me + '_cards';
+    var hidden = [];
+    (state[key]||[]).forEach(function(c,i){ if(!c.revealed && !c.removed) hidden.push(i); });
+    if(!hidden.length) return;
+    var idx = hidden[Math.floor(Math.random() * hidden.length)];
+    // Petit délai pour laisser l'animation de défausse se terminer
+    setTimeout(function(){ window.skyjoFlipReveal(idx); }, 350);
   }
 
   // ─── Réactions ───────────────────────────────────────
