@@ -332,9 +332,9 @@
     typingEl = document.createElement('div');
     typingEl.className = 'dm-typing-wrap';
     typingEl.id = 'dmTypingWrap';
-    var emo = who === 'girl' ? 'Elle' : 'Lui';
+    var _avSrc = who === 'girl' ? 'assets/images/profil_girl.png' : 'assets/images/profil_boy.png';
     typingEl.innerHTML =
-      '<div class="dm-typing-avatar">' + emo + '</div>' +
+      '<div class="dm-typing-avatar"><img src="' + _avSrc + '" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;"></div>' +
       '<div class="dm-typing-bubble">' +
         '<div class="dm-typing-dot"></div>' +
         '<div class="dm-typing-dot"></div>' +
@@ -511,10 +511,10 @@
     if(!wrap) return;
 
     var other = identity === 'girl' ? 'boy' : 'girl';
-    var emo   = other === 'girl' ? 'Elle' : 'Lui';
+    var _seenSrc = other === 'girl' ? 'assets/images/profil_girl.png' : 'assets/images/profil_boy.png';
     var lbl   = document.createElement('div');
     lbl.className = 'dm-seen-label';
-    lbl.innerHTML = '<span class="dm-seen-avatar">' + emo + '</span>Vu';
+    lbl.innerHTML = '<span class="dm-seen-avatar" style="overflow:hidden;"><img src="' + _seenSrc + '" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;"></span>Vu';
     wrap.insertAdjacentElement('afterend', lbl);
   }
 
