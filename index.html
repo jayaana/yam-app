@@ -63,19 +63,26 @@
    ════════════════════════════════════════════════════ */
 (function(){
   var BASE = 'assets/images/';
-  var IMGS = { girl: BASE+'profil_girl.png', boy: BASE+'profil_boy.png' };
+  var DEFAULTS = { girl: BASE+'profil_girl.png', boy: BASE+'profil_boy.png' };
+
+  // Cache des vraies URLs (remplies par _acLoadPartnerAvatar / _acLoadAvatarTopbarOnStart)
+  window._yamRealAvatars = { girl: null, boy: null };
+
+  // Retourne l'URL réelle si disponible, sinon le défaut
+  function getSrc(role){
+    return window._yamRealAvatars[role] || DEFAULTS[role] || DEFAULTS.girl;
+  }
 
   // Retourne une balise <img> HTML prête à l'emploi
   window.yamAvatarHTML = function(role, sz){
     sz = sz || '100%';
-    var src = IMGS[role] || IMGS.girl;
-    return '<img src="'+src+'" alt="" style="width:'+sz+';height:'+sz+';border-radius:50%;object-fit:cover;display:block;pointer-events:none;">';
+    return '<img src="'+getSrc(role)+'" alt="" style="width:'+sz+';height:'+sz+';border-radius:50%;object-fit:cover;display:block;pointer-events:none;">';
   };
 
-  // Injecte l'image dans un élément DOM (remplace l'emoji)
+  // Injecte l'image dans un élément DOM
   window.yamSetAvatar = function(el, role){
     if(!el) return;
-    var src = IMGS[role] || IMGS.girl;
+    var src = getSrc(role);
     var img = el.querySelector('img.yam-av-img');
     if(!img){
       el.textContent = '';
@@ -89,7 +96,69 @@
   };
 
   // Retourne le src pour un rôle
-  window.yamAvatarSrc = function(role){ return IMGS[role] || IMGS.girl; };
+  window.yamAvatarSrc = function(role){ return getSrc(role); };
+
+  // Met à jour TOUS les éléments d'avatar visibles dans l'app pour un rôle donné
+  window._yamSyncAllAvatarsForRole = function(role, url){
+    window._yamRealAvatars[role] = url;
+    // Sélectionner tous les éléments selon le rôle
+    var selectors = [];
+    if(role === 'girl'){
+      selectors = [
+        '#profileAvatarOtherEmoji', // header principal — partenaire si je suis boy
+        '#profileAvatarEmoji',      // header principal — moi si je suis girl
+        '#yamMoodElleAvatar img',
+        '#yamStickyAvatarOtherEmoji',
+        '#yamStickyAvatarSelfEmoji',
+        '.dm-avatar-girl img',      // toutes les bulles + header chat girl
+        '#dmHeaderAvatarSelf img',
+        '#dmHeaderAvatarOther img',
+        '#mhpAvatar img',
+        '#skyjoAvatarOpp img',
+        '#skyjoAvatarMe img',
+        '#skyjoFinalEmojiLeft img',
+        '#skyjoFinalEmojiRight img'
+      ];
+    } else {
+      selectors = [
+        '#profileAvatarOtherEmoji',
+        '#profileAvatarEmoji',
+        '#yamMoodLuiAvatar img',
+        '#yamStickyAvatarOtherEmoji',
+        '#yamStickyAvatarSelfEmoji',
+        '.dm-avatar-boy img',
+        '#dmHeaderAvatarSelf img',
+        '#dmHeaderAvatarOther img',
+        '#mhpAvatar img',
+        '#skyjoAvatarOpp img',
+        '#skyjoAvatarMe img',
+        '#skyjoFinalEmojiLeft img',
+        '#skyjoFinalEmojiRight img'
+      ];
+    }
+    // On met à jour les éléments qui sont actuellement à la valeur par défaut ou déjà role=match
+    document.querySelectorAll('.dm-avatar-' + role + ' img').forEach(function(img){ img.src = url; });
+    // Header principal : mettre à jour selon le profil actif
+    var profile = (typeof getProfile === 'function') ? getProfile() : null;
+    // Moi
+    if(profile === role){
+      var selfEl = document.getElementById('profileAvatarEmoji'); if(selfEl) selfEl.src = url;
+      var selfMood = document.getElementById(role === 'girl' ? 'yamMoodElleAvatar' : 'yamMoodLuiAvatar');
+      if(selfMood){ var i = selfMood.querySelector('img'); if(i) i.src = url; }
+      var stickyS = document.getElementById('yamStickyAvatarSelfEmoji'); if(stickyS) stickyS.src = url;
+      var dmSelf = document.getElementById('dmHeaderAvatarSelf'); if(dmSelf){ var i2=dmSelf.querySelector('img'); if(i2) i2.src=url; }
+    }
+    // Partenaire
+    if(profile && profile !== role){
+      var othEl = document.getElementById('profileAvatarOtherEmoji'); if(othEl) othEl.src = url;
+      var otherMood = document.getElementById(role === 'girl' ? 'yamMoodElleAvatar' : 'yamMoodLuiAvatar');
+      if(otherMood){ var i3 = otherMood.querySelector('img'); if(i3) i3.src = url; }
+      var stickyO = document.getElementById('yamStickyAvatarOtherEmoji'); if(stickyO) stickyO.src = url;
+      var dmOther = document.getElementById('dmHeaderAvatarOther'); if(dmOther){ var i4=dmOther.querySelector('img'); if(i4) i4.src=url; }
+      // mhpAvatar = partenaire qui envoie
+      var mhp = document.getElementById('mhpAvatar'); if(mhp){ var i5=mhp.querySelector('img'); if(i5) i5.src=url; }
+    }
+  };
 })();
 </script>
 </head>
@@ -2100,7 +2169,7 @@
      ⚡ JAYANA PERF v3.0 — Optimisations performances
      Zéro doublon. Zéro RAF inutile. iPhone 12 ready.
      ════════════════════════════════════════════════════ -->
-<!-- ✅ FIX — instaloveAuthModal supprimé (modal obsolète, connexion obligatoire) -->
+<!-- ✅ FIX — instaloveAuthModal supprimé (modal obsolète) -->
 
 <div id="skyjoAuthModal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:24px;">
   <div style="background:var(--s1);border:1px solid var(--border);border-radius:20px;padding:28px 24px;max-width:300px;width:100%;text-align:center;font-family:'DM Sans',sans-serif;">
@@ -2321,7 +2390,7 @@ function v2ApplyDynamicNames(){
   var swg = document.getElementById('skyjoWaitNameGirl'); if(swg) swg.textContent = girlName;
   var swb = document.getElementById('skyjoWaitNameBoy');  if(swb) swb.textContent = boyName;
 
-  // InstaLove auth modal — supprimé (modal obsolète)
+  // InstaLove auth modal supprimé
 
   // Boutons suggestion chanson
   var sgGirl = document.getElementById('sgBtnGirlName'); if(sgGirl) sgGirl.textContent = girlName;
