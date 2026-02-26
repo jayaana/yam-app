@@ -1250,10 +1250,16 @@ setTimeout(function(){
     return null;
   }
 
+  var _animating = false; // vrai pendant la durée de l'animation _dmSlide
+
   document.addEventListener('touchstart', function(e){
     _sActive = false;
+    if(_animating) return; // animation en cours → ignorer
     var hp = document.getElementById('hiddenPage');
     if(!hp || !hp.classList.contains('active')) return;
+    // Bloquer sur conv dès le touchstart
+    var sc = dmScreen();
+    if(!sc || sc === 'conv') return;
     var ae = document.activeElement;
     if(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return;
     var pm = document.getElementById('prankMenu');
@@ -1266,7 +1272,7 @@ setTimeout(function(){
   document.addEventListener('touchend', function(e){
     if(!_sActive) return;
     _sActive = false;
-    if(_throttle) return;
+    if(_animating) return;
 
     var hp = document.getElementById('hiddenPage');
     if(!hp || !hp.classList.contains('active')) return;
@@ -1278,49 +1284,24 @@ setTimeout(function(){
     var dx = e.changedTouches[0].clientX - _sx;
     var dy = e.changedTouches[0].clientY - _sy;
 
-    // Swipe GAUCHE → ignoré (navigation en avant désactivée)
     if(dx <= 0) return;
-
     if(Math.abs(dx) < 55) return;
     if(Math.abs(dy) > Math.abs(dx) * 0.7) return;
 
     var sc = dmScreen();
-    // Sur conv : swipe désactivé — même comportement que les autres menus de l'appli
+    // Conv : toujours bloqué
     if(!sc || sc === 'conv') return;
-
-    _throttle = true;
-    setTimeout(function(){ _throttle = false; }, 500);
 
     haptic('light');
 
-    // Animation slide-out de l'écran visible vers la droite
-    var visible = ['dmChatScreen','dmHomeScreen'].reduce(function(found, id){
-      if(found) return found;
-      var el = document.getElementById(id);
-      return (el && el.style.display !== 'none') ? el : null;
-    }, null);
+    // Verrouiller pendant toute la durée de l'animation (300ms + marge)
+    _animating = true;
+    setTimeout(function(){ _animating = false; }, 450);
 
-    function doSwipeBack(){
-      if(sc === 'conv'){
-        // Conv = premier écran → fermer hiddenPage
-        if(window.closeHiddenPage) window.closeHiddenPage();
-      } else if(sc === 'chat'){
-        // Chat → conv directement, sans passer par history/pile
-        if(window._dmRawShowConv) window._dmRawShowConv('backward');
-        else if(window.dmShowConv) window.dmShowConv('backward');
-      }
-    }
-
-    if(visible){
-      visible.style.transition = 'transform 0.25s cubic-bezier(.4,0,.2,1)';
-      visible.style.transform  = 'translateX(100%)';
-      setTimeout(function(){
-        visible.style.transition = '';
-        visible.style.transform  = '';
-        doSwipeBack();
-      }, 240);
-    } else {
-      doSwipeBack();
+    // Chat → conv : _dmRawShowConv gère sa propre animation, pas de slide-out avant
+    if(sc === 'chat'){
+      if(window._dmRawShowConv) window._dmRawShowConv('backward');
+      else if(window.dmShowConv) window.dmShowConv('backward');
     }
   }, { passive: true });
 
