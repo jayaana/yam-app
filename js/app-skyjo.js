@@ -93,6 +93,20 @@
     _sjAnimPlaying=false;
     _sjPendingRenderRow=null;
     window._sjLastSeenLiveTs=0;
+    // Reset réactions
+    _sjReactionCooldown=false;
+    _sjPickerOpen=false;
+    _sjLastSeenReactionTs=0;
+    if(_sjReactionMeTimer){clearTimeout(_sjReactionMeTimer);_sjReactionMeTimer=null;}
+    if(_sjReactionOppTimer){clearTimeout(_sjReactionOppTimer);_sjReactionOppTimer=null;}
+    var bMe=document.getElementById('sjReactionMe');
+    var bOpp=document.getElementById('sjReactionOpp');
+    var pk=document.getElementById('sjReactionPicker');
+    var tr=document.getElementById('sjReactionTrigger');
+    if(bMe){bMe.style.display='none';bMe.classList.remove('hiding');}
+    if(bOpp){bOpp.style.display='none';bOpp.classList.remove('hiding');}
+    if(pk) pk.style.display='none';
+    if(tr) tr.classList.remove('cooldown');
   }
 
   // ─── Lock + Ouverture ─────────────────────────────────
@@ -271,6 +285,9 @@
     var prevState=_gameState;
     _gameState=state;
     _phase=state.phase;
+
+    // Vérifier réactions adversaires entrantes
+    _sjCheckIncomingReaction(state);
 
     var myCards  =_me==='girl'?state.girl_cards:state.boy_cards;
     var oppCards =_me==='girl'?state.boy_cards:state.girl_cards;
@@ -1048,6 +1065,114 @@
   window._skyjoDeletePresence = function(){ if(_mp) _mp.deletePresence(); };
   window._skyjoUpsertPresence = function(){ if(_mp) _mp.upsertPresence(); };
   window._skyjoMarkAbsence    = function(){ if(_mp) _mp.markAbsence(); };
+
+  // ─── Réactions en jeu ────────────────────────────────
+  var _sjReactionCooldown = false;  // anti-spam 3s
+  var _sjPickerOpen       = false;
+  var _sjReactionMeTimer  = null;
+  var _sjReactionOppTimer = null;
+
+  var SJ_REACTION_IMAGES = [
+    null, // index 0 non utilisé
+    'assets/images/reaction_1.png',
+    'assets/images/reaction_2.png',
+    'assets/images/reaction_3.png',
+    'assets/images/reaction_4.png',
+    'assets/images/reaction_5.png',
+    'assets/images/reaction_6.png',
+    'assets/images/reaction_7.png'
+  ];
+
+  // Ouvre/ferme le picker
+  window.skyjoToggleReactionPicker = function(){
+    var picker = document.getElementById('sjReactionPicker');
+    if(!picker) return;
+    _sjPickerOpen = !_sjPickerOpen;
+    picker.style.display = _sjPickerOpen ? 'flex' : 'none';
+    // Refermer si clic ailleurs
+    if(_sjPickerOpen){
+      setTimeout(function(){
+        document.addEventListener('click', _sjClosePicker, {once:true, capture:true});
+      }, 50);
+    }
+  };
+
+  function _sjClosePicker(e){
+    var picker = document.getElementById('sjReactionPicker');
+    var trigger = document.getElementById('sjReactionTrigger');
+    if(picker && !picker.contains(e.target) && e.target !== trigger){
+      picker.style.display = 'none';
+      _sjPickerOpen = false;
+    }
+  }
+
+  // Envoie une réaction (appelé au clic sur un emoji du picker)
+  window.skyjoSendReaction = function(idx){
+    if(_sjReactionCooldown) return;
+    if(!_mp || !_gameState) return;
+
+    // Fermer le picker
+    var picker = document.getElementById('sjReactionPicker');
+    if(picker) picker.style.display = 'none';
+    _sjPickerOpen = false;
+
+    // Afficher ma bulle localement (optimiste)
+    _sjShowReactionBubble('me', idx);
+
+    // Démarrer le cooldown 3s
+    _sjReactionCooldown = true;
+    var trigger = document.getElementById('sjReactionTrigger');
+    if(trigger) trigger.classList.add('cooldown');
+    setTimeout(function(){
+      _sjReactionCooldown = false;
+      if(trigger) trigger.classList.remove('cooldown');
+    }, 3000);
+
+    // Écrire dans le state via le champ reaction (signal live léger)
+    var ns = JSON.parse(JSON.stringify(_gameState));
+    ns.reaction = { player: _me, idx: idx, ts: Date.now() };
+    _mp.saveState(ns);
+  };
+
+  // Affiche une bulle (me ou opp)
+  function _sjShowReactionBubble(who, idx){
+    var bubbleId = who === 'me' ? 'sjReactionMe' : 'sjReactionOpp';
+    var imgId    = who === 'me' ? 'sjReactionMeImg' : 'sjReactionOppImg';
+    var timerRef = who === 'me' ? '_sjReactionMeTimer' : '_sjReactionOppTimer';
+
+    var bubble = document.getElementById(bubbleId);
+    var img    = document.getElementById(imgId);
+    if(!bubble || !img) return;
+
+    // Réinitialiser si déjà visible
+    if(window[timerRef]) clearTimeout(window[timerRef]);
+    bubble.classList.remove('hiding');
+    bubble.style.display = 'block';
+    img.src = SJ_REACTION_IMAGES[idx] || '';
+
+    // Cacher après 3s avec animation
+    window[timerRef] = setTimeout(function(){
+      bubble.classList.add('hiding');
+      setTimeout(function(){
+        bubble.style.display = 'none';
+        bubble.classList.remove('hiding');
+      }, 260);
+    }, 3000);
+  }
+
+  // Détection des réactions adversaires dans renderState
+  // Appelé depuis _doRenderState après mise à jour de _gameState
+  var _sjLastSeenReactionTs = 0;
+
+  function _sjCheckIncomingReaction(state){
+    if(!state.reaction) return;
+    var r = state.reaction;
+    if(!r.ts || r.ts === _sjLastSeenReactionTs) return;
+    if(r.player === _me) return; // c'est ma propre réaction, déjà affichée localement
+    _sjLastSeenReactionTs = r.ts;
+    _sjShowReactionBubble('opp', r.idx);
+  }
+
 
 })();
 
