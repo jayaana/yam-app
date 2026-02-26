@@ -91,6 +91,9 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   window.openPrankMenu = function(){
     var profile = getProfile();
     if(!profile){ showPrankToast('🔒 Connecte-toi d\'abord !'); return; }
+    var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
+    var coupleId = s && s.user ? s.user.couple_id : null;
+    if(!coupleId){ showPrankToast('🔒 Lie-toi à un couple d\'abord !'); return; }
     var victim = (typeof v2GetDisplayName==="function"?v2GetDisplayName(profile==="boy"?"girl":"boy"):(profile==="boy"?"Elle":"Lui"));
     var el = document.getElementById('prankVictimName');
     if(el) el.textContent = victim;
