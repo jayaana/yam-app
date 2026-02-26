@@ -72,7 +72,7 @@
     <div id="yamStickyAvatarOther">
       <span id="yamStickyAvatarOtherEmoji">👤</span>
     </div>
-    <div id="yamStickyAvatarSelf" onclick="toggleProfilePopup()">
+    <div id="yamStickyAvatarSelf" onclick="yamStickyOpenProfile()">
       <span id="yamStickyAvatarSelfEmoji">👤</span>
       <div id="yamStickyPresenceDot"></div>
     </div>
@@ -2584,6 +2584,39 @@ function v2ApplyDynamicNames(){
   } else {
     init();
   }
+
+  // ── Ouvrir le popup profil depuis le sticky header ──
+  // On force l'ouverture directement plutôt que de passer par toggleProfilePopup()
+  // qui peut dépendre de l'état de l'avatar du grand header (hors écran au scroll)
+  window.yamStickyOpenProfile = function() {
+    var popup = document.getElementById('profilePopup');
+    if (!popup) return;
+
+    if (popup.classList.contains('open')) {
+      // Déjà ouvert → fermer
+      popup.classList.remove('open');
+    } else {
+      // Forcer la position en zone safe (sous le mini header)
+      popup.style.top   = 'calc(var(--safe-top) + 52px)';
+      popup.style.right = '12px';
+      popup.classList.add('open');
+
+      // Fermer si on clique ailleurs
+      function onOutside(e) {
+        if (!popup.contains(e.target) && e.target.id !== 'yamStickyAvatarSelf') {
+          popup.classList.remove('open');
+          popup.style.top   = '';
+          popup.style.right = '';
+          document.removeEventListener('touchstart', onOutside);
+          document.removeEventListener('mousedown',  onOutside);
+        }
+      }
+      setTimeout(function() {
+        document.addEventListener('touchstart', onOutside, { passive: true });
+        document.addEventListener('mousedown',  onOutside);
+      }, 50);
+    }
+  };
 
 })();
 </script>
