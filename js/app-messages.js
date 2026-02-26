@@ -98,6 +98,9 @@
     } else if(name === 'chat'){
       var el = $('dmChatScreen');
       _dmSlide(el, outgoing !== el ? outgoing : null, dir);
+      // Masquer le bloc avatars de droite (doublon — avatars déjà dans le centre)
+      var dmHA = document.getElementById('dmHeaderAvatars');
+      if(dmHA) dmHA.style.display = 'none';
       if(center) center.innerHTML =
         '<div class="dm-topbar-avatars">' +
           '<div class="dm-avatar dm-avatar-girl" style="font-size:14px;background:none;">👧</div>' +
