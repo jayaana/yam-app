@@ -2361,17 +2361,14 @@ function v2ApplyDynamicNames(){
     }
     var _orig = window.yamSwitchTab;
     window.yamSwitchTab = function(tab){
+      _orig(tab);
       if(tab === 'messages'){
-        // Ouvrir directement InstaLove + conv, sans passer par la fenêtre parasite
-        _orig(tab);
+        // openHiddenPage gère en interne l'affichage de la conv (via _dmRawShowConv)
+        // On ne rappelle pas dmShowConv ici pour éviter le double-push dans la pile
         setTimeout(function(){
           if(typeof window.openHiddenPage === 'function') window.openHiddenPage();
-          setTimeout(function(){
-            if(typeof window.dmShowConv === 'function') window.dmShowConv();
-          }, 60);
         }, 30);
       } else {
-        _orig(tab);
         setTimeout(function(){ window.scrollTo(0, 0); }, 220);
       }
     };
