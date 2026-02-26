@@ -869,14 +869,14 @@ window._acLoadPartnerAvatar = function(){
     var url = SB2_URL + '/storage/v1/object/public/images/avatars/' + partner.id + '.jpg?t=' + Date.now();
     var probe = new Image();
     probe.onload = function(){
-      // Alimenter le cache central
-      if(window._yamRealAvatars) window._yamRealAvatars[partner.role] = url;
-      // ✅ FIX placement — mettre à jour UNIQUEMENT le src de l'img existante
-      // Ne JAMAIS toucher à othWrap.style.position (le CSS gère bottom:-4px;left:-10px)
-      var othEmoji = document.getElementById('profileAvatarOtherEmoji');
-      if(othEmoji) othEmoji.src = url;
+      // Propager sur TOUS les éléments du rôle partenaire (topbar, mood cards, DM, Skyjo...)
+      if(window._yamSyncAllAvatarsForRole) window._yamSyncAllAvatarsForRole(partner.role, url);
     };
-    probe.onerror = function(){};
+    probe.onerror = function(){
+      // Pas de photo → s'assurer que l'avatar par défaut est bien affiché partout
+      var defaultSrc = partner.role === 'girl' ? 'assets/images/profil_girl.png' : 'assets/images/profil_boy.png';
+      if(window._yamSyncAllAvatarsForRole) window._yamSyncAllAvatarsForRole(partner.role, defaultSrc);
+    };
     probe.src = url;
   })
   .catch(function(){});
