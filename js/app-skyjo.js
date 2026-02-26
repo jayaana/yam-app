@@ -112,6 +112,8 @@
     _sjTimerFired=false;
     _sjAutoWaitHeld=false;
     _sjAutoWaitFlip=false;
+    // ✅ FIX v3.7 : reprend presencePoll de app-core quand on quitte la partie
+    if(typeof window._corePresenceResume==='function') window._corePresenceResume();
   }
 
   // ─── Lock + Ouverture ─────────────────────────────────
@@ -191,6 +193,8 @@
       // Partie trouvée / lancée
       onMatchFound: function(gameRow){
         resetLocalState();
+        // ✅ FIX v3.7 : suspend presencePoll de app-core (doublon pendant Skyjo)
+        if(typeof window._corePresenceSuspend==='function') window._corePresenceSuspend();
         showScreen('skyjoGameArea');
         var btn=document.getElementById('skyjoAbandonBtn');
         if(btn) btn.style.display='block';
@@ -1041,7 +1045,7 @@
 
   // ─── Timer auto-jeu (25s) ────────────────────────────
   var SJ_TIMER_DURATION = 25000; // 25 secondes
-  var _sjTimerRAF       = null;  // requestAnimationFrame handle
+  var _sjTimerRAF       = null;  // ✅ FIX v3.7: setTimeout handle (était RAF 60fps)
   var _sjTimerStart     = 0;     // timestamp de début du timer
   var _sjTimerTurnKey   = null;  // clé unique du tour surveillé (turn+round+ts_turn)
   var _sjTimerFired     = false; // a-t-on déjà joué pour ce tour ?
@@ -1051,15 +1055,15 @@
     _sjStopTimer();
     _sjTimerFired  = false;
     _sjTimerTurnKey= _sjMakeTurnKey(state);
-    _sjTimerStart  = performance.now();
+    _sjTimerStart  = Date.now();
 
     var bar  = document.getElementById('sjTimerBar');
     var fill = document.getElementById('sjTimerBarFill');
     if(bar)  bar.classList.add('active');
     if(bar)  bar.classList.remove('danger');
 
-    function tick(now){
-      var elapsed = now - _sjTimerStart;
+    function tick(){
+      var elapsed = Date.now() - _sjTimerStart;
       var ratio   = Math.max(0, 1 - elapsed / SJ_TIMER_DURATION);
       if(fill) fill.style.transform = 'scaleX(' + ratio + ')';
 
@@ -1074,9 +1078,9 @@
         if(!_sjTimerFired){ _sjTimerFired=true; _sjAutoPlay(); }
         return;
       }
-      _sjTimerRAF = requestAnimationFrame(tick);
+      _sjTimerRAF = setTimeout(tick, 100);
     }
-    _sjTimerRAF = requestAnimationFrame(tick);
+    _sjTimerRAF = setTimeout(tick, 100);
   }
 
   // Lance le timer spectateur (juste la barre, pas d'action)
@@ -1087,15 +1091,15 @@
     // On utilise ts_turn comme référence pour rester synchronisé
     var refTs = (state.ts_turn || 0);
     var lagMs = refTs ? Math.min(Date.now() - refTs, SJ_TIMER_DURATION) : 0;
-    _sjTimerStart = performance.now() - lagMs;
+    _sjTimerStart = Date.now() - lagMs;
 
     var bar  = document.getElementById('sjTimerBar');
     var fill = document.getElementById('sjTimerBarFill');
     if(bar)  bar.classList.add('active');
     if(bar)  bar.classList.remove('danger');
 
-    function tick(now){
-      var elapsed = now - _sjTimerStart;
+    function tick(){
+      var elapsed = Date.now() - _sjTimerStart;
       var ratio   = Math.max(0, 1 - elapsed / SJ_TIMER_DURATION);
       if(fill) fill.style.transform = 'scaleX(' + ratio + ')';
       if(bar){
@@ -1103,13 +1107,13 @@
         else                                    bar.classList.remove('danger');
       }
       if(elapsed >= SJ_TIMER_DURATION){ _sjStopTimer(); return; }
-      _sjTimerRAF = requestAnimationFrame(tick);
+      _sjTimerRAF = setTimeout(tick, 100);
     }
-    _sjTimerRAF = requestAnimationFrame(tick);
+    _sjTimerRAF = setTimeout(tick, 100);
   }
 
   function _sjStopTimer(){
-    if(_sjTimerRAF){ cancelAnimationFrame(_sjTimerRAF); _sjTimerRAF=null; }
+    if(_sjTimerRAF){ clearTimeout(_sjTimerRAF); _sjTimerRAF=null; }
     var bar  = document.getElementById('sjTimerBar');
     var fill = document.getElementById('sjTimerBarFill');
     if(bar){  bar.classList.remove('active','danger'); }
@@ -1407,6 +1411,8 @@
   function pauseSkyjo(){
     document.body.classList.add('skyjo-bg-paused');
     document.querySelectorAll('.sj-fly-clone, .sj-particle').forEach(function(el){el.style.animationPlayState='paused';});
+    // ✅ FIX v3.7 : stoppe le RAF du timer IA (évite 60fps en arrière-plan)
+    _sjStopTimer();
     if(typeof window._skyjoDeletePresence==='function') window._skyjoDeletePresence();
     if(typeof window._skyjoRefreshRates==='function')   window._skyjoRefreshRates();
   }
@@ -1416,6 +1422,7 @@
     document.querySelectorAll('.sj-fly-clone, .sj-particle').forEach(function(el){el.style.animationPlayState='';});
     if(typeof window._skyjoUpsertPresence==='function') window._skyjoUpsertPresence();
     if(typeof window._skyjoRefreshRates==='function')   window._skyjoRefreshRates();
+    // ✅ FIX v3.7 : relance le timer IA si une partie est en cours (le prochain fetchState s'en chargera)
   }
 
   document.addEventListener('visibilitychange',function(){
@@ -1428,4 +1435,5 @@
   window.addEventListener('focus',function(){if(!isSkyjoActive())return;if(!document.hidden)resumeSkyjo();});
 
   console.log('⚡ [v3.6] Skyjo bg-pause: visibilitychange+pagehide+blur/focus installés');
+  console.log('⚡ [v3.7] Skyjo perf: RAF timer→setTimeout 100ms, presencePoll core suspendu pendant la partie');
 })();
