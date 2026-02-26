@@ -163,16 +163,14 @@ body.light #uxToast.success { border-color: rgba(200,24,94,0.3); color: var(--gr
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 
-  /* Caché par défaut — glisse depuis le haut */
+  /* Caché par défaut — progressif selon le scroll (géré en JS) */
   transform: translateY(-100%);
   opacity: 0;
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity   0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Pas de transition CSS : le JS applique les valeurs directement pour suivre le doigt */
   pointer-events: none;
+  will-change: transform, opacity;
 }
 #yamStickyHeader.visible {
-  transform: translateY(0);
-  opacity: 1;
   pointer-events: auto;
 }
 
@@ -4669,7 +4667,7 @@ body.light #profileMoodOther.mood-highlight-boy {
 
 #profilePopup {
   position: fixed;
-  top: 14px; right: 64px;
+  top: calc(var(--safe-top) + 14px); right: 64px;
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: 12px;
