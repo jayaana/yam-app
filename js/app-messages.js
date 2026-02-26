@@ -143,7 +143,7 @@
       '<span style="font-family:\'Playfair Display\',serif;font-size:17px;font-weight:700;color:var(--text);line-height:1.1;">YAM</span>' +
       '</div>';
     var btn = document.getElementById('dmTopbarBack');
-    if(btn){ btn.dataset.dest = 'logo'; btn.style.visibility = 'visible'; }
+    if(btn){ btn.dataset.dest = 'close'; btn.style.visibility = 'hidden'; }
     var lbl = document.getElementById('dmBackLabel');
     if(lbl) lbl.textContent = 'Retour';
     loadHomePreview();
@@ -1318,7 +1318,7 @@
       }); });
     }
     var btn = document.getElementById('dmTopbarBack');
-    if(btn){ btn.dataset.dest = 'logo'; btn.style.visibility = 'visible'; }
+    if(btn){ btn.dataset.dest = 'close'; btn.style.visibility = 'hidden'; }
     var lbl = document.getElementById('dmBackLabel');
     if(lbl) lbl.textContent = 'Retour';
     loadHomePreview();
