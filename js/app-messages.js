@@ -92,8 +92,8 @@
       if(backBtn){ backBtn.dataset.dest = 'close'; backBtn.style.visibility = 'hidden'; }
       var lbl = $('dmBackLabel'); if(lbl) lbl.textContent = 'Retour';
       var logo = $('dmHomeLogo'), conv = $('dmHomeConv');
-      if(logo) logo.style.display = '';
-      if(conv) conv.style.display = 'none';
+      if(logo) logo.style.display = 'none'; // logo supprimé — fenêtre parasite purgée
+      if(conv) conv.style.display = 'flex';  // toujours afficher la conv directement
       loadHomePreview();
     } else if(name === 'chat'){
       var el = $('dmChatScreen');
@@ -149,8 +149,8 @@
   window.dmHideConv = function(){
     var logo = document.getElementById('dmHomeLogo');
     var conv = document.getElementById('dmHomeConv');
-    if(logo) logo.style.display = '';
-    if(conv) conv.style.display = 'none';
+    if(logo) logo.style.display = 'none'; // logo supprimé
+    if(conv) conv.style.display = 'flex';  // on garde conv visible (plus de logo intermédiaire)
     var btn = document.getElementById('dmTopbarBack');
     if(btn){ btn.dataset.dest = 'close'; btn.style.visibility = 'hidden'; }
     var lbl = document.getElementById('dmBackLabel');
