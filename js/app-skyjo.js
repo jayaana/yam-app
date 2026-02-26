@@ -106,6 +106,11 @@
     if(picker)picker.classList.remove('open');
     var btn=document.getElementById('sjReactBtn');
     if(btn)btn.classList.remove('sj-react-cooldown');
+    // Reset timer
+    _sjStopTimer();
+    _sjTimerTurnKey=null;
+    _sjTimerFired=false;
+    _sjAutoWaitHeld=false;
   }
 
   // ─── Lock + Ouverture ─────────────────────────────────
@@ -160,7 +165,8 @@
           girl_cards:gc, boy_cards:bc,
           phase:'init1', turn:null,
           round:1, scores:{girl:0,boy:0},
-          held_card:null, must_flip:null, last_player:null, round_closer:null
+          held_card:null, must_flip:null, last_player:null, round_closer:null,
+          ts_turn: Date.now()
         };
       },
 
@@ -285,6 +291,15 @@
     _gameState=state;
     _phase=state.phase;
     _sjCheckIncomingReaction(state);
+
+    // Timer auto-jeu
+    var isMyTurn = state.turn === _me;
+    _sjHandleTimer(state, isMyTurn);
+
+    // Étape 2 auto-play : si on vient d'acquérir held_card après une pioche auto
+    if(_sjAutoWaitHeld && state.held_card && state.held_card.holder === _me){
+      _sjAutoStep2(state);
+    }
 
     var myCards  =_me==='girl'?state.girl_cards:state.boy_cards;
     var oppCards =_me==='girl'?state.boy_cards:state.girl_cards;
@@ -550,8 +565,8 @@
       else { phaseMsg.textContent='✅ Tu as retourné tes 2 cartes — en attente que '+oppName+' fasse pareil…'; }
     } else { phaseMsg.style.display='none'; }
 
-    if(state.phase==='roundEnd'){showRoundEnd(state);}
-    else if(state.phase==='gameEnd'){if(_mp)_mp.stopPoll();showGameEnd(state);}
+    if(state.phase==='roundEnd'){_sjStopTimer();showRoundEnd(state);}
+    else if(state.phase==='gameEnd'){_sjStopTimer();if(_mp)_mp.stopPoll();showGameEnd(state);}
   }
 
   function renderGrid(gridId,cards,isMe,isMyTurn,state,iHold,skipFlipIdx){
@@ -773,7 +788,7 @@
 
   function calcPlayerScore(cards){return cards.reduce(function(s,c){return s+(c.removed?0:c.value);},0);}
   function allRevealed(cards){return cards.every(function(c){return c.removed||c.revealed;});}
-  function nextTurn(ns){ns.turn=(ns.turn==='girl'?'boy':'girl');}
+  function nextTurn(ns){ns.turn=(ns.turn==='girl'?'boy':'girl');ns.ts_turn=Date.now();}
 
   function handleRoundClose(ns,closerKey){
     if(ns.phase==='roundEnd')return;
@@ -816,7 +831,7 @@
     if(myFlipped>=2&&otherFlipped>=2){
       var myTot=ns[key].reduce(function(a,c){return a+(c.revealed?c.value:0);},0);
       var othTot=ns[otherKey].reduce(function(a,c){return a+(c.revealed?c.value:0);},0);
-      ns.turn=myTot>=othTot?_me:_other;ns.phase='play';
+      ns.turn=myTot>=othTot?_me:_other;ns.phase='play';ns.ts_turn=Date.now();
     }
     _mp.saveState(ns);
   };
@@ -1000,7 +1015,8 @@
       turn:_gameState?((_gameState.round_closer==='girl'?'boy':'girl')):'girl',
       round:_gameState?(_gameState.round||1)+1:2,
       scores:_gameState?_gameState.scores:{girl:0,boy:0},
-      held_card:null,must_flip:null,last_player:null,round_closer:null
+      held_card:null,must_flip:null,last_player:null,round_closer:null,
+      ts_turn:Date.now()
     };
     var gameId=_mp.getGameId();
     fetch(SB2_URL+'/rest/v1/'+SKYJO_TABLE+'?id=eq.'+gameId,{
@@ -1016,6 +1032,193 @@
       }
     }).catch(function(){});
   };
+
+  // ─── Timer auto-jeu (25s) ────────────────────────────
+  var SJ_TIMER_DURATION = 25000; // 25 secondes
+  var _sjTimerRAF       = null;  // requestAnimationFrame handle
+  var _sjTimerStart     = 0;     // timestamp de début du timer
+  var _sjTimerTurnKey   = null;  // clé unique du tour surveillé (turn+round+ts_turn)
+  var _sjTimerFired     = false; // a-t-on déjà joué pour ce tour ?
+
+  // Lance le timer pour MON tour
+  function _sjStartMyTimer(state){
+    _sjStopTimer();
+    _sjTimerFired  = false;
+    _sjTimerTurnKey= _sjMakeTurnKey(state);
+    _sjTimerStart  = performance.now();
+
+    var bar  = document.getElementById('sjTimerBar');
+    var fill = document.getElementById('sjTimerBarFill');
+    if(bar)  bar.classList.add('active');
+    if(bar)  bar.classList.remove('danger');
+
+    function tick(now){
+      var elapsed = now - _sjTimerStart;
+      var ratio   = Math.max(0, 1 - elapsed / SJ_TIMER_DURATION);
+      if(fill) fill.style.transform = 'scaleX(' + ratio + ')';
+
+      // Danger rouge sous 7s
+      if(bar){
+        if(elapsed > SJ_TIMER_DURATION - 7000) bar.classList.add('danger');
+        else                                    bar.classList.remove('danger');
+      }
+
+      if(elapsed >= SJ_TIMER_DURATION){
+        _sjStopTimer();
+        if(!_sjTimerFired){ _sjTimerFired=true; _sjAutoPlay(); }
+        return;
+      }
+      _sjTimerRAF = requestAnimationFrame(tick);
+    }
+    _sjTimerRAF = requestAnimationFrame(tick);
+  }
+
+  // Lance le timer spectateur (juste la barre, pas d'action)
+  function _sjStartOppTimer(state){
+    _sjStopTimer();
+    _sjTimerFired  = false;
+    _sjTimerTurnKey= _sjMakeTurnKey(state);
+    // On utilise ts_turn comme référence pour rester synchronisé
+    var refTs = (state.ts_turn || 0);
+    var lagMs = refTs ? Math.min(Date.now() - refTs, SJ_TIMER_DURATION) : 0;
+    _sjTimerStart = performance.now() - lagMs;
+
+    var bar  = document.getElementById('sjTimerBar');
+    var fill = document.getElementById('sjTimerBarFill');
+    if(bar)  bar.classList.add('active');
+    if(bar)  bar.classList.remove('danger');
+
+    function tick(now){
+      var elapsed = now - _sjTimerStart;
+      var ratio   = Math.max(0, 1 - elapsed / SJ_TIMER_DURATION);
+      if(fill) fill.style.transform = 'scaleX(' + ratio + ')';
+      if(bar){
+        if(elapsed > SJ_TIMER_DURATION - 7000) bar.classList.add('danger');
+        else                                    bar.classList.remove('danger');
+      }
+      if(elapsed >= SJ_TIMER_DURATION){ _sjStopTimer(); return; }
+      _sjTimerRAF = requestAnimationFrame(tick);
+    }
+    _sjTimerRAF = requestAnimationFrame(tick);
+  }
+
+  function _sjStopTimer(){
+    if(_sjTimerRAF){ cancelAnimationFrame(_sjTimerRAF); _sjTimerRAF=null; }
+    var bar  = document.getElementById('sjTimerBar');
+    var fill = document.getElementById('sjTimerBarFill');
+    if(bar){  bar.classList.remove('active','danger'); }
+    if(fill){ fill.style.transform='scaleX(1)'; }
+  }
+
+  // Clé unique par tour : empêche de rejouer si le state se re-poll
+  function _sjMakeTurnKey(state){
+    return (state.turn||'') + '_r' + (state.round||1) + '_ts' + (state.ts_turn||0);
+  }
+
+  // Gère le démarrage/arrêt du timer à chaque rendu
+  function _sjHandleTimer(state, isMyTurn){
+    if(!state) return;
+    var phase = state.phase;
+
+    // Hors phase active → pas de timer
+    if(phase !== 'play' && phase !== 'init1'){ _sjStopTimer(); return; }
+
+    // En phase init1, tout le monde est actif → pas de timer par tour
+    if(phase === 'init1'){
+      var myKey   = _me + '_cards';
+      var myFlipped = state[myKey] ? state[myKey].filter(function(c){return c.revealed;}).length : 0;
+      if(myFlipped < 2){
+        // C'est encore MON action à faire en init
+        var key = _sjMakeTurnKey(state);
+        if(key !== _sjTimerTurnKey){ _sjStartMyTimer(state); }
+      } else {
+        _sjStopTimer();
+      }
+      return;
+    }
+
+    // Phase play
+    var key = _sjMakeTurnKey(state);
+    if(isMyTurn){
+      // Mon tour : démarrer le timer si pas déjà en cours pour CE tour
+      if(key !== _sjTimerTurnKey){ _sjStartMyTimer(state); }
+    } else {
+      // Tour adverse : barre spectateur synchronisée sur ts_turn
+      if(key !== _sjTimerTurnKey){ _sjStartOppTimer(state); }
+    }
+  }
+
+  // Action automatique aléatoire complète
+  function _sjAutoPlay(){
+    if(!_gameState || !_mp) return;
+    var state = _gameState;
+    var phase = state.phase;
+
+    // Phase init1 : retourner une carte cachée aléatoire
+    if(phase === 'init1'){
+      var key = _me + '_cards';
+      var hidden = [];
+      (state[key]||[]).forEach(function(c,i){ if(!c.revealed && !c.removed) hidden.push(i); });
+      if(!hidden.length) return;
+      var idx = hidden[Math.floor(Math.random() * hidden.length)];
+      window.skyjoFlipInit(idx);
+      return;
+    }
+
+    if(phase !== 'play') return;
+
+    // Phase must_flip : retourner une carte cachée
+    if(state.must_flip === _me){
+      var key2 = _me + '_cards';
+      var hidden2 = [];
+      (state[key2]||[]).forEach(function(c,i){ if(!c.revealed && !c.removed) hidden2.push(i); });
+      if(!hidden2.length) return;
+      window.skyjoFlipReveal(hidden2[Math.floor(Math.random() * hidden2.length)]);
+      return;
+    }
+
+    if(state.turn !== _me) return;
+
+    // Étape 1 : si on tient déjà une carte → replace ou discard
+    if(state.held_card && state.held_card.holder === _me){
+      _sjAutoStep2(state);
+      return;
+    }
+
+    // Étape 1 : piocher depuis la pioche ou la défausse (50/50)
+    if(Math.random() < 0.5 && state.discard && state.discard.length > 0){
+      window.skyjoDrawFromDiscard();
+    } else {
+      window.skyjoDrawFromDeck();
+    }
+
+    // Étape 2 sera déclenchée à la mise à jour du state (held_card posé)
+    // On marque qu'on doit jouer l'étape 2 automatiquement
+    _sjAutoWaitHeld = true;
+  }
+
+  var _sjAutoWaitHeld = false; // flag : attendre held_card pour jouer étape 2
+
+  function _sjAutoStep2(state){
+    _sjAutoWaitHeld = false;
+    if(!state.held_card || state.held_card.holder !== _me) return;
+    var key = _me + '_cards';
+    var cards = state[key] || [];
+    var heldVal = state.held_card.value;
+
+    // Choisir : remplacer la carte avec la plus haute valeur, OU défausser (si la carte tenue est haute)
+    var bestIdx = -1, bestVal = -Infinity;
+    cards.forEach(function(c,i){
+      if(!c.removed && c.value > bestVal){ bestVal = c.value; bestIdx = i; }
+    });
+
+    // Si la carte tenue est inférieure à la plus haute → replace ; sinon → défausse + flip random
+    if(bestIdx >= 0 && heldVal < bestVal){
+      window.skyjoReplaceCard(bestIdx);
+    } else {
+      window.skyjoDiscardHeld();
+    }
+  }
 
   // ─── Réactions ───────────────────────────────────────
   var _sjReactCooldown    = false;
