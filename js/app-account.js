@@ -946,12 +946,10 @@ window.acDeleteAvatar = function(){
   var u = v2GetUser();
   if(!u) return;
   if(!confirm('Supprimer ta photo de profil ?')) return;
-  var path = 'avatars/' + u.id + '.jpg';
-  fetch(SB2_URL + '/storage/v1/object/' + _AVATAR_BUCKET + '/' + path, {
-    method: 'DELETE',
-    headers: sb2Headers()
-  })
-  .then(function(){
+  // ✅ Passe par l'Edge Function auth-v2 (service_role requis pour supprimer du storage)
+  v2Auth('delete_avatar', { user_id: u.id })
+  .then(function(res){
+    if(!res || res.error){ alert('Erreur : ' + (res && res.error || 'inconnue')); return; }
     // Reset UI dans le modal
     var img = document.getElementById('acAvatarImg');
     var emoji = document.getElementById('acAvatarEmoji');
@@ -967,7 +965,6 @@ window.acDeleteAvatar = function(){
     if(typeof showToast === 'function') showToast('🗑️ Photo supprimée', 'success', 2000);
   })
   .catch(function(err){ alert('Erreur suppression : ' + err); });
-};
 };
 
 
