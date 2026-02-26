@@ -2,6 +2,22 @@
    YAM — main.css
 ═══════════════════════════════════════════ */
 
+/* ══ iOS SAFE AREAS — Dynamic Island ══
+   Ces variables sont recalculées automatiquement
+   par le navigateur selon le modèle d'iPhone.
+   Sur iPhone 14 Pro / 15 / 16 : --safe-top ≈ 59px
+   Sur iPhone avec notch        : --safe-top ≈ 44px
+   Sur iPhone sans notch        : --safe-top ≈ 20px
+════════════════════════════════════════════ */
+:root {
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left:   env(safe-area-inset-left, 0px);
+  --safe-right:  env(safe-area-inset-right, 0px);
+  /* Hauteur réelle de la nav bar (64px) + home indicator */
+  --nav-height:  calc(64px + var(--safe-bottom));
+}
+
 :root {
   --bg:      #121212;
   --s1:      #181818;
@@ -159,7 +175,8 @@ body {
   background: var(--bg);
   color: var(--text);
   overflow-x: hidden;
-  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  /* Évite que le contenu passe sous la bottom-nav (nav 64px + home indicator) */
+  padding-bottom: var(--nav-height);
   transition: background 0.3s, color 0.3s;
 }
 /* Empêche le zoom automatique iOS sur les inputs (déclenché si font-size < 16px) */
@@ -177,6 +194,8 @@ input, textarea, select { font-size: 16px !important; }
 
 header {
   padding: 18px 16px 18px;
+  /* ↓ Espace supplémentaire pour Dynamic Island / notch iOS */
+  padding-top: calc(var(--safe-top) + 14px);
   position: relative;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
@@ -601,7 +620,7 @@ header::before {
   position:fixed; inset:0; z-index:7000;
   background:rgba(0,0,0,0.6); backdrop-filter:blur(8px);
   display:none; align-items:flex-end; justify-content:center;
-  padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-bottom: var(--safe-bottom);
 }
 #descEditModal.open { display:flex; }
 .desc-edit-sheet {
@@ -836,6 +855,9 @@ body.light #loveBox .lb-label { color: rgba(200,24,94,0.65); }
   background: #111111;
   display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch;
   border-top: 1px solid rgba(255,255,255,0.06); z-index: 1000;
+  /* Padding gauche/droite pour les iPhones en mode paysage */
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
 }
 .bottom-nav-inner {
   height: 64px;
@@ -843,7 +865,10 @@ body.light #loveBox .lb-label { color: rgba(200,24,94,0.65); }
   padding: 0 2px;
 }
 .bottom-nav-safe {
-  height: env(safe-area-inset-bottom, 0px);
+  /* Bande transparente = home indicator sur iPhone */
+  height: var(--safe-bottom);
+  min-height: var(--safe-bottom);
+  flex-shrink: 0;
 }
 
 /* ══ YAM TAB PANELS ══ */
@@ -1034,6 +1059,11 @@ body.light header {
   background: linear-gradient(180deg, rgba(200,24,94,0.06) 0%, transparent 100%);
   border-bottom-color: rgba(200,24,94,0.18);
 }
+
+/* ── Bouton thème dans le header : décaler sous le Dynamic Island ── */
+#themeToggleHome {
+  top: calc(var(--safe-top) + 10px) !important;
+}
 body.light header::before { background: radial-gradient(circle, rgba(200,24,94,0.12) 0%, transparent 70%); }
 
 /* Navigation basse */
@@ -1220,7 +1250,7 @@ body.light #lockNavBtn.has-unread {
   position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000; display: none;
   align-items: flex-end; justify-content: center;
   backdrop-filter: blur(4px);
-  padding-bottom: 72px;
+  padding-bottom: var(--nav-height);
 }
 #searchOverlay.open { display: flex; }
 .search-popup {
@@ -1245,7 +1275,7 @@ body.light #lockNavBtn.has-unread {
 .search-close-btn:hover { color: var(--text); }
 #searchResults { overflow-y: auto; flex: 1; }
 #libraryPopup {
-  position:fixed; bottom:72px; left:50%; transform:translateX(-50%);
+  position:fixed; bottom:calc(var(--nav-height) + 8px); left:50%; transform:translateX(-50%);
   background:var(--s2); padding:6px; border-radius:14px; display:none; z-index:1500;
   width:80%; max-width:300px; border:1px solid var(--border);
   box-shadow: var(--shadow);
@@ -1268,11 +1298,11 @@ body.light #lockNavBtn.has-unread {
 
 #quizView {
   display: none; position: fixed; inset: 0; background: var(--bg); z-index: 500;
-  overflow-y: auto; padding-bottom: 80px; transition: background 0.3s, color 0.3s;
+  overflow-y: auto; padding-bottom: var(--nav-height); transition: background 0.3s, color 0.3s;
   overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
 }
 #quizView.active { display: block; }
-.qz-header { padding: 28px 16px 20px; border-bottom: 1px solid var(--border); position: relative; overflow: hidden; }
+.qz-header { padding: 28px 16px 20px; padding-top: calc(var(--safe-top) + 28px); border-bottom: 1px solid var(--border); position: relative; overflow: hidden; }
 .qz-back { display:inline-flex; align-items:center; gap:7px; font-size:11px; font-weight:600; color:var(--sub); background:var(--s2); border:1px solid var(--border); border-radius:20px; padding:7px 14px; cursor:pointer; margin-bottom:10px; transition:background 0.15s, color 0.15s, transform 0.12s; }
 .qz-back:hover { background:var(--s3); color:var(--text); transform:translateX(-2px); }
 .qz-tag { font-size:10px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:var(--green); margin-bottom:4px; }
@@ -1441,7 +1471,7 @@ body.light #lockNavBtn.has-unread {
 .prank-close:hover { background:#ff85c2; transform:scale(1.04); }
 
 /* ══ SYSTÈME BÊTISES INTERACTIVES ══ */
-#prankMenu { position:fixed; inset:0; background:var(--pm-bg,#0d0d0d); z-index:4000; display:none; flex-direction:column; align-items:center; justify-content:flex-start; padding:0 24px 40px; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
+#prankMenu { position:fixed; inset:0; background:var(--pm-bg,#0d0d0d); z-index:4000; display:none; flex-direction:column; align-items:center; justify-content:flex-start; padding:0 24px 40px; padding-top:calc(var(--safe-top) + 0px); overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
 #prankMenu.show { display:flex; }
 .prank-menu-title { font-family:'Playfair Display',serif; font-size:22px; color:var(--pm-text,#fff); margin-bottom:6px; text-align:center; }
 .prank-menu-sub { font-size:12px; color:var(--pm-sub,rgba(255,255,255,0.5)); margin-bottom:20px; text-align:center; }
@@ -1493,7 +1523,7 @@ body.light #prankMenu .gv-back { color:var(--sub); background:var(--s2); border-
 .gotcha-close:hover { opacity:0.9; transform:scale(1.04); }
 @keyframes prankShake { 0%,100%{transform:translateX(0)} 10%{transform:translateX(-8px) rotate(-1deg)} 20%{transform:translateX(8px) rotate(1deg)} 30%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 50%{transform:translateX(-4px)} 60%{transform:translateX(4px)} }
 body.prank-shake { animation:prankShake 0.4s ease infinite; }
-#prankShakeBanner { position:fixed; top:0; left:0; right:0; z-index:4500; background:linear-gradient(135deg,#e8507a,#c8185e); padding:14px 16px; text-align:center; display:none; box-shadow:0 4px 20px rgba(200,24,94,0.5); }
+#prankShakeBanner { position:fixed; top:0; left:0; right:0; z-index:4500; background:linear-gradient(135deg,#e8507a,#c8185e); padding:14px 16px; padding-top:calc(var(--safe-top) + 14px); text-align:center; display:none; box-shadow:0 4px 20px rgba(200,24,94,0.5); }
 #prankShakeBanner.show { display:block; animation:slideDown 0.3s ease; }
 @keyframes slideDown { from{transform:translateY(-100%)} to{transform:translateY(0)} }
 .prank-shake-label { font-size:12px; font-weight:700; color:rgba(255,255,255,0.8); margin-bottom:4px; }
@@ -1520,7 +1550,7 @@ body.prank-flip > *:not(#prankFlipBanner):not(#prankGotcha):not(#prankLock):not(
 body:not(.prank-flip) > *:not(#prankFlipBanner):not(#prankGotcha):not(#prankLock):not(#prankOverlay) {
   transition: transform 0.5s cubic-bezier(.4,0,.2,1);
 }
-#prankFlipBanner { position:fixed; top:0; left:0; right:0; z-index:4500; background:linear-gradient(135deg,#7c3aed,#4f46e5); padding:14px 16px 16px; display:none; text-align:center; box-shadow:0 4px 20px rgba(124,58,237,0.5); user-select:none; -webkit-user-select:none; touch-action:none; }
+#prankFlipBanner { position:fixed; top:0; left:0; right:0; z-index:4500; background:linear-gradient(135deg,#7c3aed,#4f46e5); padding:14px 16px 16px; padding-top:calc(var(--safe-top) + 14px); display:none; text-align:center; box-shadow:0 4px 20px rgba(124,58,237,0.5); user-select:none; -webkit-user-select:none; touch-action:none; }
 #prankFlipBanner.show { display:block; animation:slideDown 0.3s ease; }
 .prank-flip-label { font-size:11px; font-weight:700; color:rgba(255,255,255,0.8); margin-bottom:10px; pointer-events:none; }
 #prankFlipHoldWrap { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; }
@@ -1633,7 +1663,7 @@ body:not(.prank-flip) > *:not(#prankFlipBanner):not(#prankGotcha):not(#prankLock
 .pn-body { font-size:13px; color:rgba(255,255,255,0.82); line-height:1.4; }
 
 /* #hiddenPage — défini dans le bloc InstaLove ci-dessous */
-.hp-header { padding: 28px 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); position: relative; overflow: hidden; }
+.hp-header { padding: 28px 16px 20px; padding-top: calc(var(--safe-top) + 28px); border-bottom: 1px solid rgba(255,255,255,0.08); position: relative; overflow: hidden; }
 .hp-back { display:inline-flex; align-items:center; gap:7px; font-size:11px; font-weight:600; color:var(--sub); background:var(--s2); border:1px solid var(--border); border-radius:20px; padding:7px 14px; cursor:pointer; margin-bottom:10px; transition:background 0.15s, color 0.15s, transform 0.12s; }
 .hp-back:hover { background:var(--s3); color:var(--text); transform:translateX(-2px); }
 .hp-title { font-family:'Playfair Display',serif; font-size:clamp(24px,8vw,42px); font-weight:700; color:#fff; line-height:1.1; }
@@ -2310,11 +2340,11 @@ body.light .sg-song:hover { background: rgba(200,24,94,0.05); }
 ════════════════════════════════════════════ */
 #gamesView {
   display: none; position: fixed; inset: 0; background: var(--bg); z-index: 500;
-  overflow-y: auto; padding-bottom: 80px; transition: background 0.3s, color 0.3s;
+  overflow-y: auto; padding-bottom: var(--nav-height); transition: background 0.3s, color 0.3s;
   overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
 }
 #gamesView.active { display: block; }
-.gv-header { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); position: relative; overflow: hidden; }
+.gv-header { padding: 14px 16px 10px; padding-top: calc(var(--safe-top) + 14px); border-bottom: 1px solid var(--border); position: relative; overflow: hidden; }
 .gv-header::before { content:''; position:absolute; inset:0; background:radial-gradient(circle at 80% 20%, rgba(61,155,212,0.07) 0%, transparent 60%); pointer-events:none; }
 .gv-back { display:inline-flex; align-items:center; gap:7px; font-size:11px; font-weight:600; color:var(--sub); background:var(--s2); border:1px solid var(--border); border-radius:20px; padding:7px 14px; cursor:pointer; margin-bottom:10px; transition:background 0.15s, color 0.15s, transform 0.12s; }
 .gv-back:hover { background:var(--s3); color:var(--text); transform:translateX(-2px); }
@@ -2343,18 +2373,18 @@ body.light .sg-song:hover { background: rgba(200,24,94,0.05); }
 /* Vue individuelle d'un jeu */
 #memoryView {
   display: none; position: fixed; inset: 0; background: var(--bg); z-index: 600;
-  overflow-y: auto; padding-bottom: 80px; transition: background 0.3s;
+  overflow-y: auto; padding-bottom: var(--nav-height); transition: background 0.3s;
   overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
 }
 #memoryView.active { display: block; }
-.game-view-header { padding: 22px 16px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; }
+.game-view-header { padding: 22px 16px 16px; padding-top: calc(var(--safe-top) + 22px); border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; }
 .game-view-back { display:inline-flex; align-items:center; gap:7px; font-size:11px; font-weight:600; color:var(--sub); background:var(--s2); border:1px solid var(--border); border-radius:20px; padding:7px 14px; cursor:pointer; margin-bottom:8px; transition:background 0.15s, color 0.15s, transform 0.12s; }
 .game-view-back:hover { background:var(--s3); color:var(--text); transform:translateX(-2px); }
 .game-view-title { font-family:'Playfair Display',serif; font-size:22px; font-weight:700; color:var(--text); }
 .game-view-body { padding: 16px 16px 0; }
 
 /* ════ PENDU ════ */
-#penduView,#puzzleView,#snakeView{display:none;position:fixed;inset:0;background:var(--bg);z-index:600;overflow-y:auto;overflow-x:hidden;padding-bottom:80px;transition:background 0.3s;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+#penduView,#puzzleView,#snakeView{display:none;position:fixed;inset:0;background:var(--bg);z-index:600;overflow-y:auto;overflow-x:hidden;padding-bottom:var(--nav-height);transition:background 0.3s;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
 #penduView.active,#puzzleView.active,#snakeView.active{display:block;}
 
 /* ══ SKYJO STYLES ══ */
@@ -2386,6 +2416,7 @@ body.light .sg-song:hover { background: rgba(200,24,94,0.05); }
 /* Header ultra-compact */
 #skyjoView .game-view-header {
   flex-shrink: 0; padding: 6px 12px;
+  padding-top: calc(var(--safe-top) + 6px);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between;
   min-height: 0;
@@ -2490,7 +2521,7 @@ body.light .sg-song:hover { background: rgba(200,24,94,0.05); }
 .skyjo-player-zone.zone-me {
   background: rgba(5,150,105,0.04);
   border-top: 1px solid rgba(5,150,105,0.12);
-  padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
+  padding-bottom: max(8px, var(--safe-bottom));
 }
 .skyjo-player-zone.zone-me::before {
   background: linear-gradient(180deg, rgba(5,150,105,0) 0%, #00c9a7 50%, rgba(5,150,105,0) 100%);
@@ -3296,7 +3327,7 @@ body.skyjo-bg-paused #skyjoDiscardCard.sj-selectable {
 /* ════ MINI PLAYER ════ */
 #miniPlayer {
   position: fixed;
-  bottom: calc(64px + env(safe-area-inset-bottom, 0px)); /* au-dessus de la bottom-nav */
+  bottom: var(--nav-height); /* au-dessus de la bottom-nav, inclut déjà safe-area */
   left: 0; width: 100%;
   z-index: 999;
   transform: translateY(100%);
@@ -3337,7 +3368,7 @@ body.skyjo-bg-paused #skyjoDiscardCard.sj-selectable {
 #msgHeaderPill {
   display: none;
   position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) + 110px);
+  top: calc(var(--safe-top) + 110px);
   left: 50%;
   transform: translateX(-50%);
   z-index: 5501;
@@ -3622,7 +3653,7 @@ body.light .pendu-theme {
 #hiddenPage {
   display: none; position: fixed;
   top: 0; left: 0; right: 0;
-  bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  bottom: var(--nav-height);
   z-index: 1100;
   overflow: hidden; background: var(--bg);
   flex-direction: column; transition: background 0.3s;
@@ -3634,7 +3665,7 @@ body.light .pendu-theme {
 #dmKeyboardBg {
   display: none; position: fixed;
   left: 0; right: 0; bottom: 0;
-  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  height: var(--nav-height);
   background: var(--bg); z-index: 1099;
   pointer-events: none;
 }
@@ -3642,8 +3673,15 @@ body.light .pendu-theme {
 
 /* Topbar */
 .dm-topbar {
-  width: 100%; height: 56px; min-height: 56px; flex-shrink: 0;
-  display: flex; align-items: center; gap: 6px; padding: 0 10px;
+  width: 100%;
+  /* La hauteur s'adapte à la safe-area-inset-top (Dynamic Island) */
+  height: calc(56px + var(--safe-top));
+  min-height: calc(56px + var(--safe-top));
+  flex-shrink: 0;
+  display: flex; align-items: flex-end; gap: 6px;
+  padding: 0 10px;
+  padding-top: var(--safe-top);
+  padding-bottom: 8px;
   background: var(--bg); border-bottom: 1px solid var(--border);
   z-index: 10; transition: background 0.3s, border-color 0.3s;
 }
@@ -4269,8 +4307,9 @@ body.anniv-mode .counter-block-top {
 /* ── Double avatar profil ── */
 #profileAvatarWrap {
   position: absolute;
-  top: calc(50% + 36px); right: 16px;
-  transform: translateY(-50%);
+  /* Aligner avec le bas du header, en tenant compte de la safe-area */
+  top: calc(var(--safe-top) + 50px); right: 16px;
+  transform: translateY(0);
   width: 64px; height: 64px;
   z-index: 10;
   overflow: visible;
