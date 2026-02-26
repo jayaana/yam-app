@@ -886,7 +886,19 @@ function goTo(id){resetZoom();closeAllViews();document.getElementById('libraryPo
   // ─── Retour d'un cran dans la pile JS ─────────────────────────────────────
   function goBack(){
     if(_stack.length <= 1) return; // déjà au fond, rien à fermer
+    var leaving = _stack[_stack.length - 1];
     _stack.pop();
+    var top = _stack[_stack.length - 1];
+    // Si on quitte un état DM et qu'on tombe sur closed → fermer directement
+    // sans passer par applyTop() qui peut afficher des écrans fantômes
+    if(leaving && leaving.type === 'dm' && top && top.type === 'closed'){
+      var hp = document.getElementById('hiddenPage');
+      if(hp && hp.classList.contains('active')){
+        if(window._dmRawClose) window._dmRawClose();
+        else hp.classList.remove('active');
+      }
+      return;
+    }
     applyTop();
   }
 
