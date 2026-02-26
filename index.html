@@ -204,7 +204,7 @@
 /* ── Timer bar ── */
 #sjTimerBar {
   position: absolute;
-  top: 32px; /* juste sous la bannière */
+  bottom: 0;
   left: 0;
   right: 0;
   height: 6px;
@@ -213,6 +213,7 @@
   overflow: hidden;
   opacity: 0;
   transition: opacity 0.3s;
+  border-radius: 0 0 4px 4px;
 }
 #sjTimerBar.active { opacity: 1; }
 #sjTimerBarFill {
@@ -1495,12 +1496,10 @@
     <!-- ZONE DE JEU -->
     <div id="skyjoGameArea" style="position:relative;">
 
-      <!-- Bannière de tour -->
-      <div id="skyjoTurnBanner" class="skyjo-turn-banner their-turn">⏳ …</div>
-
-      <!-- Barre de timer -->
-      <div id="sjTimerBar">
-        <div id="sjTimerBarFill"></div>
+      <!-- Bannière de tour + barre timer collée dessous -->
+      <div id="skyjoTurnBanner" class="skyjo-turn-banner their-turn" style="position:relative;overflow:hidden;">
+        <span id="skyjoTurnBannerText">⏳ …</span>
+        <div id="sjTimerBar"><div id="sjTimerBarFill"></div></div>
       </div>
 
       <!-- Terrain vertical -->
