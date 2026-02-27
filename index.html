@@ -788,7 +788,13 @@
 
 <!-- ACTIVITÉS -->
 <div class="section fade-in" id="activitesSection">
-  <div class="section-label">Cahier d'activités</div>
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+    <span>Cahier d'activités</span>
+    <button onclick="nousOpenActiviteGestion()" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--muted);display:flex;align-items:center;gap:5px;opacity:0.75;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif;letter-spacing:0.3px;" aria-label="Voir toutes les activités">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      Tout voir
+    </button>
+  </div>
   <div style="font-size:12px;color:var(--muted);padding:0 0 14px;">Des choses à faire ensemble, étape par étape</div>
   <div id="activitesContainer" style="display:flex;flex-direction:column;gap:12px;"></div>
   <div id="activitesBtnWrap" style="padding-top:12px;padding-bottom:8px;"></div>
@@ -966,6 +972,17 @@
     </button>
   </div>
   <div id="souvenirGestionList" class="souvenir-gestion-list"></div>
+</div>
+
+<!-- Overlay liste complète Activités -->
+<div id="activiteGestionOverlay" class="souvenir-gestion-overlay">
+  <div class="souvenir-gestion-header">
+    <div style="font-size:17px;font-weight:700;color:var(--text);">Toutes les activités</div>
+    <button onclick="nousCloseActiviteGestion()" style="background:none;border:none;cursor:pointer;padding:6px;color:var(--muted);display:flex;align-items:center;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div id="activiteGestionList" class="souvenir-gestion-list"></div>
 </div>
 
 <!-- Modal Activité -->
@@ -2969,6 +2986,36 @@ document.addEventListener('DOMContentLoaded', function(){
   color: var(--text); outline: none;
 }
 .activite-step-del { background: transparent; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px 8px; }
+/* Gestion activités — overlay liste */
+.activite-gestion-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 0; border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.activite-gestion-row:last-child { border-bottom: none; }
+.activite-gestion-emoji {
+  width: 48px; height: 48px; border-radius: 12px;
+  background: var(--s2); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+}
+.activite-gestion-info { flex: 1; min-width: 0; }
+.activite-gestion-title { font-size: 14px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.activite-gestion-meta { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.activite-gestion-progress { margin-top: 5px; display: flex; align-items: center; gap: 6px; }
+.activite-gestion-bar { flex: 1; height: 4px; background: var(--s2); border-radius: 2px; overflow: hidden; }
+.activite-gestion-fill { height: 100%; background: linear-gradient(90deg,#e879a0,#9b59b6); border-radius: 2px; }
+.activite-star-btn {
+  flex-shrink: 0; background: none; border: none; cursor: pointer;
+  padding: 8px; color: var(--muted); transition: color 0.15s, transform 0.15s;
+}
+.activite-star-btn.active { color: #f0c040; transform: scale(1.15); }
+/* Badge "étoilée" sur les cartes de la page principale */
+.activite-card-star {
+  position: absolute; top: 12px; right: 12px;
+  font-size: 14px; opacity: 0.85;
+}
+.activite-card { position: relative; }
 /* Nous modales overlay */
 .nous-modal-overlay {
   display: none;
