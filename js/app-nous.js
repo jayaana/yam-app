@@ -1150,7 +1150,7 @@ loadLikeCounters();
   // Enter dans l'input todo
   setTimeout(function(){
     var tdi = document.getElementById('memoPopupTodoInput');
-    if(tdi) tdi.addEventListener('keydown',function(e){ if(e.key='Enter') window.memoAddTodoItem(); });
+    if(tdi) tdi.addEventListener('keydown',function(e){ if(e.key==='Enter') window.memoAddTodoItem(); });
   },0);
 
 })();
