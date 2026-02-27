@@ -46,6 +46,8 @@
       navigator.serviceWorker.register('/yam-app/service-worker.js', { scope: '/yam-app/' })
         .then(function(reg) {
           console.log('⚡ [PWA] Service Worker enregistré :', reg.scope);
+          // Force update check pour vider le cache app-love.js → app-nous.js
+          reg.update();
         })
         .catch(function(err) {
           console.warn('[PWA] Service Worker échec :', err);
@@ -817,7 +819,7 @@
 </div>
 
 <!-- Modal Souvenir -->
-<div id="souvenirModal" style="display:none;position:fixed;inset:0;z-index:800;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);align-items:flex-end;justify-content:center;" class="nous-modal-overlay">
+<div id="souvenirModal" style="position:fixed;inset:0;z-index:800;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);align-items:flex-end;justify-content:center;" class="nous-modal-overlay">
   <div style="background:var(--s1);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:24px;padding-bottom:calc(24px + var(--safe-bottom,0px));max-height:85vh;overflow-y:auto;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
       <div id="souvenirModalTitle" style="font-size:17px;font-weight:700;color:var(--text);">Nouveau souvenir 📸</div>
@@ -842,7 +844,7 @@
 </div>
 
 <!-- Modal Activité -->
-<div id="activiteModal" style="display:none;position:fixed;inset:0;z-index:800;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);align-items:flex-end;justify-content:center;" class="nous-modal-overlay">
+<div id="activiteModal" style="position:fixed;inset:0;z-index:800;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);align-items:flex-end;justify-content:center;" class="nous-modal-overlay">
   <div style="background:var(--s1);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:24px;padding-bottom:calc(24px + var(--safe-bottom,0px));max-height:85vh;overflow-y:auto;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
       <div id="activiteModalTitle" style="font-size:17px;font-weight:700;color:var(--text);">Nouvelle activité ✨</div>
@@ -2387,6 +2389,11 @@ function v2ApplyDynamicNames(){
         setTimeout(function(){
           if(typeof window.openHiddenPage === 'function') window.openHiddenPage();
         }, 30);
+      } else if(tab === 'nous'){
+        setTimeout(function(){
+          if(typeof window.nousLoad === 'function') window.nousLoad();
+        }, 100);
+        setTimeout(function(){ window.scrollTo(0, 0); }, 220);
       } else {
         setTimeout(function(){ window.scrollTo(0, 0); }, 220);
       }
@@ -2817,6 +2824,7 @@ window.closeActiviteModal = function() {
 .activite-step-del { background: transparent; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px 8px; }
 /* Nous modales overlay */
 .nous-modal-overlay { display: none; }
+.nous-modal-overlay.open { display: flex !important; }
 </style>
 
 <script>
