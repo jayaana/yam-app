@@ -8,17 +8,26 @@
 
 // ════════════════════════════════════════════════════════════════════
 // HELPERS — Bloquer scroll arrière-plan + masquer mini-header
+// Système robuste iOS Safari : position:fixed sur body + compteur
+// de locks pour gérer les modales empilées sans casser le restore
 // ════════════════════════════════════════════════════════════════════
 var _savedScrollPosition = 0;
+var _scrollLockCount = 0;      // compteur — permet d'empiler les modales
+var _bodyScrollY = 0;          // position réelle du body au moment du lock
 
 function _saveScrollPosition() {
+  // Priorité : scrollTop du nousContentWrapper (scroll interne de la section)
   var nousWrap = document.getElementById('nousContentWrapper');
   if (nousWrap) {
     _savedScrollPosition = nousWrap.scrollTop;
+  } else {
+    _savedScrollPosition = window.scrollY || document.documentElement.scrollTop || 0;
   }
 }
 
 function _restoreScrollPosition() {
+  // Ne restaurer que quand toutes les modales sont fermées
+  if (_scrollLockCount > 0) return;
   var nousWrap = document.getElementById('nousContentWrapper');
   if (nousWrap && _savedScrollPosition >= 0) {
     setTimeout(function(){
@@ -28,27 +37,50 @@ function _restoreScrollPosition() {
 }
 
 function _blockBackgroundScroll() {
+  _scrollLockCount++;
+  if (_scrollLockCount > 1) return; // déjà locké — on empile juste le compteur
+
+  // Capturer la position de scroll réelle avant de figer
+  _bodyScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+
+  // ── Bloquer le nousContentWrapper (scroll interne section) ──
   var nousWrap = document.getElementById('nousContentWrapper');
-  if (nousWrap) {
-    nousWrap.style.overflow = 'hidden';
-  }
-  // Masquer le mini-header
+  if (nousWrap) nousWrap.style.overflow = 'hidden';
+
+  // ── Bloquer le body entier (requis sur iOS Safari) ──
+  // La technique position:fixed est la seule 100% fiable sur iOS
+  document.body.style.top      = '-' + _bodyScrollY + 'px';
+  document.body.style.position = 'fixed';
+  document.body.style.left     = '0';
+  document.body.style.right    = '0';
+  document.body.style.overflow = 'hidden';
+
+  // ── Masquer le mini-header (évite son scroll pendant la modale) ──
   var miniHeader = document.getElementById('yamStickyHeader');
-  if (miniHeader) {
-    miniHeader.style.display = 'none';
-  }
+  if (miniHeader) miniHeader.style.display = 'none';
 }
 
 function _unblockBackgroundScroll() {
+  if (_scrollLockCount > 0) _scrollLockCount--;
+  if (_scrollLockCount > 0) return; // d'autres modales encore ouvertes — on garde le lock
+
+  // ── Restaurer le body ──
+  document.body.style.position = '';
+  document.body.style.top      = '';
+  document.body.style.left     = '';
+  document.body.style.right    = '';
+  document.body.style.overflow = '';
+
+  // ── Restaurer la position de scroll du body (indispensable après position:fixed) ──
+  window.scrollTo(0, _bodyScrollY);
+
+  // ── Restaurer le scroll interne de la section ──
   var nousWrap = document.getElementById('nousContentWrapper');
-  if (nousWrap) {
-    nousWrap.style.overflow = '';
-  }
-  // Restaurer le mini-header (il réapparaîtra au scroll si nécessaire)
+  if (nousWrap) nousWrap.style.overflow = '';
+
+  // ── Restaurer le mini-header ──
   var miniHeader = document.getElementById('yamStickyHeader');
-  if (miniHeader) {
-    miniHeader.style.display = '';
-  }
+  if (miniHeader) miniHeader.style.display = '';
 }
 
 
@@ -1214,7 +1246,6 @@ loadLikeCounters();
         overlay.scrollTop=0;
       }, 50);
     }
-    document.body.style.overflow='hidden';
   };
 
   window.nousCloseSouvenirGestion = function(){
@@ -1222,7 +1253,6 @@ loadLikeCounters();
     if(overlay) overlay.classList.remove('open');
     _unblockBackgroundScroll();
     _restoreScrollPosition();
-    document.body.style.overflow='';
   };
 
   // Conservé pour compatibilité mais inutilisé désormais
@@ -1533,6 +1563,45 @@ loadLikeCounters();
 
 })();
 
+
+// ════════════════════════════════════════════════════════════════════
+// iOS TOUCHMOVE GUARD — bloque le scroll de l'arrière-plan qui
+// traverse les overlays/modales sur Safari iOS malgré position:fixed
+// ════════════════════════════════════════════════════════════════════
+(function(){
+  // IDs de toutes les modales/overlays de la section Nous + leurs sheets internes
+  var _overlayIds = [
+    'memoNoteViewModal','memoTodoViewModal','memoNoteEditModal','memoTodoEditModal',
+    'petitsMotsGestionModal','petitsMotsEditor',
+    'souvenirModal','souvenirGestionOverlay',
+    'activiteModal'
+  ];
+
+  // Bloque le touchmove sur l'overlay lui-même (fond semi-transparent)
+  // mais laisse passer le scroll à l'intérieur des sheets scrollables
+  function _preventOutsideTouch(e) {
+    // Remonter la chaîne : si on touche un élément scrollable interne → laisser passer
+    var el = e.target;
+    while (el && el !== document.body) {
+      var style = window.getComputedStyle(el);
+      var overflowY = style.overflowY;
+      if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight) {
+        return; // scroll interne autorisé
+      }
+      el = el.parentElement;
+    }
+    // Sinon bloquer — on est sur le fond de l'overlay
+    e.preventDefault();
+  }
+
+  setTimeout(function(){
+    _overlayIds.forEach(function(id){
+      var el = document.getElementById(id);
+      if(!el) return;
+      el.addEventListener('touchmove', _preventOutsideTouch, { passive: false });
+    });
+  }, 0);
+})();
 
 // ════════════════════════════════════════════════════════════════════
 // 14. HELPER — SVG rouage
