@@ -45,7 +45,7 @@ function _nousInitAll() {
   elleSyncSections();
   luiLoadImages();
   luiLoadDescs();
-  luiSyncSections();
+  luiSyncDescs();
   _nousLoadBadge();
   loadLikeCounters();
   _petitsMotsLoad();
