@@ -1437,9 +1437,11 @@ loadLikeCounters();
         container.appendChild(suggCard);
       }
       var newBtn=document.createElement('button'); newBtn.className='activite-new-btn';
-      newBtn.innerHTML='+ Créer une activité'; newBtn.addEventListener('click',function(){ nousOpenActiviteModal(null); });
-      container.appendChild(newBtn);
+      newBtn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Créer une activité';
+      newBtn.addEventListener('click',function(){ nousOpenActiviteModal(null); });
       if(Array.isArray(rows)&&rows.length){ rows.forEach(function(act){ container.appendChild(_buildActiviteCard(act)); }); }
+      var btnWrap=document.getElementById('activitesBtnWrap');
+      if(btnWrap){ btnWrap.innerHTML=''; btnWrap.appendChild(newBtn); } else { container.appendChild(newBtn); }
     }).catch(function(){ container.innerHTML='<div style="color:var(--muted);font-size:13px;padding:16px;">Erreur de chargement</div>'; });
   };
 
