@@ -7,13 +7,17 @@
 
 
 // ════════════════════════════════════════════════════════════════════
-// 0. ACCÈS DIRECT — Plus de verrou, chargement immédiat
+// 0. VERROU BETA — À SUPPRIMER APRÈS REFONTE
+// Code : groschantier — session localStorage 'yam_nous_beta'
 // ════════════════════════════════════════════════════════════════════
 (function(){
 
-  window.nousCheckLock = function() {
-    _nousShowContent();
-  };
+  var BETA_CODE    = 'groschantier';
+  var BETA_SESSION = 'yam_nous_beta';
+
+  function _isUnlocked() {
+    return localStorage.getItem(BETA_SESSION) === '1';
+  }
 
   function _nousShowContent() {
     var overlay = document.getElementById('nousLockOverlay');
@@ -26,7 +30,62 @@
     }
   }
 
-  window._nousIsUnlocked = function(){ return true; };
+  function _showBetaLock() {
+    var overlay = document.getElementById('nousLockOverlay');
+    var content = document.getElementById('nousContentWrapper');
+    if (content) content.style.display = 'none';
+    if (!overlay) return;
+
+    overlay.style.display  = 'flex';
+    overlay.style.flexDirection = 'column';
+    overlay.style.alignItems    = 'center';
+    overlay.style.justifyContent= 'center';
+    overlay.style.gap      = '16px';
+    overlay.style.padding  = '32px';
+
+    if (overlay.querySelector('.beta-lock-form')) return;
+
+    overlay.innerHTML =
+      '<div class="beta-lock-form" style="display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:280px;">' +
+        '<div style="font-size:32px;">🔧</div>' +
+        '<p style="margin:0;font-size:14px;color:#aaa;text-align:center;">Section en cours de refonte<br><span style="font-size:12px;opacity:.6;">Accès restreint — beta</span></p>' +
+        '<input id="betaCodeInput" type="password" placeholder="Code d'accès" ' +
+          'style="width:100%;padding:12px 16px;border-radius:12px;border:1px solid #2d5a3d;' +
+          'background:#0d2818;color:#fff;font-size:15px;text-align:center;outline:none;" />' +
+        '<button id="betaCodeBtn" onclick="nousCheckLock()" ' +
+          'style="width:100%;padding:12px;border-radius:12px;background:#2d5a3d;color:#fff;' +
+          'font-size:14px;font-weight:600;border:none;cursor:pointer;">Entrer</button>' +
+        '<p id="betaCodeErr" style="margin:0;color:#e8507a;font-size:12px;display:none;">Code incorrect</p>' +
+      '</div>';
+
+    setTimeout(function(){
+      var inp = document.getElementById('betaCodeInput');
+      if (inp) inp.addEventListener('keydown', function(e){
+        if (e.key === 'Enter') window.nousCheckLock();
+      });
+    }, 50);
+  }
+
+  window.nousCheckLock = function() {
+    if (_isUnlocked()) {
+      _nousShowContent();
+      return;
+    }
+    var inp = document.getElementById('betaCodeInput');
+    if (inp && inp.value.trim().toLowerCase() === BETA_CODE) {
+      localStorage.setItem(BETA_SESSION, '1');
+      _nousShowContent();
+    } else if (inp) {
+      var err = document.getElementById('betaCodeErr');
+      if (err) err.style.display = 'block';
+      inp.value = '';
+      inp.focus();
+    } else {
+      _showBetaLock();
+    }
+  };
+
+  window._nousIsUnlocked = function(){ return _isUnlocked(); };
 
   setTimeout(function(){
     if (window._currentTab === 'nous') window.nousCheckLock();
@@ -110,8 +169,8 @@ window.nousSignalNew = function() {
 // ════════════════════════════════════════════════════════════════════
 (function(){
   var SB_BUCKET = 'images';
-  var SB_FOLDER = 'elle';
   var SLOTS = ['animal','fleurs','personnage','saison','repas'];
+  function _elleFolder(){ var cid=_getCoupleId(); return cid ? 'elle/'+cid : 'elle'; }
   var ELLE_DESC_DEFAULTS = {
     animal:'Un regard doux', fleurs:'Pleine de couleurs', personnage:'Attachante',
     saison:'Un rayon de soleil', repas:'Son repas préféré'
@@ -177,7 +236,7 @@ window.nousSignalNew = function() {
 
   window.elleLoadImages = function(){
     SLOTS.forEach(function(slot){
-      var url = SB2_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + SB_FOLDER + '/' + slot + '.jpg?t=' + Date.now();
+      var url = SB2_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + _elleFolder() + '/' + slot + '.jpg?t=' + Date.now();
       var img = document.getElementById('elle-img-' + slot);
       if(!img) return;
       var probe = new Image();
@@ -204,13 +263,13 @@ window.nousSignalNew = function() {
     var bar     = document.getElementById('elle-bar-' + slot);
     if(loading) loading.classList.add('show');
     if(bar){ bar.style.width='0%'; setTimeout(function(){ bar.style.width='60%'; },100); }
-    fetch(SB2_URL+'/storage/v1/object/'+SB_BUCKET+'/'+SB_FOLDER+'/'+slot+'.jpg', {
+    fetch(SB2_URL+'/storage/v1/object/'+SB_BUCKET+'/'+_elleFolder()+'/'+slot+'.jpg', {
       method:'POST', headers:Object.assign({'Content-Type':file.type,'x-upsert':'true'},sb2Headers()), body:file
     }).then(function(r){
       if(bar) bar.style.width='100%';
       return r.text().then(function(body){
         if(loading) loading.classList.remove('show');
-        if(r.ok){ var img=document.getElementById('elle-img-'+slot); if(img) img.src=SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+SB_FOLDER+'/'+slot+'.jpg?t='+Date.now(); }
+        if(r.ok){ var img=document.getElementById('elle-img-'+slot); if(img) img.src=SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+_elleFolder()+'/'+slot+'.jpg?t='+Date.now(); }
         else alert('Erreur '+r.status+' : '+body);
       });
     }).catch(function(err){ if(loading) loading.classList.remove('show'); alert('Erreur réseau : '+err); });
@@ -249,8 +308,9 @@ window.nousSignalNew = function() {
 // 5. SECTION LUI — Upload Supabase Storage V2
 // ════════════════════════════════════════════════════════════════════
 (function(){
-  var SB_BUCKET='images', SB_FOLDER='lui';
+  var SB_BUCKET='images';
   var SLOTS=['animal','fleurs','personnage','saison','repas'];
+  function _luiFolder(){ var cid=_getCoupleId(); return cid ? 'lui/'+cid : 'lui'; }
   var LUI_DESC_DEFAULTS={animal:'Son animal',fleurs:'Ses fleurs',personnage:'Son personnage',saison:'Sa saison',repas:'Son repas préféré'};
   var _currentSlot=null;
   function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
@@ -272,7 +332,7 @@ window.nousSignalNew = function() {
 
   window.luiLoadImages=function(){
     SLOTS.forEach(function(slot){
-      var url=SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+SB_FOLDER+'/'+slot+'.jpg?t='+Date.now();
+      var url=SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+_luiFolder()+'/'+slot+'.jpg?t='+Date.now();
       var img=document.getElementById('lui-img-'+slot);
       var empty=document.getElementById('lui-empty-'+slot);
       var btn=document.getElementById('lui-btn-'+slot);
@@ -306,7 +366,7 @@ window.nousSignalNew = function() {
     var loading=document.getElementById('lui-loading-'+slot); var bar=document.getElementById('lui-bar-'+slot);
     if(loading) loading.classList.add('show');
     if(bar){ bar.style.width='0%'; setTimeout(function(){ bar.style.width='60%'; },100); }
-    fetch(SB2_URL+'/storage/v1/object/'+SB_BUCKET+'/'+SB_FOLDER+'/'+slot+'.jpg',{
+    fetch(SB2_URL+'/storage/v1/object/'+SB_BUCKET+'/'+_luiFolder()+'/'+slot+'.jpg',{
       method:'POST',headers:Object.assign({'Content-Type':file.type,'x-upsert':'true'},sb2Headers()),body:file
     }).then(function(r){
       if(bar) bar.style.width='100%';
@@ -314,7 +374,7 @@ window.nousSignalNew = function() {
         if(loading) loading.classList.remove('show');
         if(r.ok){
           var img=document.getElementById('lui-img-'+slot); var emptyEl=document.getElementById('lui-empty-'+slot); var btnEl=document.getElementById('lui-btn-'+slot);
-          var newUrl=SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+SB_FOLDER+'/'+slot+'.jpg?t='+Date.now();
+          var newUrl=SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+_luiFolder()+'/'+slot+'.jpg?t='+Date.now();
           if(img){ img.src=newUrl; img.style.display=''; } if(emptyEl) emptyEl.style.display='none'; if(btnEl) btnEl.classList.remove('empty');
         } else alert('Erreur '+r.status+' : '+body);
       });
