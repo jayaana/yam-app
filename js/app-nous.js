@@ -1172,6 +1172,9 @@ loadLikeCounters();
     .then(function(rows){
       _souvenirAllRows = Array.isArray(rows)?rows:[];
       _renderSouvenirRows(_souvenirAllRows);
+      // Si la liste de gestion est ouverte, la rafraîchir aussi
+      var overlay=document.getElementById('souvenirGestionOverlay');
+      if(overlay&&overlay.classList.contains('open')){ _renderGestionList(); }
     }).catch(function(){ });
   };
 
@@ -1222,6 +1225,9 @@ loadLikeCounters();
     card.querySelector('.souvenir-edit-icon').addEventListener('click',function(e){ e.stopPropagation(); nousOpenSouvenirModal(s); });
     return card;
   }
+
+  // Flag : indique si souvenirModal a été ouvert depuis la liste de gestion
+  var _souvenirFromGestion = false;
 
   // Rouage → ouvre directement la liste complète (plus de sheet intermédiaire)
   window.nousOpenSouvenirGestion = function(){
@@ -1305,26 +1311,20 @@ loadLikeCounters();
         btn.innerHTML=newFav?heartFilled:heartEmpty;
         _renderSouvenirRows(_souvenirAllRows);
       });
-      row.querySelector('.souvenir-gestion-photo').addEventListener('click',function(){ nousOpenSouvenirModal(s, true); });
-      row.querySelector('.souvenir-gestion-info').addEventListener('click',function(){ nousOpenSouvenirModal(s, true); });
+      row.querySelector('.souvenir-gestion-photo').addEventListener('click',function(){ _souvenirFromGestion=true; nousOpenSouvenirModal(s); });
+      row.querySelector('.souvenir-gestion-info').addEventListener('click',function(){ _souvenirFromGestion=true; nousOpenSouvenirModal(s); });
       list.appendChild(row);
     });
   }
 
-  var _souvenirFromGestion = false; // flag : modale ouverte depuis la liste
-
-  window.nousOpenSouvenirModal = function(souvenir, fromGestion){
+  window.nousOpenSouvenirModal = function(souvenir){
     var isNew=!souvenir;
     var modal=document.getElementById('souvenirModal'); if(!modal) return;
-    _souvenirFromGestion = !!fromGestion;
-    // Si on vient de la liste : la fermer proprement avant d'ouvrir la modale
-    // (overlay reste dans le DOM mais .open retiré, sera rouvert à la fermeture)
-    if(fromGestion){
-      var overlay=document.getElementById('souvenirGestionOverlay');
-      if(overlay) overlay.classList.remove('open');
+    // Si on vient de la liste de gestion, ne pas re-locker le scroll (déjà fait)
+    if(!_souvenirFromGestion){
+      _saveScrollPosition();
+      _blockBackgroundScroll();
     }
-    _saveScrollPosition();
-    _blockBackgroundScroll();
     document.getElementById('souvenirModalTitle').textContent=isNew?'Nouveau souvenir':'Modifier le souvenir';
     document.getElementById('souvenirInputTitle').value=isNew?'':(souvenir.title||'');
     var _dateVal=isNew?'':(souvenir.date?souvenir.date.substring(0,10):'');
@@ -1347,16 +1347,15 @@ loadLikeCounters();
 
   window.closeSouvenirModal=function(){
     var modal=document.getElementById('souvenirModal'); if(modal) modal.classList.remove('open');
-    _unblockBackgroundScroll();
-    _restoreScrollPosition();
-    // Si la modale venait de la liste → rouvrir la liste
     if(_souvenirFromGestion){
-      _souvenirFromGestion = false;
+      // Retour à la liste de gestion — pas d'unlock scroll, juste refresh
+      _souvenirFromGestion=false;
+      _renderGestionList();
       var overlay=document.getElementById('souvenirGestionOverlay');
-      if(overlay){
-        overlay.classList.add('open');
-        _blockBackgroundScroll(); // relockage pour la liste
-      }
+      if(overlay) overlay.classList.add('open');
+    } else {
+      _unblockBackgroundScroll();
+      _restoreScrollPosition();
     }
   };
 
