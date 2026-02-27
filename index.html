@@ -605,54 +605,72 @@
 ═══════════════════════════════════════════ -->
 <div id="yamNousTab" class="yam-tab-panel">
 
+<!-- ── VERROU NOUS ── -->
+<div id="nousLockOverlay" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;padding:32px 24px;gap:20px;">
+  <div style="font-size:52px;animation:yamFloat 3s ease-in-out infinite;">🔐</div>
+  <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--text);text-align:center;">Notre espace privé</div>
+  <div style="font-size:14px;color:var(--muted);text-align:center;max-width:260px;line-height:1.5;">Entre le code pour accéder à notre section 💕</div>
+  <div style="width:100%;max-width:280px;display:flex;flex-direction:column;gap:10px;">
+    <input id="nousCodeInput" type="password" placeholder="Code secret..." autocomplete="off"
+      style="width:100%;padding:14px 16px;font-size:16px;font-family:'DM Sans',sans-serif;background:var(--s1);border:1.5px solid var(--border);border-radius:14px;color:var(--text);outline:none;box-sizing:border-box;text-align:center;letter-spacing:4px;transition:border-color 0.2s;">
+    <button onclick="nousCheckCode()"
+      style="width:100%;padding:14px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-weight:700;font-size:15px;font-family:'DM Sans',sans-serif;border:none;border-radius:14px;cursor:pointer;transition:opacity 0.2s;">
+      Entrer 💝
+    </button>
+    <div id="nousCodeError" style="display:none;font-size:13px;color:#e05555;text-align:center;"></div>
+  </div>
+</div>
+
+<!-- ── CONTENU NOUS ── -->
+<div id="nousContentWrapper" style="display:none;">
+
+<!-- PROFIL COUPLE PAIRED -->
+<div id="nousProfilSection" style="padding:28px 16px 8px;">
+  <div style="display:flex;align-items:center;justify-content:center;gap:20px;">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <div id="nousProfilGirlAvatar" style="width:72px;height:72px;border-radius:50%;border:2.5px solid rgba(232,121,160,0.6);overflow:hidden;box-shadow:0 4px 20px rgba(232,121,160,0.25);"><img src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div>
+      <div id="nousProfilGirlName" style="font-size:13px;font-weight:700;color:var(--text);">Elle</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+      <div style="font-size:32px;animation:heartBeat 1.4s ease-in-out infinite;">💝</div>
+      <div id="nousProfilDays" style="font-size:11px;color:var(--muted);font-weight:600;text-align:center;max-width:90px;line-height:1.3;"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <div id="nousProfilBoyAvatar" style="width:72px;height:72px;border-radius:50%;border:2.5px solid rgba(91,156,246,0.6);overflow:hidden;box-shadow:0 4px 20px rgba(91,156,246,0.2);"><img src="assets/images/profil_boy.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div>
+      <div id="nousProfilBoyName" style="font-size:13px;font-weight:700;color:var(--text);">Lui</div>
+    </div>
+  </div>
+</div>
+
+<!-- RAISONS D'AMOUR -->
+<div class="section fade-in" id="reasonSection" style="margin-top:8px;">
+  <div class="section-label">Pourquoi je t'aime</div>
+  <div id="reasonBox">
+    <span class="r-label">Une raison parmi tant d'autres ✨</span>
+    <div id="reasonText">...</div>
+    <span class="r-hint">👆 Tape ou attends pour en découvrir une autre</span>
+  </div>
+</div>
+
+<!-- TIMELINE -->
 <div class="section fade-in" id="timelineSection">
   <div class="section-label">Notre histoire</div>
-
-  <!-- Timeline textuelle (visible par défaut, cachée pendant la fenêtre vidéo) -->
   <div id="tlContent">
     <div class="tl-wrap collapsed" id="tlWrap">
       <div class="tl-line"></div>
-      <div class="tl-item">
-        <div class="tl-dot"></div>
-        <div class="tl-date">19 octobre 2024</div>
-        <div class="tl-card"><h3>Le premier message 💬</h3><p>Quelques mots échangés en ligne. Un "vas au McDo", on savait pas encore que ça allait tout changer.</p></div>
-      </div>
-      <div class="tl-item">
-        <div class="tl-dot"></div>
-        <div class="tl-date">29 octobre 2024</div>
-        <div class="tl-card"><h3>"Tu veux être ma gentille ?" 💘</h3><p>Et t'as fini d'être aigrie. Le destin a décidé pour nous — et on a bien fait de l'écouter.</p></div>
-      </div>
-      <div class="tl-item">
-        <div class="tl-dot"></div>
-        <div class="tl-date">Aujourd'hui & toujours</div>
-        <div class="tl-card"><h3>En construction... 🌟</h3><p>Plein de chapitres à écrire ensemble encore.</p></div>
-      </div>
+      <div class="tl-item"><div class="tl-dot"></div><div class="tl-date">19 octobre 2024</div><div class="tl-card"><h3>Le premier message 💬</h3><p>Quelques mots échangés en ligne. Un "vas au McDo", on savait pas encore que ça allait tout changer.</p></div></div>
+      <div class="tl-item"><div class="tl-dot"></div><div class="tl-date">29 octobre 2024</div><div class="tl-card"><h3>"Tu veux être ma gentille ?" 💘</h3><p>Et t'as fini d'être aigrie. Le destin a décidé pour nous — et on a bien fait de l'écouter.</p></div></div>
+      <div class="tl-item"><div class="tl-dot"></div><div class="tl-date">Aujourd'hui &amp; toujours</div><div class="tl-card"><h3>En construction... 🌟</h3><p>Plein de chapitres à écrire ensemble encore.</p></div></div>
     </div>
     <div class="tl-toggle" id="tlToggle">▾ Voir la suite</div>
   </div>
-
-  <!-- Vidéo événementielle (cachée par défaut, visible ±10min autour des heures déclenchantes) -->
   <div id="storyVideoWrap" style="display:none;position:relative;overflow:hidden;border-radius:14px;text-align:center;background:#d4b896;">
-
-    <!-- Vidéo en taille naturelle, centrée horizontalement -->
-    <video id="storyVideo" src="assets/videos/video-1.mp4" playsinline webkit-playsinline loop muted
-      style="height:220px;width:auto;display:inline-block;vertical-align:top;"
-      preload="none">
-    </video>
-
-    <!-- Fondu gauche -->
-    <div style="position:absolute;top:0;left:0;width:14%;height:100%;pointer-events:none;z-index:2;background:linear-gradient(to right, #d4b896 0%, transparent 100%);"></div>
-    <!-- Fondu droit -->
-    <div style="position:absolute;top:0;right:0;width:14%;height:100%;pointer-events:none;z-index:2;background:linear-gradient(to left, #d4b896 0%, transparent 100%);"></div>
-    <!-- Fondu haut -->
-    <div style="position:absolute;top:0;left:0;right:0;height:14%;pointer-events:none;z-index:2;background:linear-gradient(to bottom, #d4b896 0%, transparent 100%);"></div>
-    <!-- Fondu bas -->
-    <div style="position:absolute;bottom:0;left:0;right:0;height:14%;pointer-events:none;z-index:2;background:linear-gradient(to top, #d4b896 0%, transparent 100%);"></div>
-
-    <!-- Coeur battant -->
+    <video id="storyVideo" src="assets/videos/video-1.mp4" playsinline webkit-playsinline loop muted style="height:220px;width:auto;display:inline-block;vertical-align:top;" preload="none"></video>
+    <div style="position:absolute;top:0;left:0;width:14%;height:100%;pointer-events:none;z-index:2;background:linear-gradient(to right,#d4b896 0%,transparent 100%);"></div>
+    <div style="position:absolute;top:0;right:0;width:14%;height:100%;pointer-events:none;z-index:2;background:linear-gradient(to left,#d4b896 0%,transparent 100%);"></div>
+    <div style="position:absolute;top:0;left:0;right:0;height:14%;pointer-events:none;z-index:2;background:linear-gradient(to bottom,#d4b896 0%,transparent 100%);"></div>
+    <div style="position:absolute;bottom:0;left:0;right:0;height:14%;pointer-events:none;z-index:2;background:linear-gradient(to top,#d4b896 0%,transparent 100%);"></div>
     <div id="storyHeart">❤️</div>
-
-    <!-- Compte à rebours -->
     <div id="storyCountdown" style="position:absolute;bottom:10px;left:12px;z-index:3;display:flex;align-items:center;gap:5px;background:rgba(0,0,0,0.45);backdrop-filter:blur(6px);border-radius:20px;padding:3px 9px;border:1px solid rgba(255,255,255,0.10);">
       <div style="width:5px;height:5px;border-radius:50%;background:var(--green);animation:blink 2s ease-in-out infinite;flex-shrink:0;"></div>
       <span id="storyCountdownTxt" style="font-size:10px;font-weight:700;color:var(--green);font-family:'DM Sans',sans-serif;letter-spacing:1px;"></span>
@@ -660,248 +678,59 @@
   </div>
 </div>
 
-
-
-<div class="section fade-in" id="elleSection">
-  <div class="section-label">Elle</div>
+<!-- PHOTOS ELLE (dépliable) -->
+<div class="section fade-in">
+  <div class="section-label" onclick="nousToggleSection('elleSectionContent','elleSectionIcon')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;">
+    <span>Elle 👧</span><span id="elleSectionIcon" style="font-size:13px;color:var(--muted);transition:transform 0.25s;">▾</span>
+  </div>
+  <div id="elleSectionContent" style="overflow:hidden;transition:max-height 0.35s ease;">
   <div class="slider" id="elleSlider">
-    <div class="album-card lui-card-wrap" data-slot="elle-animal">
-      <div class="album-image">
-        <span class="album-heart">🤍</span>
-        <img id="elle-img-animal" loading="lazy" decoding="async" src="" onload="this.classList.add('loaded')">
-        <div class="skeleton-overlay" id="skel-elle-animal"></div>
-        <div class="album-banner">Animal</div>
-        <div class="lui-upload-btn" id="elle-btn-animal" onclick="elleUploadClick('animal')">
-          <div class="lui-upload-icon">📷</div>
-          <div class="lui-upload-lbl">Modifier</div>
-        </div>
-        <div class="lui-uploading" id="elle-loading-animal">
-          <div class="lui-upload-progress"><div class="lui-upload-bar" id="elle-bar-animal"></div></div>
-          <div class="lui-upload-status">Envoi...</div>
-        </div>
-      </div>
-      <div class="album-desc lui-desc-editable" id="elle-desc-animal" onclick="elleEditDesc('animal')">Un regard doux 💫</div>
-    </div>
-    <div class="album-card lui-card-wrap" data-slot="elle-fleurs">
-      <div class="album-image">
-        <span class="album-heart">🤍</span>
-        <img id="elle-img-fleurs" loading="lazy" decoding="async" src="" onload="this.classList.add('loaded')">
-        <div class="skeleton-overlay" id="skel-elle-fleurs"></div>
-        <div class="album-banner">Fleurs</div>
-        <div class="lui-upload-btn" id="elle-btn-fleurs" onclick="elleUploadClick('fleurs')">
-          <div class="lui-upload-icon">📷</div>
-          <div class="lui-upload-lbl">Modifier</div>
-        </div>
-        <div class="lui-uploading" id="elle-loading-fleurs">
-          <div class="lui-upload-progress"><div class="lui-upload-bar" id="elle-bar-fleurs"></div></div>
-          <div class="lui-upload-status">Envoi...</div>
-        </div>
-      </div>
-      <div class="album-desc lui-desc-editable" id="elle-desc-fleurs" onclick="elleEditDesc('fleurs')">Pleine de couleurs 💕</div>
-    </div>
-    <div class="album-card lui-card-wrap" data-slot="elle-personnage">
-      <div class="album-image">
-        <span class="album-heart">🤍</span>
-        <img id="elle-img-personnage" loading="lazy" decoding="async" src="" onload="this.classList.add('loaded')">
-        <div class="skeleton-overlay" id="skel-elle-personnage"></div>
-        <div class="album-banner">Personnage</div>
-        <div class="lui-upload-btn" id="elle-btn-personnage" onclick="elleUploadClick('personnage')">
-          <div class="lui-upload-icon">📷</div>
-          <div class="lui-upload-lbl">Modifier</div>
-        </div>
-        <div class="lui-uploading" id="elle-loading-personnage">
-          <div class="lui-upload-progress"><div class="lui-upload-bar" id="elle-bar-personnage"></div></div>
-          <div class="lui-upload-status">Envoi...</div>
-        </div>
-      </div>
-      <div class="album-desc lui-desc-editable" id="elle-desc-personnage" onclick="elleEditDesc('personnage')">Attachante 💍</div>
-    </div>
-    <div class="album-card lui-card-wrap" data-slot="elle-saison">
-      <div class="album-image">
-        <span class="album-heart">🤍</span>
-        <img id="elle-img-saison" loading="lazy" decoding="async" src="" onload="this.classList.add('loaded')">
-        <div class="skeleton-overlay" id="skel-elle-saison"></div>
-        <div class="album-banner">Saison</div>
-        <div class="lui-upload-btn" id="elle-btn-saison" onclick="elleUploadClick('saison')">
-          <div class="lui-upload-icon">📷</div>
-          <div class="lui-upload-lbl">Modifier</div>
-        </div>
-        <div class="lui-uploading" id="elle-loading-saison">
-          <div class="lui-upload-progress"><div class="lui-upload-bar" id="elle-bar-saison"></div></div>
-          <div class="lui-upload-status">Envoi...</div>
-        </div>
-      </div>
-      <div class="album-desc lui-desc-editable" id="elle-desc-saison" onclick="elleEditDesc('saison')">Un rayon de soleil ☀️</div>
-    </div>
-    <div class="album-card lui-card-wrap" data-slot="elle-repas">
-      <div class="album-image">
-        <span class="album-heart">🤍</span>
-        <img id="elle-img-repas" loading="lazy" decoding="async" src="" onload="this.classList.add('loaded')">
-        <div class="skeleton-overlay" id="skel-elle-repas"></div>
-        <div class="album-banner">Repas</div>
-        <div class="lui-upload-btn" id="elle-btn-repas" onclick="elleUploadClick('repas')">
-          <div class="lui-upload-icon">📷</div>
-          <div class="lui-upload-lbl">Modifier</div>
-        </div>
-        <div class="lui-uploading" id="elle-loading-repas">
-          <div class="lui-upload-progress"><div class="lui-upload-bar" id="elle-bar-repas"></div></div>
-          <div class="lui-upload-status">Envoi...</div>
-        </div>
-      </div>
-      <div class="album-desc lui-desc-editable" id="elle-desc-repas" onclick="elleEditDesc('repas')">N'aime que les pattes 🤝</div>
-    </div>
+    <div class="album-card lui-card-wrap" data-slot="elle-animal"><div class="album-image"><span class="album-heart">🤍</span><img id="elle-img-animal" loading="lazy" decoding="async" src="" onload="this.classList.add('loaded')"><div class="skeleton-overlay" id="skel-elle-animal"></div><div class="album-banner">Animal</div><div class="lui-upload-btn" id="elle-btn-animal" onclick="elleUploadClick('animal')"><div class="lui-upload-icon">📷</div><div class="lui-upload-lbl">Modifier</div></div><div class="lui-uploading" id="elle-loading-animal"><div class="lui-upload-progress"><div class="lui-upload-bar" id="elle-bar-animal"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc lui-desc-editable" id="elle-desc-animal" onclick="elleEditDesc('animal')">Un regard doux 💫</div></div>
+    <div class="album-card lui-card-wrap" data-slot="elle-fleurs"><div class="album-image"><span class="album-heart">🤍</span><img id="elle-img-fleurs" loading="lazy" decoding="async" src="" onload="this.classList.add('loaded')"><div class="skeleton-overlay" id="skel-elle-fleurs"></div><div class="album-banner">Fleurs</div><div class="lui-upload-btn" id="elle-btn-fleurs" onclick="elleUploadClick('fleurs')"><div class="lui-upload-icon">📷</div><div class="lui-upload-lbl">Modifier</div></div><div class="lui-uploading" id="elle-loading-fleurs"><div class="lui-upload-progress"><div class="lui-upload-bar" id="elle-bar-fleurs"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc lui-desc-editable" id="elle-desc-fleurs" onclick="elleEditDesc('fleurs')">Pleine de couleurs 💕</div></div>
+    <div class="album-card lui-card-wrap" data-slot="elle-personnage"><div class="album-image"><span class="album-heart">🤍</span><img id="elle-img-personnage" loading="lazy" decoding="async" src="" onload="this.classList.add('loaded')"><div class="skeleton-overlay" id="skel-elle-personnage"></div><div class="album-banner">Personnage</div><div class="lui-upload-btn" id="elle-btn-personnage" onclick="elleUploadClick('personnage')"><div class="lui-upload-icon">📷</div><div class="lui-upload-lbl">Modifier</div></div><div class="lui-uploading" id="elle-loading-personnage"><div class="lui-upload-progress"><div class="lui-upload-bar" id="elle-bar-personnage"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc lui-desc-editable" id="elle-desc-personnage" onclick="elleEditDesc('personnage')">Attachante 💍</div></div>
+    <div class="album-card lui-card-wrap" data-slot="elle-saison"><div class="album-image"><span class="album-heart">🤍</span><img id="elle-img-saison" loading="lazy" decoding="async" src="" onload="this.classList.add('loaded')"><div class="skeleton-overlay" id="skel-elle-saison"></div><div class="album-banner">Saison</div><div class="lui-upload-btn" id="elle-btn-saison" onclick="elleUploadClick('saison')"><div class="lui-upload-icon">📷</div><div class="lui-upload-lbl">Modifier</div></div><div class="lui-uploading" id="elle-loading-saison"><div class="lui-upload-progress"><div class="lui-upload-bar" id="elle-bar-saison"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc lui-desc-editable" id="elle-desc-saison" onclick="elleEditDesc('saison')">Un rayon de soleil ☀️</div></div>
+    <div class="album-card lui-card-wrap" data-slot="elle-repas"><div class="album-image"><span class="album-heart">🤍</span><img id="elle-img-repas" loading="lazy" decoding="async" src="" onload="this.classList.add('loaded')"><div class="skeleton-overlay" id="skel-elle-repas"></div><div class="album-banner">Repas</div><div class="lui-upload-btn" id="elle-btn-repas" onclick="elleUploadClick('repas')"><div class="lui-upload-icon">📷</div><div class="lui-upload-lbl">Modifier</div></div><div class="lui-uploading" id="elle-loading-repas"><div class="lui-upload-progress"><div class="lui-upload-bar" id="elle-bar-repas"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc lui-desc-editable" id="elle-desc-repas" onclick="elleEditDesc('repas')">N'aime que les pattes 🤝</div></div>
   </div>
   <input type="file" id="elleFileInput" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="elleHandleFile(this)">
-</div>
-
-<div class="section fade-in" id="luiSection">
-  <div class="section-label">Lui</div>
-  <div class="slider" id="luiSlider">
-    <div class="album-card lui-card-wrap" data-slot="animal">
-      <div class="album-image">
-        <span class="album-heart">🤍</span>
-        <div class="lui-img-empty" id="lui-empty-animal"><div class="lui-img-empty-icon">🐾</div><div class="lui-img-empty-lbl">Animal</div></div>
-        <img id="lui-img-animal" src="" style="display:none">
-        <div class="album-banner">Animal</div>
-        <div class="lui-upload-btn empty" id="lui-btn-animal" onclick="luiUploadClick('animal')">
-          <div class="lui-upload-icon">📷</div>
-          <div class="lui-upload-lbl">Ajouter</div>
-        </div>
-        <div class="lui-uploading" id="lui-loading-animal">
-          <div class="lui-upload-progress"><div class="lui-upload-bar" id="lui-bar-animal"></div></div>
-          <div class="lui-upload-status">Envoi...</div>
-        </div>
-      </div>
-      <div class="album-desc lui-desc-editable" id="lui-desc-animal" onclick="luiEditDesc('animal')">Son animal 🐾</div>
-    </div>
-    <div class="album-card lui-card-wrap" data-slot="fleurs">
-      <div class="album-image">
-        <span class="album-heart">🤍</span>
-        <div class="lui-img-empty" id="lui-empty-fleurs"><div class="lui-img-empty-icon">🌸</div><div class="lui-img-empty-lbl">Fleurs</div></div>
-        <img id="lui-img-fleurs" src="" style="display:none">
-        <div class="album-banner">Fleurs</div>
-        <div class="lui-upload-btn empty" id="lui-btn-fleurs" onclick="luiUploadClick('fleurs')">
-          <div class="lui-upload-icon">📷</div>
-          <div class="lui-upload-lbl">Ajouter</div>
-        </div>
-        <div class="lui-uploading" id="lui-loading-fleurs">
-          <div class="lui-upload-progress"><div class="lui-upload-bar" id="lui-bar-fleurs"></div></div>
-          <div class="lui-upload-status">Envoi...</div>
-        </div>
-      </div>
-      <div class="album-desc lui-desc-editable" id="lui-desc-fleurs" onclick="luiEditDesc('fleurs')">Ses fleurs 🌸</div>
-    </div>
-    <div class="album-card lui-card-wrap" data-slot="personnage">
-      <div class="album-image">
-        <span class="album-heart">🤍</span>
-        <div class="lui-img-empty" id="lui-empty-personnage"><div class="lui-img-empty-icon">🧑</div><div class="lui-img-empty-lbl">Personnage</div></div>
-        <img id="lui-img-personnage" src="" style="display:none">
-        <div class="album-banner">Personnage</div>
-        <div class="lui-upload-btn empty" id="lui-btn-personnage" onclick="luiUploadClick('personnage')">
-          <div class="lui-upload-icon">📷</div>
-          <div class="lui-upload-lbl">Ajouter</div>
-        </div>
-        <div class="lui-uploading" id="lui-loading-personnage">
-          <div class="lui-upload-progress"><div class="lui-upload-bar" id="lui-bar-personnage"></div></div>
-          <div class="lui-upload-status">Envoi...</div>
-        </div>
-      </div>
-      <div class="album-desc lui-desc-editable" id="lui-desc-personnage" onclick="luiEditDesc('personnage')">Son personnage 💙</div>
-    </div>
-    <div class="album-card lui-card-wrap" data-slot="saison">
-      <div class="album-image">
-        <span class="album-heart">🤍</span>
-        <div class="lui-img-empty" id="lui-empty-saison"><div class="lui-img-empty-icon">🍂</div><div class="lui-img-empty-lbl">Saison</div></div>
-        <img id="lui-img-saison" src="" style="display:none">
-        <div class="album-banner">Saison</div>
-        <div class="lui-upload-btn empty" id="lui-btn-saison" onclick="luiUploadClick('saison')">
-          <div class="lui-upload-icon">📷</div>
-          <div class="lui-upload-lbl">Ajouter</div>
-        </div>
-        <div class="lui-uploading" id="lui-loading-saison">
-          <div class="lui-upload-progress"><div class="lui-upload-bar" id="lui-bar-saison"></div></div>
-          <div class="lui-upload-status">Envoi...</div>
-        </div>
-      </div>
-      <div class="album-desc lui-desc-editable" id="lui-desc-saison" onclick="luiEditDesc('saison')">Sa saison 🍂</div>
-    </div>
-    <div class="album-card lui-card-wrap" data-slot="repas">
-      <div class="album-image">
-        <span class="album-heart">🤍</span>
-        <div class="lui-img-empty" id="lui-empty-repas"><div class="lui-img-empty-icon">🍽️</div><div class="lui-img-empty-lbl">Repas</div></div>
-        <img id="lui-img-repas" src="" style="display:none">
-        <div class="album-banner">Repas</div>
-        <div class="lui-upload-btn empty" id="lui-btn-repas" onclick="luiUploadClick('repas')">
-          <div class="lui-upload-icon">📷</div>
-          <div class="lui-upload-lbl">Ajouter</div>
-        </div>
-        <div class="lui-uploading" id="lui-loading-repas">
-          <div class="lui-upload-progress"><div class="lui-upload-bar" id="lui-bar-repas"></div></div>
-          <div class="lui-upload-status">Envoi...</div>
-        </div>
-      </div>
-      <div class="album-desc lui-desc-editable" id="lui-desc-repas" onclick="luiEditDesc('repas')">Son repas préféré 🍽️</div>
-    </div>
   </div>
-  <!-- Input file caché — déclenché par JS -->
-  <input type="file" id="luiFileInput" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="luiHandleFile(this)">
 </div>
 
+<!-- PHOTOS LUI (dépliable) -->
+<div class="section fade-in">
+  <div class="section-label" onclick="nousToggleSection('luiSectionContent','luiSectionIcon')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;">
+    <span>Lui 👦</span><span id="luiSectionIcon" style="font-size:13px;color:var(--muted);transition:transform 0.25s;">▾</span>
+  </div>
+  <div id="luiSectionContent" style="overflow:hidden;transition:max-height 0.35s ease;">
+  <div class="slider" id="luiSlider">
+    <div class="album-card lui-card-wrap" data-slot="animal"><div class="album-image"><span class="album-heart">🤍</span><div class="lui-img-empty" id="lui-empty-animal"><div class="lui-img-empty-icon">🐾</div><div class="lui-img-empty-lbl">Animal</div></div><img id="lui-img-animal" src="" style="display:none"><div class="album-banner">Animal</div><div class="lui-upload-btn empty" id="lui-btn-animal" onclick="luiUploadClick('animal')"><div class="lui-upload-icon">📷</div><div class="lui-upload-lbl">Ajouter</div></div><div class="lui-uploading" id="lui-loading-animal"><div class="lui-upload-progress"><div class="lui-upload-bar" id="lui-bar-animal"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc lui-desc-editable" id="lui-desc-animal" onclick="luiEditDesc('animal')">Son animal 🐾</div></div>
+    <div class="album-card lui-card-wrap" data-slot="fleurs"><div class="album-image"><span class="album-heart">🤍</span><div class="lui-img-empty" id="lui-empty-fleurs"><div class="lui-img-empty-icon">🌸</div><div class="lui-img-empty-lbl">Fleurs</div></div><img id="lui-img-fleurs" src="" style="display:none"><div class="album-banner">Fleurs</div><div class="lui-upload-btn empty" id="lui-btn-fleurs" onclick="luiUploadClick('fleurs')"><div class="lui-upload-icon">📷</div><div class="lui-upload-lbl">Ajouter</div></div><div class="lui-uploading" id="lui-loading-fleurs"><div class="lui-upload-progress"><div class="lui-upload-bar" id="lui-bar-fleurs"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc lui-desc-editable" id="lui-desc-fleurs" onclick="luiEditDesc('fleurs')">Ses fleurs 🌸</div></div>
+    <div class="album-card lui-card-wrap" data-slot="personnage"><div class="album-image"><span class="album-heart">🤍</span><div class="lui-img-empty" id="lui-empty-personnage"><div class="lui-img-empty-icon">🧑</div><div class="lui-img-empty-lbl">Personnage</div></div><img id="lui-img-personnage" src="" style="display:none"><div class="album-banner">Personnage</div><div class="lui-upload-btn empty" id="lui-btn-personnage" onclick="luiUploadClick('personnage')"><div class="lui-upload-icon">📷</div><div class="lui-upload-lbl">Ajouter</div></div><div class="lui-uploading" id="lui-loading-personnage"><div class="lui-upload-progress"><div class="lui-upload-bar" id="lui-bar-personnage"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc lui-desc-editable" id="lui-desc-personnage" onclick="luiEditDesc('personnage')">Son personnage 💙</div></div>
+    <div class="album-card lui-card-wrap" data-slot="saison"><div class="album-image"><span class="album-heart">🤍</span><div class="lui-img-empty" id="lui-empty-saison"><div class="lui-img-empty-icon">🍂</div><div class="lui-img-empty-lbl">Saison</div></div><img id="lui-img-saison" src="" style="display:none"><div class="album-banner">Saison</div><div class="lui-upload-btn empty" id="lui-btn-saison" onclick="luiUploadClick('saison')"><div class="lui-upload-icon">📷</div><div class="lui-upload-lbl">Modifier</div></div><div class="lui-uploading" id="lui-loading-saison"><div class="lui-upload-progress"><div class="lui-upload-bar" id="lui-bar-saison"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc lui-desc-editable" id="lui-desc-saison" onclick="luiEditDesc('saison')">Sa saison 🍂</div></div>
+    <div class="album-card lui-card-wrap" data-slot="repas"><div class="album-image"><span class="album-heart">🤍</span><div class="lui-img-empty" id="lui-empty-repas"><div class="lui-img-empty-icon">🍽️</div><div class="lui-img-empty-lbl">Repas</div></div><img id="lui-img-repas" src="" style="display:none"><div class="album-banner">Repas</div><div class="lui-upload-btn empty" id="lui-btn-repas" onclick="luiUploadClick('repas')"><div class="lui-upload-icon">📷</div><div class="lui-upload-lbl">Ajouter</div></div><div class="lui-uploading" id="lui-loading-repas"><div class="lui-upload-progress"><div class="lui-upload-bar" id="lui-bar-repas"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc lui-desc-editable" id="lui-desc-repas" onclick="luiEditDesc('repas')">Son repas préféré 🍽️</div></div>
+  </div>
+  <input type="file" id="luiFileInput" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="luiHandleFile(this)">
+  </div>
+</div>
+
+<!-- MÉMO COUPLE -->
 <div id="memoCoupleSection" class="fade-in">
   <div class="memo-header-row">
     <div class="section-label" style="margin-bottom:0">Mémo couple 📝</div>
     <div class="memo-lock-badge" id="memoLockBadge" onclick="memoRequestUnlock()">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" id="memoLockIcon">
-        <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
-      </svg>
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" id="memoLockIcon"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
       <span id="memoLockTxt">Modifier</span>
     </div>
   </div>
   <div class="memo-sub-label">Notes</div>
-  <div class="memo-notes-slider-wrap">
-    <div class="memo-notes-slider" id="memoNotesSlider">
-      <div class="memo-notes-empty">Chargement...</div>
-    </div>
-  </div>
+  <div class="memo-notes-slider-wrap"><div class="memo-notes-slider" id="memoNotesSlider"><div class="memo-notes-empty">Chargement...</div></div></div>
   <div class="memo-sub-label" style="margin-top:18px">To-do</div>
   <div class="memo-todo-card">
     <div id="memoTodoList"><div class="todo-empty">Chargement...</div></div>
-    <div class="todo-add-row" id="memoTodoAddRow" style="display:none">
-      <input type="text" class="todo-add-input" id="memoTodoInput" placeholder="Ajouter un item..." maxlength="120">
-      <button class="todo-add-btn" onclick="memoAddTodoItem()">+</button>
-    </div>
+    <div class="todo-add-row" id="memoTodoAddRow" style="display:none"><input type="text" class="todo-add-input" id="memoTodoInput" placeholder="Ajouter un item..." maxlength="120"><button class="todo-add-btn" onclick="memoAddTodoItem()">+</button></div>
   </div>
 </div>
 
-<div id="memoModal">
-  <div class="memo-modal-inner">
-    <span class="memo-modal-close" onclick="closeMemoModal()">✕</span>
-    <div class="memo-modal-label">Note</div>
-    <div id="memoModalView">
-      <div class="memo-modal-content" id="memoModalContent"></div>
-      <div class="memo-modal-date" id="memoModalDate"></div>
-    </div>
-    <div id="memoModalEdit" style="display:none">
-      <input type="text" class="memo-modal-title-input" id="memoModalTitleInput" placeholder="Titre de la note..." maxlength="40">
-      <textarea class="memo-modal-textarea" id="memoModalTextarea" placeholder="Écris ta note ici..."></textarea>
-      <button class="memo-modal-save" onclick="memoSaveNote()">Sauvegarder 💾</button>
-      <button class="memo-modal-del" id="memoModalDelBtn" onclick="memoDeleteNote()">Supprimer cette note 🗑️</button>
-    </div>
-  </div>
-</div>
-
-<div id="memoAuthModal">
-  <div class="memo-auth-inner">
-    <div class="memo-auth-icon">🔐</div>
-    <div class="memo-auth-title">Mode édition</div>
-    <div class="memo-auth-sub">Entre le code pour modifier</div>
-    <input type="password" class="memo-auth-input" id="memoAuthInput" placeholder="Code..." autocomplete="off">
-    <button class="memo-auth-btn" onclick="memoCheckAuth()">Valider</button>
-    <div class="memo-auth-err" id="memoAuthErr">❌ Code incorrect, réessaie !</div>
-    <span class="memo-auth-cancel" onclick="closeMemoAuth()">Annuler</span>
-  </div>
-</div>
-
+<!-- POST-ITS -->
 <div class="section fade-in" id="postitsSection">
   <div class="section-label">Petits mots pour toi</div>
   <div class="postit-wrap" id="postitStack"></div>
@@ -909,6 +738,24 @@
   <div class="stack-ctr" id="stackCounter"></div>
 </div>
 
+<!-- SOUVENIRS -->
+<div class="section fade-in" id="souvenirsSection">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:26px 16px 12px;">
+    <div class="section-label" style="padding:0;margin:0;">Nos souvenirs 📸</div>
+  </div>
+  <div id="souvenirsGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px 16px;"></div>
+</div>
+
+<!-- ACTIVITÉS -->
+<div class="section fade-in" id="activitesSection">
+  <div style="padding:26px 16px 12px;">
+    <div class="section-label" style="padding:0;margin:0 0 4px;">Cahier d'activités 📒</div>
+    <div style="font-size:12px;color:var(--muted);">Des choses à faire ensemble, étape par étape</div>
+  </div>
+  <div id="activitesContainer" style="padding:0 16px 24px;display:flex;flex-direction:column;gap:12px;"></div>
+</div>
+
+<!-- LIVRES -->
 <div class="section fade-in" id="Books">
   <div class="section-label">Idées livre 📚</div>
   <div class="slider">
@@ -920,6 +767,7 @@
   </div>
 </div>
 
+<!-- ROUE -->
 <div id="wheelSection" class="fade-in">
   <div class="section-label" style="padding:26px 16px 0">On fait quoi ce soir ? 🎲</div>
   <div style="padding:0 16px">
@@ -934,6 +782,83 @@
         <span class="result-label">En attente...</span>
         <span class="result-text">Lance la roue pour décider 🎲</span>
       </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /nousContentWrapper -->
+
+<!-- MODALES -->
+
+<!-- Mémo modales -->
+<div id="memoModal">
+  <div class="memo-modal-inner">
+    <span class="memo-modal-close" onclick="closeMemoModal()">✕</span>
+    <div class="memo-modal-label">Note</div>
+    <div id="memoModalView"><div class="memo-modal-content" id="memoModalContent"></div><div class="memo-modal-date" id="memoModalDate"></div></div>
+    <div id="memoModalEdit" style="display:none">
+      <input type="text" class="memo-modal-title-input" id="memoModalTitleInput" placeholder="Titre de la note..." maxlength="40">
+      <textarea class="memo-modal-textarea" id="memoModalTextarea" placeholder="Écris ta note ici..."></textarea>
+      <button class="memo-modal-save" onclick="memoSaveNote()">Sauvegarder 💾</button>
+      <button class="memo-modal-del" id="memoModalDelBtn" onclick="memoDeleteNote()">Supprimer cette note 🗑️</button>
+    </div>
+  </div>
+</div>
+<div id="memoAuthModal">
+  <div class="memo-auth-inner">
+    <div class="memo-auth-icon">🔐</div>
+    <div class="memo-auth-title">Mode édition</div>
+    <div class="memo-auth-sub">Entre le code pour modifier</div>
+    <input type="password" class="memo-auth-input" id="memoAuthInput" placeholder="Code..." autocomplete="off">
+    <button class="memo-auth-btn" onclick="memoCheckAuth()">Valider</button>
+    <div class="memo-auth-err" id="memoAuthErr">❌ Code incorrect, réessaie !</div>
+    <span class="memo-auth-cancel" onclick="closeMemoAuth()">Annuler</span>
+  </div>
+</div>
+
+<!-- Modal Souvenir -->
+<div id="souvenirModal" style="display:none;position:fixed;inset:0;z-index:800;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);align-items:flex-end;justify-content:center;" class="nous-modal-overlay">
+  <div style="background:var(--s1);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:24px;padding-bottom:calc(24px + var(--safe-bottom,0px));max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div id="souvenirModalTitle" style="font-size:17px;font-weight:700;color:var(--text);">Nouveau souvenir 📸</div>
+      <span onclick="closeSouvenirModal()" style="font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;">✕</span>
+    </div>
+    <!-- Photo -->
+    <div id="souvenirPhotoPreview" onclick="souvenirPhotoClick()" style="width:100%;height:140px;border-radius:14px;background:var(--s2);border:1.5px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;margin-bottom:16px;background-size:cover;background-position:center;overflow:hidden;">
+      <div style="font-size:24px;color:var(--muted);">📷</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">Ajouter une photo</div>
+    </div>
+    <input type="file" id="souvenirPhotoInput" accept="image/*" style="display:none" onchange="souvenirHandlePhoto(this)">
+    <!-- Champs -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <input id="souvenirInputTitle" type="text" placeholder="Nom du souvenir..." maxlength="60" style="width:100%;padding:12px 14px;font-size:15px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;">
+      <input id="souvenirInputDate" type="date" style="width:100%;padding:12px 14px;font-size:15px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;">
+      <input id="souvenirInputLieu" type="text" placeholder="📍 Lieu (optionnel)" maxlength="80" style="width:100%;padding:12px 14px;font-size:15px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;">
+      <textarea id="souvenirInputDesc" placeholder="Description, anecdote..." maxlength="300" rows="3" style="width:100%;padding:12px 14px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;resize:none;"></textarea>
+      <button id="souvenirSaveBtn" onclick="souvenirSave()" style="width:100%;padding:13px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-weight:700;font-size:15px;font-family:'DM Sans',sans-serif;border:none;border-radius:12px;cursor:pointer;">Sauvegarder 💾</button>
+      <button id="souvenirModalDelBtn" onclick="souvenirDelete()" style="display:none;width:100%;padding:11px;background:transparent;color:#e05555;font-size:13px;font-family:'DM Sans',sans-serif;border:1px solid rgba(224,85,85,0.3);border-radius:12px;cursor:pointer;">Supprimer ce souvenir 🗑️</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Activité -->
+<div id="activiteModal" style="display:none;position:fixed;inset:0;z-index:800;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);align-items:flex-end;justify-content:center;" class="nous-modal-overlay">
+  <div style="background:var(--s1);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:24px;padding-bottom:calc(24px + var(--safe-bottom,0px));max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div id="activiteModalTitle" style="font-size:17px;font-weight:700;color:var(--text);">Nouvelle activité ✨</div>
+      <span onclick="closeActiviteModal()" style="font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;">✕</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;gap:8px;">
+        <input id="activiteInputEmoji" type="text" maxlength="4" placeholder="✨" style="width:52px;padding:12px;font-size:22px;text-align:center;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;">
+        <input id="activiteInputTitre" type="text" placeholder="Titre de l'activité..." maxlength="60" style="flex:1;padding:12px 14px;font-size:15px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;">
+      </div>
+      <textarea id="activiteInputDesc" placeholder="Description (optionnel)..." maxlength="200" rows="2" style="width:100%;padding:12px 14px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;resize:none;"></textarea>
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px;">Étapes</div>
+      <div id="activiteModalSteps" style="display:flex;flex-direction:column;gap:6px;"></div>
+      <button onclick="nousAddStep()" style="padding:10px;background:var(--s2);border:1px dashed var(--border);border-radius:10px;color:var(--muted);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;">+ Ajouter une étape</button>
+      <button id="activiteSaveBtn" onclick="activiteSave()" style="width:100%;padding:13px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-weight:700;font-size:15px;font-family:'DM Sans',sans-serif;border:none;border-radius:12px;cursor:pointer;margin-top:4px;">Sauvegarder 💾</button>
+      <button onclick="activiteDelete()" style="width:100%;padding:11px;background:transparent;color:#e05555;font-size:13px;font-family:'DM Sans',sans-serif;border:1px solid rgba(224,85,85,0.3);border-radius:12px;cursor:pointer;">Supprimer 🗑️</button>
     </div>
   </div>
 </div>
@@ -1152,8 +1077,9 @@
       </span>
       <span class="nav-music-label">Musique</span>
     </div>
-    <div class="nav-item" id="navNous" onclick="yamSwitchTab('nous')">
+    <div class="nav-item" id="navNous" onclick="yamSwitchTab('nous')" style="position:relative;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+      <div id="navNousBadge" style="display:none;position:absolute;top:2px;right:8px;width:8px;height:8px;background:#e879a0;border-radius:50%;animation:nousNewPulse 1.5s ease-in-out infinite;"></div>
       Nous
     </div>
   </div>
@@ -2212,7 +2138,7 @@
 
 <script src="js/app-core.js"></script>
 <script src="js/app-account.js"></script>
-<script src="js/app-love.js"></script>
+<script src="js/app-nous.js"></script><!-- app-love.js remplacé par app-nous.js -->
 <script src="js/app-music.js"></script>
 <script src="js/app-games.js"></script>
 <script src="js/app-multiplayer.js"></script>
@@ -2725,6 +2651,174 @@ function v2ApplyDynamicNames(){
      PATCH AVATARS PAR DÉFAUT — initialise les images selon le profil
      Appelé après tous les scripts, corrige aussi _acSyncAvatarTopbar
 ════════════════════════════════════════════════════════ -->
+<script>
+// ── NOUS : Toggle sections Elle/Lui ──
+window.nousToggleSection = function(contentId, iconId) {
+  var el = document.getElementById(contentId);
+  var icon = document.getElementById(iconId);
+  if (!el) return;
+  var isOpen = el.style.maxHeight && el.style.maxHeight !== '0px' && el.style.maxHeight !== '';
+  if (isOpen) {
+    el.style.maxHeight = '0px';
+    el.style.paddingTop = '0';
+    if (icon) icon.style.transform = 'rotate(-90deg)';
+  } else {
+    el.style.maxHeight = el.scrollHeight + 500 + 'px';
+    if (icon) icon.style.transform = 'rotate(0deg)';
+  }
+};
+
+// Initialiser sections dépliées
+window.addEventListener('load', function(){
+  ['elleSectionContent','luiSectionContent'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.style.maxHeight = el.scrollHeight + 500 + 'px';
+  });
+  // Modales souvenirs/activités — afficher flex au clic
+  ['souvenirModal','activiteModal'].forEach(function(id){
+    var m = document.getElementById(id);
+    if (!m) return;
+    m.style.display = 'none';
+    // Override pour afficher flex
+    var origOpen = m.classList.add.bind(m);
+    Object.defineProperty(m, 'classList', {
+      get: function() {
+        var orig = Element.prototype.__lookupGetter__('classList').call(m);
+        return orig;
+      }
+    });
+  });
+});
+
+// Surcharge pour ouvrir les modales en flex
+var _origNousOpenSouvenir = window.nousOpenSouvenirModal;
+window.nousOpenSouvenirModal = function(s) {
+  if (_origNousOpenSouvenir) _origNousOpenSouvenir(s);
+  var m = document.getElementById('souvenirModal');
+  if (m) m.style.display = 'flex';
+};
+var _origNousCloseS = window.closeSouvenirModal;
+window.closeSouvenirModal = function() {
+  var m = document.getElementById('souvenirModal');
+  if (m) m.style.display = 'none';
+};
+var _origOpenAct = window.nousOpenActiviteModal;
+window.nousOpenActiviteModal = function(a) {
+  if (_origOpenAct) _origOpenAct(a);
+  var m = document.getElementById('activiteModal');
+  if (m) m.style.display = 'flex';
+};
+var _origCloseAct = window.closeActiviteModal;
+window.closeActiviteModal = function() {
+  var m = document.getElementById('activiteModal');
+  if (m) m.style.display = 'none';
+};
+</script>
+
+<style>
+/* ═══ NOUS : CSS nouvelles features ═══ */
+@keyframes heartBeat {
+  0%,100% { transform: scale(1); }
+  14% { transform: scale(1.15); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.1); }
+  70% { transform: scale(1); }
+}
+@keyframes nousNewPulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.4); }
+}
+/* Souvenir cards */
+.souvenir-add-btn {
+  background: var(--s2); border: 1.5px dashed var(--border); border-radius: 14px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 20px 10px; cursor: pointer; transition: background 0.15s;
+  min-height: 110px;
+}
+.souvenir-add-btn:active { background: var(--s1); }
+.souvenir-card {
+  background: var(--s1); border: 1px solid var(--border); border-radius: 14px;
+  overflow: hidden; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+}
+.souvenir-card:active { transform: scale(0.97); }
+.souvenir-photo {
+  width: 100%; height: 110px;
+  background: var(--s2); position: relative;
+}
+.souvenir-lieu {
+  position: absolute; bottom: 6px; left: 6px;
+  background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
+  border-radius: 20px; padding: 2px 8px;
+  font-size: 10px; color: #fff; font-weight: 600;
+}
+.souvenir-info { padding: 10px 12px; }
+.souvenir-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.souvenir-date { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.souvenir-desc { font-size: 11px; color: var(--sub); line-height: 1.4; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.souvenir-edit-btn { font-size: 11px; color: var(--muted); cursor: pointer; }
+
+/* Activités */
+.activite-sugg-card {
+  background: linear-gradient(135deg, rgba(232,121,160,0.08), rgba(155,89,182,0.08));
+  border: 1.5px solid rgba(232,121,160,0.3); border-radius: 16px; padding: 16px;
+  position: relative;
+}
+.activite-sugg-badge {
+  font-size: 10px; font-weight: 700; color: #e879a0; text-transform: uppercase;
+  letter-spacing: 1.5px; margin-bottom: 10px;
+}
+.activite-new-btn {
+  width: 100%; padding: 13px; background: var(--s2); border: 1px dashed var(--border);
+  border-radius: 12px; color: var(--muted); font-size: 13px; font-family: 'DM Sans', sans-serif;
+  cursor: pointer; transition: background 0.15s;
+}
+.activite-new-btn:active { background: var(--s1); }
+.activite-add-btn {
+  width: 100%; padding: 12px; background: linear-gradient(135deg,#e879a0,#9b59b6);
+  border: none; border-radius: 12px; color: #fff; font-size: 13px; font-weight: 700;
+  font-family: 'DM Sans', sans-serif; cursor: pointer; margin-top: 10px;
+}
+.activite-card {
+  background: var(--s1); border: 1px solid var(--border); border-radius: 16px; padding: 16px;
+}
+.activite-card-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
+.activite-emoji { font-size: 24px; flex-shrink: 0; }
+.activite-info { flex: 1; }
+.activite-titre { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.activite-desc { font-size: 12px; color: var(--muted); line-height: 1.4; }
+.activite-edit-btn {
+  background: transparent; border: none; color: var(--muted); font-size: 16px;
+  cursor: pointer; padding: 4px; flex-shrink: 0;
+}
+.activite-header { display: flex; align-items: flex-start; gap: 10px; }
+.activite-progress-wrap { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.activite-progress-bar { flex: 1; height: 5px; background: var(--s2); border-radius: 3px; overflow: hidden; }
+.activite-progress-fill { height: 100%; background: linear-gradient(90deg,#e879a0,#9b59b6); border-radius: 3px; transition: width 0.4s; }
+.activite-progress-txt { font-size: 11px; color: var(--muted); font-weight: 600; flex-shrink: 0; }
+.activite-steps { display: flex; flex-direction: column; gap: 6px; }
+.activite-step { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: var(--s2); border-radius: 10px; }
+.activite-step.done { opacity: 0.5; }
+.activite-step-check {
+  width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  font-size: 11px; font-weight: 700; flex-shrink: 0; color: #fff;
+  background: transparent; transition: background 0.2s, border-color 0.2s;
+}
+.activite-step.done .activite-step-check { background: #e879a0; border-color: #e879a0; }
+.activite-step-text { font-size: 13px; color: var(--text); line-height: 1.3; }
+.activite-step.done .activite-step-text { text-decoration: line-through; color: var(--muted); }
+.activite-completed { text-align: center; font-size: 13px; color: var(--green); font-weight: 700; padding: 10px 0 0; }
+.activite-modal-step-row { display: flex; gap: 8px; align-items: center; }
+.activite-step-input {
+  flex: 1; padding: 10px 12px; font-size: 14px; font-family: 'DM Sans', sans-serif;
+  background: var(--s2); border: 1px solid var(--border); border-radius: 10px;
+  color: var(--text); outline: none;
+}
+.activite-step-del { background: transparent; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px 8px; }
+/* Nous modales overlay */
+.nous-modal-overlay { display: none; }
+</style>
+
 <script>
 (function(){
   function initDefaultAvatars(){
