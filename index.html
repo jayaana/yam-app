@@ -877,16 +877,14 @@
 </div>
 
 <!-- Overlay Gestion Souvenirs -->
-<div id="souvenirGestionOverlay" style="display:none;position:fixed;inset:0;z-index:910;background:var(--bg);flex-direction:column;overscroll-behavior:contain;">
-  <!-- Header avec safe-top -->
-  <div style="flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding-top:calc(var(--safe-top) + 16px);padding-bottom:14px;padding-left:16px;padding-right:16px;border-bottom:1px solid var(--border);background:var(--bg);">
+<div id="souvenirGestionOverlay" class="souvenir-gestion-overlay">
+  <div class="souvenir-gestion-header">
     <div style="font-size:17px;font-weight:700;color:var(--text);">Tous les souvenirs</div>
     <button onclick="nousCloseSouvenirGestion()" style="background:none;border:none;cursor:pointer;padding:6px;color:var(--muted);display:flex;align-items:center;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
   </div>
-  <!-- Scroll list avec safe-bottom -->
-  <div id="souvenirGestionList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px;padding-bottom:calc(var(--nav-height) + 8px);overscroll-behavior:contain;"></div>
+  <div id="souvenirGestionList" class="souvenir-gestion-list"></div>
 </div>
 
 <!-- Modal Activité -->
@@ -2818,6 +2816,42 @@ document.addEventListener('DOMContentLoaded', function(){
   padding: 8px; color: var(--muted); transition: color 0.15s, transform 0.15s;
 }
 .souvenir-fav-btn.active { color: #e879a0; transform: scale(1.15); }
+
+/* Overlay gestion souvenirs */
+.souvenir-gestion-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 910;
+  background: var(--bg);
+  flex-direction: column;
+  overscroll-behavior: contain;
+}
+.souvenir-gestion-overlay.open {
+  display: flex;
+}
+.souvenir-gestion-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* Safe zone haut : topbar iPhone */
+  padding-top: calc(var(--safe-top) + 16px);
+  padding-bottom: 14px;
+  padding-left: 16px;
+  padding-right: 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.souvenir-gestion-list {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 0 16px;
+  /* Safe zone bas : nav bar */
+  padding-bottom: calc(var(--nav-height) + 8px);
+}
 
 /* Activités */
 .activite-sugg-card {
