@@ -1536,11 +1536,10 @@ loadLikeCounters();
         '</div>';
     });
     card.innerHTML=
-      (isStarred?'<div class="activite-card-star">⭐</div>':'')+
       '<div class="activite-card-header">'+
         '<span class="activite-emoji">'+(act.emoji||'✨')+'</span>'+
         '<div class="activite-info">'+
-          '<div class="activite-titre">'+escHtml(act.title||'Activité')+'</div>'+
+          '<div class="activite-titre">'+escHtml(act.title||'Activité')+(isStarred?' <span style="font-size:11px;vertical-align:middle;opacity:0.85;">⭐</span>':'')+'</div>'+
           (act.description?'<div class="activite-desc">'+escHtml(act.description)+'</div>':'')+
         '</div>'+
         '<button class="activite-edit-btn">'+_gearSVG()+'</button>'+
