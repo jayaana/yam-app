@@ -800,9 +800,10 @@ loadLikeCounters();
 
 // ════════════════════════════════════════════════════════════════════
 // 11. MÉMO COUPLE — Note unique + Todo list, sans PIN
-//     • Clic Note  → vue lecture (openMemoNoteView)
-//     • Clic Todo  → vue interactive cochable + drag&drop (openMemoTodoView)
-//     • Engrenage  → modal édition (openMemoPopup)
+//     • Clic Note  → vue lecture (openMemoNoteView) → bouton Modifier → openMemoNoteEdit
+//     • Clic Todo  → vue lecture cochable (openMemoTodoView) → bouton Modifier → openMemoTodoEdit
+//     • Crayon Note  → édition note seule (openMemoNoteEdit)
+//     • Crayon Todo  → édition todo seule (openMemoTodoEdit)
 // ════════════════════════════════════════════════════════════════════
 (function(){
 
@@ -890,10 +891,8 @@ loadLikeCounters();
   };
 
   // ════════════════════════════════════════════════
-  // VUE TODO (cochable + drag & drop réordonnement)
+  // VUE TODO (lecture + cochable, sans drag & drop)
   // ════════════════════════════════════════════════
-  var _todoViewItems = []; // cache local pour drag&drop
-
   window.openMemoTodoView = function(){
     var modal = document.getElementById('memoTodoViewModal'); if(!modal) return;
     modal.classList.add('open');
@@ -901,7 +900,7 @@ loadLikeCounters();
   };
   window.closeMemoTodoView = function(){
     var modal = document.getElementById('memoTodoViewModal'); if(modal) modal.classList.remove('open');
-    renderMemoCouple(); // rafraîchit l'aperçu
+    renderMemoCouple();
   };
 
   function _loadTodoView(){
@@ -911,140 +910,49 @@ loadLikeCounters();
     fetch(SB2_URL+'/rest/v1/v2_memo_todos?couple_id=eq.'+coupleId+'&order=created_at.asc',{headers:sb2Headers()})
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(items){
-      _todoViewItems = Array.isArray(items)?items:[];
-      _renderTodoView(coupleId);
+      container.innerHTML='';
+      if(!Array.isArray(items)||!items.length){
+        var empty=document.createElement('div');
+        empty.style.cssText='color:var(--muted);font-size:13px;padding:20px;text-align:center;';
+        empty.textContent='Aucun item — utilise Modifier pour en ajouter.';
+        container.appendChild(empty);
+        return;
+      }
+      items.forEach(function(item){
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s2);border-radius:12px;border:1px solid var(--border);';
+        row.innerHTML =
+          '<div class="todo-check'+(item.done?' done':'')+'" style="width:22px;height:22px;border-radius:6px;border:2px solid '+(item.done?'#e879a0':'var(--border)')+';background:'+(item.done?'linear-gradient(135deg,#e879a0,#9b59b6)':'transparent')+';display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:13px;color:#fff;">'+(item.done?'✓':'')+'</div>'+
+          '<div style="flex:1;font-size:14px;color:var(--text);'+(item.done?'text-decoration:line-through;opacity:0.5;':'')+'">' +escHtml(item.text)+'</div>';
+        (function(it, r){
+          r.querySelector('.todo-check').addEventListener('click', function(){
+            fetch(SB2_URL+'/rest/v1/v2_memo_todos?id=eq.'+it.id+'&couple_id=eq.'+coupleId,{
+              method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
+              body:JSON.stringify({done:!it.done})
+            }).then(function(){ _loadTodoView(); _renderTodoPreview(); });
+          });
+        })(item, row);
+        container.appendChild(row);
+      });
     }).catch(function(){ container.innerHTML='<div style="color:#e05555;font-size:13px;padding:12px;">Erreur de chargement</div>'; });
   }
 
-  function _renderTodoView(coupleId){
-    var container = document.getElementById('memoTodoViewList'); if(!container) return;
-    container.innerHTML='';
-    if(!_todoViewItems.length){
-      var empty=document.createElement('div');
-      empty.style.cssText='color:var(--muted);font-size:13px;padding:20px;text-align:center;';
-      empty.textContent='Aucun item — utilise Modifier pour en ajouter.';
-      container.appendChild(empty);
-      return;
-    }
-
-    var dragging=null, dragOver=null;
-
-    _todoViewItems.forEach(function(item, idx){
-      var row = document.createElement('div');
-      row.className = 'todo-item';
-      row.setAttribute('draggable','true');
-      row.dataset.idx = idx;
-      row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s2);border-radius:12px;border:1px solid var(--border);user-select:none;touch-action:none;';
-      row.innerHTML =
-        // Poignée drag
-        '<div class="todo-drag-handle" style="cursor:grab;color:var(--muted);font-size:16px;flex-shrink:0;padding:0 4px;">⠿</div>'+
-        // Checkbox
-        '<div class="todo-check'+(item.done?' done':'')+'" style="width:22px;height:22px;border-radius:6px;border:2px solid '+(item.done?'#e879a0':'var(--border)')+';background:'+(item.done?'linear-gradient(135deg,#e879a0,#9b59b6)':'transparent')+';display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:13px;color:#fff;">'+(item.done?'✓':'')+'</div>'+
-        '<div class="todo-text'+(item.done?' done':'')+'" style="flex:1;font-size:14px;color:var(--text);'+(item.done?'text-decoration:line-through;opacity:0.5;':'')+'">'+escHtml(item.text)+'</div>';
-
-      // Toggle done
-      (function(it, r){
-        r.querySelector('.todo-check').addEventListener('click', function(){
-          fetch(SB2_URL+'/rest/v1/v2_memo_todos?id=eq.'+it.id+'&couple_id=eq.'+coupleId,{
-            method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
-            body:JSON.stringify({done:!it.done})
-          }).then(function(){ it.done=!it.done; _renderTodoView(coupleId); _renderTodoPreview(); });
-        });
-      })(item, row);
-
-      // Drag & drop (desktop)
-      row.addEventListener('dragstart', function(e){
-        dragging = row;
-        row.style.opacity='0.4';
-        e.dataTransfer.effectAllowed='move';
-      });
-      row.addEventListener('dragend', function(){
-        row.style.opacity='1';
-        if(dragging&&dragOver&&dragging!==dragOver){
-          _reorderTodoView(coupleId);
-        }
-        dragging=null; dragOver=null;
-        container.querySelectorAll('.todo-item').forEach(function(r){ r.style.borderTop=''; });
-      });
-      row.addEventListener('dragover', function(e){
-        e.preventDefault();
-        if(dragging&&dragging!==row){
-          dragOver = row;
-          container.querySelectorAll('.todo-item').forEach(function(r){ r.style.borderTop=''; });
-          row.style.borderTop='2px solid #e879a0';
-          // Reorder in DOM
-          var allRows = Array.from(container.querySelectorAll('.todo-item'));
-          var fromIdx = allRows.indexOf(dragging);
-          var toIdx   = allRows.indexOf(row);
-          if(fromIdx>-1&&toIdx>-1){
-            var item = _todoViewItems.splice(fromIdx,1)[0];
-            _todoViewItems.splice(toIdx,0,item);
-            container.insertBefore(dragging, row);
-          }
-        }
-      });
-
-      // Touch drag (mobile)
-      var touchStartY=0, touchStartIdx=0;
-      row.querySelector('.todo-drag-handle').addEventListener('touchstart', function(e){
-        touchStartY=e.touches[0].clientY;
-        touchStartIdx=parseInt(row.dataset.idx);
-        row.style.background='var(--s1)';
-      },{passive:true});
-      row.querySelector('.todo-drag-handle').addEventListener('touchmove', function(e){
-        e.preventDefault();
-        var dy = e.touches[0].clientY - touchStartY;
-        var itemH = row.offsetHeight + 6;
-        var steps = Math.round(dy/itemH);
-        if(steps!==0){
-          var newIdx = Math.max(0,Math.min(_todoViewItems.length-1, touchStartIdx+steps));
-          if(newIdx!==touchStartIdx){
-            var moved=_todoViewItems.splice(touchStartIdx,1)[0];
-            _todoViewItems.splice(newIdx,0,moved);
-            touchStartIdx=newIdx;
-            touchStartY=e.touches[0].clientY;
-            _renderTodoView(coupleId);
-          }
-        }
-      },{passive:false});
-      row.querySelector('.todo-drag-handle').addEventListener('touchend', function(){
-        row.style.background='';
-        _reorderTodoView(coupleId);
-      },{passive:true});
-
-      container.appendChild(row);
-    });
-  }
-
-  function _reorderTodoView(coupleId){
-    // Sauvegarde le nouvel ordre via une série de PATCH sur created_at
-    // Stratégie simple : on met à jour un champ order si disponible,
-    // sinon on supprime et recrée dans l'ordre — ici on patch updated_at
-    // pour conserver l'ordre voulu (tri created_at.asc ne reflète pas les moves)
-    // → Solution pragmatique : DELETE all + re-INSERT dans l'ordre
-    if(!_todoViewItems.length) return;
-    var su = _getSession(); if(!su) return;
-    // On ne fait pas de DELETE/INSERT pour éviter de perdre des données en cas d'erreur
-    // À la place, on met juste à jour l'aperçu (l'ordre persiste dans _todoViewItems)
-    _renderTodoPreview();
-  }
-
   // ════════════════════════════════════════════════
-  // MODAL ÉDITION (via engrenage)
+  // MODAL ÉDITION NOTE (seule)
   // ════════════════════════════════════════════════
-  window.openMemoPopup = function(){
-    var modal = document.getElementById('memoPopupModal'); if(!modal) return;
-    _loadMemoFull();
+  var _currentNoteId = null;
+
+  window.openMemoNoteEdit = function(){
+    var modal = document.getElementById('memoNoteEditModal'); if(!modal) return;
+    _loadMemoNoteForEdit();
     modal.classList.add('open');
   };
-  window.closeMemoPopup = function(){
-    var modal = document.getElementById('memoPopupModal'); if(modal) modal.classList.remove('open');
+  window.closeMemoNoteEdit = function(){
+    var modal = document.getElementById('memoNoteEditModal'); if(modal) modal.classList.remove('open');
     renderMemoCouple();
   };
 
-  var _currentNoteId = null;
-
-  function _loadMemoFull(){
+  function _loadMemoNoteForEdit(){
     var su = _getSession(); var coupleId = su?su.couple_id:null; if(!coupleId) return;
     fetch(SB2_URL+'/rest/v1/v2_memo_notes?couple_id=eq.'+coupleId+'&order=updated_at.desc&limit=1',{headers:sb2Headers()})
     .then(function(r){ return r.ok?r.json():[]; })
@@ -1062,7 +970,6 @@ loadLikeCounters();
         dateEl.textContent=(isUpd?'Modifié ':'Créé ')+d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
       } else if(dateEl){ dateEl.textContent=''; }
     }).catch(function(){});
-    _loadTodoFull();
   }
 
   window.memoSaveNote = function(){
@@ -1075,8 +982,21 @@ loadLikeCounters();
       fetch(SB2_URL+'/rest/v1/v2_memo_notes?id=eq.'+_currentNoteId+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({text:txt,title:ttl,updated_at:new Date().toISOString()})}).then(done).catch(done);
     } else {
       if(!txt) return done();
-      fetch(SB2_URL+'/rest/v1/v2_memo_notes',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,text:txt,title:ttl})}).then(function(){ _loadMemoFull(); done(); }).catch(done);
+      fetch(SB2_URL+'/rest/v1/v2_memo_notes',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,text:txt,title:ttl})}).then(function(){ _loadMemoNoteForEdit(); done(); }).catch(done);
     }
+  };
+
+  // ════════════════════════════════════════════════
+  // MODAL ÉDITION TODO (seule)
+  // ════════════════════════════════════════════════
+  window.openMemoTodoEdit = function(){
+    var modal = document.getElementById('memoTodoEditModal'); if(!modal) return;
+    modal.classList.add('open');
+    _loadTodoFull();
+  };
+  window.closeMemoTodoEdit = function(){
+    var modal = document.getElementById('memoTodoEditModal'); if(modal) modal.classList.remove('open');
+    renderMemoCouple();
   };
 
   function _loadTodoFull(){
@@ -1092,7 +1012,7 @@ loadLikeCounters();
       } else {
         items.forEach(function(item){
           var row=document.createElement('div'); row.className='todo-item';
-          row.innerHTML='<div class="todo-check'+(item.done?' done':'')+'">'+(item.done?'✓':'')+'</div><div class="todo-text'+(item.done?' done':'')+'">'+escHtml(item.text)+'</div><div class="todo-del">✕</div>';
+          row.innerHTML='<div class="todo-check'+(item.done?' done':'')+'">'+(item.done?'✓':'')+'</div><div class="todo-text'+(item.done?' done':'')+'">' +escHtml(item.text)+'</div><div class="todo-del">✕</div>';
           (function(it){
             row.querySelector('.todo-check').addEventListener('click',function(){
               fetch(SB2_URL+'/rest/v1/v2_memo_todos?id=eq.'+it.id+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({done:!it.done})}).then(_loadTodoFull);
@@ -1116,8 +1036,10 @@ loadLikeCounters();
 
   // Fermer en cliquant dehors
   setTimeout(function(){
-    var mm = document.getElementById('memoPopupModal');
-    if(mm) mm.addEventListener('click',function(e){ if(e.target===mm) window.closeMemoPopup(); });
+    var ne = document.getElementById('memoNoteEditModal');
+    if(ne) ne.addEventListener('click',function(e){ if(e.target===ne) window.closeMemoNoteEdit(); });
+    var te = document.getElementById('memoTodoEditModal');
+    if(te) te.addEventListener('click',function(e){ if(e.target===te) window.closeMemoTodoEdit(); });
     var nv = document.getElementById('memoNoteViewModal');
     if(nv) nv.addEventListener('click',function(e){ if(e.target===nv) window.closeMemoNoteView(); });
     var tv = document.getElementById('memoTodoViewModal');
@@ -1127,7 +1049,7 @@ loadLikeCounters();
   // Enter dans l'input todo
   setTimeout(function(){
     var tdi = document.getElementById('memoPopupTodoInput');
-    if(tdi) tdi.addEventListener('keydown',function(e){ if(e.key==='Enter') window.memoAddTodoItem(); });
+    if(tdi) tdi.addEventListener('keydown',function(e){ if(e.key='Enter') window.memoAddTodoItem(); });
   },0);
 
 })();
