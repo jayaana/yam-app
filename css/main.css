@@ -759,7 +759,7 @@ header::before {
 .lui-upload-progress { width:80%; height:4px; background:rgba(255,255,255,0.2); border-radius:2px; overflow:hidden; }
 .lui-upload-bar { height:100%; background:#e879a0; width:0%; transition:width 0.3s; border-radius:2px; }
 .lui-upload-status { font-size:10px; color:#fff; font-weight:600; }
-.lui-img-empty { width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; background:var(--s2); border:2px dashed rgba(232,121,160,0.25); border-radius:8px; transition: border-color 0.2s, background 0.2s; }
+.lui-img-empty { position:absolute; inset:0; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; background:var(--s2); border:2px dashed rgba(232,121,160,0.25); border-radius:8px; transition: border-color 0.2s, background 0.2s; z-index:1; }
 .lui-img-empty:hover { background: var(--s3); border-color: rgba(232,121,160,0.5); }
 .lui-img-empty-icon { font-size:28px; opacity:0.45; }
 .lui-img-empty-lbl { font-size:9px; color:var(--muted); font-weight:700; letter-spacing:0.8px; text-transform: uppercase; opacity: 0.7; }
