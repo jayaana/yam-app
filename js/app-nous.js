@@ -101,17 +101,8 @@
   window.nousCheckLock  = nousCheckLock;
   window._nousIsUnlocked = _nousIsUnlocked;
 
-  // ── Lancer au switch vers l'onglet Nous ──
-  // Patche yamSwitchTab pour vérifier le verrou à chaque ouverture
-  function _patchSwitchTab() {
-    if (typeof window.yamSwitchTab !== 'function') { setTimeout(_patchSwitchTab, 200); return; }
-    var _orig = window.yamSwitchTab;
-    window.yamSwitchTab = function(tab) {
-      _orig.apply(this, arguments);
-      if (tab === 'nous') { setTimeout(nousCheckLock, 50); }
-    };
-  }
-  _patchSwitchTab();
+  // yamSwitchTab est patché dans index.html → appelle window.nousLoad()
+  // nousLoad() appelle nousCheckLock() — pas besoin de re-patcher ici
 
   // Lancer au chargement si on est déjà sur l'onglet nous
   setTimeout(function(){
@@ -216,6 +207,7 @@ window.nousSignalNew = function() {
     saison:'Un rayon de soleil ☀️', repas:"N'aime que les pattes 🤝"
   };
   var _currentSlot = null;
+  function _getElleSession(){ try{ var s=JSON.parse(localStorage.getItem('yam_v2_session')||'null'); return s&&s.user?s.user.couple_id:null; }catch(e){ return null; } }
 
   window.elleLoadImages = function(){
     SLOTS.forEach(function(slot){
@@ -274,7 +266,7 @@ window.nousSignalNew = function() {
   };
 
   function elleLoadDescs(){
-    fetch(SB2_URL+'/rest/v1/v2_photo_descs?category=eq.elle&select=slot,description',{headers:sb2Headers()})
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs?category=eq.elle&couple_id=eq.'+_getElleSession()+'&select=slot,description',{headers:sb2Headers()})
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(rows){
       if(!Array.isArray(rows)) return;
@@ -286,7 +278,8 @@ window.nousSignalNew = function() {
   window.elleLoadDescs = elleLoadDescs;
 
   function elleSaveDesc(slot,val){
-    fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({category:'elle',slot:slot,description:val})}).catch(function(){});
+    var coupleId=_getElleSession(); if(!coupleId) return;
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:coupleId,category:'elle',slot:slot,description:val})}).catch(function(){});
     localStorage.setItem('elle_desc_'+slot,val);
   }
 
@@ -309,6 +302,7 @@ window.nousSignalNew = function() {
   var SLOTS=['animal','fleurs','personnage','saison','repas'];
   var LUI_DESC_DEFAULTS={animal:'Son animal 🐾',fleurs:'Ses fleurs 🌸',personnage:'Son personnage 💙',saison:'Sa saison 🍂',repas:'Son repas préféré 🍽️'};
   var _currentSlot=null;
+  function _getLuiSession(){ try{ var s=JSON.parse(localStorage.getItem('yam_v2_session')||'null'); return s&&s.user?s.user.couple_id:null; }catch(e){ return null; } }
 
   window.luiLoadImages=function(){
     SLOTS.forEach(function(slot){
@@ -365,7 +359,7 @@ window.nousSignalNew = function() {
   };
 
   window.luiLoadDescs=function(){
-    fetch(SB2_URL+'/rest/v1/v2_photo_descs?category=eq.lui&select=slot,description',{headers:sb2Headers()})
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs?category=eq.lui&couple_id=eq.'+_getLuiSession()+'&select=slot,description',{headers:sb2Headers()})
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(rows){
       if(!Array.isArray(rows)) return;
@@ -381,7 +375,8 @@ window.nousSignalNew = function() {
     var LABELS={animal:'Son animal',fleurs:'Ses fleurs',personnage:'Son personnage',saison:'Sa saison',repas:'Son repas'};
     descEditOpen(el.textContent.trim(),'Légende · '+(LABELS[slot]||slot),function(val){
       val=val||LUI_DESC_DEFAULTS[slot]; el.textContent=val;
-      fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({category:'lui',slot:slot,description:val})}).catch(function(){});
+      var coupleId=_getLuiSession(); if(!coupleId) return;
+      fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:coupleId,category:'lui',slot:slot,description:val})}).catch(function(){});
       localStorage.setItem('lui_desc_'+slot,val);
     });
   };
@@ -672,10 +667,15 @@ loadLikeCounters();
   function memoUnlock(){ memoUnlocked=true; document.getElementById('memoLockBadge').classList.add('unlocked'); document.getElementById('memoLockTxt').textContent='Verrouiller'; document.getElementById('memoTodoAddRow').style.display='flex'; renderNotes(); renderTodos(); }
   function memoLock(){ memoUnlocked=false; document.getElementById('memoLockBadge').classList.remove('unlocked'); document.getElementById('memoLockTxt').textContent='Modifier'; document.getElementById('memoTodoAddRow').style.display='none'; renderNotes(); renderTodos(); }
 
+  function _getMemoSession(){ try{ var s=JSON.parse(localStorage.getItem('yam_v2_session')||'null'); return s&&s.user?s.user:null; }catch(e){ return null; } }
+
   function renderNotes(){
     var slider=document.getElementById('memoNotesSlider'); if(!slider) return;
     slider.innerHTML='<div class="memo-loading"><span class="spinner"></span>Chargement...</div>';
-    sbGet('memo_notes').then(function(notes){
+    var su=_getMemoSession(); var coupleId=su?su.couple_id:null; if(!coupleId){ slider.innerHTML='<div class="memo-notes-empty">Session introuvable.</div>'; return; }
+    fetch(SB2_URL+'/rest/v1/v2_memo_notes?couple_id=eq.'+coupleId+'&order=created_at.desc',{headers:sb2Headers()})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(notes){
       slider.innerHTML='';
       var addCard=document.createElement('div'); addCard.className='memo-note-add-card'+(memoUnlocked?' visible':'');
       addCard.innerHTML='<div class="memo-note-add-img"><div class="memo-note-add-icon">+</div><div class="memo-note-add-lbl">Nouvelle note</div></div>';
@@ -692,7 +692,7 @@ loadLikeCounters();
         (function(n){ card.addEventListener('click',function(){ openMemoModal(n,false); }); })(note);
         slider.appendChild(card);
       });
-    }).catch(function(){ document.getElementById('memoNotesSlider').innerHTML='<div class="memo-notes-empty">❌ Erreur de connexion Supabase.</div>'; });
+    }).catch(function(err){ console.error('renderNotes error',err); document.getElementById('memoNotesSlider').innerHTML='<div class="memo-notes-empty">❌ Erreur de connexion Supabase.</div>'; });
   }
   window.renderNotes = renderNotes;
 
@@ -707,39 +707,55 @@ loadLikeCounters();
 
   window.memoSaveNote=function(){
     var txt=document.getElementById('memoModalTextarea').value.trim(); var ttl=document.getElementById('memoModalTitleInput').value.trim()||'Sans titre'; if(!txt) return;
+    var su=_getMemoSession(); var coupleId=su?su.couple_id:null; if(!coupleId) return;
     var btn=document.querySelector('.memo-modal-save'); btn.textContent='⏳'; btn.disabled=true;
     var done=function(){ btn.textContent='Sauvegarder 💾'; btn.disabled=false; window.closeMemoModal(); renderNotes(); };
-    if(memoCurrentNote&&memoCurrentNote.id){ sbPatch('memo_notes',memoCurrentNote.id,{text:txt,title:ttl,updated_at:new Date().toISOString()}).then(done).catch(done); }
-    else { sbPost('memo_notes',{text:txt,title:ttl}).then(done).catch(done); }
+    if(memoCurrentNote&&memoCurrentNote.id){
+      fetch(SB2_URL+'/rest/v1/v2_memo_notes?id=eq.'+memoCurrentNote.id+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({text:txt,title:ttl,updated_at:new Date().toISOString()})}).then(done).catch(done);
+    } else {
+      fetch(SB2_URL+'/rest/v1/v2_memo_notes',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,text:txt,title:ttl})}).then(done).catch(done);
+    }
   };
   window.memoDeleteNote=function(){
     if(!memoCurrentNote||!memoCurrentNote.id){ window.closeMemoModal(); return; }
-    sbDelete('memo_notes',memoCurrentNote.id).then(function(){ window.closeMemoModal(); renderNotes(); });
+    var su=_getMemoSession(); var coupleId=su?su.couple_id:null; if(!coupleId) return;
+    fetch(SB2_URL+'/rest/v1/v2_memo_notes?id=eq.'+memoCurrentNote.id+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()}).then(function(){ window.closeMemoModal(); renderNotes(); });
   };
 
   function renderTodos(){
     var container=document.getElementById('memoTodoList'); if(!container) return;
     container.innerHTML='<div class="memo-loading"><span class="spinner"></span>Chargement...</div>';
-    sbGet('memo_todos','order=created_at.asc').then(function(items){
+    var su=_getMemoSession(); var coupleId=su?su.couple_id:null; if(!coupleId){ container.innerHTML='<div class="todo-empty">Session introuvable.</div>'; return; }
+    fetch(SB2_URL+'/rest/v1/v2_memo_todos?couple_id=eq.'+coupleId+'&order=created_at.asc',{headers:sb2Headers()})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(items){
       container.innerHTML='';
       if(!Array.isArray(items)||!items.length){ var empty=document.createElement('div'); empty.className='todo-empty'; empty.textContent=memoUnlocked?'Aucun item — ajoute-en un !':'La to-do est vide.'; container.appendChild(empty); return; }
       items.forEach(function(item){
         var row=document.createElement('div'); row.className='todo-item';
         row.innerHTML='<div class="todo-check'+(item.done?' done':'')+'">'+(item.done?'✓':'')+'</div><div class="todo-text'+(item.done?' done':'')+'">'+escHtml(item.text)+'</div>'+(memoUnlocked?'<div class="todo-del">✕</div>':'');
-        (function(it){ row.querySelector('.todo-check').addEventListener('click',function(){ sbPatch('memo_todos',it.id,{done:!it.done}).then(renderTodos); }); var del=row.querySelector('.todo-del'); if(del) del.addEventListener('click',function(e){ e.stopPropagation(); sbDelete('memo_todos',it.id).then(renderTodos); }); })(item);
+        (function(it){ 
+          row.querySelector('.todo-check').addEventListener('click',function(){ 
+            fetch(SB2_URL+'/rest/v1/v2_memo_todos?id=eq.'+it.id+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({done:!it.done})}).then(renderTodos); 
+          }); 
+          var del=row.querySelector('.todo-del'); 
+          if(del) del.addEventListener('click',function(e){ e.stopPropagation(); fetch(SB2_URL+'/rest/v1/v2_memo_todos?id=eq.'+it.id+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()}).then(renderTodos); }); 
+        })(item);
         container.appendChild(row);
       });
-    }).catch(function(){ document.getElementById('memoTodoList').innerHTML='<div class="todo-empty">❌ Erreur Supabase.</div>'; });
+    }).catch(function(err){ console.error('renderTodos error',err); document.getElementById('memoTodoList').innerHTML='<div class="todo-empty">❌ Erreur Supabase.</div>'; });
   }
   window.renderTodos = renderTodos;
 
   window.memoAddTodoItem=function(){
     var input=document.getElementById('memoTodoInput'), txt=input.value.trim(); if(!txt) return; input.value='';
-    sbPost('memo_todos',{text:txt,done:false}).then(renderTodos);
+    var su=_getMemoSession(); var coupleId=su?su.couple_id:null; if(!coupleId) return;
+    fetch(SB2_URL+'/rest/v1/v2_memo_todos',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,text:txt,done:false})}).then(renderTodos);
   };
   var tdi=document.getElementById('memoTodoInput'); if(tdi) tdi.addEventListener('keydown',function(e){ if(e.key==='Enter') window.memoAddTodoItem(); });
 
-  renderNotes(); renderTodos();
+  // renderNotes/renderTodos sont appelés via memoUnlock() ou _nousInitAll()
+  // Ne pas appeler ici directement (session pas encore dispo)
 })();
 
 
@@ -1053,9 +1069,12 @@ loadLikeCounters();
 window.nousLoad = function(){
   if(window._nousIsUnlocked && window._nousIsUnlocked()){
     if(window._nousContentLoaded) {
-      // Refresh léger
+      // Refresh léger à chaque retour sur l'onglet
       loadLikeCounters();
-      if(typeof nousLoadSouvenirs==='function') nousLoadSouvenirs();
+      if(typeof window.nousLoadSouvenirs==='function') window.nousLoadSouvenirs();
+      if(typeof window.nousLoadActivites==='function') window.nousLoadActivites();
+      if(typeof window.renderNotes==='function') window.renderNotes();
+      if(typeof window.renderTodos==='function') window.renderTodos();
     } else {
       window._nousContentLoaded = true;
       _nousInitAll();
