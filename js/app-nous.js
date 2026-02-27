@@ -47,12 +47,9 @@ function _blockBackgroundScroll() {
   var nousWrap = document.getElementById('nousContentWrapper');
   if (nousWrap) nousWrap.style.overflow = 'hidden';
 
-  // ── Bloquer le body entier (requis sur iOS Safari) ──
-  // La technique position:fixed est la seule 100% fiable sur iOS
-  document.body.style.top      = '-' + _bodyScrollY + 'px';
-  document.body.style.position = 'fixed';
-  document.body.style.left     = '0';
-  document.body.style.right    = '0';
+  // ── Bloquer le scroll sur html + body (sans position:fixed qui casse le layout) ──
+  // On stocke le scrollTop et on bloque avec overflow:hidden uniquement
+  document.documentElement.style.overflow = 'hidden';
   document.body.style.overflow = 'hidden';
 
   // ── Masquer le mini-header (évite son scroll pendant la modale) ──
@@ -64,14 +61,11 @@ function _unblockBackgroundScroll() {
   if (_scrollLockCount > 0) _scrollLockCount--;
   if (_scrollLockCount > 0) return; // d'autres modales encore ouvertes — on garde le lock
 
-  // ── Restaurer le body ──
-  document.body.style.position = '';
-  document.body.style.top      = '';
-  document.body.style.left     = '';
-  document.body.style.right    = '';
+  // ── Restaurer html + body ──
+  document.documentElement.style.overflow = '';
   document.body.style.overflow = '';
 
-  // ── Restaurer la position de scroll du body (indispensable après position:fixed) ──
+  // ── Restaurer la position de scroll du body ──
   window.scrollTo(0, _bodyScrollY);
 
   // ── Restaurer le scroll interne de la section ──
