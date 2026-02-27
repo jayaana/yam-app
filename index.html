@@ -822,8 +822,8 @@
 
 <!-- Modal Souvenir -->
 <div id="souvenirModal" style="position:fixed;inset:0;z-index:800;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);align-items:flex-end;justify-content:center;" class="nous-modal-overlay">
-  <div style="background:var(--s1);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:24px;padding-bottom:calc(24px + var(--safe-bottom,0px));max-height:85vh;overflow-y:auto;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+  <div style="background:var(--s1);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom, 0px));max-height:75dvh;max-height:75vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div id="souvenirModalTitle" style="font-size:17px;font-weight:700;color:var(--text);">Nouveau souvenir 📸</div>
       <span onclick="closeSouvenirModal()" style="font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;">✕</span>
     </div>
@@ -847,8 +847,8 @@
 
 <!-- Modal Activité -->
 <div id="activiteModal" style="position:fixed;inset:0;z-index:800;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);align-items:flex-end;justify-content:center;" class="nous-modal-overlay">
-  <div style="background:var(--s1);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:24px;padding-bottom:calc(24px + var(--safe-bottom,0px));max-height:85vh;overflow-y:auto;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+  <div style="background:var(--s1);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom, 0px));max-height:75dvh;max-height:75vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div id="activiteModalTitle" style="font-size:17px;font-weight:700;color:var(--text);">Nouvelle activité ✨</div>
       <span onclick="closeActiviteModal()" style="font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;">✕</span>
     </div>
@@ -2803,7 +2803,22 @@ document.addEventListener('DOMContentLoaded', function(){
 .activite-step-del { background: transparent; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px 8px; }
 /* Nous modales overlay */
 .nous-modal-overlay { display: none; }
-.nous-modal-overlay.open { display: flex !important; }
+.nous-modal-overlay.open {
+  display: flex !important;
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  height: 100dvh !important;
+  z-index: 900 !important;
+  align-items: flex-end !important;
+  justify-content: center !important;
+  background: rgba(0,0,0,0.6) !important;
+}
 </style>
 
 <script>
