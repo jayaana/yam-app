@@ -607,10 +607,10 @@
 ═══════════════════════════════════════════ -->
 <div id="yamNousTab" class="yam-tab-panel">
 
-<div id="nousLockOverlay" style="display:none;"></div>
+<div id="nousLockOverlay" style="display:flex;align-items:center;justify-content:center;min-height:60vh;"></div>
 
 <!-- ── CONTENU NOUS ── -->
-<div id="nousContentWrapper" style="display:block;">
+<div id="nousContentWrapper" style="display:none;">
 
 <!-- PROFIL COUPLE PAIRED -->
 <div id="nousProfilSection" style="padding:28px 16px 8px;">
@@ -2470,7 +2470,7 @@ function v2ApplyDynamicNames(){
         }, 30);
       } else if(tab === 'nous'){
         setTimeout(function(){
-          if(typeof window.nousLoad === 'function') window.nousLoad();
+          if(typeof window.nousCheckLock === 'function') window.nousCheckLock();
         }, 100);
         setTimeout(function(){ window.scrollTo(0, 0); }, 220);
       } else {
