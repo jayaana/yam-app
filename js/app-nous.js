@@ -824,22 +824,20 @@ loadLikeCounters();
       +'<div class="souvenir-edit-icon">'+pencilSVG+'</div>'
       +'</div>';
     card.querySelector('.souvenir-edit-icon').addEventListener('click',function(e){ e.stopPropagation(); nousOpenSouvenirModal(s); });
-    card.addEventListener('click',function(){ nousOpenSouvenirModal(s); });
     return card;
   }
 
   window.nousOpenSouvenirGestion = function(){
     var overlay=document.getElementById('souvenirGestionOverlay'); if(!overlay) return;
-    // Recharger si liste vide (premiere ouverture)
     if(!_souvenirAllRows.length){ window.nousLoadSouvenirs(); }
     _renderGestionList();
-    overlay.style.display='flex';
-    // Bloquer le scroll du body pour eviter le freeze
+    overlay.classList.add('open');
     document.body.style.overflow='hidden';
   };
 
   window.nousCloseSouvenirGestion = function(){
-    var overlay=document.getElementById('souvenirGestionOverlay'); if(overlay) overlay.style.display='none';
+    var overlay=document.getElementById('souvenirGestionOverlay');
+    if(overlay) overlay.classList.remove('open');
     document.body.style.overflow='';
   };
 
