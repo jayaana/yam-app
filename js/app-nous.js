@@ -7,6 +7,52 @@
 
 
 // ════════════════════════════════════════════════════════════════════
+// HELPERS — Bloquer scroll arrière-plan + masquer mini-header
+// ════════════════════════════════════════════════════════════════════
+var _savedScrollPosition = 0;
+
+function _saveScrollPosition() {
+  var nousWrap = document.getElementById('nousContentWrapper');
+  if (nousWrap) {
+    _savedScrollPosition = nousWrap.scrollTop;
+  }
+}
+
+function _restoreScrollPosition() {
+  var nousWrap = document.getElementById('nousContentWrapper');
+  if (nousWrap && _savedScrollPosition >= 0) {
+    setTimeout(function(){
+      nousWrap.scrollTop = _savedScrollPosition;
+    }, 50);
+  }
+}
+
+function _blockBackgroundScroll() {
+  var nousWrap = document.getElementById('nousContentWrapper');
+  if (nousWrap) {
+    nousWrap.style.overflow = 'hidden';
+  }
+  // Masquer le mini-header
+  var miniHeader = document.getElementById('yamStickyHeader');
+  if (miniHeader) {
+    miniHeader.style.display = 'none';
+  }
+}
+
+function _unblockBackgroundScroll() {
+  var nousWrap = document.getElementById('nousContentWrapper');
+  if (nousWrap) {
+    nousWrap.style.overflow = '';
+  }
+  // Restaurer le mini-header (il réapparaîtra au scroll si nécessaire)
+  var miniHeader = document.getElementById('yamStickyHeader');
+  if (miniHeader) {
+    miniHeader.style.display = '';
+  }
+}
+
+
+// ════════════════════════════════════════════════════════════════════
 // 0. ACCÈS BETA — Code d'accès requis (section en cours de développement)
 // ════════════════════════════════════════════════════════════════════
 (function(){
@@ -591,11 +637,15 @@ function _startReasonAuto(){
   // ── Gestion pop-up petits mots écrits ──
   window.openPetitsMotsGestion = function(){
     var modal = document.getElementById('petitsMotsGestionModal'); if(!modal) return;
+    _saveScrollPosition();
+    _blockBackgroundScroll();
     _renderPetitsMotsGestion();
     modal.classList.add('open');
   };
   window.closePetitsMotsGestion = function(){
     var modal = document.getElementById('petitsMotsGestionModal'); if(modal) modal.classList.remove('open');
+    _unblockBackgroundScroll();
+    _restoreScrollPosition();
   };
 
   function _renderPetitsMotsGestion(){
@@ -645,6 +695,8 @@ function _startReasonAuto(){
   function _openPetitsMotsEditor(mot){
     _editingMot = mot;
     var editor = document.getElementById('petitsMotsEditor'); if(!editor) return;
+    _saveScrollPosition();
+    _blockBackgroundScroll();
     document.getElementById('petitsMotsEditorTitle').value = mot?(mot.title||''):'';
     document.getElementById('petitsMotsEditorText').value  = mot?(mot.text||''):'';
     document.getElementById('petitsMotsEditorIcon').value  = mot?(mot.icon||'💌'):'💌';
@@ -667,6 +719,8 @@ function _startReasonAuto(){
   }
   window.closePetitsMotsEditor = function(){
     var editor = document.getElementById('petitsMotsEditor'); if(editor) editor.classList.remove('open');
+    _unblockBackgroundScroll();
+    _restoreScrollPosition();
     _editingMot = null;
   };
 
@@ -867,6 +921,8 @@ loadLikeCounters();
   window.openMemoNoteView = function(){
     var modal = document.getElementById('memoNoteViewModal'); if(!modal) return;
     var su = _getSession(); var coupleId = su?su.couple_id:null; if(!coupleId) return;
+    _saveScrollPosition();
+    _blockBackgroundScroll();
     var txtEl   = document.getElementById('memoNoteViewText');
     var titleEl = document.getElementById('memoNoteViewTitle');
     var dateEl  = document.getElementById('memoNoteViewDate');
@@ -888,6 +944,8 @@ loadLikeCounters();
   };
   window.closeMemoNoteView = function(){
     var modal = document.getElementById('memoNoteViewModal'); if(modal) modal.classList.remove('open');
+    _unblockBackgroundScroll();
+    _restoreScrollPosition();
   };
 
   // ════════════════════════════════════════════════
@@ -895,11 +953,15 @@ loadLikeCounters();
   // ════════════════════════════════════════════════
   window.openMemoTodoView = function(){
     var modal = document.getElementById('memoTodoViewModal'); if(!modal) return;
+    _saveScrollPosition();
+    _blockBackgroundScroll();
     modal.classList.add('open');
     _loadTodoView();
   };
   window.closeMemoTodoView = function(){
     var modal = document.getElementById('memoTodoViewModal'); if(modal) modal.classList.remove('open');
+    _unblockBackgroundScroll();
+    _restoreScrollPosition();
     renderMemoCouple();
   };
 
@@ -944,11 +1006,15 @@ loadLikeCounters();
 
   window.openMemoNoteEdit = function(){
     var modal = document.getElementById('memoNoteEditModal'); if(!modal) return;
+    _saveScrollPosition();
+    _blockBackgroundScroll();
     _loadMemoNoteForEdit();
     modal.classList.add('open');
   };
   window.closeMemoNoteEdit = function(){
     var modal = document.getElementById('memoNoteEditModal'); if(modal) modal.classList.remove('open');
+    _unblockBackgroundScroll();
+    _restoreScrollPosition();
     renderMemoCouple();
   };
 
@@ -977,7 +1043,12 @@ loadLikeCounters();
     var txt = (document.getElementById('memoPopupTextarea').value||'').trim();
     var ttl = (document.getElementById('memoPopupTitleInput').value||'').trim()||'Note';
     var btn = document.getElementById('memoPopupSaveBtn'); if(btn){ btn.textContent='...'; btn.disabled=true; }
-    var done = function(){ if(btn){ btn.textContent='Sauvegarder'; btn.disabled=false; } renderMemoCouple(); };
+    var done = function(){ 
+      if(btn){ btn.textContent='Modifier'; btn.disabled=false; } 
+      renderMemoCouple(); 
+      // NOUVEAU : Toast de confirmation
+      if(typeof showToast === 'function') showToast('Note sauvegardée ✓', 'success', 2000);
+    };
     if(_currentNoteId){
       fetch(SB2_URL+'/rest/v1/v2_memo_notes?id=eq.'+_currentNoteId+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({text:txt,title:ttl,updated_at:new Date().toISOString()})}).then(done).catch(done);
     } else {
@@ -991,11 +1062,15 @@ loadLikeCounters();
   // ════════════════════════════════════════════════
   window.openMemoTodoEdit = function(){
     var modal = document.getElementById('memoTodoEditModal'); if(!modal) return;
+    _saveScrollPosition();
+    _blockBackgroundScroll();
     modal.classList.add('open');
     _loadTodoFull();
   };
   window.closeMemoTodoEdit = function(){
     var modal = document.getElementById('memoTodoEditModal'); if(modal) modal.classList.remove('open');
+    _unblockBackgroundScroll();
+    _restoreScrollPosition();
     renderMemoCouple();
   };
 
@@ -1125,6 +1200,8 @@ loadLikeCounters();
   // Rouage → ouvre directement la liste complète (plus de sheet intermédiaire)
   window.nousOpenSouvenirGestion = function(){
     if(!_souvenirAllRows.length){ window.nousLoadSouvenirs(); }
+    _saveScrollPosition();
+    _blockBackgroundScroll();
     _renderGestionList();
     var overlay=document.getElementById('souvenirGestionOverlay');
     if(overlay){
@@ -1143,6 +1220,8 @@ loadLikeCounters();
   window.nousCloseSouvenirGestion = function(){
     var overlay=document.getElementById('souvenirGestionOverlay');
     if(overlay) overlay.classList.remove('open');
+    _unblockBackgroundScroll();
+    _restoreScrollPosition();
     document.body.style.overflow='';
   };
 
@@ -1211,6 +1290,8 @@ loadLikeCounters();
   window.nousOpenSouvenirModal = function(souvenir){
     var isNew=!souvenir;
     var modal=document.getElementById('souvenirModal'); if(!modal) return;
+    _saveScrollPosition();
+    _blockBackgroundScroll();
     document.getElementById('souvenirModalTitle').textContent=isNew?'Nouveau souvenir':'Modifier le souvenir';
     document.getElementById('souvenirInputTitle').value=isNew?'':(souvenir.title||'');
     var _dateVal=isNew?'':(souvenir.date?souvenir.date.substring(0,10):'');
@@ -1233,6 +1314,8 @@ loadLikeCounters();
 
   window.closeSouvenirModal=function(){
     var modal=document.getElementById('souvenirModal'); if(modal) modal.classList.remove('open');
+    _unblockBackgroundScroll();
+    _restoreScrollPosition();
   };
 
   window.souvenirPhotoClick=function(){
@@ -1394,6 +1477,8 @@ loadLikeCounters();
 
   window.nousOpenActiviteModal=function(act){
     var modal=document.getElementById('activiteModal'); if(!modal) return;
+    _saveScrollPosition();
+    _blockBackgroundScroll();
     var isNew=!act||!act.id;
     document.getElementById('activiteModalTitle').textContent=isNew?'Nouvelle activité':'Modifier l\'activité';
     document.getElementById('activiteInputTitre').value=isNew?'':(act.title||'');
@@ -1417,6 +1502,8 @@ loadLikeCounters();
 
   window.closeActiviteModal=function(){
     var modal=document.getElementById('activiteModal'); if(modal) modal.classList.remove('open');
+    _unblockBackgroundScroll();
+    _restoreScrollPosition();
   };
 
   window.activiteSave=function(){
