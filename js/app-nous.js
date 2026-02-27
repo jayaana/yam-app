@@ -766,122 +766,123 @@ loadLikeCounters();
 
   function _getCoupleId(){ try{ var s=JSON.parse(localStorage.getItem('yam_v2_session')||'null'); return s&&s.user?s.user.couple_id:null; }catch(e){ return null; } }
 
+  // Cache local des souvenirs
+  var _souvenirAllRows = [];
+
   window.nousLoadSouvenirs = function(){
     var coupleId=_getCoupleId(); if(!coupleId) return;
-    var grid=document.getElementById('souvenirsGrid'); if(!grid) return;
-    grid.innerHTML='<div style="text-align:center;color:var(--muted);padding:24px;font-size:13px;">Chargement...</div>';
-    fetch(SB2_URL+'/rest/v1/v2_memories?couple_id=eq.'+coupleId+'&order=date.desc&select=*',{headers:sb2Headers()})
+    fetch(SB2_URL+'/rest/v1/v2_memories?couple_id=eq.'+coupleId+'&order=created_at.desc&select=*',{headers:sb2Headers()})
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(rows){
-      grid.innerHTML='';
-      // Bouton ajout
-      var addBtn=document.createElement('div'); addBtn.className='souvenir-add-btn';
-      addBtn.innerHTML='<div style="font-size:28px;">📸</div><div style="font-size:12px;color:var(--muted);margin-top:6px;">Ajouter</div>';
-      addBtn.addEventListener('click',function(){ nousOpenSouvenirModal(null); }); grid.appendChild(addBtn);
-      if(!Array.isArray(rows)||!rows.length){
-        var empty=document.createElement('div'); empty.className='souvenir-empty'; empty.style.cssText='grid-column:span 2;text-align:center;color:var(--muted);font-size:13px;padding:20px;';
-        empty.textContent='Pas encore de souvenirs 🌟'; grid.appendChild(empty); return;
-      }
-      rows.forEach(function(s){ grid.appendChild(_buildSouvenirCard(s)); });
-    }).catch(function(){ grid.innerHTML='<div style="color:var(--muted);font-size:13px;padding:16px;">❌ Erreur de chargement</div>'; });
+      _souvenirAllRows = Array.isArray(rows)?rows:[];
+      _renderSouvenirRows(_souvenirAllRows);
+    }).catch(function(){ });
   };
+
+  function _renderSouvenirRows(rows){
+    var recentRow    = document.getElementById('souvenirsRecentRow');
+    var favRow       = document.getElementById('souvenirsFavRow');
+    var emptyEl      = document.getElementById('souvenirsEmpty');
+    var recentScroll = document.getElementById('souvenirsRecentScroll');
+    var favScroll    = document.getElementById('souvenirsFavScroll');
+    if(!recentRow||!favRow||!recentScroll||!favScroll||!emptyEl) return;
+    recentScroll.innerHTML=''; favScroll.innerHTML='';
+    if(!rows.length){
+      recentRow.style.display='none'; favRow.style.display='none';
+      emptyEl.style.display='block'; return;
+    }
+    emptyEl.style.display='none';
+    var recent5 = rows.slice(0,5);
+    var recent5ids = recent5.map(function(s){ return s.id; });
+    var favs = rows.filter(function(s){ return s.is_fav && recent5ids.indexOf(s.id)===-1; }).slice(0,5);
+    if(recent5.length){
+      recentRow.style.display='block';
+      recent5.forEach(function(s){ recentScroll.appendChild(_buildSouvenirCard(s)); });
+    } else { recentRow.style.display='none'; }
+    if(favs.length){
+      favRow.style.display='block';
+      favs.forEach(function(s){ favScroll.appendChild(_buildSouvenirCard(s)); });
+    } else { favRow.style.display='none'; }
+  }
 
   function _buildSouvenirCard(s){
     var card=document.createElement('div'); card.className='souvenir-card';
-    var photoUrl=s.photo_url?s.photo_url:'';
-    var dateStr=s.date?new Date(s.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'}):'';
+    var photoUrl=s.photo_url||'';
+    var dateStr=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'';
+    var photoStyle=photoUrl?'background-image:url('+escHtml(photoUrl)+');':'';
+    var pencilSVG='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
     card.innerHTML=
-      '<div class="souvenir-photo" style="'+(photoUrl?'background-image:url('+escHtml(photoUrl)+');background-size:cover;background-position:center;':'background:var(--s2);display:flex;align-items:center;justify-content:center;')+'">'+
-      (photoUrl?'':'<span style="font-size:32px;">📷</span>')+
-      (s.lieu?'<div class="souvenir-lieu">📍 '+escHtml(s.lieu)+'</div>':'')+
-      '</div>'+
-      '<div class="souvenir-info">'+
-      '<div class="souvenir-name">'+escHtml(s.title||'Souvenir')+'</div>'+
-      (dateStr?'<div class="souvenir-date">'+escHtml(dateStr)+'</div>':'')+
-      (s.description?'<div class="souvenir-desc">'+escHtml(s.description)+'</div>':'')+
-      '<div class="souvenir-edit-btn">✏️ Modifier</div>'+
-      '</div>';
-    card.querySelector('.souvenir-edit-btn').addEventListener('click',function(e){ e.stopPropagation(); nousOpenSouvenirModal(s); });
+      '<div class="souvenir-photo" style="'+photoStyle+'">'
+      +(photoUrl?'':'<span style="font-size:28px;opacity:0.3;">&#128247;</span>')
+      +(s.lieu?'<div class="souvenir-lieu">&#128205; '+escHtml(s.lieu)+'</div>':'')
+      +'<div class="souvenir-edit-icon">'+pencilSVG+'</div>'
+      +'</div>'
+      +'<div class="souvenir-info">'
+      +'<div class="souvenir-name">'+escHtml(s.title||'Souvenir')+'</div>'
+      +(dateStr?'<div class="souvenir-date">'+escHtml(dateStr)+'</div>':'')
+      +'</div>';
+    card.querySelector('.souvenir-edit-icon').addEventListener('click',function(e){ e.stopPropagation(); nousOpenSouvenirModal(s); });
+    card.addEventListener('click',function(){ nousOpenSouvenirModal(s); });
     return card;
   }
 
-  window.nousOpenSouvenirModal = function(souvenir){
-    var isNew=!souvenir;
-    var modal=document.getElementById('souvenirModal'); if(!modal) return;
-    document.getElementById('souvenirModalTitle').textContent=isNew?'Nouveau souvenir 📸':'Modifier le souvenir';
-    document.getElementById('souvenirInputTitle').value=isNew?'':(souvenir.title||'');
-    var _dateVal=isNew?'':(souvenir.date?souvenir.date.substring(0,10):'');
-    document.getElementById('souvenirInputDate').value=_dateVal;
-    var _dateLabel=document.getElementById('souvenirDateLabel');
-    if(_dateLabel){if(_dateVal){_dateLabel.style.color='var(--text)';_dateLabel.textContent=new Date(_dateVal+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});}else{_dateLabel.style.color='var(--muted)';_dateLabel.textContent='Date du souvenir...';} }
-    document.getElementById('souvenirInputLieu').value=isNew?'':(souvenir.lieu||'');
-    document.getElementById('souvenirInputDesc').value=isNew?'':(souvenir.description||'');
-    var delBtn=document.getElementById('souvenirModalDelBtn'); if(delBtn) delBtn.style.display=isNew?'none':'block';
-    var photoPreview=document.getElementById('souvenirPhotoPreview');
-    if(photoPreview){ photoPreview.style.backgroundImage=souvenir&&souvenir.photo_url?'url('+escHtml(souvenir.photo_url)+')':''; photoPreview.innerHTML=souvenir&&souvenir.photo_url?'':'<div style="font-size:24px;color:var(--muted);">📷</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">Ajouter une photo</div>'; }
-    modal.dataset.souvenirId=souvenir?souvenir.id:'';
-    modal.dataset.photoUrl=souvenir&&souvenir.photo_url?souvenir.photo_url:'';
-    modal.classList.add('open');
+  window.nousOpenSouvenirGestion = function(){
+    var overlay=document.getElementById('souvenirGestionOverlay'); if(!overlay) return;
+    _renderGestionList();
+    overlay.style.display='flex';
   };
 
-  window.closeSouvenirModal=function(){
-    var modal=document.getElementById('souvenirModal'); if(modal) modal.classList.remove('open');
+  window.nousCloseSouvenirGestion = function(){
+    var overlay=document.getElementById('souvenirGestionOverlay'); if(overlay) overlay.style.display='none';
   };
 
-  window.souvenirPhotoClick=function(){
-    var inp=document.getElementById('souvenirPhotoInput'); if(inp){ inp.value=''; inp.click(); }
-  };
-
-  window.souvenirHandlePhoto=function(input){
-    if(!input.files||!input.files[0]) return;
-    var file=input.files[0]; var coupleId=_getCoupleId(); if(!coupleId) return;
-    var modal=document.getElementById('souvenirModal');
-    var preview=document.getElementById('souvenirPhotoPreview');
-    if(preview){ preview.innerHTML='<div style="font-size:13px;color:var(--muted);">Envoi...</div>'; }
-    var path='memories/'+coupleId+'/'+Date.now()+'.jpg';
-    fetch(SB2_URL+'/storage/v1/object/images/'+path,{method:'POST',headers:Object.assign({'Content-Type':file.type,'x-upsert':'true'},sb2Headers()),body:file})
-    .then(function(r){ return r.text().then(function(){ return r.ok; }); })
-    .then(function(ok){
-      if(ok){
-        var url=SB2_URL+'/storage/v1/object/public/images/'+path;
-        if(modal) modal.dataset.photoUrl=url;
-        if(preview){ preview.style.backgroundImage='url('+url+')'; preview.style.backgroundSize='cover'; preview.style.backgroundPosition='center'; preview.innerHTML=''; }
-      } else { if(preview) preview.innerHTML='<div style="font-size:11px;color:#e05555;">Erreur upload</div>'; }
-    }).catch(function(){ if(preview) preview.innerHTML='<div style="font-size:11px;color:#e05555;">Erreur réseau</div>'; });
-  };
-
-  window.souvenirSave=function(){
-    var modal=document.getElementById('souvenirModal'); if(!modal) return;
-    var coupleId=_getCoupleId(); if(!coupleId) return;
-    var id=modal.dataset.souvenirId;
-    var data={
-      couple_id:coupleId,
-      title:document.getElementById('souvenirInputTitle').value.trim()||'Souvenir',
-      date:document.getElementById('souvenirInputDate').value||null,
-      lieu:document.getElementById('souvenirInputLieu').value.trim()||null,
-      description:document.getElementById('souvenirInputDesc').value.trim()||null,
-      photo_url:modal.dataset.photoUrl||null
-    };
-    var saveBtn=document.getElementById('souvenirSaveBtn'); if(saveBtn){ saveBtn.textContent='⏳'; saveBtn.disabled=true; }
-    var done=function(){ if(saveBtn){ saveBtn.textContent='Sauvegarder 💾'; saveBtn.disabled=false; } window.closeSouvenirModal(); window.nousLoadSouvenirs(); };
-    if(id){
-      fetch(SB2_URL+'/rest/v1/v2_memories?id=eq.'+id,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
-      .then(done).catch(done);
-    } else {
-      fetch(SB2_URL+'/rest/v1/v2_memories',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
-      .then(done).catch(done);
+  function _renderGestionList(){
+    var list=document.getElementById('souvenirGestionList'); if(!list) return;
+    list.innerHTML='';
+    if(!_souvenirAllRows.length){
+      list.innerHTML='<div style="text-align:center;color:var(--muted);font-size:13px;padding:32px;">Aucun souvenir pour l\'instant &#127775;</div>';
+      return;
     }
-  };
+    var heartFilled='<svg width="22" height="22" viewBox="0 0 24 24" fill="#e879a0" stroke="#e879a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+    var heartEmpty='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+    _souvenirAllRows.forEach(function(s){
+      var row=document.createElement('div'); row.className='souvenir-gestion-row';
+      var photoStyle=s.photo_url?'background-image:url('+escHtml(s.photo_url)+');':'';
+      var dateStr=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):'';
+      var isFav=!!s.is_fav;
+      row.innerHTML=
+        '<div class="souvenir-gestion-photo" style="'+photoStyle+'">'
+        +(s.photo_url?'':'<span style="font-size:22px;opacity:0.3;">&#128247;</span>')
+        +'</div>'
+        +'<div class="souvenir-gestion-info">'
+          +'<div class="souvenir-gestion-title">'+escHtml(s.title||'Souvenir')+'</div>'
+          +'<div class="souvenir-gestion-meta">'+(dateStr?escHtml(dateStr):'')+(s.lieu?' &middot; &#128205;'+escHtml(s.lieu):'')+'</div>'
+          +(s.description?'<div class="souvenir-gestion-meta" style="margin-top:2px;color:var(--sub);">'+escHtml(s.description.substring(0,60))+(s.description.length>60?'&hellip;':'')+'</div>':'')
+        +'</div>'
+        +'<button class="souvenir-fav-btn'+(isFav?' active':'')+'" aria-label="Favori" data-id="'+escHtml(String(s.id))+'">'+
+        (isFav?heartFilled:heartEmpty)+
+        '</button>';
+      row.querySelector('.souvenir-fav-btn').addEventListener('click',function(){
+        var id=this.dataset.id;
+        var souv=_souvenirAllRows.filter(function(x){ return String(x.id)===String(id); })[0];
+        if(!souv) return;
+        var newFav=!souv.is_fav; souv.is_fav=newFav;
+        var btn=this;
+        fetch(SB2_URL+'/rest/v1/v2_memories?id=eq.'+id,{
+          method:'PATCH',
+          headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
+          body:JSON.stringify({is_fav:newFav})
+        }).catch(function(){ souv.is_fav=!newFav; _renderGestionList(); });
+        btn.classList.toggle('active',newFav);
+        btn.innerHTML=newFav?heartFilled:heartEmpty;
+        _renderSouvenirRows(_souvenirAllRows);
+      });
+      row.querySelector('.souvenir-gestion-photo').addEventListener('click',function(){ nousOpenSouvenirModal(s); nousCloseSouvenirGestion(); });
+      row.querySelector('.souvenir-gestion-info').addEventListener('click',function(){ nousOpenSouvenirModal(s); nousCloseSouvenirGestion(); });
+      list.appendChild(row);
+    });
+  }
 
-  window.souvenirDelete=function(){
-    var modal=document.getElementById('souvenirModal'); if(!modal) return;
-    var id=modal.dataset.souvenirId; if(!id) return;
-    if(!confirm('Supprimer ce souvenir ?')) return;
-    fetch(SB2_URL+'/rest/v1/v2_memories?id=eq.'+id,{method:'DELETE',headers:sb2Headers()})
-    .then(function(){ window.closeSouvenirModal(); window.nousLoadSouvenirs(); }).catch(function(){});
-  };
-
-  // Fermer en cliquant dehors (direct — DOM déjà prêt quand app-nous.js s'exécute)
   var _souvenirM=document.getElementById('souvenirModal');
   if(_souvenirM) _souvenirM.addEventListener('click',function(e){ if(e.target===_souvenirM) window.closeSouvenirModal(); });
 
