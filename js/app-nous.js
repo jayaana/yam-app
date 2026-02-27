@@ -7,18 +7,20 @@
 
 
 // ════════════════════════════════════════════════════════════════════
-// 0. VERROU BETA — À SUPPRIMER APRÈS REFONTE
-// Code : groschantier — session localStorage 'yam_nous_beta'
+// 0. ACCÈS BETA — Code d'accès requis (section en cours de développement)
 // ════════════════════════════════════════════════════════════════════
 (function(){
 
-  var BETA_CODE    = 'groschantier';
-  var BETA_SESSION = 'yam_nous_beta';
+  // ── Code d'accès beta — à changer quand la section sera stable ──
+  var BETA_CODE = 'groschantier';
+  var LS_KEY    = 'yam_nous_beta_unlocked';
 
+  // Vérifie si déjà déverrouillé en session
   function _isUnlocked() {
-    return localStorage.getItem(BETA_SESSION) === '1';
+    return sessionStorage.getItem(LS_KEY) === '1';
   }
 
+  // Affiche le contenu (après unlock)
   function _nousShowContent() {
     var overlay = document.getElementById('nousLockOverlay');
     var content = document.getElementById('nousContentWrapper');
@@ -30,58 +32,63 @@
     }
   }
 
-  function _showBetaLock() {
+  // Affiche l'overlay de code d'accès beta
+  function _nousShowBetaGate() {
     var overlay = document.getElementById('nousLockOverlay');
     var content = document.getElementById('nousContentWrapper');
     if (content) content.style.display = 'none';
     if (!overlay) return;
-
-    overlay.style.display  = 'flex';
-    overlay.style.flexDirection = 'column';
-    overlay.style.alignItems    = 'center';
-    overlay.style.justifyContent= 'center';
-    overlay.style.gap      = '16px';
-    overlay.style.padding  = '32px';
-
-    if (overlay.querySelector('.beta-lock-form')) return;
-
-    overlay.innerHTML =
-      '<div class="beta-lock-form" style="display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:280px;">' +
-        '<div style="font-size:32px;">🔧</div>' +
-        '<p style="margin:0;font-size:14px;color:#aaa;text-align:center;">Section en cours de refonte<br><span style="font-size:12px;opacity:.6;">Accès restreint — beta</span></p>' +
-        '<input id="betaCodeInput" type="password" placeholder="Code d'accès" ' +
-          'style="width:100%;padding:12px 16px;border-radius:12px;border:1px solid #2d5a3d;' +
-          'background:#0d2818;color:#fff;font-size:15px;text-align:center;outline:none;" />' +
-        '<button id="betaCodeBtn" onclick="nousCheckLock()" ' +
-          'style="width:100%;padding:12px;border-radius:12px;background:#2d5a3d;color:#fff;' +
-          'font-size:14px;font-weight:600;border:none;cursor:pointer;">Entrer</button>' +
-        '<p id="betaCodeErr" style="margin:0;color:#e8507a;font-size:12px;display:none;">Code incorrect</p>' +
-      '</div>';
-
-    setTimeout(function(){
-      var inp = document.getElementById('betaCodeInput');
-      if (inp) inp.addEventListener('keydown', function(e){
-        if (e.key === 'Enter') window.nousCheckLock();
-      });
-    }, 50);
+    overlay.style.display = 'flex';
+    // Injecte le formulaire beta si pas déjà là
+    if (!overlay.querySelector('.nous-beta-gate')) {
+      overlay.innerHTML =
+        '<div class="nous-beta-gate" style="' +
+          'display:flex;flex-direction:column;align-items:center;gap:18px;' +
+          'padding:36px 28px;background:rgba(15,15,26,0.97);border-radius:20px;' +
+          'border:1px solid rgba(255,255,255,0.08);max-width:320px;width:90%;text-align:center;' +
+        '">' +
+          '<div style="font-size:2rem;">🔒</div>' +
+          '<div style="font-weight:700;font-size:1.1rem;color:#fff;">Section en beta</div>' +
+          '<div style="font-size:0.85rem;color:rgba(255,255,255,0.5);line-height:1.5;">' +
+            'Cette section est encore en développement.<br>Entre le code d\'accès pour y accéder.' +
+          '</div>' +
+          '<input id="nousBetaInput" type="password" placeholder="Code d\'accès…" ' +
+            'style="width:100%;padding:12px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);' +
+            'background:rgba(255,255,255,0.07);color:#fff;font-size:1rem;text-align:center;outline:none;" ' +
+            'onkeydown="if(event.key===\'Enter\') window.nousBetaSubmit()" />' +
+          '<div id="nousBetaError" style="font-size:0.82rem;color:#ff6b6b;min-height:18px;"></div>' +
+          '<button onclick="window.nousBetaSubmit()" ' +
+            'style="width:100%;padding:13px;border-radius:12px;border:none;' +
+            'background:linear-gradient(135deg,#e91e8c,#9c27b0);color:#fff;font-weight:700;' +
+            'font-size:1rem;cursor:pointer;">Accéder ✨</button>' +
+        '</div>';
+      // Focus auto
+      setTimeout(function(){ var inp=document.getElementById('nousBetaInput'); if(inp) inp.focus(); }, 100);
+    }
   }
 
+  // Soumission du code
+  window.nousBetaSubmit = function() {
+    var inp = document.getElementById('nousBetaInput');
+    var err = document.getElementById('nousBetaError');
+    if (!inp) return;
+    if (inp.value.trim() === BETA_CODE) {
+      sessionStorage.setItem(LS_KEY, '1');
+      if (err) err.textContent = '';
+      _nousShowContent();
+    } else {
+      if (err) err.textContent = 'Code incorrect, réessaie 🙈';
+      inp.value = '';
+      inp.focus();
+    }
+  };
+
+  // Point d'entrée appelé par yamSwitchTab
   window.nousCheckLock = function() {
     if (_isUnlocked()) {
       _nousShowContent();
-      return;
-    }
-    var inp = document.getElementById('betaCodeInput');
-    if (inp && inp.value.trim().toLowerCase() === BETA_CODE) {
-      localStorage.setItem(BETA_SESSION, '1');
-      _nousShowContent();
-    } else if (inp) {
-      var err = document.getElementById('betaCodeErr');
-      if (err) err.style.display = 'block';
-      inp.value = '';
-      inp.focus();
     } else {
-      _showBetaLock();
+      _nousShowBetaGate();
     }
   };
 
@@ -170,13 +177,14 @@ window.nousSignalNew = function() {
 (function(){
   var SB_BUCKET = 'images';
   var SLOTS = ['animal','fleurs','personnage','saison','repas'];
-  function _elleFolder(){ var cid=_getCoupleId(); return cid ? 'elle/'+cid : 'elle'; }
   var ELLE_DESC_DEFAULTS = {
     animal:'Un regard doux', fleurs:'Pleine de couleurs', personnage:'Attachante',
     saison:'Un rayon de soleil', repas:'Son repas préféré'
   };
   var _currentSlot = null;
   function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
+  // Path isolé par couple : uploads/{coupleId}/{slot}-elle.jpg
+  function _ellePath(coupleId, slot){ return 'uploads/'+coupleId+'/'+slot+'-elle.jpg'; }
 
   // Sync visibilité :
   // - boy voit SA section LUI (visible), ELLE masquée par défaut
@@ -235,8 +243,9 @@ window.nousSignalNew = function() {
   };
 
   window.elleLoadImages = function(){
+    var coupleId = _getCoupleId(); if(!coupleId) return;
     SLOTS.forEach(function(slot){
-      var url = SB2_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + _elleFolder() + '/' + slot + '.jpg?t=' + Date.now();
+      var url = SB2_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + _ellePath(coupleId, slot) + '?t=' + Date.now();
       var img = document.getElementById('elle-img-' + slot);
       if(!img) return;
       var probe = new Image();
@@ -263,13 +272,15 @@ window.nousSignalNew = function() {
     var bar     = document.getElementById('elle-bar-' + slot);
     if(loading) loading.classList.add('show');
     if(bar){ bar.style.width='0%'; setTimeout(function(){ bar.style.width='60%'; },100); }
-    fetch(SB2_URL+'/storage/v1/object/'+SB_BUCKET+'/'+_elleFolder()+'/'+slot+'.jpg', {
+    var coupleId=_getCoupleId(); if(!coupleId){ alert('Session introuvable'); return; }
+    var filePath = _ellePath(coupleId, slot);
+    fetch(SB2_URL+'/storage/v1/object/'+SB_BUCKET+'/'+filePath, {
       method:'POST', headers:Object.assign({'Content-Type':file.type,'x-upsert':'true'},sb2Headers()), body:file
     }).then(function(r){
       if(bar) bar.style.width='100%';
       return r.text().then(function(body){
         if(loading) loading.classList.remove('show');
-        if(r.ok){ var img=document.getElementById('elle-img-'+slot); if(img) img.src=SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+_elleFolder()+'/'+slot+'.jpg?t='+Date.now(); }
+        if(r.ok){ var img=document.getElementById('elle-img-'+slot); if(img) img.src=SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+filePath+'?t='+Date.now(); }
         else alert('Erreur '+r.status+' : '+body);
       });
     }).catch(function(err){ if(loading) loading.classList.remove('show'); alert('Erreur réseau : '+err); });
@@ -310,10 +321,11 @@ window.nousSignalNew = function() {
 (function(){
   var SB_BUCKET='images';
   var SLOTS=['animal','fleurs','personnage','saison','repas'];
-  function _luiFolder(){ var cid=_getCoupleId(); return cid ? 'lui/'+cid : 'lui'; }
   var LUI_DESC_DEFAULTS={animal:'Son animal',fleurs:'Ses fleurs',personnage:'Son personnage',saison:'Sa saison',repas:'Son repas préféré'};
   var _currentSlot=null;
   function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
+  // Path isolé par couple : uploads/{coupleId}/{slot}-lui.jpg
+  function _luiPath(coupleId, slot){ return 'uploads/'+coupleId+'/'+slot+'-lui.jpg'; }
 
   // Rouage LUI : girl peut ouvrir/fermer la section LUI pour décrire son copain
   window.luiToggleSection = function(){
@@ -331,8 +343,9 @@ window.nousSignalNew = function() {
   };
 
   window.luiLoadImages=function(){
+    var coupleId=_getCoupleId(); if(!coupleId) return;
     SLOTS.forEach(function(slot){
-      var url=SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+_luiFolder()+'/'+slot+'.jpg?t='+Date.now();
+      var url=SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+_luiPath(coupleId,slot)+'?t='+Date.now();
       var img=document.getElementById('lui-img-'+slot);
       var empty=document.getElementById('lui-empty-'+slot);
       var btn=document.getElementById('lui-btn-'+slot);
@@ -366,7 +379,9 @@ window.nousSignalNew = function() {
     var loading=document.getElementById('lui-loading-'+slot); var bar=document.getElementById('lui-bar-'+slot);
     if(loading) loading.classList.add('show');
     if(bar){ bar.style.width='0%'; setTimeout(function(){ bar.style.width='60%'; },100); }
-    fetch(SB2_URL+'/storage/v1/object/'+SB_BUCKET+'/'+_luiFolder()+'/'+slot+'.jpg',{
+    var coupleId=_getCoupleId(); if(!coupleId){ alert('Session introuvable'); return; }
+    var filePath=_luiPath(coupleId,slot);
+    fetch(SB2_URL+'/storage/v1/object/'+SB_BUCKET+'/'+filePath,{
       method:'POST',headers:Object.assign({'Content-Type':file.type,'x-upsert':'true'},sb2Headers()),body:file
     }).then(function(r){
       if(bar) bar.style.width='100%';
@@ -374,7 +389,7 @@ window.nousSignalNew = function() {
         if(loading) loading.classList.remove('show');
         if(r.ok){
           var img=document.getElementById('lui-img-'+slot); var emptyEl=document.getElementById('lui-empty-'+slot); var btnEl=document.getElementById('lui-btn-'+slot);
-          var newUrl=SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+_luiFolder()+'/'+slot+'.jpg?t='+Date.now();
+          var newUrl=SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+filePath+'?t='+Date.now();
           if(img){ img.src=newUrl; img.style.display=''; } if(emptyEl) emptyEl.style.display='none'; if(btnEl) btnEl.classList.remove('empty');
         } else alert('Erreur '+r.status+' : '+body);
       });
