@@ -252,6 +252,9 @@ window.nousSignalNew = function() {
       if(!img) return;
       var probe = new Image();
       probe.onload = function(){
+        if(!probe.naturalWidth||probe.naturalWidth<10){
+          img.style.display='none'; if(empty) empty.style.display=''; if(btn) btn.classList.add('empty'); return;
+        }
         img.src = url; img.style.display = '';
         if(empty) empty.style.display = 'none';
         if(btn) btn.classList.remove('empty');
@@ -361,7 +364,12 @@ window.nousSignalNew = function() {
       var btn=document.getElementById('lui-btn-'+slot);
       if(!img) return;
       var probe=new Image();
-      probe.onload=function(){ img.src=url; img.style.display=''; if(empty) empty.style.display='none'; if(btn) btn.classList.remove('empty'); };
+      probe.onload=function(){
+        if(!probe.naturalWidth||probe.naturalWidth<10){
+          img.style.display='none'; if(empty) empty.style.display=''; if(btn) btn.classList.add('empty'); return;
+        }
+        img.src=url; img.style.display=''; if(empty) empty.style.display='none'; if(btn) btn.classList.remove('empty');
+      };
       probe.onerror=function(){ img.style.display='none'; if(empty) empty.style.display=''; if(btn) btn.classList.add('empty'); };
       probe.src=url;
     });
