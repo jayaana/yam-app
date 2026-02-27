@@ -810,7 +810,10 @@ loadLikeCounters();
     var modal=document.getElementById('souvenirModal'); if(!modal) return;
     document.getElementById('souvenirModalTitle').textContent=isNew?'Nouveau souvenir 📸':'Modifier le souvenir';
     document.getElementById('souvenirInputTitle').value=isNew?'':(souvenir.title||'');
-    document.getElementById('souvenirInputDate').value=isNew?'':(souvenir.date?souvenir.date.substring(0,10):'');
+    var _dateVal=isNew?'':(souvenir.date?souvenir.date.substring(0,10):'');
+    document.getElementById('souvenirInputDate').value=_dateVal;
+    var _dateLabel=document.getElementById('souvenirDateLabel');
+    if(_dateLabel){if(_dateVal){_dateLabel.style.color='var(--text)';_dateLabel.textContent=new Date(_dateVal+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});}else{_dateLabel.style.color='var(--muted)';_dateLabel.textContent='Date du souvenir...';} }
     document.getElementById('souvenirInputLieu').value=isNew?'':(souvenir.lieu||'');
     document.getElementById('souvenirInputDesc').value=isNew?'':(souvenir.description||'');
     var delBtn=document.getElementById('souvenirModalDelBtn'); if(delBtn) delBtn.style.display=isNew?'none':'block';
