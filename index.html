@@ -2682,45 +2682,23 @@ window.addEventListener('load', function(){
     var el = document.getElementById(id);
     if (el) el.style.maxHeight = el.scrollHeight + 500 + 'px';
   });
-  // Modales souvenirs/activités — afficher flex au clic
+  // (modales souvenirs/activités gérées via CSS .nous-modal-overlay.open)
+});
+
+// Modales souvenirs/activités : ouverture/fermeture via CSS class .open (géré dans app-nous.js)
+// Les fonctions closeSouvenirModal / closeActiviteModal sont définies dans app-nous.js
+// On s'assure juste que le clic dehors ferme aussi la modale
+document.addEventListener('DOMContentLoaded', function(){
   ['souvenirModal','activiteModal'].forEach(function(id){
     var m = document.getElementById(id);
     if (!m) return;
-    m.style.display = 'none';
-    // Override pour afficher flex
-    var origOpen = m.classList.add.bind(m);
-    Object.defineProperty(m, 'classList', {
-      get: function() {
-        var orig = Element.prototype.__lookupGetter__('classList').call(m);
-        return orig;
+    m.addEventListener('click', function(e){
+      if (e.target === m) {
+        m.classList.remove('open');
       }
     });
   });
 });
-
-// Surcharge pour ouvrir les modales en flex
-var _origNousOpenSouvenir = window.nousOpenSouvenirModal;
-window.nousOpenSouvenirModal = function(s) {
-  if (_origNousOpenSouvenir) _origNousOpenSouvenir(s);
-  var m = document.getElementById('souvenirModal');
-  if (m) m.style.display = 'flex';
-};
-var _origNousCloseS = window.closeSouvenirModal;
-window.closeSouvenirModal = function() {
-  var m = document.getElementById('souvenirModal');
-  if (m) m.style.display = 'none';
-};
-var _origOpenAct = window.nousOpenActiviteModal;
-window.nousOpenActiviteModal = function(a) {
-  if (_origOpenAct) _origOpenAct(a);
-  var m = document.getElementById('activiteModal');
-  if (m) m.style.display = 'flex';
-};
-var _origCloseAct = window.closeActiviteModal;
-window.closeActiviteModal = function() {
-  var m = document.getElementById('activiteModal');
-  if (m) m.style.display = 'none';
-};
 </script>
 
 <style>
