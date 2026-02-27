@@ -878,11 +878,9 @@ loadLikeCounters();
     .then(function(){ window.closeSouvenirModal(); window.nousLoadSouvenirs(); }).catch(function(){});
   };
 
-  // Fermer en cliquant dehors
-  document.addEventListener('DOMContentLoaded',function(){
-    var modal=document.getElementById('souvenirModal');
-    if(modal) modal.addEventListener('click',function(e){ if(e.target===this) window.closeSouvenirModal(); });
-  });
+  // Fermer en cliquant dehors (direct — DOM déjà prêt quand app-nous.js s'exécute)
+  var _souvenirM=document.getElementById('souvenirModal');
+  if(_souvenirM) _souvenirM.addEventListener('click',function(e){ if(e.target===_souvenirM) window.closeSouvenirModal(); });
 
 })();
 
@@ -1043,12 +1041,9 @@ loadLikeCounters();
     .then(function(){ window.closeActiviteModal(); window.nousLoadActivites(); }).catch(function(){});
   };
 
-  document.addEventListener('DOMContentLoaded',function(){
-    var modal=document.getElementById('activiteModal');
-    if(modal) modal.addEventListener('click',function(e){ if(e.target===this) window.closeActiviteModal(); });
-    var sModal=document.getElementById('souvenirModal');
-    if(sModal) sModal.addEventListener('click',function(e){ if(e.target===this) window.closeSouvenirModal(); });
-  });
+  // Fermer en cliquant dehors (direct — DOM déjà prêt quand app-nous.js s'exécute)
+  var _activiteM=document.getElementById('activiteModal');
+  if(_activiteM) _activiteM.addEventListener('click',function(e){ if(e.target===_activiteM) window.closeActiviteModal(); });
 
 })();
 
