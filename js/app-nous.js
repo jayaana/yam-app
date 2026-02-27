@@ -727,7 +727,10 @@ loadLikeCounters();
     var el = document.getElementById('memoNotePreview'); if(!el) return;
     var su = _getSession(); var coupleId = su?su.couple_id:null; if(!coupleId){ el.textContent=''; return; }
     fetch(SB2_URL+'/rest/v1/v2_memo_notes?couple_id=eq.'+coupleId+'&order=updated_at.desc&limit=1',{headers:sb2Headers()})
-    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(r){
+      if(!r.ok){ return r.text().then(function(t){ console.warn('[YAM memo]',r.status,t); return []; }); }
+      return r.json();
+    })
     .then(function(notes){
       if(!Array.isArray(notes)||!notes.length){
         el.innerHTML='<span style="color:var(--muted);font-size:12px;">Aucune note — appuie pour écrire</span>';
@@ -782,7 +785,10 @@ loadLikeCounters();
     var su = _getSession(); var coupleId = su?su.couple_id:null; if(!coupleId) return;
     // Note
     fetch(SB2_URL+'/rest/v1/v2_memo_notes?couple_id=eq.'+coupleId+'&order=updated_at.desc&limit=1',{headers:sb2Headers()})
-    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(r){
+      if(!r.ok){ return r.text().then(function(t){ console.warn('[YAM memo full]',r.status,t); return []; }); }
+      return r.json();
+    })
     .then(function(notes){
       var note = Array.isArray(notes)&&notes.length?notes[0]:null;
       _currentNoteId = note?note.id:null;
@@ -877,11 +883,14 @@ loadLikeCounters();
   window.nousLoadSouvenirs = function(){
     var coupleId=_getCoupleId(); if(!coupleId) return;
     fetch(SB2_URL+'/rest/v1/v2_memories?couple_id=eq.'+coupleId+'&order=created_at.desc&select=*',{headers:sb2Headers()})
-    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(r){
+      if(!r.ok){ return r.text().then(function(t){ console.warn('[YAM souvenirs] fetch error',r.status,t); return []; }); }
+      return r.json();
+    })
     .then(function(rows){
       _souvenirAllRows = Array.isArray(rows)?rows:[];
       _renderSouvenirRows(_souvenirAllRows);
-    }).catch(function(){ });
+    }).catch(function(e){ console.warn('[YAM souvenirs] catch',e); });
   };
 
   function _renderSouvenirRows(rows){
@@ -1080,11 +1089,15 @@ loadLikeCounters();
       photo_url:modal.dataset.photoUrl||null
     };
     var saveBtn=document.getElementById('souvenirSaveBtn'); if(saveBtn){ saveBtn.textContent='...'; saveBtn.disabled=true; }
-    var done=function(){ if(saveBtn){ saveBtn.textContent='Sauvegarder'; saveBtn.disabled=false; } window.closeSouvenirModal(); window.nousLoadSouvenirs(); };
+    var done=function(r){
+      if(r&&r.ok===false){ r.text().then(function(t){ console.warn('[YAM souvenir save] error',r.status,t); }); }
+      if(saveBtn){ saveBtn.textContent='Sauvegarder'; saveBtn.disabled=false; }
+      window.closeSouvenirModal(); window.nousLoadSouvenirs();
+    };
     if(id){
-      fetch(SB2_URL+'/rest/v1/v2_memories?id=eq.'+id,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done).catch(done);
+      fetch(SB2_URL+'/rest/v1/v2_memories?id=eq.'+id,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done).catch(function(e){ console.warn('[YAM souvenir save]',e); done(null); });
     } else {
-      fetch(SB2_URL+'/rest/v1/v2_memories',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done).catch(done);
+      fetch(SB2_URL+'/rest/v1/v2_memories',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done).catch(function(e){ console.warn('[YAM souvenir save]',e); done(null); });
     }
   };
 
