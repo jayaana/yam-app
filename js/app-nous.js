@@ -951,14 +951,14 @@ loadLikeCounters();
     var total=steps.length; var done=steps.filter(function(s){ return s.done; }).length;
     var pct=total>0?Math.round(done/total*100):0;
     var card=document.createElement('div'); card.className='activite-card';
-    var stepsHtml=steps.map(function(s,i){
-      return '<div class="activite-step'+(s.done?' done':'')+'">'+
-        '<div class="activite-step-check" onclick="nousToggleStep(\''+act.id+'\','+i+')">'+
-        (s.done?'✓':'')+
-        '</div>'+
+    // Construire le HTML sans JSON.stringify dans onclick
+    var stepsDiv='';
+    steps.forEach(function(s,i){
+      stepsDiv+='<div class="activite-step'+(s.done?' done':'')+'" data-idx="'+i+'">'+
+        '<div class="activite-step-check">'+(s.done?'✓':'')+'</div>'+
         '<div class="activite-step-text">'+escHtml(s.text)+'</div>'+
         '</div>';
-    }).join('');
+    });
     card.innerHTML=
       '<div class="activite-card-header">'+
       '<span class="activite-emoji">'+(act.emoji||'✨')+'</span>'+
@@ -966,11 +966,18 @@ loadLikeCounters();
       '<div class="activite-titre">'+escHtml(act.title||'Activité')+'</div>'+
       (act.description?'<div class="activite-desc">'+escHtml(act.description)+'</div>':'')+
       '</div>'+
-      '<button class="activite-edit-btn" onclick="nousOpenActiviteModal('+JSON.stringify(act)+')">✏️</button>'+
+      '<button class="activite-edit-btn">✏️</button>'+
       '</div>'+
       '<div class="activite-progress-wrap"><div class="activite-progress-bar"><div class="activite-progress-fill" style="width:'+pct+'%"></div></div><div class="activite-progress-txt">'+done+'/'+total+'</div></div>'+
-      (stepsHtml?'<div class="activite-steps">'+stepsHtml+'</div>':'')+
+      (stepsDiv?'<div class="activite-steps">'+stepsDiv+'</div>':'')+
       (pct===100?'<div class="activite-completed">🎉 Activité complétée !</div>':'');
+    // Event listeners propres — évite le crash JSON dans onclick HTML
+    card.querySelector('.activite-edit-btn').addEventListener('click', function(){ window.nousOpenActiviteModal(act); });
+    card.querySelectorAll('.activite-step').forEach(function(el){
+      el.querySelector('.activite-step-check').addEventListener('click', function(){
+        window.nousToggleStep(act.id, parseInt(el.dataset.idx));
+      });
+    });
     return card;
   }
 
