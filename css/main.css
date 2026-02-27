@@ -786,18 +786,25 @@ header::before {
   max-width: 140px;
 }
 .lui-desc-editable::after {
-  content: '✏️';
-  font-size: 9px;
-  opacity: 0.5;
-  transition: opacity 0.2s;
+  content: '';
+  display: inline-block;
+  width: 11px;
+  height: 11px;
   flex-shrink: 0;
-  line-height: 1;
+  opacity: 0.45;
+  transition: opacity 0.2s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%23aaaaaa' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7'/%3E%3Cpath d='M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
 }
 .lui-desc-editable:hover {
   color: #e879a0;
   background: rgba(232,121,160,0.10);
 }
-.lui-desc-editable:hover::after { opacity: 1; }
+.lui-desc-editable:hover::after {
+  opacity: 1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%23e879a0' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7'/%3E%3Cpath d='M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z'/%3E%3C/svg%3E");
+}
 .lui-desc-editable:active { background: rgba(232,121,160,0.18); transform: scale(0.97); }
 /* Modal édition description */
 #descEditModal {
