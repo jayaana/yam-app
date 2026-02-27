@@ -710,9 +710,6 @@
 <div id="memoCoupleSection" class="fade-in">
   <div class="memo-header-row">
     <div class="section-label" style="margin-bottom:0">Mémo couple</div>
-    <button onclick="openMemoPopup()" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--muted);display:flex;align-items:center;opacity:0.7;" aria-label="Modifier le mémo">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-    </button>
   </div>
   <!-- Note + Todo côte à côte — clics séparés -->
   <div class="memo-duo-wrap">
@@ -721,11 +718,21 @@
       <div class="memo-duo-title">Note</div>
       <div class="memo-duo-content" id="memoNotePreview"><span style="color:var(--muted);font-size:12px;">Aucune note</span></div>
       <div class="memo-duo-date" id="memoNoteDate"></div>
+      <div style="margin-top:8px;display:flex;justify-content:flex-end;" onclick="event.stopPropagation()">
+        <button onclick="openMemoNoteEdit()" style="background:none;border:none;cursor:pointer;padding:3px 5px;color:var(--muted);display:flex;align-items:center;opacity:0.7;" aria-label="Modifier la note">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+      </div>
     </div>
     <!-- Todo → ouvre vue lecture todo -->
     <div class="memo-duo-card" onclick="openMemoTodoView()" style="cursor:pointer;">
       <div class="memo-duo-title">To-do</div>
       <div class="memo-duo-content" id="memoTodoPreview"><span style="color:var(--muted);font-size:12px;">Liste vide</span></div>
+      <div style="margin-top:8px;display:flex;justify-content:flex-end;" onclick="event.stopPropagation()">
+        <button onclick="openMemoTodoEdit()" style="background:none;border:none;cursor:pointer;padding:3px 5px;color:var(--muted);display:flex;align-items:center;opacity:0.7;" aria-label="Modifier le to-do">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -825,59 +832,64 @@
   <div class="nous-modal-sheet" style="max-height:82vh;overflow-y:auto;display:flex;flex-direction:column;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-shrink:0;">
       <div id="memoNoteViewTitle" style="font-size:17px;font-weight:700;color:var(--text);">Note</div>
-      <span onclick="closeMemoNoteView()" style="font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;">✕</span>
     </div>
     <div id="memoNoteViewDate" style="font-size:11px;color:var(--muted);margin-bottom:14px;flex-shrink:0;"></div>
     <div id="memoNoteViewText" style="flex:1;font-size:15px;color:var(--text);line-height:1.7;white-space:pre-wrap;overflow-y:auto;"></div>
     <div style="display:flex;gap:10px;margin-top:20px;flex-shrink:0;">
       <button onclick="closeMemoNoteView()" style="flex:1;padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">Fermer</button>
-      <button onclick="closeMemoNoteView();openMemoPopup();" style="flex:1;padding:12px;background:linear-gradient(135deg,#e879a0,#9b59b6);border:none;border-radius:12px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;font-weight:700;cursor:pointer;">Modifier ✏️</button>
+      <button onclick="closeMemoNoteView();openMemoNoteEdit();" style="flex:1;padding:12px;background:linear-gradient(135deg,#e879a0,#9b59b6);border:none;border-radius:12px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Modifier</button>
     </div>
   </div>
 </div>
 
-<!-- ── Vue Todo (interactif + réordonnement) ── -->
+<!-- ── Vue Todo (lecture + cochable uniquement) ── -->
 <div id="memoTodoViewModal" class="nous-modal-overlay">
   <div class="nous-modal-sheet" style="max-height:86vh;overflow-y:auto;display:flex;flex-direction:column;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-shrink:0;">
       <div style="font-size:17px;font-weight:700;color:var(--text);">To-do list</div>
-      <span onclick="closeMemoTodoView()" style="font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;">✕</span>
     </div>
     <div id="memoTodoViewList" style="flex:1;display:flex;flex-direction:column;gap:6px;overflow-y:auto;"></div>
     <div style="display:flex;gap:10px;margin-top:20px;flex-shrink:0;">
       <button onclick="closeMemoTodoView()" style="flex:1;padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">Fermer</button>
-      <button onclick="closeMemoTodoView();openMemoPopup();" style="flex:1;padding:12px;background:linear-gradient(135deg,#e879a0,#9b59b6);border:none;border-radius:12px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;font-weight:700;cursor:pointer;">Modifier ✏️</button>
+      <button onclick="closeMemoTodoView();openMemoTodoEdit();" style="flex:1;padding:12px;background:linear-gradient(135deg,#e879a0,#9b59b6);border:none;border-radius:12px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Modifier</button>
     </div>
   </div>
 </div>
 
-<!-- Mémo popup modal — note unique + todo (ÉDITION via engrenage) -->
-<div id="memoPopupModal" class="nous-modal-overlay">
+<!-- ── Modal édition Note seule ── -->
+<div id="memoNoteEditModal" class="nous-modal-overlay">
   <div class="nous-modal-sheet" style="max-height:88vh;overflow-y:auto;display:flex;flex-direction:column;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-shrink:0;">
-      <div style="font-size:17px;font-weight:700;color:var(--text);">Mémo couple</div>
-      <span onclick="closeMemoPopup()" style="font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;">✕</span>
+      <div style="font-size:17px;font-weight:700;color:var(--text);">Modifier la note</div>
     </div>
-    <!-- Partie note -->
-    <div style="flex-shrink:0;margin-bottom:18px;">
-      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Note</div>
+    <div style="flex-shrink:0;">
       <input type="text" id="memoPopupTitleInput" placeholder="Titre..." maxlength="40" style="width:100%;padding:10px 12px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;margin-bottom:8px;">
-      <textarea id="memoPopupTextarea" placeholder="Écris ta note ici..." rows="5" style="width:100%;padding:10px 12px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;resize:none;line-height:1.5;"></textarea>
+      <textarea id="memoPopupTextarea" placeholder="Écris ta note ici..." rows="7" style="width:100%;padding:10px 12px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;resize:none;line-height:1.5;"></textarea>
       <div id="memoPopupDate" style="font-size:11px;color:var(--muted);margin-top:6px;"></div>
-      <button id="memoPopupSaveBtn" onclick="memoSaveNote()" style="width:100%;margin-top:10px;padding:11px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif;border:none;border-radius:10px;cursor:pointer;">Sauvegarder</button>
     </div>
-    <!-- Séparateur -->
-    <div style="border-top:1px solid var(--border);margin-bottom:16px;flex-shrink:0;"></div>
-    <!-- Partie todo -->
-    <div style="flex:1;min-height:0;">
-      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">To-do</div>
-      <div id="memoPopupTodoList" style="display:flex;flex-direction:column;gap:4px;"></div>
-      <div style="display:flex;gap:8px;margin-top:10px;">
-        <input type="text" id="memoPopupTodoInput" placeholder="Ajouter un item..." maxlength="120" style="flex:1;padding:10px 12px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;">
-        <button onclick="memoAddTodoItem()" style="padding:10px 16px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:18px;cursor:pointer;font-family:'DM Sans',sans-serif;">+</button>
-      </div>
+    <div style="display:flex;gap:10px;margin-top:14px;flex-shrink:0;">
+      <button onclick="closeMemoNoteEdit()" style="flex:1;padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">Annuler</button>
+      <button id="memoPopupSaveBtn" onclick="memoSaveNote()" style="flex:1;padding:12px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif;border:none;border-radius:12px;cursor:pointer;">Sauvegarder</button>
     </div>
   </div>
+</div>
+
+<!-- ── Modal édition To-do seule ── -->
+<div id="memoTodoEditModal" class="nous-modal-overlay">
+  <div class="nous-modal-sheet" style="max-height:88vh;overflow-y:auto;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-shrink:0;">
+      <div style="font-size:17px;font-weight:700;color:var(--text);">Modifier la to-do</div>
+    </div>
+    <div id="memoPopupTodoList" style="display:flex;flex-direction:column;gap:4px;flex:1;min-height:0;overflow-y:auto;"></div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-shrink:0;">
+      <input type="text" id="memoPopupTodoInput" placeholder="Ajouter un item..." maxlength="120" style="flex:1;padding:10px 12px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;">
+      <button onclick="memoAddTodoItem()" style="padding:10px 16px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:18px;cursor:pointer;font-family:'DM Sans',sans-serif;">+</button>
+    </div>
+    <div style="margin-top:14px;flex-shrink:0;">
+      <button onclick="closeMemoTodoEdit()" style="width:100%;padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">Fermer</button>
+    </div>
+  </div>
+</div>
 </div>
 
 <!-- Petits mots — gestion (mes mots écrits pour mon partenaire) -->
