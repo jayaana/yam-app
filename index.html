@@ -744,8 +744,33 @@
 <div class="section fade-in" id="souvenirsSection">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:26px 16px 12px;">
     <div class="section-label" style="padding:0;margin:0;">Nos souvenirs 📸</div>
+    <button onclick="nousOpenSouvenirGestion()" style="background:none;border:none;cursor:pointer;padding:6px;color:var(--muted);display:flex;align-items:center;" aria-label="Gérer les souvenirs">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/></svg>
+    </button>
   </div>
-  <div id="souvenirsGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px 16px;"></div>
+
+  <!-- Rangée : Récents -->
+  <div id="souvenirsRecentRow" style="display:none;">
+    <div style="padding:0 16px 8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;">Récents</div>
+    <div id="souvenirsRecentScroll" style="display:flex;gap:10px;overflow-x:auto;padding:0 16px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;"></div>
+  </div>
+
+  <!-- Rangée : Favoris -->
+  <div id="souvenirsFavRow" style="display:none;margin-top:16px;">
+    <div style="padding:0 16px 8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;">Nos favoris ❤️</div>
+    <div id="souvenirsFavScroll" style="display:flex;gap:10px;overflow-x:auto;padding:0 16px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;"></div>
+  </div>
+
+  <!-- État vide -->
+  <div id="souvenirsEmpty" style="display:none;text-align:center;color:var(--muted);font-size:13px;padding:24px 16px;">Pas encore de souvenirs 🌟</div>
+
+  <!-- Bouton ajouter style Paired -->
+  <div style="padding:12px 16px 16px;">
+    <button onclick="nousOpenSouvenirModal(null)" style="width:100%;padding:14px;background:var(--s2);border:1.5px dashed var(--border);border-radius:14px;color:var(--muted);font-size:14px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background 0.15s;" onmouseover="this.style.background='var(--s1)'" onmouseout="this.style.background='var(--s2)'">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Ajouter un souvenir
+    </button>
+  </div>
 </div>
 
 <!-- ACTIVITÉS -->
@@ -849,6 +874,15 @@
       <button id="souvenirModalDelBtn" onclick="souvenirDelete()" style="display:none;width:100%;padding:11px;background:transparent;color:#e05555;font-size:13px;font-family:'DM Sans',sans-serif;border:1px solid rgba(224,85,85,0.3);border-radius:12px;cursor:pointer;">Supprimer ce souvenir 🗑️</button>
     </div>
   </div>
+</div>
+
+<!-- Overlay Gestion Souvenirs -->
+<div id="souvenirGestionOverlay" style="display:none;position:fixed;inset:0;z-index:910;background:var(--bg);flex-direction:column;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:calc(var(--safe-top) + 16px) 16px 12px;border-bottom:1px solid var(--border);background:var(--bg);">
+    <div style="font-size:17px;font-weight:700;color:var(--text);">Gestion des souvenirs</div>
+    <button onclick="nousCloseSouvenirGestion()" style="background:none;border:none;cursor:pointer;padding:6px;color:var(--muted);font-size:22px;line-height:1;">✕</button>
+  </div>
+  <div id="souvenirGestionList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 16px;"></div>
 </div>
 
 <!-- Modal Activité -->
@@ -2720,34 +2754,65 @@ document.addEventListener('DOMContentLoaded', function(){
   0%,100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(1.4); }
 }
-/* Souvenir cards */
-.souvenir-add-btn {
-  background: var(--s2); border: 1.5px dashed var(--border); border-radius: 14px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 20px 10px; cursor: pointer; transition: background 0.15s;
-  min-height: 110px;
-}
-.souvenir-add-btn:active { background: var(--s1); }
+/* Souvenir cards — scroll horizontal */
 .souvenir-card {
-  background: var(--s1); border: 1px solid var(--border); border-radius: 14px;
-  overflow: hidden; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+  flex-shrink: 0;
+  width: 130px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.15s;
+  position: relative;
 }
-.souvenir-card:active { transform: scale(0.97); }
+.souvenir-card:active { transform: scale(0.96); }
 .souvenir-photo {
-  width: 100%; height: 110px;
-  background: var(--s2); position: relative;
+  width: 100%; height: 100px;
+  background: var(--s2);
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  display: flex; align-items: center; justify-content: center;
 }
+.souvenir-edit-icon {
+  position: absolute; bottom: 6px; right: 6px;
+  width: 26px; height: 26px;
+  background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.souvenir-edit-icon:active { background: rgba(0,0,0,0.8); }
 .souvenir-lieu {
   position: absolute; bottom: 6px; left: 6px;
   background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
-  border-radius: 20px; padding: 2px 8px;
+  border-radius: 20px; padding: 2px 7px;
   font-size: 10px; color: #fff; font-weight: 600;
 }
-.souvenir-info { padding: 10px 12px; }
-.souvenir-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
-.souvenir-date { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
-.souvenir-desc { font-size: 11px; color: var(--sub); line-height: 1.4; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.souvenir-edit-btn { font-size: 11px; color: var(--muted); cursor: pointer; }
+.souvenir-info { padding: 8px 10px; }
+.souvenir-name { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.souvenir-date { font-size: 10px; color: var(--muted); }
+/* Gestion list */
+.souvenir-gestion-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.souvenir-gestion-photo {
+  width: 64px; height: 64px; border-radius: 10px;
+  background: var(--s2); flex-shrink: 0;
+  background-size: cover; background-position: center;
+  display: flex; align-items: center; justify-content: center;
+}
+.souvenir-gestion-info { flex: 1; min-width: 0; }
+.souvenir-gestion-title { font-size: 14px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.souvenir-gestion-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.souvenir-fav-btn {
+  flex-shrink: 0; background: none; border: none; cursor: pointer;
+  padding: 8px; color: var(--muted); transition: color 0.15s, transform 0.15s;
+}
+.souvenir-fav-btn.active { color: #e879a0; transform: scale(1.15); }
 
 /* Activités */
 .activite-sugg-card {
