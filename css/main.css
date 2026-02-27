@@ -354,14 +354,11 @@ body {
   padding-bottom: var(--nav-height);
   transition: background 0.3s, color 0.3s;
 }
-/* Verrou de scroll global — appliqué par _blockBackgroundScroll() via position:fixed */
-/* Note : la technique JS (position:fixed + top:-scrollY) est utilisée directement,
-   cette règle CSS sert de documentation et de fallback sécurisé */
+/* Verrou de scroll global — appliqué par _blockBackgroundScroll()
+   Technique : overflow:hidden sur html+body + touch-action:none sur les overlays.
+   On n'utilise PAS position:fixed sur body (créerait un espace vide en bas) */
 body.scroll-locked {
   overflow: hidden !important;
-  position: fixed !important;
-  left: 0 !important;
-  right: 0 !important;
   touch-action: none !important;
 }
 /* Empêche le zoom automatique iOS sur les inputs (déclenché si font-size < 16px) */
