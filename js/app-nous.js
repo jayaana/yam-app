@@ -12,26 +12,24 @@
 var _savedScrollPosition = 0;
 
 function _saveScrollPosition() {
-  var nousWrap = document.getElementById('nousContentWrapper');
-  if (nousWrap) {
-    _savedScrollPosition = nousWrap.scrollTop;
-  }
+  // Le scroll se fait sur window, pas sur un élément spécifique
+  _savedScrollPosition = window.pageYOffset || document.documentElement.scrollTop;
 }
 
 function _restoreScrollPosition() {
-  var nousWrap = document.getElementById('nousContentWrapper');
-  if (nousWrap && _savedScrollPosition >= 0) {
-    setTimeout(function(){
-      nousWrap.scrollTop = _savedScrollPosition;
-    }, 50);
-  }
+  // Restaurer la position de scroll du window
+  setTimeout(function(){
+    window.scrollTo(0, _savedScrollPosition);
+  }, 50);
 }
 
 function _blockBackgroundScroll() {
-  var nousWrap = document.getElementById('nousContentWrapper');
-  if (nousWrap) {
-    nousWrap.style.overflow = 'hidden';
-  }
+  // BLOQUER LE SCROLL DU BODY (c'est lui qui scroll, pas nousContentWrapper)
+  document.body.style.overflow = 'hidden';
+  document.body.style.position = 'fixed';
+  document.body.style.width = '100%';
+  document.body.style.top = '-' + _savedScrollPosition + 'px';
+  
   // Masquer le mini-header
   var miniHeader = document.getElementById('yamStickyHeader');
   if (miniHeader) {
@@ -40,10 +38,12 @@ function _blockBackgroundScroll() {
 }
 
 function _unblockBackgroundScroll() {
-  var nousWrap = document.getElementById('nousContentWrapper');
-  if (nousWrap) {
-    nousWrap.style.overflow = '';
-  }
+  // DÉBLOQUER LE SCROLL DU BODY
+  document.body.style.overflow = '';
+  document.body.style.position = '';
+  document.body.style.width = '';
+  document.body.style.top = '';
+  
   // Restaurer le mini-header (il réapparaîtra au scroll si nécessaire)
   var miniHeader = document.getElementById('yamStickyHeader');
   if (miniHeader) {
