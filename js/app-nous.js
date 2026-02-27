@@ -828,17 +828,35 @@ loadLikeCounters();
   }
 
   window.nousOpenSouvenirGestion = function(){
-    var overlay=document.getElementById('souvenirGestionOverlay'); if(!overlay) return;
-    if(!_souvenirAllRows.length){ window.nousLoadSouvenirs(); }
-    _renderGestionList();
-    overlay.classList.add('open');
-    document.body.style.overflow='hidden';
+    // Ouvre le pop intermediaire
+    var sheet=document.getElementById('souvenirGestionSheet');
+    if(sheet) sheet.classList.add('open');
+  };
+
+  window.closeSouvenirGestionSheet = function(){
+    var sheet=document.getElementById('souvenirGestionSheet');
+    if(sheet) sheet.classList.remove('open');
   };
 
   window.nousCloseSouvenirGestion = function(){
     var overlay=document.getElementById('souvenirGestionOverlay');
     if(overlay) overlay.classList.remove('open');
     document.body.style.overflow='';
+  };
+
+  // Appele depuis le sheet intermediaire
+  var _gestionOrigOpen = window.nousOpenSouvenirGestion;
+  window._nousOpenGestionFull = function(){
+    if(!_souvenirAllRows.length){ window.nousLoadSouvenirs(); }
+    _renderGestionList();
+    var overlay=document.getElementById('souvenirGestionOverlay');
+    if(overlay){
+      overlay.classList.add('open');
+      // Reset scroll apres rendu
+      var list=document.getElementById('souvenirGestionList');
+      if(list) setTimeout(function(){ list.scrollTop=0; },0);
+    }
+    document.body.style.overflow='hidden';
   };
 
 
@@ -851,6 +869,8 @@ loadLikeCounters();
     }
     var heartFilled='<svg width="22" height="22" viewBox="0 0 24 24" fill="#e879a0" stroke="#e879a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
     var heartEmpty='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+    // Reset scroll au top pour eviter le scroll auto en bas
+    list.scrollTop = 0;
     _souvenirAllRows.forEach(function(s){
       var row=document.createElement('div'); row.className='souvenir-gestion-row';
       var photoStyle=s.photo_url?'background-image:url('+escHtml(s.photo_url)+');':'';
