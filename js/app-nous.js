@@ -12,7 +12,7 @@
 (function(){
 
   // ── Code d'accès beta — à changer quand la section sera stable ──
-  var BETA_CODE = 'groschantier';
+  var BETA_CODE = 'yam2026';
   var LS_KEY    = 'yam_nous_beta_unlocked';
 
   // Vérifie si déjà déverrouillé en session
