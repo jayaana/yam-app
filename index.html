@@ -607,24 +607,10 @@
 ═══════════════════════════════════════════ -->
 <div id="yamNousTab" class="yam-tab-panel">
 
-<!-- ── VERROU NOUS ── -->
-<div id="nousLockOverlay" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;padding:32px 24px;gap:20px;">
-  <div style="font-size:52px;animation:yamFloat 3s ease-in-out infinite;">🔐</div>
-  <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--text);text-align:center;">Notre espace privé</div>
-  <div style="font-size:14px;color:var(--muted);text-align:center;max-width:260px;line-height:1.5;">Entre le code pour accéder à notre section 💕</div>
-  <div style="width:100%;max-width:280px;display:flex;flex-direction:column;gap:10px;">
-    <input id="nousCodeInput" type="password" placeholder="Code secret..." autocomplete="off"
-      style="width:100%;padding:14px 16px;font-size:16px;font-family:'DM Sans',sans-serif;background:var(--s1);border:1.5px solid var(--border);border-radius:14px;color:var(--text);outline:none;box-sizing:border-box;text-align:center;letter-spacing:4px;transition:border-color 0.2s;">
-    <button onclick="nousCheckCode()"
-      style="width:100%;padding:14px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-weight:700;font-size:15px;font-family:'DM Sans',sans-serif;border:none;border-radius:14px;cursor:pointer;transition:opacity 0.2s;">
-      Entrer 💝
-    </button>
-    <div id="nousCodeError" style="display:none;font-size:13px;color:#e05555;text-align:center;"></div>
-  </div>
-</div>
+<div id="nousLockOverlay" style="display:none;"></div>
 
 <!-- ── CONTENU NOUS ── -->
-<div id="nousContentWrapper" style="display:none;">
+<div id="nousContentWrapper" style="display:block;">
 
 <!-- PROFIL COUPLE PAIRED -->
 <div id="nousProfilSection" style="padding:28px 16px 8px;">
@@ -680,12 +666,15 @@
   </div>
 </div>
 
-<!-- PHOTOS ELLE (dépliable) -->
+<!-- PHOTOS ELLE (masquée par défaut pour girl) -->
 <div class="section fade-in">
-  <div class="section-label" onclick="nousToggleSection('elleSectionContent','elleSectionIcon')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;">
-    <span>Elle 👧</span><span id="elleSectionIcon" style="font-size:13px;color:var(--muted);transition:transform 0.25s;">▾</span>
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
+    <span>Elle</span>
+    <button onclick="elleToggleSection()" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--muted);display:flex;align-items:center;opacity:0.7;" aria-label="Voir/éditer la section Elle">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
   </div>
-  <div id="elleSectionContent" style="overflow:hidden;transition:max-height 0.35s ease;">
+  <div id="elleSectionContent">
   <div class="slider" id="elleSlider">
     <div class="album-card lui-card-wrap" data-slot="elle-animal"><div class="album-image"><span class="album-heart">🤍</span><img id="elle-img-animal" loading="lazy" decoding="async" src="" onload="this.classList.add('loaded')"><div class="skeleton-overlay" id="skel-elle-animal"></div><div class="album-banner">Animal</div><div class="lui-upload-btn" id="elle-btn-animal" onclick="elleUploadClick('animal')"><div class="lui-upload-icon">📷</div><div class="lui-upload-lbl">Modifier</div></div><div class="lui-uploading" id="elle-loading-animal"><div class="lui-upload-progress"><div class="lui-upload-bar" id="elle-bar-animal"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc lui-desc-editable" id="elle-desc-animal" onclick="elleEditDesc('animal')">Un regard doux 💫</div></div>
     <div class="album-card lui-card-wrap" data-slot="elle-fleurs"><div class="album-image"><span class="album-heart">🤍</span><img id="elle-img-fleurs" loading="lazy" decoding="async" src="" onload="this.classList.add('loaded')"><div class="skeleton-overlay" id="skel-elle-fleurs"></div><div class="album-banner">Fleurs</div><div class="lui-upload-btn" id="elle-btn-fleurs" onclick="elleUploadClick('fleurs')"><div class="lui-upload-icon">📷</div><div class="lui-upload-lbl">Modifier</div></div><div class="lui-uploading" id="elle-loading-fleurs"><div class="lui-upload-progress"><div class="lui-upload-bar" id="elle-bar-fleurs"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc lui-desc-editable" id="elle-desc-fleurs" onclick="elleEditDesc('fleurs')">Pleine de couleurs 💕</div></div>
@@ -697,12 +686,15 @@
   </div>
 </div>
 
-<!-- PHOTOS LUI (dépliable) -->
+<!-- PHOTOS LUI (masquée par défaut pour boy) -->
 <div class="section fade-in">
-  <div class="section-label" onclick="nousToggleSection('luiSectionContent','luiSectionIcon')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;">
-    <span>Lui 👦</span><span id="luiSectionIcon" style="font-size:13px;color:var(--muted);transition:transform 0.25s;">▾</span>
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
+    <span>Lui</span>
+    <button onclick="luiToggleSection()" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--muted);display:flex;align-items:center;opacity:0.7;" aria-label="Voir/éditer la section Lui">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
   </div>
-  <div id="luiSectionContent" style="overflow:hidden;transition:max-height 0.35s ease;">
+  <div id="luiSectionContent">
   <div class="slider" id="luiSlider">
     <div class="album-card lui-card-wrap" data-slot="animal"><div class="album-image"><span class="album-heart">🤍</span><div class="lui-img-empty" id="lui-empty-animal"><div class="lui-img-empty-icon">🐾</div><div class="lui-img-empty-lbl">Animal</div></div><img id="lui-img-animal" src="" style="display:none"><div class="album-banner">Animal</div><div class="lui-upload-btn empty" id="lui-btn-animal" onclick="luiUploadClick('animal')"><div class="lui-upload-icon">📷</div><div class="lui-upload-lbl">Ajouter</div></div><div class="lui-uploading" id="lui-loading-animal"><div class="lui-upload-progress"><div class="lui-upload-bar" id="lui-bar-animal"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc lui-desc-editable" id="lui-desc-animal" onclick="luiEditDesc('animal')">Son animal 🐾</div></div>
     <div class="album-card lui-card-wrap" data-slot="fleurs"><div class="album-image"><span class="album-heart">🤍</span><div class="lui-img-empty" id="lui-empty-fleurs"><div class="lui-img-empty-icon">🌸</div><div class="lui-img-empty-lbl">Fleurs</div></div><img id="lui-img-fleurs" src="" style="display:none"><div class="album-banner">Fleurs</div><div class="lui-upload-btn empty" id="lui-btn-fleurs" onclick="luiUploadClick('fleurs')"><div class="lui-upload-icon">📷</div><div class="lui-upload-lbl">Ajouter</div></div><div class="lui-uploading" id="lui-loading-fleurs"><div class="lui-upload-progress"><div class="lui-upload-bar" id="lui-bar-fleurs"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc lui-desc-editable" id="lui-desc-fleurs" onclick="luiEditDesc('fleurs')">Ses fleurs 🌸</div></div>
@@ -714,36 +706,47 @@
   </div>
 </div>
 
-<!-- MÉMO COUPLE -->
+<!-- MÉMO COUPLE — Note + Todo côte à côte, sans PIN -->
 <div id="memoCoupleSection" class="fade-in">
   <div class="memo-header-row">
-    <div class="section-label" style="margin-bottom:0">Mémo couple 📝</div>
-    <div class="memo-lock-badge" id="memoLockBadge" onclick="memoRequestUnlock()">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" id="memoLockIcon"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-      <span id="memoLockTxt">Modifier</span>
-    </div>
+    <div class="section-label" style="margin-bottom:0">Mémo couple</div>
+    <button onclick="openMemoPopup()" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--muted);display:flex;align-items:center;opacity:0.7;" aria-label="Modifier le mémo">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
   </div>
-  <div class="memo-sub-label">Notes</div>
-  <div class="memo-notes-slider-wrap"><div class="memo-notes-slider" id="memoNotesSlider"><div class="memo-notes-empty">Chargement...</div></div></div>
-  <div class="memo-sub-label" style="margin-top:18px">To-do</div>
-  <div class="memo-todo-card">
-    <div id="memoTodoList"><div class="todo-empty">Chargement...</div></div>
-    <div class="todo-add-row" id="memoTodoAddRow" style="display:none"><input type="text" class="todo-add-input" id="memoTodoInput" placeholder="Ajouter un item..." maxlength="120"><button class="todo-add-btn" onclick="memoAddTodoItem()">+</button></div>
+  <!-- Note + Todo côte à côte -->
+  <div class="memo-duo-wrap" onclick="openMemoPopup()">
+    <!-- Note -->
+    <div class="memo-duo-card">
+      <div class="memo-duo-title">Note</div>
+      <div class="memo-duo-content" id="memoNotePreview"><span style="color:var(--muted);font-size:12px;">Aucune note</span></div>
+      <div class="memo-duo-date" id="memoNoteDate"></div>
+    </div>
+    <!-- Todo -->
+    <div class="memo-duo-card">
+      <div class="memo-duo-title">To-do</div>
+      <div class="memo-duo-content" id="memoTodoPreview"><span style="color:var(--muted);font-size:12px;">Liste vide</span></div>
+    </div>
   </div>
 </div>
 
-<!-- POST-ITS -->
+<!-- POST-ITS / PETITS MOTS -->
 <div class="section fade-in" id="postitsSection">
-  <div class="section-label">Petits mots pour toi</div>
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
+    <span>Petits mots pour toi</span>
+    <button onclick="openPetitsMotsGestion()" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--muted);display:flex;align-items:center;opacity:0.7;" aria-label="Gérer les petits mots">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </div>
   <div class="postit-wrap" id="postitStack"></div>
-  <div class="stack-hint">👆 Tape ou swipe pour passer au suivant</div>
+  <div class="stack-hint">Tape ou swipe pour passer au suivant</div>
   <div class="stack-ctr" id="stackCounter"></div>
 </div>
 
 <!-- SOUVENIRS -->
 <div class="section fade-in" id="souvenirsSection">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:26px 16px 12px;">
-    <div class="section-label" style="padding:0;margin:0;">Nos souvenirs 📸</div>
+    <div class="section-label" style="padding:0;margin:0;">Nos souvenirs</div>
     <button onclick="nousOpenSouvenirGestion()" style="background:none;border:none;cursor:pointer;padding:6px;color:var(--muted);display:flex;align-items:center;" aria-label="Gérer les souvenirs">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/></svg>
     </button>
@@ -817,29 +820,62 @@
 
 <!-- MODALES -->
 
-<!-- Mémo modales -->
-<div id="memoModal">
-  <div class="memo-modal-inner">
-    <span class="memo-modal-close" onclick="closeMemoModal()">✕</span>
-    <div class="memo-modal-label">Note</div>
-    <div id="memoModalView"><div class="memo-modal-content" id="memoModalContent"></div><div class="memo-modal-date" id="memoModalDate"></div></div>
-    <div id="memoModalEdit" style="display:none">
-      <input type="text" class="memo-modal-title-input" id="memoModalTitleInput" placeholder="Titre de la note..." maxlength="40">
-      <textarea class="memo-modal-textarea" id="memoModalTextarea" placeholder="Écris ta note ici..."></textarea>
-      <button class="memo-modal-save" onclick="memoSaveNote()">Sauvegarder 💾</button>
-      <button class="memo-modal-del" id="memoModalDelBtn" onclick="memoDeleteNote()">Supprimer cette note 🗑️</button>
+<!-- Mémo popup modal — note unique + todo -->
+<div id="memoPopupModal" class="nous-modal-overlay">
+  <div class="nous-modal-sheet" style="max-height:88vh;overflow-y:auto;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-shrink:0;">
+      <div style="font-size:17px;font-weight:700;color:var(--text);">Mémo couple</div>
+      <span onclick="closeMemoPopup()" style="font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;">✕</span>
+    </div>
+    <!-- Partie note -->
+    <div style="flex-shrink:0;margin-bottom:18px;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Note</div>
+      <input type="text" id="memoPopupTitleInput" placeholder="Titre..." maxlength="40" style="width:100%;padding:10px 12px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;margin-bottom:8px;">
+      <textarea id="memoPopupTextarea" placeholder="Écris ta note ici..." rows="5" style="width:100%;padding:10px 12px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;resize:none;line-height:1.5;"></textarea>
+      <div id="memoPopupDate" style="font-size:11px;color:var(--muted);margin-top:6px;"></div>
+      <button id="memoPopupSaveBtn" onclick="memoSaveNote()" style="width:100%;margin-top:10px;padding:11px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif;border:none;border-radius:10px;cursor:pointer;">Sauvegarder</button>
+    </div>
+    <!-- Séparateur -->
+    <div style="border-top:1px solid var(--border);margin-bottom:16px;flex-shrink:0;"></div>
+    <!-- Partie todo -->
+    <div style="flex:1;min-height:0;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">To-do</div>
+      <div id="memoPopupTodoList" style="display:flex;flex-direction:column;gap:4px;"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <input type="text" id="memoPopupTodoInput" placeholder="Ajouter un item..." maxlength="120" style="flex:1;padding:10px 12px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;">
+        <button onclick="memoAddTodoItem()" style="padding:10px 16px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:18px;cursor:pointer;font-family:'DM Sans',sans-serif;">+</button>
+      </div>
     </div>
   </div>
 </div>
-<div id="memoAuthModal">
-  <div class="memo-auth-inner">
-    <div class="memo-auth-icon">🔐</div>
-    <div class="memo-auth-title">Mode édition</div>
-    <div class="memo-auth-sub">Entre le code pour modifier</div>
-    <input type="password" class="memo-auth-input" id="memoAuthInput" placeholder="Code..." autocomplete="off">
-    <button class="memo-auth-btn" onclick="memoCheckAuth()">Valider</button>
-    <div class="memo-auth-err" id="memoAuthErr">❌ Code incorrect, réessaie !</div>
-    <span class="memo-auth-cancel" onclick="closeMemoAuth()">Annuler</span>
+
+<!-- Petits mots — gestion (mes mots écrits pour mon partenaire) -->
+<div id="petitsMotsGestionModal" class="nous-modal-overlay">
+  <div class="nous-modal-sheet" style="max-height:80vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-size:17px;font-weight:700;color:var(--text);">Mes mots pour toi</div>
+      <span onclick="closePetitsMotsGestion()" style="font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;">✕</span>
+    </div>
+    <div id="petitsMotsGestionList" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+<!-- Petits mots — éditeur -->
+<div id="petitsMotsEditor" class="nous-modal-overlay">
+  <div class="nous-modal-sheet">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-size:17px;font-weight:700;color:var(--text);">Écrire un mot</div>
+      <span onclick="closePetitsMotsEditor()" style="font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;">✕</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <input type="text" id="petitsMotsEditorTitle" placeholder="Titre..." maxlength="40" style="width:100%;padding:11px 13px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;">
+      <textarea id="petitsMotsEditorText" placeholder="Ton message..." rows="5" maxlength="500" style="width:100%;padding:11px 13px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;resize:none;line-height:1.5;"></textarea>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <input type="text" id="petitsMotsEditorIcon" placeholder="Icône" maxlength="4" style="width:60px;padding:10px;font-size:18px;text-align:center;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;">
+        <div id="petitsMotsColorPicker" style="display:flex;gap:6px;flex-wrap:wrap;flex:1;"></div>
+      </div>
+      <button id="petitsMotsSaveBtn" onclick="savePetitMot()" style="width:100%;padding:13px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-weight:700;font-size:15px;font-family:'DM Sans',sans-serif;border:none;border-radius:12px;cursor:pointer;">Sauvegarder</button>
+    </div>
   </div>
 </div>
 
@@ -873,36 +909,6 @@
       <button id="souvenirSaveBtn" onclick="souvenirSave()" style="width:100%;padding:13px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-weight:700;font-size:15px;font-family:'DM Sans',sans-serif;border:none;border-radius:12px;cursor:pointer;">Sauvegarder 💾</button>
       <button id="souvenirModalDelBtn" onclick="souvenirDelete()" style="display:none;width:100%;padding:11px;background:transparent;color:#e05555;font-size:13px;font-family:'DM Sans',sans-serif;border:1px solid rgba(224,85,85,0.3);border-radius:12px;cursor:pointer;">Supprimer ce souvenir 🗑️</button>
     </div>
-  </div>
-</div>
-
-<!-- Pop intermédiaire : Gestion des souvenirs -->
-<div id="souvenirGestionSheet" class="nous-modal-overlay">
-  <div class="nous-modal-sheet">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-      <div style="font-size:17px;font-weight:700;color:var(--text);">Gérer les souvenirs</div>
-      <span onclick="closeSouvenirGestionSheet()" style="font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;">✕</span>
-    </div>
-    <!-- Option 1 : voir tous -->
-    <button onclick="closeSouvenirGestionSheet();_nousOpenGestionFull();" style="width:100%;display:flex;align-items:center;gap:14px;padding:14px;background:var(--s2);border:1px solid var(--border);border-radius:12px;cursor:pointer;margin-bottom:10px;text-align:left;">
-      <div style="width:36px;height:36px;background:rgba(232,121,160,0.12);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e879a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-      </div>
-      <div>
-        <div style="font-size:14px;font-weight:700;color:var(--text);">Voir tous les souvenirs</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Parcourir, modifier, supprimer</div>
-      </div>
-    </button>
-    <!-- Option 2 : gérer favoris -->
-    <button onclick="closeSouvenirGestionSheet();_nousOpenGestionFull();" style="width:100%;display:flex;align-items:center;gap:14px;padding:14px;background:var(--s2);border:1px solid var(--border);border-radius:12px;cursor:pointer;text-align:left;">
-      <div style="width:36px;height:36px;background:rgba(232,121,160,0.12);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="#e879a0" stroke="#e879a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-      </div>
-      <div>
-        <div style="font-size:14px;font-weight:700;color:var(--text);">Gérer les favoris</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Choisir les 5 souvenirs mis en avant</div>
-      </div>
-    </button>
   </div>
 </div>
 
@@ -2732,42 +2738,13 @@ function v2ApplyDynamicNames(){
      Appelé après tous les scripts, corrige aussi _acSyncAvatarTopbar
 ════════════════════════════════════════════════════════ -->
 <script>
-// ── NOUS : Toggle sections Elle/Lui ──
-window.nousToggleSection = function(contentId, iconId) {
-  var el = document.getElementById(contentId);
-  var icon = document.getElementById(iconId);
-  if (!el) return;
-  var isOpen = el.style.maxHeight && el.style.maxHeight !== '0px' && el.style.maxHeight !== '';
-  if (isOpen) {
-    el.style.maxHeight = '0px';
-    el.style.paddingTop = '0';
-    if (icon) icon.style.transform = 'rotate(-90deg)';
-  } else {
-    el.style.maxHeight = el.scrollHeight + 500 + 'px';
-    if (icon) icon.style.transform = 'rotate(0deg)';
-  }
-};
-
-// Initialiser sections dépliées
-window.addEventListener('load', function(){
-  ['elleSectionContent','luiSectionContent'].forEach(function(id){
-    var el = document.getElementById(id);
-    if (el) el.style.maxHeight = el.scrollHeight + 500 + 'px';
-  });
-  // (modales souvenirs/activités gérées via CSS .nous-modal-overlay.open)
-});
-
-// Modales souvenirs/activités : ouverture/fermeture via CSS class .open (géré dans app-nous.js)
-// Les fonctions closeSouvenirModal / closeActiviteModal sont définies dans app-nous.js
-// On s'assure juste que le clic dehors ferme aussi la modale
+// Modales : clic dehors pour fermer
 document.addEventListener('DOMContentLoaded', function(){
-  ['souvenirModal','activiteModal','souvenirGestionSheet'].forEach(function(id){
+  ['souvenirModal','activiteModal'].forEach(function(id){
     var m = document.getElementById(id);
     if (!m) return;
     m.addEventListener('click', function(e){
-      if (e.target === m) {
-        m.classList.remove('open');
-      }
+      if (e.target === m) m.classList.remove('open');
     });
   });
 });
