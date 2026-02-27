@@ -22,7 +22,6 @@
     if (content) content.style.display = 'block';
     if (!window._nousContentLoaded) {
       window._nousContentLoaded = true;
-      window._nousInitRetry = 0;
       _nousInitAll();
     }
   }
@@ -40,18 +39,6 @@
 // 1. INIT CENTRALE — appelée une seule fois au premier affichage
 // ════════════════════════════════════════════════════════════════════
 function _nousInitAll() {
-  // Attendre que v2GetUser() soit prêt et retourne un couple_id valide
-  var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
-  if (!u || !u.couple_id) {
-    // Session pas encore prête — réessayer dans 300ms (max 10 tentatives)
-    if (!window._nousInitRetry) window._nousInitRetry = 0;
-    window._nousInitRetry++;
-    if (window._nousInitRetry <= 10) {
-      setTimeout(_nousInitAll, 300);
-    }
-    return;
-  }
-  window._nousInitRetry = 0;
   _nousLoadProfil();
   elleLoadImages();
   elleLoadDescs();
@@ -1279,7 +1266,7 @@ function _gearSVG(){
 
 
 // ════════════════════════════════════════════════════════════════════
-// 15. SETPROFILE HOOK — resync sections sur changement de profil
+// 15. SETPROFILE HOOK — resync sections + relance nousLoad si besoin
 // ════════════════════════════════════════════════════════════════════
 (function(){
   var _origSetProfile = window.setProfile;
@@ -1289,6 +1276,20 @@ function _gearSVG(){
       if(typeof elleSyncSections === 'function') elleSyncSections();
       if(typeof window.luiSyncDescs === 'function') window.luiSyncDescs();
       if(typeof _nousLoadProfil  === 'function') _nousLoadProfil();
+      // Si l'onglet nous est actif et que les données ne sont pas encore chargées
+      // (cas où nousLoad avait été appelé trop tôt avant la session), on relance
+      if(window._currentTab === 'nous') {
+        if(!window._nousContentLoaded) {
+          window._nousContentLoaded = true;
+          _nousInitAll();
+        } else {
+          // Refresh des données liées au profil
+          if(typeof window.nousLoadSouvenirs==='function') window.nousLoadSouvenirs();
+          if(typeof renderMemoCouple==='function') renderMemoCouple();
+          if(typeof window._petitsMotsLoad==='function') window._petitsMotsLoad();
+          if(typeof window.nousLoadActivites==='function') window.nousLoadActivites();
+        }
+      }
     }, 300);
   };
 })();
@@ -1298,11 +1299,11 @@ function _gearSVG(){
 // 16. EXPOSITION GLOBALE pour yamSwitchTab
 // ════════════════════════════════════════════════════════════════════
 window.nousLoad = function(){
-  // Vérifier que la session est prête avant tout
   var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
   if (!u || !u.couple_id) {
-    // Session pas encore dispo — réessayer dans 300ms
-    setTimeout(window.nousLoad, 300);
+    // Session pas encore prête — setProfile() va relancer nousLoad via son hook
+    // On marque quand même que l'onglet a été demandé
+    window._nousContentLoaded = false;
     return;
   }
   if(window._nousContentLoaded) {
