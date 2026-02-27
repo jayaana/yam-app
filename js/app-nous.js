@@ -117,54 +117,62 @@ window.nousSignalNew = function() {
     saison:'Un rayon de soleil', repas:'Son repas préféré'
   };
   var _currentSlot = null;
-  function _getCoupleId(){ try{ var s=JSON.parse(localStorage.getItem('yam_v2_session')||'null'); return s&&s.user?s.user.couple_id:null; }catch(e){ return null; } }
+  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
 
-  // Sync visibilité : ELLE masquée pour girl par défaut, visible pour boy
-  // Le rouage à droite du titre ELLE permet à girl de consulter/éditer
+  // Sync visibilité :
+  // - boy voit SA section LUI (visible), ELLE masquée par défaut
+  //   → rouage sur ELLE uniquement pour boy (pour décrire sa copine)
+  // - girl voit SA section ELLE (visible), LUI masqué par défaut
+  //   → rouage sur LUI uniquement pour girl (pour décrire son copain)
   window.elleSyncSections = function(){
     var profile = getProfile();
     var elleSection = document.getElementById('elleSectionContent');
     var luiSection  = document.getElementById('luiSectionContent');
+    var elleGear    = document.getElementById('elleGearBtn');
+    var luiGear     = document.getElementById('luiGearBtn');
     if (!elleSection || !luiSection) return;
 
-    if (profile === 'girl') {
-      // girl : voit sa section LUI, ELLE masquée par défaut
+    if (profile === 'boy') {
+      // boy : voit LUI (sa section), ELLE masquée par défaut
       luiSection.style.display = 'block';
       if (!elleSection.dataset.forceOpen) elleSection.style.display = 'none';
+      // Rouage visible sur ELLE (partenaire), caché sur LUI
+      if (elleGear) elleGear.style.display = '';
+      if (luiGear)  luiGear.style.display  = 'none';
     } else {
-      // boy : voit sa section ELLE, LUI masqué par défaut
+      // girl : voit ELLE (sa section), LUI masqué par défaut
       elleSection.style.display = 'block';
       if (!luiSection.dataset.forceOpen) luiSection.style.display = 'none';
+      // Rouage visible sur LUI (partenaire), caché sur ELLE
+      if (elleGear) elleGear.style.display = 'none';
+      if (luiGear)  luiGear.style.display  = '';
     }
-    // Boutons d'édition : chacun peut éditer la section de son partenaire
+    // Boutons upload + légendes éditables : boy édite ELLE, girl édite LUI
     SLOTS.forEach(function(slot){
-      var elleBtn = document.getElementById('elle-btn-' + slot);
-      var luiBtn  = document.getElementById('lui-btn-' + slot);
-      // boy édite ELLE, girl édite LUI
-      if (elleBtn) elleBtn.style.display = profile === 'boy' ? '' : 'none';
+      var elleBtn  = document.getElementById('elle-btn-' + slot);
+      var luiBtn   = document.getElementById('lui-btn-'  + slot);
+      if (elleBtn) elleBtn.style.display = profile === 'boy'  ? '' : 'none';
       if (luiBtn)  luiBtn.style.display  = profile === 'girl' ? '' : 'none';
       var elleDesc = document.getElementById('elle-desc-' + slot);
-      var luiDesc  = document.getElementById('lui-desc-' + slot);
-      if (elleDesc){ if(profile==='boy') elleDesc.classList.add('lui-desc-editable'); else elleDesc.classList.remove('lui-desc-editable'); }
-      if (luiDesc) { if(profile==='girl') luiDesc.classList.add('lui-desc-editable'); else luiDesc.classList.remove('lui-desc-editable'); }
+      var luiDesc  = document.getElementById('lui-desc-'  + slot);
+      if (elleDesc){ if(profile==='boy')  elleDesc.classList.add('lui-desc-editable'); else elleDesc.classList.remove('lui-desc-editable'); }
+      if (luiDesc) { if(profile==='girl') luiDesc.classList.add('lui-desc-editable');  else luiDesc.classList.remove('lui-desc-editable'); }
     });
   };
 
-  // Rouage ELLE : pour girl, bascule la visibilité de la section ELLE (partenaire)
+  // Rouage ELLE : boy peut ouvrir/fermer la section ELLE pour décrire sa copine
   window.elleToggleSection = function(){
     var profile = getProfile();
+    if (profile !== 'boy') return; // seul boy peut toggle ELLE
     var elleSection = document.getElementById('elleSectionContent');
     if (!elleSection) return;
-    if (profile === 'girl') {
-      if (elleSection.style.display === 'none' || !elleSection.style.display) {
-        elleSection.dataset.forceOpen = '1';
-        elleSection.style.display = 'block';
-      } else {
-        delete elleSection.dataset.forceOpen;
-        elleSection.style.display = 'none';
-      }
+    if (elleSection.style.display === 'none' || !elleSection.style.display) {
+      elleSection.dataset.forceOpen = '1';
+      elleSection.style.display = 'block';
+    } else {
+      delete elleSection.dataset.forceOpen;
+      elleSection.style.display = 'none';
     }
-    // Pour boy, le rouage ouvre le même comportement mais la section ELLE est déjà visible
   };
 
   window.elleLoadImages = function(){
@@ -245,21 +253,20 @@ window.nousSignalNew = function() {
   var SLOTS=['animal','fleurs','personnage','saison','repas'];
   var LUI_DESC_DEFAULTS={animal:'Son animal',fleurs:'Ses fleurs',personnage:'Son personnage',saison:'Sa saison',repas:'Son repas préféré'};
   var _currentSlot=null;
-  function _getCoupleId(){ try{ var s=JSON.parse(localStorage.getItem('yam_v2_session')||'null'); return s&&s.user?s.user.couple_id:null; }catch(e){ return null; } }
+  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
 
-  // Rouage LUI : pour boy, bascule la visibilité de la section LUI (partenaire)
+  // Rouage LUI : girl peut ouvrir/fermer la section LUI pour décrire son copain
   window.luiToggleSection = function(){
     var profile = getProfile();
+    if (profile !== 'girl') return; // seul girl peut toggle LUI
     var luiSection = document.getElementById('luiSectionContent');
     if (!luiSection) return;
-    if (profile === 'boy') {
-      if (luiSection.style.display === 'none' || !luiSection.style.display) {
-        luiSection.dataset.forceOpen = '1';
-        luiSection.style.display = 'block';
-      } else {
-        delete luiSection.dataset.forceOpen;
-        luiSection.style.display = 'none';
-      }
+    if (luiSection.style.display === 'none' || !luiSection.style.display) {
+      luiSection.dataset.forceOpen = '1';
+      luiSection.style.display = 'block';
+    } else {
+      delete luiSection.dataset.forceOpen;
+      luiSection.style.display = 'none';
     }
   };
 
@@ -412,7 +419,7 @@ function _startReasonAuto(){
   var _stackData = [];
   var _stackIndex = 0;
 
-  function _getCoupleId(){ try{ var s=JSON.parse(localStorage.getItem('yam_v2_session')||'null'); return s&&s.user?s.user.couple_id:null; }catch(e){ return null; } }
+  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
   function _getProfile(){ return (typeof getProfile==='function')?getProfile():'girl'; }
 
   // Charge les mots REÇUS (écrits par le partenaire)
@@ -633,7 +640,7 @@ function _startLockBadgePolling(){
     if(hiddenPage&&hiddenPage.classList.contains('active')&&chatScreen&&chatScreen.style.display!=='none') return;
     var profile=getProfile(); if(!profile) return;
     var other=profile==='girl'?'boy':'girl';
-    var s=JSON.parse(localStorage.getItem('yam_v2_session')||'null'); var coupleId=s&&s.user?s.user.couple_id:null; if(!coupleId) return;
+    var coupleId=(typeof v2GetUser==='function'&&v2GetUser())?v2GetUser().couple_id:null; if(!coupleId) return;
     fetch(SB2_URL+'/rest/v1/v2_dm_messages?couple_id=eq.'+coupleId+'&sender=eq.'+other+'&seen=eq.false&deleted=eq.false&order=created_at.desc&limit=99',{headers:sb2Headers()})
     .then(function(r){ return r.json(); })
     .then(function(rows){
@@ -668,7 +675,7 @@ function fmtLikes(n){ if(!n||n<=0) return '0'; if(n>=1000000) return (n/1000000)
 function spawnHeart(){
   var h=document.createElement('div'); h.className='like-heart'; h.textContent='🤍'; document.body.appendChild(h); setTimeout(function(){ h.remove(); },600);
   var profile=getProfile()||null; if(!profile) return;
-  var coupleId=null; try{ var s=JSON.parse(localStorage.getItem('yam_v2_session')||'null'); if(s&&s.user) coupleId=s.user.couple_id; }catch(e){}
+  var coupleId=(typeof v2GetUser==='function'&&v2GetUser())?v2GetUser().couple_id:null;
   if(!coupleId) return;
   var numEl=document.getElementById(profile==='girl'?'likeNumGirl':'likeNumBoy');
   if(numEl){ var txt=(numEl.textContent||'0').trim(); var cur=0; if(txt.endsWith('M')) cur=parseFloat(txt)*1000000; else if(txt.endsWith('k')) cur=parseFloat(txt)*1000; else cur=parseInt(txt)||0; numEl.textContent=fmtLikes(cur+1); }
@@ -679,7 +686,7 @@ function spawnHeart(){
 window.spawnHeart = spawnHeart;
 
 function loadLikeCounters(){
-  var coupleId=null; try{ var s=JSON.parse(localStorage.getItem('yam_v2_session')||'null'); if(s&&s.user) coupleId=s.user.couple_id; }catch(e){} if(!coupleId) return;
+  var coupleId=(typeof v2GetUser==='function'&&v2GetUser())?v2GetUser().couple_id:null; if(!coupleId) return;
   fetch(SB2_URL+'/rest/v1/v2_like_counters?couple_id=eq.'+coupleId+'&select=profile,total',{headers:sb2Headers()})
   .then(function(r){ return r.ok?r.json():[]; })
   .then(function(rows){
@@ -703,7 +710,7 @@ loadLikeCounters();
 // ════════════════════════════════════════════════════════════════════
 (function(){
 
-  function _getSession(){ try{ var s=JSON.parse(localStorage.getItem('yam_v2_session')||'null'); return s&&s.user?s.user:null; }catch(e){ return null; } }
+  function _getSession(){ return (typeof v2GetUser==='function')?v2GetUser():null; }
 
   // ── Rendu principal : aperçu note + todo côte à côte ──
   function renderMemoCouple(){
@@ -863,7 +870,7 @@ loadLikeCounters();
 // ════════════════════════════════════════════════════════════════════
 (function(){
 
-  function _getCoupleId(){ try{ var s=JSON.parse(localStorage.getItem('yam_v2_session')||'null'); return s&&s.user?s.user.couple_id:null; }catch(e){ return null; } }
+  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
 
   var _souvenirAllRows = [];
 
@@ -1111,7 +1118,7 @@ loadLikeCounters();
     {emoji:'💌',titre:'Échange de lettres',desc:'Écrire une lettre à l\'autre à la main',steps:['Trouver du papier et un stylo','Écrire la lettre','L\'offrir','Garder les lettres précieusement']}
   ];
 
-  function _getCoupleId(){ try{ var s=JSON.parse(localStorage.getItem('yam_v2_session')||'null'); return s&&s.user?s.user.couple_id:null; }catch(e){ return null; } }
+  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
 
   window.nousLoadActivites=function(){
     var coupleId=_getCoupleId(); if(!coupleId) return;
