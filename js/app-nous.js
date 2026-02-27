@@ -1305,15 +1305,24 @@ loadLikeCounters();
         btn.innerHTML=newFav?heartFilled:heartEmpty;
         _renderSouvenirRows(_souvenirAllRows);
       });
-      row.querySelector('.souvenir-gestion-photo').addEventListener('click',function(){ nousOpenSouvenirModal(s); window.nousCloseSouvenirGestion(); });
-      row.querySelector('.souvenir-gestion-info').addEventListener('click',function(){ nousOpenSouvenirModal(s); window.nousCloseSouvenirGestion(); });
+      row.querySelector('.souvenir-gestion-photo').addEventListener('click',function(){ nousOpenSouvenirModal(s, true); });
+      row.querySelector('.souvenir-gestion-info').addEventListener('click',function(){ nousOpenSouvenirModal(s, true); });
       list.appendChild(row);
     });
   }
 
-  window.nousOpenSouvenirModal = function(souvenir){
+  var _souvenirFromGestion = false; // flag : modale ouverte depuis la liste
+
+  window.nousOpenSouvenirModal = function(souvenir, fromGestion){
     var isNew=!souvenir;
     var modal=document.getElementById('souvenirModal'); if(!modal) return;
+    _souvenirFromGestion = !!fromGestion;
+    // Si on vient de la liste : la fermer proprement avant d'ouvrir la modale
+    // (overlay reste dans le DOM mais .open retiré, sera rouvert à la fermeture)
+    if(fromGestion){
+      var overlay=document.getElementById('souvenirGestionOverlay');
+      if(overlay) overlay.classList.remove('open');
+    }
     _saveScrollPosition();
     _blockBackgroundScroll();
     document.getElementById('souvenirModalTitle').textContent=isNew?'Nouveau souvenir':'Modifier le souvenir';
@@ -1340,6 +1349,15 @@ loadLikeCounters();
     var modal=document.getElementById('souvenirModal'); if(modal) modal.classList.remove('open');
     _unblockBackgroundScroll();
     _restoreScrollPosition();
+    // Si la modale venait de la liste → rouvrir la liste
+    if(_souvenirFromGestion){
+      _souvenirFromGestion = false;
+      var overlay=document.getElementById('souvenirGestionOverlay');
+      if(overlay){
+        overlay.classList.add('open');
+        _blockBackgroundScroll(); // relockage pour la liste
+      }
+    }
   };
 
   window.souvenirPhotoClick=function(){
