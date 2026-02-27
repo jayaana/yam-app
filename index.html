@@ -877,12 +877,16 @@
 </div>
 
 <!-- Overlay Gestion Souvenirs -->
-<div id="souvenirGestionOverlay" style="display:none;position:fixed;inset:0;z-index:910;background:var(--bg);flex-direction:column;">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:calc(var(--safe-top) + 16px) 16px 12px;border-bottom:1px solid var(--border);background:var(--bg);">
-    <div style="font-size:17px;font-weight:700;color:var(--text);">Gestion des souvenirs</div>
-    <button onclick="nousCloseSouvenirGestion()" style="background:none;border:none;cursor:pointer;padding:6px;color:var(--muted);font-size:22px;line-height:1;">✕</button>
+<div id="souvenirGestionOverlay" style="display:none;position:fixed;inset:0;z-index:910;background:var(--bg);flex-direction:column;overscroll-behavior:contain;">
+  <!-- Header avec safe-top -->
+  <div style="flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding-top:calc(var(--safe-top) + 16px);padding-bottom:14px;padding-left:16px;padding-right:16px;border-bottom:1px solid var(--border);background:var(--bg);">
+    <div style="font-size:17px;font-weight:700;color:var(--text);">Tous les souvenirs</div>
+    <button onclick="nousCloseSouvenirGestion()" style="background:none;border:none;cursor:pointer;padding:6px;color:var(--muted);display:flex;align-items:center;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
   </div>
-  <div id="souvenirGestionList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 16px;"></div>
+  <!-- Scroll list avec safe-bottom -->
+  <div id="souvenirGestionList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px;padding-bottom:calc(var(--nav-height) + 8px);overscroll-behavior:contain;"></div>
 </div>
 
 <!-- Modal Activité -->
@@ -2776,22 +2780,23 @@ document.addEventListener('DOMContentLoaded', function(){
   display: flex; align-items: center; justify-content: center;
 }
 .souvenir-edit-icon {
-  position: absolute; bottom: 6px; right: 6px;
-  width: 26px; height: 26px;
-  background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
+  width: 26px; height: 26px; flex-shrink: 0;
+  background: var(--s2);
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   transition: background 0.15s;
 }
-.souvenir-edit-icon:active { background: rgba(0,0,0,0.8); }
+.souvenir-edit-icon:active { background: var(--border); }
+.souvenir-edit-icon svg { stroke: var(--muted); }
 .souvenir-lieu {
   position: absolute; bottom: 6px; left: 6px;
   background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
   border-radius: 20px; padding: 2px 7px;
   font-size: 10px; color: #fff; font-weight: 600;
 }
-.souvenir-info { padding: 8px 10px; }
+.souvenir-info { padding: 8px 10px; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.souvenir-info-text { flex: 1; min-width: 0; }
 .souvenir-name { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .souvenir-date { font-size: 10px; color: var(--muted); }
 /* Gestion list */
