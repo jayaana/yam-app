@@ -1,149 +1,64 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// app-nous.js — Section "Nous ♥" — Module complet v1.0
+// app-nous.js — Section "Nous ♥" — Module complet v2.0
 // Remplace app-love.js. Contient TOUT ce qui concerne le couple :
-// Verrou accès · Profil Paired · Photos Elle/Lui · Raisons · Post-its
-// Mémo · Likes · Badge NEW · Souvenirs · Activités
+// Profil Paired · Photos Elle/Lui · Raisons · Petits mots · Mémo
+// Likes · Badge NEW · Souvenirs · Activités
 // ═══════════════════════════════════════════════════════════════════════════
 
+
 // ════════════════════════════════════════════════════════════════════
-// 0. VERROU "NOUS ♥" — Code d'accès à la section
+// 0. ACCÈS DIRECT — Plus de verrou, chargement immédiat
 // ════════════════════════════════════════════════════════════════════
 (function(){
 
-  // Hash SHA-256 de "GROSCHANTIER" (uppercase)
-  // echo -n "GROSCHANTIER" | shasum -a 256
-  var NOUS_CODE_HASH = '6b509c876e4aad61e8f746975a55b3e353542b5b1f09f3cddee9aff49c6dd0b5';
-  var NOUS_SESSION_KEY = 'yam_nous_unlocked';
-  var NOUS_EXPIRY_MS   = 7 * 24 * 60 * 60 * 1000; // 7 jours
-
-  // Calcule le vrai hash au premier appel (async)
-  var _realHash = null;
-  async function _computeHash(str) {
-    var enc  = new TextEncoder().encode(str.toUpperCase());
-    var buf  = await crypto.subtle.digest('SHA-256', enc);
-    return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
-  }
-
-  // Initialiser le vrai hash au chargement
-  _computeHash('GROSCHANTIER').then(function(h){ _realHash = h; });
-
-  // ── Vérifier si la session de déverrouillage est encore valide ──
-  function _nousIsUnlocked() {
-    try {
-      var data = JSON.parse(localStorage.getItem(NOUS_SESSION_KEY) || 'null');
-      if (!data) return false;
-      if (Date.now() > data.expires) { localStorage.removeItem(NOUS_SESSION_KEY); return false; }
-      return true;
-    } catch(e) { return false; }
-  }
-
-  // ── Sauvegarder la session de déverrouillage ──
-  function _nousSaveUnlock() {
-    localStorage.setItem(NOUS_SESSION_KEY, JSON.stringify({ expires: Date.now() + NOUS_EXPIRY_MS }));
-  }
-
-  // ── Afficher le verrou si non déverrouillé ──
-  function nousCheckLock() {
-    if (_nousIsUnlocked()) {
-      _nousShowContent();
-      return;
-    }
-    _nousShowLock();
-  }
-
-  function _nousShowLock() {
-    var overlay = document.getElementById('nousLockOverlay');
-    var content = document.getElementById('nousContentWrapper');
-    if (overlay) overlay.style.display = 'flex';
-    if (content) content.style.display = 'none';
-  }
+  window.nousCheckLock = function() {
+    _nousShowContent();
+  };
 
   function _nousShowContent() {
     var overlay = document.getElementById('nousLockOverlay');
     var content = document.getElementById('nousContentWrapper');
     if (overlay) overlay.style.display = 'none';
     if (content) content.style.display = 'block';
-    // Charger le contenu si pas encore fait
     if (!window._nousContentLoaded) {
       window._nousContentLoaded = true;
       _nousInitAll();
     }
   }
 
-  // ── Valider le code ──
-  window.nousCheckCode = async function() {
-    if (!_realHash) { _realHash = await _computeHash('GROSCHANTIER'); }
-    var input = document.getElementById('nousCodeInput');
-    var errEl = document.getElementById('nousCodeError');
-    if (!input) return;
-    var val   = input.value.trim();
-    var hash  = await _computeHash(val);
-    if (hash === _realHash) {
-      _nousSaveUnlock();
-      input.value = '';
-      if (errEl) errEl.style.display = 'none';
-      // Animation de déverrouillage
-      var lock = document.getElementById('nousLockOverlay');
-      if (lock) { lock.style.transition = 'opacity 0.4s'; lock.style.opacity = '0'; setTimeout(_nousShowContent, 400); }
-      else _nousShowContent();
-    } else {
-      if (errEl) { errEl.textContent = '❌ Code incorrect'; errEl.style.display = 'block'; input.value = ''; input.focus(); }
-    }
-  };
+  window._nousIsUnlocked = function(){ return true; };
 
-  // ── Écouter Enter dans l'input code ──
-  document.addEventListener('DOMContentLoaded', function() {
-    var inp = document.getElementById('nousCodeInput');
-    if (inp) inp.addEventListener('keydown', function(e){ if (e.key === 'Enter') window.nousCheckCode(); });
-  });
-
-  // ── Exposer globalement ──
-  window.nousCheckLock  = nousCheckLock;
-  window._nousIsUnlocked = _nousIsUnlocked;
-
-  // yamSwitchTab est patché dans index.html → appelle window.nousLoad()
-  // nousLoad() appelle nousCheckLock() — pas besoin de re-patcher ici
-
-  // Lancer au chargement si on est déjà sur l'onglet nous
   setTimeout(function(){
-    if (window._currentTab === 'nous') nousCheckLock();
+    if (window._currentTab === 'nous') window.nousCheckLock();
   }, 800);
 
 })();
 
 
 // ════════════════════════════════════════════════════════════════════
-// 1. INIT CENTRALE — appelée une seule fois après déverrouillage
+// 1. INIT CENTRALE — appelée une seule fois au premier affichage
 // ════════════════════════════════════════════════════════════════════
 function _nousInitAll() {
   _nousLoadProfil();
   elleLoadImages();
   elleLoadDescs();
-  elleSyncEditMode();
+  elleSyncSections();
   luiLoadImages();
   luiLoadDescs();
-  luiSyncEditMode();
-  luiSyncDescs();
+  luiSyncSections();
   _nousLoadBadge();
   loadLikeCounters();
-  buildStack();
-  // Memo
-  var notesSlider = document.getElementById('memoNotesSlider');
-  if (notesSlider) { renderNotes(); renderTodos(); }
-  // Souvenirs
+  _petitsMotsLoad();
+  renderMemoCouple();
   nousLoadSouvenirs();
-  // Activités
   nousLoadActivites();
-  // Polling badge non-lus (messages)
   if (!window._checkUnreadStarted) {
     window._checkUnreadStarted = true;
     _startLockBadgePolling();
   }
-  // Likes poll
   if (!window._likesIv) {
     window._likesIv = setInterval(loadLikeCounters, 5000);
   }
-  // Fade-in observer
   document.querySelectorAll('#nousContentWrapper .fade-in').forEach(function(el){
     if (window._fadeObs) window._fadeObs.observe(el);
   });
@@ -151,7 +66,7 @@ function _nousInitAll() {
 
 
 // ════════════════════════════════════════════════════════════════════
-// 2. PROFIL COUPLE — Style "Paired" (avatars en grand au centre)
+// 2. PROFIL COUPLE
 // ════════════════════════════════════════════════════════════════════
 function _nousLoadProfil() {
   var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
@@ -162,16 +77,13 @@ function _nousLoadProfil() {
   var bl = document.getElementById('nousProfilBoyName');
   if (el) el.textContent = girlName;
   if (bl) bl.textContent = boyName;
-  // Avatars
   var girlAv = document.getElementById('nousProfilGirlAvatar');
   var boyAv  = document.getElementById('nousProfilBoyAvatar');
   if (girlAv) { var gi = girlAv.querySelector('img'); if (gi) gi.src = window.yamAvatarSrc ? window.yamAvatarSrc('girl') : 'assets/images/profil_girl.png'; }
   if (boyAv)  { var bi = boyAv.querySelector('img');  if (bi) bi.src = window.yamAvatarSrc ? window.yamAvatarSrc('boy')  : 'assets/images/profil_boy.png'; }
-  // Date couple
   var startDate = window.startDate || new Date('2024-10-29T00:00:00');
   var now = new Date();
-  var diffMs = now - startDate;
-  var days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  var days = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
   var el2 = document.getElementById('nousProfilDays');
   if (el2) el2.textContent = days + ' jour' + (days > 1 ? 's' : '') + ' ensemble 💕';
 }
@@ -181,14 +93,12 @@ function _nousLoadProfil() {
 // 3. BADGE "NEW" sur l'icône Nous
 // ════════════════════════════════════════════════════════════════════
 function _nousLoadBadge() {
-  // On marque "vu" les nouveautés quand on ouvre la section
   var KEY = 'yam_nous_last_seen_' + ((typeof v2GetUser==='function'&&v2GetUser()) ? v2GetUser().couple_id : 'x');
   localStorage.setItem(KEY, Date.now());
   var badge = document.getElementById('navNousBadge');
   if (badge) badge.style.display = 'none';
 }
 
-// Appelé depuis app-core ou autre pour signaler une nouveauté dans Nous
 window.nousSignalNew = function() {
   var badge = document.getElementById('navNousBadge');
   if (badge && window._currentTab !== 'nous') badge.style.display = 'block';
@@ -203,36 +113,69 @@ window.nousSignalNew = function() {
   var SB_FOLDER = 'elle';
   var SLOTS = ['animal','fleurs','personnage','saison','repas'];
   var ELLE_DESC_DEFAULTS = {
-    animal:'Un regard doux 💫', fleurs:'Pleine de couleurs 💕', personnage:'Attachante 💍',
-    saison:'Un rayon de soleil ☀️', repas:"N'aime que les pattes 🤝"
+    animal:'Un regard doux', fleurs:'Pleine de couleurs', personnage:'Attachante',
+    saison:'Un rayon de soleil', repas:'Son repas préféré'
   };
   var _currentSlot = null;
-  function _getElleSession(){ try{ var s=JSON.parse(localStorage.getItem('yam_v2_session')||'null'); return s&&s.user?s.user.couple_id:null; }catch(e){ return null; } }
+  function _getCoupleId(){ try{ var s=JSON.parse(localStorage.getItem('yam_v2_session')||'null'); return s&&s.user?s.user.couple_id:null; }catch(e){ return null; } }
+
+  // Sync visibilité : ELLE masquée pour girl par défaut, visible pour boy
+  // Le rouage à droite du titre ELLE permet à girl de consulter/éditer
+  window.elleSyncSections = function(){
+    var profile = getProfile();
+    var elleSection = document.getElementById('elleSectionContent');
+    var luiSection  = document.getElementById('luiSectionContent');
+    if (!elleSection || !luiSection) return;
+
+    if (profile === 'girl') {
+      // girl : voit sa section LUI, ELLE masquée par défaut
+      luiSection.style.display = 'block';
+      if (!elleSection.dataset.forceOpen) elleSection.style.display = 'none';
+    } else {
+      // boy : voit sa section ELLE, LUI masqué par défaut
+      elleSection.style.display = 'block';
+      if (!luiSection.dataset.forceOpen) luiSection.style.display = 'none';
+    }
+    // Boutons d'édition : chacun peut éditer la section de son partenaire
+    SLOTS.forEach(function(slot){
+      var elleBtn = document.getElementById('elle-btn-' + slot);
+      var luiBtn  = document.getElementById('lui-btn-' + slot);
+      // boy édite ELLE, girl édite LUI
+      if (elleBtn) elleBtn.style.display = profile === 'boy' ? '' : 'none';
+      if (luiBtn)  luiBtn.style.display  = profile === 'girl' ? '' : 'none';
+      var elleDesc = document.getElementById('elle-desc-' + slot);
+      var luiDesc  = document.getElementById('lui-desc-' + slot);
+      if (elleDesc){ if(profile==='boy') elleDesc.classList.add('lui-desc-editable'); else elleDesc.classList.remove('lui-desc-editable'); }
+      if (luiDesc) { if(profile==='girl') luiDesc.classList.add('lui-desc-editable'); else luiDesc.classList.remove('lui-desc-editable'); }
+    });
+  };
+
+  // Rouage ELLE : pour girl, bascule la visibilité de la section ELLE (partenaire)
+  window.elleToggleSection = function(){
+    var profile = getProfile();
+    var elleSection = document.getElementById('elleSectionContent');
+    if (!elleSection) return;
+    if (profile === 'girl') {
+      if (elleSection.style.display === 'none' || !elleSection.style.display) {
+        elleSection.dataset.forceOpen = '1';
+        elleSection.style.display = 'block';
+      } else {
+        delete elleSection.dataset.forceOpen;
+        elleSection.style.display = 'none';
+      }
+    }
+    // Pour boy, le rouage ouvre le même comportement mais la section ELLE est déjà visible
+  };
 
   window.elleLoadImages = function(){
     SLOTS.forEach(function(slot){
       var url = SB2_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + SB_FOLDER + '/' + slot + '.jpg?t=' + Date.now();
       var img = document.getElementById('elle-img-' + slot);
       if(!img) return;
-      if(img.src && img.src.indexOf('zjmbyjpxqrojnuymnpcf') !== -1) img.removeAttribute('src');
       var probe = new Image();
       probe.onload = function(){ img.src = url; };
       probe.onerror = function(){};
       probe.src = url;
-    });
-  };
-
-  window.elleSyncEditMode = function(){
-    var profile = getProfile();
-    var isLink = (profile === 'boy');
-    SLOTS.forEach(function(slot){
-      var btn = document.getElementById('elle-btn-' + slot);
-      if(btn) btn.style.display = isLink ? '' : 'none';
-      var desc = document.getElementById('elle-desc-' + slot);
-      if(desc){
-        if(isLink) desc.classList.add('lui-desc-editable');
-        else desc.classList.remove('lui-desc-editable');
-      }
     });
   };
 
@@ -265,8 +208,9 @@ window.nousSignalNew = function() {
     }).catch(function(err){ if(loading) loading.classList.remove('show'); alert('Erreur réseau : '+err); });
   };
 
-  function elleLoadDescs(){
-    fetch(SB2_URL+'/rest/v1/v2_photo_descs?category=eq.elle&couple_id=eq.'+_getElleSession()+'&select=slot,description',{headers:sb2Headers()})
+  window.elleLoadDescs = function(){
+    var coupleId = _getCoupleId(); if(!coupleId) return;
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs?category=eq.elle&couple_id=eq.'+coupleId+'&select=slot,description',{headers:sb2Headers()})
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(rows){
       if(!Array.isArray(rows)) return;
@@ -274,11 +218,10 @@ window.nousSignalNew = function() {
     }).catch(function(){
       SLOTS.forEach(function(slot){ var saved=localStorage.getItem('elle_desc_'+slot); var el=document.getElementById('elle-desc-'+slot); if(el&&saved) el.textContent=saved; });
     });
-  }
-  window.elleLoadDescs = elleLoadDescs;
+  };
 
   function elleSaveDesc(slot,val){
-    var coupleId=_getElleSession(); if(!coupleId) return;
+    var coupleId=_getCoupleId(); if(!coupleId) return;
     fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:coupleId,category:'elle',slot:slot,description:val})}).catch(function(){});
     localStorage.setItem('elle_desc_'+slot,val);
   }
@@ -300,9 +243,25 @@ window.nousSignalNew = function() {
 (function(){
   var SB_BUCKET='images', SB_FOLDER='lui';
   var SLOTS=['animal','fleurs','personnage','saison','repas'];
-  var LUI_DESC_DEFAULTS={animal:'Son animal 🐾',fleurs:'Ses fleurs 🌸',personnage:'Son personnage 💙',saison:'Sa saison 🍂',repas:'Son repas préféré 🍽️'};
+  var LUI_DESC_DEFAULTS={animal:'Son animal',fleurs:'Ses fleurs',personnage:'Son personnage',saison:'Sa saison',repas:'Son repas préféré'};
   var _currentSlot=null;
-  function _getLuiSession(){ try{ var s=JSON.parse(localStorage.getItem('yam_v2_session')||'null'); return s&&s.user?s.user.couple_id:null; }catch(e){ return null; } }
+  function _getCoupleId(){ try{ var s=JSON.parse(localStorage.getItem('yam_v2_session')||'null'); return s&&s.user?s.user.couple_id:null; }catch(e){ return null; } }
+
+  // Rouage LUI : pour boy, bascule la visibilité de la section LUI (partenaire)
+  window.luiToggleSection = function(){
+    var profile = getProfile();
+    var luiSection = document.getElementById('luiSectionContent');
+    if (!luiSection) return;
+    if (profile === 'boy') {
+      if (luiSection.style.display === 'none' || !luiSection.style.display) {
+        luiSection.dataset.forceOpen = '1';
+        luiSection.style.display = 'block';
+      } else {
+        delete luiSection.dataset.forceOpen;
+        luiSection.style.display = 'none';
+      }
+    }
+  };
 
   window.luiLoadImages=function(){
     SLOTS.forEach(function(slot){
@@ -311,7 +270,6 @@ window.nousSignalNew = function() {
       var empty=document.getElementById('lui-empty-'+slot);
       var btn=document.getElementById('lui-btn-'+slot);
       if(!img) return;
-      if(img.src&&img.src.indexOf('zjmbyjpxqrojnuymnpcf')!==-1) img.removeAttribute('src');
       var probe=new Image();
       probe.onload=function(){ img.src=url; img.style.display=''; if(empty) empty.style.display='none'; if(btn) btn.classList.remove('empty'); };
       probe.onerror=function(){ img.style.display='none'; if(empty) empty.style.display=''; if(btn) btn.classList.add('empty'); };
@@ -319,15 +277,13 @@ window.nousSignalNew = function() {
     });
   };
 
-  window.luiSyncEditMode=function(){
-    var profile=getProfile(); var isZelda=(profile==='girl');
-    SLOTS.forEach(function(slot){ var btn=document.getElementById('lui-btn-'+slot); if(btn) btn.style.display=isZelda?'':'none'; });
-  };
-
   window.luiSyncDescs=function(){
     var profile=getProfile(); var isZelda=(profile==='girl');
     SLOTS.forEach(function(slot){ var el=document.getElementById('lui-desc-'+slot); if(!el) return; if(isZelda) el.classList.add('lui-desc-editable'); else el.classList.remove('lui-desc-editable'); });
   };
+
+  // luiSyncEditMode gardé comme alias pour compatibilité setProfile hook
+  window.luiSyncEditMode = window.luiSyncDescs;
 
   window.luiUploadClick=function(slot){
     if(getProfile()!=='girl') return;
@@ -359,7 +315,8 @@ window.nousSignalNew = function() {
   };
 
   window.luiLoadDescs=function(){
-    fetch(SB2_URL+'/rest/v1/v2_photo_descs?category=eq.lui&couple_id=eq.'+_getLuiSession()+'&select=slot,description',{headers:sb2Headers()})
+    var coupleId = _getCoupleId(); if(!coupleId) return;
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs?category=eq.lui&couple_id=eq.'+coupleId+'&select=slot,description',{headers:sb2Headers()})
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(rows){
       if(!Array.isArray(rows)) return;
@@ -375,7 +332,7 @@ window.nousSignalNew = function() {
     var LABELS={animal:'Son animal',fleurs:'Ses fleurs',personnage:'Son personnage',saison:'Sa saison',repas:'Son repas'};
     descEditOpen(el.textContent.trim(),'Légende · '+(LABELS[slot]||slot),function(val){
       val=val||LUI_DESC_DEFAULTS[slot]; el.textContent=val;
-      var coupleId=_getLuiSession(); if(!coupleId) return;
+      var coupleId=_getCoupleId(); if(!coupleId) return;
       fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:coupleId,category:'lui',slot:slot,description:val})}).catch(function(){});
       localStorage.setItem('lui_desc_'+slot,val);
     });
@@ -395,24 +352,9 @@ document.querySelectorAll('.fade-in').forEach(function(el){ window._fadeObs.obse
 // ════════════════════════════════════════════════════════════════════
 // 7. RAISONS D'AMOUR
 // ════════════════════════════════════════════════════════════════════
-var reasons = [
-  "Ta personnalité. Elle est unique, elle est toi, et j'arrête pas de la découvrir 💫",
-  "Le fait que tu te bats pour t'améliorer tout le temps. Ça me rend vraiment fier de toi 🌱",
-  "Ta petite timidité qui donne envie de te mettre à l'aise pour toujours 🌸",
-  "Ton sourire 😄",
-  "J'aime bien tes lèvres 🫦",
-  "Ton humour. T'as le don de me faire beaucoup rire avec tes bêtises 🤣",
-  "Ta sensibilité. Quand tu ressens vraiment les choses, ça compte énormément 💓",
-  "T'es mignonne. Dans tout ce que t'es, dans tout ce que tu fais 🌺",
-  "Ton côté sage. T'as une façon de voir les choses qui me calme quand j'en ai besoin 🕊️",
-  "La façon dont tu travailles sur toi — ça me pousse à faire pareil 🚀",
-  "Ton cœur. T'as une façon d'aimer qui me touche vraiment au fond 💞",
-  "Nos fous rires. Ces moments où on rit de rien pendant des heures — y'a rien de mieux 🥰",
-  "Le fait que tu sois ma meilleure amie autant que mon amour 👫",
-  "Le fait d'être toi, sans faire semblant. Juste toi. Et c'est tout ce qu'il faut ✨"
-];
-
+var reasons = [];
 var _reasonDeck = [], _reasonDeckPos = 0;
+
 function _buildDeck(excludeFirst){
   var deck=[]; for(var k=0;k<reasons.length;k++) deck.push(k);
   for(var j=deck.length-1;j>0;j--){ var r=Math.floor(Math.random()*(j+1)); var tmp=deck[j]; deck[j]=deck[r]; deck[r]=tmp; }
@@ -420,37 +362,37 @@ function _buildDeck(excludeFirst){
   return deck;
 }
 
-(function(){
+function _initReasonsDeck(){
+  if(!reasons.length) return;
   _reasonDeck=_buildDeck(); _reasonDeckPos=0;
   var i=_reasonDeck[_reasonDeckPos++];
   var rText=document.getElementById('reasonText');
   if(rText) rText.textContent=reasons[i];
-})();
+}
 
 function showReason(idx){
-  var rText=document.getElementById('reasonText'); if(!rText) return;
+  var rText=document.getElementById('reasonText'); if(!rText||!reasons.length) return;
   rText.classList.remove('reason-in-down'); rText.classList.add('reason-out-up');
   setTimeout(function(){ rText.textContent=reasons[idx]; rText.classList.remove('reason-out-up'); void rText.offsetWidth; rText.classList.add('reason-in-down'); },200);
 }
 
 var _reasonAutoIv = null;
 function _startReasonAuto(){
-  if(_reasonAutoIv) return;
+  if(_reasonAutoIv||!reasons.length) return;
   _reasonAutoIv = setInterval(function(){
-    if(window._currentTab !== 'nous') return;
+    if(window._currentTab !== 'nous'||!reasons.length) return;
     if(_reasonDeckPos>=_reasonDeck.length){ var last=_reasonDeck[_reasonDeck.length-1]; _reasonDeck=_buildDeck(last); _reasonDeckPos=0; }
     showReason(_reasonDeck[_reasonDeckPos++]);
   }, 6000);
 }
-_startReasonAuto();
 
 (function(){
   var box = document.getElementById('reasonBox');
   if(!box) return;
   box.addEventListener('click', function(){
+    if(!reasons.length) return;
     if(_reasonDeckPos>=_reasonDeck.length){ var last=_reasonDeck[_reasonDeck.length-1]; _reasonDeck=_buildDeck(last); _reasonDeckPos=0; }
     showReason(_reasonDeck[_reasonDeckPos++]);
-    // Réinitialiser le timer auto
     if(_reasonAutoIv){ clearInterval(_reasonAutoIv); _reasonAutoIv=null; }
     _startReasonAuto();
   });
@@ -458,90 +400,227 @@ _startReasonAuto();
 
 
 // ════════════════════════════════════════════════════════════════════
-// 8. POST-ITS SWIPABLES
+// 8. PETITS MOTS — Stockés en base, visibles uniquement par le destinataire
+// Table : v2_petits_mots (id, couple_id, author, title, text, color, icon, created_at)
+// author = 'girl' ou 'boy' — le destinataire voit les mots de l'autre
 // ════════════════════════════════════════════════════════════════════
-var postitData = [
-  {color:'#1a3a2a',icon:'💪',title:'Fiers de nous',text:"Des débuts compliqués, des doutes, des gens contre nous... et on s'est renforcés à chaque fois."},
-  {color:'#2a1a2e',icon:'🌸',title:"Merci d'être toi",text:"Merci pour ta patience, ton humour, et tous les efforts pour qu'on grandisse ensemble."},
-  {color:'#1a2a3a',icon:'☀️',title:'Plus vivante',text:"T'as rendu ma vie plus simple, plus belle, plus vivante. T'es ma dose de bonheur quotidien."},
-  {color:'#2a2216',icon:'👵',title:'Ma vieille dame préférée',text:"T'es ma meilleure amie, mon bonheur, mon monde. Celle avec qui tout devient plus léger."},
-  {color:'#1a2a2a',icon:'⭐',title:'Mon repère',text:"T'es mon équilibre, la preuve qu'un vrai amour existe. Je veux tout partager avec toi."},
-  {color:'#2a1a1a',icon:'🤗',title:'Mon jour préféré',text:"Le jour où je te prendrai dans mes bras et te serrerai si fort qu'on pourra plus respirer."},
-  {color:'#1a1a2a',icon:'🌙',title:'80 ans main dans la main',text:"Nos délires de \"vieille dame ch'ti\", nos bêtises... Je veux encore rire comme ça à 80 ans. 💕"},
-  {color:'#222222',icon:'💘',title:'Ma seule certitude',text:"T'es pas juste \"la personne que j'aime\". T'es la seule avec qui je veux construire ma vie."}
-];
+(function(){
 
+  var NOTE_COLORS = ['#1a3a2a','#2a1a2e','#1a2a3a','#2a2216','#1a2a2a','#2a1a1a','#1a1a2a','#222222'];
+  var NOTE_ICONS  = ['💪','🌸','☀️','👵','⭐','🤗','🌙','💘','💌','✍️'];
+  var rots = [-1.8,1.4,-0.9,2.0,-1.3,0.7,-2.2,1.1];
+  var _stackData = [];
+  var _stackIndex = 0;
+
+  function _getCoupleId(){ try{ var s=JSON.parse(localStorage.getItem('yam_v2_session')||'null'); return s&&s.user?s.user.couple_id:null; }catch(e){ return null; } }
+  function _getProfile(){ return (typeof getProfile==='function')?getProfile():'girl'; }
+
+  // Charge les mots REÇUS (écrits par le partenaire)
+  function _petitsMotsLoad(){
+    var coupleId = _getCoupleId(); if(!coupleId) return;
+    var profile  = _getProfile();
+    var author   = profile === 'girl' ? 'boy' : 'girl'; // mots écrits par l'autre
+    fetch(SB2_URL+'/rest/v1/v2_petits_mots?couple_id=eq.'+coupleId+'&author=eq.'+author+'&order=created_at.asc&select=*',{headers:sb2Headers()})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){
+      _stackData = Array.isArray(rows)?rows:[];
+      // Ajouter post-it anniversaire si le 29
+      _injectAnnivPostitIfNeeded();
+      _stackIndex = 0;
+      _buildPostitStack();
+    }).catch(function(){ _buildPostitStack(); });
+  }
+  window._petitsMotsLoad = _petitsMotsLoad;
+
+  function _injectAnnivPostitIfNeeded(){
+    var START = new Date(2024,9,29); var now = new Date();
+    if(now.getDate()!==29) return;
+    var months=(now.getFullYear()-START.getFullYear())*12+(now.getMonth()-START.getMonth());
+    if(months<1) return;
+    var msg = getAnnivPostitText(months);
+    _stackData.unshift({id:'anniv',color:'#2a1a1a',icon:'🎂',title:'Bonne mensiversaire',text:msg,isAnniv:true});
+  }
+
+  function _buildPostitStack(){
+    var stackWrap=document.getElementById('postitStack'); var stackCtr=document.getElementById('stackCounter');
+    if(!stackWrap) return;
+    stackWrap.innerHTML='';
+    if(!_stackData.length){
+      var emptyEl=document.createElement('div'); emptyEl.className='postit-empty';
+      emptyEl.textContent='Aucun mot pour toi pour l\'instant...';
+      stackWrap.appendChild(emptyEl);
+      if(stackCtr) stackCtr.textContent='0 / 0';
+      return;
+    }
+    var n=_stackData.length;
+    for(var i=0;i<n;i++){
+      var dIdx=(_stackIndex+n-1-i)%n; var dd=_stackData[dIdx]; var depth=n-1-i;
+      var col = dd.color || NOTE_COLORS[dIdx%NOTE_COLORS.length];
+      var icon= dd.icon  || NOTE_ICONS[dIdx%NOTE_ICONS.length];
+      var el=document.createElement('div'); el.className='postit';
+      el.style.zIndex=i+1;
+      el.style.transform='translateY('+(depth*4)+'px) rotate('+rots[dIdx%rots.length]+'deg)';
+      el.style.opacity=depth===0?'1':String(Math.max(0.38,1-depth*0.16));
+      el.innerHTML='<div class="p-art" style="background:'+escHtml(col)+'">'+escHtml(icon)+'</div><div class="p-body"><div class="p-title">'+escHtml(dd.title||'')+'</div><div class="p-text">'+escHtml(dd.text||'')+'</div></div>';
+      if(dd.isAnniv){ el.style.boxShadow='0 0 0 2px rgba(245,197,24,0.6), 0 8px 32px rgba(0,0,0,0.45)'; }
+      stackWrap.appendChild(el);
+    }
+    if(stackCtr) stackCtr.textContent=(_stackIndex+1)+' / '+n;
+    var top=stackWrap.lastElementChild; if(top) _attachPostitEvents(top);
+  }
+  window.buildStack = _buildPostitStack;
+
+  function _dismissTop(dirX){
+    var top=document.getElementById('postitStack').lastElementChild; if(!top||top._dismissing||top.className==='postit-empty') return;
+    top._dismissing=true; var angle=dirX>0?18:-18; var tx=dirX>0?'115%':'-115%';
+    top.style.transition='transform 0.32s cubic-bezier(.4,0,.6,1), opacity 0.26s';
+    top.style.transform='translateX('+tx+') rotate('+angle+'deg)'; top.style.opacity='0'; top.style.pointerEvents='none';
+    _stackIndex=(_stackIndex+1)%_stackData.length; setTimeout(_buildPostitStack,300);
+  }
+
+  function _attachPostitEvents(el){
+    var startX,startY,dragging=false,moved=false; var baseRot=rots[_stackIndex%rots.length];
+    el.addEventListener('touchstart',function(e){ if(el._dismissing) return; var t=e.touches[0]; startX=t.clientX; startY=t.clientY; dragging=true; moved=false; el.style.transition='none'; },{passive:true});
+    el.addEventListener('touchmove',function(e){ if(!dragging||el._dismissing) return; var t=e.touches[0]; var dx=t.clientX-startX; var dy=t.clientY-startY; if(Math.abs(dx)<4&&Math.abs(dy)<4) return; moved=true; if(Math.abs(dx)>Math.abs(dy)){ e.preventDefault(); var rot=baseRot+dx*0.06; var lift=Math.min(Math.abs(dx)*0.04,6); el.style.transform='translateX('+dx+'px) translateY(-'+lift+'px) rotate('+rot+'deg)'; el.style.opacity=String(Math.max(0.3,1-Math.abs(dx)/280)); } },{passive:false});
+    el.addEventListener('touchend',function(e){ if(!dragging||el._dismissing) return; dragging=false; var t=e.changedTouches[0]; var dx=t.clientX-startX; var dy=t.clientY-startY; if(!moved){ _dismissTop(1); return; } if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>60){ _dismissTop(dx>0?1:-1); } else { el.style.transition='transform 0.3s cubic-bezier(.4,2,.55,.9), opacity 0.2s'; el.style.transform='translateY(0px) rotate('+baseRot+'deg)'; el.style.opacity='1'; } },{passive:true});
+    el.addEventListener('mousedown',function(e){ if(el._dismissing) return; startX=e.clientX; startY=e.clientY; dragging=true; moved=false; el.style.transition='none'; el.style.cursor='grabbing'; });
+    document.addEventListener('mousemove',function onMove(e){ if(!dragging||el._dismissing) return; var dx=e.clientX-startX; var dy=e.clientY-startY; if(Math.abs(dx)<4&&Math.abs(dy)<4) return; moved=true; var rot=baseRot+dx*0.06; var lift=Math.min(Math.abs(dx)*0.04,6); el.style.transform='translateX('+dx+'px) translateY(-'+lift+'px) rotate('+rot+'deg)'; el.style.opacity=String(Math.max(0.3,1-Math.abs(dx)/280)); el._onMove=onMove; });
+    document.addEventListener('mouseup',function onUp(e){ if(!dragging||el._dismissing) return; dragging=false; el.style.cursor='pointer'; document.removeEventListener('mousemove',el._onMove); document.removeEventListener('mouseup',onUp); var dx=e.clientX-startX; var dy=e.clientY-startY; if(!moved){ _dismissTop(1); return; } if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>60){ _dismissTop(dx>0?1:-1); } else { el.style.transition='transform 0.3s cubic-bezier(.4,2,.55,.9), opacity 0.2s'; el.style.transform='translateY(0px) rotate('+baseRot+'deg)'; el.style.opacity='1'; } });
+  }
+
+  // ── Gestion pop-up petits mots écrits ──
+  window.openPetitsMotsGestion = function(){
+    var modal = document.getElementById('petitsMotsGestionModal'); if(!modal) return;
+    _renderPetitsMotsGestion();
+    modal.classList.add('open');
+  };
+  window.closePetitsMotsGestion = function(){
+    var modal = document.getElementById('petitsMotsGestionModal'); if(modal) modal.classList.remove('open');
+  };
+
+  function _renderPetitsMotsGestion(){
+    var coupleId = _getCoupleId(); if(!coupleId) return;
+    var profile  = _getProfile();
+    var list = document.getElementById('petitsMotsGestionList'); if(!list) return;
+    list.innerHTML='<div style="color:var(--muted);font-size:13px;padding:16px;text-align:center;">Chargement...</div>';
+    // Charge les mots écrits PAR moi (pour mon partenaire)
+    fetch(SB2_URL+'/rest/v1/v2_petits_mots?couple_id=eq.'+coupleId+'&author=eq.'+profile+'&order=created_at.desc&select=*',{headers:sb2Headers()})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){
+      list.innerHTML='';
+      if(!Array.isArray(rows)||!rows.length){
+        list.innerHTML='<div style="color:var(--muted);font-size:13px;padding:24px;text-align:center;">Tu n\'as pas encore écrit de mots pour ton partenaire.</div>';
+      } else {
+        rows.forEach(function(mot){
+          var row=document.createElement('div'); row.className='petits-mots-gestion-row';
+          var col=mot.color||NOTE_COLORS[0]; var icon=mot.icon||'💌';
+          row.innerHTML=
+            '<div class="petits-mots-gestion-icon" style="background:'+escHtml(col)+'">'+escHtml(icon)+'</div>'+
+            '<div class="petits-mots-gestion-info">'+
+              '<div class="petits-mots-gestion-title">'+escHtml(mot.title||'Sans titre')+'</div>'+
+              '<div class="petits-mots-gestion-prev">'+escHtml((mot.text||'').substring(0,50))+((mot.text||'').length>50?'…':'')+'</div>'+
+            '</div>'+
+            '<button class="petits-mots-edit-btn" aria-label="Modifier">'+_gearSVG()+'</button>'+
+            '<button class="petits-mots-del-btn" aria-label="Supprimer">✕</button>';
+          (function(m){
+            row.querySelector('.petits-mots-edit-btn').addEventListener('click',function(){ _openPetitsMotsEditor(m); });
+            row.querySelector('.petits-mots-del-btn').addEventListener('click',function(){
+              if(!confirm('Supprimer ce mot ?')) return;
+              fetch(SB2_URL+'/rest/v1/v2_petits_mots?id=eq.'+m.id+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()})
+              .then(function(){ _renderPetitsMotsGestion(); _petitsMotsLoad(); }).catch(function(){});
+            });
+          })(mot);
+          list.appendChild(row);
+        });
+      }
+      // Bouton ajouter
+      var addBtn=document.createElement('button'); addBtn.className='petits-mots-add-btn';
+      addBtn.textContent='+ Ajouter un mot';
+      addBtn.addEventListener('click',function(){ _openPetitsMotsEditor(null); });
+      list.appendChild(addBtn);
+    }).catch(function(){ list.innerHTML='<div style="color:#e05555;font-size:13px;padding:16px;">Erreur de chargement</div>'; });
+  }
+
+  var _editingMot = null;
+  function _openPetitsMotsEditor(mot){
+    _editingMot = mot;
+    var editor = document.getElementById('petitsMotsEditor'); if(!editor) return;
+    document.getElementById('petitsMotsEditorTitle').value = mot?(mot.title||''):'';
+    document.getElementById('petitsMotsEditorText').value  = mot?(mot.text||''):'';
+    document.getElementById('petitsMotsEditorIcon').value  = mot?(mot.icon||'💌'):'💌';
+    // Couleur
+    var colorPicker = document.getElementById('petitsMotsColorPicker');
+    if(colorPicker){
+      colorPicker.innerHTML='';
+      NOTE_COLORS.forEach(function(c){
+        var btn=document.createElement('button'); btn.className='pm-color-btn'+(mot&&mot.color===c?' active':'');
+        btn.style.background=c; btn.dataset.color=c;
+        btn.addEventListener('click',function(){
+          colorPicker.querySelectorAll('.pm-color-btn').forEach(function(b){ b.classList.remove('active'); });
+          btn.classList.add('active');
+        });
+        colorPicker.appendChild(btn);
+      });
+      if(!mot) colorPicker.querySelector('.pm-color-btn').classList.add('active');
+    }
+    editor.classList.add('open');
+  }
+  window.closePetitsMotsEditor = function(){
+    var editor = document.getElementById('petitsMotsEditor'); if(editor) editor.classList.remove('open');
+    _editingMot = null;
+  };
+
+  window.savePetitMot = function(){
+    var coupleId = _getCoupleId(); if(!coupleId) return;
+    var profile  = _getProfile();
+    var title = (document.getElementById('petitsMotsEditorTitle').value||'').trim();
+    var text  = (document.getElementById('petitsMotsEditorText').value||'').trim();
+    var icon  = (document.getElementById('petitsMotsEditorIcon').value||'💌').trim();
+    if(!text){ if(typeof showToast==='function') showToast('Le message ne peut pas être vide','error'); return; }
+    var activeColor = document.querySelector('#petitsMotsColorPicker .pm-color-btn.active');
+    var color = activeColor ? activeColor.dataset.color : NOTE_COLORS[0];
+    var data = { couple_id:coupleId, author:profile, title:title||'Sans titre', text:text, icon:icon, color:color };
+    var btn = document.getElementById('petitsMotsSaveBtn'); if(btn){ btn.textContent='...'; btn.disabled=true; }
+    var done = function(){ if(btn){ btn.textContent='Sauvegarder'; btn.disabled=false; } window.closePetitsMotsEditor(); _renderPetitsMotsGestion(); _petitsMotsLoad(); };
+    if(_editingMot&&_editingMot.id){
+      fetch(SB2_URL+'/rest/v1/v2_petits_mots?id=eq.'+_editingMot.id+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done).catch(done);
+    } else {
+      fetch(SB2_URL+'/rest/v1/v2_petits_mots',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done).catch(done);
+    }
+  };
+
+  // Fermer en cliquant dehors
+  setTimeout(function(){
+    var gm=document.getElementById('petitsMotsGestionModal');
+    if(gm) gm.addEventListener('click',function(e){ if(e.target===gm) window.closePetitsMotsGestion(); });
+    var ed=document.getElementById('petitsMotsEditor');
+    if(ed) ed.addEventListener('click',function(e){ if(e.target===ed) window.closePetitsMotsEditor(); });
+  },0);
+
+})();
+
+// Textes anniversaire post-its
 var annivPostitMessages=[
   null,
-  "Un mois de plus à tes côtés... et j'en veux encore des centaines 💑",
-  "Deux mois. Deux mois à sourire grâce à toi. J'espère ne jamais m'y habituer 🌸",
-  "Trois mois ensemble — et déjà je sais plus comment c'était avant toi 🥺",
-  "Quatre mois. Chaque journée avec toi est un cadeau que je garde précieusement 💝",
-  "Cinq mois. T'es devenue une évidence dans ma vie, et c'est la plus belle des évidences ✨",
-  "Six mois déjà. La moitié d'une année à être heureux — grâce à toi 🎂",
-  "Sept mois. Je recompte parfois depuis le début juste pour me rappeler ma chance 💫",
-  "Huit mois. Nos souvenirs s'accumulent et chacun d'eux me fait sourire 🌟",
-  "Neuf mois. Je t'aime un peu plus fort qu'hier, et moins fort que demain 💞",
-  "Dix mois. T'es mon endroit préféré au monde 🏠💕",
-  "Onze mois. Presque un an... et pourtant ça me semble à peine commencé 🌙"
+  "Un mois de plus à tes côtés... et j'en veux encore des centaines",
+  "Deux mois. Deux mois à sourire grâce à toi. J'espère ne jamais m'y habituer",
+  "Trois mois ensemble — et déjà je sais plus comment c'était avant toi",
+  "Quatre mois. Chaque journée avec toi est un cadeau que je garde précieusement",
+  "Cinq mois. T'es devenue une évidence dans ma vie, et c'est la plus belle des évidences",
+  "Six mois déjà. La moitié d'une année à être heureux — grâce à toi",
+  "Sept mois. Je recompte parfois depuis le début juste pour me rappeler ma chance",
+  "Huit mois. Nos souvenirs s'accumulent et chacun d'eux me fait sourire",
+  "Neuf mois. Je t'aime un peu plus fort qu'hier, et moins fort que demain",
+  "Dix mois. T'es mon endroit préféré au monde",
+  "Onze mois. Presque un an... et pourtant ça me semble à peine commencé"
 ];
 
 function getAnnivPostitText(months){
-  if(months%12===0){ var years=months/12; if(years===1) return "Un an ensemble !! Boucle bouclée, mais notre histoire elle, ne fait que commencer 🎉💑"; if(years===2) return "Deux ans. Deux ans à construire quelque chose de vrai, de beau, de nous. Je t'aime 💍"; if(years===3) return "Trois ans. Trois ans que t'es ma meilleure décision 🥂✨"; return years+" ans ensemble. Je recommencerais mille fois 🎂💑"; }
+  if(months%12===0){ var years=months/12; if(years===1) return "Un an ensemble !! Boucle bouclée, mais notre histoire elle, ne fait que commencer"; if(years===2) return "Deux ans. Deux ans à construire quelque chose de vrai, de beau, de nous."; if(years===3) return "Trois ans. Trois ans que t'es ma meilleure décision."; return years+" ans ensemble. Je recommencerais mille fois."; }
   else if(months<12){ return annivPostitMessages[months]; }
-  else { var m=months%12===0?12:months%12; var y=Math.floor(months/12); return y+" an"+(y>1?"s":"")+" et "+m+" mois. Chaque jour compte, et chaque jour t'es là 🩷"; }
+  else { var m=months%12===0?12:months%12; var y=Math.floor(months/12); return y+" an"+(y>1?"s":"")+" et "+m+" mois. Chaque jour compte, et chaque jour t'es là."; }
 }
 window.getAnnivPostitText = getAnnivPostitText;
-
-var rots=[-1.8,1.4,-0.9,2.0,-1.3,0.7,-2.2,1.1];
-var stackIndex=0;
-
-(function injectAnnivPostit(){
-  var START=new Date(2024,9,29); var now=new Date();
-  if(now.getDate()!==29) return;
-  var months=(now.getFullYear()-START.getFullYear())*12+(now.getMonth()-START.getMonth());
-  if(months<1) return;
-  var msg=getAnnivPostitText(months);
-  postitData.unshift({color:'#2a1a1a',icon:'🎂',title:'Bonne mensiversaire 🩷',text:msg,isAnniv:true});
-  rots.unshift(0.4);
-})();
-
-function buildStack(){
-  var stackWrap=document.getElementById('postitStack'); var stackCtr=document.getElementById('stackCounter');
-  if(!stackWrap) return;
-  stackWrap.innerHTML=''; var n=postitData.length;
-  for(var i=0;i<n;i++){
-    var dIdx=(stackIndex+n-1-i)%n; var dd=postitData[dIdx]; var depth=n-1-i;
-    var el=document.createElement('div'); el.className='postit';
-    el.style.zIndex=i+1;
-    el.style.transform='translateY('+(depth*4)+'px) rotate('+rots[dIdx%rots.length]+'deg)';
-    el.style.opacity=depth===0?'1':String(Math.max(0.38,1-depth*0.16));
-    el.innerHTML='<div class="p-art" style="background:'+escHtml(dd.color)+'">'+dd.icon+'</div><div class="p-body"><div class="p-title">'+escHtml(dd.title)+'</div><div class="p-text">'+escHtml(dd.text)+'</div></div>';
-    if(dd.isAnniv){ el.style.boxShadow='0 0 0 2px rgba(245,197,24,0.6), 0 8px 32px rgba(0,0,0,0.45)'; }
-    stackWrap.appendChild(el);
-  }
-  if(stackCtr) stackCtr.textContent=(stackIndex+1)+' / '+n;
-  var top=stackWrap.lastElementChild; if(top) _attachPostitEvents(top);
-}
-window.buildStack = buildStack;
-
-function _dismissTop(dirX){
-  var top=document.getElementById('postitStack').lastElementChild; if(!top||top._dismissing) return;
-  top._dismissing=true; var angle=dirX>0?18:-18; var tx=dirX>0?'115%':'-115%';
-  top.style.transition='transform 0.32s cubic-bezier(.4,0,.6,1), opacity 0.26s';
-  top.style.transform='translateX('+tx+') rotate('+angle+'deg)'; top.style.opacity='0'; top.style.pointerEvents='none';
-  stackIndex=(stackIndex+1)%postitData.length; setTimeout(buildStack,300);
-}
-
-function _attachPostitEvents(el){
-  var startX,startY,dragging=false,moved=false; var baseRot=rots[stackIndex%rots.length];
-  el.addEventListener('touchstart',function(e){ if(el._dismissing) return; var t=e.touches[0]; startX=t.clientX; startY=t.clientY; dragging=true; moved=false; el.style.transition='none'; },{passive:true});
-  el.addEventListener('touchmove',function(e){ if(!dragging||el._dismissing) return; var t=e.touches[0]; var dx=t.clientX-startX; var dy=t.clientY-startY; if(Math.abs(dx)<4&&Math.abs(dy)<4) return; moved=true; if(Math.abs(dx)>Math.abs(dy)){ e.preventDefault(); var rot=baseRot+dx*0.06; var lift=Math.min(Math.abs(dx)*0.04,6); el.style.transform='translateX('+dx+'px) translateY(-'+lift+'px) rotate('+rot+'deg)'; el.style.opacity=String(Math.max(0.3,1-Math.abs(dx)/280)); } },{passive:false});
-  el.addEventListener('touchend',function(e){ if(!dragging||el._dismissing) return; dragging=false; var t=e.changedTouches[0]; var dx=t.clientX-startX; var dy=t.clientY-startY; if(!moved){ _dismissTop(1); return; } if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>60){ _dismissTop(dx>0?1:-1); } else { el.style.transition='transform 0.3s cubic-bezier(.4,2,.55,.9), opacity 0.2s'; el.style.transform='translateY(0px) rotate('+baseRot+'deg)'; el.style.opacity='1'; } },{passive:true});
-  el.addEventListener('mousedown',function(e){ if(el._dismissing) return; startX=e.clientX; startY=e.clientY; dragging=true; moved=false; el.style.transition='none'; el.style.cursor='grabbing'; });
-  document.addEventListener('mousemove',function onMove(e){ if(!dragging||el._dismissing) return; var dx=e.clientX-startX; var dy=e.clientY-startY; if(Math.abs(dx)<4&&Math.abs(dy)<4) return; moved=true; var rot=baseRot+dx*0.06; var lift=Math.min(Math.abs(dx)*0.04,6); el.style.transform='translateX('+dx+'px) translateY(-'+lift+'px) rotate('+rot+'deg)'; el.style.opacity=String(Math.max(0.3,1-Math.abs(dx)/280)); el._onMove=onMove; });
-  document.addEventListener('mouseup',function onUp(e){ if(!dragging||el._dismissing) return; dragging=false; el.style.cursor='pointer'; document.removeEventListener('mousemove',el._onMove); document.removeEventListener('mouseup',onUp); var dx=e.clientX-startX; var dy=e.clientY-startY; if(!moved){ _dismissTop(1); return; } if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>60){ _dismissTop(dx>0?1:-1); } else { el.style.transition='transform 0.3s cubic-bezier(.4,2,.55,.9), opacity 0.2s'; el.style.transform='translateY(0px) rotate('+baseRot+'deg)'; el.style.opacity='1'; } });
-}
 
 
 // ════════════════════════════════════════════════════════════════════
@@ -567,7 +646,7 @@ function _startLockBadgePolling(){
         if(_prevUnreadCount>=0&&unread>_prevUnreadCount&&window._currentTab!=='messages'){
           var last=rows[0]; var emoji=other==='girl'?'👧':'👦';
           var name=(typeof v2GetDisplayName==='function'?v2GetDisplayName(other):(other==='girl'?'👧':'👦'));
-          var txt=(last&&last.text)?last.text:'💬 Nouveau message';
+          var txt=(last&&last.text)?last.text:'Nouveau message';
           if(window.showMsgHeaderPill) window.showMsgHeaderPill(emoji,name,txt);
         }
       } else { lockBadge.classList.remove('visible'); lockBtn.classList.remove('has-unread'); }
@@ -594,7 +673,7 @@ function spawnHeart(){
   var numEl=document.getElementById(profile==='girl'?'likeNumGirl':'likeNumBoy');
   if(numEl){ var txt=(numEl.textContent||'0').trim(); var cur=0; if(txt.endsWith('M')) cur=parseFloat(txt)*1000000; else if(txt.endsWith('k')) cur=parseFloat(txt)*1000; else cur=parseInt(txt)||0; numEl.textContent=fmtLikes(cur+1); }
   fetch(SB2_URL+'/rest/v1/rpc/increment_like_counter',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},sb2Headers()),body:JSON.stringify({p_profile:profile,p_couple_id:coupleId})})
-  .then(function(r){ if(!r.ok){ return r.text().then(function(txt){ loadLikeCounters(); }); } if(window.scheduleLikeSync) window.scheduleLikeSync(); })
+  .then(function(r){ if(!r.ok){ return r.text().then(function(){ loadLikeCounters(); }); } if(window.scheduleLikeSync) window.scheduleLikeSync(); })
   .catch(function(){ loadLikeCounters(); });
 }
 window.spawnHeart = spawnHeart;
@@ -620,142 +699,162 @@ loadLikeCounters();
 
 
 // ════════════════════════════════════════════════════════════════════
-// 11. MÉMO COUPLE
+// 11. MÉMO COUPLE — Note unique + Todo list, sans PIN
 // ════════════════════════════════════════════════════════════════════
 (function(){
-  var _MEMO_HASH='a586ffe3acf28484d17760d1ddaa2af699666c870aaaa66f8cfc826a528429ce';
-  var memoUnlocked=false, memoCurrentNote=null;
-  var NOTE_COLORS=['#1a3a2a','#2a1a2e','#1a2a3a','#2a2216','#1a2a2a','#2a1a1a','#1a1a2a','#222222'];
-  var NOTE_ICONS=['💬','✍️','💌','📖','🌙','💭','✨','🎵'];
 
-  async function _sha256(str){ var enc=new TextEncoder().encode(str.toUpperCase()); var buf=await crypto.subtle.digest('SHA-256',enc); return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join(''); }
+  function _getSession(){ try{ var s=JSON.parse(localStorage.getItem('yam_v2_session')||'null'); return s&&s.user?s.user:null; }catch(e){ return null; } }
 
-  var _authCb=null;
-  function openMemoAuth(cb){
-    _authCb=cb; var m=document.getElementById('memoAuthModal'); if(!m) return; m.classList.add('open');
-    document.getElementById('memoAuthInput').value=''; document.getElementById('memoAuthErr').style.display='none';
-    setTimeout(function(){ document.getElementById('memoAuthInput').focus(); },80);
+  // ── Rendu principal : aperçu note + todo côte à côte ──
+  function renderMemoCouple(){
+    _renderMemoPreview();
+    _renderTodoPreview();
   }
-  window.closeMemoAuth=function(){ var m=document.getElementById('memoAuthModal'); if(m) m.classList.remove('open'); };
+  window.renderMemoCouple = renderMemoCouple;
+  // Aliases pour compatibilité avec nousLoad()
+  window.renderNotes = renderMemoCouple;
+  window.renderTodos = renderMemoCouple;
 
-  var _memoFailCount=0, _memoBlocked=false;
-  window.memoCheckAuth=async function(){
-    if(_memoBlocked) return;
-    var val=document.getElementById('memoAuthInput').value.trim().toUpperCase();
-    var h=await _sha256(val);
-    if(h===_MEMO_HASH){ _memoFailCount=0; window.closeMemoAuth(); if(_authCb){ _authCb(); _authCb=null; } }
-    else{
-      _memoFailCount++;
-      document.getElementById('memoAuthInput').value=''; document.getElementById('memoAuthInput').focus();
-      var errEl=document.getElementById('memoAuthErr');
-      if(_memoFailCount>=5){ _memoBlocked=true; errEl.style.display='block'; errEl.textContent='⛔ Trop de tentatives — attends 30s'; document.getElementById('memoAuthInput').disabled=true; setTimeout(function(){ _memoBlocked=false; _memoFailCount=0; document.getElementById('memoAuthInput').disabled=false; errEl.style.display='none'; },30000); }
-      else { errEl.style.display='block'; errEl.textContent='❌ Code incorrect, réessaie ! ('+_memoFailCount+'/5)'; }
-    }
-  };
-
-  var inp=document.getElementById('memoAuthInput');
-  if(inp) inp.addEventListener('keydown',function(e){ if(e.key==='Enter') window.memoCheckAuth(); });
-  var modal=document.getElementById('memoAuthModal');
-  if(modal) modal.addEventListener('click',function(e){ if(e.target===this) window.closeMemoAuth(); });
-
-  window.memoRequestUnlock=function(){
-    if(memoUnlocked){ memoLock(); return; }
-    if(v2LoadSession()){ memoUnlock(); return; }
-    openMemoAuth(function(){ memoUnlock(); });
-  };
-
-  function memoUnlock(){ memoUnlocked=true; document.getElementById('memoLockBadge').classList.add('unlocked'); document.getElementById('memoLockTxt').textContent='Verrouiller'; document.getElementById('memoTodoAddRow').style.display='flex'; renderNotes(); renderTodos(); }
-  function memoLock(){ memoUnlocked=false; document.getElementById('memoLockBadge').classList.remove('unlocked'); document.getElementById('memoLockTxt').textContent='Modifier'; document.getElementById('memoTodoAddRow').style.display='none'; renderNotes(); renderTodos(); }
-
-  function _getMemoSession(){ try{ var s=JSON.parse(localStorage.getItem('yam_v2_session')||'null'); return s&&s.user?s.user:null; }catch(e){ return null; } }
-
-  function renderNotes(){
-    var slider=document.getElementById('memoNotesSlider'); if(!slider) return;
-    slider.innerHTML='<div class="memo-loading"><span class="spinner"></span>Chargement...</div>';
-    var su=_getMemoSession(); var coupleId=su?su.couple_id:null; if(!coupleId){ slider.innerHTML='<div class="memo-notes-empty">Session introuvable.</div>'; return; }
-    fetch(SB2_URL+'/rest/v1/v2_memo_notes?couple_id=eq.'+coupleId+'&order=created_at.desc',{headers:sb2Headers()})
+  // ── Aperçu de la note ──
+  function _renderMemoPreview(){
+    var el = document.getElementById('memoNotePreview'); if(!el) return;
+    var su = _getSession(); var coupleId = su?su.couple_id:null; if(!coupleId){ el.textContent=''; return; }
+    fetch(SB2_URL+'/rest/v1/v2_memo_notes?couple_id=eq.'+coupleId+'&order=updated_at.desc&limit=1',{headers:sb2Headers()})
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(notes){
-      slider.innerHTML='';
-      var addCard=document.createElement('div'); addCard.className='memo-note-add-card'+(memoUnlocked?' visible':'');
-      addCard.innerHTML='<div class="memo-note-add-img"><div class="memo-note-add-icon">+</div><div class="memo-note-add-lbl">Nouvelle note</div></div>';
-      addCard.addEventListener('click',function(){ openMemoModal(null,true); }); slider.appendChild(addCard);
-      if(!Array.isArray(notes)||!notes.length){ var empty=document.createElement('div'); empty.className='memo-notes-empty'; empty.textContent=memoUnlocked?'Aucune note — ajoute-en une !':'Aucune note pour l\'instant.'; slider.appendChild(empty); return; }
-      notes.forEach(function(note,i){
-        var col=NOTE_COLORS[i%NOTE_COLORS.length], icon=NOTE_ICONS[i%NOTE_ICONS.length];
-        var prev=(note.text||'').substring(0,40)+((note.text||'').length>40?'…':'');
-        var d=new Date(note.updated_at||note.created_at); var ds=d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
-        var isRecentlyModified=note.updated_at&&note.updated_at!==note.created_at&&(Date.now()-new Date(note.updated_at).getTime())<6*60*60*1000;
-        var newBadge=isRecentlyModified?'<div class="memo-note-new-badge">new</div>':'';
-        var card=document.createElement('div'); card.className='memo-note-card';
-        card.innerHTML='<div class="memo-note-img" style="background:'+col+'"><div class="memo-note-bg">'+icon+'</div>'+newBadge+'<div class="memo-note-date-badge">'+escHtml(ds)+'</div><div class="memo-note-banner">'+escHtml(note.title||'Note')+'</div></div><div class="memo-note-preview">'+escHtml(prev)+'</div>';
-        (function(n){ card.addEventListener('click',function(){ openMemoModal(n,false); }); })(note);
-        slider.appendChild(card);
+      if(!Array.isArray(notes)||!notes.length){
+        el.innerHTML='<span style="color:var(--muted);font-size:12px;">Aucune note — appuie pour écrire</span>';
+        var dateEl=document.getElementById('memoNoteDate'); if(dateEl) dateEl.textContent='';
+        return;
+      }
+      var note = notes[0];
+      var prev = (note.text||'').substring(0,120)+((note.text||'').length>120?'…':'');
+      el.textContent = prev;
+      var modDate = note.updated_at||note.created_at;
+      var d = new Date(modDate);
+      var dateEl = document.getElementById('memoNoteDate');
+      var isUpd = note.updated_at&&note.updated_at!==note.created_at;
+      if(dateEl) dateEl.textContent = (isUpd?'Modifié ':'Créé ')+d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    }).catch(function(){});
+  }
+
+  // ── Aperçu de la todo ──
+  function _renderTodoPreview(){
+    var container = document.getElementById('memoTodoPreview'); if(!container) return;
+    var su = _getSession(); var coupleId = su?su.couple_id:null; if(!coupleId){ container.innerHTML=''; return; }
+    fetch(SB2_URL+'/rest/v1/v2_memo_todos?couple_id=eq.'+coupleId+'&order=created_at.asc&limit=5',{headers:sb2Headers()})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(items){
+      container.innerHTML='';
+      if(!Array.isArray(items)||!items.length){
+        container.innerHTML='<span style="color:var(--muted);font-size:12px;">Liste vide — appuie pour ajouter</span>';
+        return;
+      }
+      items.forEach(function(item){
+        var row=document.createElement('div'); row.className='memo-todo-preview-row';
+        row.innerHTML='<span class="memo-todo-preview-check'+(item.done?' done':'')+'"></span><span class="memo-todo-preview-text'+(item.done?' done':'')+'">'+escHtml(item.text)+'</span>';
+        container.appendChild(row);
       });
-    }).catch(function(err){ console.error('renderNotes error',err); document.getElementById('memoNotesSlider').innerHTML='<div class="memo-notes-empty">❌ Erreur de connexion Supabase.</div>'; });
+    }).catch(function(){});
   }
-  window.renderNotes = renderNotes;
 
-  function openMemoModal(note,isNew){
-    memoCurrentNote=note;
-    if(memoUnlocked){ document.getElementById('memoModalView').style.display='none'; document.getElementById('memoModalEdit').style.display='block'; document.getElementById('memoModalTitleInput').value=isNew?'':(note.title||''); document.getElementById('memoModalTextarea').value=isNew?'':(note.text||''); document.getElementById('memoModalDelBtn').style.display=isNew?'none':'block'; }
-    else { document.getElementById('memoModalView').style.display='block'; document.getElementById('memoModalEdit').style.display='none'; document.querySelector('.memo-modal-label').textContent=note&&note.title?note.title:'Note'; document.getElementById('memoModalContent').textContent=note?(note.text||'(vide)'):''; var modDate=note?(note.updated_at||note.created_at):Date.now(); var d=new Date(modDate); var isUpdated=note&&note.updated_at&&note.updated_at!==note.created_at; document.getElementById('memoModalDate').textContent=(isUpdated?'Modifié le ':'Créé le ')+d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
-    document.getElementById('memoModal').classList.add('open');
+  // ── Pop-up mémo (note + todo éditable) ──
+  window.openMemoPopup = function(){
+    var modal = document.getElementById('memoPopupModal'); if(!modal) return;
+    _loadMemoFull();
+    modal.classList.add('open');
+  };
+  window.closeMemoPopup = function(){
+    var modal = document.getElementById('memoPopupModal'); if(modal) modal.classList.remove('open');
+    renderMemoCouple();
+  };
+
+  var _currentNoteId = null;
+
+  function _loadMemoFull(){
+    var su = _getSession(); var coupleId = su?su.couple_id:null; if(!coupleId) return;
+    // Note
+    fetch(SB2_URL+'/rest/v1/v2_memo_notes?couple_id=eq.'+coupleId+'&order=updated_at.desc&limit=1',{headers:sb2Headers()})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(notes){
+      var note = Array.isArray(notes)&&notes.length?notes[0]:null;
+      _currentNoteId = note?note.id:null;
+      var ta = document.getElementById('memoPopupTextarea');
+      var ti = document.getElementById('memoPopupTitleInput');
+      if(ta) ta.value = note?(note.text||''):'';
+      if(ti) ti.value = note?(note.title||''):'';
+      var dateEl = document.getElementById('memoPopupDate');
+      if(dateEl&&note){
+        var d=new Date(note.updated_at||note.created_at);
+        var isUpd=note.updated_at&&note.updated_at!==note.created_at;
+        dateEl.textContent=(isUpd?'Modifié ':'Créé ')+d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      } else if(dateEl){ dateEl.textContent=''; }
+    }).catch(function(){});
+    // Todo
+    _loadTodoFull();
   }
-  window.closeMemoModal=function(){ document.getElementById('memoModal').classList.remove('open'); memoCurrentNote=null; var lbl=document.querySelector('.memo-modal-label'); if(lbl) lbl.textContent='Note'; };
-  var mm=document.getElementById('memoModal'); if(mm) mm.addEventListener('click',function(e){ if(e.target===this) window.closeMemoModal(); });
 
-  window.memoSaveNote=function(){
-    var txt=document.getElementById('memoModalTextarea').value.trim(); var ttl=document.getElementById('memoModalTitleInput').value.trim()||'Sans titre'; if(!txt) return;
-    var su=_getMemoSession(); var coupleId=su?su.couple_id:null; if(!coupleId) return;
-    var btn=document.querySelector('.memo-modal-save'); btn.textContent='⏳'; btn.disabled=true;
-    var done=function(){ btn.textContent='Sauvegarder 💾'; btn.disabled=false; window.closeMemoModal(); renderNotes(); };
-    if(memoCurrentNote&&memoCurrentNote.id){
-      fetch(SB2_URL+'/rest/v1/v2_memo_notes?id=eq.'+memoCurrentNote.id+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({text:txt,title:ttl,updated_at:new Date().toISOString()})}).then(done).catch(done);
+  window.memoSaveNote = function(){
+    var su = _getSession(); var coupleId = su?su.couple_id:null; if(!coupleId) return;
+    var txt = (document.getElementById('memoPopupTextarea').value||'').trim();
+    var ttl = (document.getElementById('memoPopupTitleInput').value||'').trim()||'Note';
+    var btn = document.getElementById('memoPopupSaveBtn'); if(btn){ btn.textContent='...'; btn.disabled=true; }
+    var done = function(){ if(btn){ btn.textContent='Sauvegarder'; btn.disabled=false; } renderMemoCouple(); };
+    if(_currentNoteId){
+      fetch(SB2_URL+'/rest/v1/v2_memo_notes?id=eq.'+_currentNoteId+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({text:txt,title:ttl,updated_at:new Date().toISOString()})}).then(done).catch(done);
     } else {
-      fetch(SB2_URL+'/rest/v1/v2_memo_notes',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,text:txt,title:ttl})}).then(done).catch(done);
+      if(!txt) return done();
+      fetch(SB2_URL+'/rest/v1/v2_memo_notes',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,text:txt,title:ttl})}).then(function(){ _loadMemoFull(); done(); }).catch(done);
     }
   };
-  window.memoDeleteNote=function(){
-    if(!memoCurrentNote||!memoCurrentNote.id){ window.closeMemoModal(); return; }
-    var su=_getMemoSession(); var coupleId=su?su.couple_id:null; if(!coupleId) return;
-    fetch(SB2_URL+'/rest/v1/v2_memo_notes?id=eq.'+memoCurrentNote.id+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()}).then(function(){ window.closeMemoModal(); renderNotes(); });
-  };
 
-  function renderTodos(){
-    var container=document.getElementById('memoTodoList'); if(!container) return;
-    container.innerHTML='<div class="memo-loading"><span class="spinner"></span>Chargement...</div>';
-    var su=_getMemoSession(); var coupleId=su?su.couple_id:null; if(!coupleId){ container.innerHTML='<div class="todo-empty">Session introuvable.</div>'; return; }
+  function _loadTodoFull(){
+    var su = _getSession(); var coupleId = su?su.couple_id:null; if(!coupleId) return;
+    var container = document.getElementById('memoPopupTodoList'); if(!container) return;
+    container.innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px;">Chargement...</div>';
     fetch(SB2_URL+'/rest/v1/v2_memo_todos?couple_id=eq.'+coupleId+'&order=created_at.asc',{headers:sb2Headers()})
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(items){
       container.innerHTML='';
-      if(!Array.isArray(items)||!items.length){ var empty=document.createElement('div'); empty.className='todo-empty'; empty.textContent=memoUnlocked?'Aucun item — ajoute-en un !':'La to-do est vide.'; container.appendChild(empty); return; }
-      items.forEach(function(item){
-        var row=document.createElement('div'); row.className='todo-item';
-        row.innerHTML='<div class="todo-check'+(item.done?' done':'')+'">'+(item.done?'✓':'')+'</div><div class="todo-text'+(item.done?' done':'')+'">'+escHtml(item.text)+'</div>'+(memoUnlocked?'<div class="todo-del">✕</div>':'');
-        (function(it){ 
-          row.querySelector('.todo-check').addEventListener('click',function(){ 
-            fetch(SB2_URL+'/rest/v1/v2_memo_todos?id=eq.'+it.id+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({done:!it.done})}).then(renderTodos); 
-          }); 
-          var del=row.querySelector('.todo-del'); 
-          if(del) del.addEventListener('click',function(e){ e.stopPropagation(); fetch(SB2_URL+'/rest/v1/v2_memo_todos?id=eq.'+it.id+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()}).then(renderTodos); }); 
-        })(item);
-        container.appendChild(row);
-      });
-    }).catch(function(err){ console.error('renderTodos error',err); document.getElementById('memoTodoList').innerHTML='<div class="todo-empty">❌ Erreur Supabase.</div>'; });
+      if(!Array.isArray(items)||!items.length){
+        var empty=document.createElement('div'); empty.style.cssText='color:var(--muted);font-size:12px;padding:8px;'; empty.textContent='Aucun item.'; container.appendChild(empty);
+      } else {
+        items.forEach(function(item){
+          var row=document.createElement('div'); row.className='todo-item';
+          row.innerHTML='<div class="todo-check'+(item.done?' done':'')+'">'+(item.done?'✓':'')+'</div><div class="todo-text'+(item.done?' done':'')+'">'+escHtml(item.text)+'</div><div class="todo-del">✕</div>';
+          (function(it){
+            row.querySelector('.todo-check').addEventListener('click',function(){
+              fetch(SB2_URL+'/rest/v1/v2_memo_todos?id=eq.'+it.id+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({done:!it.done})}).then(_loadTodoFull);
+            });
+            row.querySelector('.todo-del').addEventListener('click',function(e){ e.stopPropagation();
+              fetch(SB2_URL+'/rest/v1/v2_memo_todos?id=eq.'+it.id+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()}).then(_loadTodoFull);
+            });
+          })(item);
+          container.appendChild(row);
+        });
+      }
+    }).catch(function(){});
   }
-  window.renderTodos = renderTodos;
 
-  window.memoAddTodoItem=function(){
-    var input=document.getElementById('memoTodoInput'), txt=input.value.trim(); if(!txt) return; input.value='';
-    var su=_getMemoSession(); var coupleId=su?su.couple_id:null; if(!coupleId) return;
-    fetch(SB2_URL+'/rest/v1/v2_memo_todos',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,text:txt,done:false})}).then(renderTodos);
+  window.memoAddTodoItem = function(){
+    var su = _getSession(); var coupleId = su?su.couple_id:null; if(!coupleId) return;
+    var input = document.getElementById('memoPopupTodoInput'); if(!input) return;
+    var txt = input.value.trim(); if(!txt) return; input.value='';
+    fetch(SB2_URL+'/rest/v1/v2_memo_todos',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,text:txt,done:false})}).then(_loadTodoFull);
   };
-  var tdi=document.getElementById('memoTodoInput'); if(tdi) tdi.addEventListener('keydown',function(e){ if(e.key==='Enter') window.memoAddTodoItem(); });
 
-  // renderNotes/renderTodos sont appelés via memoUnlock() ou _nousInitAll()
-  // Ne pas appeler ici directement (session pas encore dispo)
+  // Fermer en cliquant dehors
+  setTimeout(function(){
+    var mm = document.getElementById('memoPopupModal');
+    if(mm) mm.addEventListener('click',function(e){ if(e.target===mm) window.closeMemoPopup(); });
+  },0);
+
+  // Enter dans l'input todo
+  setTimeout(function(){
+    var tdi = document.getElementById('memoPopupTodoInput');
+    if(tdi) tdi.addEventListener('keydown',function(e){ if(e.key==='Enter') window.memoAddTodoItem(); });
+  },0);
+
 })();
 
 
@@ -766,7 +865,6 @@ loadLikeCounters();
 
   function _getCoupleId(){ try{ var s=JSON.parse(localStorage.getItem('yam_v2_session')||'null'); return s&&s.user?s.user.couple_id:null; }catch(e){ return null; } }
 
-  // Cache local des souvenirs
   var _souvenirAllRows = [];
 
   window.nousLoadSouvenirs = function(){
@@ -792,17 +890,17 @@ loadLikeCounters();
       emptyEl.style.display='block'; return;
     }
     emptyEl.style.display='none';
-    var recent5 = rows.slice(0,5);
-    var recent5ids = recent5.map(function(s){ return s.id; });
-    var favs = rows.filter(function(s){ return s.is_fav && recent5ids.indexOf(s.id)===-1; }).slice(0,5);
-    if(recent5.length){
-      recentRow.style.display='block';
-      recent5.forEach(function(s){ recentScroll.appendChild(_buildSouvenirCard(s)); });
-    } else { recentRow.style.display='none'; }
+    // Favoris en tête de liste
+    var favs   = rows.filter(function(s){ return s.is_fav; });
+    var recent = rows.filter(function(s){ return !s.is_fav; }).slice(0,5);
     if(favs.length){
       favRow.style.display='block';
       favs.forEach(function(s){ favScroll.appendChild(_buildSouvenirCard(s)); });
     } else { favRow.style.display='none'; }
+    if(recent.length){
+      recentRow.style.display='block';
+      recent.forEach(function(s){ recentScroll.appendChild(_buildSouvenirCard(s)); });
+    } else { recentRow.style.display='none'; }
   }
 
   function _buildSouvenirCard(s){
@@ -827,15 +925,22 @@ loadLikeCounters();
     return card;
   }
 
+  // Rouage → ouvre directement la liste complète (plus de sheet intermédiaire)
   window.nousOpenSouvenirGestion = function(){
-    // Ouvre le pop intermediaire
-    var sheet=document.getElementById('souvenirGestionSheet');
-    if(sheet) sheet.classList.add('open');
-  };
-
-  window.closeSouvenirGestionSheet = function(){
-    var sheet=document.getElementById('souvenirGestionSheet');
-    if(sheet) sheet.classList.remove('open');
+    if(!_souvenirAllRows.length){ window.nousLoadSouvenirs(); }
+    _renderGestionList();
+    var overlay=document.getElementById('souvenirGestionOverlay');
+    if(overlay){
+      overlay.classList.add('open');
+      // Scroll auto en haut
+      setTimeout(function(){
+        var list=document.getElementById('souvenirGestionList');
+        if(list) list.scrollTop=0;
+        // Scroll overlay au top
+        overlay.scrollTop=0;
+      }, 50);
+    }
+    document.body.style.overflow='hidden';
   };
 
   window.nousCloseSouvenirGestion = function(){
@@ -844,34 +949,31 @@ loadLikeCounters();
     document.body.style.overflow='';
   };
 
-  // Appele depuis le sheet intermediaire
-  var _gestionOrigOpen = window.nousOpenSouvenirGestion;
-  window._nousOpenGestionFull = function(){
-    if(!_souvenirAllRows.length){ window.nousLoadSouvenirs(); }
-    _renderGestionList();
-    var overlay=document.getElementById('souvenirGestionOverlay');
-    if(overlay){
-      overlay.classList.add('open');
-      // Reset scroll apres rendu
-      var list=document.getElementById('souvenirGestionList');
-      if(list) setTimeout(function(){ list.scrollTop=0; },0);
-    }
-    document.body.style.overflow='hidden';
+  // Conservé pour compatibilité mais inutilisé désormais
+  window.closeSouvenirGestionSheet = function(){
+    var sheet=document.getElementById('souvenirGestionSheet');
+    if(sheet) sheet.classList.remove('open');
   };
-
 
   function _renderGestionList(){
     var list=document.getElementById('souvenirGestionList'); if(!list) return;
     list.innerHTML='';
+    list.scrollTop=0;
     if(!_souvenirAllRows.length){
-      list.innerHTML='<div style="text-align:center;color:var(--muted);font-size:13px;padding:32px;">Aucun souvenir pour l\'instant &#127775;</div>';
+      list.innerHTML='<div style="text-align:center;color:var(--muted);font-size:13px;padding:32px;">Aucun souvenir pour l\'instant</div>';
       return;
     }
     var heartFilled='<svg width="22" height="22" viewBox="0 0 24 24" fill="#e879a0" stroke="#e879a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
     var heartEmpty='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
-    // Reset scroll au top pour eviter le scroll auto en bas
-    list.scrollTop = 0;
-    _souvenirAllRows.forEach(function(s){
+
+    // Favoris d'abord, puis le reste
+    var sorted = _souvenirAllRows.slice().sort(function(a,b){
+      if(a.is_fav&&!b.is_fav) return -1;
+      if(!a.is_fav&&b.is_fav) return 1;
+      return 0;
+    });
+
+    sorted.forEach(function(s){
       var row=document.createElement('div'); row.className='souvenir-gestion-row';
       var photoStyle=s.photo_url?'background-image:url('+escHtml(s.photo_url)+');':'';
       var dateStr=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):'';
@@ -903,8 +1005,8 @@ loadLikeCounters();
         btn.innerHTML=newFav?heartFilled:heartEmpty;
         _renderSouvenirRows(_souvenirAllRows);
       });
-      row.querySelector('.souvenir-gestion-photo').addEventListener('click',function(){ nousOpenSouvenirModal(s); nousCloseSouvenirGestion(); });
-      row.querySelector('.souvenir-gestion-info').addEventListener('click',function(){ nousOpenSouvenirModal(s); nousCloseSouvenirGestion(); });
+      row.querySelector('.souvenir-gestion-photo').addEventListener('click',function(){ nousOpenSouvenirModal(s); window.nousCloseSouvenirGestion(); });
+      row.querySelector('.souvenir-gestion-info').addEventListener('click',function(){ nousOpenSouvenirModal(s); window.nousCloseSouvenirGestion(); });
       list.appendChild(row);
     });
   }
@@ -925,7 +1027,7 @@ loadLikeCounters();
     if(photoPreview){
       photoPreview.style.backgroundImage=souvenir&&souvenir.photo_url?'url('+escHtml(souvenir.photo_url)+')':'';
       photoPreview.style.backgroundSize='cover'; photoPreview.style.backgroundPosition='center';
-      photoPreview.innerHTML=souvenir&&souvenir.photo_url?'':' <div style="font-size:24px;color:var(--muted);">&#128247;</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">Ajouter une photo</div>';
+      photoPreview.innerHTML=souvenir&&souvenir.photo_url?'':'<div style="font-size:24px;color:var(--muted);">&#128247;</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">Ajouter une photo</div>';
     }
     modal.dataset.souvenirId=souvenir?souvenir.id:'';
     modal.dataset.photoUrl=souvenir&&souvenir.photo_url?souvenir.photo_url:'';
@@ -955,7 +1057,7 @@ loadLikeCounters();
         if(modal) modal.dataset.photoUrl=url;
         if(preview){ preview.style.backgroundImage='url('+url+')'; preview.style.backgroundSize='cover'; preview.style.backgroundPosition='center'; preview.innerHTML=''; }
       } else { if(preview) preview.innerHTML='<div style="font-size:11px;color:#e05555;">Erreur upload</div>'; }
-    }).catch(function(){ if(preview) preview.innerHTML='<div style="font-size:11px;color:#e05555;">Erreur reseau</div>'; });
+    }).catch(function(){ if(preview) preview.innerHTML='<div style="font-size:11px;color:#e05555;">Erreur réseau</div>'; });
   };
 
   window.souvenirSave=function(){
@@ -973,11 +1075,9 @@ loadLikeCounters();
     var saveBtn=document.getElementById('souvenirSaveBtn'); if(saveBtn){ saveBtn.textContent='...'; saveBtn.disabled=true; }
     var done=function(){ if(saveBtn){ saveBtn.textContent='Sauvegarder'; saveBtn.disabled=false; } window.closeSouvenirModal(); window.nousLoadSouvenirs(); };
     if(id){
-      fetch(SB2_URL+'/rest/v1/v2_memories?id=eq.'+id,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
-      .then(done).catch(done);
+      fetch(SB2_URL+'/rest/v1/v2_memories?id=eq.'+id,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done).catch(done);
     } else {
-      fetch(SB2_URL+'/rest/v1/v2_memories',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
-      .then(done).catch(done);
+      fetch(SB2_URL+'/rest/v1/v2_memories',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done).catch(done);
     }
   };
 
@@ -1021,26 +1121,22 @@ loadLikeCounters();
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(rows){
       container.innerHTML='';
-      // Activités suggérées du jour (rotation selon le jour de l'année)
       var dayOfYear=Math.floor((Date.now()-new Date(new Date().getFullYear(),0,0))/(1000*60*60*24));
       var todaySuggested=ACTIVITES_SUGGEREES[dayOfYear%ACTIVITES_SUGGEREES.length];
-      // Vérifier si déjà ajoutée
       var alreadyAdded=rows.some(function(r){ return r.title===todaySuggested.titre; });
       if(!alreadyAdded){
         var suggCard=document.createElement('div'); suggCard.className='activite-sugg-card';
-        suggCard.innerHTML='<div class="activite-sugg-badge">💡 Idée du jour</div>'+
+        suggCard.innerHTML='<div class="activite-sugg-badge">Idée du jour</div>'+
           '<div class="activite-header"><span class="activite-emoji">'+todaySuggested.emoji+'</span><div class="activite-info"><div class="activite-titre">'+escHtml(todaySuggested.titre)+'</div><div class="activite-desc">'+escHtml(todaySuggested.desc)+'</div></div></div>'+
-          '<button class="activite-add-btn" onclick="nousAddSuggestedActivite()">Ajouter à nos activités ✨</button>';
+          '<button class="activite-add-btn" onclick="nousAddSuggestedActivite()">Ajouter à nos activités</button>';
         suggCard.dataset.sugg=JSON.stringify(todaySuggested);
         container.appendChild(suggCard);
       }
-      // Bouton nouvelle activité personnalisée
       var newBtn=document.createElement('button'); newBtn.className='activite-new-btn';
-      newBtn.innerHTML='+ Créer une activité personnalisée'; newBtn.addEventListener('click',function(){ nousOpenActiviteModal(null); });
+      newBtn.innerHTML='+ Créer une activité'; newBtn.addEventListener('click',function(){ nousOpenActiviteModal(null); });
       container.appendChild(newBtn);
-      // Activités existantes
       if(Array.isArray(rows)&&rows.length){ rows.forEach(function(act){ container.appendChild(_buildActiviteCard(act)); }); }
-    }).catch(function(){ container.innerHTML='<div style="color:var(--muted);font-size:13px;padding:16px;">❌ Erreur de chargement</div>'; });
+    }).catch(function(){ container.innerHTML='<div style="color:var(--muted);font-size:13px;padding:16px;">Erreur de chargement</div>'; });
   };
 
   window.nousAddSuggestedActivite=function(){
@@ -1059,7 +1155,6 @@ loadLikeCounters();
     var total=steps.length; var done=steps.filter(function(s){ return s.done; }).length;
     var pct=total>0?Math.round(done/total*100):0;
     var card=document.createElement('div'); card.className='activite-card';
-    // Construire le HTML sans JSON.stringify dans onclick
     var stepsDiv='';
     steps.forEach(function(s,i){
       stepsDiv+='<div class="activite-step'+(s.done?' done':'')+'" data-idx="'+i+'">'+
@@ -1074,12 +1169,11 @@ loadLikeCounters();
       '<div class="activite-titre">'+escHtml(act.title||'Activité')+'</div>'+
       (act.description?'<div class="activite-desc">'+escHtml(act.description)+'</div>':'')+
       '</div>'+
-      '<button class="activite-edit-btn">✏️</button>'+
+      '<button class="activite-edit-btn">'+_gearSVG()+'</button>'+
       '</div>'+
       '<div class="activite-progress-wrap"><div class="activite-progress-bar"><div class="activite-progress-fill" style="width:'+pct+'%"></div></div><div class="activite-progress-txt">'+done+'/'+total+'</div></div>'+
       (stepsDiv?'<div class="activite-steps">'+stepsDiv+'</div>':'')+
-      (pct===100?'<div class="activite-completed">🎉 Activité complétée !</div>':'');
-    // Event listeners propres — évite le crash JSON dans onclick HTML
+      (pct===100?'<div class="activite-completed">Activité complétée !</div>':'');
     card.querySelector('.activite-edit-btn').addEventListener('click', function(){ window.nousOpenActiviteModal(act); });
     card.querySelectorAll('.activite-step').forEach(function(el){
       el.querySelector('.activite-step-check').addEventListener('click', function(){
@@ -1104,11 +1198,10 @@ loadLikeCounters();
   window.nousOpenActiviteModal=function(act){
     var modal=document.getElementById('activiteModal'); if(!modal) return;
     var isNew=!act||!act.id;
-    document.getElementById('activiteModalTitle').textContent=isNew?'Nouvelle activité ✨':'Modifier l\'activité';
+    document.getElementById('activiteModalTitle').textContent=isNew?'Nouvelle activité':'Modifier l\'activité';
     document.getElementById('activiteInputTitre').value=isNew?'':(act.title||'');
     document.getElementById('activiteInputDesc').value=isNew?'':(act.description||'');
     document.getElementById('activiteInputEmoji').value=isNew?'✨':(act.emoji||'✨');
-    // Steps
     var stepsRaw=[]; try{ stepsRaw=JSON.parse(act&&act.steps||'[]'); }catch(e){}
     var stepsContainer=document.getElementById('activiteModalSteps');
     stepsContainer.innerHTML=''; stepsRaw.forEach(function(s){ _addStepRow(s.text); });
@@ -1136,8 +1229,8 @@ loadLikeCounters();
     var stepInputs=document.querySelectorAll('#activiteModalSteps .activite-step-input');
     var steps=Array.from(stepInputs).map(function(inp){ return {text:inp.value.trim(),done:false}; }).filter(function(s){ return s.text; });
     var data={ couple_id:coupleId, title:document.getElementById('activiteInputTitre').value.trim()||'Activité', description:document.getElementById('activiteInputDesc').value.trim()||null, emoji:document.getElementById('activiteInputEmoji').value.trim()||'✨', steps:JSON.stringify(steps) };
-    var btn=document.getElementById('activiteSaveBtn'); if(btn){ btn.textContent='⏳'; btn.disabled=true; }
-    var done2=function(){ if(btn){ btn.textContent='Sauvegarder 💾'; btn.disabled=false; } window.closeActiviteModal(); window.nousLoadActivites(); };
+    var btn=document.getElementById('activiteSaveBtn'); if(btn){ btn.textContent='...'; btn.disabled=true; }
+    var done2=function(){ if(btn){ btn.textContent='Sauvegarder'; btn.disabled=false; } window.closeActiviteModal(); window.nousLoadActivites(); };
     if(id){ fetch(SB2_URL+'/rest/v1/v2_activites?id=eq.'+id,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done2).catch(done2); }
     else { fetch(SB2_URL+'/rest/v1/v2_activites',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done2).catch(done2); }
   };
@@ -1151,7 +1244,6 @@ loadLikeCounters();
     .then(function(){ window.closeActiviteModal(); window.nousLoadActivites(); }).catch(function(){});
   };
 
-  // Fermer en cliquant dehors (direct — DOM déjà prêt quand app-nous.js s'exécute)
   var _activiteM=document.getElementById('activiteModal');
   if(_activiteM) _activiteM.addEventListener('click',function(e){ if(e.target===_activiteM) window.closeActiviteModal(); });
 
@@ -1159,16 +1251,23 @@ loadLikeCounters();
 
 
 // ════════════════════════════════════════════════════════════════════
-// 14. SETPROFILE HOOK — resync édit modes sur changement de profil
+// 14. HELPER — SVG rouage
+// ════════════════════════════════════════════════════════════════════
+function _gearSVG(){
+  return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
+}
+
+
+// ════════════════════════════════════════════════════════════════════
+// 15. SETPROFILE HOOK — resync sections sur changement de profil
 // ════════════════════════════════════════════════════════════════════
 (function(){
   var _origSetProfile = window.setProfile;
   window.setProfile = function(gender){
     if(_origSetProfile) _origSetProfile.apply(this, arguments);
     setTimeout(function(){
-      if(typeof elleSyncEditMode === 'function') elleSyncEditMode();
-      if(typeof luiSyncEditMode  === 'function') luiSyncEditMode();
-      if(typeof luiSyncDescs     === 'function') luiSyncDescs();
+      if(typeof elleSyncSections === 'function') elleSyncSections();
+      if(typeof window.luiSyncDescs === 'function') window.luiSyncDescs();
       if(typeof _nousLoadProfil  === 'function') _nousLoadProfil();
     }, 300);
   };
@@ -1176,22 +1275,18 @@ loadLikeCounters();
 
 
 // ════════════════════════════════════════════════════════════════════
-// 15. EXPOSITION GLOBALE pour yamSwitchTab
+// 16. EXPOSITION GLOBALE pour yamSwitchTab
 // ════════════════════════════════════════════════════════════════════
 window.nousLoad = function(){
-  if(window._nousIsUnlocked && window._nousIsUnlocked()){
-    if(window._nousContentLoaded) {
-      // Refresh léger à chaque retour sur l'onglet
-      loadLikeCounters();
-      if(typeof window.nousLoadSouvenirs==='function') window.nousLoadSouvenirs();
-      if(typeof window.nousLoadActivites==='function') window.nousLoadActivites();
-      if(typeof window.renderNotes==='function') window.renderNotes();
-      if(typeof window.renderTodos==='function') window.renderTodos();
-    } else {
-      window._nousContentLoaded = true;
-      _nousInitAll();
-    }
+  if(window._nousContentLoaded) {
+    // Refresh léger à chaque retour sur l'onglet
+    loadLikeCounters();
+    if(typeof window.nousLoadSouvenirs==='function') window.nousLoadSouvenirs();
+    if(typeof window.nousLoadActivites==='function') window.nousLoadActivites();
+    if(typeof renderMemoCouple==='function') renderMemoCouple();
+    if(typeof window._petitsMotsLoad==='function') window._petitsMotsLoad();
   } else {
-    nousCheckLock();
+    window._nousContentLoaded = true;
+    _nousInitAll();
   }
 };
