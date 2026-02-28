@@ -1776,8 +1776,8 @@ loadLikeCounters();
       (doneActivites.length ? ' Ils ont déjà fait : '+doneActivites.join(', ')+'. Évite ces activités.' : '')+
       ' Réponds UNIQUEMENT en JSON strict, sans aucun texte autour, avec ce format exact : {"emoji":"🎯","title":"Titre court","description":"Une phrase courte et motivante","steps":["Étape 1","Étape 2","Étape 3"]}';
 
-    var SB2_EDGE_CLAUDE = SB2_URL + '/functions/v1/claude-suggest';
-    fetch(SB2_EDGE_CLAUDE, {
+    var SB2_EDGE_GEMINI = SB2_URL + '/functions/v1/gemini-suggest';
+    fetch(SB2_EDGE_GEMINI, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-app-secret': SB2_APP_SECRET, 'apikey': SB2_KEY },
       body: JSON.stringify({ prompt: prompt })
@@ -1835,7 +1835,7 @@ loadLikeCounters();
 (function(){
 
   function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
-  var SB2_EDGE_CLAUDE = SB2_URL + '/functions/v1/claude-suggest';
+  var SB2_EDGE_CLAUDE = SB2_URL + '/functions/v1/gemini-suggest';
 
   // Affiche un spinner et cache le texte courant
   function _setLoading(on){
