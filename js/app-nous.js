@@ -2711,8 +2711,8 @@ loadLikeCounters();
   };
 
   // ── Fix iOS clavier : toutes les modales nous ──
-  // Quand le clavier s'ouvre, iOS réduit visualViewport.height.
-  // On ajuste le margin-bottom de la sheet ouverte pour qu'elle reste visible.
+  // Sur iOS, quand le clavier s'ouvre, visualViewport.height diminue.
+  // On repositionne l'overlay entier pour qu'il reste calé sur la zone visible.
   (function(){
     if(!window.visualViewport) return;
 
@@ -2721,21 +2721,32 @@ loadLikeCounters();
       var windowH = window.innerHeight;
       var keyboardH = Math.max(0, windowH - vv.height - vv.offsetTop);
 
-      // Trouver toutes les modales nous ouvertes
       var openOverlays = document.querySelectorAll('.nous-modal-overlay.open');
       openOverlays.forEach(function(overlay){
         var sheet = overlay.querySelector('.nous-modal-sheet');
         if(!sheet) return;
+
         if(keyboardH > 80){
-          // Clavier ouvert : on remonte la sheet
-          sheet.style.marginBottom = keyboardH + 'px';
-          sheet.style.maxHeight = 'calc(' + vv.height + 'px - 12px)';
+          // Clavier ouvert :
+          // - l'overlay se repositionne sur la zone visible (pas de remontée de barre nav)
+          overlay.style.position = 'fixed';
+          overlay.style.top    = vv.offsetTop + 'px';
+          overlay.style.height = vv.height + 'px';
+          overlay.style.bottom = 'auto';
+          // - la sheet prend toute la hauteur dispo sans nav
+          sheet.style.marginBottom = '0px';
+          sheet.style.maxHeight = (vv.height - 12) + 'px';
+          // - scroll l'input dans la zone visible
           var focused = document.activeElement;
           if(focused && sheet.contains(focused)){
             setTimeout(function(){ focused.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 80);
           }
         } else {
-          // Clavier fermé : remettre les valeurs CSS
+          // Clavier fermé : tout réinitialiser
+          overlay.style.position = '';
+          overlay.style.top    = '';
+          overlay.style.height = '';
+          overlay.style.bottom = '';
           sheet.style.marginBottom = '';
           sheet.style.maxHeight = '';
         }
@@ -2925,12 +2936,12 @@ loadLikeCounters();
   document.addEventListener('nousContentReady', function(){ window.livresLoad(); });
 
   // ── Fermeture au clic sur le fond des overlays livres ──
-  // iOS : touch-action:none bloque les onclick natifs sur l'overlay.
-  // Fix : touchend avec vérification stricte de e.target + délai anti-tap-parasite après ouverture.
+  // IMPORTANT : livreEditModal ne se ferme PAS au clic sur le fond (trop de faux positifs iOS)
+  // Seul livresGestionOverlay (liste) se ferme au clic fond — pas de saisie texte dedans.
   (function(){
     var _livresOverlayIds = [
-      { id: 'livresGestionOverlay', fn: function(){ window.livresCloseGestion(); } },
-      { id: 'livreEditModal',       fn: function(){ window.livresCloseEdit(); } }
+      { id: 'livresGestionOverlay', fn: function(){ window.livresCloseGestion(); } }
+      // livreEditModal : PAS de fermeture au clic fond — utiliser le bouton ✕
     ];
     function _attachOverlayClose(id, fn){
       var _touchStartX = null, _touchStartY = null, _openedAt = 0;
