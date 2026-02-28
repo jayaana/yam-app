@@ -306,14 +306,15 @@
   // ── Backdrop global (ouverture modale) ──
   function _showModalBackdrop() {
     if (_modalBackdrop) return;
+    var isLight = document.body.classList.contains('light');
     _modalBackdrop = document.createElement('div');
     _modalBackdrop.id = 'yamModalBackdrop';
     _modalBackdrop.style.cssText = [
       'position:fixed',
       'inset:0',
-      'z-index:915',          // entre nav(910) et modales(920)
-      'background:rgba(0,0,0,0.85)',
-      'pointer-events:all',   // bloque tout clic sur l'arrière-plan
+      'z-index:915',
+      'background:' + (isLight ? 'rgba(180,100,130,0.25)' : 'rgba(0,0,0,0.85)'),
+      'pointer-events:all',
       'transition:opacity 0.2s ease'
     ].join(';');
     document.body.appendChild(_modalBackdrop);
