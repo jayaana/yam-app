@@ -1448,7 +1448,7 @@ body.light #lockNavBtn.has-unread {
   position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000; display: none;
   align-items: flex-end; justify-content: center;
   backdrop-filter: blur(4px);
-  padding-bottom: var(--nav-height);
+  /* padding-bottom:0 — overlay descend à bottom:0, clavier couvre la nav nativement */
 }
 #searchOverlay.open { display: flex; }
 .search-popup {
@@ -1456,6 +1456,8 @@ body.light #lockNavBtn.has-unread {
   background: var(--s1); border: 1px solid var(--border);
   border-radius: 20px 20px 0 0;
   padding: 16px 16px 8px;
+  /* padding-bottom compense la nav quand clavier fermé */
+  padding-bottom: calc(var(--nav-height) + 8px);
   animation: slideUp 0.22s ease;
   max-height: 70vh; display: flex; flex-direction: column;
 }
@@ -3904,7 +3906,7 @@ body.light .pendu-theme {
 #hiddenPage {
   display: none; position: fixed;
   top: 0; left: 0; right: 0;
-  bottom: var(--nav-height); /* s'arrête au-dessus de la nav — la nav reste visible */
+  bottom: 0; /* descend jusqu'au bas — le clavier couvre la nav nativement */
   z-index: 1100;
   overflow: hidden; background: var(--bg);
   flex-direction: column; transition: background 0.3s;
@@ -4223,13 +4225,12 @@ body.light .dm-seen-label { color: var(--muted); }
 }
 .dm-input-bar {
   width:100%; flex-shrink:0;
-  padding:10px 12px 10px;
-  /* Sur iOS : env(safe-area-inset-bottom) couvre le home indicator.
-     Quand le clavier est ouvert il remplace le safe-area, donc ce padding
-     n'est jamais sur-additionné. La barre de saisie reste toujours visible. */
-  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  padding:10px 12px;
+  /* padding-bottom = nav-height : le contenu ne passe pas sous la nav quand clavier fermé.
+     Quand le clavier s'ouvre, il couvre la nav — app-ios-touch.js ajuste ce padding. */
+  padding-bottom: calc(var(--nav-height) + 4px);
   background:var(--bg); border-top:1px solid var(--border);
-  position:relative; transition:background 0.3s;
+  position:relative; transition:background 0.3s, padding-bottom 0.25s ease;
 }
 .dm-input-wrap {
   display:flex; align-items:center; gap:8px;
