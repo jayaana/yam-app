@@ -136,9 +136,70 @@
     }
   }
 
+  // ── Drag libre de la sheet quand clavier ouvert ──
+  var _dragSheet      = null;  // la sheet en cours de drag
+  var _dragStartY     = 0;
+  var _dragStartTY    = 0;     // translateY au début du touch
+  var _dragActive     = false;
+
+  function _getCurrentTranslateY(el) {
+    var t = el.style.transform;
+    var m = t && t.match(/translateY\(([\-\d.]+)px\)/);
+    return m ? parseFloat(m[1]) : 0;
+  }
+
+  function _onSheetTouchStart(e) {
+    if (e.touches.length !== 1) return;
+    _dragStartY  = e.touches[0].clientY;
+    _dragStartTY = _getCurrentTranslateY(_dragSheet);
+    _dragActive  = true;
+  }
+
+  function _onSheetTouchMove(e) {
+    if (!_dragActive || !_dragSheet) return;
+    var dy  = e.touches[0].clientY - _dragStartY;
+    var newTY = _dragStartTY + dy;
+    // Limite haute : ne pas dépasser le haut de l'écran
+    if (newTY < -(window.innerHeight * 0.7)) newTY = -(window.innerHeight * 0.7);
+    // Limite basse : ne pas descendre en dessous de sa position naturelle (0)
+    if (newTY > 0) newTY = 0;
+    _dragSheet.style.transition = 'none';
+    _dragSheet.style.transform  = newTY !== 0 ? 'translateY(' + newTY + 'px)' : '';
+    e.stopPropagation();
+  }
+
+  function _onSheetTouchEnd() {
+    _dragActive = false;
+  }
+
+  function _enableSheetDrag(sheet) {
+    if (!sheet || sheet._dragEnabled) return;
+    sheet._dragEnabled = true;
+    sheet.addEventListener('touchstart', _onSheetTouchStart, { passive: true });
+    sheet.addEventListener('touchmove',  _onSheetTouchMove,  { passive: true });
+    sheet.addEventListener('touchend',   _onSheetTouchEnd,   { passive: true });
+    _dragSheet = sheet;
+  }
+
+  function _disableSheetDrag(sheet) {
+    if (!sheet || !sheet._dragEnabled) return;
+    sheet._dragEnabled = false;
+    sheet.removeEventListener('touchstart', _onSheetTouchStart);
+    sheet.removeEventListener('touchmove',  _onSheetTouchMove);
+    sheet.removeEventListener('touchend',   _onSheetTouchEnd);
+    sheet.style.transition = 'transform 0.25s ease';
+    sheet.style.transform  = '';
+    setTimeout(function () { sheet.style.transition = ''; }, 280);
+    if (_dragSheet === sheet) _dragSheet = null;
+  }
+
+  function _getSheet(container) {
+    if (!container) return null;
+    return container.querySelector('.nous-modal-sheet, .desc-edit-sheet, .account-sheet, .modal-sheet, .search-popup');
+  }
+
   function _onKeyboardOpen(container, kbH) {
     _hideNav();
-    // Verrouille le scroll de fond pendant que le clavier est ouvert
     window._yamScrollLocked = true;
 
     if (container.id === 'hiddenPage') {
@@ -155,19 +216,18 @@
       return;
     }
 
-    // Réduit le padding-bottom de la sheet (compensait la nav, maintenant cachée)
-    var sheet = container.querySelector('.nous-modal-sheet, .desc-edit-sheet, .account-sheet, .modal-sheet, .search-popup');
+    // Réduit le padding-bottom (compensait la nav, maintenant cachée)
+    var sheet = _getSheet(container);
     if (sheet) {
       sheet.style.transition    = 'padding-bottom 0.25s ease';
       sheet.style.paddingBottom = '16px';
+      // Active le drag libre sur la sheet
+      setTimeout(function () { _enableSheetDrag(sheet); }, 50);
     }
-    setTimeout(_scrollFocusedIntoView, 80);
   }
 
   function _onKeyboardClose(container) {
     _showNav();
-    // Ne pas toucher _yamScrollLocked ici — app-nous.js le gère via _scrollLockCount.
-    // Si la modale est encore ouverte, il reste true. Sinon il est déjà false.
     if (!container) return;
 
     if (container.id === 'hiddenPage') {
@@ -179,9 +239,10 @@
       return;
     }
 
-    // Remet le padding-bottom CSS d'origine
-    var sheet = container.querySelector('.nous-modal-sheet, .desc-edit-sheet, .account-sheet, .modal-sheet, .search-popup');
+    // Désactive le drag et remet la sheet à sa position
+    var sheet = _getSheet(container);
     if (sheet) {
+      _disableSheetDrag(sheet);
       sheet.style.transition    = 'padding-bottom 0.25s ease';
       sheet.style.paddingBottom = '';
       setTimeout(function () { sheet.style.transition = ''; }, 280);
