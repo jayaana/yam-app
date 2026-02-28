@@ -201,6 +201,8 @@
   function _onKeyboardOpen(container, kbH) {
     _hideNav();
     window._yamScrollLocked = true;
+    // touch-action:none sur le body bloque le scroll iOS nativement
+    document.body.style.touchAction = 'none';
 
     if (container.id === 'hiddenPage') {
       var bar = container.querySelector('.dm-input-bar');
@@ -221,13 +223,16 @@
     if (sheet) {
       sheet.style.transition    = 'padding-bottom 0.25s ease';
       sheet.style.paddingBottom = '16px';
-      // Active le drag libre sur la sheet
+      // Autorise le drag sur la sheet malgré touch-action:none sur le body
+      sheet.style.touchAction   = 'pan-y';
       setTimeout(function () { _enableSheetDrag(sheet); }, 50);
     }
   }
 
   function _onKeyboardClose(container) {
     _showNav();
+    // Remet touch-action normal
+    document.body.style.touchAction = '';
     if (!container) return;
 
     if (container.id === 'hiddenPage') {
@@ -243,6 +248,7 @@
     var sheet = _getSheet(container);
     if (sheet) {
       _disableSheetDrag(sheet);
+      sheet.style.touchAction   = '';
       sheet.style.transition    = 'padding-bottom 0.25s ease';
       sheet.style.paddingBottom = '';
       setTimeout(function () { sheet.style.transition = ''; }, 280);
@@ -315,6 +321,8 @@
     // Tout scroll bloqué sans exception — le drag de sheet suffit pour naviguer
     e.preventDefault();
   }, { passive: false });
+
+
 
   window._yamRegisterScrollLock = function () {};
 
