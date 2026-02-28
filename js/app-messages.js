@@ -1236,8 +1236,6 @@
     attached = false;
     if(window._dmUpdateHeaderAvatars) window._dmUpdateHeaderAvatars();
     if(window._dmUpdateVP) window._dmUpdateVP();
-    // body.position:fixed supprimé — causait la remontée de la nav au focus clavier
-    document.body.style.overflow = 'hidden';
     // Toujours afficher conv directement — plus d'écran intermédiaire/logo
     showConvScreen();
   };
@@ -1248,7 +1246,6 @@
     attached = false;
     var fb = document.getElementById('floatingThemeBtn');
     if(fb){ fb.style.opacity = ''; fb.style.pointerEvents = ''; }
-    document.body.style.overflow = '';
     if(window._dmUpdateVP) window._dmUpdateVP();
     if(_origClose) _origClose.apply(this, arguments);
     // Dispatch event so nav can clean up messages active state
@@ -1268,7 +1265,6 @@
     if(saved === 'girl' || saved === 'boy') identity = saved;
     attached = false;
     if(window._dmUpdateVP) window._dmUpdateVP();
-    document.body.style.overflow = 'hidden';
   };
   // Fonctions brutes — toutes redirigent vers les fonctions simplifiées
   window._dmRawShowHome = function(dir){ showConvScreen(dir); };
