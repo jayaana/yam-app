@@ -139,10 +139,6 @@
   function _onKeyboardOpen(container, kbH) {
     _hideNav();
 
-    // Couvrir le body pour éviter que l'arrière-plan du site transparaisse
-    // dans la zone recouverte par le clavier iOS (couleur adaptée au thème)
-    document.body.style.backgroundColor = _getBgColor();
-
     // Force le backdrop si on est dans une modale sheet — couvre les cas où
     // _yamScrollLocked n'a pas été reposé (modales empilées, _scrollLockCount > 1)
     if (container.classList && container.classList.contains('nous-modal-overlay')) {
@@ -170,17 +166,12 @@
       sheet.style.paddingBottom = '16px';
       _showKbdBackdrop(kbH);
       _enableDrag(sheet);
-    } else {
-      // Modale sans sheet détectée (memoModal, sgModal, etc.) → backdrop clavier quand même
-      _showKbdBackdrop(kbH);
     }
     setTimeout(_scrollFocusedIntoView, 80);
   }
 
   function _onKeyboardClose(container) {
     _showNav();
-    // Restaurer couleur body dans tous les cas
-    document.body.style.backgroundColor = '';
     if (!container) return;
 
     if (container.id === 'hiddenPage') {
@@ -200,9 +191,6 @@
       sheet.style.transition    = 'padding-bottom 0.25s ease';
       sheet.style.paddingBottom = '';
       setTimeout(function () { sheet.style.transition = ''; }, 280);
-    } else {
-      // Modale sans sheet → retirer le backdrop clavier
-      _hideKbdBackdrop();
     }
   }
 
@@ -309,17 +297,7 @@
   // _kbdBackdrop : idem mais étendu au clavier quand keyboard ouvert
   // ═══════════════════════════════════
 
-  // Retourne la couleur de fond adaptée au thème actif
-  function _getBgColor() {
-    return document.body.classList.contains('light') ? '#f5f5f5' : '#000';
-  }
-
-  // Retourne la couleur du backdrop (semi-transparent) adaptée au thème
-  function _getBackdropBg() {
-    return document.body.classList.contains('light')
-      ? 'rgba(230,230,235,0.92)'
-      : 'rgba(0,0,0,0.92)';
-  }
+  var _dragEl      = null;
   var _dragStartY  = 0;
   var _dragBaseTY  = 0;
   var _kbdBackdrop = null;
@@ -457,41 +435,24 @@
 
   // Fond opaque qui bouche la zone entre le bas de la sheet et le haut du clavier
   function _showKbdBackdrop(kbH) {
-    // Couvrir le body pour éviter que l'arrière-plan du site transparaisse
-    // dans la zone recouverte par le clavier iOS (couleur adaptée au thème)
-    document.body.style.backgroundColor = _getBgColor();
-
     if (_kbdBackdrop) return;
     _kbdBackdrop = document.createElement('div');
     _kbdBackdrop.style.cssText = [
       'position:fixed',
       'left:0',
       'right:0',
-      'bottom:0',
-      'top:0',
-      'z-index:915',
-      'pointer-events:all',
-      'background:' + _getBackdropBg(),
-      'backdrop-filter:blur(8px)',
-      '-webkit-backdrop-filter:blur(8px)'
+      'bottom:0',               // couvre tout l\'écran clavier compris
+      'top:0',                   // remonte jusqu'en haut — tout l'arrière-plan est couvert
+      'z-index:915',             // entre overlay (920) et le reste
+      'pointer-events:all',      // bloque les touches sur l'arrière-plan
+      'background:rgba(0,0,0,0.6)',
+      'backdrop-filter:blur(4px)',
+      '-webkit-backdrop-filter:blur(4px)'
     ].join(';');
     document.body.appendChild(_kbdBackdrop);
-
-    // Renforcer aussi le modalBackdrop existant si présent
-    if (_modalBackdrop) {
-      _modalBackdrop.style.background = document.body.classList.contains('light')
-        ? 'rgba(200,200,210,0.95)'
-        : 'rgba(0,0,0,0.95)';
-    }
   }
 
   function _hideKbdBackdrop() {
-    // Restaurer couleur body et modalBackdrop (thème-aware)
-    document.body.style.backgroundColor = '';
-    if (_modalBackdrop) {
-      _modalBackdrop.style.background = 'rgba(0,0,0,0.85)';
-    }
-
     if (!_kbdBackdrop) return;
     var el = _kbdBackdrop;
     _kbdBackdrop = null;
