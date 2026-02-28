@@ -47,7 +47,7 @@ body.light {
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; overflow-x: hidden; -webkit-text-size-adjust: 100%; overscroll-behavior: none !important; overscroll-behavior-x: none !important; overscroll-behavior-y: none !important; }
-body { overscroll-behavior: none !important; overscroll-behavior-y: none !important; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y !important; }
+body { overscroll-behavior: none !important; overscroll-behavior-y: none !important; -webkit-overflow-scrolling: touch; /* touch-action: pan-x pan-y retiré — bloquait la sélection de texte au doigt sur iOS */ }
 
 /* ══ SKELETON LOADING ══ */
 @keyframes skeletonShimmer {
@@ -363,6 +363,18 @@ body.scroll-locked {
 }
 /* Empêche le zoom automatique iOS sur les inputs (déclenché si font-size < 16px) */
 input, textarea, select { font-size: 16px !important; }
+
+/* ── Sélection de texte : explicitement autorisée dans les zones de lecture/édition ──
+   Contrebalance les user-select:none hérités de parents de niveau élevé */
+input, textarea,
+.memo-note-content, .memo-todo-text,
+.pm-card-body, .pm-card-title,
+.souvenir-desc, .souvenir-title,
+.desc-edit-modal textarea, .desc-edit-modal input,
+[contenteditable] {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
 
 .fade-in {
   opacity: 0;
