@@ -336,6 +336,9 @@
   // Fond opaque qui bouche la zone entre le bas de la sheet et le haut du clavier
   function _showKbdBackdrop(kbH) {
     if (_kbdBackdrop) return;
+    // Noircit le body — le clavier iOS laisse transparaître la page
+    // derrière la barre QuickType, on force un fond opaque
+    document.body.style.backgroundColor = '#000';
     _kbdBackdrop = document.createElement('div');
     _kbdBackdrop.style.cssText = [
       'position:fixed',
@@ -354,6 +357,7 @@
 
   function _hideKbdBackdrop() {
     if (!_kbdBackdrop) return;
+    document.body.style.backgroundColor = '';
     var el = _kbdBackdrop;
     _kbdBackdrop = null;
     el.style.transition = 'opacity 0.2s ease';
