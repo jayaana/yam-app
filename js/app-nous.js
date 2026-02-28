@@ -667,7 +667,6 @@ window.nousSignalNew = function() {
     });
   };
 
-  window.luiSyncDescs=function(){
   window.luiSyncDescs=function(){ /* crayons légendes désactivés */ };
 
   // luiSyncEditMode gardé comme alias pour compatibilité setProfile hook
