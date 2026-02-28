@@ -307,9 +307,6 @@ function _nousLoadProfil() {
     // Souvenirs (section label)
     var souvenirSection = document.getElementById('souvenirsSection');
     if(souvenirSection) window.yamShowNewBadge(souvenirSection, window.yamIsNew('souvenir'));
-    // Livres
-    var livresNew = document.getElementById('livresNewBadge');
-    if(livresNew) livresNew.style.display = window.yamIsNew('livre') ? '' : 'none';
     // Petits mots — badge à droite du compteur (seulement pour le receveur des nouveaux mots)
     var pmNew = document.getElementById('postitNewBadge');
     if(pmNew) pmNew.style.display = window.yamIsNew('petit_mot') ? '' : 'none';
@@ -2772,7 +2769,7 @@ loadLikeCounters();
   // ── Charger les livres depuis Supabase ──
   window.livresLoad = function(){
     var coupleId = _getCoupleId(); if(!coupleId) return;
-    fetch(SB2_URL+'/rest/v1/v2_books?couple_id=eq.'+coupleId+'&order=position.asc,created_at.desc&select=*',{headers:sb2Headers()})
+    fetch(SB2_URL+'/rest/v1/v2_books?couple_id=eq.'+coupleId+'&order=created_at.desc&select=*',{headers:sb2Headers()})
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(rows){
       _livresAllRows = Array.isArray(rows)?rows:[];
