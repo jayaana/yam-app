@@ -3916,20 +3916,23 @@ body.light .pendu-theme {
 #hiddenPage {
   display: none; position: fixed;
   top: 0; left: 0; right: 0;
-  bottom: 0; /* descend jusqu'au bas — le clavier couvre la nav nativement */
+  /* CONV : s'arrête au-dessus de la nav → nav visible, seul moyen de sortir */
+  bottom: var(--nav-height);
   z-index: 1100;
   overflow: hidden; background: var(--bg);
-  flex-direction: column; transition: background 0.3s;
+  flex-direction: column; transition: background 0.3s, bottom 0.25s ease;
   overscroll-behavior-x: none; touch-action: pan-y;
 }
 #hiddenPage.active { display: flex; animation: slideUp 0.3s ease; }
 
-/* Quand le clavier iOS s'ouvre, il couvre la nav nativement.
-   hiddenPage ne bouge pas — la dm-input-bar est en bas de hiddenPage
-   et remonte avec lui quand le clavier pousse le contenu. */
+/* CHAT : descend à bottom:0 pour que le clavier couvre la nav nativement.
+   body.dm-chat-active est posé par app-messages.js quand on entre en chat,
+   retiré quand on revient en conv. */
+body.dm-chat-active #hiddenPage {
+  bottom: 0;
+}
 
-/* dmKeyboardBg — sert à couvrir la nav visuellement quand le clavier est fermé
-   et que hiddenPage ne descend pas jusqu'en bas. Plus nécessaire. */
+/* dmKeyboardBg — obsolète, désactivé */
 #dmKeyboardBg { display: none !important; pointer-events: none; }
 
 /* Topbar */
