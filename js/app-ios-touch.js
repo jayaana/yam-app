@@ -1,58 +1,31 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // app-ios-touch.js — Système unifié tactile & clavier iOS — Source unique
 // Chargé EN PREMIER dans index.html
-//
-// CE FICHIER EST L'UNIQUE SOURCE DE VÉRITÉ pour :
-//   1. Pull-to-refresh blocker
-//   2. Swipe de bord gauche/droit
-//   3. Clavier iOS — basé sur focusin/focusout (PAS visualViewport)
-//      Nav cachée + modale remontée au focus, tout revient au blur.
-//   4. Scroll background blocker
-//   5. Sélection de texte universelle
-//   6. Init dm-input-bar (Messages)
-//
-// RÈGLE ABSOLUE : aucun autre fichier JS ne doit :
-//   - créer un listener visualViewport
-//   - créer un listener touchmove global avec passive:false
-//   - modifier document.body.style.position / overflow / width
-//   - modifier le meta viewport (maximum-scale etc.)
 // ═══════════════════════════════════════════════════════════════════════════
 
 (function () {
   'use strict';
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // CONFIG
-  // ─────────────────────────────────────────────────────────────────────────
-
-  var NAV_HEIGHT = 64;   // px — doit correspondre à --nav-height dans le CSS
-  var KB_DELAY   = 320;  // ms — délai iOS avant que le clavier soit pleinement ouvert
-  var BLUR_DELAY = 120;  // ms — délai avant de considérer le clavier vraiment fermé
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // UTILITAIRES
-  // ─────────────────────────────────────────────────────────────────────────
+  var NAV_HEIGHT = 64;
+  var KB_DELAY   = 320;
+  var BLUR_DELAY = 120;
 
   function isInput(el) {
     if (!el) return false;
     var tag = el.tagName;
-    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
-      || el.isContentEditable;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
   }
 
   function findScrollableAncestor(el) {
     var node = el;
     while (node && node !== document.body) {
       var oy = window.getComputedStyle(node).overflowY;
-      if ((oy === 'auto' || oy === 'scroll') && node.scrollHeight > node.clientHeight) {
-        return node;
-      }
+      if ((oy === 'auto' || oy === 'scroll') && node.scrollHeight > node.clientHeight) return node;
       node = node.parentElement;
     }
     return null;
   }
 
-  // Remonte la chaîne parentale pour trouver le conteneur modal le plus proche
   function findModalContainer(el) {
     var node = el;
     while (node && node !== document.body) {
@@ -75,9 +48,9 @@
   }
 
 
-  // ═════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════
   // 1. PULL-TO-REFRESH BLOCKER
-  // ═════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════
 
   var _ptrStartY = 0, _ptrStartX = 0, _ptrStartT = 0, _ptrCanBlock = false;
 
@@ -105,14 +78,12 @@
     if (dy > 0 && window.scrollY === 0) e.preventDefault();
   }, { passive: false });
 
-  document.addEventListener('touchend', function () {
-    _ptrCanBlock = false;
-  }, { passive: true });
+  document.addEventListener('touchend', function () { _ptrCanBlock = false; }, { passive: true });
 
 
-  // ═════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════
   // 2. SWIPE DE BORD
-  // ═════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════
 
   document.addEventListener('touchstart', function (e) {
     if (e.touches.length !== 1) return;
@@ -121,18 +92,14 @@
   }, { passive: false });
 
 
-  // ═════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════
   // 3. CLAVIER iOS — focusin / focusout
   //
-  // Principe :
-  //   focusin  → attendre KB_DELAY ms → mesurer kbH → cacher nav + remonter modale
-  //   focusout → attendre BLUR_DELAY ms → si le focus n'est pas dans la même
-  //              modale → montrer nav + redescendre modale
-  //
-  // Mesure de kbH : window.innerHeight - window.visualViewport.height
-  // (visualViewport est utilisé UNIQUEMENT pour mesurer, pas pour les events)
-  // Fallback : window.innerHeight - document.documentElement.clientHeight
-  // ═════════════════════════════════════════════════════════════════════════
+  // Au focus : cache la nav (translateY fixe).
+  // Pour hiddenPage : remonte aussi la dm-input-bar via padding-bottom.
+  // Pour toutes les autres modales : la nav cachée suffit + scroll input visible.
+  // Au blur : remet la nav, remet padding-bottom si hiddenPage.
+  // ═══════════════════════════════════
 
   var _kbFocusTimer = null;
   var _kbBlurTimer  = null;
@@ -151,7 +118,6 @@
     var nav = document.querySelector('.bottom-nav');
     if (!nav) return;
     nav.style.transition = 'transform 0.25s ease';
-    // Valeur fixe large — sort la nav de l'écran vers le bas quoi qu'il arrive
     nav.style.transform  = 'translateY(120px)';
   }
 
@@ -170,12 +136,9 @@
     }
   }
 
-  function _liftContainer(container, kbH) {
-    if (!container) return;
-    var id = container.id;
-
-    // ── hiddenPage (Messages) ──
-    if (id === 'hiddenPage') {
+  function _onKeyboardOpen(container, kbH) {
+    _hideNav();
+    if (container.id === 'hiddenPage') {
       var bar = container.querySelector('.dm-input-bar');
       if (bar) {
         bar.style.transition    = 'padding-bottom 0.25s ease';
@@ -188,223 +151,71 @@
       }
       return;
     }
-
-    // ── .nous-modal-overlay → la nav est cachée, la sheet est déjà collée en bas
-    // iOS ne remonte pas les position:fixed → la sheet reste sous le clavier.
-    // On translate uniquement de ce que le clavier empiète SUR la sheet.
-    // La sheet a padding-bottom:nav-height → ce padding est maintenant de l'espace libre
-    // puisque la nav est cachée. Shift net = kbH - NAV_HEIGHT.
-    if (container.classList && container.classList.contains('nous-modal-overlay')) {
-      var sheet = container.querySelector('.nous-modal-sheet');
-      if (!sheet) return;
-      var rect = container.querySelector('.nous-modal-sheet').getBoundingClientRect();
-      alert('kbH: ' + kbH + '\nsheet.bottom: ' + rect.bottom + '\ninnerHeight: ' + window.innerHeight);
-      var shift = Math.max(0, kbH - NAV_HEIGHT);
-      sheet.style.transition = 'transform 0.25s ease';
-      sheet.style.transform  = shift > 0 ? 'translateY(-' + shift + 'px)' : '';
-      setTimeout(_scrollFocusedIntoView, 80);
-      return;
-    }
-
-    // ── .souvenir-gestion-overlay → plein écran, scroll l'input dans la vue ──
-    if (container.classList && container.classList.contains('souvenir-gestion-overlay')) {
-      setTimeout(_scrollFocusedIntoView, 80);
-      return;
-    }
-
-    // ── descEditModal → translate la .desc-edit-sheet ──
-    if (id === 'descEditModal') {
-      var dsheet = container.querySelector('.desc-edit-sheet');
-      if (dsheet) {
-        dsheet.style.transition = 'transform 0.25s ease';
-        dsheet.style.transform  = 'translateY(-' + kbH + 'px)';
-      }
-      return;
-    }
-
-    // ── accountModal ──
-    if (id === 'accountModal') {
-      var asheet = container.querySelector('.account-sheet, .nous-modal-sheet, .modal-sheet') || container;
-      asheet.style.transition = 'transform 0.25s ease';
-      asheet.style.transform  = 'translateY(-' + kbH + 'px)';
-      return;
-    }
-
-    // ── searchOverlay ──
-    if (id === 'searchOverlay') {
-      var spop = container.querySelector('.search-popup');
-      if (spop) {
-        spop.style.transition = 'transform 0.25s ease';
-        spop.style.transform  = 'translateY(-' + kbH + 'px)';
-      }
-      return;
-    }
-
-    // ── lockPopup ──
-    if (id === 'lockPopup') {
-      container.style.bottom = 'auto';
-      container.style.top    = '20px';
-      return;
-    }
-
-    // ── Boîtes centrées : memoModal, memoAuthModal, v2LoginOverlay,
-    //    sgModal, sgEditModal, sgAuthModal, prankMsgModal ──
-    var centerSelectors = [
-      '.memo-modal-inner', '.sg-modal-inner', '.memo-auth-inner', '#v2LoginBox'
-    ];
-    var inner = null;
-    for (var i = 0; i < centerSelectors.length; i++) {
-      inner = container.querySelector(centerSelectors[i]);
-      if (inner) break;
-    }
-    if (!inner) inner = container;
-    var boxH   = inner.offsetHeight || 300;
-    var visH   = window.innerHeight - kbH;
-    var natTop = (visH - boxH) / 2;
-    var cshift = natTop < 20 ? 0 : Math.min(kbH / 2, natTop - 20);
-    inner.style.transition = 'transform 0.25s ease';
-    inner.style.transform  = cshift > 0 ? 'translateY(-' + cshift + 'px)' : '';
+    // Toutes les autres modales : scroll l'input dans la zone visible
+    setTimeout(_scrollFocusedIntoView, 80);
   }
 
-  function _dropContainer(container) {
-    if (!container) return;
-    var id = container.id;
-
-    if (id === 'hiddenPage') {
+  function _onKeyboardClose(container) {
+    _showNav();
+    if (container && container.id === 'hiddenPage') {
       var bar = container.querySelector('.dm-input-bar');
       if (bar) {
         bar.style.transition    = 'padding-bottom 0.25s ease';
         bar.style.paddingBottom = NAV_HEIGHT + 'px';
       }
-      return;
     }
-
-    if (container.classList && container.classList.contains('nous-modal-overlay')) {
-      var sheet = container.querySelector('.nous-modal-sheet');
-      if (sheet) {
-        sheet.style.transition = 'transform 0.25s ease';
-        sheet.style.transform  = '';
-        setTimeout(function () { sheet.style.transition = ''; }, 280);
-      }
-      return;
-    }
-
-    if (container.classList && container.classList.contains('souvenir-gestion-overlay')) {
-      return;
-    }
-
-    if (id === 'descEditModal') {
-      var dsheet = container.querySelector('.desc-edit-sheet');
-      if (dsheet) {
-        dsheet.style.transition = 'transform 0.25s ease';
-        dsheet.style.transform  = '';
-        setTimeout(function () { dsheet.style.transition = ''; }, 280);
-      }
-      return;
-    }
-
-    if (id === 'accountModal') {
-      var asheet = container.querySelector('.account-sheet, .nous-modal-sheet, .modal-sheet') || container;
-      asheet.style.transition = 'transform 0.25s ease';
-      asheet.style.transform  = '';
-      setTimeout(function () { asheet.style.transition = ''; }, 280);
-      return;
-    }
-
-    if (id === 'searchOverlay') {
-      var spop = container.querySelector('.search-popup');
-      if (spop) {
-        spop.style.transition = 'transform 0.25s ease';
-        spop.style.transform  = '';
-        setTimeout(function () { spop.style.transition = ''; }, 280);
-      }
-      return;
-    }
-
-    if (id === 'lockPopup') {
-      container.style.bottom = '80px';
-      container.style.top    = 'auto';
-      return;
-    }
-
-    // Boîtes centrées
-    var centerSelectors = [
-      '.memo-modal-inner', '.sg-modal-inner', '.memo-auth-inner', '#v2LoginBox'
-    ];
-    var inner = null;
-    for (var i = 0; i < centerSelectors.length; i++) {
-      inner = container.querySelector(centerSelectors[i]);
-      if (inner) break;
-    }
-    if (!inner) inner = container;
-    inner.style.transition = 'transform 0.25s ease';
-    inner.style.transform  = '';
-    setTimeout(function () { inner.style.transition = ''; }, 280);
   }
 
-  // ── focusin : un input prend le focus ──
   document.addEventListener('focusin', function (e) {
     if (!isInput(e.target)) return;
-
-    if (_kbBlurTimer) { clearTimeout(_kbBlurTimer); _kbBlurTimer = null; }
-
+    if (_kbBlurTimer)  { clearTimeout(_kbBlurTimer);  _kbBlurTimer  = null; }
     var container = findModalContainer(e.target);
     if (!container) return;
-
     if (_kbFocusTimer) { clearTimeout(_kbFocusTimer); _kbFocusTimer = null; }
 
     _kbFocusTimer = setTimeout(function () {
       _kbFocusTimer = null;
       var kbH = _getKbHeight();
       if (kbH < 80) {
-        // Clavier pas encore mesuré — on réessaie
         setTimeout(function () {
           var kbH2 = _getKbHeight();
           if (kbH2 < 80) return;
           _kbActive = true;
-          _hideNav();
-          _liftContainer(container, kbH2);
+          _onKeyboardOpen(container, kbH2);
         }, 200);
         return;
       }
       _kbActive = true;
-      _hideNav();
-      _liftContainer(container, kbH);
+      _onKeyboardOpen(container, kbH);
     }, KB_DELAY);
   });
 
-  // ── focusout : un input perd le focus ──
   document.addEventListener('focusout', function (e) {
     if (!isInput(e.target)) return;
     if (!_kbActive && !_kbFocusTimer) return;
-
     if (_kbFocusTimer) { clearTimeout(_kbFocusTimer); _kbFocusTimer = null; }
-
     var container = findModalContainer(e.target);
 
     _kbBlurTimer = setTimeout(function () {
       _kbBlurTimer = null;
-      // Si le focus est passé à un autre input dans la même modale → ne rien faire
       var newFocus = document.activeElement;
       if (newFocus && isInput(newFocus)) {
         var newContainer = findModalContainer(newFocus);
         if (newContainer && newContainer === container) return;
       }
       _kbActive = false;
-      _showNav();
-      _dropContainer(container);
+      _onKeyboardClose(container);
     }, BLUR_DELAY);
   });
 
-  // API publique — compat avec les autres fichiers JS (no-op désormais)
   window._yamKeyboardUpdate = function () {};
   window._dmUpdateVP        = function () {};
   window._positionLockPopup = function () {};
 
 
-  // ═════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════
   // 4. SCROLL BACKGROUND BLOCKER
-  // ═════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════
 
   var _sbT = 0, _sbX = 0, _sbY = 0;
 
@@ -433,9 +244,9 @@
   window._yamRegisterScrollLock = function () {};
 
 
-  // ═════════════════════════════════════════════════════════════════════════
-  // 5. SÉLECTION DE TEXTE — garantie universelle
-  // ═════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════
+  // 5. SÉLECTION DE TEXTE
+  // ═══════════════════════════════════
 
   function _forceTextSel(el) {
     el.style.webkitUserSelect = 'text';
@@ -465,26 +276,22 @@
   });
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () {
-      _selObs.observe(document.body, { childList: true, subtree: true });
-    });
+    document.addEventListener('DOMContentLoaded', function () { _selObs.observe(document.body, { childList: true, subtree: true }); });
   } else {
     _selObs.observe(document.body, { childList: true, subtree: true });
   }
 
 
-  // ═════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════
   // 6. INIT dm-input-bar
-  // ═════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════
 
   function _initDmBar() {
     var hp = document.getElementById('hiddenPage');
     if (!hp) return;
     var bar = hp.querySelector('.dm-input-bar');
-    if (!bar) return;
-    if (!bar.style.paddingBottom) {
-      bar.style.paddingBottom = NAV_HEIGHT + 'px';
-    }
+    if (!bar || bar.style.paddingBottom) return;
+    bar.style.paddingBottom = NAV_HEIGHT + 'px';
   }
 
   if (document.readyState === 'loading') {
