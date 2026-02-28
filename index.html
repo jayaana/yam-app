@@ -863,15 +863,15 @@
   </div>
   <!-- Zone idée du jour Groq -->
   <div id="livreIdeaCard" style="display:none;background:var(--s2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-top:4px;margin-bottom:2px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;">Idée du jour 📚</div>
-      <button onclick="document.getElementById('livreIdeaCard').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;padding:2px 4px;line-height:1;flex-shrink:0;">✕</button>
-    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:10px;">Idée du jour 📚</div>
     <div id="livreIdeaText" style="font-size:14px;color:var(--text);line-height:1.5;">Chargement...</div>
     <div id="livreIdeaMeta" style="font-size:10px;color:var(--muted);margin-top:6px;"></div>
-    <div style="display:flex;gap:8px;margin-top:12px;">
-      <button onclick="livresIdeeDuJour()" id="livreIdeaNextBtn" style="flex:1;padding:9px;background:var(--s3,rgba(255,255,255,0.06));border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;">Suivant →</button>
-      <button onclick="livresAddFromIdea()" style="flex:1;padding:9px;background:linear-gradient(135deg,#e879a0,#9b59b6);border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;">+ Ajouter</button>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
+      <div style="display:flex;gap:8px;">
+        <button onclick="livresIdeeDuJour()" id="livreIdeaNextBtn" style="flex:1;padding:13px 10px;background:var(--s3,rgba(255,255,255,0.06));border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;">Suivant →</button>
+        <button onclick="livresAddFromIdea()" style="flex:1;padding:13px 10px;background:linear-gradient(135deg,#e879a0,#9b59b6);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;">+ Ajouter</button>
+      </div>
+      <button onclick="document.getElementById('livreIdeaCard').style.display='none'" style="width:100%;padding:11px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;">Fermer</button>
     </div>
   </div>
 </div>
