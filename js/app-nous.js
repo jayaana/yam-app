@@ -1753,12 +1753,50 @@ loadLikeCounters();
   // ── Suggestion IA pour activités ──
   var _iaSuggCache = null; // { title, desc, emoji, steps[] }
 
+  var _iaSuggLastCall = 0;
+  var _IA_SUGG_COOLDOWN = 30 * 1000; // 30 secondes entre chaque appel
+  var _IA_SUGG_MAX_PER_DAY = 3;      // max 3 suggestions par jour
+
+  function _iaSuggGetCount(){
+    var today = new Date().toISOString().slice(0,10);
+    try {
+      var data = JSON.parse(localStorage.getItem('yam_iasugg_count') || 'null');
+      if(data && data.date === today) return data.count;
+    } catch(e){}
+    return 0;
+  }
+
+  function _iaSuggIncrCount(){
+    var today = new Date().toISOString().slice(0,10);
+    var count = _iaSuggGetCount() + 1;
+    try { localStorage.setItem('yam_iasugg_count', JSON.stringify({date: today, count: count})); } catch(e){}
+  }
+
   window.activiteIaSuggest = function(){
     var btn = document.getElementById('activiteIaBtn');
     var card = document.getElementById('activiteIaSuggCard');
     var textEl = document.getElementById('activiteIaSuggText');
     var metaEl = document.getElementById('activiteIaSuggMeta');
     if(!btn || !textEl) return;
+
+    // Limite journalière : 3 suggestions par jour
+    if(_iaSuggGetCount() >= _IA_SUGG_MAX_PER_DAY){
+      if(card) card.style.display = 'flex';
+      textEl.innerHTML = '🤖 Le petit robot est épuisé... Revenez demain pour de nouvelles idées ! 😴';
+      if(metaEl) metaEl.textContent = 'Limite journalière atteinte';
+      btn.disabled = true;
+      btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Reviens demain 😴';
+      return;
+    }
+
+    // Cooldown anti-spam : 30s minimum entre chaque appel Gemini
+    var now = Date.now();
+    var remaining = Math.ceil((_iaSuggLastCall + _IA_SUGG_COOLDOWN - now) / 1000);
+    if(remaining > 0){
+      if(typeof showToast === 'function') showToast('Patiente encore ' + remaining + 's avant une nouvelle idée 😊', 'info');
+      return;
+    }
+    _iaSuggLastCall = now;
 
     btn.disabled = true;
     btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="spin-anim"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Génération...';
@@ -1798,6 +1836,7 @@ loadLikeCounters();
         textEl.innerHTML += '</ul>';
       }
       if(metaEl) metaEl.textContent = 'Suggestion IA · '+saison.charAt(0).toUpperCase()+saison.slice(1);
+      _iaSuggIncrCount(); // comptabiliser l'appel réussi
     })
     .catch(function(err){
       if(card) card.style.display = 'flex';
@@ -1912,11 +1951,31 @@ loadLikeCounters();
     });
   }
 
+  var _motsDoux_loading = false;  // verrou anti-doublon
+  var _motsDoux_init_done = false; // init unique
+
   // Charger depuis la base ou générer si trop ancien (>24h)
   window.motsDoux_refresh = function(forced){
     var coupleId = _getCoupleId(); if(!coupleId){ _displayMot('Connecte-toi pour recevoir des mots doux ✨',''); return; }
+
+    // Anti-doublon : si un appel est déjà en cours, ignorer
+    if(_motsDoux_loading && !forced) return;
+
     if(forced){ _generateAndSave(true); return; }
-    // Vérifier si un mot récent (< 24h) existe déjà
+
+    // Cache localStorage : éviter tout appel réseau si déjà affiché aujourd'hui
+    var cacheKey = 'yam_motdoux_' + coupleId;
+    try {
+      var cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+      if(cached && cached.text && cached.date === new Date().toISOString().slice(0,10)){
+        _displayMot(cached.text, 'Mot doux IA · ' + new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'}));
+        return;
+      }
+    } catch(e){}
+
+    _motsDoux_loading = true;
+
+    // Vérifier si un mot récent (< 24h) existe déjà en base
     fetch(SB2_URL+'/rest/v1/v2_mots_doux?couple_id=eq.'+coupleId+'&order=generated_at.desc&limit=1&select=text,generated_at',{headers:sb2Headers()})
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(rows){
@@ -1925,20 +1984,44 @@ loadLikeCounters();
         var age = (Date.now() - new Date(last.generated_at)) / (1000*60*60);
         if(age < 24){
           var d = new Date(last.generated_at);
+          // Mettre en cache localStorage pour éviter les appels suivants aujourd'hui
+          try { localStorage.setItem(cacheKey, JSON.stringify({text: last.text, date: new Date().toISOString().slice(0,10)})); } catch(e){}
           _displayMot(last.text, 'Mot doux IA · '+d.toLocaleDateString('fr-FR',{day:'numeric',month:'long'}));
+          _motsDoux_loading = false;
           return;
         }
       }
-      // Aucun mot récent — générer
+      // Aucun mot récent — générer (1 seul appel Gemini par 24h)
       _generateAndSave(false);
     })
-    .catch(function(){ _generateAndSave(false); });
+    .catch(function(){
+      // En cas d'erreur réseau : afficher fallback SANS appeler Gemini
+      var fallbacks = [
+        'Pense à toi et ça me suffit pour sourire, même à distance. ❤️',
+        'Je suis tellement reconnaissant(e) de t\'avoir dans ma vie. Tu es mon endroit préféré.',
+        'Ce soir, sache que tu occupes mes pensées, et c\'est la meilleure place qui soit. 💕',
+        'Avec toi, même les moments simples deviennent des souvenirs que je chéris.'
+      ];
+      _displayMot(fallbacks[Math.floor(Math.random()*fallbacks.length)], 'Mot doux · hors-ligne');
+      _motsDoux_loading = false;
+    });
   };
 
-  // Init au chargement de la section Nous
-  document.addEventListener('nousContentReady', function(){ window.motsDoux_refresh(false); });
-  // Fallback : si event raté, appel différé
-  setTimeout(function(){ if(document.getElementById('motsDoux_text') && document.getElementById('motsDoux_text').textContent==='Chargement...') window.motsDoux_refresh(false); }, 2500);
+  // Init au chargement de la section Nous — déclenchement unique
+  document.addEventListener('nousContentReady', function(){
+    if(_motsDoux_init_done) return;
+    _motsDoux_init_done = true;
+    window.motsDoux_refresh(false);
+  });
+  // Fallback unique : si event raté
+  setTimeout(function(){
+    if(_motsDoux_init_done) return;
+    var el = document.getElementById('motsDoux_text');
+    if(el && el.textContent === 'Chargement...'){
+      _motsDoux_init_done = true;
+      window.motsDoux_refresh(false);
+    }
+  }, 2500);
 
 })();
 
