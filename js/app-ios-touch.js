@@ -159,6 +159,7 @@
       sheet.style.transition    = 'padding-bottom 0.25s ease';
       sheet.style.paddingBottom = '16px';
       _enableDrag(sheet);
+      _showKbdBackdrop(kbH);
     }
     setTimeout(_scrollFocusedIntoView, 80);
   }
@@ -180,6 +181,7 @@
     var sheet = container.querySelector('.nous-modal-sheet, .desc-edit-sheet, .account-sheet, .modal-sheet, .search-popup');
     if (sheet) {
       _disableDrag(sheet);
+      _hideKbdBackdrop();
       sheet.style.transition    = 'padding-bottom 0.25s ease';
       sheet.style.paddingBottom = '';
       setTimeout(function () { sheet.style.transition = ''; }, 280);
@@ -308,8 +310,7 @@
     var newTY = _dragBaseTY + dy;
     // Limite haute : 75% de la hauteur écran vers le haut
     if (newTY < -(window.innerHeight * 0.75)) newTY = -(window.innerHeight * 0.75);
-    // Limite basse : position naturelle (0)
-    if (newTY > 0) newTY = 0;
+    // Pas de limite basse — la sheet peut descendre sous le clavier
     _dragBaseTY = newTY;
     _dragStartY = e.touches[0].clientY;
     _dragEl.style.transition = 'none';
@@ -320,6 +321,38 @@
 
   function _onDragEnd(e) {
     e.stopPropagation();
+  }
+
+  // ── Fond opaque entre sheet et clavier ──
+  var _kbdBackdrop = null;
+
+  function _showKbdBackdrop(kbH) {
+    if (_kbdBackdrop) return;
+    _kbdBackdrop = document.createElement('div');
+    _kbdBackdrop.id = 'yamKbdBackdrop';
+    _kbdBackdrop.style.cssText = [
+      'position:fixed',
+      'left:0',
+      'right:0',
+      'bottom:' + kbH + 'px',
+      'height:40px',               // zone de transition
+      'background:linear-gradient(to bottom, transparent, rgba(0,0,0,0.55))',
+      'z-index:910',               // sous la sheet (z-index:920) mais au-dessus du fond
+      'pointer-events:none',
+      'transition:opacity 0.25s ease'
+    ].join(';');
+    document.body.appendChild(_kbdBackdrop);
+  }
+
+  function _hideKbdBackdrop() {
+    if (!_kbdBackdrop) return;
+    _kbdBackdrop.style.opacity = '0';
+    setTimeout(function () {
+      if (_kbdBackdrop && _kbdBackdrop.parentElement) {
+        _kbdBackdrop.parentElement.removeChild(_kbdBackdrop);
+      }
+      _kbdBackdrop = null;
+    }, 280);
   }
 
   function _enableDrag(sheet) {
