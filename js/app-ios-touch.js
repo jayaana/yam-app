@@ -258,12 +258,13 @@
   document.addEventListener('touchmove', function (e) {
     if (!window._yamScrollLocked) return;
     if (_kbActive) {
-      // Clavier ouvert : bloqué sauf si on scrolle dans un textarea/input actif
-      // (permet de relire le texte qu'on est en train d'écrire)
-      var t = e.target;
-      while (t && t !== document.body) {
-        if (t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && t === document.activeElement)) return;
-        t = t.parentElement;
+      // Si drag pausé (focus textarea) → laisse scroller la textarea
+      if (_dragPaused) {
+        var t = e.target;
+        while (t && t !== document.body) {
+          if (t.tagName === 'TEXTAREA') return;
+          t = t.parentElement;
+        }
       }
       e.preventDefault();
       return;
@@ -378,21 +379,25 @@
     return m ? parseFloat(m[1]) : 0;
   }
 
+  var _dragPaused = false;  // true quand focus dans une textarea
+
   function _onDragStart(e) {
     if (!_kbActive || e.touches.length !== 1) return;
-    // Ne pas démarrer le drag si le touch vient d'un textarea ou input
+    // Si le touch vient d'une textarea → garde drag pausé
     var t = e.target;
     while (t && t !== e.currentTarget) {
-      if (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT') return;
+      if (t.tagName === 'TEXTAREA') { _dragPaused = true; return; }
       t = t.parentElement;
     }
+    // Touch hors textarea → réactive le drag
+    _dragPaused = false;
     _dragStartY = e.touches[0].clientY;
     _dragBaseTY = _getCurrentTY(e.currentTarget);
     e.stopPropagation();
   }
 
   function _onDragMove(e) {
-    if (!_kbActive || !_dragEl || e.touches.length !== 1) return;
+    if (!_kbActive || !_dragEl || e.touches.length !== 1 || _dragPaused) return;
     var dy    = e.touches[0].clientY - _dragStartY;
     var newTY = _dragBaseTY + dy;
     if (newTY < -(window.innerHeight * 0.75)) newTY = -(window.innerHeight * 0.75);
@@ -463,11 +468,6 @@
   function _forceTextSel(el) {
     el.style.webkitUserSelect = 'text';
     el.style.userSelect       = 'text';
-    // Garantit le scroll natif iOS dans les textarea même quand drag actif sur la sheet
-    if (el.tagName === 'TEXTAREA') {
-      el.style.touchAction = 'pan-y';
-      el.style.overflowY   = 'auto';
-    }
   }
 
   function _applyTextSelAll() {
