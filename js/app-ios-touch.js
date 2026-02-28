@@ -139,6 +139,12 @@
   function _onKeyboardOpen(container, kbH) {
     _hideNav();
 
+    // Force le backdrop si on est dans une modale sheet — couvre les cas où
+    // _yamScrollLocked n'a pas été reposé (modales empilées, _scrollLockCount > 1)
+    if (container.classList && container.classList.contains('nous-modal-overlay')) {
+      _showModalBackdrop();
+    }
+
     if (container.id === 'hiddenPage') {
       var bar = container.querySelector('.dm-input-bar');
       if (bar) {
@@ -374,6 +380,12 @@
 
   function _onDragStart(e) {
     if (!_kbActive || e.touches.length !== 1) return;
+    // Ne pas démarrer le drag si le touch vient d'un textarea ou input
+    var t = e.target;
+    while (t && t !== e.currentTarget) {
+      if (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT') return;
+      t = t.parentElement;
+    }
     _dragStartY = e.touches[0].clientY;
     _dragBaseTY = _getCurrentTY(e.currentTarget);
     e.stopPropagation();
@@ -451,6 +463,11 @@
   function _forceTextSel(el) {
     el.style.webkitUserSelect = 'text';
     el.style.userSelect       = 'text';
+    // Garantit le scroll natif iOS dans les textarea même quand drag actif sur la sheet
+    if (el.tagName === 'TEXTAREA') {
+      el.style.touchAction = 'pan-y';
+      el.style.overflowY   = 'auto';
+    }
   }
 
   function _applyTextSelAll() {
