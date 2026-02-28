@@ -252,17 +252,16 @@ function _nousLoadProfil() {
   function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
   function _getProfile(){ return (typeof getProfile==='function')?getProfile():'girl'; }
 
-  // Enregistre un "new" pour une clé → localStorage (immédiat) + Supabase (partagé avec partenaire)
+  // Enregistre un "new" → localStorage (immédiat) + Supabase (partagé partenaire)
   window.yamMarkNew = function(section){
     var cid = _getCoupleId(); if(!cid) return;
     var key = 'yam_new_'+section+'_'+cid;
     var ts = Date.now().toString();
     localStorage.setItem(key, ts);
-    // Persistance Supabase pour que le partenaire voie aussi le badge
     var sb2Url = (typeof SB2_URL !== 'undefined') ? SB2_URL : '';
     if(!sb2Url) return;
     var headers = (typeof sb2Headers === 'function') ? sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}) : {};
-    fetch(sb2Url+'/rest/v1/v2_photo_descs',{
+    fetch(sb2Url+'/rest/v1/v2_photo_descs?on_conflict=couple_id,category,slot',{
       method:'POST', headers:headers,
       body:JSON.stringify({couple_id:cid, category:'new_badge', slot:section, description:ts})
     }).catch(function(){});
@@ -330,31 +329,30 @@ function _nousLoadProfil() {
     window.yamRefreshNewBadges();
   };
 
-  // Sync des badges NEW depuis Supabase → met à jour le localStorage local (pour le partenaire)
+  // Sync badges NEW depuis Supabase → partenaire voit les NEW de l'autre
   window.yamSyncNewFromSupabase = function(){
     var cid = _getCoupleId(); if(!cid) return;
     var sb2Url = (typeof SB2_URL !== 'undefined') ? SB2_URL : ''; if(!sb2Url) return;
     var headers = (typeof sb2Headers === 'function') ? sb2Headers() : {};
-    fetch(sb2Url+'/rest/v1/v2_photo_descs?couple_id=eq.'+cid+'&category=eq.new_badge&select=slot,description', {headers:headers})
-    .then(function(r){ return r.ok ? r.json() : []; })
+    fetch(sb2Url+'/rest/v1/v2_photo_descs?couple_id=eq.'+cid+'&category=eq.new_badge&select=slot,description',{headers:headers})
+    .then(function(r){ return r.ok?r.json():[]; })
     .then(function(rows){
       if(!Array.isArray(rows)) return;
       rows.forEach(function(row){
-        if(!row.slot || !row.description) return;
+        if(!row.slot||!row.description) return;
         var key = 'yam_new_'+row.slot+'_'+cid;
         var localTs = parseInt(localStorage.getItem(key)||'0');
         var remoteTs = parseInt(row.description||'0');
-        // On prend le timestamp le plus récent
         if(remoteTs > localTs) localStorage.setItem(key, row.description);
       });
       window.yamRefreshNewBadges();
     }).catch(function(){});
   };
 
-  // Polling toutes les 30s : sync Supabase + refresh badges
-  setInterval(function(){ if(typeof window.yamSyncNewFromSupabase === 'function') window.yamSyncNewFromSupabase(); }, 30000);
-  // Sync initiale au chargement (après 2s pour laisser le temps à l'auth)
-  setTimeout(function(){ if(typeof window.yamSyncNewFromSupabase === 'function') window.yamSyncNewFromSupabase(); }, 2000);
+  // Polling toutes les 30s : sync Supabase pour que le partenaire voie les NEW
+  setInterval(function(){ if(typeof window.yamSyncNewFromSupabase==='function') window.yamSyncNewFromSupabase(); }, 30000);
+  // Sync initiale après 2s (laisse le temps à l'auth)
+  setTimeout(function(){ if(typeof window.yamSyncNewFromSupabase==='function') window.yamSyncNewFromSupabase(); }, 2000);
 })();
 
 // ── Badge nav Nous (icône de l'onglet) ──
@@ -397,7 +395,7 @@ window.nousSignalNew = function() {
   function _saveSectionTitle(slot, val){
     var coupleId = _getCoupleId(); if(!coupleId) return;
     // slot est une string compatible avec la colonne text de v2_photo_descs
-    fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:coupleId,category:'label',slot:String(slot),description:val})}).catch(function(){});
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs?on_conflict=couple_id,category,slot',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:coupleId,category:'label',slot:String(slot),description:val})}).catch(function(){});
   }
 
   // Éditer le titre de ELLE (accessible par boy seulement)
@@ -594,14 +592,12 @@ window.nousSignalNew = function() {
     .then(function(rows){
       if(!Array.isArray(rows)) return;
       rows.forEach(function(row){ var el=document.getElementById('elle-desc-'+row.slot); if(el&&row.description) el.textContent=row.description; });
-    }).catch(function(){
-      // Erreur réseau — on laisse les valeurs par défaut du HTML
-    });
+    }).catch(function(){ /* erreur réseau — valeurs HTML par défaut */ });
   };
 
   function elleSaveDesc(slot,val){
     var coupleId=_getCoupleId(); if(!coupleId) return;
-    fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:coupleId,category:'elle',slot:slot,description:val})}).catch(function(){});
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs?on_conflict=couple_id,category,slot',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:coupleId,category:'elle',slot:slot,description:val})}).catch(function(){});
   }
 
   // elleEditDesc — conservé pour compatibilité mais ne fait rien (accès via pochetteEditOpen)
@@ -671,7 +667,8 @@ window.nousSignalNew = function() {
     });
   };
 
-  window.luiSyncDescs=function(){ /* les crayons de légende sont désactivés */ };
+  window.luiSyncDescs=function(){
+  window.luiSyncDescs=function(){ /* crayons légendes désactivés */ };
 
   // luiSyncEditMode gardé comme alias pour compatibilité setProfile hook
   window.luiSyncEditMode = window.luiSyncDescs;
@@ -716,9 +713,7 @@ window.nousSignalNew = function() {
     .then(function(rows){
       if(!Array.isArray(rows)) return;
       rows.forEach(function(row){ var el=document.getElementById('lui-desc-'+row.slot); if(el&&row.description) el.textContent=row.description; });
-    }).catch(function(){
-      // Erreur réseau — on laisse les valeurs par défaut du HTML
-    });
+    }).catch(function(){ /* erreur réseau — valeurs HTML par défaut */ });
   };
 
   // luiEditDesc — conservé pour compatibilité mais ne fait rien (accès via pochetteEditOpen)
@@ -2649,7 +2644,7 @@ loadLikeCounters();
       if(!bannerVal.trim()) return Promise.resolve();
       var el = document.getElementById(section+'-banner-'+slot);
       if(el) el.textContent = bannerVal;
-      return fetch(SB2_URL+'/rest/v1/v2_photo_descs',{
+      return fetch(SB2_URL+'/rest/v1/v2_photo_descs?on_conflict=couple_id,category,slot',{
         method:'POST',
         headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),
         body:JSON.stringify({couple_id:coupleId,category:section+'_banner',slot:slot,description:bannerVal})
@@ -2660,7 +2655,7 @@ loadLikeCounters();
       if(!descVal.trim()) return Promise.resolve();
       var el = document.getElementById(section+'-desc-'+slot);
       if(el) el.textContent = descVal;
-      return fetch(SB2_URL+'/rest/v1/v2_photo_descs',{
+      return fetch(SB2_URL+'/rest/v1/v2_photo_descs?on_conflict=couple_id,category,slot',{
         method:'POST',
         headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),
         body:JSON.stringify({couple_id:coupleId,category:section,slot:slot,description:descVal})
