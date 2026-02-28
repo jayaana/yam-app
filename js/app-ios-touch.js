@@ -42,6 +42,12 @@
     { id: 'sgEditModal',           mode: 'center', inner: 'sg-modal-inner' },
     { id: 'prankMsgModal',         mode: 'center', inner: null             },
 
+    // Boîtes centrées supplémentaires
+    { id: 'sgAuthModal',           mode: 'center', inner: 'memo-auth-inner' },
+
+    // Bottom-sheet supplémentaire
+    { id: 'searchOverlay',         mode: 'sheet',  inner: 'search-popup'   },
+
     // Popup petit format (repositionnement absolu top/left)
     { id: 'lockPopup',             mode: 'popup'  },
   ];
@@ -59,6 +65,7 @@
     'histoireGestionOverlay', 'histoireItemModal',
     'livresGestionOverlay', 'livreEditModal',
     'accountModal', 'descEditModal',
+    'searchOverlay', 'sgAuthModal',
   ];
 
   // ─────────────────────────────────────────────────────────────
@@ -193,19 +200,20 @@
       if (!visible) return;
 
       if (cfg.mode === 'sheet') {
-        // Modale avec sheet : translate la sheet, ne touche PAS à l'overlay
-        var sheet = el.querySelector('.nous-modal-sheet, .modal-sheet, .account-sheet');
-        if (!sheet) sheet = el; // fallback : l'élément lui-même est la sheet
+        // Modale avec sheet : translate la sheet vers le haut de kbH px.
+        // L'overlay est inset:0, le clavier couvre la nav naturellement.
+        var sheet = cfg.inner
+          ? (el.querySelector('.' + cfg.inner) || el.querySelector('#' + cfg.inner))
+          : (el.querySelector('.nous-modal-sheet, .modal-sheet, .account-sheet, .desc-edit-sheet, .search-popup, [id$="Sheet"]') || el);
+        if (!sheet) sheet = el;
         if (isOpen) {
-          var shift = Math.max(0, kbH - NAV_HEIGHT);
-          sheet.style.transform  = 'translateY(-' + shift + 'px)';
+          sheet.style.transform  = 'translateY(-' + kbH + 'px)';
           sheet.style.transition = 'transform 0.25s ease';
           sheet.style.maxHeight  = (vv.height - 24) + 'px';
-          // Scroll l'input actif dans la zone visible
           var focused = document.activeElement;
           if (focused && isInput(focused) && el.contains(focused)) {
             setTimeout(function () {
-              focused.scrollIntoView({ block: 'center', behavior: 'smooth' });
+              focused.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
             }, 80);
           }
         } else {
@@ -268,53 +276,58 @@
       }
     });
 
-    // ── hiddenPage : seule la dm-input-bar remonte, pas toute la page ──
-    // Sur iOS PWA, position:fixed ne réagit pas au clavier.
-    // On ajoute un padding-bottom sur la barre de saisie = hauteur clavier - nav
-    // pour que l'input reste visible au-dessus du clavier.
+    // ── hiddenPage : dm-input-bar remonte au-dessus du clavier ──
+    // hiddenPage descend à bottom:0, la nav est derrière lui (couverte).
+    // Au repos : padding-bottom = nav-height (CSS).
+    // Clavier ouvert : padding-bottom = kbH (hauteur clavier depuis le bas de l'écran).
     (function() {
       var hp = document.getElementById('hiddenPage');
       if (!hp || !hp.classList.contains('active')) return;
       var inputBar = hp.querySelector('.dm-input-bar');
       if (!inputBar) return;
       if (isOpen) {
-        // Le clavier couvre kbH px depuis le bas de l'écran.
-        // hiddenPage s'arrête à NAV_HEIGHT px du bas.
-        // Donc le clavier couvre (kbH - NAV_HEIGHT) px de hiddenPage par le bas.
-        var overlap = Math.max(0, kbH - NAV_HEIGHT);
-        inputBar.style.paddingBottom = (10 + overlap) + 'px';
+        // Le clavier part du bas de l'écran et fait kbH px de haut.
+        // On pousse la barre de saisie au-dessus du clavier.
+        inputBar.style.paddingBottom = (kbH + 4) + 'px';
         // Scroller les messages vers le bas
         var msgs = document.getElementById('dmMessages');
         if (msgs) {
           clearTimeout(inputBar._scrollT);
           inputBar._scrollT = setTimeout(function() {
             msgs.scrollTop = msgs.scrollHeight;
-          }, 50);
+          }, 80);
         }
       } else {
+        // Retour au padding CSS par défaut (= nav-height + 4px)
         inputBar.style.paddingBottom = '';
       }
     })();
 
     // ── Cibles dynamiques : .nous-modal-overlay.open ──
+    // L'overlay est inset:0 (descend à bottom:0).
+    // La sheet a margin-bottom:0 et padding-bottom:nav-height.
+    // Clavier ouvert : on translate la sheet vers le haut de kbH px
+    // pour qu'elle reste au-dessus du clavier. Le clavier couvre la nav.
     document.querySelectorAll(NOUS_OVERLAY_SELECTOR).forEach(function (overlay) {
       var sheet = overlay.querySelector('.nous-modal-sheet');
       if (!sheet) return;
       if (isOpen) {
-        var shift = Math.max(0, kbH - NAV_HEIGHT);
-        sheet.style.transform  = 'translateY(-' + shift + 'px)';
+        sheet.style.transform  = 'translateY(-' + kbH + 'px)';
         sheet.style.transition = 'transform 0.25s ease';
         sheet.style.maxHeight  = (vv.height - 24) + 'px';
+        // Enlever le padding-bottom nav quand clavier ouvert (inutile, clavier couvre)
+        sheet.style.paddingBottom = '20px';
         var focused = document.activeElement;
         if (focused && isInput(focused) && overlay.contains(focused)) {
           setTimeout(function () {
-            focused.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            focused.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
           }, 80);
         }
       } else {
-        sheet.style.transform  = '';
-        sheet.style.transition = '';
-        sheet.style.maxHeight  = '';
+        sheet.style.transform     = '';
+        sheet.style.transition    = '';
+        sheet.style.maxHeight     = '';
+        sheet.style.paddingBottom = '';
       }
     });
   }
