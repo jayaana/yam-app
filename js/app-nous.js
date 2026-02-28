@@ -1779,7 +1779,7 @@ loadLikeCounters();
     var SB2_EDGE_GEMINI = SB2_URL + '/functions/v1/gemini-suggest';
     fetch(SB2_EDGE_GEMINI, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-app-secret': SB2_APP_SECRET, 'apikey': SB2_KEY },
+      headers: { 'Content-Type': 'application/json', 'x-app-secret': SB2_APP_SECRET, 'apikey': SB2_KEY, 'Authorization': 'Bearer ' + SB2_KEY },
       body: JSON.stringify({ prompt: prompt })
     })
     .then(function(r){ return r.json(); })
@@ -1879,7 +1879,7 @@ loadLikeCounters();
 
     fetch(SB2_EDGE_CLAUDE, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-app-secret': SB2_APP_SECRET, 'apikey': SB2_KEY },
+      headers: { 'Content-Type': 'application/json', 'x-app-secret': SB2_APP_SECRET, 'apikey': SB2_KEY, 'Authorization': 'Bearer ' + SB2_KEY },
       body: JSON.stringify({ prompt: prompt })
     })
     .then(function(r){ return r.json(); })
