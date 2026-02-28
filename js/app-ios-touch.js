@@ -136,71 +136,8 @@
     }
   }
 
-  // ── Drag libre de la sheet quand clavier ouvert ──
-  var _dragSheet      = null;  // la sheet en cours de drag
-  var _dragStartY     = 0;
-  var _dragStartTY    = 0;     // translateY au début du touch
-  var _dragActive     = false;
-
-  function _getCurrentTranslateY(el) {
-    var t = el.style.transform;
-    var m = t && t.match(/translateY\(([\-\d.]+)px\)/);
-    return m ? parseFloat(m[1]) : 0;
-  }
-
-  function _onSheetTouchStart(e) {
-    if (e.touches.length !== 1) return;
-    _dragStartY  = e.touches[0].clientY;
-    _dragStartTY = _getCurrentTranslateY(_dragSheet);
-    _dragActive  = true;
-  }
-
-  function _onSheetTouchMove(e) {
-    if (!_dragActive || !_dragSheet) return;
-    var dy  = e.touches[0].clientY - _dragStartY;
-    var newTY = _dragStartTY + dy;
-    // Limite haute : ne pas dépasser le haut de l'écran
-    if (newTY < -(window.innerHeight * 0.7)) newTY = -(window.innerHeight * 0.7);
-    // Limite basse : ne pas descendre en dessous de sa position naturelle (0)
-    if (newTY > 0) newTY = 0;
-    _dragSheet.style.transition = 'none';
-    _dragSheet.style.transform  = newTY !== 0 ? 'translateY(' + newTY + 'px)' : '';
-    e.stopPropagation();
-  }
-
-  function _onSheetTouchEnd() {
-    _dragActive = false;
-  }
-
-  function _enableSheetDrag(sheet) {
-    if (!sheet || sheet._dragEnabled) return;
-    sheet._dragEnabled = true;
-    sheet.addEventListener('touchstart', _onSheetTouchStart, { passive: true });
-    sheet.addEventListener('touchmove',  _onSheetTouchMove,  { passive: true });
-    sheet.addEventListener('touchend',   _onSheetTouchEnd,   { passive: true });
-    _dragSheet = sheet;
-  }
-
-  function _disableSheetDrag(sheet) {
-    if (!sheet || !sheet._dragEnabled) return;
-    sheet._dragEnabled = false;
-    sheet.removeEventListener('touchstart', _onSheetTouchStart);
-    sheet.removeEventListener('touchmove',  _onSheetTouchMove);
-    sheet.removeEventListener('touchend',   _onSheetTouchEnd);
-    sheet.style.transition = 'transform 0.25s ease';
-    sheet.style.transform  = '';
-    setTimeout(function () { sheet.style.transition = ''; }, 280);
-    if (_dragSheet === sheet) _dragSheet = null;
-  }
-
-  function _getSheet(container) {
-    if (!container) return null;
-    return container.querySelector('.nous-modal-sheet, .desc-edit-sheet, .account-sheet, .modal-sheet, .search-popup');
-  }
-
   function _onKeyboardOpen(container, kbH) {
     _hideNav();
-    window._yamScrollLocked = true;
 
     if (container.id === 'hiddenPage') {
       var bar = container.querySelector('.dm-input-bar');
@@ -216,14 +153,13 @@
       return;
     }
 
-    // Réduit le padding-bottom (compensait la nav, maintenant cachée)
-    var sheet = _getSheet(container);
+    // Réduit le padding-bottom de la sheet (compensait la nav, maintenant cachée)
+    var sheet = container.querySelector('.nous-modal-sheet, .desc-edit-sheet, .account-sheet, .modal-sheet, .search-popup');
     if (sheet) {
       sheet.style.transition    = 'padding-bottom 0.25s ease';
       sheet.style.paddingBottom = '16px';
-      // Active le drag libre sur la sheet
-      setTimeout(function () { _enableSheetDrag(sheet); }, 50);
     }
+    setTimeout(_scrollFocusedIntoView, 80);
   }
 
   function _onKeyboardClose(container) {
@@ -239,10 +175,9 @@
       return;
     }
 
-    // Désactive le drag et remet la sheet à sa position
-    var sheet = _getSheet(container);
+    // Remet le padding-bottom CSS d'origine
+    var sheet = container.querySelector('.nous-modal-sheet, .desc-edit-sheet, .account-sheet, .modal-sheet, .search-popup');
     if (sheet) {
-      _disableSheetDrag(sheet);
       sheet.style.transition    = 'padding-bottom 0.25s ease';
       sheet.style.paddingBottom = '';
       setTimeout(function () { sheet.style.transition = ''; }, 280);
@@ -313,43 +248,14 @@
   document.addEventListener('touchmove', function (e) {
     if (!window._yamScrollLocked) return;
     var target = e.target;
-
-    // Laisse passer les gestes horizontaux
+    if (isInput(target)) return;
     if (e.touches && e.touches.length === 1) {
       var dx = Math.abs(e.touches[0].clientX - _sbX);
       var dy = Math.abs(e.touches[0].clientY - _sbY);
       if (dx > dy + 8) return;
     }
-
-    // Laisse passer si la cible est dans un élément scrollable
-    // qui est lui-même à l'intérieur d'une modale ouverte
-    var scrollable = findScrollableAncestor(target);
-    if (scrollable) {
-      // Vérifie que cet élément scrollable est bien dans une modale (pas le body/page)
-      var inModal = false;
-      var node = scrollable;
-      while (node && node !== document.body) {
-        if (node.classList) {
-          if (node.classList.contains('nous-modal-overlay') ||
-              node.classList.contains('souvenir-gestion-overlay')) {
-            inModal = true; break;
-          }
-        }
-        var nid = node.id;
-        if (nid === 'hiddenPage'     || nid === 'descEditModal' ||
-            nid === 'accountModal'   || nid === 'searchOverlay' ||
-            nid === 'memoModal'      || nid === 'memoAuthModal' ||
-            nid === 'v2LoginOverlay' || nid === 'sgModal'       ||
-            nid === 'sgEditModal'    || nid === 'sgAuthModal'   ||
-            nid === 'prankMsgModal') {
-          inModal = true; break;
-        }
-        node = node.parentElement;
-      }
-      if (inModal) return; // scroll interne de la modale → autorisé
-    }
-
-    // Tout le reste est bloqué — empêche le scroll de l'arrière-plan
+    if (Date.now() - _sbT > 380)       return;
+    if (findScrollableAncestor(target)) return;
     e.preventDefault();
   }, { passive: false });
 
