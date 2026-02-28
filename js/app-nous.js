@@ -393,18 +393,13 @@ window.nousSignalNew = function() {
   // Exposer le chargement des titres à l'init
   window._loadSectionTitles = _loadSectionTitles;
 
-  // ── Patch global descEditClose — garantit le déverrouillage scroll même si l'user annule ──
-  // (descEditClose est définie dans app-core.js — on la wrappe ici pour sécurité)
+  // ── Patch global descEditClose — déverrouille scroll si user clique Annuler ──
   setTimeout(function(){
     var _origClose = window.descEditClose;
     if(typeof _origClose === 'function'){
       window.descEditClose = function(){
         _origClose.apply(this, arguments);
-        // Déverrouille seulement si un lock était actif (compteur > 0)
-        if(_scrollLockCount > 0){
-          _unblockBackgroundScroll();
-          _restoreScrollPosition();
-        }
+        if(_scrollLockCount > 0){ _unblockBackgroundScroll(); _restoreScrollPosition(); }
       };
     }
   }, 100);
@@ -574,10 +569,8 @@ window.nousSignalNew = function() {
     localStorage.setItem('elle_desc_'+slot,val);
   }
 
-  window.elleEditDesc = function(slot){
-    if(getProfile()!=='boy') return;
-    pochetteEditOpen('elle', slot);
-  };
+  // elleEditDesc — conservé pour compatibilité mais ne fait rien (accès via pochetteEditOpen)
+  window.elleEditDesc = function(slot){ /* désactivé — modifier via le bouton sur l'image */ };
 })();
 
 
@@ -595,7 +588,7 @@ window.nousSignalNew = function() {
 
   // Rouage LUI : girl peut ouvrir/fermer la section LUI pour décrire son copain
 
-  // ── Éditer le bandeau (titre) d'une pochette ELLE ──
+  // ── Éditer une pochette ELLE — redirige vers le modal unifié ──
   window.elleEditBanner = function(slot){
     if(getProfile() !== 'boy') return;
     pochetteEditOpen('elle', slot);
@@ -696,12 +689,10 @@ window.nousSignalNew = function() {
     });
   };
 
-  window.luiEditDesc=function(slot){
-    if(getProfile()!=='girl') return;
-    pochetteEditOpen('lui', slot);
-  };
+  // luiEditDesc — conservé pour compatibilité mais ne fait rien (accès via pochetteEditOpen)
+  window.luiEditDesc=function(slot){ /* désactivé — modifier via le bouton sur l'image */ };
 
-  // ── Éditer le bandeau (titre) d'une pochette LUI ──
+  // ── Éditer une pochette LUI — redirige vers le modal unifié ──
   window.luiEditBanner = function(slot){
     if(getProfile() !== 'girl') return;
     pochetteEditOpen('lui', slot);
@@ -2506,8 +2497,7 @@ loadLikeCounters();
 
 // ════════════════════════════════════════════════════════════════════
 // MODAL ÉDITION POCHETTE ELLE/LUI — Système unifié (titre + photo + légende)
-// Même architecture que livreEditModal. Remplace descEditOpen dispersé.
-// boy édite les pochettes de ELLE — girl édite les pochettes de LUI
+// Même architecture que livreEditModal. boy édite ELLE, girl édite LUI.
 // Données : bannière → v2_photo_descs category='elle_banner'|'lui_banner'
 //           légende  → v2_photo_descs category='elle'|'lui'
 //           photo    → Storage uploads/{coupleId}/{slot}-elle.jpg|lui.jpg
@@ -2517,50 +2507,40 @@ loadLikeCounters();
   var SB_BUCKET = 'images';
   function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
 
-  // État courant du modal
-  var _pSection  = null; // 'elle' | 'lui'
-  var _pSlot     = null; // 'animal' | 'fleurs' | ...
-  var _pPhotoFile = null; // fichier photo sélectionné (en attente de save)
-  var _pHasPhoto = false; // la pochette a déjà une photo en base
+  var _pSection   = null; // 'elle' | 'lui'
+  var _pSlot      = null; // 'animal' | 'fleurs' | ...
+  var _pPhotoFile = null; // fichier en attente d'upload
+  var _pHasPhoto  = false;
 
-  // Chemins Storage identiques à ceux des sections elle/lui
   function _pPath(section, coupleId, slot){
     return 'uploads/'+coupleId+'/'+slot+'-'+section+'.jpg';
   }
 
-  // ── Ouvrir le modal pour une pochette donnée ──
+  // ── Ouvrir le modal ──
   window.pochetteEditOpen = function(section, slot){
-    // Vérif droits : boy édite ELLE, girl édite LUI
     var profile = (typeof getProfile === 'function') ? getProfile() : null;
     if(section === 'elle' && profile !== 'boy')  return;
     if(section === 'lui'  && profile !== 'girl') return;
 
     var coupleId = _getCoupleId(); if(!coupleId) return;
-
-    _pSection  = section;
-    _pSlot     = slot;
-    _pPhotoFile = null;
+    _pSection = section; _pSlot = slot; _pPhotoFile = null;
 
     var modal = document.getElementById('pochetteEditModal'); if(!modal) return;
 
-    // Titre du modal
-    var titleEl = document.getElementById('pochetteEditModalTitle');
-    if(titleEl) titleEl.textContent = 'Modifier la pochette';
-
-    // Charger valeur banner actuelle
+    // Pré-remplir banner
     var bannerEl = document.getElementById(section+'-banner-'+slot);
-    var bannerInput = document.getElementById('pochetteEditBanner');
-    if(bannerInput) bannerInput.value = bannerEl ? bannerEl.textContent.trim() : '';
+    var bannerInp = document.getElementById('pochetteEditBanner');
+    if(bannerInp) bannerInp.value = bannerEl ? bannerEl.textContent.trim() : '';
 
-    // Charger valeur légende actuelle
+    // Pré-remplir légende
     var descEl = document.getElementById(section+'-desc-'+slot);
-    var descInput = document.getElementById('pochetteEditDesc');
-    if(descInput) descInput.value = descEl ? descEl.textContent.trim() : '';
+    var descInp = document.getElementById('pochetteEditDesc');
+    if(descInp) descInp.value = descEl ? descEl.textContent.trim() : '';
 
-    // Charger photo actuelle
-    var photoDiv = document.getElementById('pochetteEditPhoto');
+    // Photo existante
     var imgEl = document.getElementById(section+'-img-'+slot);
-    _pHasPhoto = !!(imgEl && imgEl.style.display !== 'none' && imgEl.src && imgEl.src.indexOf('data:') === -1 && imgEl.src.length > 10);
+    _pHasPhoto = !!(imgEl && imgEl.style.display !== 'none' && imgEl.src && imgEl.src.length > 10 && imgEl.src.indexOf('data:') === -1);
+    var photoDiv = document.getElementById('pochetteEditPhoto');
     if(photoDiv){
       if(_pHasPhoto){
         photoDiv.style.backgroundImage = 'url('+imgEl.src+')';
@@ -2571,12 +2551,10 @@ loadLikeCounters();
       }
     }
 
-    // Bloquer scroll + ouvrir
     _saveScrollPosition();
     _blockBackgroundScroll();
     modal.classList.add('open');
 
-    // Focus titre au clavier
     setTimeout(function(){
       var inp = document.getElementById('pochetteEditBanner');
       if(inp) inp.focus();
@@ -2593,13 +2571,13 @@ loadLikeCounters();
     _restoreScrollPosition();
   };
 
-  // ── Clic sur la zone photo → déclenche input file ──
+  // ── Clic zone photo ──
   window.pochetteEditPhotoClick = function(){
     var inp = document.getElementById('pochettePhotoInput');
-    if(inp){ inp.value=''; inp.click(); }
+    if(inp){ inp.value = ''; inp.click(); }
   };
 
-  // ── Sélection d'une photo → prévisualisation immédiate ──
+  // ── Sélection photo → prévisualisation ──
   window.pochetteEditHandlePhoto = function(input){
     if(!input.files || !input.files[0]) return;
     var file = input.files[0];
@@ -2607,19 +2585,15 @@ loadLikeCounters();
     if(ALLOWED.indexOf(file.type) === -1){ alert('Format non autorisé.'); input.value=''; return; }
     if(file.size > 5*1024*1024){ alert('Image trop lourde (max 5 Mo)'); input.value=''; return; }
     _pPhotoFile = file;
-    // Prévisualisation dans le modal
     var reader = new FileReader();
     reader.onload = function(e){
       var photoDiv = document.getElementById('pochetteEditPhoto');
-      if(photoDiv){
-        photoDiv.style.backgroundImage = 'url('+e.target.result+')';
-        photoDiv.innerHTML = '';
-      }
+      if(photoDiv){ photoDiv.style.backgroundImage = 'url('+e.target.result+')'; photoDiv.innerHTML = ''; }
     };
     reader.readAsDataURL(file);
   };
 
-  // ── Sauvegarder bannière + légende (+ upload photo si nouvelle) ──
+  // ── Sauvegarder (banner + légende + photo éventuelle) ──
   window.pochetteEditSave = function(){
     var coupleId = _getCoupleId(); if(!coupleId || !_pSection || !_pSlot) return;
     var section = _pSection; var slot = _pSlot;
@@ -2630,7 +2604,6 @@ loadLikeCounters();
     var saveBtn = document.getElementById('pochetteEditSaveBtn');
     if(saveBtn){ saveBtn.disabled = true; saveBtn.textContent = 'Sauvegarde…'; }
 
-    // Sauvegarder bannière
     function _saveBanner(){
       if(!bannerVal.trim()) return Promise.resolve();
       var el = document.getElementById(section+'-banner-'+slot);
@@ -2642,7 +2615,6 @@ loadLikeCounters();
       }).catch(function(){});
     }
 
-    // Sauvegarder légende
     function _saveDesc(){
       if(!descVal.trim()) return Promise.resolve();
       var el = document.getElementById(section+'-desc-'+slot);
@@ -2655,7 +2627,6 @@ loadLikeCounters();
       }).catch(function(){});
     }
 
-    // Upload photo si nouvelle
     function _uploadPhoto(){
       if(!_pPhotoFile) return Promise.resolve();
       var filePath = _pPath(section, coupleId, slot);
@@ -2686,7 +2657,6 @@ loadLikeCounters();
       });
     }
 
-    // Exécuter les 3 ops en parallèle puis fermer
     Promise.all([_saveBanner(), _saveDesc(), _uploadPhoto()])
     .then(function(){
       if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='Sauvegarder'; }
@@ -2698,11 +2668,10 @@ loadLikeCounters();
     });
   };
 
-  // ── Fermeture au clic sur le fond ──
+  // ── Fermeture au clic fond ──
   (function(){
     setTimeout(function(){
-      var modal = document.getElementById('pochetteEditModal');
-      if(!modal) return;
+      var modal = document.getElementById('pochetteEditModal'); if(!modal) return;
       var _openedAt = 0;
       new MutationObserver(function(){
         if(modal.classList.contains('open')) _openedAt = Date.now();
