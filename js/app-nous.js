@@ -632,6 +632,7 @@ window.nousSignalNew = function() {
       rows.forEach(function(row){ var el=document.getElementById('elle-banner-'+row.slot); if(el&&row.description) el.textContent=row.description; });
     }).catch(function(){});
   }
+  window._loadElleBanners = _loadElleBanners;
 
   window.luiToggleSection = function(){
     var profile = getProfile();
@@ -731,6 +732,7 @@ window.nousSignalNew = function() {
       rows.forEach(function(row){ var el=document.getElementById('lui-banner-'+row.slot); if(el&&row.description) el.textContent=row.description; });
     }).catch(function(){});
   }
+  window._loadLuiBanners = _loadLuiBanners;
 
 })();
 
@@ -3224,10 +3226,6 @@ window.nousLoad = function(){
   if(window._nousContentLoaded) {
     // Refresh léger à chaque retour sur l'onglet
     loadLikeCounters();
-    if(typeof window.elleLoadDescs==='function') window.elleLoadDescs();
-    if(typeof window.luiLoadDescs==='function') window.luiLoadDescs();
-    var _ru=(typeof v2GetUser==='function')?v2GetUser():null; var _rc=_ru?_ru.couple_id:null;
-    if(_rc){ if(typeof _loadElleBanners==='function') _loadElleBanners(_rc); if(typeof _loadLuiBanners==='function') _loadLuiBanners(_rc); if(typeof window._loadSectionTitles==='function') window._loadSectionTitles(); }
     if(typeof window.nousLoadSouvenirs==='function') window.nousLoadSouvenirs();
     if(typeof window.nousLoadActivites==='function') window.nousLoadActivites();
     if(typeof renderMemoCouple==='function') renderMemoCouple();
