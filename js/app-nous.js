@@ -252,11 +252,20 @@ function _nousLoadProfil() {
   function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
   function _getProfile(){ return (typeof getProfile==='function')?getProfile():'girl'; }
 
-  // Enregistre un "new" pour une clé
+  // Enregistre un "new" pour une clé → localStorage (immédiat) + Supabase (partagé avec partenaire)
   window.yamMarkNew = function(section){
     var cid = _getCoupleId(); if(!cid) return;
     var key = 'yam_new_'+section+'_'+cid;
-    localStorage.setItem(key, Date.now().toString());
+    var ts = Date.now().toString();
+    localStorage.setItem(key, ts);
+    // Persistance Supabase pour que le partenaire voie aussi le badge
+    var sb2Url = (typeof SB2_URL !== 'undefined') ? SB2_URL : '';
+    if(!sb2Url) return;
+    var headers = (typeof sb2Headers === 'function') ? sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}) : {};
+    fetch(sb2Url+'/rest/v1/v2_photo_descs',{
+      method:'POST', headers:headers,
+      body:JSON.stringify({couple_id:cid, category:'new_badge', slot:section, description:ts})
+    }).catch(function(){});
   };
 
   // Vérifie si une clé est "new" (dans les 5h)
@@ -321,8 +330,31 @@ function _nousLoadProfil() {
     window.yamRefreshNewBadges();
   };
 
-  // Polling toutes les 30s pour rafraîchir l'état des badges (expiration auto)
-  setInterval(function(){ if(typeof window.yamRefreshNewBadges === 'function') window.yamRefreshNewBadges(); }, 30000);
+  // Sync des badges NEW depuis Supabase → met à jour le localStorage local (pour le partenaire)
+  window.yamSyncNewFromSupabase = function(){
+    var cid = _getCoupleId(); if(!cid) return;
+    var sb2Url = (typeof SB2_URL !== 'undefined') ? SB2_URL : ''; if(!sb2Url) return;
+    var headers = (typeof sb2Headers === 'function') ? sb2Headers() : {};
+    fetch(sb2Url+'/rest/v1/v2_photo_descs?couple_id=eq.'+cid+'&category=eq.new_badge&select=slot,description', {headers:headers})
+    .then(function(r){ return r.ok ? r.json() : []; })
+    .then(function(rows){
+      if(!Array.isArray(rows)) return;
+      rows.forEach(function(row){
+        if(!row.slot || !row.description) return;
+        var key = 'yam_new_'+row.slot+'_'+cid;
+        var localTs = parseInt(localStorage.getItem(key)||'0');
+        var remoteTs = parseInt(row.description||'0');
+        // On prend le timestamp le plus récent
+        if(remoteTs > localTs) localStorage.setItem(key, row.description);
+      });
+      window.yamRefreshNewBadges();
+    }).catch(function(){});
+  };
+
+  // Polling toutes les 30s : sync Supabase + refresh badges
+  setInterval(function(){ if(typeof window.yamSyncNewFromSupabase === 'function') window.yamSyncNewFromSupabase(); }, 30000);
+  // Sync initiale au chargement (après 2s pour laisser le temps à l'auth)
+  setTimeout(function(){ if(typeof window.yamSyncNewFromSupabase === 'function') window.yamSyncNewFromSupabase(); }, 2000);
 })();
 
 // ── Badge nav Nous (icône de l'onglet) ──
@@ -472,10 +504,6 @@ window.nousSignalNew = function() {
       var luiBtn   = document.getElementById('lui-btn-'  + slot);
       if (elleBtn) elleBtn.style.display = profile === 'boy'  ? '' : 'none';
       if (luiBtn)  luiBtn.style.display  = profile === 'girl' ? '' : 'none';
-      var elleDesc = document.getElementById('elle-desc-' + slot);
-      var luiDesc  = document.getElementById('lui-desc-'  + slot);
-      if (elleDesc){ if(profile==='boy')  elleDesc.classList.add('lui-desc-editable'); else elleDesc.classList.remove('lui-desc-editable'); }
-      if (luiDesc) { if(profile==='girl') luiDesc.classList.add('lui-desc-editable');  else luiDesc.classList.remove('lui-desc-editable'); }
       // Badges NEW sur les cartes images
       var elleCard = document.querySelector('.album-card[data-slot="elle-'+slot+'"]');
       var luiCard  = document.querySelector('.album-card[data-slot="'+slot+'"]');
@@ -567,14 +595,13 @@ window.nousSignalNew = function() {
       if(!Array.isArray(rows)) return;
       rows.forEach(function(row){ var el=document.getElementById('elle-desc-'+row.slot); if(el&&row.description) el.textContent=row.description; });
     }).catch(function(){
-      SLOTS.forEach(function(slot){ var saved=localStorage.getItem('elle_desc_'+slot); var el=document.getElementById('elle-desc-'+slot); if(el&&saved) el.textContent=saved; });
+      // Erreur réseau — on laisse les valeurs par défaut du HTML
     });
   };
 
   function elleSaveDesc(slot,val){
     var coupleId=_getCoupleId(); if(!coupleId) return;
     fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:coupleId,category:'elle',slot:slot,description:val})}).catch(function(){});
-    localStorage.setItem('elle_desc_'+slot,val);
   }
 
   // elleEditDesc — conservé pour compatibilité mais ne fait rien (accès via pochetteEditOpen)
@@ -644,10 +671,7 @@ window.nousSignalNew = function() {
     });
   };
 
-  window.luiSyncDescs=function(){
-    var profile=getProfile(); var isZelda=(profile==='girl');
-    SLOTS.forEach(function(slot){ var el=document.getElementById('lui-desc-'+slot); if(!el) return; if(isZelda) el.classList.add('lui-desc-editable'); else el.classList.remove('lui-desc-editable'); });
-  };
+  window.luiSyncDescs=function(){ /* les crayons de légende sont désactivés */ };
 
   // luiSyncEditMode gardé comme alias pour compatibilité setProfile hook
   window.luiSyncEditMode = window.luiSyncDescs;
@@ -693,7 +717,7 @@ window.nousSignalNew = function() {
       if(!Array.isArray(rows)) return;
       rows.forEach(function(row){ var el=document.getElementById('lui-desc-'+row.slot); if(el&&row.description) el.textContent=row.description; });
     }).catch(function(){
-      SLOTS.forEach(function(slot){ var saved=localStorage.getItem('lui_desc_'+slot); var el=document.getElementById('lui-desc-'+slot); if(el&&saved) el.textContent=saved; });
+      // Erreur réseau — on laisse les valeurs par défaut du HTML
     });
   };
 
@@ -2636,7 +2660,6 @@ loadLikeCounters();
       if(!descVal.trim()) return Promise.resolve();
       var el = document.getElementById(section+'-desc-'+slot);
       if(el) el.textContent = descVal;
-      localStorage.setItem(section+'_desc_'+slot, descVal);
       return fetch(SB2_URL+'/rest/v1/v2_photo_descs',{
         method:'POST',
         headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),
