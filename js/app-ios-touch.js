@@ -252,7 +252,13 @@
   document.addEventListener('touchmove', function (e) {
     if (!window._yamScrollLocked) return;
     if (_kbActive) {
-      // Clavier ouvert : tout bloqué sauf le drag custom (stopPropagation)
+      // Clavier ouvert : bloqué sauf si on scrolle dans un textarea/input actif
+      // (permet de relire le texte qu'on est en train d'écrire)
+      var t = e.target;
+      while (t && t !== document.body) {
+        if (t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && t === document.activeElement)) return;
+        t = t.parentElement;
+      }
       e.preventDefault();
       return;
     }
@@ -315,16 +321,51 @@
   }
 
   // Proxy sur _yamScrollLocked — pose/retire le backdrop global automatiquement
+  // UNIQUEMENT si une .nous-modal-overlay est ouverte (pas les vues plein écran
+  // .souvenir-gestion-overlay qui couvrent déjà tout l'écran elles-mêmes)
   var _scrollLockProxy = false;
   Object.defineProperty(window, '_yamScrollLocked', {
     get: function () { return _scrollLockProxy; },
     set: function (v) {
       _scrollLockProxy = v;
-      if (v) { _showModalBackdrop(); }
-      else   { _hideModalBackdrop(); _hideKbdBackdrop(); document.body.style.backgroundColor = ''; }
+      if (v) {
+        // Vérifie qu'une vraie modale sheet est ouverte (pas une vue plein écran)
+        var hasSheetModal = document.querySelector('.nous-modal-overlay.open');
+        if (hasSheetModal) { _showModalBackdrop(); }
+      } else {
+        _hideModalBackdrop();
+        _hideKbdBackdrop();
+        document.body.style.backgroundColor = '';
+      }
     },
     configurable: true
   });
+
+  // MutationObserver : pose le backdrop dès qu'une .nous-modal-overlay reçoit .open
+  // (couvre les cas où _yamScrollLocked est déjà true quand la modale s'ouvre)
+  var _modalObserver = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      if (m.type === 'attributes' && m.attributeName === 'class') {
+        var el = m.target;
+        if (el.classList.contains('nous-modal-overlay')) {
+          if (el.classList.contains('open')) {
+            _showModalBackdrop();
+          } else {
+            // Si plus aucune modale sheet ouverte, retire le backdrop
+            if (!document.querySelector('.nous-modal-overlay.open')) {
+              _hideModalBackdrop();
+            }
+          }
+        }
+      }
+    });
+  });
+  document.addEventListener('DOMContentLoaded', function() {
+    _modalObserver.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
+  });
+  if (document.readyState !== 'loading') {
+    _modalObserver.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
+  }
 
   function _getCurrentTY(el) {
     var m = (el.style.transform || '').match(/translateY\(([\-\d.]+)px\)/);
