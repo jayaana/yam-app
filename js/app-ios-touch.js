@@ -28,12 +28,21 @@
   //   mode 'sheet'  : la sheet interne (.nous-modal-sheet) translate vers le haut
   //   mode 'popup'  : popup petit format repositionné en top/left absolus (lockPopup)
   // hiddenPage n'est PAS dans cette liste :
-  // le clavier passe par-dessus la nav nativement, rien ne bouge.
-  // Seules les modales avec sheet et les popups ont besoin d'un repositionnement.
+  // sa dm-input-bar est gérée séparément (padding-bottom dynamique).
+  // Seules les modales avec sheet, centred ou popup ont besoin d'un repositionnement.
   var KEYBOARD_TARGETS = [
-    // Les .nous-modal-overlay.open sont gérés dynamiquement (mode 'sheet')
+    // Sheets (bottom sheet — translateY vers le haut)
+    // Les .nous-modal-overlay.open sont gérés dynamiquement
     { id: 'accountModal',          mode: 'sheet'  },
     { id: 'descEditModal',         mode: 'sheet'  },
+
+    // Boîtes centrées (inset:0 + justify-content:center — translateY vers le haut)
+    { id: 'v2LoginOverlay',        mode: 'center', inner: 'v2LoginBox'    },
+    { id: 'sgModal',               mode: 'center', inner: 'sg-modal-inner' },
+    { id: 'sgEditModal',           mode: 'center', inner: 'sg-modal-inner' },
+    { id: 'prankMsgModal',         mode: 'center', inner: null             },
+
+    // Popup petit format (repositionnement absolu top/left)
     { id: 'lockPopup',             mode: 'popup'  },
   ];
 
@@ -203,6 +212,39 @@
           sheet.style.transform  = '';
           sheet.style.transition = '';
           sheet.style.maxHeight  = '';
+        }
+
+      } else if (cfg.mode === 'center') {
+        // Boîte centrée : on translate le conteneur interne vers le haut
+        // pour qu'il reste visible au-dessus du clavier
+        var inner = cfg.inner
+          ? (el.querySelector('.' + cfg.inner) || el.querySelector('#' + cfg.inner) || el)
+          : el;
+        if (isOpen) {
+          // Estimer de combien on doit remonter : moitié de la hauteur clavier
+          // (la boîte était au centre, elle doit remonter dans la zone visible)
+          var boxH   = inner.offsetHeight || 300;
+          var visibleH = window.innerHeight - kbH;
+          var currentTop = visibleH / 2 - boxH / 2; // position naturelle du haut de la boîte
+          if (currentTop < 20) {
+            // La boîte déborde en haut — pas de translation possible
+            inner.style.transform  = '';
+            inner.style.transition = '';
+          } else {
+            var shift2 = Math.min(kbH / 2, currentTop - 20);
+            inner.style.transform  = 'translateY(-' + shift2 + 'px)';
+            inner.style.transition = 'transform 0.25s ease';
+          }
+          // Scroll l'input actif dans la zone visible
+          var focused2 = document.activeElement;
+          if (focused2 && isInput(focused2) && el.contains(focused2)) {
+            setTimeout(function () {
+              focused2.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }, 80);
+          }
+        } else {
+          inner.style.transform  = '';
+          inner.style.transition = '';
         }
 
       } else if (cfg.mode === 'popup') {
