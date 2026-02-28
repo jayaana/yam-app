@@ -305,6 +305,14 @@ function _nousLoadProfil() {
     // Petits mots — badge à droite du compteur (seulement pour le receveur des nouveaux mots)
     var pmNew = document.getElementById('postitNewBadge');
     if(pmNew) pmNew.style.display = window.yamIsNew('petit_mot') ? '' : 'none';
+    // Pochettes ELLE/LUI — badges sur les cartes album-card
+    var SLOTS = ['animal','fleurs','personnage','saison','repas'];
+    SLOTS.forEach(function(slot){
+      var elleCard = document.querySelector('.album-card[data-slot="elle-'+slot+'"]');
+      var luiCard  = document.querySelector('.album-card[data-slot="'+slot+'"]');
+      if(elleCard) window.yamShowNewBadge(elleCard, window.yamIsNew('elle_slot_'+slot));
+      if(luiCard)  window.yamShowNewBadge(luiCard,  window.yamIsNew('lui_slot_'+slot));
+    });
   };
 
   // Exposé pour être appelé partout
@@ -1220,7 +1228,10 @@ loadLikeCounters();
             fetch(SB2_URL+'/rest/v1/v2_memo_todos?id=eq.'+it.id+'&couple_id=eq.'+coupleId,{
               method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
               body:JSON.stringify({done:!it.done})
-            }).then(function(){ _loadTodoView(); _renderTodoPreview(); });
+            }).then(function(){
+              _loadTodoView(); _renderTodoPreview();
+              if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh('memo_todo');
+            });
           });
         })(item, row);
         container.appendChild(row);
@@ -1321,10 +1332,16 @@ loadLikeCounters();
           row.innerHTML='<div class="todo-check'+(item.done?' done':'')+'">'+(item.done?'✓':'')+'</div><div class="todo-text'+(item.done?' done':'')+'">' +escHtml(item.text)+'</div><div class="todo-del">✕</div>';
           (function(it){
             row.querySelector('.todo-check').addEventListener('click',function(){
-              fetch(SB2_URL+'/rest/v1/v2_memo_todos?id=eq.'+it.id+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({done:!it.done})}).then(_loadTodoFull);
+              fetch(SB2_URL+'/rest/v1/v2_memo_todos?id=eq.'+it.id+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({done:!it.done})}).then(function(){
+                _loadTodoFull();
+                if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh('memo_todo');
+              });
             });
             row.querySelector('.todo-del').addEventListener('click',function(e){ e.stopPropagation();
-              fetch(SB2_URL+'/rest/v1/v2_memo_todos?id=eq.'+it.id+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()}).then(_loadTodoFull);
+              fetch(SB2_URL+'/rest/v1/v2_memo_todos?id=eq.'+it.id+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()}).then(function(){
+                _loadTodoFull();
+                if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh('memo_todo');
+              });
             });
           })(item);
           container.appendChild(row);
@@ -2649,7 +2666,6 @@ loadLikeCounters();
           if(img){ img.src=newUrl; img.style.display=''; }
           if(empty) empty.style.display='none';
           if(btn) btn.classList.remove('empty');
-          if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh(section+'_slot_'+slot);
         }
       }).catch(function(err){
         if(loading) loading.classList.remove('show');
@@ -2660,6 +2676,9 @@ loadLikeCounters();
     Promise.all([_saveBanner(), _saveDesc(), _uploadPhoto()])
     .then(function(){
       if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='Sauvegarder'; }
+      // Badge NEW déclenché pour tout save (titre, légende OU photo) — pas seulement upload
+      if(typeof window.yamMarkNew === 'function') window.yamMarkNew(section+'_slot_'+slot);
+      if(typeof elleSyncSections === 'function') elleSyncSections(); // rafraîchit les badges sur les cartes
       if(typeof showToast === 'function') showToast('Pochette mise à jour ✨','success',2000);
       window.pochetteEditClose();
     }).catch(function(){
