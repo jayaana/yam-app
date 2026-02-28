@@ -49,7 +49,7 @@ body.light {
 html { scroll-behavior: smooth; overflow-x: hidden; -webkit-text-size-adjust: 100%; overscroll-behavior: none !important; overscroll-behavior-x: none !important; overscroll-behavior-y: none !important; }
 body { overscroll-behavior: none !important; overscroll-behavior-y: none !important; -webkit-overflow-scrolling: touch; touch-action: manipulation; }
 /* touch-action:manipulation autorise tap/scroll sans bloquer la sélection de texte.
-   pan-x pan-y bloquait le geste longpress+drag de sélection iOS → supprimé.
+   pan-x pan-y bloquait le geste longpress + drag de sélection iOS → supprimé.
    Le pull-to-refresh est bloqué via app-ios-touch.js (touchmove preventDefault). */
 
 /* ══ SKELETON LOADING ══ */
