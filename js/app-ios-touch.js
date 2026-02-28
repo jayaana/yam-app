@@ -139,6 +139,10 @@
   function _onKeyboardOpen(container, kbH) {
     _hideNav();
 
+    // Noircir le body pour éviter que l'arrière-plan du site transparaisse
+    // dans la zone recouverte par le clavier iOS
+    document.body.style.backgroundColor = '#000';
+
     // Force le backdrop si on est dans une modale sheet — couvre les cas où
     // _yamScrollLocked n'a pas été reposé (modales empilées, _scrollLockCount > 1)
     if (container.classList && container.classList.contains('nous-modal-overlay')) {
@@ -166,12 +170,17 @@
       sheet.style.paddingBottom = '16px';
       _showKbdBackdrop(kbH);
       _enableDrag(sheet);
+    } else {
+      // Modale sans sheet détectée (memoModal, sgModal, etc.) → backdrop clavier quand même
+      _showKbdBackdrop(kbH);
     }
     setTimeout(_scrollFocusedIntoView, 80);
   }
 
   function _onKeyboardClose(container) {
     _showNav();
+    // Restaurer couleur body dans tous les cas
+    document.body.style.backgroundColor = '';
     if (!container) return;
 
     if (container.id === 'hiddenPage') {
@@ -191,6 +200,9 @@
       sheet.style.transition    = 'padding-bottom 0.25s ease';
       sheet.style.paddingBottom = '';
       setTimeout(function () { sheet.style.transition = ''; }, 280);
+    } else {
+      // Modale sans sheet → retirer le backdrop clavier
+      _hideKbdBackdrop();
     }
   }
 
@@ -435,6 +447,9 @@
 
   // Fond opaque qui bouche la zone entre le bas de la sheet et le haut du clavier
   function _showKbdBackdrop(kbH) {
+    // Noircir le body pour boucher la zone sous le clavier iOS
+    document.body.style.backgroundColor = '#000';
+
     if (_kbdBackdrop) return;
     _kbdBackdrop = document.createElement('div');
     _kbdBackdrop.style.cssText = [
@@ -442,17 +457,28 @@
       'left:0',
       'right:0',
       'bottom:0',               // couvre tout l\'écran clavier compris
-      'top:0',                   // remonte jusqu'en haut — tout l'arrière-plan est couvert
-      'z-index:915',             // entre overlay (920) et le reste
-      'pointer-events:all',      // bloque les touches sur l'arrière-plan
-      'background:rgba(0,0,0,0.6)',
-      'backdrop-filter:blur(4px)',
-      '-webkit-backdrop-filter:blur(4px)'
+      'top:0',                  // remonte jusqu'en haut — tout l'arrière-plan est couvert
+      'z-index:915',            // entre overlay (920) et le reste
+      'pointer-events:all',     // bloque les touches sur l'arrière-plan
+      'background:rgba(0,0,0,0.92)',
+      'backdrop-filter:blur(8px)',
+      '-webkit-backdrop-filter:blur(8px)'
     ].join(';');
     document.body.appendChild(_kbdBackdrop);
+
+    // Renforcer aussi le modalBackdrop existant si présent
+    if (_modalBackdrop) {
+      _modalBackdrop.style.background = 'rgba(0,0,0,0.95)';
+    }
   }
 
   function _hideKbdBackdrop() {
+    // Restaurer la couleur du body et l'opacité du modalBackdrop
+    document.body.style.backgroundColor = '';
+    if (_modalBackdrop) {
+      _modalBackdrop.style.background = 'rgba(0,0,0,0.85)';
+    }
+
     if (!_kbdBackdrop) return;
     var el = _kbdBackdrop;
     _kbdBackdrop = null;
