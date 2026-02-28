@@ -260,8 +260,33 @@
       if (dx > dy + 8) return;
     }
 
-    // Laisse passer si la cible EST elle-même scrollable ET a du contenu à scroller
-    if (findScrollableAncestor(target)) return;
+    // Laisse passer si la cible est dans un élément scrollable
+    // qui est lui-même à l'intérieur d'une modale ouverte
+    var scrollable = findScrollableAncestor(target);
+    if (scrollable) {
+      // Vérifie que cet élément scrollable est bien dans une modale (pas le body/page)
+      var inModal = false;
+      var node = scrollable;
+      while (node && node !== document.body) {
+        if (node.classList) {
+          if (node.classList.contains('nous-modal-overlay') ||
+              node.classList.contains('souvenir-gestion-overlay')) {
+            inModal = true; break;
+          }
+        }
+        var nid = node.id;
+        if (nid === 'hiddenPage'     || nid === 'descEditModal' ||
+            nid === 'accountModal'   || nid === 'searchOverlay' ||
+            nid === 'memoModal'      || nid === 'memoAuthModal' ||
+            nid === 'v2LoginOverlay' || nid === 'sgModal'       ||
+            nid === 'sgEditModal'    || nid === 'sgAuthModal'   ||
+            nid === 'prankMsgModal') {
+          inModal = true; break;
+        }
+        node = node.parentElement;
+      }
+      if (inModal) return; // scroll interne de la modale → autorisé
+    }
 
     // Tout le reste est bloqué — empêche le scroll de l'arrière-plan
     e.preventDefault();
