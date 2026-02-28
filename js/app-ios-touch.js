@@ -138,6 +138,8 @@
 
   function _onKeyboardOpen(container, kbH) {
     _hideNav();
+    // Verrouille le scroll de fond pendant que le clavier est ouvert
+    window._yamScrollLocked = true;
 
     if (container.id === 'hiddenPage') {
       var bar = container.querySelector('.dm-input-bar');
@@ -164,6 +166,8 @@
 
   function _onKeyboardClose(container) {
     _showNav();
+    // Ne pas toucher _yamScrollLocked ici — app-nous.js le gère via _scrollLockCount.
+    // Si la modale est encore ouverte, il reste true. Sinon il est déjà false.
     if (!container) return;
 
     if (container.id === 'hiddenPage') {
@@ -249,29 +253,17 @@
     if (!window._yamScrollLocked) return;
     var target = e.target;
 
-    // Si la cible est dans une modale ouverte, on laisse son scroll interne fonctionner
-    var inModal = !!(
-      findModalContainer(target) ||
-      target.closest && (
-        target.closest('.nous-modal-overlay.open') ||
-        target.closest('.souvenir-gestion-overlay.open') ||
-        target.closest('#descEditModal.open') ||
-        target.closest('#accountModal.open') ||
-        target.closest('#searchOverlay.open') ||
-        target.closest('#memoModal.open') ||
-        target.closest('#memoAuthModal.open') ||
-        target.closest('#hiddenPage.active')
-      )
-    );
-    if (inModal) return;
-
-    if (isInput(target)) return;
+    // Laisse passer les gestes horizontaux
     if (e.touches && e.touches.length === 1) {
       var dx = Math.abs(e.touches[0].clientX - _sbX);
       var dy = Math.abs(e.touches[0].clientY - _sbY);
       if (dx > dy + 8) return;
     }
-    if (Date.now() - _sbT > 380) return;
+
+    // Laisse passer si la cible EST elle-même scrollable ET a du contenu à scroller
+    if (findScrollableAncestor(target)) return;
+
+    // Tout le reste est bloqué — empêche le scroll de l'arrière-plan
     e.preventDefault();
   }, { passive: false });
 
