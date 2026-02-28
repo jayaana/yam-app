@@ -3903,21 +3903,21 @@ body.light .pendu-theme {
 
 #hiddenPage {
   display: none; position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0; /* occupe tout l'écran y compris nav */
+  top: 0; left: 0; right: 0;
+  bottom: var(--nav-height); /* s'arrête au-dessus de la nav — la nav reste visible */
   z-index: 1100;
   overflow: hidden; background: var(--bg);
   flex-direction: column; transition: background 0.3s;
   overscroll-behavior-x: none; touch-action: pan-y;
-  /* Clavier iOS : passe PAR-DESSUS la nav — rien ne bouge via JS */
 }
 #hiddenPage.active { display: flex; animation: slideUp 0.3s ease; }
 
-/* Chat screen : utilise dvh pour que l'espace disponible suive le clavier nativement */
-#hiddenPage .dm-chat-screen {
-  height: 100dvh; /* se réduit automatiquement quand le clavier s'ouvre */
-}
+/* Quand le clavier iOS s'ouvre, il couvre la nav nativement.
+   hiddenPage ne bouge pas — la dm-input-bar est en bas de hiddenPage
+   et remonte avec lui quand le clavier pousse le contenu. */
 
-/* dmKeyboardBg inutile désormais (conservé pour ne pas casser les refs JS) */
+/* dmKeyboardBg — sert à couvrir la nav visuellement quand le clavier est fermé
+   et que hiddenPage ne descend pas jusqu'en bas. Plus nécessaire. */
 #dmKeyboardBg { display: none !important; pointer-events: none; }
 
 /* Topbar */
