@@ -276,13 +276,55 @@
 
 
   // ═══════════════════════════════════
-  // 4b. DRAG + FOND OPAQUE (clavier ouvert)
+  // 4b. BACKDROP GLOBAL + DRAG (clavier ouvert)
+  //
+  // _yamModalBackdrop : posé dès qu'une modale s'ouvre (_yamScrollLocked=true)
+  //   → couvre TOUT le site sauf la modale (z-index 915, entre nav 910 et modal 920)
+  //   → rend l'arrière-plan invisible peu importe ce qui s'y passe
+  // _kbdBackdrop : idem mais étendu au clavier quand keyboard ouvert
   // ═══════════════════════════════════
 
-  var _dragEl     = null;
-  var _dragStartY = 0;
-  var _dragBaseTY = 0;
+  var _dragEl      = null;
+  var _dragStartY  = 0;
+  var _dragBaseTY  = 0;
   var _kbdBackdrop = null;
+  var _modalBackdrop = null;
+
+  // ── Backdrop global (ouverture modale) ──
+  function _showModalBackdrop() {
+    if (_modalBackdrop) return;
+    _modalBackdrop = document.createElement('div');
+    _modalBackdrop.id = 'yamModalBackdrop';
+    _modalBackdrop.style.cssText = [
+      'position:fixed',
+      'inset:0',
+      'z-index:915',          // entre nav(910) et modales(920)
+      'background:rgba(0,0,0,0.85)',
+      'pointer-events:all',   // bloque tout clic sur l'arrière-plan
+      'transition:opacity 0.2s ease'
+    ].join(';');
+    document.body.appendChild(_modalBackdrop);
+  }
+
+  function _hideModalBackdrop() {
+    if (!_modalBackdrop) return;
+    var el = _modalBackdrop;
+    _modalBackdrop = null;
+    el.style.opacity = '0';
+    setTimeout(function () { if (el.parentElement) el.parentElement.removeChild(el); }, 220);
+  }
+
+  // Proxy sur _yamScrollLocked — pose/retire le backdrop global automatiquement
+  var _scrollLockProxy = false;
+  Object.defineProperty(window, '_yamScrollLocked', {
+    get: function () { return _scrollLockProxy; },
+    set: function (v) {
+      _scrollLockProxy = v;
+      if (v) { _showModalBackdrop(); }
+      else   { _hideModalBackdrop(); _hideKbdBackdrop(); document.body.style.backgroundColor = ''; }
+    },
+    configurable: true
+  });
 
   function _getCurrentTY(el) {
     var m = (el.style.transform || '').match(/translateY\(([\-\d.]+)px\)/);
@@ -336,9 +378,6 @@
   // Fond opaque qui bouche la zone entre le bas de la sheet et le haut du clavier
   function _showKbdBackdrop(kbH) {
     if (_kbdBackdrop) return;
-    // Noircit le body — le clavier iOS laisse transparaître la page
-    // derrière la barre QuickType, on force un fond opaque
-    document.body.style.backgroundColor = '#000';
     _kbdBackdrop = document.createElement('div');
     _kbdBackdrop.style.cssText = [
       'position:fixed',
@@ -357,7 +396,6 @@
 
   function _hideKbdBackdrop() {
     if (!_kbdBackdrop) return;
-    document.body.style.backgroundColor = '';
     var el = _kbdBackdrop;
     _kbdBackdrop = null;
     el.style.transition = 'opacity 0.2s ease';
