@@ -2942,8 +2942,9 @@ function v2ApplyDynamicNames(){
 ════════════════════════════════════════════════════════ -->
 <script>
 // Modales : clic dehors pour fermer
+// IMPORTANT : souvenirModal exclus — contient des inputs, trop de faux positifs iOS
 document.addEventListener('DOMContentLoaded', function(){
-  ['souvenirModal','activiteModal','histoireItemModal'].forEach(function(id){
+  ['activiteModal','histoireItemModal'].forEach(function(id){
     var m = document.getElementById(id);
     if (!m) return;
     m.addEventListener('click', function(e){
