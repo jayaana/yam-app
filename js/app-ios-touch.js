@@ -436,16 +436,19 @@
   // Fond opaque qui bouche la zone entre le bas de la sheet et le haut du clavier
   function _showKbdBackdrop(kbH) {
     if (_kbdBackdrop) return;
+    var isLight = document.body.classList.contains('light');
+    // Couvre la fente iOS visible sous la sheet quand le clavier monte
+    document.body.style.backgroundColor = isLight ? '#f9e8f0' : '#000';
     _kbdBackdrop = document.createElement('div');
     _kbdBackdrop.style.cssText = [
       'position:fixed',
       'left:0',
       'right:0',
-      'bottom:0',               // couvre tout l\'écran clavier compris
-      'top:0',                   // remonte jusqu'en haut — tout l'arrière-plan est couvert
-      'z-index:915',             // entre overlay (920) et le reste
-      'pointer-events:all',      // bloque les touches sur l'arrière-plan
-      'background:rgba(0,0,0,0.6)',
+      'bottom:0',
+      'top:0',
+      'z-index:915',
+      'pointer-events:all',
+      'background:' + (isLight ? 'rgba(249,232,240,0.85)' : 'rgba(0,0,0,0.6)'),
       'backdrop-filter:blur(4px)',
       '-webkit-backdrop-filter:blur(4px)'
     ].join(';');
@@ -453,6 +456,7 @@
   }
 
   function _hideKbdBackdrop() {
+    document.body.style.backgroundColor = '';
     if (!_kbdBackdrop) return;
     var el = _kbdBackdrop;
     _kbdBackdrop = null;
