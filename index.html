@@ -3166,33 +3166,30 @@ document.addEventListener('DOMContentLoaded', function(){
 .nous-modal-overlay.open {
   display: flex;
   position: fixed;
-  inset: 0;
+  inset: 0; /* descend jusqu'au bas — le clavier couvre la nav nativement */
   z-index: 920;
   align-items: flex-end;
   justify-content: center;
   background: rgba(0,0,0,0.6);
   backdrop-filter: blur(4px);
-  /* NE PAS mettre touch-action:none ici — ça bloque les inputs/textareas dans la sheet sur iOS */
-  /* Le scroll du fond est bloqué par overflow:hidden sur body via _blockBackgroundScroll() */
 }
 .nous-modal-sheet {
   background: var(--s1);
   border-radius: 20px 20px 0 0;
   width: 100%;
   max-width: 480px;
-  /* Remonte la sheet au-dessus de la bottom-nav */
-  margin-bottom: var(--nav-height);
-  /* Max height : viewport - nav - topbar - marge */
-  max-height: calc(100dvh - var(--nav-height) - var(--safe-top) - 44px - 12px);
+  /* margin-bottom:0 — la sheet descend jusqu'au bas de l'overlay.
+     padding-bottom compense la nav quand le clavier est fermé. */
+  margin-bottom: 0;
+  max-height: calc(100dvh - var(--safe-top) - 44px - 12px);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  /* pan-y permet le scroll vertical ET les interactions touch (tap, focus input) */
   touch-action: pan-y;
   padding: 20px;
-  padding-bottom: 32px;
+  /* padding-bottom = nav + home indicator : le contenu ne passe pas sous la nav */
+  padding-bottom: calc(var(--nav-height) + 12px);
   box-sizing: border-box;
-  /* Assure que la sheet absorbe les events — rien ne passe au fond */
   isolation: isolate;
 }
 /* ── Mots doux IA ── */
