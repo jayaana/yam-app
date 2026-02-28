@@ -248,14 +248,30 @@
   document.addEventListener('touchmove', function (e) {
     if (!window._yamScrollLocked) return;
     var target = e.target;
+
+    // Si la cible est dans une modale ouverte, on laisse son scroll interne fonctionner
+    var inModal = !!(
+      findModalContainer(target) ||
+      target.closest && (
+        target.closest('.nous-modal-overlay.open') ||
+        target.closest('.souvenir-gestion-overlay.open') ||
+        target.closest('#descEditModal.open') ||
+        target.closest('#accountModal.open') ||
+        target.closest('#searchOverlay.open') ||
+        target.closest('#memoModal.open') ||
+        target.closest('#memoAuthModal.open') ||
+        target.closest('#hiddenPage.active')
+      )
+    );
+    if (inModal) return;
+
     if (isInput(target)) return;
     if (e.touches && e.touches.length === 1) {
       var dx = Math.abs(e.touches[0].clientX - _sbX);
       var dy = Math.abs(e.touches[0].clientY - _sbY);
       if (dx > dy + 8) return;
     }
-    if (Date.now() - _sbT > 380)       return;
-    if (findScrollableAncestor(target)) return;
+    if (Date.now() - _sbT > 380) return;
     e.preventDefault();
   }, { passive: false });
 
