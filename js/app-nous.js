@@ -335,10 +335,10 @@ window.nousSignalNew = function() {
     .then(function(rows){
       if(!Array.isArray(rows)) return;
       rows.forEach(function(row){
-        if(row.slot === 0){ // slot 0 = titre ELLE
+        if(row.slot === 'elle_title' || row.slot === '0' || row.slot === 0){
           var el = document.getElementById('elleSectionTitle');
           if(el && row.description) el.textContent = row.description;
-        } else if(row.slot === 99){ // slot 99 = titre LUI
+        } else if(row.slot === 'lui_title' || row.slot === '99' || row.slot === 99){
           var el2 = document.getElementById('luiSectionTitle');
           if(el2 && row.description) el2.textContent = row.description;
         }
@@ -348,7 +348,8 @@ window.nousSignalNew = function() {
 
   function _saveSectionTitle(slot, val){
     var coupleId = _getCoupleId(); if(!coupleId) return;
-    fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:coupleId,category:'label',slot:slot,description:val})}).catch(function(){});
+    // slot est une string compatible avec la colonne text de v2_photo_descs
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:coupleId,category:'label',slot:String(slot),description:val})}).catch(function(){});
   }
 
   // Éditer le titre de ELLE (accessible par boy seulement)
@@ -358,7 +359,7 @@ window.nousSignalNew = function() {
     descEditOpen(el.textContent.trim(), 'Titre de la section Elle', function(val){
       if(!val) return;
       el.textContent = val;
-      _saveSectionTitle(0, val);
+      _saveSectionTitle('elle_title', val);
     });
   };
 
@@ -369,7 +370,7 @@ window.nousSignalNew = function() {
     descEditOpen(el.textContent.trim(), 'Titre de la section Lui', function(val){
       if(!val) return;
       el.textContent = val;
-      _saveSectionTitle(99, val);
+      _saveSectionTitle('lui_title', val);
     });
   };
 
@@ -2556,7 +2557,7 @@ loadLikeCounters();
     var coupleId = _getCoupleId(); if(!coupleId) return;
     descEditOpen(book.description||'', 'Légende du livre "'+escHtml(book.title||'')+'"', function(val){
       book.description = val;
-      fetch(SB2_URL+'/rest/v1/v2_books?id=eq.'+book.id+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({description:val,updated_at:new Date().toISOString()})}).catch(function(){});
+      fetch(SB2_URL+'/rest/v1/v2_books?id=eq.'+book.id+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({description:val})}).catch(function(){});
       window.yamMarkNewAndRefresh && window.yamMarkNewAndRefresh('livre_'+book.id);
       window.yamMarkNew && window.yamMarkNew('livre');
       window.livresLoad();
@@ -2716,7 +2717,7 @@ loadLikeCounters();
 
     if(_livreEditingId){
       // Mise à jour
-      var data = {title:title, description:desc, has_image:hasImage, updated_at:new Date().toISOString()};
+      var data = {title:title, description:desc, has_image:hasImage};
       // Si nouvelle photo uploadée avec l'ID final, renommer si nécessaire
       if(hasImage && window._livreTmpPhotoId && window._livreTmpPhotoId !== _livreEditingId){
         // Upload de la photo dans le bon slot (fetch blob depuis l'URL tmp)
@@ -2728,7 +2729,7 @@ loadLikeCounters();
       fetch(SB2_URL+'/rest/v1/v2_books?id=eq.'+_livreEditingId+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(function(){ done(_livreEditingId); }).catch(function(){ done(_livreEditingId); });
     } else {
       // Nouveau
-      var data2 = {couple_id:coupleId, title:title, description:desc, has_image:hasImage, position:(_livresAllRows.length), created_at:new Date().toISOString(), updated_at:new Date().toISOString()};
+      var data2 = {couple_id:coupleId, title:title, description:desc, has_image:hasImage, position:(_livresAllRows.length)};
       fetch(SB2_URL+'/rest/v1/v2_books',{method:'POST',headers:sb2Headers({'Prefer':'return=representation','Content-Type':'application/json'}),body:JSON.stringify(data2)})
       .then(function(r){ return r.json(); })
       .then(function(rows){
@@ -2811,7 +2812,7 @@ loadLikeCounters();
   window.livresAddFromIdea = function(){
     if(!_ideaCache) return;
     var coupleId = _getCoupleId(); if(!coupleId) return;
-    var data = {couple_id:coupleId, title:_ideaCache.title||'Livre', description:(_ideaCache.author||'')+(_ideaCache.desc?' — '+_ideaCache.desc:''), has_image:false, position:_livresAllRows.length, created_at:new Date().toISOString(), updated_at:new Date().toISOString()};
+    var data = {couple_id:coupleId, title:_ideaCache.title||'Livre', description:(_ideaCache.author||'')+(_ideaCache.desc?' — '+_ideaCache.desc:''), has_image:false, position:_livresAllRows.length};
     fetch(SB2_URL+'/rest/v1/v2_books',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
     .then(function(){
       window.yamMarkNew && window.yamMarkNew('livre');
