@@ -1,66 +1,116 @@
 // ═══════════════════════════════════════════════════════════
 // app-core.js — iOS init · Supabase · Auth · Thème · Utilitaires
 
-// Fix clavier iOS — couvre la page principale derrière InstaLove
+// Fix clavier iOS — gère le déplacement de TOUTES les modales avec champ texte
+// Couvre : hiddenPage (InstaLove), memoPopupModal, petitsMotsEditor, souvenirModal, etc.
 (function(){
   var NAV_H = 64;
+
+  // Sélecteurs des containers qui doivent "monter" quand le clavier s'ouvre
+  // Chaque entrée : { container: ID ou sélecteur, bg: ID du bg optionnel }
+  var MODAL_CONFIGS = [
+    { selector: '#hiddenPage',       bg: 'dmKeyboardBg', isHiddenPage: true },
+    { selector: '#memoPopupModal',   bg: null },
+    { selector: '#petitsMotsEditor', bg: null },
+    { selector: '#souvenirModal',    bg: null },
+    { selector: '#activiteModal',    bg: null },
+    { selector: '#descEditModal',    bg: null },
+    { selector: '#accountModal',     bg: null },
+  ];
+
   function update(){
-    var hp  = document.getElementById('hiddenPage');
-    var kbg = document.getElementById('dmKeyboardBg');
-    if(!hp || !hp.classList.contains('active')) return;
     if(!window.visualViewport) return;
-    var vv      = window.visualViewport;
-    var kbH     = window.innerHeight - vv.height; // hauteur clavier
-    if(kbH > 80){
-      // Clavier ouvert : hiddenPage monte pour rester visible, bg bouche le trou
-      hp.style.bottom  = kbH + 'px';
-      if(kbg){ kbg.style.height = (kbH + NAV_H) + 'px'; kbg.classList.add('on'); }
-    } else {
-      // Clavier fermé : reset
-      hp.style.bottom  = '';
-      if(kbg){ kbg.style.height = ''; kbg.classList.remove('on'); }
-    }
+    var vv = window.visualViewport;
+    var kbH = window.innerHeight - vv.height; // hauteur clavier estimée
+    var isOpen = kbH > 80;
+
+    MODAL_CONFIGS.forEach(function(cfg){
+      var el = document.querySelector(cfg.selector);
+      if(!el) return;
+
+      // Vérifier si la modale est visible/active
+      var visible = el.classList.contains('active') || el.classList.contains('open')
+                 || el.style.display === 'flex' || el.style.display === 'block';
+      if(!visible) return;
+
+      if(isOpen){
+        // Calculer le décalage nécessaire pour que la modale reste visible
+        var rect = el.getBoundingClientRect();
+        var overflow = (rect.bottom) - (vv.height);
+        if(overflow > 0){
+          el.style.transform = 'translateY(-' + Math.min(overflow, kbH) + 'px)';
+        }
+        el.style.transition = 'transform 0.25s ease';
+
+        // hiddenPage : gestion spéciale avec bottom + dmKeyboardBg
+        if(cfg.isHiddenPage){
+          el.style.transform = '';
+          el.style.bottom = kbH + 'px';
+          var kbg = document.getElementById(cfg.bg);
+          if(kbg){ kbg.style.height = (kbH + NAV_H) + 'px'; kbg.classList.add('on'); }
+        }
+      } else {
+        // Clavier fermé : reset
+        el.style.transform = '';
+        el.style.transition = '';
+        if(cfg.isHiddenPage){
+          el.style.bottom = '';
+          var kbg2 = document.getElementById(cfg.bg);
+          if(kbg2){ kbg2.style.height = ''; kbg2.classList.remove('on'); }
+        }
+      }
+    });
   }
+
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize', update);
     window.visualViewport.addEventListener('scroll', update);
   }
   window._dmUpdateVP = update;
 })();
-(function(){
-  function setScale(s){
-    var m = document.querySelector('meta[name=viewport]');
-    if(m) m.content = 'width=device-width, initial-scale=1.0, maximum-scale='+s+', user-scalable='+(s==='1.0'?'no':'yes')+', viewport-fit=cover';
-  }
-  document.addEventListener('focusin', function(e){
-    if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') setScale('1.0');
-  });
-  document.addEventListener('focusout', function(e){
-    if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') setScale('5.0');
-  });
-})();
+// Fix zoom iOS — géré uniquement via CSS (font-size: 16px sur input/textarea/select)
+// Le hack meta-viewport focusin/focusout est supprimé : il causait un relayout iOS
+// qui faisait "sauter" la navbar à chaque focus/blur de champ texte.
 (function() {
   var lastTouchY = 0;
+  var lastTouchX = 0;
   var preventPullToRefresh = false;
+  var touchStartTime = 0;
+
   document.addEventListener('touchstart', function(e) {
     if (e.touches.length !== 1) return;
     lastTouchY = e.touches[0].clientY;
+    lastTouchX = e.touches[0].clientX;
+    touchStartTime = Date.now();
     preventPullToRefresh = window.scrollY === 0;
-  }, { passive: false });
+  }, { passive: true }); // passive:true = ne bloque jamais au touchstart
+
   document.addEventListener('touchmove', function(e) {
     var touchY = e.touches[0].clientY;
+    var touchX = e.touches[0].clientX;
     var touchYDelta = touchY - lastTouchY;
+    var touchXDelta = touchX - lastTouchX;
     lastTouchY = touchY;
+    lastTouchX = touchX;
 
     var t = e.target;
 
-    // Ne jamais bloquer dans un input ou textarea (sélection de texte, glissement curseur)
+    // ── Ne JAMAIS bloquer dans un input/textarea (sélection, curseur) ──
     if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
 
-    // Ne pas bloquer si une modale nous est ouverte — laisser tout passer
-    if(document.querySelector('.nous-modal-overlay.open')) return;
+    // ── Ne pas bloquer si le geste est principalement horizontal (sélection de texte latérale) ──
+    if(Math.abs(touchXDelta) > Math.abs(touchYDelta)) return;
 
-    // Ne pas bloquer le scroll dans les zones scrollables
+    // ── Ne pas bloquer si le doigt est maintenu longtemps (longpress = sélection) ──
+    if(Date.now() - touchStartTime > 400) return;
+
+    // ── Ne pas bloquer si une modale est ouverte ──
+    if(document.querySelector('.nous-modal-overlay.open')) return;
+    if(document.querySelector('.modal-overlay.open')) return;
+    if(document.querySelector('[id$="Modal"].open')) return;
+    if(document.querySelector('[id$="Modal"].active')) return;
+
+    // ── Ne pas bloquer dans les zones scrollables ──
     var node = t;
     while(node && node !== document.body) {
       if(node.getAttribute && node.getAttribute('data-scrollable')) return;
@@ -69,14 +119,16 @@
       node = node.parentNode;
     }
 
-    if (preventPullToRefresh && touchYDelta > 0) {
+    // ── Bloquer uniquement le pull-to-refresh (geste vers le bas depuis le haut de page) ──
+    if (preventPullToRefresh && touchYDelta > 0 && window.scrollY === 0) {
       e.preventDefault();
-      return false;
     }
   }, { passive: false });
+
   document.addEventListener('touchend', function(e) {
     preventPullToRefresh = false;
-  }, { passive: false });
+    touchStartTime = 0;
+  }, { passive: true });
 })();
 
 async function nativeLogout(){
