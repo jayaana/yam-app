@@ -304,9 +304,6 @@ function _nousLoadProfil() {
     // Mémo todo
     var memoTodoCard = document.querySelector('#memoCoupleSection .memo-duo-card:last-child');
     if(memoTodoCard) window.yamShowNewBadge(memoTodoCard, window.yamIsNew('memo_todo'));
-    // Souvenirs (section label)
-    var souvenirSection = document.getElementById('souvenirsSection');
-    if(souvenirSection) window.yamShowNewBadge(souvenirSection, window.yamIsNew('souvenir'));
     // Petits mots — badge à droite du compteur (seulement pour le receveur des nouveaux mots)
     var pmNew = document.getElementById('postitNewBadge');
     if(pmNew) pmNew.style.display = window.yamIsNew('petit_mot') ? '' : 'none';
