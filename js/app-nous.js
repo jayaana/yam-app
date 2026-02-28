@@ -187,6 +187,13 @@ function _nousInitAll() {
   luiLoadDescs();
   luiSyncDescs();
   if(typeof window._loadSectionTitles === 'function') window._loadSectionTitles();
+  // Charger les banners personnalisés des pochettes Elle/Lui
+  var _initUser = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+  var _initCoupleId = _initUser ? _initUser.couple_id : null;
+  if(_initCoupleId){
+    if(typeof _loadElleBanners === 'function') _loadElleBanners(_initCoupleId);
+    if(typeof _loadLuiBanners === 'function') _loadLuiBanners(_initCoupleId);
+  }
   _nousLoadBadge();
   loadLikeCounters();
   _petitsMotsLoad();
@@ -566,6 +573,33 @@ window.nousSignalNew = function() {
   function _luiPath(coupleId, slot){ return 'uploads/'+coupleId+'/'+slot+'-lui.jpg'; }
 
   // Rouage LUI : girl peut ouvrir/fermer la section LUI pour décrire son copain
+
+  // ── Éditer le bandeau (titre) d'une pochette ELLE ──
+  var ELLE_BANNER_DEFAULTS = {animal:'Animal',fleurs:'Fleurs',personnage:'Personnage',saison:'Saison',repas:'Repas'};
+  window.elleEditBanner = function(slot){
+    if(getProfile() !== 'boy') return; // boy édite ELLE
+    var el = document.getElementById('elle-banner-'+slot); if(!el) return;
+    descEditOpen(el.textContent.trim(), 'Titre de la pochette · '+(ELLE_BANNER_DEFAULTS[slot]||slot), function(val){
+      if(!val) return;
+      el.textContent = val;
+      var coupleId = _getCoupleId(); if(!coupleId) return;
+      fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,category:'elle_banner',slot:slot,description:val})}).catch(function(){});
+    });
+  };
+
+  // Charger les banners Elle depuis Supabase
+  function _loadElleBanners(coupleId){
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+coupleId+'&category=eq.elle_banner&select=slot,description',{headers:sb2Headers()})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){
+      if(!Array.isArray(rows)) return;
+      rows.forEach(function(row){
+        var el = document.getElementById('elle-banner-'+row.slot);
+        if(el && row.description) el.textContent = row.description;
+      });
+    }).catch(function(){});
+  }
+
   window.luiToggleSection = function(){
     var profile = getProfile();
     if (profile !== 'girl') return; // seul girl peut toggle LUI
@@ -664,6 +698,33 @@ window.nousSignalNew = function() {
       localStorage.setItem('lui_desc_'+slot,val);
     });
   };
+
+  // ── Éditer le bandeau (titre) d'une pochette LUI ──
+  var LUI_BANNER_DEFAULTS = {animal:'Animal',fleurs:'Fleurs',personnage:'Personnage',saison:'Saison',repas:'Repas'};
+  window.luiEditBanner = function(slot){
+    if(getProfile() !== 'girl') return; // girl édite LUI
+    var el = document.getElementById('lui-banner-'+slot); if(!el) return;
+    descEditOpen(el.textContent.trim(), 'Titre de la pochette · '+(LUI_BANNER_DEFAULTS[slot]||slot), function(val){
+      if(!val) return;
+      el.textContent = val;
+      var coupleId = _getCoupleId(); if(!coupleId) return;
+      fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,category:'lui_banner',slot:slot,description:val})}).catch(function(){});
+    });
+  };
+
+  // Charger les banners Lui depuis Supabase
+  function _loadLuiBanners(coupleId){
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+coupleId+'&category=eq.lui_banner&select=slot,description',{headers:sb2Headers()})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){
+      if(!Array.isArray(rows)) return;
+      rows.forEach(function(row){
+        var el = document.getElementById('lui-banner-'+row.slot);
+        if(el && row.description) el.textContent = row.description;
+      });
+    }).catch(function(){});
+  }
+
 })();
 
 
@@ -2536,13 +2597,13 @@ loadLikeCounters();
     var isNew = window.yamIsNew ? window.yamIsNew('livre_'+book.id) : false;
     var newBadge = isNew ? '<span style="position:absolute;top:4px;right:4px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-size:8px;font-weight:800;letter-spacing:0.5px;padding:2px 5px;border-radius:6px;text-transform:uppercase;z-index:10;pointer-events:none;">NEW</span>' : '';
     card.innerHTML =
-      '<div class="album-image" style="position:relative;">'+newBadge+
+      '<div class="album-image">'+newBadge+
         (photoUrl ?
-          '<img src="'+escHtml(photoUrl)+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px 10px 0 0;" loading="lazy">' :
+          '<img src="'+escHtml(photoUrl)+'" style="width:100%;height:100%;object-fit:cover;" loading="lazy">' :
           '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;color:var(--muted);">📚</div>'
         )+
         '<div class="album-banner">'+escHtml(book.title||'Sans titre')+'</div>'+
-        '<div class="lui-upload-btn" style="position:absolute;bottom:36px;right:6px;padding:6px 10px;border-radius:8px;background:rgba(0,0,0,0.55);display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:#fff;font-weight:700;font-family:\'DM Sans\',sans-serif;">'+editSVG+'</div>'+
+        '<div class="lui-upload-btn"><div class="lui-upload-icon">'+editSVG+'</div><div class="lui-upload-lbl">Modifier</div></div>'+
       '</div>'+
       '<div class="album-desc lui-desc-editable" style="cursor:pointer;">'+escHtml(book.description||'Ajouter une légende...')+'</div>';
     // Clic bouton edit
@@ -2644,6 +2705,9 @@ loadLikeCounters();
 
   window.livresCloseEdit = function(){
     var modal = document.getElementById('livreEditModal'); if(modal) modal.classList.remove('open');
+    // Restaurer le sheet au bas du modal en cas de clavier iOS
+    var sheet = document.querySelector('#livreEditModal .nous-modal-sheet');
+    if(sheet) sheet.style.marginBottom = '';
     if(_livreFromGestion){
       _livreFromGestion = false;
       _renderLivresGestionList();
@@ -2656,6 +2720,30 @@ loadLikeCounters();
     _livreEditingId = null;
     _livreCurrentPhotoUrl = null;
   };
+
+  // ── Fix iOS clavier : quand le clavier remonte, la sheet descend avec lui ──
+  (function(){
+    if(!window.visualViewport) return;
+    var _sheet = null;
+    var _overlay = null;
+    function _getEls(){
+      _sheet   = _sheet   || document.querySelector('#livreEditModal .nous-modal-sheet');
+      _overlay = _overlay || document.getElementById('livreEditModal');
+    }
+    window.visualViewport.addEventListener('resize', function(){
+      _getEls();
+      if(!_overlay || !_overlay.classList.contains('open') || !_sheet) return;
+      // La hauteur visible restante après clavier
+      var gap = window.innerHeight - window.visualViewport.height;
+      // On remonte la sheet du même montant que le clavier
+      _sheet.style.marginBottom = (gap > 20 ? gap : 0) + 'px';
+      // Scroll pour garder le champ focalisé visible
+      var focused = document.activeElement;
+      if(focused && _sheet.contains(focused)){
+        setTimeout(function(){ focused.scrollIntoView({block:'nearest', behavior:'smooth'}); }, 50);
+      }
+    });
+  })();
 
   // ── Upload photo ──
   window.livresPhotoClick = function(){
@@ -2731,10 +2819,7 @@ loadLikeCounters();
       // Nouveau
       var data2 = {couple_id:coupleId, title:title, description:desc, has_image:hasImage, position:(_livresAllRows.length)};
       fetch(SB2_URL+'/rest/v1/v2_books',{method:'POST',headers:sb2Headers({'Prefer':'return=representation','Content-Type':'application/json'}),body:JSON.stringify(data2)})
-      .then(function(r){
-        if(!r.ok) return r.json().then(function(e){ throw new Error(e.message||e.hint||('HTTP '+r.status)); });
-        return r.json();
-      })
+      .then(function(r){ return r.json(); })
       .then(function(rows){
         var newId = Array.isArray(rows)&&rows.length?rows[0].id:null;
         // Si on a une photo avec un ID temporaire, la renommer vers le bon ID
@@ -2748,10 +2833,7 @@ loadLikeCounters();
           }).catch(function(){});
         }
         done(newId);
-      }).catch(function(err){
-        if(btn){ btn.textContent='Sauvegarder'; btn.disabled=false; }
-        if(typeof showToast==='function') showToast('Erreur : '+(err&&err.message?err.message:'impossible de sauvegarder'),'error',3500);
-      });
+      }).catch(function(){ done(null); });
     }
   };
 
@@ -2820,52 +2902,17 @@ loadLikeCounters();
     var coupleId = _getCoupleId(); if(!coupleId) return;
     var data = {couple_id:coupleId, title:_ideaCache.title||'Livre', description:(_ideaCache.author||'')+(_ideaCache.desc?' — '+_ideaCache.desc:''), has_image:false, position:_livresAllRows.length};
     fetch(SB2_URL+'/rest/v1/v2_books',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
-    .then(function(r){
-      if(!r.ok) return r.json().then(function(e){ throw new Error(e.message||e.hint||r.status); });
+    .then(function(){
       window.yamMarkNew && window.yamMarkNew('livre');
       window.yamRefreshNewBadges && window.yamRefreshNewBadges();
       var card = document.getElementById('livreIdeaCard'); if(card) card.style.display='none';
       window.livresLoad();
       if(typeof showToast==='function') showToast('Livre ajouté à votre bibliothèque ! 📚','success',2500);
-    }).catch(function(err){
-      if(typeof showToast==='function') showToast('Erreur : '+(err&&err.message?err.message:'impossible d\'ajouter le livre'),'error',3500);
-    });
+    }).catch(function(){});
   };
 
   // Init au chargement de la section
   document.addEventListener('nousContentReady', function(){ window.livresLoad(); });
-
-  // ── Fix iOS : touch-action:none bloque les onclick sur l'overlay ──
-  // On gère la fermeture via touchend + click sur les overlays livres
-  (function(){
-    var _livresOverlayIds = [
-      { id: 'livresGestionOverlay', fn: function(){ window.livresCloseGestion(); } },
-      { id: 'livreEditModal',       fn: function(){ window.livresCloseEdit(); } }
-    ];
-    function _attachOverlayClose(id, fn){
-      var _touchStartX, _touchStartY;
-      setTimeout(function(){
-        var el = document.getElementById(id);
-        if(!el) return;
-        // click — desktop + Android
-        el.addEventListener('click', function(e){
-          if(e.target === el) fn();
-        });
-        // touchend — iOS (touch-action:none bloque click sur le fond)
-        el.addEventListener('touchstart', function(e){
-          if(e.target === el){ _touchStartX = e.touches[0].clientX; _touchStartY = e.touches[0].clientY; }
-        }, { passive: true });
-        el.addEventListener('touchend', function(e){
-          if(e.target === el){
-            var dx = Math.abs(e.changedTouches[0].clientX - _touchStartX);
-            var dy = Math.abs(e.changedTouches[0].clientY - _touchStartY);
-            if(dx < 10 && dy < 10) fn(); // tap (pas un scroll)
-          }
-        }, { passive: true });
-      }, 0);
-    }
-    _livresOverlayIds.forEach(function(o){ _attachOverlayClose(o.id, o.fn); });
-  })();
 
 })();
 
