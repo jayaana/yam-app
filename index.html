@@ -3225,6 +3225,8 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 .activite-ia-add-btn { padding: 10px 16px; background: linear-gradient(135deg,#e879a0,#9b59b6); color: #fff; font-size: 13px; font-weight: 700; font-family: 'DM Sans',sans-serif; border: none; border-radius: 10px; cursor: pointer; }
 </style>
 <script>
+(function(){
+  function initDefaultAvatars(){
     var profile = (typeof getProfile === 'function') ? getProfile() : null;
     var self    = profile || 'girl';
     var other   = (self === 'girl') ? 'boy' : 'girl';
