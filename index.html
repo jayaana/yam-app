@@ -863,7 +863,10 @@
   </div>
   <!-- Zone idée du jour Groq -->
   <div id="livreIdeaCard" style="display:none;background:var(--s2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-top:4px;margin-bottom:2px;">
-    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;">Idée du jour 📚</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;">Idée du jour 📚</div>
+      <button onclick="document.getElementById('livreIdeaCard').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;padding:0 2px;line-height:1;">✕</button>
+    </div>
     <div id="livreIdeaText" style="font-size:14px;color:var(--text);line-height:1.5;">Chargement...</div>
     <div id="livreIdeaMeta" style="font-size:10px;color:var(--muted);margin-top:6px;"></div>
     <div style="display:flex;gap:8px;margin-top:12px;">
