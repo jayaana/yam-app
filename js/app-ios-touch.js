@@ -197,6 +197,8 @@
     if (container.classList && container.classList.contains('nous-modal-overlay')) {
       var sheet = container.querySelector('.nous-modal-sheet');
       if (!sheet) return;
+      var rect = container.querySelector('.nous-modal-sheet').getBoundingClientRect();
+      alert('kbH: ' + kbH + '\nsheet.bottom: ' + rect.bottom + '\ninnerHeight: ' + window.innerHeight);
       var shift = Math.max(0, kbH - NAV_HEIGHT);
       sheet.style.transition = 'transform 0.25s ease';
       sheet.style.transform  = shift > 0 ? 'translateY(-' + shift + 'px)' : '';
