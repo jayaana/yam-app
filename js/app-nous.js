@@ -2660,7 +2660,7 @@ loadLikeCounters();
 
   // ── Ouvrir modale de création ──
   window.livresOpenNew = function(){
-    if(_livreFromGestion){} else { _saveScrollPosition(); _blockBackgroundScroll(); _livreBodyLock(); }
+    if(_livreFromGestion){} else { _saveScrollPosition(); _blockBackgroundScroll(); }
     _livreEditingId = null;
     _livreCurrentPhotoUrl = null;
     var modal = document.getElementById('livreEditModal'); if(!modal) return;
@@ -2675,7 +2675,7 @@ loadLikeCounters();
 
   // ── Ouvrir modale d'édition ──
   window.livresOpenEdit = function(book){
-    if(!_livreFromGestion){ _saveScrollPosition(); _blockBackgroundScroll(); _livreBodyLock(); }
+    if(!_livreFromGestion){ _saveScrollPosition(); _blockBackgroundScroll(); }
     _livreEditingId = book.id;
     _livreCurrentPhotoUrl = book.has_image ? (SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/books/'+book.couple_id+'/'+book.id+'.jpg') : null;
     var modal = document.getElementById('livreEditModal'); if(!modal) return;
@@ -2692,6 +2692,8 @@ loadLikeCounters();
   };
 
   window.livresCloseEdit = function(){
+    // Fermer le clavier iOS avant de fermer la modale (évite les glitches de resize)
+    if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
     var modal = document.getElementById('livreEditModal'); if(modal) modal.classList.remove('open');
     var sheet = document.querySelector('#livreEditModal .nous-modal-sheet');
     if(sheet) sheet.style.marginBottom = '';
@@ -2701,7 +2703,6 @@ loadLikeCounters();
       var overlay = document.getElementById('livresGestionOverlay');
       if(overlay && !overlay.classList.contains('open')) overlay.classList.add('open');
     } else {
-      _livreBodyUnlock();
       _unblockBackgroundScroll();
       _restoreScrollPosition();
     }
@@ -2711,28 +2712,35 @@ loadLikeCounters();
 
   // ── Fix iOS clavier : modal livre ──
   // Sur iOS Safari, quand un input est focusé dans une modale position:fixed,
-  // le navigateur remonte TOUTE la page (navbar incluse) pour afficher le champ.
-  // Solution : position:fixed sur body (avec top = -scrollY) pendant que la modale est ouverte.
-  // Ainsi iOS n'a rien à remonter, la page est déjà figée au bon endroit.
-  var _livreBodyScrollY = 0;
+  // le clavier réduit la hauteur visible (visualViewport.height).
+  // On ajuste le margin-bottom de la sheet pour qu'elle reste visible au-dessus du clavier.
+  (function(){
+    if(!window.visualViewport) return;
 
-  function _livreBodyLock(){
-    _livreBodyScrollY = window.scrollY || window.pageYOffset || 0;
-    document.body.style.position = 'fixed';
-    document.body.style.top      = '-' + _livreBodyScrollY + 'px';
-    document.body.style.left     = '0';
-    document.body.style.right    = '0';
-    document.body.style.width    = '100%';
-  }
+    window.visualViewport.addEventListener('resize', function(){
+      var overlay = document.getElementById('livreEditModal');
+      if(!overlay || !overlay.classList.contains('open')) return;
+      var sheet = overlay.querySelector('.nous-modal-sheet');
+      if(!sheet) return;
 
-  function _livreBodyUnlock(){
-    document.body.style.position = '';
-    document.body.style.top      = '';
-    document.body.style.left     = '';
-    document.body.style.right    = '';
-    document.body.style.width    = '';
-    window.scrollTo(0, _livreBodyScrollY);
-  }
+      var vv = window.visualViewport;
+      var windowH = window.innerHeight;
+      var keyboardH = windowH - vv.height - vv.offsetTop;
+
+      if(keyboardH > 50){
+        // Clavier ouvert : réduire le margin-bottom pour que la sheet reste visible
+        sheet.style.marginBottom = keyboardH + 'px';
+        // Scroll l'input focusé dans la zone visible
+        var focused = document.activeElement;
+        if(focused && sheet.contains(focused)){
+          setTimeout(function(){ focused.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 80);
+        }
+      } else {
+        // Clavier fermé : restaurer le margin-bottom CSS normal
+        sheet.style.marginBottom = '';
+      }
+    });
+  })();
 
   // ── Upload photo ──
   window.livresPhotoClick = function(){
@@ -2912,33 +2920,54 @@ loadLikeCounters();
   // Init au chargement de la section
   document.addEventListener('nousContentReady', function(){ window.livresLoad(); });
 
-  // ── Fix iOS : touch-action:none bloque les onclick sur l'overlay ──
-  // On gère la fermeture via touchend + click sur les overlays livres
+  // ── Fermeture au clic sur le fond des overlays livres ──
+  // iOS : touch-action:none bloque les onclick natifs sur l'overlay.
+  // Fix : touchend avec vérification stricte de e.target + délai anti-tap-parasite après ouverture.
   (function(){
     var _livresOverlayIds = [
       { id: 'livresGestionOverlay', fn: function(){ window.livresCloseGestion(); } },
       { id: 'livreEditModal',       fn: function(){ window.livresCloseEdit(); } }
     ];
     function _attachOverlayClose(id, fn){
-      var _touchStartX, _touchStartY;
+      var _touchStartX = null, _touchStartY = null, _openedAt = 0;
       setTimeout(function(){
         var el = document.getElementById(id);
         if(!el) return;
+
+        // Mémoriser quand la modale s'ouvre (pour ignorer le tap d'ouverture lui-même)
+        new MutationObserver(function(){
+          if(el.classList.contains('open')) _openedAt = Date.now();
+        }).observe(el, { attributes: true, attributeFilter: ['class'] });
+
         // click — desktop + Android
         el.addEventListener('click', function(e){
+          if(Date.now() - _openedAt < 400) return; // trop tôt après ouverture
           if(e.target === el) fn();
         });
-        // touchend — iOS (touch-action:none bloque click sur le fond)
+
+        // touchstart — iOS : noter les coords SEULEMENT si touch direct sur overlay (pas enfant)
         el.addEventListener('touchstart', function(e){
-          if(e.target === el){ _touchStartX = e.touches[0].clientX; _touchStartY = e.touches[0].clientY; }
-        }, { passive: true });
-        el.addEventListener('touchend', function(e){
           if(e.target === el){
-            var dx = Math.abs(e.changedTouches[0].clientX - _touchStartX);
-            var dy = Math.abs(e.changedTouches[0].clientY - _touchStartY);
-            if(dx < 10 && dy < 10) fn(); // tap (pas un scroll)
+            _touchStartX = e.touches[0].clientX;
+            _touchStartY = e.touches[0].clientY;
+          } else {
+            _touchStartX = null; // touch sur la sheet ou un bouton → pas de fermeture
+            _touchStartY = null;
           }
         }, { passive: true });
+
+        // touchend — iOS
+        el.addEventListener('touchend', function(e){
+          if(_touchStartX === null) return; // touch parti d'un enfant
+          if(Date.now() - _openedAt < 400) return; // trop tôt
+          if(e.target !== el) return; // fin du touch sur un enfant
+          var dx = Math.abs(e.changedTouches[0].clientX - _touchStartX);
+          var dy = Math.abs(e.changedTouches[0].clientY - _touchStartY);
+          if(dx < 10 && dy < 10) fn(); // tap propre sur le fond
+          _touchStartX = null;
+          _touchStartY = null;
+        }, { passive: true });
+
       }, 0);
     }
     _livresOverlayIds.forEach(function(o){ _attachOverlayClose(o.id, o.fn); });
