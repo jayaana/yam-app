@@ -312,44 +312,7 @@
 
   document.addEventListener('touchmove', function (e) {
     if (!window._yamScrollLocked) return;
-    var target = e.target;
-
-    // Laisse passer les gestes horizontaux
-    if (e.touches && e.touches.length === 1) {
-      var dx = Math.abs(e.touches[0].clientX - _sbX);
-      var dy = Math.abs(e.touches[0].clientY - _sbY);
-      if (dx > dy + 8) return;
-    }
-
-    // Laisse passer si la cible est dans un élément scrollable
-    // qui est lui-même à l'intérieur d'une modale ouverte
-    var scrollable = findScrollableAncestor(target);
-    if (scrollable) {
-      // Vérifie que cet élément scrollable est bien dans une modale (pas le body/page)
-      var inModal = false;
-      var node = scrollable;
-      while (node && node !== document.body) {
-        if (node.classList) {
-          if (node.classList.contains('nous-modal-overlay') ||
-              node.classList.contains('souvenir-gestion-overlay')) {
-            inModal = true; break;
-          }
-        }
-        var nid = node.id;
-        if (nid === 'hiddenPage'     || nid === 'descEditModal' ||
-            nid === 'accountModal'   || nid === 'searchOverlay' ||
-            nid === 'memoModal'      || nid === 'memoAuthModal' ||
-            nid === 'v2LoginOverlay' || nid === 'sgModal'       ||
-            nid === 'sgEditModal'    || nid === 'sgAuthModal'   ||
-            nid === 'prankMsgModal') {
-          inModal = true; break;
-        }
-        node = node.parentElement;
-      }
-      if (inModal) return; // scroll interne de la modale → autorisé
-    }
-
-    // Tout le reste est bloqué — empêche le scroll de l'arrière-plan
+    // Tout scroll bloqué sans exception — le drag de sheet suffit pour naviguer
     e.preventDefault();
   }, { passive: false });
 
