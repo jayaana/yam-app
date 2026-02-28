@@ -355,6 +355,11 @@
       return;
     }
 
+    // Seuls les conteneurs avec une .nous-modal-sheet passent par la fenêtre isolée
+    // Les écrans plein écran (login, lockPopup, sgModal...) ne sont pas interceptés
+    var hasSheet = container.querySelector('.nous-modal-sheet, .desc-edit-sheet, .account-sheet');
+    if (!hasSheet) return;
+
     // Ouvre la fenêtre isolée avec cette modale
     _openIsoWindow(container);
 
