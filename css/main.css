@@ -1063,11 +1063,9 @@ body.light #loveBox .lb-label { color: rgba(200,24,94,0.65); }
   padding-left: var(--safe-left);
   padding-right: var(--safe-right);
   /* ── FIX iOS clavier ──
-     Quand le clavier s'ouvre, iOS remonte tous les position:fixed avec le visual viewport.
-     env(keyboard-inset-height) = hauteur exacte du clavier ouvert (0 quand fermé).
-     En ajoutant cette valeur à bottom, la nav redescend exactement sous le clavier
-     et reste collée au bas de l'écran physique — invisible sous le clavier. */
-  bottom: env(keyboard-inset-height, 0px);
+     La nav est cachée sous le clavier via JS (_applyKeyboard dans app-ios-touch.js).
+     env(keyboard-inset-height) n'est pas supporté sur Safari/iOS PWA — ne pas utiliser. */
+  bottom: 0;
   transition: bottom 0.25s ease;
 }
 .bottom-nav-inner {
