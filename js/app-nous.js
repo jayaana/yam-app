@@ -2660,7 +2660,7 @@ loadLikeCounters();
 
   // ── Ouvrir modale de création ──
   window.livresOpenNew = function(){
-    if(_livreFromGestion){} else { _saveScrollPosition(); _blockBackgroundScroll(); }
+    if(_livreFromGestion){} else { _saveScrollPosition(); _blockBackgroundScroll(); _livreBodyLock(); }
     _livreEditingId = null;
     _livreCurrentPhotoUrl = null;
     var modal = document.getElementById('livreEditModal'); if(!modal) return;
@@ -2675,7 +2675,7 @@ loadLikeCounters();
 
   // ── Ouvrir modale d'édition ──
   window.livresOpenEdit = function(book){
-    if(!_livreFromGestion){ _saveScrollPosition(); _blockBackgroundScroll(); }
+    if(!_livreFromGestion){ _saveScrollPosition(); _blockBackgroundScroll(); _livreBodyLock(); }
     _livreEditingId = book.id;
     _livreCurrentPhotoUrl = book.has_image ? (SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/books/'+book.couple_id+'/'+book.id+'.jpg') : null;
     var modal = document.getElementById('livreEditModal'); if(!modal) return;
@@ -2701,6 +2701,7 @@ loadLikeCounters();
       var overlay = document.getElementById('livresGestionOverlay');
       if(overlay && !overlay.classList.contains('open')) overlay.classList.add('open');
     } else {
+      _livreBodyUnlock();
       _unblockBackgroundScroll();
       _restoreScrollPosition();
     }
@@ -2708,61 +2709,30 @@ loadLikeCounters();
     _livreCurrentPhotoUrl = null;
   };
 
-  // ── Fix iOS clavier : modal livre — approche robuste ──
-  // Cale l'overlay sur le visualViewport pour ne jamais partir hors écran quand le clavier s'ouvre
-  (function(){
-    if(!window.visualViewport) return;
-    var _vvSheet = null;
-    var _vvOverlay = null;
+  // ── Fix iOS clavier : modal livre ──
+  // Sur iOS Safari, quand un input est focusé dans une modale position:fixed,
+  // le navigateur remonte TOUTE la page (navbar incluse) pour afficher le champ.
+  // Solution : position:fixed sur body (avec top = -scrollY) pendant que la modale est ouverte.
+  // Ainsi iOS n'a rien à remonter, la page est déjà figée au bon endroit.
+  var _livreBodyScrollY = 0;
 
-    function _getOverlay(){ return _vvOverlay || (_vvOverlay = document.getElementById('livreEditModal')); }
-    function _getSheet(){ return _vvSheet || (_vvSheet = document.querySelector('#livreEditModal .nous-modal-sheet')); }
+  function _livreBodyLock(){
+    _livreBodyScrollY = window.scrollY || window.pageYOffset || 0;
+    document.body.style.position = 'fixed';
+    document.body.style.top      = '-' + _livreBodyScrollY + 'px';
+    document.body.style.left     = '0';
+    document.body.style.right    = '0';
+    document.body.style.width    = '100%';
+  }
 
-    function _onVVChange(){
-      var overlay = _getOverlay();
-      if(!overlay || !overlay.classList.contains('open')) return;
-      var vv = window.visualViewport;
-      // Forcer l'overlay à ne couvrir que la zone visible (keyboard excluded)
-      overlay.style.position = 'fixed';
-      overlay.style.top      = vv.offsetTop + 'px';
-      overlay.style.left     = vv.offsetLeft + 'px';
-      overlay.style.width    = vv.width + 'px';
-      overlay.style.height   = vv.height + 'px';
-      // Scroll l'input focusé dans la zone visible
-      var focused = document.activeElement;
-      var sheet = _getSheet();
-      if(focused && sheet && sheet.contains(focused)){
-        setTimeout(function(){ focused.scrollIntoView({block:'nearest',behavior:'smooth'}); }, 30);
-      }
-    }
-
-    function _resetOverlay(){
-      var overlay = _getOverlay();
-      if(!overlay) return;
-      overlay.style.top = '';
-      overlay.style.left = '';
-      overlay.style.width = '';
-      overlay.style.height = '';
-    }
-
-    window.visualViewport.addEventListener('resize', _onVVChange);
-    window.visualViewport.addEventListener('scroll', _onVVChange);
-
-    // Réinitialiser les styles quand la modale se ferme
-    var _mo = new MutationObserver(function(){
-      var overlay = _getOverlay();
-      if(overlay && !overlay.classList.contains('open')){ _resetOverlay(); }
-    });
-    var _moStarted = false;
-    function _startMO(){
-      if(_moStarted) return; _moStarted = true;
-      var overlay = _getOverlay();
-      if(overlay) _mo.observe(overlay, {attributes:true, attributeFilter:['class']});
-    }
-    if(document.readyState === 'loading'){
-      document.addEventListener('DOMContentLoaded', _startMO);
-    } else { _startMO(); }
-  })();
+  function _livreBodyUnlock(){
+    document.body.style.position = '';
+    document.body.style.top      = '';
+    document.body.style.left     = '';
+    document.body.style.right    = '';
+    document.body.style.width    = '';
+    window.scrollTo(0, _livreBodyScrollY);
+  }
 
   // ── Upload photo ──
   window.livresPhotoClick = function(){
