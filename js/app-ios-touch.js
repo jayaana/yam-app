@@ -158,6 +158,7 @@
     if (sheet) {
       sheet.style.transition    = 'padding-bottom 0.25s ease';
       sheet.style.paddingBottom = '16px';
+      _enableDrag(sheet);
     }
     setTimeout(_scrollFocusedIntoView, 80);
   }
@@ -178,6 +179,7 @@
     // Remet le padding-bottom CSS d'origine
     var sheet = container.querySelector('.nous-modal-sheet, .desc-edit-sheet, .account-sheet, .modal-sheet, .search-popup');
     if (sheet) {
+      _disableDrag(sheet);
       sheet.style.transition    = 'padding-bottom 0.25s ease';
       sheet.style.paddingBottom = '';
       setTimeout(function () { sheet.style.transition = ''; }, 280);
@@ -247,20 +249,99 @@
 
   document.addEventListener('touchmove', function (e) {
     if (!window._yamScrollLocked) return;
-    var target = e.target;
-    if (isInput(target)) return;
-    if (e.touches && e.touches.length === 1) {
-      var dx = Math.abs(e.touches[0].clientX - _sbX);
-      var dy = Math.abs(e.touches[0].clientY - _sbY);
-      if (dx > dy + 8) return;
+    // Arrière-plan TOUJOURS bloqué quand une modale est ouverte.
+    // Si le clavier est ouvert (_kbActive), le drag de la sheet gère
+    // la navigation — tout le reste est bloqué sans exception.
+    // Si le clavier est fermé, on laisse scroller uniquement l'intérieur
+    // de la sheet (la modale elle-même).
+    if (_kbActive) {
+      // Clavier ouvert : seul le drag custom est autorisé (il a stopPropagation)
+      e.preventDefault();
+      return;
     }
-    if (Date.now() - _sbT > 380)       return;
-    if (findScrollableAncestor(target)) return;
-    e.preventDefault();
+    // Clavier fermé : autorise le scroll uniquement dans la sheet de la modale ouverte
+    var node = e.target;
+    while (node && node !== document.body) {
+      if (node.classList && (
+        node.classList.contains('nous-modal-sheet') ||
+        node.classList.contains('desc-edit-sheet')  ||
+        node.classList.contains('account-sheet')    ||
+        node.classList.contains('modal-sheet')      ||
+        node.classList.contains('search-popup')
+      )) return; // dans la sheet → autorisé
+      node = node.parentElement;
+    }
+    e.preventDefault(); // en dehors de la sheet → bloqué
   }, { passive: false });
 
   window._yamRegisterScrollLock = function () {};
 
+
+
+  // ═══════════════════════════════════
+  // 4b. DRAG DE LA SHEET (clavier ouvert)
+  //
+  // Quand le clavier est ouvert dans une modale, la sheet devient
+  // draggable verticalement — l'utilisateur peut glisser vers le haut
+  // pour voir tout le contenu. Pas de scroll de page, juste du drag.
+  // ═══════════════════════════════════
+
+  var _dragEl      = null;
+  var _dragStartY  = 0;
+  var _dragBaseTY  = 0;
+
+  function _getCurrentTY(el) {
+    var m = (el.style.transform || '').match(/translateY\(([\-\d.]+)px\)/);
+    return m ? parseFloat(m[1]) : 0;
+  }
+
+  function _onDragStart(e) {
+    if (!_kbActive || e.touches.length !== 1) return;
+    _dragStartY = e.touches[0].clientY;
+    _dragBaseTY = _getCurrentTY(e.currentTarget);
+    e.stopPropagation();
+  }
+
+  function _onDragMove(e) {
+    if (!_kbActive || !_dragEl || e.touches.length !== 1) return;
+    var dy    = e.touches[0].clientY - _dragStartY;
+    var newTY = _dragBaseTY + dy;
+    // Limite haute : 75% de la hauteur écran vers le haut
+    if (newTY < -(window.innerHeight * 0.75)) newTY = -(window.innerHeight * 0.75);
+    // Limite basse : position naturelle (0)
+    if (newTY > 0) newTY = 0;
+    _dragBaseTY = newTY;
+    _dragStartY = e.touches[0].clientY;
+    _dragEl.style.transition = 'none';
+    _dragEl.style.transform  = newTY !== 0 ? 'translateY(' + newTY + 'px)' : '';
+    e.stopPropagation();
+    e.preventDefault();
+  }
+
+  function _onDragEnd(e) {
+    e.stopPropagation();
+  }
+
+  function _enableDrag(sheet) {
+    if (!sheet || sheet._dragEnabled) return;
+    sheet._dragEnabled = true;
+    _dragEl = sheet;
+    sheet.addEventListener('touchstart', _onDragStart, { passive: true });
+    sheet.addEventListener('touchmove',  _onDragMove,  { passive: false });
+    sheet.addEventListener('touchend',   _onDragEnd,   { passive: true });
+  }
+
+  function _disableDrag(sheet) {
+    if (!sheet || !sheet._dragEnabled) return;
+    sheet._dragEnabled = false;
+    sheet.removeEventListener('touchstart', _onDragStart);
+    sheet.removeEventListener('touchmove',  _onDragMove);
+    sheet.removeEventListener('touchend',   _onDragEnd);
+    sheet.style.transition = 'transform 0.25s ease';
+    sheet.style.transform  = '';
+    setTimeout(function () { if (sheet) sheet.style.transition = ''; }, 280);
+    if (_dragEl === sheet) _dragEl = null;
+  }
 
   // ═══════════════════════════════════
   // 5. SÉLECTION DE TEXTE
