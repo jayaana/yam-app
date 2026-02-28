@@ -2710,36 +2710,40 @@ loadLikeCounters();
     _livreCurrentPhotoUrl = null;
   };
 
-  // ── Fix iOS clavier : modal livre ──
-  // Sur iOS Safari, quand un input est focusé dans une modale position:fixed,
-  // le clavier réduit la hauteur visible (visualViewport.height).
-  // On ajuste le margin-bottom de la sheet pour qu'elle reste visible au-dessus du clavier.
+  // ── Fix iOS clavier : toutes les modales nous ──
+  // Quand le clavier s'ouvre, iOS réduit visualViewport.height.
+  // On ajuste le margin-bottom de la sheet ouverte pour qu'elle reste visible.
   (function(){
     if(!window.visualViewport) return;
 
-    window.visualViewport.addEventListener('resize', function(){
-      var overlay = document.getElementById('livreEditModal');
-      if(!overlay || !overlay.classList.contains('open')) return;
-      var sheet = overlay.querySelector('.nous-modal-sheet');
-      if(!sheet) return;
-
+    function _onKeyboardChange(){
       var vv = window.visualViewport;
       var windowH = window.innerHeight;
-      var keyboardH = windowH - vv.height - vv.offsetTop;
+      var keyboardH = Math.max(0, windowH - vv.height - vv.offsetTop);
 
-      if(keyboardH > 50){
-        // Clavier ouvert : réduire le margin-bottom pour que la sheet reste visible
-        sheet.style.marginBottom = keyboardH + 'px';
-        // Scroll l'input focusé dans la zone visible
-        var focused = document.activeElement;
-        if(focused && sheet.contains(focused)){
-          setTimeout(function(){ focused.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 80);
+      // Trouver toutes les modales nous ouvertes
+      var openOverlays = document.querySelectorAll('.nous-modal-overlay.open');
+      openOverlays.forEach(function(overlay){
+        var sheet = overlay.querySelector('.nous-modal-sheet');
+        if(!sheet) return;
+        if(keyboardH > 80){
+          // Clavier ouvert : on remonte la sheet
+          sheet.style.marginBottom = keyboardH + 'px';
+          sheet.style.maxHeight = 'calc(' + vv.height + 'px - 12px)';
+          var focused = document.activeElement;
+          if(focused && sheet.contains(focused)){
+            setTimeout(function(){ focused.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 80);
+          }
+        } else {
+          // Clavier fermé : remettre les valeurs CSS
+          sheet.style.marginBottom = '';
+          sheet.style.maxHeight = '';
         }
-      } else {
-        // Clavier fermé : restaurer le margin-bottom CSS normal
-        sheet.style.marginBottom = '';
-      }
-    });
+      });
+    }
+
+    window.visualViewport.addEventListener('resize', _onKeyboardChange);
+    window.visualViewport.addEventListener('scroll', _onKeyboardChange);
   })();
 
   // ── Upload photo ──
