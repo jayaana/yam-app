@@ -15,6 +15,8 @@
   var _currentTab = 'home';
 
   window.yamSwitchTab = function(tab) {
+    // ── Reset clavier iOS (évite nav bloquée en translateY si clavier était ouvert) ──
+    if(window._yamForceNavReset) window._yamForceNavReset();
     if(window.closeAllViews) window.closeAllViews();
 
     // Cacher tous les panels, montrer le bon — sans animation
