@@ -725,14 +725,58 @@ function closeMemoryGame(){
   document.getElementById('memGenderBoy').className='gender-select-btn';
 }
 function closeAllViews(){
+  // ── 1. Vues jeux (slides) ──
   var ids=['gamesView','quizView','memoryView','penduView','puzzleView','snakeView','skyjoView'];
   ids.forEach(function(id){
     var el=document.getElementById(id);
     if(el){ el.classList.remove('active'); el.style.transform=''; el.style.transition=''; el.style.opacity=''; }
   });
   if(isQuizOpen){ isQuizOpen=false; document.getElementById('navSearch').style.display=''; }
+
+  // ── 2. HiddenPage (messages) ──
   if(document.getElementById('hiddenPage').classList.contains('active')){ closeHiddenPage(); }
+
+  // ── 3. Pranks ──
   if(typeof abortActivePrank==='function') abortActivePrank();
+  if(typeof closePrankMenu==='function') closePrankMenu();
+  if(typeof closePrankMsg==='function') closePrankMsg();
+
+  // ── 4. Modales Nous — via leurs fonctions dédiées (gèrent _unblockBackgroundScroll) ──
+  var nousCloseFns = [
+    'closePetitsMotsGestion','closePetitsMotsEditor',
+    'closeMemoNoteView','closeMemoTodoView',
+    'closeMemoNoteEdit','closeMemoTodoEdit',
+    'closeSouvenirGestionSheet','closeSouvenirModal',
+    'closeActiviteModal',
+    'histoireCloseGestion','histoireCloseItemModal',
+    'livresCloseGestion','livresCloseEdit'
+  ];
+  nousCloseFns.forEach(function(fn){
+    if(typeof window[fn]==='function'){ try{ window[fn](); }catch(e){} }
+  });
+
+  // ── 5. Overlays souvenir/activite/histoire (souvenir-gestion-overlay) ──
+  // Au cas où les fonctions ci-dessus n'auraient pas suffi
+  document.querySelectorAll('.souvenir-gestion-overlay.open, .nous-modal-overlay.open').forEach(function(el){
+    // Appeler la data-close-fn si présente
+    var fn = el.getAttribute('data-close-fn');
+    if(fn && typeof window[fn]==='function'){ try{ window[fn](); }catch(e){}  return; }
+    // Sinon retirer .open manuellement
+    el.classList.remove('open');
+  });
+
+  // ── 6. Autres modales globales ──
+  if(typeof descEditClose==='function') descEditClose();
+  if(typeof closeSearch==='function') closeSearch();
+  if(typeof closeSgModal==='function') closeSgModal();
+  if(typeof closeSgEditModal==='function') closeSgEditModal();
+  if(typeof closeSgAuth==='function') closeSgAuth();
+  var skyjoAuth = document.getElementById('skyjoAuthModal');
+  if(skyjoAuth && skyjoAuth.style.display !== 'none') skyjoAuth.style.display = 'none';
+
+  // ── 7. Reset scroll lock (modales Nous empilées) ──
+  if(typeof window._nousResetScrollLock === 'function') window._nousResetScrollLock();
+  window._yamScrollLocked = false;
 }
 function scrollToTop(){resetZoom();closeAllViews();if(window.yamSwitchTab)window.yamSwitchTab('home');window.scrollTo({top:0,behavior:'smooth'});}
 function toggleLibrary(){var p=document.getElementById('libraryPopup');p.style.display=p.style.display==='block'?'none':'block';}
