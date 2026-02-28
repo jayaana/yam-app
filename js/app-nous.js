@@ -1563,6 +1563,7 @@ loadLikeCounters();
   // ════════════════════════════════════════════
   window.nousOpenActiviteGestion=function(){
     if(!_activiteAllRows.length){ window.nousLoadActivites(); }
+    _activiteFromGestion=false;
     _saveScrollPosition();
     _blockBackgroundScroll();
     _renderActiviteGestionList();
@@ -1578,6 +1579,7 @@ loadLikeCounters();
   };
 
   window.nousCloseActiviteGestion=function(){
+    _activiteFromGestion=false;
     var overlay=document.getElementById('activiteGestionOverlay');
     if(overlay) overlay.classList.remove('open');
     _unblockBackgroundScroll();
@@ -1625,14 +1627,19 @@ loadLikeCounters();
           (isStarred?starFilled:starEmpty)+
         '</button>';
 
-      // Clic sur la ligne → ouvrir la modale de modification
+      // Clic sur la ligne → ouvrir la modale (toute la row sauf l'étoile)
+      row.style.cursor='pointer';
       (function(a){
-        row.querySelector('.activite-gestion-emoji').addEventListener('click',function(){ _activiteFromGestion=true; window.nousOpenActiviteModal(a); });
-        row.querySelector('.activite-gestion-info').addEventListener('click',function(){ _activiteFromGestion=true; window.nousOpenActiviteModal(a); });
+        row.addEventListener('click',function(e){
+          if(e.target.closest('.activite-star-btn')) return;
+          _activiteFromGestion=true;
+          window.nousOpenActiviteModal(a);
+        });
       })(act);
 
       // Clic sur l'étoile → toggle is_fav
-      row.querySelector('.activite-star-btn').addEventListener('click',function(){
+      row.querySelector('.activite-star-btn').addEventListener('click',function(e){
+        e.stopPropagation();
         var id=this.dataset.id;
         var a=_activiteAllRows.filter(function(x){ return String(x.id)===String(id); })[0];
         if(!a) return;
@@ -1708,7 +1715,10 @@ loadLikeCounters();
       _activiteFromGestion=false;
       _renderActiviteGestionList();
       var overlay=document.getElementById('activiteGestionOverlay');
-      if(overlay) overlay.classList.add('open');
+      if(overlay && !overlay.classList.contains('open')){
+        overlay.classList.add('open');
+      }
+      // scroll lock déjà actif via l'overlay gestion — ne pas unblock
     } else {
       _unblockBackgroundScroll();
       _restoreScrollPosition();
