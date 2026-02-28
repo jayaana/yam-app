@@ -171,6 +171,7 @@
   }
 
   function _onKeyboardClose(container) {
+    _kbActive = false;
     _showNav();
     if (!container) return;
 
@@ -224,6 +225,19 @@
     if (_kbFocusTimer) { clearTimeout(_kbFocusTimer); _kbFocusTimer = null; }
     var container = findModalContainer(e.target);
 
+    // Si l'input n'était pas dans une modale reconnue, on s'assure quand même
+    // de remettre la nav (évite le blocage translateY(120px) persistant)
+    if (!container) {
+      _kbBlurTimer = setTimeout(function () {
+        _kbBlurTimer = null;
+        var newFocus = document.activeElement;
+        if (newFocus && isInput(newFocus)) return;
+        _kbActive = false;
+        _showNav();
+      }, BLUR_DELAY);
+      return;
+    }
+
     _kbBlurTimer = setTimeout(function () {
       _kbBlurTimer = null;
       var newFocus = document.activeElement;
@@ -236,7 +250,12 @@
     }, BLUR_DELAY);
   });
 
-  window._yamKeyboardUpdate = function () {};
+  window._yamForceNavReset = function () {
+    if (_kbFocusTimer)  { clearTimeout(_kbFocusTimer);  _kbFocusTimer  = null; }
+    if (_kbBlurTimer)   { clearTimeout(_kbBlurTimer);   _kbBlurTimer   = null; }
+    _kbActive = false;
+    _showNav();
+  };
   window._dmUpdateVP        = function () {};
   window._positionLockPopup = function () {};
 
