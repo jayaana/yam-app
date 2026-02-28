@@ -2731,7 +2731,10 @@ loadLikeCounters();
       // Nouveau
       var data2 = {couple_id:coupleId, title:title, description:desc, has_image:hasImage, position:(_livresAllRows.length)};
       fetch(SB2_URL+'/rest/v1/v2_books',{method:'POST',headers:sb2Headers({'Prefer':'return=representation','Content-Type':'application/json'}),body:JSON.stringify(data2)})
-      .then(function(r){ return r.json(); })
+      .then(function(r){
+        if(!r.ok) return r.json().then(function(e){ throw new Error(e.message||e.hint||('HTTP '+r.status)); });
+        return r.json();
+      })
       .then(function(rows){
         var newId = Array.isArray(rows)&&rows.length?rows[0].id:null;
         // Si on a une photo avec un ID temporaire, la renommer vers le bon ID
@@ -2745,7 +2748,10 @@ loadLikeCounters();
           }).catch(function(){});
         }
         done(newId);
-      }).catch(function(){ done(null); });
+      }).catch(function(err){
+        if(btn){ btn.textContent='Sauvegarder'; btn.disabled=false; }
+        if(typeof showToast==='function') showToast('Erreur : '+(err&&err.message?err.message:'impossible de sauvegarder'),'error',3500);
+      });
     }
   };
 
@@ -2814,17 +2820,52 @@ loadLikeCounters();
     var coupleId = _getCoupleId(); if(!coupleId) return;
     var data = {couple_id:coupleId, title:_ideaCache.title||'Livre', description:(_ideaCache.author||'')+(_ideaCache.desc?' — '+_ideaCache.desc:''), has_image:false, position:_livresAllRows.length};
     fetch(SB2_URL+'/rest/v1/v2_books',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
-    .then(function(){
+    .then(function(r){
+      if(!r.ok) return r.json().then(function(e){ throw new Error(e.message||e.hint||r.status); });
       window.yamMarkNew && window.yamMarkNew('livre');
       window.yamRefreshNewBadges && window.yamRefreshNewBadges();
       var card = document.getElementById('livreIdeaCard'); if(card) card.style.display='none';
       window.livresLoad();
       if(typeof showToast==='function') showToast('Livre ajouté à votre bibliothèque ! 📚','success',2500);
-    }).catch(function(){});
+    }).catch(function(err){
+      if(typeof showToast==='function') showToast('Erreur : '+(err&&err.message?err.message:'impossible d\'ajouter le livre'),'error',3500);
+    });
   };
 
   // Init au chargement de la section
   document.addEventListener('nousContentReady', function(){ window.livresLoad(); });
+
+  // ── Fix iOS : touch-action:none bloque les onclick sur l'overlay ──
+  // On gère la fermeture via touchend + click sur les overlays livres
+  (function(){
+    var _livresOverlayIds = [
+      { id: 'livresGestionOverlay', fn: function(){ window.livresCloseGestion(); } },
+      { id: 'livreEditModal',       fn: function(){ window.livresCloseEdit(); } }
+    ];
+    function _attachOverlayClose(id, fn){
+      var _touchStartX, _touchStartY;
+      setTimeout(function(){
+        var el = document.getElementById(id);
+        if(!el) return;
+        // click — desktop + Android
+        el.addEventListener('click', function(e){
+          if(e.target === el) fn();
+        });
+        // touchend — iOS (touch-action:none bloque click sur le fond)
+        el.addEventListener('touchstart', function(e){
+          if(e.target === el){ _touchStartX = e.touches[0].clientX; _touchStartY = e.touches[0].clientY; }
+        }, { passive: true });
+        el.addEventListener('touchend', function(e){
+          if(e.target === el){
+            var dx = Math.abs(e.changedTouches[0].clientX - _touchStartX);
+            var dy = Math.abs(e.changedTouches[0].clientY - _touchStartY);
+            if(dx < 10 && dy < 10) fn(); // tap (pas un scroll)
+          }
+        }, { passive: true });
+      }, 0);
+    }
+    _livresOverlayIds.forEach(function(o){ _attachOverlayClose(o.id, o.fn); });
+  })();
 
 })();
 
