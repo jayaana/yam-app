@@ -158,8 +158,8 @@
     if (sheet) {
       sheet.style.transition    = 'padding-bottom 0.25s ease';
       sheet.style.paddingBottom = '16px';
-      _enableDrag(sheet);
       _showKbdBackdrop(kbH);
+      _enableDrag(sheet);
     }
     setTimeout(_scrollFocusedIntoView, 80);
   }
@@ -251,17 +251,12 @@
 
   document.addEventListener('touchmove', function (e) {
     if (!window._yamScrollLocked) return;
-    // Arrière-plan TOUJOURS bloqué quand une modale est ouverte.
-    // Si le clavier est ouvert (_kbActive), le drag de la sheet gère
-    // la navigation — tout le reste est bloqué sans exception.
-    // Si le clavier est fermé, on laisse scroller uniquement l'intérieur
-    // de la sheet (la modale elle-même).
     if (_kbActive) {
-      // Clavier ouvert : seul le drag custom est autorisé (il a stopPropagation)
+      // Clavier ouvert : tout bloqué sauf le drag custom (stopPropagation)
       e.preventDefault();
       return;
     }
-    // Clavier fermé : autorise le scroll uniquement dans la sheet de la modale ouverte
+    // Clavier fermé : autorise scroll uniquement dans la sheet
     var node = e.target;
     while (node && node !== document.body) {
       if (node.classList && (
@@ -270,10 +265,10 @@
         node.classList.contains('account-sheet')    ||
         node.classList.contains('modal-sheet')      ||
         node.classList.contains('search-popup')
-      )) return; // dans la sheet → autorisé
+      )) return;
       node = node.parentElement;
     }
-    e.preventDefault(); // en dehors de la sheet → bloqué
+    e.preventDefault();
   }, { passive: false });
 
   window._yamRegisterScrollLock = function () {};
@@ -281,16 +276,13 @@
 
 
   // ═══════════════════════════════════
-  // 4b. DRAG DE LA SHEET (clavier ouvert)
-  //
-  // Quand le clavier est ouvert dans une modale, la sheet devient
-  // draggable verticalement — l'utilisateur peut glisser vers le haut
-  // pour voir tout le contenu. Pas de scroll de page, juste du drag.
+  // 4b. DRAG + FOND OPAQUE (clavier ouvert)
   // ═══════════════════════════════════
 
-  var _dragEl      = null;
-  var _dragStartY  = 0;
-  var _dragBaseTY  = 0;
+  var _dragEl     = null;
+  var _dragStartY = 0;
+  var _dragBaseTY = 0;
+  var _kbdBackdrop = null;
 
   function _getCurrentTY(el) {
     var m = (el.style.transform || '').match(/translateY\(([\-\d.]+)px\)/);
@@ -308,9 +300,8 @@
     if (!_kbActive || !_dragEl || e.touches.length !== 1) return;
     var dy    = e.touches[0].clientY - _dragStartY;
     var newTY = _dragBaseTY + dy;
-    // Limite haute : 75% de la hauteur écran vers le haut
     if (newTY < -(window.innerHeight * 0.75)) newTY = -(window.innerHeight * 0.75);
-    // Pas de limite basse — la sheet peut descendre sous le clavier
+    // Pas de limite basse — peut descendre sous le clavier
     _dragBaseTY = newTY;
     _dragStartY = e.touches[0].clientY;
     _dragEl.style.transition = 'none';
@@ -319,41 +310,7 @@
     e.preventDefault();
   }
 
-  function _onDragEnd(e) {
-    e.stopPropagation();
-  }
-
-  // ── Fond opaque entre sheet et clavier ──
-  var _kbdBackdrop = null;
-
-  function _showKbdBackdrop(kbH) {
-    if (_kbdBackdrop) return;
-    _kbdBackdrop = document.createElement('div');
-    _kbdBackdrop.id = 'yamKbdBackdrop';
-    _kbdBackdrop.style.cssText = [
-      'position:fixed',
-      'left:0',
-      'right:0',
-      'bottom:' + kbH + 'px',
-      'height:40px',               // zone de transition
-      'background:linear-gradient(to bottom, transparent, rgba(0,0,0,0.55))',
-      'z-index:910',               // sous la sheet (z-index:920) mais au-dessus du fond
-      'pointer-events:none',
-      'transition:opacity 0.25s ease'
-    ].join(';');
-    document.body.appendChild(_kbdBackdrop);
-  }
-
-  function _hideKbdBackdrop() {
-    if (!_kbdBackdrop) return;
-    _kbdBackdrop.style.opacity = '0';
-    setTimeout(function () {
-      if (_kbdBackdrop && _kbdBackdrop.parentElement) {
-        _kbdBackdrop.parentElement.removeChild(_kbdBackdrop);
-      }
-      _kbdBackdrop = null;
-    }, 280);
-  }
+  function _onDragEnd(e) { e.stopPropagation(); }
 
   function _enableDrag(sheet) {
     if (!sheet || sheet._dragEnabled) return;
@@ -374,6 +331,34 @@
     sheet.style.transform  = '';
     setTimeout(function () { if (sheet) sheet.style.transition = ''; }, 280);
     if (_dragEl === sheet) _dragEl = null;
+  }
+
+  // Fond opaque qui bouche la zone entre le bas de la sheet et le haut du clavier
+  function _showKbdBackdrop(kbH) {
+    if (_kbdBackdrop) return;
+    _kbdBackdrop = document.createElement('div');
+    _kbdBackdrop.style.cssText = [
+      'position:fixed',
+      'left:0',
+      'right:0',
+      'bottom:0',               // couvre tout l\'écran clavier compris
+      'top:0',                   // remonte jusqu'en haut — tout l'arrière-plan est couvert
+      'z-index:915',             // entre overlay (920) et le reste
+      'pointer-events:all',      // bloque les touches sur l'arrière-plan
+      'background:rgba(0,0,0,0.6)',
+      'backdrop-filter:blur(4px)',
+      '-webkit-backdrop-filter:blur(4px)'
+    ].join(';');
+    document.body.appendChild(_kbdBackdrop);
+  }
+
+  function _hideKbdBackdrop() {
+    if (!_kbdBackdrop) return;
+    var el = _kbdBackdrop;
+    _kbdBackdrop = null;
+    el.style.transition = 'opacity 0.2s ease';
+    el.style.opacity = '0';
+    setTimeout(function () { if (el.parentElement) el.parentElement.removeChild(el); }, 220);
   }
 
   // ═══════════════════════════════════
