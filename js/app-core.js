@@ -51,15 +51,24 @@
     var touchY = e.touches[0].clientY;
     var touchYDelta = touchY - lastTouchY;
     lastTouchY = touchY;
-    // Ne pas bloquer le scroll dans les modales/sheets scrollables
+
     var t = e.target;
-    while(t && t !== document.body) {
-      var os = t.getAttribute && t.getAttribute('data-scrollable');
-      if(os) return; // laisser passer
-      var style = window.getComputedStyle ? window.getComputedStyle(t) : null;
-      if(style && (style.overflowY === 'auto' || style.overflowY === 'scroll') && t.scrollHeight > t.clientHeight) return;
-      t = t.parentNode;
+
+    // Ne jamais bloquer dans un input ou textarea (sélection de texte, glissement curseur)
+    if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+
+    // Ne pas bloquer si une modale nous est ouverte — laisser tout passer
+    if(document.querySelector('.nous-modal-overlay.open')) return;
+
+    // Ne pas bloquer le scroll dans les zones scrollables
+    var node = t;
+    while(node && node !== document.body) {
+      if(node.getAttribute && node.getAttribute('data-scrollable')) return;
+      var style = window.getComputedStyle ? window.getComputedStyle(node) : null;
+      if(style && (style.overflowY === 'auto' || style.overflowY === 'scroll') && node.scrollHeight > node.clientHeight) return;
+      node = node.parentNode;
     }
+
     if (preventPullToRefresh && touchYDelta > 0) {
       e.preventDefault();
       return false;
