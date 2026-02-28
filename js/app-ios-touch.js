@@ -5,9 +5,8 @@
 // CE FICHIER EST L'UNIQUE SOURCE DE VÉRITÉ pour :
 //   1. Pull-to-refresh blocker (empêche le rechargement natif navigateur)
 //   2. Swipe de bord gauche/droit (bloque la navigation système)
-//   3. Clavier iOS — repositionnement de TOUS les conteneurs actifs,
-//      généralisé à TOUTE l'app (hiddenPage, modales Nous, account, login,
-//      sg, pranks, search, lockPopup)
+//   3. Clavier iOS — repositionnement de TOUS les conteneurs actifs +
+//      masquage de la nav sous le clavier via translateY
 //   4. Scroll background blocker (empêche le fond de scroller sous les modales)
 //   5. Sélection de texte — toujours autorisée partout sur tous les inputs
 //
@@ -18,15 +17,16 @@
 //   - modifier le meta viewport (maximum-scale etc.)
 //
 // COMPORTEMENT CLAVIER VOULU (comme iMessage / WhatsApp) :
-//   - hiddenPage  → la dm-input-bar remonte exactement de la hauteur du clavier
-//                   via padding-bottom dynamique ; le clavier couvre la nav
-//   - Modales Nous (.nous-modal-overlay.open) → la sheet translate vers le
-//                   haut du montant que le clavier empiète sur elle
-//   - accountModal / descEditModal / searchOverlay → même translateY que sheets
+//   - La nav descend hors écran (translateY +navH) quand clavier ouvert,
+//     remonte (translateY 0) quand clavier fermé — via JS car
+//     env(keyboard-inset-height) n'est PAS supporté sur Safari/iOS PWA.
+//   - hiddenPage  → la dm-input-bar remonte de la hauteur du clavier
+//   - .nous-modal-overlay.open → la sheet monte de max(0, kbH - NAV_HEIGHT)
+//   - .souvenir-gestion-overlay.open → plein écran, nav déjà cachée par JS
+//   - accountModal / descEditModal / searchOverlay → translateY sheet
 //   - v2LoginOverlay / sgModal / sgEditModal / sgAuthModal / prankMsgModal →
-//                   boîtes centrées : translateY vers le haut pour rester visibles
+//     boîtes centrées : translateY vers le haut
 //   - lockPopup → repositionnement absolu calé sur le visual viewport
-//   La nav reste TOUJOURS à sa place — le clavier passe par-dessus elle.
 // ═══════════════════════════════════════════════════════════════════════════
 
 (function () {
@@ -36,7 +36,7 @@
   // CONFIG — une seule constante à ajuster si le CSS change
   // ─────────────────────────────────────────────────────────────────────────
 
-  // Hauteur de la bottom-nav en px (doit correspondre à --nav-height dans le CSS)
+  // Hauteur de la bottom-nav en px (sans safe-area — on gère le translateY brut)
   var NAV_HEIGHT = 64;
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -54,7 +54,6 @@
   var KEYBOARD_TARGETS = [
     // ── Messages (InstaLove) ──
     // hiddenPage s'étend de top:0 à bottom:0 (inset:0 via CSS).
-    // La nav est derrière (z-index 1000 < 1100).
     // Comportement : padding-bottom sur .dm-input-bar = kbH quand clavier ouvert.
     {
       id: 'hiddenPage',
@@ -62,7 +61,7 @@
       active: function (el) { return el.classList.contains('active'); }
     },
 
-    // ── Bottom-sheets statiques ──
+    // ── Bottom-sheets statiques (non .nous-modal-overlay) ──
     { id: 'accountModal',  mode: 'sheet' },
     { id: 'descEditModal', mode: 'sheet' },
     { id: 'searchOverlay', mode: 'sheet', inner: '.search-popup' },
@@ -73,13 +72,22 @@
     { id: 'sgEditModal',    mode: 'center', inner: '.sg-modal-inner'   },
     { id: 'sgAuthModal',    mode: 'center', inner: '.memo-auth-inner'  },
     { id: 'prankMsgModal',  mode: 'center', inner: null                },
+    // memoModal / memoAuthModal : boîtes centrées statiques (position:fixed inset:0)
+    { id: 'memoModal',      mode: 'center', inner: '.memo-modal-inner' },
+    { id: 'memoAuthModal',  mode: 'center', inner: '.memo-modal-inner' },
 
     // ── Popup petit format ──
     { id: 'lockPopup', mode: 'popup' }
   ];
 
-  // Sélecteur des overlays Nous détectés dynamiquement
+  // Sélecteur des overlays Nous (bottom-sheet) — détectés dynamiquement
+  // Tous les éléments .nous-modal-overlay.open ont une .nous-modal-sheet interne
   var NOUS_OVERLAY_SEL = '.nous-modal-overlay.open';
+
+  // Sélecteur des overlays gestion plein écran (souvenir / activite / histoire)
+  // Ces overlays couvrent tout l'écran — pas de sheet interne à translater.
+  // La nav est déjà masquée par le translateY global quand le clavier est ouvert.
+  var GESTION_OVERLAY_SEL = '.souvenir-gestion-overlay.open';
 
   // ─────────────────────────────────────────────────────────────────────────
   // UTILITAIRES
@@ -206,16 +214,22 @@
   //   translateY(-kbH) → la sheet monte au-dessus du clavier.
   //
   // MODE dynamique (.nous-modal-overlay.open) :
-  //   Overlay inset:0. Sheet a margin-bottom:0 et padding-bottom:var(--nav-height).
-  //   translateY(-max(0, kbH - NAV_HEIGHT)) → remonte seulement la partie
-  //   que le clavier empiète au-dessus de la nav.
+  //   Overlay inset:0. Sheet a padding-bottom:var(--nav-height).
+  //   La nav est masquée par JS (translateY +navH) → elle ne gêne plus.
+  //   translateY(-max(0, kbH - NAV_HEIGHT)) → remonte l'excédent.
   //
-  // MODE 'center' (v2LoginOverlay, sgModal, sgAuthModal, prankMsgModal) :
+  // MODE 'center' (v2LoginOverlay, sgModal, sgAuthModal, prankMsgModal,
+  //               memoModal, memoAuthModal) :
   //   Boîte centrée (justify-content:center). translateY vers le haut pour
   //   rester dans la zone visible, sans sortir de l'écran en haut.
   //
   // MODE 'popup' (lockPopup) :
   //   Repositionnement en top/left calculé depuis visualViewport.
+  //
+  // NAV (.bottom-nav) :
+  //   translateY(+kbH) quand clavier ouvert → nav sort de l'écran par le bas.
+  //   translateY(0) quand clavier fermé → nav revient à sa place.
+  //   env(keyboard-inset-height) ignoré (non supporté Safari/iOS PWA).
   // ═════════════════════════════════════════════════════════════════════════
 
   function _applyKeyboard() {
@@ -224,6 +238,22 @@
     var vv     = window.visualViewport;
     var kbH    = getKeyboardHeight();
     var isOpen = kbH > 80;
+
+    // ── NAV : masquage sous le clavier via translateY ──
+    // env(keyboard-inset-height) n'est pas supporté sur Safari/iOS PWA.
+    // On pilote la nav directement : elle descend de kbH quand le clavier est ouvert,
+    // remonte à 0 quand il se ferme. Le clavier la couvre nativement.
+    var nav = document.querySelector('.bottom-nav');
+    if (nav) {
+      if (isOpen) {
+        nav.style.transform  = 'translateY(' + kbH + 'px)';
+        nav.style.transition = 'transform 0.25s ease';
+      } else {
+        nav.style.transform  = '';
+        nav.style.transition = 'transform 0.25s ease';
+        setTimeout(function () { nav.style.transition = ''; }, 280);
+      }
+    }
 
     // ── Cibles statiques ──
     KEYBOARD_TARGETS.forEach(function (cfg) {
@@ -312,13 +342,17 @@
       }
     });
 
-    // ── Cibles dynamiques : .nous-modal-overlay.open ──
-    // Overlay inset:0. Sheet margin-bottom:0, padding-bottom:var(--nav-height).
-    // translate de max(0, kbH - NAV_HEIGHT) → remonte seulement l'excédent.
+    // ── .nous-modal-overlay.open → bottom-sheets dynamiques ──
+    // Overlay inset:0. Sheet a padding-bottom:var(--nav-height).
+    // translateY(-max(0, kbH - NAV_HEIGHT)) → remonte seulement l'excédent
+    // au-dessus de ce que la nav occupait (la nav est déjà cachée via JS).
     document.querySelectorAll(NOUS_OVERLAY_SEL).forEach(function (overlay) {
       var sheet = overlay.querySelector('.nous-modal-sheet');
       if (!sheet) return;
       if (isOpen) {
+        // La nav est masquée → toute la hauteur kbH est disponible.
+        // La sheet a déjà padding-bottom:nav-height pour son contenu.
+        // On translate de kbH - NAV_HEIGHT pour combler l'espace libéré par la nav.
         var shift = Math.max(0, kbH - NAV_HEIGHT);
         if (shift > 0) {
           sheet.style.transform  = 'translateY(-' + shift + 'px)';
@@ -334,6 +368,17 @@
         setTimeout(function () { sheet.style.transition = ''; }, 280);
       }
     });
+
+    // ── .souvenir-gestion-overlay.open → overlays plein écran ──
+    // Ces overlays couvrent tout l'écran (inset:0, background:var(--bg)).
+    // Pas de sheet interne — leur contenu a un padding-bottom:nav-height.
+    // Quand le clavier s'ouvre, la nav est déjà masquée → rien à translater,
+    // mais on force le scroll du contenu actif dans le champ de vision.
+    if (isOpen) {
+      document.querySelectorAll(GESTION_OVERLAY_SEL).forEach(function (overlay) {
+        scrollActiveInputIntoView(overlay, 80);
+      });
+    }
   }
 
   // Listener visualViewport avec debounce RAF
