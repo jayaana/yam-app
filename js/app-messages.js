@@ -77,6 +77,8 @@
   function showConvScreen(dir){
     var ov = $('dmIdentityScreen');
     if(ov) ov.style.display = 'none';
+    // CONV : nav visible — hiddenPage remonte à bottom:var(--nav-height) via CSS
+    document.body.classList.remove('dm-chat-active');
     var el = $('dmHomeScreen');
     var outgoing = dir ? _dmGetVisible() : null;
     _dmSlide(el, outgoing !== el ? outgoing : null, dir);
@@ -105,6 +107,8 @@
     var outgoing = dir ? _dmGetVisible() : null;
 
     if(name === 'chat'){
+      // CHAT : hiddenPage descend à bottom:0 via body.dm-chat-active → clavier couvre la nav
+      document.body.classList.add('dm-chat-active');
       var el = $('dmChatScreen');
       _dmSlide(el, outgoing !== el ? outgoing : null, dir);
       // Masquer le bloc avatars de droite (doublon — avatars déjà dans le centre)
@@ -1237,6 +1241,8 @@
   window.closeHiddenPage = function(){
     stopPoll();
     attached = false;
+    // Retirer dm-chat-active — hiddenPage n'est plus actif
+    document.body.classList.remove('dm-chat-active');
     var fb = document.getElementById('floatingThemeBtn');
     if(fb){ fb.style.opacity = ''; fb.style.pointerEvents = ''; }
     if(window._dmUpdateVP) window._dmUpdateVP();
