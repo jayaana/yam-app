@@ -315,6 +315,25 @@ function _nousLoadProfil() {
       if(elleCard) window.yamShowNewBadge(elleCard, window.yamIsNew('elle_slot_'+slot));
       if(luiCard)  window.yamShowNewBadge(luiCard,  window.yamIsNew('lui_slot_'+slot));
     });
+    // Livres — rafraîchir les badges NEW sur les cartes du slider (après sync partenaire)
+    var livresSlider = document.getElementById('livresSlider');
+    if(livresSlider){
+      var livreCards = livresSlider.querySelectorAll('.album-card');
+      livreCards.forEach(function(card){
+        var bookId = card.dataset.bookId;
+        if(bookId) window.yamShowNewBadge(card, window.yamIsNew('livre_'+bookId));
+      });
+    }
+    // Souvenirs — rafraîchir les badges NEW sur les cartes récentes et favoris
+    ['souvenirsRecentScroll','souvenirsFavScroll'].forEach(function(containerId){
+      var container = document.getElementById(containerId);
+      if(!container) return;
+      var souvenirCards = container.querySelectorAll('.souvenir-card');
+      souvenirCards.forEach(function(card){
+        var souvenirId = card.dataset.souvenirId;
+        if(souvenirId) window.yamShowNewBadge(card, window.yamIsNew('souvenir_'+souvenirId));
+      });
+    });
   };
 
   // Exposé pour être appelé partout
@@ -1444,11 +1463,17 @@ loadLikeCounters();
 
   function _buildSouvenirCard(s){
     var card=document.createElement('div'); card.className='souvenir-card';
+    card.style.position='relative';
+    if(s.id) card.dataset.souvenirId = s.id; // nécessaire pour yamRefreshNewBadges
     var photoUrl=s.photo_url||'';
     var dateStr=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'';
     var photoStyle=photoUrl?'background-image:url('+escHtml(photoUrl)+');':'';
     var pencilSVG='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+    // Badge NEW individuel par souvenir (clé souvenir_{id}, partagé via Supabase)
+    var isNew = (window.yamIsNew && s.id) ? window.yamIsNew('souvenir_'+s.id) : false;
+    var newBadge = isNew ? '<span class="yam-new-badge" style="position:absolute;top:4px;right:4px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-size:8px;font-weight:800;letter-spacing:0.5px;padding:2px 5px;border-radius:6px;text-transform:uppercase;z-index:10;pointer-events:none;">NEW</span>' : '';
     card.innerHTML=
+      newBadge+
       '<div class="souvenir-photo" style="'+photoStyle+'">'
       +(photoUrl?'':'<span style="font-size:28px;opacity:0.3;">&#128247;</span>')
       +(s.lieu?'<div class="souvenir-lieu">&#128205; '+escHtml(s.lieu)+'</div>':'')
@@ -1630,13 +1655,21 @@ loadLikeCounters();
       photo_url:modal.dataset.photoUrl||null
     };
     var saveBtn=document.getElementById('souvenirSaveBtn'); if(saveBtn){ saveBtn.textContent='...'; saveBtn.disabled=true; }
-    var done=function(){ if(saveBtn){ saveBtn.textContent='Sauvegarder'; saveBtn.disabled=false; }
-      if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh('souvenir');
-      window.closeSouvenirModal(); window.nousLoadSouvenirs(); };
+    // Pour un nouveau souvenir, on récupère l'id retourné pour marquer le bon badge
+    var doneWithId=function(savedId){
+      if(saveBtn){ saveBtn.textContent='Sauvegarder'; saveBtn.disabled=false; }
+      // Badge NEW individuel par souvenir (souvenir_{id}) — partagé via Supabase
+      if(savedId && typeof window.yamMarkNew==='function') window.yamMarkNew('souvenir_'+savedId);
+      window.closeSouvenirModal(); window.nousLoadSouvenirs();
+    };
     if(id){
-      fetch(SB2_URL+'/rest/v1/v2_memories?id=eq.'+id,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done).catch(done);
+      fetch(SB2_URL+'/rest/v1/v2_memories?id=eq.'+id,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
+        .then(function(){ doneWithId(id); }).catch(function(){ doneWithId(id); });
     } else {
-      fetch(SB2_URL+'/rest/v1/v2_memories',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done).catch(done);
+      fetch(SB2_URL+'/rest/v1/v2_memories',{method:'POST',headers:sb2Headers({'Prefer':'return=representation','Content-Type':'application/json'}),body:JSON.stringify(data)})
+        .then(function(r){ return r.ok?r.json():[]; })
+        .then(function(rows){ var newId=Array.isArray(rows)&&rows.length?rows[0].id:null; doneWithId(newId); })
+        .catch(function(){ doneWithId(null); });
     }
   };
 
@@ -2799,11 +2832,12 @@ loadLikeCounters();
     var card = document.createElement('div');
     card.className = 'album-card lui-card-wrap';
     card.style.position = 'relative';
+    card.dataset.bookId = book.id; // nécessaire pour yamRefreshNewBadges
     var photoUrl = book.has_image ? (SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/books/'+book.couple_id+'/'+book.id+'.jpg?t='+Math.floor(Date.now()/60000)) : '';
     var editSVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
-    // Badge NEW
+    // Badge NEW (classe yam-new-badge pour que yamShowNewBadge puisse le mettre à jour)
     var isNew = window.yamIsNew ? window.yamIsNew('livre_'+book.id) : false;
-    var newBadge = isNew ? '<span style="position:absolute;top:4px;right:4px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-size:8px;font-weight:800;letter-spacing:0.5px;padding:2px 5px;border-radius:6px;text-transform:uppercase;z-index:10;pointer-events:none;">NEW</span>' : '';
+    var newBadge = isNew ? '<span class="yam-new-badge" style="position:absolute;top:4px;right:4px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-size:8px;font-weight:800;letter-spacing:0.5px;padding:2px 5px;border-radius:6px;text-transform:uppercase;z-index:10;pointer-events:none;">NEW</span>' : '';
     card.innerHTML =
       '<div class="album-image" style="position:relative;">'+newBadge+
         (photoUrl ?
