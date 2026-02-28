@@ -68,6 +68,17 @@ function _unblockBackgroundScroll() {
   if (miniHeader) miniHeader.style.display = '';
 }
 
+// Reset complet du scroll lock — appelé par closeAllViews (app-nav.js)
+// quand on navigue entre onglets depuis une modale ouverte
+window._nousResetScrollLock = function() {
+  _scrollLockCount = 0;
+  window._yamScrollLocked = false;
+  var nousWrap = document.getElementById('nousContentWrapper');
+  if (nousWrap) nousWrap.style.overflow = '';
+  var miniHeader = document.getElementById('yamStickyHeader');
+  if (miniHeader) miniHeader.style.display = '';
+};
+
 
 // ════════════════════════════════════════════════════════════════════
 // 0. ACCÈS BETA — Code d'accès requis (section en cours de développement)
