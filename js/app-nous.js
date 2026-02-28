@@ -3215,6 +3215,122 @@ function _gearSVG(){
 // ════════════════════════════════════════════════════════════════════
 // 16. EXPOSITION GLOBALE pour yamSwitchTab
 // ════════════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════════
+// SUGGESTIONS IA HEBDOMADAIRES — Section ELLE/LUI (Groq)
+// ════════════════════════════════════════════════════════════════════
+(function(){
+  var IA_CACHE_KEY = 'pochette_ia_suggestions';
+  var IA_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+  var CATEGORIES = [
+    { key:'animal',      label:'Animal',      emoji:'🐾' },
+    { key:'lieu',        label:'Lieu',         emoji:'🌍' },
+    { key:'aliment',     label:'Aliment',      emoji:'🍓' },
+    { key:'personnage',  label:'Personnage',   emoji:'🎭' },
+    { key:'objet',       label:'Objet',        emoji:'💎' },
+    { key:'saison',      label:'Saison',       emoji:'🌸' },
+    { key:'couleur',     label:'Couleur',      emoji:'🎨' },
+  ];
+
+  function _loadCache(coupleId){
+    try{
+      var raw = localStorage.getItem(IA_CACHE_KEY+'_'+coupleId);
+      if(!raw) return null;
+      var c = JSON.parse(raw);
+      if(Date.now() - c.ts > IA_WEEK_MS) return null;
+      return c;
+    }catch(e){ return null; }
+  }
+
+  function _saveCache(coupleId, suggestions){
+    try{ localStorage.setItem(IA_CACHE_KEY+'_'+coupleId, JSON.stringify({ts:Date.now(), suggestions:suggestions})); }catch(e){}
+  }
+
+  function _renderCards(suggestions){
+    var container = document.getElementById('pochetteIaCards');
+    var meta = document.getElementById('pochetteIaMeta');
+    if(!container) return;
+    container.innerHTML = '';
+    suggestions.forEach(function(s){
+      var card = document.createElement('div');
+      card.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;min-width:80px;flex:1;gap:4px;cursor:default;';
+      card.innerHTML = '<span style="font-size:20px;">'+s.emoji+'</span>'
+        +'<span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;">'+s.category+'</span>'
+        +'<span style="font-size:13px;font-weight:600;color:var(--text);text-align:center;line-height:1.3;">'+s.value+'</span>';
+      container.appendChild(card);
+    });
+    if(meta) meta.textContent = 'Renouvelé chaque semaine · ' + new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
+  }
+
+  function _fallback(){
+    return [
+      {category:'Animal',     emoji:'🐾', value:'Renard'},
+      {category:'Lieu',       emoji:'🌍', value:'Kyoto'},
+      {category:'Aliment',    emoji:'🍓', value:'Tiramisu'},
+      {category:'Personnage', emoji:'🎭', value:'Hermione'},
+      {category:'Objet',      emoji:'💎', value:'Polaroid'},
+    ];
+  }
+
+  window.pochetteIaSuggest = function(){
+    var coupleId = (typeof v2GetUser==='function' && v2GetUser()) ? v2GetUser().couple_id : null;
+    var refreshBtn = document.getElementById('pochetteIaRefreshBtn');
+    var container = document.getElementById('pochetteIaCards');
+
+    // Si cache valide, on le montre directement
+    if(coupleId){
+      var cache = _loadCache(coupleId);
+      if(cache && cache.suggestions){
+        _renderCards(cache.suggestions);
+        return;
+      }
+    }
+
+    // Génération via Groq
+    if(container) container.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">Génération en cours… ✨</div>';
+    if(refreshBtn) refreshBtn.style.opacity='0.4';
+
+    var groqUrl = (typeof SB2_URL!=='undefined') ? SB2_URL+'/functions/v1/gemini-suggest' : '';
+    if(!groqUrl){ _renderCards(_fallback()); return; }
+
+    var cats = CATEGORIES.sort(function(){return Math.random()-0.5;}).slice(0,5).map(function(c){return c.label;}).join(', ');
+    var prompt = 'Tu es un assistant créatif pour un couple amoureux. Pour chacune de ces 5 catégories : '+cats+', propose UN mot ou expression courte (2-3 mots max) original et poétique qui pourrait décrire un être cher. Réponds UNIQUEMENT en JSON strict, format exact : [{"category":"Animal","emoji":"🐾","value":"Renard roux"},...]';
+
+    fetch(groqUrl,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-app-secret':SB2_APP_SECRET,'apikey':SB2_KEY,'Authorization':'Bearer '+SB2_KEY},
+      body:JSON.stringify({prompt:prompt})
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(data.error) throw new Error(data.error);
+      var raw = (data.text||'').replace(/```json|```/g,'').trim();
+      var suggestions = JSON.parse(raw);
+      if(!Array.isArray(suggestions)||!suggestions.length) throw new Error('Format invalide');
+      if(coupleId) _saveCache(coupleId, suggestions);
+      _renderCards(suggestions);
+    })
+    .catch(function(){
+      var fb = _fallback();
+      if(coupleId) _saveCache(coupleId, fb);
+      _renderCards(fb);
+    })
+    .finally(function(){
+      if(refreshBtn) refreshBtn.style.opacity='1';
+    });
+  };
+
+  // Auto-affichage si cache dispo au chargement
+  setTimeout(function(){
+    var coupleId = (typeof v2GetUser==='function' && v2GetUser()) ? v2GetUser().couple_id : null;
+    if(!coupleId) return;
+    var cache = _loadCache(coupleId);
+    if(cache && cache.suggestions) _renderCards(cache.suggestions);
+  }, 1500);
+
+})();
+
 window.nousLoad = function(){
   var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
   if (!u || !u.couple_id) {
@@ -3226,6 +3342,10 @@ window.nousLoad = function(){
   if(window._nousContentLoaded) {
     // Refresh léger à chaque retour sur l'onglet
     loadLikeCounters();
+    if(typeof window.elleLoadDescs==='function') window.elleLoadDescs();
+    if(typeof window.luiLoadDescs==='function') window.luiLoadDescs();
+    var _ru=(typeof v2GetUser==='function')?v2GetUser():null; var _rc=_ru?_ru.couple_id:null;
+    if(_rc){ if(typeof window._loadElleBanners==='function') window._loadElleBanners(_rc); if(typeof window._loadLuiBanners==='function') window._loadLuiBanners(_rc); if(typeof window._loadSectionTitles==='function') window._loadSectionTitles(); }
     if(typeof window.nousLoadSouvenirs==='function') window.nousLoadSouvenirs();
     if(typeof window.nousLoadActivites==='function') window.nousLoadActivites();
     if(typeof renderMemoCouple==='function') renderMemoCouple();
