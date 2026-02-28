@@ -147,11 +147,12 @@
     return kb > 80 ? kb : 0;
   }
 
-  function _hideNav(kbH) {
+  function _hideNav() {
     var nav = document.querySelector('.bottom-nav');
     if (!nav) return;
     nav.style.transition = 'transform 0.25s ease';
-    nav.style.transform  = 'translateY(' + (kbH + 20) + 'px)';
+    // Valeur fixe large — sort la nav de l'écran vers le bas quoi qu'il arrive
+    nav.style.transform  = 'translateY(120px)';
   }
 
   function _showNav() {
@@ -188,7 +189,11 @@
       return;
     }
 
-    // ── .nous-modal-overlay → translate la .nous-modal-sheet ──
+    // ── .nous-modal-overlay → la nav est cachée, la sheet est déjà collée en bas
+    // iOS ne remonte pas les position:fixed → la sheet reste sous le clavier.
+    // On translate uniquement de ce que le clavier empiète SUR la sheet.
+    // La sheet a padding-bottom:nav-height → ce padding est maintenant de l'espace libre
+    // puisque la nav est cachée. Shift net = kbH - NAV_HEIGHT.
     if (container.classList && container.classList.contains('nous-modal-overlay')) {
       var sheet = container.querySelector('.nous-modal-sheet');
       if (!sheet) return;
@@ -355,13 +360,13 @@
           var kbH2 = _getKbHeight();
           if (kbH2 < 80) return;
           _kbActive = true;
-          _hideNav(kbH2);
+          _hideNav();
           _liftContainer(container, kbH2);
         }, 200);
         return;
       }
       _kbActive = true;
-      _hideNav(kbH);
+      _hideNav();
       _liftContainer(container, kbH);
     }, KB_DELAY);
   });
