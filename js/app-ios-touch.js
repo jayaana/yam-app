@@ -10,6 +10,10 @@
   var KB_DELAY   = 320;
   var BLUR_DELAY = 120;
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // UTILITAIRES
+  // ─────────────────────────────────────────────────────────────────────────
+
   function isInput(el) {
     if (!el) return false;
     var tag = el.tagName;
@@ -92,18 +96,32 @@
   }, { passive: false });
 
 
-  // ═══════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════
   // 3. CLAVIER iOS — focusin / focusout
   //
-  // Au focus : cache la nav (translateY fixe).
-  // Pour hiddenPage : remonte aussi la dm-input-bar via padding-bottom.
-  // Pour toutes les autres modales : la nav cachée suffit + scroll input visible.
-  // Au blur : remet la nav, remet padding-bottom si hiddenPage.
-  // ═══════════════════════════════════
+  // Au focusin dans une modale :
+  //   - La nav se cache
+  //   - La modale est déplacée dans #yamModalStage (position:fixed inset:0
+  //     background:var(--bg) z-index:9500) — fond totalement opaque,
+  //     rien en arrière-plan ne peut scroller
+  //   - La sheet est draggable verticalement pour accéder à tout le contenu
+  //   - padding-bottom de la sheet réduit à 16px (nav cachée)
+  //
+  // Au focusout :
+  //   - La modale est remise à sa place d'origine dans le DOM
+  //   - Nav réapparaît, padding-bottom restauré, drag désactivé
+  // ═══════════════════════════════════════════════════════════════════════
 
-  var _kbFocusTimer = null;
-  var _kbBlurTimer  = null;
-  var _kbActive     = false;
+  var _kbFocusTimer  = null;
+  var _kbBlurTimer   = null;
+  var _kbActive      = false;
+  var _stagedModal   = null;   // modale actuellement dans le stage
+  var _stagedParent  = null;   // parent d'origine
+  var _stagedNext    = null;   // nextSibling d'origine pour remettre au bon endroit
+  var _dragSheet     = null;
+  var _dragActive    = false;
+  var _dragStartY    = 0;
+  var _dragStartTY   = 0;
 
   function _getKbHeight() {
     if (window.visualViewport) {
@@ -114,6 +132,56 @@
     return kb > 80 ? kb : 0;
   }
 
+  // ── Stage : conteneur plein écran isolé ──
+  function _getStage() {
+    var stage = document.getElementById('yamModalStage');
+    if (!stage) {
+      stage = document.createElement('div');
+      stage.id = 'yamModalStage';
+      stage.style.cssText = [
+        'position:fixed',
+        'inset:0',
+        'z-index:9500',
+        'background:var(--bg)',
+        'display:none',
+        'flex-direction:column',
+        'align-items:center',
+        'justify-content:flex-end',
+        'overflow:hidden'
+      ].join(';');
+      document.body.appendChild(stage);
+    }
+    return stage;
+  }
+
+  function _stageModal(modal) {
+    if (_stagedModal === modal) return;
+    var stage = _getStage();
+    _stagedModal  = modal;
+    _stagedParent = modal.parentElement;
+    _stagedNext   = modal.nextSibling;
+    stage.appendChild(modal);
+    stage.style.display = 'flex';
+  }
+
+  function _unstageModal() {
+    if (!_stagedModal) return;
+    var stage = document.getElementById('yamModalStage');
+    if (stage) stage.style.display = 'none';
+    // Remet la modale exactement où elle était dans le DOM
+    if (_stagedParent) {
+      if (_stagedNext && _stagedNext.parentElement === _stagedParent) {
+        _stagedParent.insertBefore(_stagedModal, _stagedNext);
+      } else {
+        _stagedParent.appendChild(_stagedModal);
+      }
+    }
+    _stagedModal  = null;
+    _stagedParent = null;
+    _stagedNext   = null;
+  }
+
+  // ── Nav ──
   function _hideNav() {
     var nav = document.querySelector('.bottom-nav');
     if (!nav) return;
@@ -136,15 +204,9 @@
     }
   }
 
-  // ── Drag libre de la sheet quand clavier ouvert ──
-  var _dragSheet      = null;  // la sheet en cours de drag
-  var _dragStartY     = 0;
-  var _dragStartTY    = 0;     // translateY au début du touch
-  var _dragActive     = false;
-
+  // ── Drag libre de la sheet ──
   function _getCurrentTranslateY(el) {
-    var t = el.style.transform;
-    var m = t && t.match(/translateY\(([\-\d.]+)px\)/);
+    var m = (el.style.transform || '').match(/translateY\(([\-\d.]+)px\)/);
     return m ? parseFloat(m[1]) : 0;
   }
 
@@ -157,15 +219,13 @@
 
   function _onSheetTouchMove(e) {
     if (!_dragActive || !_dragSheet) return;
-    var dy  = e.touches[0].clientY - _dragStartY;
+    var dy    = e.touches[0].clientY - _dragStartY;
     var newTY = _dragStartTY + dy;
-    // Limite haute : ne pas dépasser le haut de l'écran
-    if (newTY < -(window.innerHeight * 0.7)) newTY = -(window.innerHeight * 0.7);
-    // Limite basse : ne pas descendre en dessous de sa position naturelle (0)
-    if (newTY > 0) newTY = 0;
+    var minTY = -(window.innerHeight * 0.75);
+    if (newTY < minTY) newTY = minTY;
+    if (newTY > 0)     newTY = 0;
     _dragSheet.style.transition = 'none';
     _dragSheet.style.transform  = newTY !== 0 ? 'translateY(' + newTY + 'px)' : '';
-    e.stopPropagation();
   }
 
   function _onSheetTouchEnd() {
@@ -175,10 +235,10 @@
   function _enableSheetDrag(sheet) {
     if (!sheet || sheet._dragEnabled) return;
     sheet._dragEnabled = true;
+    _dragSheet = sheet;
     sheet.addEventListener('touchstart', _onSheetTouchStart, { passive: true });
     sheet.addEventListener('touchmove',  _onSheetTouchMove,  { passive: true });
     sheet.addEventListener('touchend',   _onSheetTouchEnd,   { passive: true });
-    _dragSheet = sheet;
   }
 
   function _disableSheetDrag(sheet) {
@@ -189,7 +249,7 @@
     sheet.removeEventListener('touchend',   _onSheetTouchEnd);
     sheet.style.transition = 'transform 0.25s ease';
     sheet.style.transform  = '';
-    setTimeout(function () { sheet.style.transition = ''; }, 280);
+    setTimeout(function () { if (sheet) sheet.style.transition = ''; }, 280);
     if (_dragSheet === sheet) _dragSheet = null;
   }
 
@@ -198,12 +258,11 @@
     return container.querySelector('.nous-modal-sheet, .desc-edit-sheet, .account-sheet, .modal-sheet, .search-popup');
   }
 
+  // ── Ouverture clavier ──
   function _onKeyboardOpen(container, kbH) {
     _hideNav();
-    window._yamScrollLocked = true;
-    // touch-action:none sur le body bloque le scroll iOS nativement
-    document.body.style.touchAction = 'none';
 
+    // hiddenPage : cas spécial, pas de staging (c'est déjà une vue plein écran)
     if (container.id === 'hiddenPage') {
       var bar = container.querySelector('.dm-input-bar');
       if (bar) {
@@ -218,21 +277,23 @@
       return;
     }
 
-    // Réduit le padding-bottom (compensait la nav, maintenant cachée)
+    // Déplace la modale dans le stage isolé
+    _stageModal(container);
+
+    // Réduit le padding-bottom de la sheet (nav cachée)
     var sheet = _getSheet(container);
     if (sheet) {
       sheet.style.transition    = 'padding-bottom 0.25s ease';
       sheet.style.paddingBottom = '16px';
-      // Autorise le drag sur la sheet malgré touch-action:none sur le body
-      sheet.style.touchAction   = 'pan-y';
       setTimeout(function () { _enableSheetDrag(sheet); }, 50);
     }
+
+    setTimeout(_scrollFocusedIntoView, 80);
   }
 
+  // ── Fermeture clavier ──
   function _onKeyboardClose(container) {
     _showNav();
-    // Remet touch-action normal
-    document.body.style.touchAction = '';
     if (!container) return;
 
     if (container.id === 'hiddenPage') {
@@ -244,17 +305,19 @@
       return;
     }
 
-    // Désactive le drag et remet la sheet à sa position
+    // Désactive le drag, remet padding-bottom, remet la modale dans le DOM
     var sheet = _getSheet(container);
     if (sheet) {
       _disableSheetDrag(sheet);
-      sheet.style.touchAction   = '';
       sheet.style.transition    = 'padding-bottom 0.25s ease';
       sheet.style.paddingBottom = '';
-      setTimeout(function () { sheet.style.transition = ''; }, 280);
+      setTimeout(function () { if (sheet) sheet.style.transition = ''; }, 280);
     }
+
+    _unstageModal();
   }
 
+  // ── focusin ──
   document.addEventListener('focusin', function (e) {
     if (!isInput(e.target)) return;
     if (_kbBlurTimer)  { clearTimeout(_kbBlurTimer);  _kbBlurTimer  = null; }
@@ -279,6 +342,7 @@
     }, KB_DELAY);
   });
 
+  // ── focusout ──
   document.addEventListener('focusout', function (e) {
     if (!isInput(e.target)) return;
     if (!_kbActive && !_kbFocusTimer) return;
@@ -297,6 +361,7 @@
     }, BLUR_DELAY);
   });
 
+  // API publique — compat avec les autres fichiers JS
   window._yamKeyboardUpdate = function () {};
   window._dmUpdateVP        = function () {};
   window._positionLockPopup = function () {};
@@ -304,6 +369,7 @@
 
   // ═══════════════════════════════════
   // 4. SCROLL BACKGROUND BLOCKER
+  // (conservé pour les modales sans clavier)
   // ═══════════════════════════════════
 
   var _sbT = 0, _sbX = 0, _sbY = 0;
@@ -318,11 +384,17 @@
 
   document.addEventListener('touchmove', function (e) {
     if (!window._yamScrollLocked) return;
-    // Tout scroll bloqué sans exception — le drag de sheet suffit pour naviguer
+    var target = e.target;
+    if (isInput(target)) return;
+    if (e.touches && e.touches.length === 1) {
+      var dx = Math.abs(e.touches[0].clientX - _sbX);
+      var dy = Math.abs(e.touches[0].clientY - _sbY);
+      if (dx > dy + 8) return;
+    }
+    if (Date.now() - _sbT > 380)       return;
+    if (findScrollableAncestor(target)) return;
     e.preventDefault();
   }, { passive: false });
-
-
 
   window._yamRegisterScrollLock = function () {};
 
