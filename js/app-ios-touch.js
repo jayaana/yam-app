@@ -138,6 +138,7 @@
 
   function _onKeyboardOpen(container, kbH) {
     _hideNav();
+
     if (container.id === 'hiddenPage') {
       var bar = container.querySelector('.dm-input-bar');
       if (bar) {
@@ -151,18 +152,35 @@
       }
       return;
     }
-    // Toutes les autres modales : scroll l'input dans la zone visible
+
+    // Réduit le padding-bottom de la sheet (compensait la nav, maintenant cachée)
+    var sheet = container.querySelector('.nous-modal-sheet, .desc-edit-sheet, .account-sheet, .modal-sheet, .search-popup');
+    if (sheet) {
+      sheet.style.transition    = 'padding-bottom 0.25s ease';
+      sheet.style.paddingBottom = '16px';
+    }
     setTimeout(_scrollFocusedIntoView, 80);
   }
 
   function _onKeyboardClose(container) {
     _showNav();
-    if (container && container.id === 'hiddenPage') {
+    if (!container) return;
+
+    if (container.id === 'hiddenPage') {
       var bar = container.querySelector('.dm-input-bar');
       if (bar) {
         bar.style.transition    = 'padding-bottom 0.25s ease';
         bar.style.paddingBottom = NAV_HEIGHT + 'px';
       }
+      return;
+    }
+
+    // Remet le padding-bottom CSS d'origine
+    var sheet = container.querySelector('.nous-modal-sheet, .desc-edit-sheet, .account-sheet, .modal-sheet, .search-popup');
+    if (sheet) {
+      sheet.style.transition    = 'padding-bottom 0.25s ease';
+      sheet.style.paddingBottom = '';
+      setTimeout(function () { sheet.style.transition = ''; }, 280);
     }
   }
 
