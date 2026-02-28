@@ -61,24 +61,27 @@
 <script>
 /* ═══════════════════════════════════════════════════════
    FIX PWA iOS — Figer --safe-top au chargement
-   Sur PWA iOS (standalone), env(safe-area-inset-top) peut changer
-   de valeur au premier tap (status bar transparente → opaque),
-   ce qui recalcule padding-top du header et décale toute la page.
-   Solution : lire la valeur réelle UNE FOIS et l'écrire en px fixe.
+   env(safe-area-inset-top) peut être 0 au moment où le script tourne
+   (timing PWA iOS). On utilise une sonde padding + fallback heuristique.
+   iPhone 12/13/14 notch = 47px, Dynamic Island (14 Pro+) = 59px
    ════════════════════════════════════════════════════ */
 (function() {
   function fixSafeArea() {
-    var st = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-top')) || 0;
-    // Si env() retourne 0 au chargement (timing), on réessaie après paint
-    if (st === 0) {
-      // Créer un div temporaire pour lire env() directement
-      var probe = document.createElement('div');
-      probe.style.cssText = 'position:fixed;top:env(safe-area-inset-top,0px);left:0;width:1px;height:1px;pointer-events:none;visibility:hidden;';
-      document.body.appendChild(probe);
-      var top = probe.getBoundingClientRect().top;
-      document.body.removeChild(probe);
-      st = top > 0 ? Math.round(top) : 0;
+    // Sonde : un div avec padding-top = env() — plus fiable que top:env()
+    var probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;top:0;left:0;width:0;' +
+      'padding-top:env(safe-area-inset-top,0px);pointer-events:none;visibility:hidden;';
+    document.body.appendChild(probe);
+    var st = parseInt(window.getComputedStyle(probe).paddingTop) || 0;
+    document.body.removeChild(probe);
+
+    // Fallback heuristique si env() retourne 0 (timing PWA iOS)
+    if (st === 0 && window.navigator.standalone) {
+      var sh = window.screen.height;
+      // iPhone 12 mini=780, 12/12Pro/13/13Pro/14=844, 14Pro/15=852+
+      st = sh >= 844 ? 47 : (sh >= 780 ? 44 : 20);
     }
+
     if (st > 0) {
       document.documentElement.style.setProperty('--safe-top', st + 'px');
     }
