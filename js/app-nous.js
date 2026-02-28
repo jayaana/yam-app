@@ -3218,33 +3218,46 @@ function _gearSVG(){
 
 // ════════════════════════════════════════════════════════════════════
 // SUGGESTIONS IA HEBDOMADAIRES — Section ELLE/LUI (Groq)
+// Cache Supabase partagé entre les 2 membres du couple
 // ════════════════════════════════════════════════════════════════════
 (function(){
-  var IA_CACHE_KEY = 'pochette_ia_suggestions';
   var IA_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  var IA_SB_SLOT = 'ia_weekly_suggestions';
+  var IA_SB_CATEGORY = 'ia_cache';
 
   var CATEGORIES = [
-    { key:'animal',      label:'Animal',      emoji:'🐾' },
-    { key:'lieu',        label:'Lieu',         emoji:'🌍' },
-    { key:'aliment',     label:'Aliment',      emoji:'🍓' },
-    { key:'personnage',  label:'Personnage',   emoji:'🎭' },
-    { key:'objet',       label:'Objet',        emoji:'💎' },
-    { key:'saison',      label:'Saison',       emoji:'🌸' },
-    { key:'couleur',     label:'Couleur',      emoji:'🎨' },
+    { label:'Animal',      emoji:'🐾' },
+    { label:'Lieu',        emoji:'🌍' },
+    { label:'Aliment',     emoji:'🍓' },
+    { label:'Personnage',  emoji:'🎭' },
+    { label:'Objet',       emoji:'💎' },
+    { label:'Saison',      emoji:'🌸' },
+    { label:'Couleur',     emoji:'🎨' },
   ];
 
-  function _loadCache(coupleId){
-    try{
-      var raw = localStorage.getItem(IA_CACHE_KEY+'_'+coupleId);
-      if(!raw) return null;
-      var c = JSON.parse(raw);
-      if(Date.now() - c.ts > IA_WEEK_MS) return null;
-      return c;
-    }catch(e){ return null; }
+  function _sbHeaders(){ return (typeof sb2Headers==='function') ? sb2Headers({'Content-Type':'application/json'}) : {}; }
+
+  // Charge depuis Supabase (partagé couple)
+  function _loadFromSb(coupleId, cb){
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+coupleId+'&category=eq.'+IA_SB_CATEGORY+'&slot=eq.'+IA_SB_SLOT+'&select=description,updated_at',{headers:_sbHeaders()})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){
+      if(!rows.length) return cb(null);
+      var row = rows[0];
+      var updatedAt = row.updated_at ? new Date(row.updated_at).getTime() : 0;
+      if(Date.now() - updatedAt > IA_WEEK_MS) return cb(null); // expiré
+      try{ cb(JSON.parse(row.description)); }catch(e){ cb(null); }
+    })
+    .catch(function(){ cb(null); });
   }
 
-  function _saveCache(coupleId, suggestions){
-    try{ localStorage.setItem(IA_CACHE_KEY+'_'+coupleId, JSON.stringify({ts:Date.now(), suggestions:suggestions})); }catch(e){}
+  // Sauvegarde dans Supabase (partagé couple)
+  function _saveToSb(coupleId, suggestions){
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs?on_conflict=couple_id,category,slot',{
+      method:'POST',
+      headers:_sbHeaders(),
+      body:JSON.stringify({couple_id:coupleId, category:IA_SB_CATEGORY, slot:IA_SB_SLOT, description:JSON.stringify(suggestions)})
+    }).catch(function(){});
   }
 
   function _renderCards(suggestions){
@@ -3254,13 +3267,13 @@ function _gearSVG(){
     container.innerHTML = '';
     suggestions.forEach(function(s){
       var card = document.createElement('div');
-      card.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;min-width:80px;flex:1;gap:4px;cursor:default;';
+      card.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;min-width:70px;flex:1;gap:4px;cursor:default;';
       card.innerHTML = '<span style="font-size:20px;">'+s.emoji+'</span>'
-        +'<span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;">'+s.category+'</span>'
-        +'<span style="font-size:13px;font-weight:600;color:var(--text);text-align:center;line-height:1.3;">'+s.value+'</span>';
+        +'<span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;">'+s.category+'</span>'
+        +'<span style="font-size:12px;font-weight:600;color:var(--text);text-align:center;line-height:1.3;">'+s.value+'</span>';
       container.appendChild(card);
     });
-    if(meta) meta.textContent = 'Renouvelé chaque semaine · ' + new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
+    if(meta) meta.textContent = 'Renouvelé chaque semaine · identique pour vous deux';
   }
 
   function _fallback(){
@@ -3273,26 +3286,12 @@ function _gearSVG(){
     ];
   }
 
-  window.pochetteIaSuggest = function(){
-    var coupleId = (typeof v2GetUser==='function' && v2GetUser()) ? v2GetUser().couple_id : null;
-    var refreshBtn = document.getElementById('pochetteIaRefreshBtn');
-    var container = document.getElementById('pochetteIaCards');
-
-    // Si cache valide, on le montre directement
-    if(coupleId){
-      var cache = _loadCache(coupleId);
-      if(cache && cache.suggestions){
-        _renderCards(cache.suggestions);
-        return;
-      }
-    }
-
-    // Génération via Groq
+  function _generate(coupleId, refreshBtn, container){
     if(container) container.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">Génération en cours… ✨</div>';
     if(refreshBtn) refreshBtn.style.opacity='0.4';
 
     var groqUrl = (typeof SB2_URL!=='undefined') ? SB2_URL+'/functions/v1/gemini-suggest' : '';
-    if(!groqUrl){ _renderCards(_fallback()); return; }
+    if(!groqUrl){ _renderCards(_fallback()); if(refreshBtn) refreshBtn.style.opacity='1'; return; }
 
     var cats = CATEGORIES.sort(function(){return Math.random()-0.5;}).slice(0,5).map(function(c){return c.label;}).join(', ');
     var prompt = 'Tu es un assistant créatif pour un couple amoureux. Pour chacune de ces 5 catégories : '+cats+', propose UN mot ou expression courte (2-3 mots max) original et poétique qui pourrait décrire un être cher. Réponds UNIQUEMENT en JSON strict, format exact : [{"category":"Animal","emoji":"🐾","value":"Renard roux"},...]';
@@ -3308,26 +3307,41 @@ function _gearSVG(){
       var raw = (data.text||'').replace(/```json|```/g,'').trim();
       var suggestions = JSON.parse(raw);
       if(!Array.isArray(suggestions)||!suggestions.length) throw new Error('Format invalide');
-      if(coupleId) _saveCache(coupleId, suggestions);
+      if(coupleId) _saveToSb(coupleId, suggestions);
       _renderCards(suggestions);
     })
     .catch(function(){
       var fb = _fallback();
-      if(coupleId) _saveCache(coupleId, fb);
+      if(coupleId) _saveToSb(coupleId, fb);
       _renderCards(fb);
     })
-    .finally(function(){
-      if(refreshBtn) refreshBtn.style.opacity='1';
+    .finally(function(){ if(refreshBtn) refreshBtn.style.opacity='1'; });
+  }
+
+  window.pochetteIaSuggest = function(){
+    var u = (typeof v2GetUser==='function') ? v2GetUser() : null;
+    var coupleId = u ? u.couple_id : null;
+    var refreshBtn = document.getElementById('pochetteIaRefreshBtn');
+    var container = document.getElementById('pochetteIaCards');
+
+    if(!coupleId){ _generate(null, refreshBtn, container); return; }
+
+    // Essayer de charger depuis Supabase (même données pour les 2)
+    _loadFromSb(coupleId, function(cached){
+      if(cached){ _renderCards(cached); return; }
+      _generate(coupleId, refreshBtn, container);
     });
   };
 
-  // Auto-affichage si cache dispo au chargement
+  // Auto-chargement au démarrage
   setTimeout(function(){
-    var coupleId = (typeof v2GetUser==='function' && v2GetUser()) ? v2GetUser().couple_id : null;
+    var u = (typeof v2GetUser==='function') ? v2GetUser() : null;
+    var coupleId = u ? u.couple_id : null;
     if(!coupleId) return;
-    var cache = _loadCache(coupleId);
-    if(cache && cache.suggestions) _renderCards(cache.suggestions);
-  }, 1500);
+    _loadFromSb(coupleId, function(cached){
+      if(cached) _renderCards(cached);
+    });
+  }, 2000);
 
 })();
 
