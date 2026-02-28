@@ -2594,11 +2594,10 @@ loadLikeCounters();
         '<div class="album-banner">'+escHtml(book.title||'Sans titre')+'</div>'+
         '<div class="lui-upload-btn"><div class="lui-upload-icon">'+editSVG+'</div><div class="lui-upload-lbl">Modifier</div></div>'+
       '</div>'+
-      '<div class="album-desc lui-desc-editable" style="cursor:pointer;">'+escHtml(book.description||'Ajouter une légende...')+'</div>';
-    // Clic bouton edit
+      '<div class="album-desc" style="cursor:default;">'+escHtml(book.description||'Ajouter une légende...')+'</div>';
+    // Clic bouton edit (la photo / bouton modifier)
     card.querySelector('.lui-upload-btn').addEventListener('click',function(e){ e.stopPropagation(); _livreFromGestion=false; window.livresOpenEdit(book); });
-    // Clic légende = éditer
-    card.querySelector('.album-desc').addEventListener('click',function(){ _editLivreDesc(book); });
+    // (pas de click sur la légende — double-clic photo suffit pour éditer)
     return card;
   }
 
@@ -2709,22 +2708,60 @@ loadLikeCounters();
     _livreCurrentPhotoUrl = null;
   };
 
-  // ── Fix iOS clavier : modal livre qui remonte hors champ ──
+  // ── Fix iOS clavier : modal livre — approche robuste ──
+  // Cale l'overlay sur le visualViewport pour ne jamais partir hors écran quand le clavier s'ouvre
   (function(){
     if(!window.visualViewport) return;
     var _vvSheet = null;
     var _vvOverlay = null;
-    window.visualViewport.addEventListener('resize', function(){
-      if(!_vvOverlay) _vvOverlay = document.getElementById('livreEditModal');
-      if(!_vvSheet)   _vvSheet   = document.querySelector('#livreEditModal .nous-modal-sheet');
-      if(!_vvOverlay || !_vvOverlay.classList.contains('open') || !_vvSheet) return;
-      var gap = window.innerHeight - window.visualViewport.height;
-      _vvSheet.style.marginBottom = (gap > 20 ? gap : 0) + 'px';
+
+    function _getOverlay(){ return _vvOverlay || (_vvOverlay = document.getElementById('livreEditModal')); }
+    function _getSheet(){ return _vvSheet || (_vvSheet = document.querySelector('#livreEditModal .nous-modal-sheet')); }
+
+    function _onVVChange(){
+      var overlay = _getOverlay();
+      if(!overlay || !overlay.classList.contains('open')) return;
+      var vv = window.visualViewport;
+      // Forcer l'overlay à ne couvrir que la zone visible (keyboard excluded)
+      overlay.style.position = 'fixed';
+      overlay.style.top      = vv.offsetTop + 'px';
+      overlay.style.left     = vv.offsetLeft + 'px';
+      overlay.style.width    = vv.width + 'px';
+      overlay.style.height   = vv.height + 'px';
+      // Scroll l'input focusé dans la zone visible
       var focused = document.activeElement;
-      if(focused && _vvSheet.contains(focused)){
-        setTimeout(function(){ focused.scrollIntoView({block:'nearest',behavior:'smooth'}); }, 50);
+      var sheet = _getSheet();
+      if(focused && sheet && sheet.contains(focused)){
+        setTimeout(function(){ focused.scrollIntoView({block:'nearest',behavior:'smooth'}); }, 30);
       }
+    }
+
+    function _resetOverlay(){
+      var overlay = _getOverlay();
+      if(!overlay) return;
+      overlay.style.top = '';
+      overlay.style.left = '';
+      overlay.style.width = '';
+      overlay.style.height = '';
+    }
+
+    window.visualViewport.addEventListener('resize', _onVVChange);
+    window.visualViewport.addEventListener('scroll', _onVVChange);
+
+    // Réinitialiser les styles quand la modale se ferme
+    var _mo = new MutationObserver(function(){
+      var overlay = _getOverlay();
+      if(overlay && !overlay.classList.contains('open')){ _resetOverlay(); }
     });
+    var _moStarted = false;
+    function _startMO(){
+      if(_moStarted) return; _moStarted = true;
+      var overlay = _getOverlay();
+      if(overlay) _mo.observe(overlay, {attributes:true, attributeFilter:['class']});
+    }
+    if(document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', _startMO);
+    } else { _startMO(); }
   })();
 
   // ── Upload photo ──
