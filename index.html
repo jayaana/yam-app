@@ -2700,8 +2700,10 @@ function v2ApplyDynamicNames(){
     setTimeout(function(){ window.scrollTo(0, 0); }, 50);
   });
 
-  // 2. Patch yamSwitchTab : scroll en haut à chaque changement d'onglet
-  //    On attend que app-nav.js ait défini la fonction, puis on la wrappe
+  // 2. Patch yamSwitchTab : ouverture messages + nousCheckLock
+  //    IMPORTANT : on ne rappelle PAS window.scrollTo ici — yamSwitchTab le fait déjà
+  //    en interne. Un double scrollTo décalé (setTimeout) provoque un bug iOS Safari
+  //    où toute la fenêtre (nav comprise) descend de façon permanente.
   function patchYamSwitchTab(){
     if(typeof window.yamSwitchTab !== 'function'){
       setTimeout(patchYamSwitchTab, 100);
@@ -2720,10 +2722,9 @@ function v2ApplyDynamicNames(){
         setTimeout(function(){
           if(typeof window.nousCheckLock === 'function') window.nousCheckLock();
         }, 100);
-        setTimeout(function(){ window.scrollTo(0, 0); }, 220);
-      } else {
-        setTimeout(function(){ window.scrollTo(0, 0); }, 220);
+        // Pas de scrollTo supplémentaire — yamSwitchTab le fait déjà (évite double scroll iOS)
       }
+      // Pas de scrollTo supplémentaire pour les autres onglets non plus
     };
   }
   patchYamSwitchTab();
