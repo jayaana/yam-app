@@ -187,12 +187,11 @@ function _nousInitAll() {
   luiLoadDescs();
   luiSyncDescs();
   if(typeof window._loadSectionTitles === 'function') window._loadSectionTitles();
-  // Charger les banners personnalisés des pochettes Elle/Lui
-  var _initUser = (typeof v2GetUser === 'function') ? v2GetUser() : null;
-  var _initCoupleId = _initUser ? _initUser.couple_id : null;
-  if(_initCoupleId){
-    if(typeof _loadElleBanners === 'function') _loadElleBanners(_initCoupleId);
-    if(typeof _loadLuiBanners === 'function') _loadLuiBanners(_initCoupleId);
+  var _niu = (typeof v2GetUser==='function')?v2GetUser():null;
+  var _nic = _niu?_niu.couple_id:null;
+  if(_nic){
+    if(typeof _loadElleBanners==='function') _loadElleBanners(_nic);
+    if(typeof _loadLuiBanners==='function') _loadLuiBanners(_nic);
   }
   _nousLoadBadge();
   loadLikeCounters();
@@ -575,28 +574,23 @@ window.nousSignalNew = function() {
   // Rouage LUI : girl peut ouvrir/fermer la section LUI pour décrire son copain
 
   // ── Éditer le bandeau (titre) d'une pochette ELLE ──
-  var ELLE_BANNER_DEFAULTS = {animal:'Animal',fleurs:'Fleurs',personnage:'Personnage',saison:'Saison',repas:'Repas'};
+  var _ELLE_BANNER_DEF = {animal:'Animal',fleurs:'Fleurs',personnage:'Personnage',saison:'Saison',repas:'Repas'};
   window.elleEditBanner = function(slot){
-    if(getProfile() !== 'boy') return; // boy édite ELLE
+    if(getProfile() !== 'boy') return;
     var el = document.getElementById('elle-banner-'+slot); if(!el) return;
-    descEditOpen(el.textContent.trim(), 'Titre de la pochette · '+(ELLE_BANNER_DEFAULTS[slot]||slot), function(val){
+    descEditOpen(el.textContent.trim(), 'Titre pochette · '+(_ELLE_BANNER_DEF[slot]||slot), function(val){
       if(!val) return;
       el.textContent = val;
       var coupleId = _getCoupleId(); if(!coupleId) return;
       fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,category:'elle_banner',slot:slot,description:val})}).catch(function(){});
     });
   };
-
-  // Charger les banners Elle depuis Supabase
   function _loadElleBanners(coupleId){
     fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+coupleId+'&category=eq.elle_banner&select=slot,description',{headers:sb2Headers()})
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(rows){
       if(!Array.isArray(rows)) return;
-      rows.forEach(function(row){
-        var el = document.getElementById('elle-banner-'+row.slot);
-        if(el && row.description) el.textContent = row.description;
-      });
+      rows.forEach(function(row){ var el=document.getElementById('elle-banner-'+row.slot); if(el&&row.description) el.textContent=row.description; });
     }).catch(function(){});
   }
 
@@ -700,28 +694,23 @@ window.nousSignalNew = function() {
   };
 
   // ── Éditer le bandeau (titre) d'une pochette LUI ──
-  var LUI_BANNER_DEFAULTS = {animal:'Animal',fleurs:'Fleurs',personnage:'Personnage',saison:'Saison',repas:'Repas'};
+  var _LUI_BANNER_DEF = {animal:'Animal',fleurs:'Fleurs',personnage:'Personnage',saison:'Saison',repas:'Repas'};
   window.luiEditBanner = function(slot){
-    if(getProfile() !== 'girl') return; // girl édite LUI
+    if(getProfile() !== 'girl') return;
     var el = document.getElementById('lui-banner-'+slot); if(!el) return;
-    descEditOpen(el.textContent.trim(), 'Titre de la pochette · '+(LUI_BANNER_DEFAULTS[slot]||slot), function(val){
+    descEditOpen(el.textContent.trim(), 'Titre pochette · '+(_LUI_BANNER_DEF[slot]||slot), function(val){
       if(!val) return;
       el.textContent = val;
       var coupleId = _getCoupleId(); if(!coupleId) return;
       fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,category:'lui_banner',slot:slot,description:val})}).catch(function(){});
     });
   };
-
-  // Charger les banners Lui depuis Supabase
   function _loadLuiBanners(coupleId){
     fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+coupleId+'&category=eq.lui_banner&select=slot,description',{headers:sb2Headers()})
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(rows){
       if(!Array.isArray(rows)) return;
-      rows.forEach(function(row){
-        var el = document.getElementById('lui-banner-'+row.slot);
-        if(el && row.description) el.textContent = row.description;
-      });
+      rows.forEach(function(row){ var el=document.getElementById('lui-banner-'+row.slot); if(el&&row.description) el.textContent=row.description; });
     }).catch(function(){});
   }
 
@@ -2597,9 +2586,9 @@ loadLikeCounters();
     var isNew = window.yamIsNew ? window.yamIsNew('livre_'+book.id) : false;
     var newBadge = isNew ? '<span style="position:absolute;top:4px;right:4px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-size:8px;font-weight:800;letter-spacing:0.5px;padding:2px 5px;border-radius:6px;text-transform:uppercase;z-index:10;pointer-events:none;">NEW</span>' : '';
     card.innerHTML =
-      '<div class="album-image">'+newBadge+
+      '<div class="album-image" style="position:relative;">'+newBadge+
         (photoUrl ?
-          '<img src="'+escHtml(photoUrl)+'" style="width:100%;height:100%;object-fit:cover;" loading="lazy">' :
+          '<img src="'+escHtml(photoUrl)+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px 10px 0 0;" loading="lazy">' :
           '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;color:var(--muted);">📚</div>'
         )+
         '<div class="album-banner">'+escHtml(book.title||'Sans titre')+'</div>'+
@@ -2705,7 +2694,6 @@ loadLikeCounters();
 
   window.livresCloseEdit = function(){
     var modal = document.getElementById('livreEditModal'); if(modal) modal.classList.remove('open');
-    // Restaurer le sheet au bas du modal en cas de clavier iOS
     var sheet = document.querySelector('#livreEditModal .nous-modal-sheet');
     if(sheet) sheet.style.marginBottom = '';
     if(_livreFromGestion){
@@ -2721,26 +2709,20 @@ loadLikeCounters();
     _livreCurrentPhotoUrl = null;
   };
 
-  // ── Fix iOS clavier : quand le clavier remonte, la sheet descend avec lui ──
+  // ── Fix iOS clavier : modal livre qui remonte hors champ ──
   (function(){
     if(!window.visualViewport) return;
-    var _sheet = null;
-    var _overlay = null;
-    function _getEls(){
-      _sheet   = _sheet   || document.querySelector('#livreEditModal .nous-modal-sheet');
-      _overlay = _overlay || document.getElementById('livreEditModal');
-    }
+    var _vvSheet = null;
+    var _vvOverlay = null;
     window.visualViewport.addEventListener('resize', function(){
-      _getEls();
-      if(!_overlay || !_overlay.classList.contains('open') || !_sheet) return;
-      // La hauteur visible restante après clavier
+      if(!_vvOverlay) _vvOverlay = document.getElementById('livreEditModal');
+      if(!_vvSheet)   _vvSheet   = document.querySelector('#livreEditModal .nous-modal-sheet');
+      if(!_vvOverlay || !_vvOverlay.classList.contains('open') || !_vvSheet) return;
       var gap = window.innerHeight - window.visualViewport.height;
-      // On remonte la sheet du même montant que le clavier
-      _sheet.style.marginBottom = (gap > 20 ? gap : 0) + 'px';
-      // Scroll pour garder le champ focalisé visible
+      _vvSheet.style.marginBottom = (gap > 20 ? gap : 0) + 'px';
       var focused = document.activeElement;
-      if(focused && _sheet.contains(focused)){
-        setTimeout(function(){ focused.scrollIntoView({block:'nearest', behavior:'smooth'}); }, 50);
+      if(focused && _vvSheet.contains(focused)){
+        setTimeout(function(){ focused.scrollIntoView({block:'nearest',behavior:'smooth'}); }, 50);
       }
     });
   })();
@@ -2819,7 +2801,10 @@ loadLikeCounters();
       // Nouveau
       var data2 = {couple_id:coupleId, title:title, description:desc, has_image:hasImage, position:(_livresAllRows.length)};
       fetch(SB2_URL+'/rest/v1/v2_books',{method:'POST',headers:sb2Headers({'Prefer':'return=representation','Content-Type':'application/json'}),body:JSON.stringify(data2)})
-      .then(function(r){ return r.json(); })
+      .then(function(r){
+        if(!r.ok) return r.json().then(function(e){ throw new Error(e.message||e.hint||('HTTP '+r.status)); });
+        return r.json();
+      })
       .then(function(rows){
         var newId = Array.isArray(rows)&&rows.length?rows[0].id:null;
         // Si on a une photo avec un ID temporaire, la renommer vers le bon ID
@@ -2833,7 +2818,10 @@ loadLikeCounters();
           }).catch(function(){});
         }
         done(newId);
-      }).catch(function(){ done(null); });
+      }).catch(function(err){
+        if(btn){ btn.textContent='Sauvegarder'; btn.disabled=false; }
+        if(typeof showToast==='function') showToast('Erreur : '+(err&&err.message?err.message:'impossible de sauvegarder'),'error',3500);
+      });
     }
   };
 
@@ -2902,17 +2890,52 @@ loadLikeCounters();
     var coupleId = _getCoupleId(); if(!coupleId) return;
     var data = {couple_id:coupleId, title:_ideaCache.title||'Livre', description:(_ideaCache.author||'')+(_ideaCache.desc?' — '+_ideaCache.desc:''), has_image:false, position:_livresAllRows.length};
     fetch(SB2_URL+'/rest/v1/v2_books',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
-    .then(function(){
+    .then(function(r){
+      if(!r.ok) return r.json().then(function(e){ throw new Error(e.message||e.hint||r.status); });
       window.yamMarkNew && window.yamMarkNew('livre');
       window.yamRefreshNewBadges && window.yamRefreshNewBadges();
       var card = document.getElementById('livreIdeaCard'); if(card) card.style.display='none';
       window.livresLoad();
       if(typeof showToast==='function') showToast('Livre ajouté à votre bibliothèque ! 📚','success',2500);
-    }).catch(function(){});
+    }).catch(function(err){
+      if(typeof showToast==='function') showToast('Erreur : '+(err&&err.message?err.message:'impossible d\'ajouter le livre'),'error',3500);
+    });
   };
 
   // Init au chargement de la section
   document.addEventListener('nousContentReady', function(){ window.livresLoad(); });
+
+  // ── Fix iOS : touch-action:none bloque les onclick sur l'overlay ──
+  // On gère la fermeture via touchend + click sur les overlays livres
+  (function(){
+    var _livresOverlayIds = [
+      { id: 'livresGestionOverlay', fn: function(){ window.livresCloseGestion(); } },
+      { id: 'livreEditModal',       fn: function(){ window.livresCloseEdit(); } }
+    ];
+    function _attachOverlayClose(id, fn){
+      var _touchStartX, _touchStartY;
+      setTimeout(function(){
+        var el = document.getElementById(id);
+        if(!el) return;
+        // click — desktop + Android
+        el.addEventListener('click', function(e){
+          if(e.target === el) fn();
+        });
+        // touchend — iOS (touch-action:none bloque click sur le fond)
+        el.addEventListener('touchstart', function(e){
+          if(e.target === el){ _touchStartX = e.touches[0].clientX; _touchStartY = e.touches[0].clientY; }
+        }, { passive: true });
+        el.addEventListener('touchend', function(e){
+          if(e.target === el){
+            var dx = Math.abs(e.changedTouches[0].clientX - _touchStartX);
+            var dy = Math.abs(e.changedTouches[0].clientY - _touchStartY);
+            if(dx < 10 && dy < 10) fn(); // tap (pas un scroll)
+          }
+        }, { passive: true });
+      }, 0);
+    }
+    _livresOverlayIds.forEach(function(o){ _attachOverlayClose(o.id, o.fn); });
+  })();
 
 })();
 
