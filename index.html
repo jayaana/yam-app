@@ -60,6 +60,39 @@
 
 <script>
 /* ═══════════════════════════════════════════════════════
+   FIX PWA iOS — Figer --safe-top au chargement
+   Sur PWA iOS (standalone), env(safe-area-inset-top) peut changer
+   de valeur au premier tap (status bar transparente → opaque),
+   ce qui recalcule padding-top du header et décale toute la page.
+   Solution : lire la valeur réelle UNE FOIS et l'écrire en px fixe.
+   ════════════════════════════════════════════════════ */
+(function() {
+  function fixSafeArea() {
+    var st = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-top')) || 0;
+    // Si env() retourne 0 au chargement (timing), on réessaie après paint
+    if (st === 0) {
+      // Créer un div temporaire pour lire env() directement
+      var probe = document.createElement('div');
+      probe.style.cssText = 'position:fixed;top:env(safe-area-inset-top,0px);left:0;width:1px;height:1px;pointer-events:none;visibility:hidden;';
+      document.body.appendChild(probe);
+      var top = probe.getBoundingClientRect().top;
+      document.body.removeChild(probe);
+      st = top > 0 ? Math.round(top) : 0;
+    }
+    if (st > 0) {
+      document.documentElement.style.setProperty('--safe-top', st + 'px');
+    }
+  }
+  if (document.body) {
+    fixSafeArea();
+  } else {
+    document.addEventListener('DOMContentLoaded', fixSafeArea);
+  }
+})();
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════
    AVATARS PAR DÉFAUT — profil_girl.png / profil_boy.png
    Remplace les emoji 👧👦 partout dans l'app
    ════════════════════════════════════════════════════ */
