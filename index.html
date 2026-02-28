@@ -630,25 +630,36 @@
   </div>
 </div>
 
-<!-- RAISONS D'AMOUR -->
-<div class="section fade-in" id="reasonSection" style="margin-top:8px;">
-  <div class="section-label">Pourquoi je t'aime</div>
-  <div id="reasonBox">
-    <span class="r-label">Une raison parmi tant d'autres ✨</span>
-    <div id="reasonText">...</div>
-    <span class="r-hint">👆 Tape ou attends pour en découvrir une autre</span>
+<!-- MOTS DOUX IA -->
+<div class="section fade-in" id="motsDoux" style="margin-top:8px;">
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <span>Un mot doux ✨</span>
+    <button id="motsDoux_refreshBtn" onclick="motsDoux_refresh(true)" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--muted);display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif;opacity:0.75;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Nouveau
+    </button>
+  </div>
+  <div id="motsDoux_card" class="mots-doux-card">
+    <div id="motsDoux_spinner" class="mots-doux-spinner" style="display:none;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="spin-anim"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+    </div>
+    <div id="motsDoux_text" class="mots-doux-text">Chargement...</div>
+    <div id="motsDoux_meta" class="mots-doux-meta"></div>
   </div>
 </div>
 
-<!-- TIMELINE -->
+<!-- NOTRE HISTOIRE — éditable -->
 <div class="section fade-in" id="timelineSection">
-  <div class="section-label">Notre histoire</div>
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
+    <span>Notre histoire</span>
+    <button onclick="histoireOpenGestion()" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--muted);display:flex;align-items:center;gap:5px;opacity:0.75;" aria-label="Modifier notre histoire">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    </button>
+  </div>
   <div id="tlContent">
     <div class="tl-wrap collapsed" id="tlWrap">
       <div class="tl-line"></div>
-      <div class="tl-item"><div class="tl-dot"></div><div class="tl-date">19 octobre 2024</div><div class="tl-card"><h3>Le premier message 💬</h3><p>Quelques mots échangés en ligne. Un "vas au McDo", on savait pas encore que ça allait tout changer.</p></div></div>
-      <div class="tl-item"><div class="tl-dot"></div><div class="tl-date">29 octobre 2024</div><div class="tl-card"><h3>"Tu veux être ma gentille ?" 💘</h3><p>Et t'as fini d'être aigrie. Le destin a décidé pour nous — et on a bien fait de l'écouter.</p></div></div>
-      <div class="tl-item"><div class="tl-dot"></div><div class="tl-date">Aujourd'hui &amp; toujours</div><div class="tl-card"><h3>En construction... 🌟</h3><p>Plein de chapitres à écrire ensemble encore.</p></div></div>
+      <div id="tlItemsContainer"></div>
     </div>
     <div class="tl-toggle" id="tlToggle">▾ Voir la suite</div>
   </div>
@@ -796,6 +807,18 @@
     </button>
   </div>
   <div style="font-size:12px;color:var(--muted);padding:0 0 14px;">Des choses à faire ensemble, étape par étape</div>
+  <!-- Bouton idée IA -->
+  <div id="activiteIaWrap" style="margin-bottom:12px;">
+    <button id="activiteIaBtn" onclick="activiteIaSuggest()" class="activite-ia-btn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      Nouvelle idée pour nous
+    </button>
+    <div id="activiteIaSuggCard" style="display:none;" class="activite-ia-card">
+      <div id="activiteIaSuggText" class="activite-ia-text"></div>
+      <div id="activiteIaSuggMeta" class="activite-ia-meta"></div>
+      <button id="activiteIaAddBtn" onclick="activiteIaAdd()" class="activite-ia-add-btn">✚ Ajouter à nos activités</button>
+    </div>
+  </div>
   <div id="activitesContainer" style="display:flex;flex-direction:column;gap:12px;"></div>
   <div id="activitesBtnWrap" style="padding-top:12px;padding-bottom:8px;"></div>
 </div>
@@ -983,6 +1006,41 @@
     </button>
   </div>
   <div id="activiteGestionList" class="souvenir-gestion-list"></div>
+</div>
+
+<!-- Overlay gestion Notre Histoire -->
+<div id="histoireGestionOverlay" class="souvenir-gestion-overlay">
+  <div class="souvenir-gestion-header">
+    <div style="font-size:17px;font-weight:700;color:var(--text);">Notre histoire</div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button onclick="histoireOpenItemModal(null)" style="background:linear-gradient(135deg,#e879a0,#9b59b6);border:none;cursor:pointer;padding:7px 14px;color:#fff;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif;border-radius:10px;display:flex;align-items:center;gap:5px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Ajouter
+      </button>
+      <button onclick="histoireCloseGestion()" style="background:none;border:none;cursor:pointer;padding:6px;color:var(--muted);display:flex;align-items:center;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="histoireGestionList" class="souvenir-gestion-list"></div>
+</div>
+
+<!-- Modal item Histoire -->
+<div id="histoireItemModal" class="nous-modal-overlay">
+  <div class="nous-modal-sheet">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div id="histoireItemModalTitle" style="font-size:17px;font-weight:700;color:var(--text);">Nouveau chapitre</div>
+      <span onclick="histoireCloseItemModal()" style="font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;">✕</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <input id="histoireItemEmoji" type="text" maxlength="4" placeholder="💘" style="width:52px;padding:12px;font-size:22px;text-align:center;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;">
+      <input id="histoireItemDate" type="text" placeholder="Date (ex: 19 octobre 2024)..." maxlength="40" style="width:100%;padding:12px 14px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;">
+      <input id="histoireItemTitle" type="text" placeholder="Titre du moment..." maxlength="60" style="width:100%;padding:12px 14px;font-size:15px;font-weight:700;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;">
+      <textarea id="histoireItemText" placeholder="Raconte ce moment..." maxlength="400" rows="4" style="width:100%;padding:12px 14px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;resize:none;line-height:1.5;"></textarea>
+      <button id="histoireItemSaveBtn" onclick="histoireSaveItem()" style="width:100%;padding:13px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-weight:700;font-size:15px;font-family:'DM Sans',sans-serif;border:none;border-radius:12px;cursor:pointer;margin-top:4px;">Sauvegarder</button>
+      <button id="histoireItemDeleteBtn" onclick="histoireDeleteItem()" style="display:none;width:100%;padding:11px;background:transparent;color:#e05555;font-size:13px;font-family:'DM Sans',sans-serif;border:1px solid rgba(224,85,85,0.3);border-radius:12px;cursor:pointer;">Supprimer 🗑️</button>
+    </div>
+  </div>
 </div>
 
 <!-- Modal Activité -->
@@ -2802,7 +2860,7 @@ function v2ApplyDynamicNames(){
 <script>
 // Modales : clic dehors pour fermer
 document.addEventListener('DOMContentLoaded', function(){
-  ['souvenirModal','activiteModal'].forEach(function(id){
+  ['souvenirModal','activiteModal','histoireItemModal'].forEach(function(id){
     var m = document.getElementById(id);
     if (!m) return;
     m.addEventListener('click', function(e){
@@ -3050,11 +3108,39 @@ document.addEventListener('DOMContentLoaded', function(){
   padding-bottom: 24px;
   box-sizing: border-box;
 }
+/* ── Mots doux IA ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin-anim { animation: spin 0.9s linear infinite; }
+.mots-doux-card {
+  background: linear-gradient(135deg, rgba(232,121,160,0.07), rgba(155,89,182,0.07));
+  border: 1.5px solid rgba(232,121,160,0.22);
+  border-radius: 18px; padding: 20px 18px 16px;
+  position: relative; min-height: 80px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.mots-doux-spinner { position: absolute; top: 16px; right: 16px; color: rgba(232,121,160,0.6); }
+.mots-doux-text { font-size: 15px; line-height: 1.65; color: var(--text); font-style: italic; font-weight: 500; animation: fadeInUp 0.4s ease; }
+.mots-doux-meta { font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0.05),rgba(155,89,182,0.05)); border-color: rgba(200,24,94,0.18); }
+/* ── Histoire gestion ── */
+.histoire-gestion-row { display: flex; align-items: flex-start; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--border); cursor: pointer; transition: opacity 0.15s; }
+.histoire-gestion-row:last-child { border-bottom: none; }
+.histoire-gestion-row:active { opacity: 0.7; }
+.histoire-gestion-emoji { width: 42px; height: 42px; border-radius: 10px; background: var(--s2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-top: 2px; }
+.histoire-gestion-info { flex: 1; min-width: 0; }
+.histoire-gestion-date { font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 3px; }
+.histoire-gestion-title { font-size: 14px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.histoire-gestion-text { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* ── Activité IA ── */
+.activite-ia-btn { width: 100%; padding: 12px; border-radius: 14px; background: linear-gradient(135deg,rgba(232,121,160,0.1),rgba(155,89,182,0.1)); border: 1.5px solid rgba(232,121,160,0.3); color: #e879a0; font-size: 13px; font-weight: 700; font-family: 'DM Sans',sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; transition: opacity 0.15s; }
+.activite-ia-btn:active { opacity: 0.7; }
+.activite-ia-btn:disabled { opacity: 0.5; cursor: default; }
+.activite-ia-card { margin-top: 10px; padding: 16px; background: var(--s1); border: 1px solid var(--border); border-radius: 14px; display: flex; flex-direction: column; gap: 10px; animation: fadeInUp 0.35s ease; }
+.activite-ia-text { font-size: 13px; color: var(--text); line-height: 1.55; }
+.activite-ia-meta { font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+.activite-ia-add-btn { padding: 10px 16px; background: linear-gradient(135deg,#e879a0,#9b59b6); color: #fff; font-size: 13px; font-weight: 700; font-family: 'DM Sans',sans-serif; border: none; border-radius: 10px; cursor: pointer; }
 </style>
-
-<script>
-(function(){
-  function initDefaultAvatars(){
     var profile = (typeof getProfile === 'function') ? getProfile() : null;
     var self    = profile || 'girl';
     var other   = (self === 'girl') ? 'boy' : 'girl';
