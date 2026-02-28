@@ -353,8 +353,8 @@ body {
   background: var(--bg);
   color: var(--text);
   overflow-x: hidden;
-  /* Évite que le contenu passe sous la bottom-nav (nav 64px + home indicator) */
-  padding-bottom: var(--nav-height);
+  /* padding-bottom retiré du body — géré par .yam-tab-panel.active
+     (évite le décalage permanent de la fenêtre sur PWA iOS WebKit) */
   transition: background 0.3s, color 0.3s;
 }
 /* Verrou de scroll global — appliqué par _blockBackgroundScroll()
@@ -1086,6 +1086,8 @@ body.light #loveBox .lb-label { color: rgba(200,24,94,0.65); }
 }
 .yam-tab-panel.active {
   display: block;
+  /* Évite que le contenu passe sous la bottom-nav */
+  padding-bottom: var(--nav-height);
   /* Hauteur minimale = viewport - header estimé - nav bar
      Évite que la bottom-nav remonte sur les onglets au contenu court (ex: Jeux) */
   min-height: calc(100dvh - var(--nav-height) - 120px);
