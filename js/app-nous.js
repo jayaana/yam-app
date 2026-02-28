@@ -364,7 +364,11 @@ window.nousSignalNew = function() {
   window.elleEditSectionTitle = function(){
     if(getProfile() !== 'boy') return;
     var el = document.getElementById('elleSectionTitle'); if(!el) return;
+    _saveScrollPosition();
+    _blockBackgroundScroll();
     descEditOpen(el.textContent.trim(), 'Titre de la section Elle', function(val){
+      _unblockBackgroundScroll();
+      _restoreScrollPosition();
       if(!val) return;
       el.textContent = val;
       _saveSectionTitle('elle_title', val);
@@ -375,7 +379,11 @@ window.nousSignalNew = function() {
   window.luiEditSectionTitle = function(){
     if(getProfile() !== 'girl') return;
     var el = document.getElementById('luiSectionTitle'); if(!el) return;
+    _saveScrollPosition();
+    _blockBackgroundScroll();
     descEditOpen(el.textContent.trim(), 'Titre de la section Lui', function(val){
+      _unblockBackgroundScroll();
+      _restoreScrollPosition();
       if(!val) return;
       el.textContent = val;
       _saveSectionTitle('lui_title', val);
@@ -384,6 +392,22 @@ window.nousSignalNew = function() {
 
   // Exposer le chargement des titres à l'init
   window._loadSectionTitles = _loadSectionTitles;
+
+  // ── Patch global descEditClose — garantit le déverrouillage scroll même si l'user annule ──
+  // (descEditClose est définie dans app-core.js — on la wrappe ici pour sécurité)
+  setTimeout(function(){
+    var _origClose = window.descEditClose;
+    if(typeof _origClose === 'function'){
+      window.descEditClose = function(){
+        _origClose.apply(this, arguments);
+        // Déverrouille seulement si un lock était actif (compteur > 0)
+        if(_scrollLockCount > 0){
+          _unblockBackgroundScroll();
+          _restoreScrollPosition();
+        }
+      };
+    }
+  }, 100);
 })();
 
 
@@ -550,13 +574,9 @@ window.nousSignalNew = function() {
     localStorage.setItem('elle_desc_'+slot,val);
   }
 
-  var SLOT_LABELS = {animal:'Son animal',fleurs:'Ses fleurs',personnage:'Son personnage',saison:'Sa saison',repas:'Son repas'};
   window.elleEditDesc = function(slot){
     if(getProfile()!=='boy') return;
-    var el=document.getElementById('elle-desc-'+slot); if(!el) return;
-    descEditOpen(el.textContent.trim(),'Légende · '+(SLOT_LABELS[slot]||slot),function(val){
-      val=val||ELLE_DESC_DEFAULTS[slot]; el.textContent=val; elleSaveDesc(slot,val);
-    });
+    pochetteEditOpen('elle', slot);
   };
 })();
 
@@ -576,16 +596,9 @@ window.nousSignalNew = function() {
   // Rouage LUI : girl peut ouvrir/fermer la section LUI pour décrire son copain
 
   // ── Éditer le bandeau (titre) d'une pochette ELLE ──
-  var _ELLE_BANNER_DEF = {animal:'Animal',fleurs:'Fleurs',personnage:'Personnage',saison:'Saison',repas:'Repas'};
   window.elleEditBanner = function(slot){
     if(getProfile() !== 'boy') return;
-    var el = document.getElementById('elle-banner-'+slot); if(!el) return;
-    descEditOpen(el.textContent.trim(), 'Titre pochette · '+(_ELLE_BANNER_DEF[slot]||slot), function(val){
-      if(!val) return;
-      el.textContent = val;
-      var coupleId = _getCoupleId(); if(!coupleId) return;
-      fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,category:'elle_banner',slot:slot,description:val})}).catch(function(){});
-    });
+    pochetteEditOpen('elle', slot);
   };
   function _loadElleBanners(coupleId){
     fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+coupleId+'&category=eq.elle_banner&select=slot,description',{headers:sb2Headers()})
@@ -685,27 +698,13 @@ window.nousSignalNew = function() {
 
   window.luiEditDesc=function(slot){
     if(getProfile()!=='girl') return;
-    var el=document.getElementById('lui-desc-'+slot); if(!el) return;
-    var LABELS={animal:'Son animal',fleurs:'Ses fleurs',personnage:'Son personnage',saison:'Sa saison',repas:'Son repas'};
-    descEditOpen(el.textContent.trim(),'Légende · '+(LABELS[slot]||slot),function(val){
-      val=val||LUI_DESC_DEFAULTS[slot]; el.textContent=val;
-      var coupleId=_getCoupleId(); if(!coupleId) return;
-      fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:coupleId,category:'lui',slot:slot,description:val})}).catch(function(){});
-      localStorage.setItem('lui_desc_'+slot,val);
-    });
+    pochetteEditOpen('lui', slot);
   };
 
   // ── Éditer le bandeau (titre) d'une pochette LUI ──
-  var _LUI_BANNER_DEF = {animal:'Animal',fleurs:'Fleurs',personnage:'Personnage',saison:'Saison',repas:'Repas'};
   window.luiEditBanner = function(slot){
     if(getProfile() !== 'girl') return;
-    var el = document.getElementById('lui-banner-'+slot); if(!el) return;
-    descEditOpen(el.textContent.trim(), 'Titre pochette · '+(_LUI_BANNER_DEF[slot]||slot), function(val){
-      if(!val) return;
-      el.textContent = val;
-      var coupleId = _getCoupleId(); if(!coupleId) return;
-      fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,category:'lui_banner',slot:slot,description:val})}).catch(function(){});
-    });
+    pochetteEditOpen('lui', slot);
   };
   function _loadLuiBanners(coupleId){
     fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+coupleId+'&category=eq.lui_banner&select=slot,description',{headers:sb2Headers()})
@@ -2501,6 +2500,223 @@ loadLikeCounters();
   // Init au chargement
   document.addEventListener('nousContentReady', function(){ window.histoireLoad(); });
   setTimeout(function(){ if(!_histoireAllRows.length) window.histoireLoad(); }, 2000);
+
+})();
+
+
+// ════════════════════════════════════════════════════════════════════
+// MODAL ÉDITION POCHETTE ELLE/LUI — Système unifié (titre + photo + légende)
+// Même architecture que livreEditModal. Remplace descEditOpen dispersé.
+// boy édite les pochettes de ELLE — girl édite les pochettes de LUI
+// Données : bannière → v2_photo_descs category='elle_banner'|'lui_banner'
+//           légende  → v2_photo_descs category='elle'|'lui'
+//           photo    → Storage uploads/{coupleId}/{slot}-elle.jpg|lui.jpg
+// ════════════════════════════════════════════════════════════════════
+(function(){
+
+  var SB_BUCKET = 'images';
+  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
+
+  // État courant du modal
+  var _pSection  = null; // 'elle' | 'lui'
+  var _pSlot     = null; // 'animal' | 'fleurs' | ...
+  var _pPhotoFile = null; // fichier photo sélectionné (en attente de save)
+  var _pHasPhoto = false; // la pochette a déjà une photo en base
+
+  // Chemins Storage identiques à ceux des sections elle/lui
+  function _pPath(section, coupleId, slot){
+    return 'uploads/'+coupleId+'/'+slot+'-'+section+'.jpg';
+  }
+
+  // ── Ouvrir le modal pour une pochette donnée ──
+  window.pochetteEditOpen = function(section, slot){
+    // Vérif droits : boy édite ELLE, girl édite LUI
+    var profile = (typeof getProfile === 'function') ? getProfile() : null;
+    if(section === 'elle' && profile !== 'boy')  return;
+    if(section === 'lui'  && profile !== 'girl') return;
+
+    var coupleId = _getCoupleId(); if(!coupleId) return;
+
+    _pSection  = section;
+    _pSlot     = slot;
+    _pPhotoFile = null;
+
+    var modal = document.getElementById('pochetteEditModal'); if(!modal) return;
+
+    // Titre du modal
+    var titleEl = document.getElementById('pochetteEditModalTitle');
+    if(titleEl) titleEl.textContent = 'Modifier la pochette';
+
+    // Charger valeur banner actuelle
+    var bannerEl = document.getElementById(section+'-banner-'+slot);
+    var bannerInput = document.getElementById('pochetteEditBanner');
+    if(bannerInput) bannerInput.value = bannerEl ? bannerEl.textContent.trim() : '';
+
+    // Charger valeur légende actuelle
+    var descEl = document.getElementById(section+'-desc-'+slot);
+    var descInput = document.getElementById('pochetteEditDesc');
+    if(descInput) descInput.value = descEl ? descEl.textContent.trim() : '';
+
+    // Charger photo actuelle
+    var photoDiv = document.getElementById('pochetteEditPhoto');
+    var imgEl = document.getElementById(section+'-img-'+slot);
+    _pHasPhoto = !!(imgEl && imgEl.style.display !== 'none' && imgEl.src && imgEl.src.indexOf('data:') === -1 && imgEl.src.length > 10);
+    if(photoDiv){
+      if(_pHasPhoto){
+        photoDiv.style.backgroundImage = 'url('+imgEl.src+')';
+        photoDiv.innerHTML = '';
+      } else {
+        photoDiv.style.backgroundImage = '';
+        photoDiv.innerHTML = '<div style="font-size:28px;color:var(--muted);">🖼️</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">Ajouter une photo</div>';
+      }
+    }
+
+    // Bloquer scroll + ouvrir
+    _saveScrollPosition();
+    _blockBackgroundScroll();
+    modal.classList.add('open');
+
+    // Focus titre au clavier
+    setTimeout(function(){
+      var inp = document.getElementById('pochetteEditBanner');
+      if(inp) inp.focus();
+    }, 350);
+  };
+
+  // ── Fermer le modal ──
+  window.pochetteEditClose = function(){
+    if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    var modal = document.getElementById('pochetteEditModal');
+    if(modal) modal.classList.remove('open');
+    _pSection = null; _pSlot = null; _pPhotoFile = null;
+    _unblockBackgroundScroll();
+    _restoreScrollPosition();
+  };
+
+  // ── Clic sur la zone photo → déclenche input file ──
+  window.pochetteEditPhotoClick = function(){
+    var inp = document.getElementById('pochettePhotoInput');
+    if(inp){ inp.value=''; inp.click(); }
+  };
+
+  // ── Sélection d'une photo → prévisualisation immédiate ──
+  window.pochetteEditHandlePhoto = function(input){
+    if(!input.files || !input.files[0]) return;
+    var file = input.files[0];
+    var ALLOWED = ['image/jpeg','image/jpg','image/png','image/webp','image/gif'];
+    if(ALLOWED.indexOf(file.type) === -1){ alert('Format non autorisé.'); input.value=''; return; }
+    if(file.size > 5*1024*1024){ alert('Image trop lourde (max 5 Mo)'); input.value=''; return; }
+    _pPhotoFile = file;
+    // Prévisualisation dans le modal
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var photoDiv = document.getElementById('pochetteEditPhoto');
+      if(photoDiv){
+        photoDiv.style.backgroundImage = 'url('+e.target.result+')';
+        photoDiv.innerHTML = '';
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // ── Sauvegarder bannière + légende (+ upload photo si nouvelle) ──
+  window.pochetteEditSave = function(){
+    var coupleId = _getCoupleId(); if(!coupleId || !_pSection || !_pSlot) return;
+    var section = _pSection; var slot = _pSlot;
+
+    var bannerVal = (document.getElementById('pochetteEditBanner')||{}).value || '';
+    var descVal   = (document.getElementById('pochetteEditDesc')||{}).value || '';
+
+    var saveBtn = document.getElementById('pochetteEditSaveBtn');
+    if(saveBtn){ saveBtn.disabled = true; saveBtn.textContent = 'Sauvegarde…'; }
+
+    // Sauvegarder bannière
+    function _saveBanner(){
+      if(!bannerVal.trim()) return Promise.resolve();
+      var el = document.getElementById(section+'-banner-'+slot);
+      if(el) el.textContent = bannerVal;
+      return fetch(SB2_URL+'/rest/v1/v2_photo_descs',{
+        method:'POST',
+        headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),
+        body:JSON.stringify({couple_id:coupleId,category:section+'_banner',slot:slot,description:bannerVal})
+      }).catch(function(){});
+    }
+
+    // Sauvegarder légende
+    function _saveDesc(){
+      if(!descVal.trim()) return Promise.resolve();
+      var el = document.getElementById(section+'-desc-'+slot);
+      if(el) el.textContent = descVal;
+      localStorage.setItem(section+'_desc_'+slot, descVal);
+      return fetch(SB2_URL+'/rest/v1/v2_photo_descs',{
+        method:'POST',
+        headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),
+        body:JSON.stringify({couple_id:coupleId,category:section,slot:slot,description:descVal})
+      }).catch(function(){});
+    }
+
+    // Upload photo si nouvelle
+    function _uploadPhoto(){
+      if(!_pPhotoFile) return Promise.resolve();
+      var filePath = _pPath(section, coupleId, slot);
+      var loading = document.getElementById(section+'-loading-'+slot);
+      var bar     = document.getElementById(section+'-bar-'+slot);
+      if(loading) loading.classList.add('show');
+      if(bar){ bar.style.width='0%'; setTimeout(function(){ bar.style.width='60%'; },100); }
+      return fetch(SB2_URL+'/storage/v1/object/'+SB_BUCKET+'/'+filePath,{
+        method:'POST',
+        headers:Object.assign({'Content-Type':_pPhotoFile.type,'x-upsert':'true'}, sb2Headers()),
+        body:_pPhotoFile
+      }).then(function(r){
+        if(bar) bar.style.width='100%';
+        if(loading) loading.classList.remove('show');
+        if(r.ok){
+          var newUrl = SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+filePath+'?t='+Date.now();
+          var img   = document.getElementById(section+'-img-'+slot);
+          var empty = document.getElementById(section+'-empty-'+slot);
+          var btn   = document.getElementById(section+'-btn-'+slot);
+          if(img){ img.src=newUrl; img.style.display=''; }
+          if(empty) empty.style.display='none';
+          if(btn) btn.classList.remove('empty');
+          if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh(section+'_slot_'+slot);
+        }
+      }).catch(function(err){
+        if(loading) loading.classList.remove('show');
+        alert('Erreur upload : '+err);
+      });
+    }
+
+    // Exécuter les 3 ops en parallèle puis fermer
+    Promise.all([_saveBanner(), _saveDesc(), _uploadPhoto()])
+    .then(function(){
+      if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='Sauvegarder'; }
+      if(typeof showToast === 'function') showToast('Pochette mise à jour ✨','success',2000);
+      window.pochetteEditClose();
+    }).catch(function(){
+      if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='Sauvegarder'; }
+      window.pochetteEditClose();
+    });
+  };
+
+  // ── Fermeture au clic sur le fond ──
+  (function(){
+    setTimeout(function(){
+      var modal = document.getElementById('pochetteEditModal');
+      if(!modal) return;
+      var _openedAt = 0;
+      new MutationObserver(function(){
+        if(modal.classList.contains('open')) _openedAt = Date.now();
+      }).observe(modal, {attributes:true, attributeFilter:['class']});
+      modal.addEventListener('click', function(e){
+        if(Date.now() - _openedAt < 400) return;
+        if(e.target === modal) window.pochetteEditClose();
+      });
+      modal.addEventListener('touchend', function(e){
+        if(Date.now() - _openedAt < 400) return;
+        if(e.target === modal) window.pochetteEditClose();
+      }, {passive:true});
+    }, 0);
+  })();
 
 })();
 
