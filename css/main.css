@@ -47,7 +47,7 @@ body.light {
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; overflow-x: hidden; -webkit-text-size-adjust: 100%; overscroll-behavior: none !important; overscroll-behavior-x: none !important; overscroll-behavior-y: none !important; }
-body { overscroll-behavior: none !important; overscroll-behavior-y: none !important; -webkit-overflow-scrolling: touch; /* touch-action: pan-x pan-y retiré — bloquait la sélection de texte au doigt sur iOS */ }
+body { overscroll-behavior: none !important; overscroll-behavior-y: none !important; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y !important; }
 
 /* ══ SKELETON LOADING ══ */
 @keyframes skeletonShimmer {
@@ -363,18 +363,6 @@ body.scroll-locked {
 }
 /* Empêche le zoom automatique iOS sur les inputs (déclenché si font-size < 16px) */
 input, textarea, select { font-size: 16px !important; }
-
-/* ── Sélection de texte : explicitement autorisée dans les zones de lecture/édition ──
-   Contrebalance les user-select:none hérités de parents de niveau élevé */
-input, textarea,
-.memo-note-content, .memo-todo-text,
-.pm-card-body, .pm-card-title,
-.souvenir-desc, .souvenir-title,
-.desc-edit-modal textarea, .desc-edit-modal input,
-[contenteditable] {
-  -webkit-user-select: text !important;
-  user-select: text !important;
-}
 
 .fade-in {
   opacity: 0;
@@ -3915,24 +3903,22 @@ body.light .pendu-theme {
 
 #hiddenPage {
   display: none; position: fixed;
-  top: 0; left: 0; right: 0;
-  bottom: var(--nav-height);
+  top: 0; left: 0; right: 0; bottom: 0; /* occupe tout l'écran y compris nav */
   z-index: 1100;
   overflow: hidden; background: var(--bg);
   flex-direction: column; transition: background 0.3s;
   overscroll-behavior-x: none; touch-action: pan-y;
+  /* Clavier iOS : passe PAR-DESSUS la nav — rien ne bouge via JS */
 }
 #hiddenPage.active { display: flex; animation: slideUp 0.3s ease; }
 
-/* Fond opaque sous hiddenPage pour couvrir la nav quand le clavier est ouvert */
-#dmKeyboardBg {
-  display: none; position: fixed;
-  left: 0; right: 0; bottom: 0;
-  height: var(--nav-height);
-  background: var(--bg); z-index: 1099;
-  pointer-events: none;
+/* Chat screen : utilise dvh pour que l'espace disponible suive le clavier nativement */
+#hiddenPage .dm-chat-screen {
+  height: 100dvh; /* se réduit automatiquement quand le clavier s'ouvre */
 }
-#dmKeyboardBg.on { display: block; }
+
+/* dmKeyboardBg inutile désormais (conservé pour ne pas casser les refs JS) */
+#dmKeyboardBg { display: none !important; pointer-events: none; }
 
 /* Topbar */
 .dm-topbar {
@@ -4112,10 +4098,12 @@ body.light .dm-id-overlay { background: transparent; }
 /* Chat */
 .dm-messages {
   flex:1; overflow-y:auto; width:100%;
-  /* padding-top = hauteur topbar (calc 56px + safe-top) + marge confort */
+  /* padding-top = hauteur topbar + marge, padding-bottom = barre de saisie + confort */
   padding: calc(var(--safe-top) + 56px + 12px) 12px 6px;
   display:flex; flex-direction:column;
   overscroll-behavior:contain;
+  /* Scroll automatique vers le bas quand le clavier s'ouvre (iOS) */
+  scroll-behavior: smooth;
 }
 .dm-messages::-webkit-scrollbar { width:3px; }
 .dm-messages::-webkit-scrollbar-thumb { background:var(--s3); border-radius:3px; }
@@ -4236,6 +4224,10 @@ body.light .dm-seen-label { color: var(--muted); }
 .dm-input-bar {
   width:100%; flex-shrink:0;
   padding:10px 12px 10px;
+  /* Sur iOS : env(safe-area-inset-bottom) couvre le home indicator.
+     Quand le clavier est ouvert il remplace le safe-area, donc ce padding
+     n'est jamais sur-additionné. La barre de saisie reste toujours visible. */
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
   background:var(--bg); border-top:1px solid var(--border);
   position:relative; transition:background 0.3s;
 }
