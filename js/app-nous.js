@@ -1868,27 +1868,67 @@ loadLikeCounters();
 
 
 // ════════════════════════════════════════════════════════════════════
-// 14. MOTS DOUX IA — générés par Claude via Edge Function
+// 14. MOTS DOUX IA — 15 générés en batch chaque jour, rotation aléatoire
+// Logique :
+//   • Au premier accès du jour → génère 15 mots doux en une fois (appels séquentiels)
+//   • Les 15 mots sont stockés en localStorage + base
+//   • Toute la journée, le bouton "refresh" fait tourner aléatoirement dans ce pool
+//   • Le lendemain → nouveau batch de 15 (l'ancien est remplacé)
 // Table : v2_mots_doux (id, couple_id, text, generated_at)
 // ════════════════════════════════════════════════════════════════════
 (function(){
 
   function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
-  var SB2_EDGE_CLAUDE = SB2_URL + '/functions/v1/gemini-suggest';
+  var SB2_EDGE = SB2_URL + '/functions/v1/gemini-suggest';
+  var _MD_BATCH_SIZE = 15;  // nombre de mots doux générés par jour
 
-  // Affiche un spinner et cache le texte courant
+  // ── Clés localStorage ──
+  function _cacheKey(coupleId){ return 'yam_motdoux_batch_' + coupleId; }
+
+  // Charger le batch du jour depuis localStorage
+  // Retourne { date, mots: [...], deckPos } ou null si absent/périmé
+  function _loadCache(coupleId){
+    try {
+      var data = JSON.parse(localStorage.getItem(_cacheKey(coupleId)) || 'null');
+      var today = new Date().toISOString().slice(0,10);
+      if(data && data.date === today && Array.isArray(data.mots) && data.mots.length > 0) return data;
+    } catch(e){}
+    return null;
+  }
+
+  // Sauvegarder le batch en localStorage
+  function _saveCache(coupleId, mots, deckPos){
+    try {
+      localStorage.setItem(_cacheKey(coupleId), JSON.stringify({
+        date: new Date().toISOString().slice(0,10),
+        mots: mots,
+        deckPos: deckPos || 0
+      }));
+    } catch(e){}
+  }
+
+  // Mélange Fisher-Yates
+  function _shuffle(arr){
+    var a = arr.slice();
+    for(var i = a.length-1; i > 0; i--){
+      var j = Math.floor(Math.random()*(i+1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+
+  // ── Affichage ──
   function _setLoading(on){
-    var sp = document.getElementById('motsDoux_spinner');
+    var sp  = document.getElementById('motsDoux_spinner');
     var btn = document.getElementById('motsDoux_refreshBtn');
-    if(sp) sp.style.display = on ? 'block' : 'none';
-    if(btn){ btn.disabled = on; btn.style.opacity = on ? '0.4' : ''; }
+    if(sp)  sp.style.display    = on ? 'block' : 'none';
+    if(btn){ btn.disabled       = on; btn.style.opacity = on ? '0.4' : ''; }
   }
 
   function _displayMot(text, meta){
-    var el = document.getElementById('motsDoux_text');
+    var el     = document.getElementById('motsDoux_text');
     var metaEl = document.getElementById('motsDoux_meta');
     if(!el) return;
-    // Animation
     el.style.transition = 'opacity 0.2s';
     el.style.opacity = '0';
     setTimeout(function(){
@@ -1898,112 +1938,154 @@ loadLikeCounters();
     }, 200);
   }
 
-  function _generateAndSave(forced){
-    var coupleId = _getCoupleId(); if(!coupleId) return;
-    var u = (typeof v2GetUser==='function') ? v2GetUser() : null;
-    var myRole = u ? (u.role || 'girl') : 'girl';
-    var partnerName = u ? (u.partner_pseudo || 'mon amour') : 'mon amour';
-    var myName = u ? (u.pseudo || '') : '';
-    var daysTogether = 0;
-    if(window.startDate){ daysTogether = Math.floor((Date.now()-new Date(window.startDate))/(1000*60*60*24)); }
-    var saison = ['hiver','hiver','printemps','printemps','printemps','été','été','été','automne','automne','automne','hiver'][new Date().getMonth()];
-    var heure = new Date().getHours();
-    var moment = heure < 12 ? 'matin' : heure < 18 ? 'après-midi' : 'soir';
-
-    var prompt = 'Tu es le partenaire dans un couple amoureux. Écris UN seul mot doux, tendre et sincère, de 1 à 3 phrases maximum, destiné à '+(partnerName)+
-      '. Le couple est ensemble depuis '+daysTogether+' jours. On est en '+saison+', en ce '+moment+'.'+
-      ' Le message doit être naturel, chaleureux, jamais mièvre. Pas de guillemets autour du texte. Pas d\'explication. Juste le message.';
-
-    _setLoading(true);
-
-    fetch(SB2_EDGE_CLAUDE, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-app-secret': SB2_APP_SECRET, 'apikey': SB2_KEY, 'Authorization': 'Bearer ' + SB2_KEY },
-      body: JSON.stringify({ prompt: prompt })
-    })
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-      if(data.error) throw new Error(data.error);
-      var text = (data.text || '').trim().replace(/^"+|"+$/g,'').trim();
-      if(!text) throw new Error('empty');
-      // Sauvegarder en base
-      return fetch(SB2_URL+'/rest/v1/v2_mots_doux', {
-        method: 'POST',
-        headers: sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
-        body: JSON.stringify({ couple_id: coupleId, text: text, generated_at: new Date().toISOString() })
-      }).then(function(){ return text; });
-    })
-    .then(function(text){
-      _displayMot(text, 'Mot doux IA · ' + new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'}));
-      _setLoading(false);
-    })
-    .catch(function(){
-      // Fallback offline si Edge Function indisponible
-      var fallbacks = [
-        'Pense à toi et ça me suffit pour sourire, même à distance. ❤️',
-        'Je suis tellement reconnaissant(e) de t\'avoir dans ma vie. Tu es mon endroit préféré.',
-        'Ce soir, sache que tu occupes mes pensées, et c\'est la meilleure place qui soit. 💕',
-        'Avec toi, même les moments simples deviennent des souvenirs que je chéris.'
-      ];
-      var txt = fallbacks[Math.floor(Math.random()*fallbacks.length)];
-      _displayMot(txt, 'Mot doux · hors-ligne');
-      _setLoading(false);
-    });
+  // Affiche un mot du deck en cours et avance la position
+  function _showNextFromDeck(coupleId){
+    var cache = _loadCache(coupleId);
+    if(!cache || !cache.mots.length) return false;
+    var pos  = (cache.deckPos || 0) % cache.mots.length;
+    var text = cache.mots[pos];
+    // Avancer la position pour le prochain appel
+    _saveCache(coupleId, cache.mots, pos + 1);
+    var dateLabel = new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
+    _displayMot(text, 'Mot doux IA · ' + dateLabel + ' · ' + (pos+1) + '/' + cache.mots.length);
+    return true;
   }
 
-  var _motsDoux_loading = false;  // verrou anti-doublon
-  var _motsDoux_init_done = false; // init unique
+  // ── Génération batch séquentielle ──
+  // Génère _MD_BATCH_SIZE mots un par un (appels séquentiels pour éviter le rate-limit)
+  function _generateBatch(coupleId, onDone){
+    var u = (typeof v2GetUser==='function') ? v2GetUser() : null;
+    var partnerName  = u ? (u.partner_pseudo || 'mon amour') : 'mon amour';
+    var daysTogether = 0;
+    if(window.startDate){ daysTogether = Math.floor((Date.now()-new Date(window.startDate))/(1000*60*60*24)); }
+    var saison  = ['hiver','hiver','printemps','printemps','printemps','été','été','été','automne','automne','automne','hiver'][new Date().getMonth()];
+    var moments = ['matin','après-midi','soir'];
+    var collected = [];
 
-  // Charger depuis la base ou générer si trop ancien (>24h)
-  window.motsDoux_refresh = function(forced){
-    var coupleId = _getCoupleId(); if(!coupleId){ _displayMot('Connecte-toi pour recevoir des mots doux ✨',''); return; }
+    _setLoading(true);
+    // Afficher un message de génération pendant le chargement
+    var el = document.getElementById('motsDoux_text');
+    if(el){ el.style.opacity='0'; setTimeout(function(){ el.textContent='Génération de tes mots doux du jour... ✨'; el.style.opacity='1'; },200); }
 
-    // Anti-doublon : si un appel est déjà en cours, ignorer
-    if(_motsDoux_loading && !forced) return;
-
-    if(forced){ _generateAndSave(true); return; }
-
-    // Cache localStorage : éviter tout appel réseau si déjà affiché aujourd'hui
-    var cacheKey = 'yam_motdoux_' + coupleId;
-    try {
-      var cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
-      if(cached && cached.text && cached.date === new Date().toISOString().slice(0,10)){
-        _displayMot(cached.text, 'Mot doux IA · ' + new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'}));
+    function _fetchOne(index){
+      if(index >= _MD_BATCH_SIZE){
+        // Tous les mots sont collectés
+        var shuffled = _shuffle(collected);
+        _saveCache(coupleId, shuffled, 0);
+        // Sauvegarder aussi en base (batch insert)
+        var now = new Date().toISOString();
+        var rows = shuffled.map(function(t){ return { couple_id: coupleId, text: t, generated_at: now }; });
+        fetch(SB2_URL+'/rest/v1/v2_mots_doux', {
+          method: 'POST',
+          headers: sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
+          body: JSON.stringify(rows)
+        }).catch(function(){});
+        _setLoading(false);
+        if(onDone) onDone(shuffled);
         return;
       }
-    } catch(e){}
+      // Varier le moment de la journée pour diversifier les messages
+      var moment = moments[index % moments.length];
+      var prompt = 'Tu es le partenaire dans un couple amoureux. Écris UN seul mot doux unique et différent des précédents, tendre et sincère, de 1 à 3 phrases maximum, destiné à '+ partnerName +
+        '. Le couple est ensemble depuis '+daysTogether+' jours. On est en '+saison+', en ce '+moment+'.'+
+        ' Le message doit être naturel, chaleureux, jamais mièvre ni répétitif. Pas de guillemets. Pas d\'explication. Juste le message.';
 
+      fetch(SB2_EDGE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-app-secret': SB2_APP_SECRET, 'apikey': SB2_KEY, 'Authorization': 'Bearer ' + SB2_KEY },
+        body: JSON.stringify({ prompt: prompt })
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        var text = (data.text || '').trim().replace(/^"+|"+$/g,'').trim();
+        if(text) collected.push(text);
+        // Petit délai entre chaque appel pour éviter le rate-limit
+        setTimeout(function(){ _fetchOne(index + 1); }, 300);
+      })
+      .catch(function(){
+        // En cas d'erreur sur un mot, on continue quand même
+        setTimeout(function(){ _fetchOne(index + 1); }, 300);
+      });
+    }
+
+    _fetchOne(0);
+  }
+
+  var _motsDoux_loading    = false;
+  var _motsDoux_init_done  = false;
+  var _motsDoux_generating = false; // verrou génération batch
+
+  // ── Point d'entrée principal ──
+  // forced=false → init auto (affiche depuis cache ou génère si nouveau jour)
+  // forced=true  → bouton refresh : pioche le mot suivant dans le deck du jour
+  window.motsDoux_refresh = function(forced){
+    var coupleId = _getCoupleId();
+    if(!coupleId){ _displayMot('Connecte-toi pour recevoir des mots doux ✨',''); return; }
+
+    // Bouton refresh → pioche dans le deck du jour (rotation aléatoire)
+    if(forced){
+      if(_motsDoux_generating){ if(typeof showToast==='function') showToast('Génération en cours... ✨','info',2000); return; }
+      var shown = _showNextFromDeck(coupleId);
+      if(!shown){
+        // Pas de cache valide → lancer la génération
+        if(!_motsDoux_generating){ _motsDoux_generating=true; _generateBatch(coupleId, function(mots){ _motsDoux_generating=false; _showNextFromDeck(coupleId); }); }
+      }
+      return;
+    }
+
+    // Init auto
+    if(_motsDoux_loading && !forced) return;
     _motsDoux_loading = true;
 
-    // Vérifier si un mot récent (< 24h) existe déjà en base
-    fetch(SB2_URL+'/rest/v1/v2_mots_doux?couple_id=eq.'+coupleId+'&order=generated_at.desc&limit=1&select=text,generated_at',{headers:sb2Headers()})
+    // Cache du jour dispo ?
+    var cache = _loadCache(coupleId);
+    if(cache && cache.mots.length){
+      _motsDoux_loading = false;
+      _showNextFromDeck(coupleId);
+      return;
+    }
+
+    // Pas de cache → vérifier en base si un batch existe déjà aujourd'hui
+    var today = new Date().toISOString().slice(0,10);
+    fetch(SB2_URL+'/rest/v1/v2_mots_doux?couple_id=eq.'+coupleId+'&order=generated_at.desc&limit='+_MD_BATCH_SIZE+'&select=text,generated_at',{headers:sb2Headers()})
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(rows){
-      if(rows && rows.length){
-        var last = rows[0];
-        var age = (Date.now() - new Date(last.generated_at)) / (1000*60*60);
-        if(age < 24){
-          var d = new Date(last.generated_at);
-          // Mettre en cache localStorage pour éviter les appels suivants aujourd'hui
-          try { localStorage.setItem(cacheKey, JSON.stringify({text: last.text, date: new Date().toISOString().slice(0,10)})); } catch(e){}
-          _displayMot(last.text, 'Mot doux IA · '+d.toLocaleDateString('fr-FR',{day:'numeric',month:'long'}));
-          _motsDoux_loading = false;
-          return;
+      // Filtrer uniquement les mots générés aujourd'hui
+      var todayMots = (rows||[]).filter(function(r){
+        return r.generated_at && r.generated_at.slice(0,10) === today;
+      }).map(function(r){ return r.text; });
+
+      if(todayMots.length >= _MD_BATCH_SIZE){
+        // Batch du jour déjà en base → le charger en cache et afficher
+        var shuffled = _shuffle(todayMots);
+        _saveCache(coupleId, shuffled, 0);
+        _motsDoux_loading = false;
+        _showNextFromDeck(coupleId);
+      } else {
+        // Nouveau jour → générer le batch complet
+        _motsDoux_loading = false;
+        if(!_motsDoux_generating){
+          _motsDoux_generating = true;
+          _generateBatch(coupleId, function(mots){
+            _motsDoux_generating = false;
+            _showNextFromDeck(coupleId);
+          });
         }
       }
-      // Aucun mot récent — générer (1 seul appel Gemini par 24h)
-      _generateAndSave(false);
     })
     .catch(function(){
-      // En cas d'erreur réseau : afficher fallback SANS appeler Gemini
+      // Erreur réseau → fallbacks offline
+      _motsDoux_loading = false;
       var fallbacks = [
         'Pense à toi et ça me suffit pour sourire, même à distance. ❤️',
         'Je suis tellement reconnaissant(e) de t\'avoir dans ma vie. Tu es mon endroit préféré.',
         'Ce soir, sache que tu occupes mes pensées, et c\'est la meilleure place qui soit. 💕',
-        'Avec toi, même les moments simples deviennent des souvenirs que je chéris.'
+        'Avec toi, même les moments simples deviennent des souvenirs que je chéris.',
+        'Tu es la meilleure chose qui me soit arrivée. 🌸'
       ];
-      _displayMot(fallbacks[Math.floor(Math.random()*fallbacks.length)], 'Mot doux · hors-ligne');
-      _motsDoux_loading = false;
+      var shuffledFallbacks = _shuffle(fallbacks);
+      _saveCache(coupleId, shuffledFallbacks, 0);
+      _showNextFromDeck(coupleId);
     });
   };
 
