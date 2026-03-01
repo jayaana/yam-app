@@ -17,7 +17,10 @@
   window.yamSwitchTab = function(tab) {
     if(window.closeAllViews) window.closeAllViews();
 
-    // Cacher tous les panels (display:none) — window.scrollY ne change pas mais c'est invisible
+    // scrollTo AVANT de cacher — iOS ignore scrollTo sur display:none
+    window.scrollTo({ top: 0, behavior: 'instant' });
+
+    // Cacher tous les panels
     Object.keys(TAB_MAP).forEach(function(key) {
       var t = TAB_MAP[key];
       if(t.panel) {
@@ -28,10 +31,7 @@
       if(nav) nav.classList.toggle('nav-active', key === tab);
     });
 
-    // Remettre Y à 0 pendant que tout est caché — personne ne voit le saut
-    window.scrollTo({ top: 0, behavior: 'instant' });
-
-    // Afficher le panel cible — on est déjà à Y=0
+    // Afficher le panel cible
     var incomingPanel = TAB_MAP[tab] && document.getElementById(TAB_MAP[tab].panel);
     if(incomingPanel) incomingPanel.classList.add('active');
 
