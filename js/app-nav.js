@@ -43,6 +43,14 @@
     if(window.updateFloatingThemeBtn) window.updateFloatingThemeBtn();
 
     // ── Refresh automatique au changement d'onglet ──
+    // On ancre le scroll à 0 pendant 400ms pour neutraliser tout décalage
+    // causé par les fonctions de refresh qui modifient le DOM
+    var _scrollAnchor = function() { window.scrollTo(0, 0); };
+    document.addEventListener('scroll', _scrollAnchor, { passive: true });
+    setTimeout(function(){
+      document.removeEventListener('scroll', _scrollAnchor);
+    }, 400);
+
     setTimeout(function(){
       var fns = {
         home:     [window.loadLikeCounters, window._presencePoll],
