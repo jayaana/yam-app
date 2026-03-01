@@ -345,7 +345,7 @@ function applyThemeToggle() {
   document.documentElement.classList.toggle('light', isLight);
   // Met à jour la couleur de la safe zone iOS instantanément
   var themeMeta = document.getElementById('themeColorMeta');
-  if(themeMeta) themeMeta.setAttribute('content', isLight ? '#f9e8f0' : '#121212');
+  if(themeMeta) themeMeta.setAttribute('content', isLight ? '#f9e8f0' : '#0e0e0e');
   // Persistance
   localStorage.setItem('jayana_theme', isLight ? 'light' : 'dark');
   // Labels boutons principaux
