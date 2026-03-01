@@ -356,12 +356,6 @@ body {
   /* Évite que le contenu passe sous la bottom-nav (nav 64px + home indicator) */
   padding-bottom: var(--nav-height);
   transition: background 0.3s, color 0.3s;
-  /* Cache le contenu avant le premier paint pour éviter le flash de scroll iOS PWA */
-  visibility: hidden;
-}
-/* Révélé par JS après scrollTo(0,0) */
-body.yam-ready {
-  visibility: visible;
 }
 /* Verrou de scroll global — appliqué par _blockBackgroundScroll()
    Technique : overflow:hidden sur html+body + touch-action:none sur les overlays.
