@@ -56,6 +56,59 @@
   }
 </script>
 
+<!-- ═══════════════════════════════════════════
+     FIX iOS PWA — Gel des safe areas en px fixes
+     env(safe-area-inset-*) peut changer de valeur
+     au premier tap en mode standalone iOS.
+     On lit les vraies valeurs via un div test,
+     on les écrit en px fixes sur :root → plus jamais
+     recalculées par le browser.
+════════════════════════════════════════════ -->
+<script>
+(function () {
+  function freezeSafeAreas() {
+    // Créer un div temporaire pour lire les env() calculés
+    var d = document.createElement('div');
+    d.style.cssText = [
+      'position:fixed',
+      'top:env(safe-area-inset-top,0px)',
+      'bottom:env(safe-area-inset-bottom,0px)',
+      'left:env(safe-area-inset-left,0px)',
+      'right:env(safe-area-inset-right,0px)',
+      'width:0',
+      'height:0',
+      'pointer-events:none',
+      'visibility:hidden'
+    ].join(';');
+    document.documentElement.appendChild(d);
+    var cs = window.getComputedStyle(d);
+    var top    = parseFloat(cs.top)    || 0;
+    var bottom = parseFloat(cs.bottom) || 0;
+    var left   = parseFloat(cs.left)   || 0;
+    var right  = parseFloat(cs.right)  || 0;
+    document.documentElement.removeChild(d);
+
+    // Si top est 0, iOS n'a pas encore calculé la vraie valeur — réessayer
+    if (top === 0 && /iPhone|iPad/.test(navigator.userAgent)) {
+      setTimeout(freezeSafeAreas, 50);
+      return;
+    }
+
+    // Écrire en px fixes — ne bougera plus jamais
+    var root = document.documentElement;
+    root.style.setProperty('--safe-top',    top    + 'px');
+    root.style.setProperty('--safe-bottom', bottom + 'px');
+    root.style.setProperty('--safe-left',   left   + 'px');
+    root.style.setProperty('--safe-right',  right  + 'px');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', freezeSafeAreas);
+  } else {
+    freezeSafeAreas();
+  }
+})();
+</script>
 <link rel="stylesheet" href="css/main.css">
 
 <script>
@@ -1370,32 +1423,6 @@
   <div class="bottom-nav-safe"></div>
 </div>
 
-<!-- ═══════════════════════════════════════════
-     FIX iOS PWA — Ancrage nav au bas du viewport
-     visualViewport.offsetTop dérive au premier tap
-     → on corrige bottom de .bottom-nav en temps réel
-════════════════════════════════════════════ -->
-<script>
-(function () {
-  if (!window.visualViewport) return;
-
-  var nav = document.querySelector('.bottom-nav');
-  if (!nav) return;
-
-  function fixNavPosition() {
-    // layoutViewport height - visualViewport height - visualViewport offsetTop
-    // = espace perdu en bas du visual viewport
-    var drift = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
-    // On compense : si drift > 0, la nav remonte d'autant
-    nav.style.bottom = Math.max(0, drift) + 'px';
-  }
-
-  window.visualViewport.addEventListener('resize', fixNavPosition);
-  window.visualViewport.addEventListener('scroll', fixNavPosition);
-  // Appel initial
-  fixNavPosition();
-})();
-</script>
 
 <!-- Hidden compat elements for existing JS that references old nav items -->
 <div id="lockNavBtn" style="display:none;"></div>
@@ -2679,7 +2706,7 @@ function v2ApplyDynamicNames(){
 (function(){
   // 1. Scroll en haut dès que la page est prête
   window.addEventListener('load', function(){
-    setTimeout(function(){ window.scrollTo(0, 0); }, 50);
+    setTimeout(function(){ }, 50);
   });
 
   // 2. Patch yamSwitchTab : scroll en haut à chaque changement d'onglet
@@ -2702,9 +2729,9 @@ function v2ApplyDynamicNames(){
         setTimeout(function(){
           if(typeof window.nousCheckLock === 'function') window.nousCheckLock();
         }, 100);
-        setTimeout(function(){ window.scrollTo(0, 0); }, 220);
+        setTimeout(function(){ }, 220);
       } else {
-        setTimeout(function(){ window.scrollTo(0, 0); }, 220);
+        setTimeout(function(){ }, 220);
       }
     };
   }
