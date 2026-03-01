@@ -30,9 +30,6 @@
 
     _currentTab = tab;
     window._currentTab = tab;
-    // FIX PWA iOS : scrollTo(0,0) sur une page déjà à 0 décale le layout
-    // de façon permanente en mode standalone. On ne scroll que si nécessaire.
-    if (window.scrollY > 0) window.scrollTo(0, 0);
     if(window.updateFloatingThemeBtn) window.updateFloatingThemeBtn();
 
     // ── Refresh automatique au changement d'onglet ──
@@ -552,7 +549,7 @@ function openHiddenPage(){
     return;
   }
   document.getElementById('hiddenPage').classList.add('active');
-  particleActive=false;hideDance();if(window.scrollY>0)window.scrollTo(0,0);
+  particleActive=false;hideDance();window.scrollTo(0,0);
   _dmUpdateHeaderAvatars();
   // ✅ FIX — re-propager les vraies photos à l'ouverture (les bulles vont être générées)
   setTimeout(function(){ if(window._acLoadPartnerAvatar) window._acLoadPartnerAvatar(); }, 400);
@@ -691,7 +688,7 @@ function _yamSlide(incoming, outgoing, dir){
 function openGames(){
   resetZoom();
   _yamSlide(document.getElementById('gamesView'), document.getElementById('yamJeuxTab'), 'forward');
-  particleActive=false;hideDance();if(window.scrollY>0)window.scrollTo(0,0);
+  particleActive=false;hideDance();window.scrollTo(0,0);
 }
 function closeGames(){
   _yamSlide(null, document.getElementById('gamesView'), 'backward');
@@ -702,7 +699,7 @@ function openMemoryGame(){
   resetZoom();
   _yamSlide(document.getElementById('memoryView'), document.getElementById('gamesView'), 'forward');
   particleActive=false; hideDance();
-  if(window.scrollY>0)window.scrollTo(0,0);
+  window.scrollTo(0,0);
   _lbLoad();
 }
 function closeMemoryGame(){
