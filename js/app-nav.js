@@ -28,6 +28,10 @@
       if(nav) nav.classList.toggle('nav-active', key === tab);
     });
 
+    // Remettre le scroll en haut du panel entrant (sans toucher window.scroll)
+    var inPanel = TAB_MAP[tab] && document.getElementById(TAB_MAP[tab].panel);
+    if (inPanel) inPanel.scrollTop = 0;
+
     _currentTab = tab;
     window._currentTab = tab;
     if(window.updateFloatingThemeBtn) window.updateFloatingThemeBtn();
@@ -113,7 +117,7 @@
   var _origScrollToTop = window.scrollToTop;
   window.scrollToTop = function() {
     yamSwitchTab('home');
-  };
+    };
 
   // Sync mood display from profileMood system
   function yamSyncMood() {
@@ -548,8 +552,7 @@ function openHiddenPage(){
     return;
   }
   document.getElementById('hiddenPage').classList.add('active');
-  particleActive=false;hideDance();
-  _dmUpdateHeaderAvatars();
+  particleActive=false;hideDance();_dmUpdateHeaderAvatars();
   // ✅ FIX — re-propager les vraies photos à l'ouverture (les bulles vont être générées)
   setTimeout(function(){ if(window._acLoadPartnerAvatar) window._acLoadPartnerAvatar(); }, 400);
   // Afficher conv directement — aucun écran intermédiaire
@@ -697,8 +700,7 @@ function _yamSlide(incoming, outgoing, dir){
 function openGames(){
   resetZoom();
   _yamSlide(document.getElementById('gamesView'), document.getElementById('yamJeuxTab'), 'forward');
-  particleActive=false;hideDance();
-}
+  particleActive=false;hideDance();}
 function closeGames(){
   _yamSlide(null, document.getElementById('gamesView'), 'backward');
   document.getElementById('yamJeuxTab').classList.add('active');
@@ -708,7 +710,6 @@ function openMemoryGame(){
   resetZoom();
   _yamSlide(document.getElementById('memoryView'), document.getElementById('gamesView'), 'forward');
   particleActive=false; hideDance();
-  
   _lbLoad();
 }
 function closeMemoryGame(){
