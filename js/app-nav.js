@@ -30,6 +30,7 @@
 
     _currentTab = tab;
     window._currentTab = tab;
+    window.scrollTo(0, 0);
     if(window.updateFloatingThemeBtn) window.updateFloatingThemeBtn();
 
     // ── Refresh automatique au changement d'onglet ──
@@ -632,18 +633,35 @@ function _yamSlide(incoming, outgoing, dir){
   var DUR = 300;
   var TR  = 'transform '+DUR+'ms cubic-bezier(.4,0,.2,1), opacity '+DUR+'ms ease';
 
-  // Les panneaux principaux (yamJeuxTab, hiddenPage, etc.) sont déjà position:fixed
-  // dans le CSS — on ne touche PAS à leur position pour éviter de perturber le layout
-  // de la bottom-nav (bug : nav anormalement basse après première interaction).
-  // On applique seulement transform + opacity pour l'animation.
+  // Détecter si les éléments sont en flux normal (pas fixed) — besoin de les fixer temporairement
+  var inFixed  = incoming && window.getComputedStyle(incoming).position === 'fixed';
+  var outFixed = outgoing && window.getComputedStyle(outgoing).position === 'fixed';
+
+  function tempFix(el){
+    if(!el) return;
+    el.getBoundingClientRect();
+    el.style.position = 'fixed';
+    el.style.top  = '0'; el.style.left = '0';
+    el.style.width = '100%'; el.style.height = '100%';
+    el.style.zIndex = '999';
+  }
+  function unFix(el, wasFixed){
+    if(!el || wasFixed) return;
+    el.style.position = '';
+    el.style.top = ''; el.style.left = '';
+    el.style.width = ''; el.style.height = '';
+    el.style.zIndex = '';
+  }
 
   if(incoming){
+    if(!inFixed) tempFix(incoming);
     incoming.style.transition = 'none';
     incoming.style.transform  = dir==='forward' ? 'translateX(100%)' : 'translateX(-100%)';
     incoming.style.opacity    = '1';
     incoming.classList.add('active');
   }
   if(outgoing){
+    if(!outFixed) tempFix(outgoing);
     outgoing.style.transition = 'none';
     outgoing.style.transform  = 'translateX(0)';
     outgoing.style.opacity    = '1';
@@ -666,20 +684,12 @@ function _yamSlide(incoming, outgoing, dir){
         outgoing.style.transform  = '';
         outgoing.style.transition = '';
         outgoing.style.opacity    = '';
-        // Nettoyage défensif : s'assurer qu'aucun style de position parasite ne reste
-        outgoing.style.position = '';
-        outgoing.style.top = ''; outgoing.style.left = '';
-        outgoing.style.width = ''; outgoing.style.height = '';
-        outgoing.style.zIndex = '';
+        unFix(outgoing, outFixed);
       }
       if(incoming){
         incoming.style.transition = '';
         incoming.style.transform  = '';
-        // Nettoyage défensif
-        incoming.style.position = '';
-        incoming.style.top = ''; incoming.style.left = '';
-        incoming.style.width = ''; incoming.style.height = '';
-        incoming.style.zIndex = '';
+        unFix(incoming, inFixed);
       }
     }, DUR + 50);
   }); });
