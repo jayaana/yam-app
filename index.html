@@ -60,42 +60,6 @@
 
 <script>
 /* ═══════════════════════════════════════════════════════
-   FIX PWA iOS — Figer --safe-top au chargement
-   env(safe-area-inset-top) peut être 0 au moment où le script tourne
-   (timing PWA iOS). On utilise une sonde padding + fallback heuristique.
-   iPhone 12/13/14 notch = 47px, Dynamic Island (14 Pro+) = 59px
-   ════════════════════════════════════════════════════ */
-(function() {
-  function fixSafeArea() {
-    // Sonde : un div avec padding-top = env() — plus fiable que top:env()
-    var probe = document.createElement('div');
-    probe.style.cssText = 'position:fixed;top:0;left:0;width:0;' +
-      'padding-top:env(safe-area-inset-top,0px);pointer-events:none;visibility:hidden;';
-    document.body.appendChild(probe);
-    var st = parseInt(window.getComputedStyle(probe).paddingTop) || 0;
-    document.body.removeChild(probe);
-
-    // Fallback heuristique si env() retourne 0 (timing PWA iOS)
-    if (st === 0 && window.navigator.standalone) {
-      var sh = window.screen.height;
-      // iPhone 12 mini=780, 12/12Pro/13/13Pro/14=844, 14Pro/15=852+
-      st = sh >= 844 ? 47 : (sh >= 780 ? 44 : 20);
-    }
-
-    if (st > 0) {
-      document.documentElement.style.setProperty('--safe-top', st + 'px');
-    }
-  }
-  if (document.body) {
-    fixSafeArea();
-  } else {
-    document.addEventListener('DOMContentLoaded', fixSafeArea);
-  }
-})();
-</script>
-
-<script>
-/* ═══════════════════════════════════════════════════════
    AVATARS PAR DÉFAUT — profil_girl.png / profil_boy.png
    Remplace les emoji 👧👦 partout dans l'app
    ════════════════════════════════════════════════════ */
@@ -2731,10 +2695,11 @@ function v2ApplyDynamicNames(){
 ════════════════════════════════════════════ -->
 <script>
 (function(){
-  // 1. Scroll en haut dès que la page est prête
-  window.addEventListener('load', function(){
-    setTimeout(function(){ window.scrollTo(0, 0); }, 50);
-  });
+    // FIX PWA iOS : scrollTo(0,0) au chargement décale le layout en standalone
+    // On ne scroll que si la page n'est pas déjà à 0
+    window.addEventListener('load', function(){
+      setTimeout(function(){ if(window.scrollY > 0) window.scrollTo(0, 0); }, 50);
+    });
 
   // 2. Patch yamSwitchTab : ouverture messages + nousCheckLock
   //    IMPORTANT : on ne rappelle PAS window.scrollTo ici — yamSwitchTab le fait déjà
@@ -2921,19 +2886,6 @@ function v2ApplyDynamicNames(){
 
     if (!stickyEl || !titleEl) return;
 
-    // ── FIX PWA iOS : forcer l'état caché au démarrage ──
-    // Sur PWA iOS, un faux événement scroll au chargement peut rendre
-    // le sticky visible avant même le premier vrai scroll utilisateur.
-    stickyEl.style.transition = 'none';
-    stickyEl.style.transform  = 'translateY(-100%)';
-    stickyEl.style.opacity    = '0';
-    stickyEl.classList.remove('visible');
-    requestAnimationFrame(function() {
-      requestAnimationFrame(function() {
-        if (stickyEl) stickyEl.style.transition = '';
-      });
-    });
-
     // Écouter le scroll
     window.addEventListener('scroll', onScroll, { passive: true });
 
@@ -2951,17 +2903,6 @@ function v2ApplyDynamicNames(){
       window.yamSwitchTab = function(tab) {
         _orig(tab);
         setTab(tab);
-        // ── FIX PWA iOS : recacher le sticky après switch tab ──
-        // scrollTo(0,0) peut émettre un faux scroll event qui affiche le sticky
-        if (stickyEl) {
-          stickyEl.style.transition = 'none';
-          stickyEl.style.transform  = 'translateY(-100%)';
-          stickyEl.style.opacity    = '0';
-          stickyEl.classList.remove('visible');
-          requestAnimationFrame(function() {
-            if (stickyEl) stickyEl.style.transition = '';
-          });
-        }
       };
     }
     patchTitle();
