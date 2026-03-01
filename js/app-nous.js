@@ -411,489 +411,314 @@ window.nousSignalNew = function() {
 })();
 
 
+
 // ════════════════════════════════════════════════════════════════════
-// 4. SECTION ELLE — Upload Supabase Storage V2
+// 4 & 5. SECTIONS ELLE & LUI — Pochettes éditables
+// Pattern identique aux Livres : bouton "Modifier" → modale slotEditModal
+// Upload photo + titre (banner) + description → v2_photo_descs
 // ════════════════════════════════════════════════════════════════════
 (function(){
+
   var SB_BUCKET = 'images';
   var SLOTS = ['animal','fleurs','personnage','saison','repas'];
-  var ELLE_DESC_DEFAULTS = {
-    animal:'Un regard doux', fleurs:'Pleine de couleurs', personnage:'Attachante',
-    saison:'Un rayon de soleil', repas:'Son repas préféré'
-  };
-  var _currentSlot = null;
-  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
-  // Path isolé par couple : uploads/{coupleId}/{slot}-elle.jpg
-  function _ellePath(coupleId, slot){ return 'uploads/'+coupleId+'/'+slot+'-elle.jpg'; }
 
+  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
+  function _ellePath(cid,slot){ return 'uploads/'+cid+'/'+slot+'-elle.jpg'; }
+  function _luiPath(cid,slot){ return 'uploads/'+cid+'/'+slot+'-lui.jpg'; }
+
+  // ── Données en mémoire (chargées depuis Supabase) ──
+  var _elleBanners = {};
+  var _elleDescs   = {};
+  var _luiBanners  = {};
+  var _luiDescs    = {};
+
+  // ── État modale d'édition ──
+  var _editSection = null;
+  var _editSlot    = null;
+
+  // ─────────────────────────────
+  // SYNC VISIBILITÉ SECTIONS
+  // ─────────────────────────────
   window.elleSyncSections = function(){
     var profile = getProfile();
-    var elleSection = document.getElementById('elleSectionContent');
-    var luiSection  = document.getElementById('luiSectionContent');
-    var elleGear    = document.getElementById('elleGearBtn');
-    var luiGear     = document.getElementById('luiGearBtn');
-    // Boutons d'édition de titre
+    var elleSection  = document.getElementById('elleSectionContent');
+    var luiSection   = document.getElementById('luiSectionContent');
+    var elleGear     = document.getElementById('elleGearBtn');
+    var luiGear      = document.getElementById('luiGearBtn');
     var elleTitleBtn = document.getElementById('elleTitleEditBtn');
     var luiTitleBtn  = document.getElementById('luiTitleEditBtn');
-    if (!elleSection || !luiSection) return;
-
-    if (profile === 'boy') {
-      // boy : voit LUI (sa section), ELLE masquée par défaut
-      luiSection.style.display = 'block';
-      if (!elleSection.dataset.forceOpen) elleSection.style.display = 'none';
-      // Rouage visible sur ELLE (partenaire), caché sur LUI
-      if (elleGear) elleGear.style.display = '';
-      if (luiGear)  luiGear.style.display  = 'none';
-      // Boy peut éditer le titre de ELLE
-      if (elleTitleBtn) elleTitleBtn.style.display = 'flex';
-      if (luiTitleBtn)  luiTitleBtn.style.display  = 'none';
+    if(!elleSection || !luiSection) return;
+    if(profile === 'boy'){
+      luiSection.style.display  = 'block';
+      if(!elleSection.dataset.forceOpen) elleSection.style.display = 'none';
+      if(elleGear)     elleGear.style.display     = '';
+      if(luiGear)      luiGear.style.display      = 'none';
+      if(elleTitleBtn) elleTitleBtn.style.display  = 'flex';
+      if(luiTitleBtn)  luiTitleBtn.style.display   = 'none';
     } else {
-      // girl : voit ELLE (sa section), LUI masqué par défaut
       elleSection.style.display = 'block';
-      if (!luiSection.dataset.forceOpen) luiSection.style.display = 'none';
-      // Rouage visible sur LUI (partenaire), caché sur ELLE
-      if (elleGear) elleGear.style.display = 'none';
-      if (luiGear)  luiGear.style.display  = '';
-      // Girl peut éditer le titre de LUI
-      if (elleTitleBtn) elleTitleBtn.style.display = 'none';
-      if (luiTitleBtn)  luiTitleBtn.style.display  = 'flex';
+      if(!luiSection.dataset.forceOpen) luiSection.style.display = 'none';
+      if(elleGear)     elleGear.style.display     = 'none';
+      if(luiGear)      luiGear.style.display      = '';
+      if(elleTitleBtn) elleTitleBtn.style.display  = 'none';
+      if(luiTitleBtn)  luiTitleBtn.style.display   = 'flex';
     }
-    // Boutons upload + légendes éditables : boy édite ELLE, girl édite LUI
-    // Légende : PAS de crayon visible — édition via double-tap sur la photo
+    // Boutons edit : boy → elle, girl → lui
     SLOTS.forEach(function(slot){
-      var elleBtn  = document.getElementById('elle-btn-' + slot);
-      var luiBtn   = document.getElementById('lui-btn-'  + slot);
-      if (elleBtn) elleBtn.style.display = profile === 'boy'  ? '' : 'none';
-      if (luiBtn)  luiBtn.style.display  = profile === 'girl' ? '' : 'none';
-      // Supprimer le crayon sur les descriptions (enlever lui-desc-editable)
-      var elleDesc = document.getElementById('elle-desc-' + slot);
-      var luiDesc  = document.getElementById('lui-desc-'  + slot);
-      if (elleDesc) elleDesc.classList.remove('lui-desc-editable');
-      if (luiDesc)  luiDesc.classList.remove('lui-desc-editable');
-      // Badges NEW sur les cartes images
-      var elleCard = document.querySelector('.album-card[data-slot="elle-'+slot+'"]');
-      var luiCard  = document.querySelector('.album-card[data-slot="'+slot+'"]');
-      if(elleCard && typeof window.yamShowNewBadge==='function') window.yamShowNewBadge(elleCard, window.yamIsNew('elle_slot_'+slot));
-      if(luiCard  && typeof window.yamShowNewBadge==='function') window.yamShowNewBadge(luiCard,  window.yamIsNew('lui_slot_'+slot));
+      var eBtn = document.getElementById('elle-btn-'+slot);
+      var lBtn = document.getElementById('lui-btn-'+slot);
+      if(eBtn) eBtn.style.display = profile==='boy'  ? '' : 'none';
+      if(lBtn) lBtn.style.display = profile==='girl' ? '' : 'none';
     });
-    // Double-tap sur image ELLE pour éditer légende (boy seulement)
-    _setupDoubleTapOnPhotos('elle', profile);
-    // Double-tap sur image LUI pour éditer légende (girl seulement)
-    _setupDoubleTapOnPhotos('lui', profile);
   };
 
-  // Double-tap sur les photos pour éditer la description
-  function _setupDoubleTapOnPhotos(section, profile){
-    var canEdit = (section === 'elle' && profile === 'boy') || (section === 'lui' && profile === 'girl');
-    SLOTS.forEach(function(slot){
-      // Déléguer sur toute la album-card (pas juste img/empty qui ont des enfants)
-      var card = document.querySelector('.album-card[data-slot="'+(section==='elle'?'elle-':'')+slot+'"]');
-      if(!card) return;
-      if(card._doubleTapSetup) return;
-      card._doubleTapSetup = true;
-      var _lastTap = 0;
-      card.addEventListener('touchend', function(e){
-        if(!canEdit) return;
-        // Ignorer si clic sur le bouton upload ou le bouton de loading
-        if(e.target.closest('.lui-upload-btn, .lui-uploading')) return;
-        var now = Date.now();
-        if(now - _lastTap < 400){
-          e.preventDefault();
-          e.stopPropagation();
-          window.openSlotEditModal(section, slot);
-        }
-        _lastTap = now;
-      }, {passive: false});
-      // Support double-clic desktop
-      card.addEventListener('dblclick', function(e){
-        if(!canEdit) return;
-        if(e.target.closest('.lui-upload-btn, .lui-uploading')) return;
-        e.preventDefault();
-        window.openSlotEditModal(section, slot);
-      });
-    });
-  }
-
-  // ─── Modale d'édition complète pochette Elle/Lui ───
-  var _slotEditSection = null;
-  var _slotEditSlot = null;
-
-  window.openSlotEditModal = function(section, slot){
-    _slotEditSection = section;
-    _slotEditSlot = slot;
-    _saveScrollPosition();
-    _forceScrollLock();
-    var modal = document.getElementById('slotEditModal'); if(!modal) return;
-    // Titre
-    var bannerEl = document.getElementById(section+'-banner-'+slot);
-    var descEl   = document.getElementById(section+'-desc-'+slot);
-    var bannerInput = document.getElementById('slotEditBannerInput');
-    var descInput   = document.getElementById('slotEditDescInput');
-    var titleLbl    = document.getElementById('slotEditModalTitle');
-    var sectionLabel = section === 'elle' ? 'Elle' : 'Lui';
-    if(titleLbl) titleLbl.textContent = 'Modifier · ' + sectionLabel;
-    if(bannerInput) bannerInput.value = bannerEl ? bannerEl.textContent.trim() : '';
-    if(descInput)   descInput.value   = descEl   ? descEl.textContent.trim()   : '';
-    // Photo
-    var photoDiv = document.getElementById('slotEditPhoto');
-    var placeholder = document.getElementById('slotEditPhotoPlaceholder');
-    var imgEl = document.getElementById(section+'-img-'+slot);
-    if(photoDiv){
-      if(imgEl && imgEl.src && imgEl.style.display !== 'none'){
-        photoDiv.style.backgroundImage = 'url('+imgEl.src+')';
-        if(placeholder) placeholder.style.display = 'none';
-      } else {
-        photoDiv.style.backgroundImage = '';
-        if(placeholder) placeholder.style.display = 'flex';
-      }
-    }
-    modal.classList.add('open');
-  };
-
-  window.closeSlotEditModal = function(){
-    var modal = document.getElementById('slotEditModal'); if(modal) modal.classList.remove('open');
-    _unblockBackgroundScroll();
-    _restoreScrollPosition();
-    _slotEditSection = null;
-    _slotEditSlot = null;
-  };
-
-  window.slotEditPhotoClick = function(){
-    if(!_slotEditSection || !_slotEditSlot) return;
-    var inputId = _slotEditSection === 'elle' ? 'elleFileInput' : 'luiFileInput';
-    var inp = document.getElementById(inputId);
-    if(!inp) return;
-    inp.value='';
-    // Temporairement override onchange pour prévisualiser dans la modale
-    var originalOnchange = inp.onchange;
-    inp.onchange = function(){
-      if(!this.files || !this.files[0]) return;
-      var file = this.files[0];
-      // Prévisualisation
-      var reader = new FileReader();
-      reader.onload = function(ev){
-        var photoDiv = document.getElementById('slotEditPhoto');
-        var placeholder = document.getElementById('slotEditPhotoPlaceholder');
-        if(photoDiv){ photoDiv.style.backgroundImage = 'url('+ev.target.result+')'; }
-        if(placeholder) placeholder.style.display = 'none';
-      };
-      reader.readAsDataURL(file);
-      // Upload
-      if(_slotEditSection === 'elle') window.elleUploadFile(_slotEditSlot, file);
-      else window.luiUploadFile(_slotEditSlot, file);
-      inp.onchange = originalOnchange;
-    };
-    inp.click();
-  };
-
-  window.slotEditSave = function(){
-    if(!_slotEditSection || !_slotEditSlot) return;
-    var coupleId = (typeof v2GetUser==='function') ? (v2GetUser()||{}).couple_id : null;
-    var bannerVal = (document.getElementById('slotEditBannerInput').value||'').trim();
-    var descVal   = (document.getElementById('slotEditDescInput').value||'').trim();
-    var s = _slotEditSection; var sl = _slotEditSlot;
-    // Mettre à jour le DOM
-    var bannerEl = document.getElementById(s+'-banner-'+sl);
-    var descEl   = document.getElementById(s+'-desc-'+sl);
-    if(bannerEl && bannerVal) bannerEl.textContent = bannerVal;
-    if(descEl   && descVal)   descEl.textContent   = descVal;
-    // Sauvegarder en BDD
-    if(coupleId){
-      if(bannerVal){
-        var bannerCategory = s === 'elle' ? 'elle_banner' : 'lui_banner';
-        fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,category:bannerCategory,slot:sl,description:bannerVal})}).catch(function(){});
-      }
-      if(descVal){
-        var descCategory = s === 'elle' ? 'elle' : 'lui';
-        fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,category:descCategory,slot:sl,description:descVal})}).catch(function(){});
-      }
-    }
-    if(typeof showToast==='function') showToast('Pochette mise à jour ✓','success',2000);
-    window.closeSlotEditModal();
-  };
-
-  // Rouage ELLE : boy peut ouvrir/fermer la section ELLE pour décrire sa copine
   window.elleToggleSection = function(){
-    var profile = getProfile();
-    if (profile !== 'boy') return; // seul boy peut toggle ELLE
-    var elleSection = document.getElementById('elleSectionContent');
-    if (!elleSection) return;
-    if (elleSection.style.display === 'none' || !elleSection.style.display) {
-      elleSection.dataset.forceOpen = '1';
-      elleSection.style.display = 'block';
-    } else {
-      delete elleSection.dataset.forceOpen;
-      elleSection.style.display = 'none';
-    }
+    if(getProfile()!=='boy') return;
+    var s=document.getElementById('elleSectionContent'); if(!s) return;
+    if(s.style.display==='none'||!s.style.display){ s.dataset.forceOpen='1'; s.style.display='block'; }
+    else { delete s.dataset.forceOpen; s.style.display='none'; }
+  };
+  window.luiToggleSection = function(){
+    if(getProfile()!=='girl') return;
+    var s=document.getElementById('luiSectionContent'); if(!s) return;
+    if(s.style.display==='none'||!s.style.display){ s.dataset.forceOpen='1'; s.style.display='block'; }
+    else { delete s.dataset.forceOpen; s.style.display='none'; }
   };
 
-  window.elleLoadImages = function(){
+  // ─────────────────────────────
+  // CHARGEMENT PHOTOS
+  // ─────────────────────────────
+  function _loadImages(section){
     var coupleId = _getCoupleId(); if(!coupleId) return;
     SLOTS.forEach(function(slot){
-      var url = SB2_URL + '/storage/v1/object/public/' + SB_BUCKET + '/' + _ellePath(coupleId, slot) + '?t=' + Date.now();
-      var img   = document.getElementById('elle-img-' + slot);
-      var empty = document.getElementById('elle-empty-' + slot);
-      var btn   = document.getElementById('elle-btn-' + slot);
+      var path = section==='elle' ? _ellePath(coupleId,slot) : _luiPath(coupleId,slot);
+      var url  = SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+path+'?t='+Date.now();
+      var img   = document.getElementById(section+'-img-'+slot);
+      var empty = document.getElementById(section+'-empty-'+slot);
+      var btn   = document.getElementById(section+'-btn-'+slot);
       if(!img) return;
-      var probe = new Image();
-      probe.onload = function(){
-        if(!probe.naturalWidth||probe.naturalWidth<10){
-          img.style.display='none'; if(empty) empty.style.display=''; if(btn) btn.classList.add('empty'); return;
-        }
-        img.src = url; img.style.display = '';
-        if(empty) empty.style.display = 'none';
+      var t = new Image();
+      t.onload = function(){
+        img.src=url; img.style.display=''; img.classList.add('loaded');
+        if(empty) empty.style.display='none';
         if(btn) btn.classList.remove('empty');
       };
-      probe.onerror = function(){
-        img.style.display = 'none';
-        if(empty) empty.style.display = '';
+      t.onerror = function(){
+        img.style.display='none';
+        if(empty) empty.style.display='';
         if(btn) btn.classList.add('empty');
       };
-      probe.src = url;
+      t.src = url;
     });
-  };
-
-  window.elleUploadClick = function(slot){
-    if(getProfile() !== 'boy') return;
-    _currentSlot = slot;
-    var input = document.getElementById('elleFileInput');
-    input.value = ''; input.click();
-  };
-
-  // Exposé globalement pour slotEditModal
-  window.elleUploadFile = function(slot, file){
-    var ALLOWED = ['image/jpeg','image/jpg','image/png','image/webp','image/gif'];
-    if(ALLOWED.indexOf(file.type) === -1){ alert('Format non autorisé.'); return; }
-    if(file.size > 5*1024*1024){ alert('Image trop lourde (max 5 Mo)'); return; }
-    var loading = document.getElementById('elle-loading-' + slot);
-    var bar     = document.getElementById('elle-bar-' + slot);
-    if(loading) loading.classList.add('show');
-    if(bar){ bar.style.width='0%'; setTimeout(function(){ bar.style.width='60%'; },100); }
-    var coupleId=_getCoupleId(); if(!coupleId){ alert('Session introuvable'); return; }
-    var filePath = _ellePath(coupleId, slot);
-    fetch(SB2_URL+'/storage/v1/object/'+SB_BUCKET+'/'+filePath, {
-      method:'POST', headers:Object.assign({'Content-Type':file.type,'x-upsert':'true'},sb2Headers()), body:file
-    }).then(function(r){
-      if(bar) bar.style.width='100%';
-      return r.text().then(function(body){
-        if(loading) loading.classList.remove('show');
-        if(r.ok){ var img=document.getElementById('elle-img-'+slot); if(img){ img.src=SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+filePath+'?t='+Date.now(); img.style.display=''; }
-          var emptyEl=document.getElementById('elle-empty-'+slot); if(emptyEl) emptyEl.style.display='none';
-          if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh('elle_slot_'+slot);
-        }
-        else alert('Erreur '+r.status+' : '+body);
-      });
-    }).catch(function(err){ if(loading) loading.classList.remove('show'); alert('Erreur réseau : '+err); });
-  };
-
-  window.elleHandleFile = function(input){
-    if(!input.files || !input.files[0]) return;
-    var file = input.files[0]; var slot = _currentSlot; if(!slot) return;
-    window.elleUploadFile(slot, file);
-  };
-
-  window.elleLoadDescs = function(){
-    var coupleId = _getCoupleId(); if(!coupleId) return;
-    fetch(SB2_URL+'/rest/v1/v2_photo_descs?category=eq.elle&couple_id=eq.'+coupleId+'&select=slot,description',{headers:sb2Headers()})
-    .then(function(r){ return r.ok?r.json():[]; })
-    .then(function(rows){
-      if(!Array.isArray(rows)) return;
-      rows.forEach(function(row){ var el=document.getElementById('elle-desc-'+row.slot); if(el&&row.description) el.textContent=row.description; });
-    }).catch(function(){
-      SLOTS.forEach(function(slot){ var saved=localStorage.getItem('elle_desc_'+slot); var el=document.getElementById('elle-desc-'+slot); if(el&&saved) el.textContent=saved; });
-    });
-  };
-
-  function elleSaveDesc(slot,val){
-    var coupleId=_getCoupleId(); if(!coupleId) return;
-    fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:coupleId,category:'elle',slot:slot,description:val})}).catch(function(){});
-    localStorage.setItem('elle_desc_'+slot,val);
   }
+  window.elleLoadImages = function(){ _loadImages('elle'); };
+  window.luiLoadImages  = function(){ _loadImages('lui');  };
 
-  var SLOT_LABELS = {animal:'Son animal',fleurs:'Ses fleurs',personnage:'Son personnage',saison:'Sa saison',repas:'Son repas'};
-  window.elleEditDesc = function(slot){
-    if(getProfile()!=='boy') return;
-    var el=document.getElementById('elle-desc-'+slot); if(!el) return;
-    descEditOpen(el.textContent.trim(),'Légende · '+(SLOT_LABELS[slot]||slot),function(val){
-      val=val||ELLE_DESC_DEFAULTS[slot]; el.textContent=val; elleSaveDesc(slot,val);
-    });
-  };
-})();
+  // ─────────────────────────────
+  // CHARGEMENT DONNÉES SUPABASE
+  // ─────────────────────────────
+  function _loadData(section){
+    var coupleId=_getCoupleId(); if(!coupleId) return;
+    var catBanner = section==='elle' ? 'elle_banner' : 'lui_banner';
+    var catDesc   = section;
+    var banners   = section==='elle' ? _elleBanners : _luiBanners;
+    var descs     = section==='elle' ? _elleDescs   : _luiDescs;
 
-
-// ════════════════════════════════════════════════════════════════════
-// 5. SECTION LUI — Upload Supabase Storage V2
-// ════════════════════════════════════════════════════════════════════
-(function(){
-  var SB_BUCKET='images';
-  var SLOTS=['animal','fleurs','personnage','saison','repas'];
-  var LUI_DESC_DEFAULTS={animal:'Son animal',fleurs:'Ses fleurs',personnage:'Son personnage',saison:'Sa saison',repas:'Son repas préféré'};
-  var _currentSlot=null;
-  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
-  // Path isolé par couple : uploads/{coupleId}/{slot}-lui.jpg
-  function _luiPath(coupleId, slot){ return 'uploads/'+coupleId+'/'+slot+'-lui.jpg'; }
-
-  // Rouage LUI : girl peut ouvrir/fermer la section LUI pour décrire son copain
-
-  // ── Éditer le bandeau (titre) d'une pochette ELLE ──
-  var _ELLE_BANNER_DEF = {animal:'Animal',fleurs:'Fleurs',personnage:'Personnage',saison:'Saison',repas:'Repas'};
-  window.elleEditBanner = function(slot){
-    if(getProfile() !== 'boy') return;
-    var el = document.getElementById('elle-banner-'+slot); if(!el) return;
-    descEditOpen(el.textContent.trim(), 'Titre pochette · '+(_ELLE_BANNER_DEF[slot]||slot), function(val){
-      if(!val) return;
-      el.textContent = val;
-      var coupleId = _getCoupleId(); if(!coupleId) return;
-      fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,category:'elle_banner',slot:slot,description:val})}).catch(function(){});
-    });
-  };
-  function _loadElleBanners(coupleId){
-    fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+coupleId+'&category=eq.elle_banner&select=slot,description',{headers:sb2Headers()})
+    // Banners (titres)
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+coupleId+'&category=eq.'+catBanner+'&select=slot,description',{headers:sb2Headers()})
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(rows){
-      if(!Array.isArray(rows)) return;
       rows.forEach(function(row){
-        // Mettre à jour le bandeau
-        var el = document.getElementById('elle-banner-'+row.slot);
-        if(el && row.description) el.textContent = row.description;
-        // Mettre à jour le label de la case vide
-        var emptyLbl = document.querySelector('#elle-empty-'+row.slot+' .lui-img-empty-lbl');
-        if(emptyLbl && row.description) emptyLbl.textContent = row.description;
+        banners[row.slot]=row.description;
+        var el=document.getElementById(section+'-banner-'+row.slot);
+        if(el) el.textContent=row.description;
+        var lbl=document.querySelector('#'+section+'-empty-'+row.slot+' .lui-img-empty-lbl');
+        if(lbl) lbl.textContent=row.description;
+      });
+    }).catch(function(){});
+
+    // Descriptions
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+coupleId+'&category=eq.'+catDesc+'&select=slot,description',{headers:sb2Headers()})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){
+      rows.forEach(function(row){
+        descs[row.slot]=row.description;
+        var el=document.getElementById(section+'-desc-'+row.slot);
+        if(el) el.textContent=row.description;
       });
     }).catch(function(){});
   }
+  window.elleLoadDescs = function(){ _loadData('elle'); };
+  window.luiLoadDescs  = function(){ _loadData('lui');  };
+  window.luiSyncDescs  = window.luiLoadDescs;
+  window.luiSyncEditMode = window.luiLoadDescs;
 
-  window.luiToggleSection = function(){
-    var profile = getProfile();
-    if (profile !== 'girl') return; // seul girl peut toggle LUI
-    var luiSection = document.getElementById('luiSectionContent');
-    if (!luiSection) return;
-    if (luiSection.style.display === 'none' || !luiSection.style.display) {
-      luiSection.dataset.forceOpen = '1';
-      luiSection.style.display = 'block';
-    } else {
-      delete luiSection.dataset.forceOpen;
-      luiSection.style.display = 'none';
-    }
-  };
-
-  window.luiLoadImages=function(){
-    var coupleId=_getCoupleId(); if(!coupleId) return;
-    SLOTS.forEach(function(slot){
-      var url=SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+_luiPath(coupleId,slot)+'?t='+Date.now();
-      var img=document.getElementById('lui-img-'+slot);
-      var empty=document.getElementById('lui-empty-'+slot);
-      var btn=document.getElementById('lui-btn-'+slot);
-      if(!img) return;
-      var probe=new Image();
-      probe.onload=function(){
-        if(!probe.naturalWidth||probe.naturalWidth<10){
-          img.style.display='none'; if(empty) empty.style.display=''; if(btn) btn.classList.add('empty'); return;
-        }
-        img.src=url; img.style.display=''; if(empty) empty.style.display='none'; if(btn) btn.classList.remove('empty');
-      };
-      probe.onerror=function(){ img.style.display='none'; if(empty) empty.style.display=''; if(btn) btn.classList.add('empty'); };
-      probe.src=url;
-    });
-  };
-
-  window.luiSyncDescs=function(){
-    var profile=getProfile(); var isZelda=(profile==='girl');
-    SLOTS.forEach(function(slot){ var el=document.getElementById('lui-desc-'+slot); if(!el) return; if(isZelda) el.classList.add('lui-desc-editable'); else el.classList.remove('lui-desc-editable'); });
-  };
-
-  // luiSyncEditMode gardé comme alias pour compatibilité setProfile hook
-  window.luiSyncEditMode = window.luiSyncDescs;
-
-  window.luiUploadClick=function(slot){
-    if(getProfile()!=='girl') return;
-    _currentSlot=slot; var input=document.getElementById('luiFileInput'); input.value=''; input.click();
-  };
-
-  // Exposé globalement pour slotEditModal
-  window.luiUploadFile=function(slot, file){
+  // ─────────────────────────────
+  // UPLOAD PHOTO (depuis modale)
+  // ─────────────────────────────
+  function _uploadPhoto(section, slot, file){
     var ALLOWED=['image/jpeg','image/jpg','image/png','image/webp','image/gif'];
     if(ALLOWED.indexOf(file.type)===-1){ alert('Format non autorisé.'); return; }
     if(file.size>5*1024*1024){ alert('Image trop lourde (max 5 Mo)'); return; }
-    var loading=document.getElementById('lui-loading-'+slot); var bar=document.getElementById('lui-bar-'+slot);
-    if(loading) loading.classList.add('show');
-    if(bar){ bar.style.width='0%'; setTimeout(function(){ bar.style.width='60%'; },100); }
     var coupleId=_getCoupleId(); if(!coupleId){ alert('Session introuvable'); return; }
-    var filePath=_luiPath(coupleId,slot);
-    fetch(SB2_URL+'/storage/v1/object/'+SB_BUCKET+'/'+filePath,{
-      method:'POST',headers:Object.assign({'Content-Type':file.type,'x-upsert':'true'},sb2Headers()),body:file
-    }).then(function(r){
-      if(bar) bar.style.width='100%';
-      return r.text().then(function(body){
-        if(loading) loading.classList.remove('show');
-        if(r.ok){
-          var img=document.getElementById('lui-img-'+slot); var emptyEl=document.getElementById('lui-empty-'+slot); var btnEl=document.getElementById('lui-btn-'+slot);
-          var newUrl=SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+filePath+'?t='+Date.now();
-          if(img){ img.src=newUrl; img.style.display=''; } if(emptyEl) emptyEl.style.display='none'; if(btnEl) btnEl.classList.remove('empty');
-          if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh('lui_slot_'+slot);
-        } else alert('Erreur '+r.status+' : '+body);
-      });
-    }).catch(function(err){ if(loading) loading.classList.remove('show'); alert('Erreur réseau : '+err); });
-  };
+    var path = section==='elle' ? _ellePath(coupleId,slot) : _luiPath(coupleId,slot);
 
-  window.luiHandleFile=function(input){
-    if(!input.files||!input.files[0]) return;
-    var file=input.files[0]; var slot=_currentSlot; if(!slot) return;
-    window.luiUploadFile(slot, file);
-  };
+    // Feedback dans la modale
+    var photoDiv=document.getElementById('slotEditPhoto');
+    if(photoDiv) photoDiv.innerHTML='<div style="color:var(--muted);font-size:12px;">Envoi...</div>';
 
-  window.luiLoadDescs=function(){
-    var coupleId = _getCoupleId(); if(!coupleId) return;
-    fetch(SB2_URL+'/rest/v1/v2_photo_descs?category=eq.lui&couple_id=eq.'+coupleId+'&select=slot,description',{headers:sb2Headers()})
-    .then(function(r){ return r.ok?r.json():[]; })
-    .then(function(rows){
-      if(!Array.isArray(rows)) return;
-      rows.forEach(function(row){ var el=document.getElementById('lui-desc-'+row.slot); if(el&&row.description) el.textContent=row.description; });
+    fetch(SB2_URL+'/storage/v1/object/'+SB_BUCKET+'/'+path,{
+      method:'POST', headers:Object.assign({'Content-Type':file.type,'x-upsert':'true'},sb2Headers()), body:file
+    }).then(function(r){ return r.text().then(function(){ return r.ok; }); })
+    .then(function(ok){
+      if(ok){
+        var newUrl=SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+path+'?t='+Date.now();
+        // Mettre à jour la card dans la page
+        var img=document.getElementById(section+'-img-'+slot);
+        var emptyEl=document.getElementById(section+'-empty-'+slot);
+        var btnEl=document.getElementById(section+'-btn-'+slot);
+        if(img){ img.src=newUrl; img.style.display=''; img.classList.add('loaded'); }
+        if(emptyEl) emptyEl.style.display='none';
+        if(btnEl) btnEl.classList.remove('empty');
+        // Mettre à jour la photo dans la modale
+        if(photoDiv){ photoDiv.innerHTML=''; photoDiv.style.backgroundImage='url('+newUrl+')'; }
+        var ph=document.getElementById('slotEditPhotoPlaceholder');
+        if(ph) ph.style.display='none';
+        if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh(section+'_slot_'+slot);
+      } else {
+        if(photoDiv) photoDiv.innerHTML='<div style="color:#e05555;font-size:11px;">Erreur upload</div>';
+      }
     }).catch(function(){
-      SLOTS.forEach(function(slot){ var saved=localStorage.getItem('lui_desc_'+slot); var el=document.getElementById('lui-desc-'+slot); if(el&&saved) el.textContent=saved; });
+      if(photoDiv) photoDiv.innerHTML='<div style="color:#e05555;font-size:11px;">Erreur réseau</div>';
     });
-  };
-
-  window.luiEditDesc=function(slot){
-    if(getProfile()!=='girl') return;
-    var el=document.getElementById('lui-desc-'+slot); if(!el) return;
-    var LABELS={animal:'Son animal',fleurs:'Ses fleurs',personnage:'Son personnage',saison:'Sa saison',repas:'Son repas'};
-    descEditOpen(el.textContent.trim(),'Légende · '+(LABELS[slot]||slot),function(val){
-      val=val||LUI_DESC_DEFAULTS[slot]; el.textContent=val;
-      var coupleId=_getCoupleId(); if(!coupleId) return;
-      fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:coupleId,category:'lui',slot:slot,description:val})}).catch(function(){});
-      localStorage.setItem('lui_desc_'+slot,val);
-    });
-  };
-
-  // ── Éditer le bandeau (titre) d'une pochette LUI ──
-  var _LUI_BANNER_DEF = {animal:'Animal',fleurs:'Fleurs',personnage:'Personnage',saison:'Saison',repas:'Repas'};
-  window.luiEditBanner = function(slot){
-    if(getProfile() !== 'girl') return;
-    var el = document.getElementById('lui-banner-'+slot); if(!el) return;
-    descEditOpen(el.textContent.trim(), 'Titre pochette · '+(_LUI_BANNER_DEF[slot]||slot), function(val){
-      if(!val) return;
-      el.textContent = val;
-      var coupleId = _getCoupleId(); if(!coupleId) return;
-      fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,category:'lui_banner',slot:slot,description:val})}).catch(function(){});
-    });
-  };
-  function _loadLuiBanners(coupleId){
-    fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+coupleId+'&category=eq.lui_banner&select=slot,description',{headers:sb2Headers()})
-    .then(function(r){ return r.ok?r.json():[]; })
-    .then(function(rows){
-      if(!Array.isArray(rows)) return;
-      rows.forEach(function(row){
-        var el = document.getElementById('lui-banner-'+row.slot);
-        if(el && row.description) el.textContent = row.description;
-        var emptyLbl = document.querySelector('#lui-empty-'+row.slot+' .lui-img-empty-lbl');
-        if(emptyLbl && row.description) emptyLbl.textContent = row.description;
-      });
-    }).catch(function(){});
   }
 
-})();
+  // ─────────────────────────────
+  // MODALE D'ÉDITION (= livreEditModal)
+  // ─────────────────────────────
+  window.slotOpenEdit = function(section, slot){
+    var profile=getProfile();
+    if(section==='elle' && profile!=='boy')  return;
+    if(section==='lui'  && profile!=='girl') return;
 
+    _editSection=section; _editSlot=slot;
+    _saveScrollPosition();
+    _forceScrollLock();
+
+    var modal=document.getElementById('slotEditModal'); if(!modal) return;
+
+    // Titre
+    var labels={animal:'Animal',fleurs:'Fleurs',personnage:'Personnage',saison:'Saison',repas:'Repas'};
+    document.getElementById('slotEditModalTitle').textContent=(section==='elle'?'Elle':'Lui')+' · '+( labels[slot]||slot );
+
+    // Pré-remplir depuis mémoire
+    var banners=section==='elle'?_elleBanners:_luiBanners;
+    var descs=section==='elle'?_elleDescs:_luiDescs;
+    document.getElementById('slotEditBannerInput').value=banners[slot]||'';
+    document.getElementById('slotEditDescInput').value=descs[slot]||'';
+
+    // Photo
+    var photoDiv=document.getElementById('slotEditPhoto');
+    var placeholder=document.getElementById('slotEditPhotoPlaceholder');
+    var imgEl=document.getElementById(section+'-img-'+slot);
+    var hasPhoto=imgEl && imgEl.src && imgEl.style.display!=='none' && imgEl.src!==window.location.href && !imgEl.src.endsWith('/');
+    if(photoDiv){
+      if(hasPhoto){ photoDiv.style.backgroundImage='url('+imgEl.src+')'; photoDiv.innerHTML=''; if(placeholder) placeholder.style.display='none'; }
+      else { photoDiv.style.backgroundImage=''; if(placeholder){ placeholder.style.display='flex'; photoDiv.innerHTML=''; photoDiv.appendChild(placeholder); } }
+    }
+
+    modal.classList.add('open');
+  };
+
+  window.slotCloseEdit = function(){
+    var modal=document.getElementById('slotEditModal');
+    if(modal) modal.classList.remove('open');
+    _unblockBackgroundScroll();
+    _restoreScrollPosition();
+    _editSection=null; _editSlot=null;
+  };
+
+  // Clic sur la photo dans la modale → file input (identique à livresPhotoClick)
+  window.slotEditPhotoClick = function(){
+    if(!_editSection||!_editSlot) return;
+    var inp=document.getElementById(_editSection==='elle'?'elleFileInput':'luiFileInput');
+    if(!inp) return;
+    inp.value='';
+    inp._slotTarget=_editSlot; inp._sectionTarget=_editSection;
+    inp.click();
+  };
+
+  // Handler file input elle (appelé par onchange dans HTML)
+  window.elleHandleFile = function(input){
+    if(!input.files||!input.files[0]) return;
+    var slot=input._slotTarget; if(!slot) return;
+    var file=input.files[0];
+    // Aperçu immédiat
+    var reader=new FileReader();
+    reader.onload=function(ev){
+      var photoDiv=document.getElementById('slotEditPhoto');
+      var ph=document.getElementById('slotEditPhotoPlaceholder');
+      if(photoDiv){ photoDiv.style.backgroundImage='url('+ev.target.result+')'; photoDiv.innerHTML=''; }
+      if(ph) ph.style.display='none';
+    };
+    reader.readAsDataURL(file);
+    _uploadPhoto('elle', slot, file);
+  };
+
+  // Handler file input lui
+  window.luiHandleFile = function(input){
+    if(!input.files||!input.files[0]) return;
+    var slot=input._slotTarget; if(!slot) return;
+    var file=input.files[0];
+    var reader=new FileReader();
+    reader.onload=function(ev){
+      var photoDiv=document.getElementById('slotEditPhoto');
+      var ph=document.getElementById('slotEditPhotoPlaceholder');
+      if(photoDiv){ photoDiv.style.backgroundImage='url('+ev.target.result+')'; photoDiv.innerHTML=''; }
+      if(ph) ph.style.display='none';
+    };
+    reader.readAsDataURL(file);
+    _uploadPhoto('lui', slot, file);
+  };
+
+  // Sauvegarder titre + description (identique à livresSave)
+  window.slotEditSave = function(){
+    if(!_editSection||!_editSlot) return;
+    var coupleId=_getCoupleId(); if(!coupleId) return;
+    var s=_editSection; var sl=_editSlot;
+    var bannerVal=(document.getElementById('slotEditBannerInput').value||'').trim();
+    var descVal=(document.getElementById('slotEditDescInput').value||'').trim();
+
+    var banners=s==='elle'?_elleBanners:_luiBanners;
+    var descs=s==='elle'?_elleDescs:_luiDescs;
+
+    if(bannerVal){
+      banners[sl]=bannerVal;
+      var bEl=document.getElementById(s+'-banner-'+sl); if(bEl) bEl.textContent=bannerVal;
+      var lbl=document.querySelector('#'+s+'-empty-'+sl+' .lui-img-empty-lbl'); if(lbl) lbl.textContent=bannerVal;
+      fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,category:s==='elle'?'elle_banner':'lui_banner',slot:sl,description:bannerVal})}).catch(function(){});
+    }
+    if(descVal){
+      descs[sl]=descVal;
+      var dEl=document.getElementById(s+'-desc-'+sl); if(dEl) dEl.textContent=descVal;
+      fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,category:s,slot:sl,description:descVal})}).catch(function(){});
+    }
+
+    if(typeof showToast==='function') showToast('Pochette mise à jour ✓','success',2000);
+    window.slotCloseEdit();
+  };
+
+  // Init
+  document.addEventListener('nousContentReady', function(){
+    var coupleId=_getCoupleId(); if(!coupleId) return;
+    window.elleLoadImages();
+    window.luiLoadImages();
+    _loadData('elle');
+    _loadData('lui');
+    window.elleSyncSections();
+  });
+
+})();
 
 // ════════════════════════════════════════════════════════════════════
 // 6. FADE-IN OBSERVER
