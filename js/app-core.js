@@ -342,6 +342,7 @@ function updateCounter() {
 function applyThemeToggle() {
   document.body.classList.toggle('light');
   var isLight = document.body.classList.contains('light');
+  document.documentElement.classList.toggle('light', isLight);
   // Met à jour la couleur de la safe zone iOS instantanément
   var themeMeta = document.getElementById('themeColorMeta');
   if(themeMeta) themeMeta.setAttribute('content', isLight ? '#f9e8f0' : '#121212');
@@ -372,6 +373,7 @@ function applyThemeToggle() {
   var saved = localStorage.getItem('jayana_theme');
   if(saved === 'light' && !document.body.classList.contains('light')){
     document.body.classList.add('light');
+    document.documentElement.classList.add('light');
     // Corrige la safe zone dès le chargement sans attendre le DOM
     var themeMeta = document.getElementById('themeColorMeta');
     if(themeMeta) themeMeta.setAttribute('content', '#f9e8f0');
