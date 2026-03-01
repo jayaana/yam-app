@@ -30,7 +30,12 @@
 
     _currentTab = tab;
     window._currentTab = tab;
-    window.scrollTo(0, 0);
+    // Sur PWA iOS, scrollTo(0,0) quand scrollY===0 provoque un reflow
+    // du viewport qui décale le layout de façon permanente. On ne scroll
+    // que si vraiment nécessaire.
+    if ((window.scrollY || window.pageYOffset || 0) > 0) {
+      window.scrollTo(0, 0);
+    }
     if(window.updateFloatingThemeBtn) window.updateFloatingThemeBtn();
 
     // ── Refresh automatique au changement d'onglet ──
