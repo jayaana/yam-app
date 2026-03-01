@@ -2796,6 +2796,7 @@ function v2ApplyDynamicNames(){
     // Masqué sur Messages
     if (currentTab === 'messages') {
       stickyEl.style.opacity = '0';
+      stickyEl.style.transform = 'translateY(-110%)';
       stickyEl.classList.remove('visible');
       return;
     }
@@ -2807,15 +2808,18 @@ function v2ApplyDynamicNames(){
 
     if (scrollY <= SCROLL_START) {
       stickyEl.style.opacity = '0';
+      stickyEl.style.transform = 'translateY(-110%)';
       stickyEl.classList.remove('visible');
 
     } else if (scrollY >= SCROLL_END) {
       stickyEl.style.opacity = '1';
+      stickyEl.style.transform = 'translateY(0)';
       stickyEl.classList.add('visible');
 
     } else {
       var progress = (scrollY - SCROLL_START) / (SCROLL_END - SCROLL_START);
       stickyEl.style.opacity = String(progress);
+      stickyEl.style.transform = 'translateY(' + ((1 - progress) * -110) + '%)';
       stickyEl.classList.add('visible');
     }
   }
@@ -2832,6 +2836,7 @@ function v2ApplyDynamicNames(){
     // Au switch d'onglet : cacher immédiatement
     if (stickyEl) {
       stickyEl.style.opacity = '0';
+      stickyEl.style.transform = 'translateY(-110%)';
       stickyEl.classList.remove('visible');
     }
   }
