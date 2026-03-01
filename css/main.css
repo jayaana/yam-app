@@ -392,6 +392,7 @@ header {
   /* ↓ Espace supplémentaire pour Dynamic Island / notch iOS */
   padding-top: calc(var(--safe-top) + 14px);
   position: relative;
+  background: var(--bg);
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
@@ -1273,7 +1274,7 @@ body.light {
 
 /* Header */
 body.light header {
-  background: linear-gradient(180deg, rgba(200,24,94,0.06) 0%, transparent 100%);
+  background: linear-gradient(180deg, rgba(200,24,94,0.06) 0%, transparent 100%), var(--bg);
   border-bottom-color: rgba(200,24,94,0.18);
 }
 
