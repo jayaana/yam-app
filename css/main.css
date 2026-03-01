@@ -150,23 +150,40 @@ body.light #uxToast.success { border-color: rgba(200,24,94,0.3); color: var(--gr
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 990;
+
+  /* Hauteur : safe-area + barre compacte */
   height: calc(var(--safe-top) + 44px);
   padding-top: var(--safe-top);
-  display: none;
+
+  display: flex;
   align-items: flex-end;
-  justify-content: space-between;
-  padding-left: 16px;
-  padding-right: 12px;
+  justify-content: center;
   padding-bottom: 10px;
+
+  /* Fond flouté comme iOS */
   background: rgba(18, 18, 18, 0.82);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+  /* Caché par défaut — progressif selon le scroll (géré en JS) */
+  transform: translateY(-100%);
+  opacity: 0;
+  /* Pas de transition CSS : le JS applique les valeurs directement pour suivre le doigt */
   pointer-events: none;
+  will-change: transform, opacity;
 }
 #yamStickyHeader.visible {
-  display: flex;
   pointer-events: auto;
+}
+
+/* Layout interne : titre centré + avatars à droite */
+#yamStickyHeader {
+  /* override pour layout flex avec 3 zones */
+  justify-content: space-between;
+  padding-left: 16px;
+  padding-right: 12px;
+  align-items: flex-end;
 }
 
 /* Zone avatars à droite */
