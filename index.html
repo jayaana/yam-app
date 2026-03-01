@@ -2643,21 +2643,12 @@ function v2ApplyDynamicNames(){
 </script>
 
 <!-- ═══════════════════════════════════════════
-     FIX PWA iOS — Safe Area & Scroll
-     • Force le scroll en haut au démarrage
-     • Force le scroll en haut à chaque switch d'onglet
-     • Empêche la nav bar de paraître "trop haute"
-       quand le contenu est court (ex: onglet Jeux)
+     PWA iOS — Patch yamSwitchTab
+     • Ouvre hiddenPage sur onglet messages
+     • Vérifie le lock sur onglet nous
 ════════════════════════════════════════════ -->
 <script>
 (function(){
-  // 1. Scroll en haut dès que la page est prête
-  window.addEventListener('load', function(){
-    setTimeout(function(){ window.scrollTo(0, 0); }, 50);
-  });
-
-  // 2. Patch yamSwitchTab : scroll en haut à chaque changement d'onglet
-  //    On attend que app-nav.js ait défini la fonction, puis on la wrappe
   function patchYamSwitchTab(){
     if(typeof window.yamSwitchTab !== 'function'){
       setTimeout(patchYamSwitchTab, 100);
@@ -2667,8 +2658,6 @@ function v2ApplyDynamicNames(){
     window.yamSwitchTab = function(tab){
       _orig(tab);
       if(tab === 'messages'){
-        // openHiddenPage gère en interne l'affichage de la conv (via _dmRawShowConv)
-        // On ne rappelle pas dmShowConv ici pour éviter le double-push dans la pile
         setTimeout(function(){
           if(typeof window.openHiddenPage === 'function') window.openHiddenPage();
         }, 30);
@@ -2676,9 +2665,6 @@ function v2ApplyDynamicNames(){
         setTimeout(function(){
           if(typeof window.nousCheckLock === 'function') window.nousCheckLock();
         }, 100);
-        setTimeout(function(){ window.scrollTo(0, 0); }, 220);
-      } else {
-        setTimeout(function(){ window.scrollTo(0, 0); }, 220);
       }
     };
   }
