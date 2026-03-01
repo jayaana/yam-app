@@ -30,6 +30,7 @@
 
     _currentTab = tab;
     window._currentTab = tab;
+    window.scrollTo(0, 0);
     if(window.updateFloatingThemeBtn) window.updateFloatingThemeBtn();
 
     // ── Refresh automatique au changement d'onglet ──
