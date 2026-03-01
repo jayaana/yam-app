@@ -56,6 +56,47 @@
   }
 </script>
 
+<script>
+/* ═══════════════════════════════════════════════════════
+   FIX PWA iOS — Figer --safe-top avant le premier paint
+   env(safe-area-inset-top) peut changer après le 1er tap
+   sur PWA iOS, ce qui recalcule tout le layout.
+   On lit la vraie valeur via un élément sonde et on la
+   fige en px fixe sur :root pour qu'elle ne bouge plus.
+════════════════════════════════════════════════════════ */
+(function() {
+  var ran = false;
+  function fixSafeTop() {
+    if (ran) return;
+    // Sonde via padding-top (plus fiable que top sur iOS)
+    var probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;' +
+      'padding-top:env(safe-area-inset-top,0px);pointer-events:none;visibility:hidden;';
+    document.documentElement.appendChild(probe);
+    var val = parseInt(window.getComputedStyle(probe).paddingTop, 10) || 0;
+    document.documentElement.removeChild(probe);
+
+    // Fallback si valeur pas encore dispo (très début du chargement PWA)
+    if (val === 0 && window.navigator.standalone) {
+      var h = Math.max(window.screen.height, window.screen.width);
+      if      (h >= 900) val = 59;
+      else if (h >= 844) val = 47;
+      else if (h >= 736) val = 44;
+      else               val = 20;
+    }
+
+    if (val > 0) {
+      ran = true;
+      document.documentElement.style.setProperty('--safe-top', val + 'px');
+    }
+  }
+
+  // Essai immédiat puis au DOMContentLoaded
+  fixSafeTop();
+  document.addEventListener('DOMContentLoaded', fixSafeTop);
+})();
+</script>
+
 <link rel="stylesheet" href="css/main.css">
 
 <script>
@@ -163,8 +204,6 @@
   };
 })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-<script>eruda.init();</script>
 </head>
 <body>
 
