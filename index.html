@@ -42,16 +42,6 @@
 ════════════════════════════════════════════════ -->
 <script>
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-  // Révéler le body après scroll à 0 — évite le flash de position iOS PWA
-  function _yamReveal() {
-    window.scrollTo({ top: 0, behavior: 'instant' });
-    document.body.classList.add('yam-ready');
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', _yamReveal);
-  } else {
-    _yamReveal();
-  }
 </script>
 <script>
   if ('serviceWorker' in navigator) {
@@ -3382,5 +3372,6 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   setTimeout(hookSetProfile, 500);
 })();
 </script>
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script><script>eruda.init();</script>
 </body>
 </html>
