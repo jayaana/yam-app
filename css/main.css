@@ -162,11 +162,11 @@ body.light #uxToast.success { border-color: rgba(200,24,94,0.3); color: var(--gr
 #yamStickyHeader {
   position: fixed;
   top: 0; left: 0; right: 0;
-  z-index: 990;
+  z-index: 10002;
 
   /* Hauteur : safe-area + barre compacte */
-  height: calc(var(--safe-top) + 44px);
-  padding-top: var(--safe-top);
+  height: calc(env(safe-area-inset-top, 0px) + 44px);
+  padding-top: env(safe-area-inset-top, 0px);
 
   display: flex;
   align-items: flex-end;
