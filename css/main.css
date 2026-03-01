@@ -155,7 +155,7 @@ body.light #uxToast.success { border-color: rgba(200,24,94,0.3); color: var(--gr
   height: calc(var(--safe-top) + 44px);
   padding-top: var(--safe-top);
 
-  display: flex;
+  display: none;
   align-items: flex-end;
   justify-content: center;
   padding-bottom: 10px;
@@ -166,15 +166,13 @@ body.light #uxToast.success { border-color: rgba(200,24,94,0.3); color: var(--gr
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 
-  /* Caché par défaut — progressif selon le scroll (géré en JS) */
-  transform: translateY(-110%);
   opacity: 0;
-  /* Pas de transition CSS : le JS applique les valeurs directement pour suivre le doigt */
   pointer-events: none;
   will-change: transform, opacity;
-  /* Évite le subpixel bleed iOS (1-2px visibles quand translateY=-100%) */
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+}
+#yamStickyHeader.visible {
+  display: flex;
+  pointer-events: auto;
 }
 #yamStickyHeader.visible {
   pointer-events: auto;
