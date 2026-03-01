@@ -170,7 +170,7 @@
      STICKY MINI HEADER — Apparaît au scroll
      Nom de l'onglet actif, fond flouté
 ════════════════════════════════════════════ -->
-<div id="yamStickyHeader">
+<div id="yamStickyHeader" style="transform:translateY(-100%);opacity:0;pointer-events:none;">
   <!-- Spacer gauche (symétrie) -->
   <div style="width:56px;flex-shrink:0;"></div>
   <!-- Titre centré -->
@@ -2695,11 +2695,10 @@ function v2ApplyDynamicNames(){
 ════════════════════════════════════════════ -->
 <script>
 (function(){
-    // FIX PWA iOS : scrollTo(0,0) au chargement décale le layout en standalone
-    // On ne scroll que si la page n'est pas déjà à 0
-    window.addEventListener('load', function(){
-      setTimeout(function(){ if(window.scrollY > 0) window.scrollTo(0, 0); }, 50);
-    });
+  // 1. Scroll en haut dès que la page est prête
+  window.addEventListener('load', function(){
+    setTimeout(function(){ window.scrollTo(0, 0); }, 50);
+  });
 
   // 2. Patch yamSwitchTab : ouverture messages + nousCheckLock
   //    IMPORTANT : on ne rappelle PAS window.scrollTo ici — yamSwitchTab le fait déjà
@@ -3343,6 +3342,11 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
     };
   }
   setTimeout(hookSetProfile, 500);
+})();
+</script>
+</body>
+</html>
+etProfile, 500);
 })();
 </script>
 </body>
