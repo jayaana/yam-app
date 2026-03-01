@@ -241,6 +241,8 @@ function loadCoupleConfig(){
   })
   .then(function(cfg){
     if(cfg) applyYamCouple();
+    // Remettre le scroll à 0 après injection du contenu
+    window.scrollTo({ top: 0, behavior: 'instant' });
     return cfg;
   })
   .catch(function(){ return null; });
