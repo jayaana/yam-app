@@ -170,7 +170,7 @@
      STICKY MINI HEADER — Apparaît au scroll
      Nom de l'onglet actif, fond flouté
 ════════════════════════════════════════════ -->
-<div id="yamStickyHeader" style="transform:translateY(-100%);opacity:0;pointer-events:none;">
+<div id="yamStickyHeader">
   <!-- Spacer gauche (symétrie) -->
   <div style="width:56px;flex-shrink:0;"></div>
   <!-- Titre centré -->
@@ -2819,41 +2819,22 @@ function v2ApplyDynamicNames(){
 
     // Masqué sur Messages
     if (currentTab === 'messages') {
-      stickyEl.style.transform = 'translateY(-100%)';
-      stickyEl.style.opacity   = '0';
       stickyEl.classList.remove('visible');
       return;
     }
 
     var scrollY = window.scrollY || window.pageYOffset;
 
-    // Zone de transition : entre SCROLL_START et SCROLL_END
-    // – En dessous de START : complètement caché
-    // – Au dessus de END    : complètement visible
-    // – Entre les deux      : progressif selon le scroll (suit le doigt)
-    var SCROLL_START = 40;   // px — début de l'apparition
-    var SCROLL_END   = 100;  // px — pleinement visible
+    var SCROLL_START = 40;
+    var SCROLL_END   = 100;
 
     if (scrollY <= SCROLL_START) {
-      // Caché
-      stickyEl.style.transform = 'translateY(-100%)';
-      stickyEl.style.opacity   = '0';
       stickyEl.classList.remove('visible');
-
     } else if (scrollY >= SCROLL_END) {
-      // Pleinement visible
-      stickyEl.style.transform = 'translateY(0)';
-      stickyEl.style.opacity   = '1';
       stickyEl.classList.add('visible');
-
     } else {
-      // Zone de transition — progresse linéairement avec le scroll
-      var progress = (scrollY - SCROLL_START) / (SCROLL_END - SCROLL_START);
-      // translateY va de -100% à 0 proportionnellement
-      var translateY = -100 + (progress * 100);
-      stickyEl.style.transform = 'translateY(' + translateY + '%)';
-      stickyEl.style.opacity   = String(progress);
-      stickyEl.classList.add('visible'); // pointer-events actifs dès qu'on entre dans la zone
+      // Zone de transition — on affiche simplement sans animation
+      stickyEl.classList.add('visible');
     }
   }
 
@@ -2866,16 +2847,9 @@ function v2ApplyDynamicNames(){
       titleEl.textContent = title;
     }
 
-    // Au switch d'onglet le scroll repasse à 0 → cacher immédiatement sans animation
+    // Au switch d'onglet → cacher immédiatement
     if (stickyEl) {
-      stickyEl.style.transition = 'none';
-      stickyEl.style.transform  = 'translateY(-100%)';
-      stickyEl.style.opacity    = '0';
       stickyEl.classList.remove('visible');
-      // Réactiver après un frame pour ne pas bloquer les futurs scrolls
-      requestAnimationFrame(function() {
-        if (stickyEl) stickyEl.style.transition = '';
-      });
     }
   }
 
@@ -3342,11 +3316,6 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
     };
   }
   setTimeout(hookSetProfile, 500);
-})();
-</script>
-</body>
-</html>
-etProfile, 500);
 })();
 </script>
 </body>
