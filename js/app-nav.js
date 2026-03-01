@@ -30,7 +30,26 @@
 
     _currentTab = tab;
     window._currentTab = tab;
-    window.scrollTo(0, 0);
+
+    // ── FIX iOS PWA visualViewport drift ──
+    // Sur iOS standalone, scrollTo(0,0) décale le visualViewport si les panels
+    // sont en flux normal (display:block). On les passe en fixed le temps du
+    // reflow, exactement comme _yamSlide le fait pour les sous-vues.
+    var _allPanels = document.querySelectorAll('.yam-tab-panel.active');
+    _allPanels.forEach(function(p) {
+      p.style.position = 'fixed';
+      p.style.top = '0'; p.style.left = '0';
+      p.style.width = '100%'; p.style.height = '100%';
+    });
+    if (window.scrollY !== 0) window.scrollTo(0, 0);
+    // Remettre en flux normal après le reflow (1 frame suffit)
+    requestAnimationFrame(function() {
+      _allPanels.forEach(function(p) {
+        p.style.position = '';
+        p.style.top = ''; p.style.left = '';
+        p.style.width = ''; p.style.height = '';
+      });
+    });
     if(window.updateFloatingThemeBtn) window.updateFloatingThemeBtn();
 
     // ── Refresh automatique au changement d'onglet ──
