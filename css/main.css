@@ -66,6 +66,18 @@ body { overscroll-behavior: none !important; overscroll-behavior-y: none !import
    Le pull-to-refresh est bloqué via app-ios-touch.js (touchmove preventDefault). */
 
 /* ══ SKELETON LOADING ══ */
+#safeZoneShield {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 15px;
+  background: var(--bg);
+  z-index: 10001;
+  pointer-events: none;
+}
+body.light #safeZoneShield {
+  background: #f9e8f0;
+}
+
 @keyframes skeletonShimmer {
   0%   { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -4839,7 +4851,7 @@ body.light #profileMoodOther.mood-highlight-boy {
 
 #profilePopup {
   position: fixed;
-  top: calc(var(--safe-top) + 14px); right: 64px;
+  top: calc(env(safe-area-inset-top, 0px) + 44px + 8px); right: 64px;
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: 12px;
