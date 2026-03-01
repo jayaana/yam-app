@@ -29,9 +29,7 @@
     });
 
     // Remettre Y à 0 pendant que tout est caché — personne ne voit le saut
-    document.documentElement.style.scrollBehavior = 'auto';
-    window.scrollTo(0, 0);
-    document.documentElement.style.scrollBehavior = '';
+    window.scrollTo({ top: 0, behavior: 'instant' });
 
     // Afficher le panel cible — on est déjà à Y=0
     var incomingPanel = TAB_MAP[tab] && document.getElementById(TAB_MAP[tab].panel);
