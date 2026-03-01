@@ -1370,6 +1370,32 @@
   <div class="bottom-nav-safe"></div>
 </div>
 
+<!-- ═══════════════════════════════════════════
+     FIX iOS PWA — Ancrage nav au bas du viewport
+     visualViewport.offsetTop dérive au premier tap
+     → on corrige bottom de .bottom-nav en temps réel
+════════════════════════════════════════════ -->
+<script>
+(function () {
+  if (!window.visualViewport) return;
+
+  var nav = document.querySelector('.bottom-nav');
+  if (!nav) return;
+
+  function fixNavPosition() {
+    // layoutViewport height - visualViewport height - visualViewport offsetTop
+    // = espace perdu en bas du visual viewport
+    var drift = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
+    // On compense : si drift > 0, la nav remonte d'autant
+    nav.style.bottom = Math.max(0, drift) + 'px';
+  }
+
+  window.visualViewport.addEventListener('resize', fixNavPosition);
+  window.visualViewport.addEventListener('scroll', fixNavPosition);
+  // Appel initial
+  fixNavPosition();
+})();
+</script>
 
 <!-- Hidden compat elements for existing JS that references old nav items -->
 <div id="lockNavBtn" style="display:none;"></div>
@@ -2643,12 +2669,21 @@ function v2ApplyDynamicNames(){
 </script>
 
 <!-- ═══════════════════════════════════════════
-     PWA iOS — Patch yamSwitchTab
-     • Ouvre hiddenPage sur onglet messages
-     • Vérifie le lock sur onglet nous
+     FIX PWA iOS — Safe Area & Scroll
+     • Force le scroll en haut au démarrage
+     • Force le scroll en haut à chaque switch d'onglet
+     • Empêche la nav bar de paraître "trop haute"
+       quand le contenu est court (ex: onglet Jeux)
 ════════════════════════════════════════════ -->
 <script>
 (function(){
+  // 1. Scroll en haut dès que la page est prête
+  window.addEventListener('load', function(){
+    setTimeout(function(){ window.scrollTo(0, 0); }, 50);
+  });
+
+  // 2. Patch yamSwitchTab : scroll en haut à chaque changement d'onglet
+  //    On attend que app-nav.js ait défini la fonction, puis on la wrappe
   function patchYamSwitchTab(){
     if(typeof window.yamSwitchTab !== 'function'){
       setTimeout(patchYamSwitchTab, 100);
@@ -2658,6 +2693,8 @@ function v2ApplyDynamicNames(){
     window.yamSwitchTab = function(tab){
       _orig(tab);
       if(tab === 'messages'){
+        // openHiddenPage gère en interne l'affichage de la conv (via _dmRawShowConv)
+        // On ne rappelle pas dmShowConv ici pour éviter le double-push dans la pile
         setTimeout(function(){
           if(typeof window.openHiddenPage === 'function') window.openHiddenPage();
         }, 30);
@@ -2665,6 +2702,9 @@ function v2ApplyDynamicNames(){
         setTimeout(function(){
           if(typeof window.nousCheckLock === 'function') window.nousCheckLock();
         }, 100);
+        setTimeout(function(){ window.scrollTo(0, 0); }, 220);
+      } else {
+        setTimeout(function(){ window.scrollTo(0, 0); }, 220);
       }
     };
   }
