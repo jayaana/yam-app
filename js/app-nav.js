@@ -17,7 +17,7 @@
   window.yamSwitchTab = function(tab) {
     if(window.closeAllViews) window.closeAllViews();
 
-    // Cacher tous les panels (display:none) — window.scrollY ne change pas mais c'est invisible
+    // Cacher tous les panels
     Object.keys(TAB_MAP).forEach(function(key) {
       var t = TAB_MAP[key];
       if(t.panel) {
@@ -28,10 +28,10 @@
       if(nav) nav.classList.toggle('nav-active', key === tab);
     });
 
-    // Remettre Y à 0 pendant que tout est caché — personne ne voit le saut
+    // Scroll à 0 instantané
     window.scrollTo({ top: 0, behavior: 'instant' });
 
-    // Afficher le panel cible — on est déjà à Y=0
+    // Afficher le panel cible
     var incomingPanel = TAB_MAP[tab] && document.getElementById(TAB_MAP[tab].panel);
     if(incomingPanel) incomingPanel.classList.add('active');
 
@@ -41,14 +41,6 @@
     if(window.updateFloatingThemeBtn) window.updateFloatingThemeBtn();
 
     // ── Refresh automatique au changement d'onglet ──
-    // On ancre le scroll à 0 pendant 400ms pour neutraliser tout décalage
-    // causé par les fonctions de refresh qui modifient le DOM
-    var _scrollAnchor = function() { window.scrollTo(0, 0); };
-    document.addEventListener('scroll', _scrollAnchor, { passive: true });
-    setTimeout(function(){
-      document.removeEventListener('scroll', _scrollAnchor);
-    }, 400);
-
     setTimeout(function(){
       var fns = {
         home:     [window.loadLikeCounters, window._presencePoll],
