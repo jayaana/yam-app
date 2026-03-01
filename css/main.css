@@ -1092,10 +1092,11 @@ body.light #loveBox .lb-label { color: rgba(200,24,94,0.65); }
   padding: 0 2px;
 }
 .bottom-nav-safe {
-  /* Bande transparente = home indicator sur iPhone */
+  /* Bande = home indicator sur iPhone */
   height: var(--safe-bottom);
   min-height: var(--safe-bottom);
   flex-shrink: 0;
+  background: inherit;
 }
 
 /* ══ YAM TAB PANELS ══ */
@@ -1107,6 +1108,8 @@ body.light #loveBox .lb-label { color: rgba(200,24,94,0.65); }
   /* Hauteur minimale = viewport - header estimé - nav bar
      Évite que la bottom-nav remonte sur les onglets au contenu court (ex: Jeux) */
   min-height: calc(100dvh - var(--nav-height) - 120px);
+  /* Le contenu ne passe jamais sous la nav, safe zone incluse */
+  padding-bottom: var(--nav-height);
 }
 
 /* ══ MESSAGES TAB ══ */
@@ -1705,7 +1708,7 @@ body.light #lockNavBtn.has-unread {
 .prank-close:hover { background:#ff85c2; transform:scale(1.04); }
 
 /* ══ SYSTÈME BÊTISES INTERACTIVES ══ */
-#prankMenu { position:fixed; inset:0; background:var(--pm-bg,#0d0d0d); z-index:4000; display:none; flex-direction:column; align-items:center; justify-content:flex-start; padding:0 24px 40px; padding-top:calc(var(--safe-top) + 0px); overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
+#prankMenu { position:fixed; inset:0; background:var(--pm-bg,#0d0d0d); z-index:4000; display:none; flex-direction:column; align-items:center; justify-content:flex-start; padding:0 24px var(--nav-height); padding-top:calc(var(--safe-top) + 0px); overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
 #prankMenu.show { display:flex; }
 .prank-menu-title { font-family:'Playfair Display',serif; font-size:22px; color:var(--pm-text,#fff); margin-bottom:6px; text-align:center; }
 .prank-menu-sub { font-size:12px; color:var(--pm-sub,rgba(255,255,255,0.5)); margin-bottom:20px; text-align:center; }
@@ -2640,6 +2643,7 @@ body.light .sg-song:hover { background: rgba(200,24,94,0.05); }
   font-family: 'DM Sans', sans-serif;
   touch-action: none;
   overscroll-behavior: none;
+  padding-bottom: var(--nav-height);
 }
 #skyjoView.active { display: flex !important; }
 @keyframes sjViewEnter {
