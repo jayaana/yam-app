@@ -65,7 +65,23 @@ body { overscroll-behavior: none !important; overscroll-behavior-y: none !import
    pan-x pan-y bloquait le geste longpress + drag de sélection iOS → supprimé.
    Le pull-to-refresh est bloqué via app-ios-touch.js (touchmove preventDefault). */
 
-/* ══ SKELETON LOADING ══ */
+/* ══ BOUCLIER SAFE ZONE ══
+   Élément fixed collé à top:0, toujours devant iOS,
+   même au reload SW cache. Couvre la zone sans interférer
+   avec le header qui scroll normalement en dessous. */
+#safeZoneShield {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: env(safe-area-inset-top, 0px);
+  background: var(--bg);
+  z-index: 10001;
+  pointer-events: none;
+}
+body.light #safeZoneShield {
+  background: #f9e8f0;
+}
+
+
 @keyframes skeletonShimmer {
   0%   { background-position: -200% 0; }
   100% { background-position: 200% 0; }
