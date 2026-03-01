@@ -30,6 +30,9 @@
 
     _currentTab = tab;
     window._currentTab = tab;
+    // Remettre le scroll en haut — le fix visualViewport dans index.html
+    // compense le drift iOS en temps réel, donc ce scrollTo est sans danger
+    window.scrollTo(0, 0);
     if(window.updateFloatingThemeBtn) window.updateFloatingThemeBtn();
 
     // ── Refresh automatique au changement d'onglet ──
