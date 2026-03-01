@@ -2847,41 +2847,28 @@ function v2ApplyDynamicNames(){
 
     // Masqué sur Messages
     if (currentTab === 'messages') {
-      stickyEl.style.transform = 'translateY(-110%)';
-      stickyEl.style.opacity   = '0';
+      stickyEl.style.opacity = '0';
       stickyEl.classList.remove('visible');
       return;
     }
 
     var scrollY = window.scrollY || window.pageYOffset;
 
-    // Zone de transition : entre SCROLL_START et SCROLL_END
-    // – En dessous de START : complètement caché
-    // – Au dessus de END    : complètement visible
-    // – Entre les deux      : progressif selon le scroll (suit le doigt)
-    var SCROLL_START = 40;   // px — début de l'apparition
-    var SCROLL_END   = 100;  // px — pleinement visible
+    var SCROLL_START = 40;
+    var SCROLL_END   = 100;
 
     if (scrollY <= SCROLL_START) {
-      // Caché
-      stickyEl.style.transform = 'translateY(-110%)';
-      stickyEl.style.opacity   = '0';
+      stickyEl.style.opacity = '0';
       stickyEl.classList.remove('visible');
 
     } else if (scrollY >= SCROLL_END) {
-      // Pleinement visible
-      stickyEl.style.transform = 'translateY(0)';
-      stickyEl.style.opacity   = '1';
+      stickyEl.style.opacity = '1';
       stickyEl.classList.add('visible');
 
     } else {
-      // Zone de transition — progresse linéairement avec le scroll
       var progress = (scrollY - SCROLL_START) / (SCROLL_END - SCROLL_START);
-      // translateY va de -110% à 0 proportionnellement (extra -10% pour éviter subpixel bleed iOS)
-      var translateY = -110 + (progress * 110);
-      stickyEl.style.transform = 'translateY(' + translateY + '%)';
-      stickyEl.style.opacity   = String(progress);
-      stickyEl.classList.add('visible'); // pointer-events actifs dès qu'on entre dans la zone
+      stickyEl.style.opacity = String(progress);
+      stickyEl.classList.add('visible');
     }
   }
 
@@ -2894,16 +2881,10 @@ function v2ApplyDynamicNames(){
       titleEl.textContent = title;
     }
 
-    // Au switch d'onglet le scroll repasse à 0 → cacher immédiatement sans animation
+    // Au switch d'onglet : cacher immédiatement
     if (stickyEl) {
-      stickyEl.style.transition = 'none';
-      stickyEl.style.transform  = 'translateY(-110%)';
-      stickyEl.style.opacity    = '0';
+      stickyEl.style.opacity = '0';
       stickyEl.classList.remove('visible');
-      // Réactiver après un frame pour ne pas bloquer les futurs scrolls
-      requestAnimationFrame(function() {
-        if (stickyEl) stickyEl.style.transition = '';
-      });
     }
   }
 
