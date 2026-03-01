@@ -59,7 +59,8 @@ function _unblockBackgroundScroll() {
 
   window._yamScrollLocked = false;
 
-  window.scrollTo(0, _bodyScrollY);
+  // Ne pas restaurer l'ancienne position — on veut toujours arriver en haut
+  // window.scrollTo(0, _bodyScrollY); — supprimé
 
   var nousWrap = document.getElementById('nousContentWrapper');
   if (nousWrap) nousWrap.style.overflow = '';
