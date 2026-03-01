@@ -204,6 +204,39 @@
   };
 })();
 </script>
+<script>
+/* ═══════════════════════════════════════════════════════
+   FIX PWA iOS — Visual Viewport décalé après clavier
+   Sur iOS PWA, quand le clavier se ferme, visualViewport
+   reste décalé (offsetTop > normal). On force le scroll
+   pour compenser et remettre le viewport en place.
+════════════════════════════════════════════════════════ */
+(function() {
+  if (!window.visualViewport) return;
+
+  var BASELINE = null;
+
+  function fixViewport() {
+    var vv = window.visualViewport;
+    if (BASELINE === null) {
+      BASELINE = vv.offsetTop;
+      return;
+    }
+    var drift = vv.offsetTop - BASELINE;
+    if (drift > 10) {
+      window.scrollBy(0, drift);
+      requestAnimationFrame(function() {
+        window.scrollTo(0, 0);
+        BASELINE = vv.offsetTop;
+      });
+    } else {
+      BASELINE = vv.offsetTop;
+    }
+  }
+
+  window.visualViewport.addEventListener('resize', fixViewport);
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/eruda"></script><script>eruda.init();</script>
 </head>
 <body>
