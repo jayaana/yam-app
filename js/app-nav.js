@@ -548,7 +548,7 @@ function openHiddenPage(){
     return;
   }
   document.getElementById('hiddenPage').classList.add('active');
-  particleActive=false;hideDance();window.scrollTo(0,0);
+  particleActive=false;hideDance();
   _dmUpdateHeaderAvatars();
   // ✅ FIX — re-propager les vraies photos à l'ouverture (les bulles vont être générées)
   setTimeout(function(){ if(window._acLoadPartnerAvatar) window._acLoadPartnerAvatar(); }, 400);
@@ -697,7 +697,7 @@ function _yamSlide(incoming, outgoing, dir){
 function openGames(){
   resetZoom();
   _yamSlide(document.getElementById('gamesView'), document.getElementById('yamJeuxTab'), 'forward');
-  particleActive=false;hideDance();window.scrollTo(0,0);
+  particleActive=false;hideDance();
 }
 function closeGames(){
   _yamSlide(null, document.getElementById('gamesView'), 'backward');
@@ -708,7 +708,7 @@ function openMemoryGame(){
   resetZoom();
   _yamSlide(document.getElementById('memoryView'), document.getElementById('gamesView'), 'forward');
   particleActive=false; hideDance();
-  window.scrollTo(0,0);
+  
   _lbLoad();
 }
 function closeMemoryGame(){
@@ -776,7 +776,7 @@ function closeAllViews(){
   if(typeof window._nousResetScrollLock === 'function') window._nousResetScrollLock();
   window._yamScrollLocked = false;
 }
-function scrollToTop(){resetZoom();closeAllViews();if(window.yamSwitchTab)window.yamSwitchTab('home');window.scrollTo({top:0,behavior:'smooth'});}
+function scrollToTop(){resetZoom();closeAllViews();if(window.yamSwitchTab)window.yamSwitchTab('home');}
 function toggleLibrary(){var p=document.getElementById('libraryPopup');p.style.display=p.style.display==='block'?'none':'block';}
 function goTo(id){resetZoom();closeAllViews();document.getElementById('libraryPopup').style.display='none';setTimeout(function(){var el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth'});},150);}
 
