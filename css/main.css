@@ -46,7 +46,7 @@ body.light {
   --shadow: 0 8px 32px rgba(180,20,80,0.16);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; overflow-x: hidden; -webkit-text-size-adjust: 100%; overscroll-behavior: none !important; overscroll-behavior-x: none !important; overscroll-behavior-y: none !important; }
+html { scroll-behavior: smooth; overflow-x: hidden; -webkit-text-size-adjust: 100%; overscroll-behavior: none !important; overscroll-behavior-x: none !important; overscroll-behavior-y: none !important; background: var(--bg); }
 body { overscroll-behavior: none !important; overscroll-behavior-y: none !important; -webkit-overflow-scrolling: touch; touch-action: manipulation; }
 /* touch-action:manipulation autorise tap/scroll sans bloquer la sélection de texte.
    pan-x pan-y bloquait le geste longpress + drag de sélection iOS → supprimé.
