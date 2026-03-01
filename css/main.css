@@ -1094,6 +1094,15 @@ body.light #loveBox .lb-label { color: rgba(200,24,94,0.65); }
   min-height: calc(100dvh - var(--nav-height) - 120px);
 }
 
+/* Tous les onglets sauf Home remontent dans la safe zone */
+#yamJeuxTab,
+#yamMusiqueTab,
+#yamNousTab,
+#yamMessagesTab {
+  margin-top: calc(-1 * var(--safe-top));
+  padding-top: var(--safe-top);
+}
+
 /* ══ MESSAGES TAB ══ */
 
 /* ══ NAV ACTIVE STATE ══ */
