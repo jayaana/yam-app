@@ -392,6 +392,7 @@ header {
   /* ↓ Espace supplémentaire pour Dynamic Island / notch iOS */
   padding-top: calc(var(--safe-top) + 14px);
   position: relative;
+  z-index: 10000;
   background: var(--bg);
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
