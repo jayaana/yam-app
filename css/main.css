@@ -73,6 +73,7 @@ body { overscroll-behavior: none !important; overscroll-behavior-y: none !import
   background: var(--bg);
   z-index: 10001;
   pointer-events: none;
+  transition: background 0.3s;
 }
 body.light #safeZoneShield {
   background: #f9e8f0;
@@ -4851,7 +4852,7 @@ body.light #profileMoodOther.mood-highlight-boy {
 
 #profilePopup {
   position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) + 44px + 8px); right: 64px;
+  top: calc(var(--safe-top) + 14px); right: 64px;
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: 12px;
