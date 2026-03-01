@@ -896,6 +896,32 @@
   </div>
 </div>
 
+<!-- ROUE -->
+<div id="wheelSection" class="fade-in">
+  <div class="section-label" style="padding:26px 16px 0">On fait quoi ce soir ? 🎲</div>
+  <div style="padding:0 16px">
+    <div class="wheel-container">
+      <div class="wheel-wrap">
+        <canvas id="wheelCanvas"></canvas>
+        <div class="wheel-needle">◀</div>
+        <div class="wheel-center"></div>
+      </div>
+      <button class="wheel-spin-btn" id="spinBtn">Tourner la roue ✨</button>
+      <div id="wheelResult">
+        <span class="result-label">En attente...</span>
+        <span class="result-text">Lance la roue pour décider 🎲</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /nousContentWrapper -->
+
+</div><!-- /yamNousTab -->
+
+
+<!-- OVERLAYS LIVRES (hors nousContentWrapper pour position:fixed correct) -->
+
 <!-- MODAL GESTION LIVRES -->
 <div id="livresGestionOverlay" class="souvenir-gestion-overlay">
   <div class="souvenir-gestion-header">
@@ -943,26 +969,10 @@
   </div>
 </div>
 
-<!-- ROUE -->
-<div id="wheelSection" class="fade-in">
-  <div class="section-label" style="padding:26px 16px 0">On fait quoi ce soir ? 🎲</div>
-  <div style="padding:0 16px">
-    <div class="wheel-container">
-      <div class="wheel-wrap">
-        <canvas id="wheelCanvas"></canvas>
-        <div class="wheel-needle">◀</div>
-        <div class="wheel-center"></div>
-      </div>
-      <button class="wheel-spin-btn" id="spinBtn">Tourner la roue ✨</button>
-      <div id="wheelResult">
-        <span class="result-label">En attente...</span>
-        <span class="result-text">Lance la roue pour décider 🎲</span>
-      </div>
-    </div>
-  </div>
-</div>
 
-</div><!-- /nousContentWrapper -->
+
+<!-- MODALES NOUS (hors yamNousTab pour position:fixed correct) -->
+
 
 <!-- MODALES -->
 
@@ -1094,7 +1104,7 @@
   </div>
 </div>
 
-</div><!-- /yamNousTab -->
+
 
 <!-- Modal Souvenir -->
 <div id="souvenirModal" class="nous-modal-overlay">
