@@ -342,6 +342,8 @@ function updateCounter() {
 function applyThemeToggle() {
   document.body.classList.toggle('light');
   var isLight = document.body.classList.contains('light');
+  // Sync sur <html> — son background couvre la safe zone iOS avant tout rendu
+  document.documentElement.classList.toggle('light', isLight);
   // Persistance
   localStorage.setItem('jayana_theme', isLight ? 'light' : 'dark');
   // Labels boutons principaux
@@ -369,6 +371,8 @@ function applyThemeToggle() {
   var saved = localStorage.getItem('jayana_theme');
   if(saved === 'light' && !document.body.classList.contains('light')){
     document.body.classList.add('light');
+    // Sync sur <html> immédiatement — avant tout rendu, la safe zone est déjà de la bonne couleur
+    document.documentElement.classList.add('light');
     document.addEventListener('DOMContentLoaded', function(){
       var btn = document.getElementById('themeToggle');
       if(btn) btn.textContent = '🌙';
