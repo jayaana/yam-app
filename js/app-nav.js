@@ -17,22 +17,29 @@
   window.yamSwitchTab = function(tab) {
     if(window.closeAllViews) window.closeAllViews();
 
-    // Cacher tous les panels, montrer le bon — sans animation
+    // Cacher tous les panels (display:none) — window.scrollY ne change pas mais c'est invisible
     Object.keys(TAB_MAP).forEach(function(key) {
       var t = TAB_MAP[key];
       if(t.panel) {
         var el = document.getElementById(t.panel);
-        if(el) el.classList.toggle('active', key === tab);
+        if(el) el.classList.remove('active');
       }
       var nav = document.getElementById(t.nav);
       if(nav) nav.classList.toggle('nav-active', key === tab);
     });
 
+    // Remettre Y à 0 pendant que tout est caché — personne ne voit le saut
+    document.documentElement.style.scrollBehavior = 'auto';
+    window.scrollTo(0, 0);
+    document.documentElement.style.scrollBehavior = '';
+
+    // Afficher le panel cible — on est déjà à Y=0
+    var incomingPanel = TAB_MAP[tab] && document.getElementById(TAB_MAP[tab].panel);
+    if(incomingPanel) incomingPanel.classList.add('active');
+
     _currentTab = tab;
     window._currentTab = tab;
-    // Remettre le scroll en haut — le fix visualViewport dans index.html
-    // compense le drift iOS en temps réel, donc ce scrollTo est sans danger
-    window.scrollTo(0, 0);
+
     if(window.updateFloatingThemeBtn) window.updateFloatingThemeBtn();
 
     // ── Refresh automatique au changement d'onglet ──
