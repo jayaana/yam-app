@@ -1219,7 +1219,8 @@ window.addEventListener('load', function(){
     var hiddenPage = document.getElementById('hiddenPage');
     var isHidden = hiddenPage && hiddenPage.classList.contains('active');
     if(!isHidden){
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Supprimé : ce scroll causait un défilement visible au chargement après connexion
+      // window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     // Déclencher la capsule pillule après un court délai (laisse le scroll se faire)
     setTimeout(function(){
