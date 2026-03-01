@@ -41,6 +41,9 @@
      Enregistrement du Service Worker
 ════════════════════════════════════════════════ -->
 <script>
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+</script>
+<script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
       navigator.serviceWorker.register('/yam-app/service-worker.js', { scope: '/yam-app/' })
@@ -1423,6 +1426,23 @@
   <div class="bottom-nav-safe"></div>
 </div>
 
+<!-- FIX iOS PWA — Ancrage nav au bas du visual viewport -->
+<script>
+(function () {
+  if (!window.visualViewport) return;
+  var nav = document.querySelector('.bottom-nav');
+  if (!nav) return;
+  function fix() {
+    var drift = window.innerHeight
+              - window.visualViewport.height
+              - window.visualViewport.offsetTop;
+    nav.style.bottom = Math.max(0, drift) + 'px';
+  }
+  window.visualViewport.addEventListener('resize', fix);
+  window.visualViewport.addEventListener('scroll', fix);
+  fix();
+})();
+</script>
 
 <!-- Hidden compat elements for existing JS that references old nav items -->
 <div id="lockNavBtn" style="display:none;"></div>
