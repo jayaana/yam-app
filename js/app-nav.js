@@ -17,10 +17,7 @@
   window.yamSwitchTab = function(tab) {
     if(window.closeAllViews) window.closeAllViews();
 
-    // scrollTo AVANT de cacher — iOS ignore scrollTo sur display:none
-    window.scrollTo({ top: 0, behavior: 'instant' });
-
-    // Cacher tous les panels
+    // Cacher tous les panels (display:none) — window.scrollY ne change pas mais c'est invisible
     Object.keys(TAB_MAP).forEach(function(key) {
       var t = TAB_MAP[key];
       if(t.panel) {
@@ -31,7 +28,10 @@
       if(nav) nav.classList.toggle('nav-active', key === tab);
     });
 
-    // Afficher le panel cible
+    // Remettre Y à 0 pendant que tout est caché — personne ne voit le saut
+    window.scrollTo({ top: 0, behavior: 'instant' });
+
+    // Afficher le panel cible — on est déjà à Y=0
     var incomingPanel = TAB_MAP[tab] && document.getElementById(TAB_MAP[tab].panel);
     if(incomingPanel) incomingPanel.classList.add('active');
 
@@ -41,6 +41,14 @@
     if(window.updateFloatingThemeBtn) window.updateFloatingThemeBtn();
 
     // ── Refresh automatique au changement d'onglet ──
+    // On ancre le scroll à 0 pendant 400ms pour neutraliser tout décalage
+    // causé par les fonctions de refresh qui modifient le DOM
+    var _scrollAnchor = function() { window.scrollTo(0, 0); };
+    document.addEventListener('scroll', _scrollAnchor, { passive: true });
+    setTimeout(function(){
+      document.removeEventListener('scroll', _scrollAnchor);
+    }, 400);
+
     setTimeout(function(){
       var fns = {
         home:     [window.loadLikeCounters, window._presencePoll],
