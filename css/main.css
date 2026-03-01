@@ -167,11 +167,14 @@ body.light #uxToast.success { border-color: rgba(200,24,94,0.3); color: var(--gr
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 
   /* Caché par défaut — progressif selon le scroll (géré en JS) */
-  transform: translateY(-100%);
+  transform: translateY(-110%);
   opacity: 0;
   /* Pas de transition CSS : le JS applique les valeurs directement pour suivre le doigt */
   pointer-events: none;
   will-change: transform, opacity;
+  /* Évite le subpixel bleed iOS (1-2px visibles quand translateY=-100%) */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 #yamStickyHeader.visible {
   pointer-events: auto;
@@ -878,7 +881,7 @@ body.light .desc-edit-handle { background: rgba(0,0,0,0.15); }
 .btn-yt:hover { background:#FF0000; color:#fff; transform:scale(1.1); }
 audio { display: none; }
 
-.top50-header { position:relative; overflow:hidden; background:linear-gradient(180deg,var(--s2) 0%,var(--bg) 100%); padding:22px 16px 16px; }
+.top50-header { position:relative; overflow:hidden; background:linear-gradient(180deg,var(--s2) 0%,var(--bg) 100%); padding:22px 16px 16px; padding-top: calc(var(--safe-top) + 22px); }
 .top50-header::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 10% 30%,rgba(0,201,167,0.12) 0%,transparent 60%); pointer-events:none; }
 .top50-meta { font-size:9px; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:3px; margin-bottom:5px; display:flex; align-items:center; gap:6px; }
 .top50-meta::before { content:''; display:inline-block; width:16px; height:2px; background:var(--green); border-radius:1px; }
@@ -1210,10 +1213,12 @@ body.light .nav-item.nav-active svg {
 }
 
 /* ══ JEUX TAB ══ */
-.yam-jeux-header {
-  padding: 20px 16px 0;
-  margin-bottom: 4px;
+/* ── Safe-area pour le premier élément de l'onglet Nous ── */
+#nousProfilSection {
+  padding-top: calc(var(--safe-top) + 28px) !important;
 }
+
+
 .yam-betises-cta {
   margin: 14px 16px 0;
   padding: 16px;
