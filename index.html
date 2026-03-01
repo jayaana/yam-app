@@ -29,10 +29,10 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-180.png">
 
 <!-- iOS : couleur de la barre de statut -->
-<meta id="themeColorMeta" name="theme-color" content="#121212">
+<meta id="themeColorMeta" name="theme-color" content="#0e0e0e">
 
 <!-- iOS : splash screen couleur (pendant le chargement) -->
-<meta name="msapplication-TileColor" content="#121212">
+<meta name="msapplication-TileColor" content="#0e0e0e">
 
 <!-- Favicon standard navigateur -->
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
@@ -61,6 +61,7 @@
 
 
 <link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/design-system.css">
 
 <script>
 /* ═══════════════════════════════════════════════════════
@@ -507,7 +508,7 @@
   </button>
 </header>
 <!-- Ligne de séparation décalée pour ne pas couper les avatars -->
-<div style="height:1px;background:var(--border);margin-top:28px;"></div>
+<!-- Ligne de séparation supprimée — remplacée par les coins arrondis des onglets -->
 
 <!-- HIDDEN bubbleMenu refs preserved for JS compatibility — not displayed -->
 <div id="topBubbleMenu" style="display:none;">
@@ -529,73 +530,78 @@
     <div class="yam-mascotte-sub">Votre compagnon de couple 💑</div>
   </div>
 
-  <!-- Humeur du couple + compteurs cœurs -->
-  <div class="yam-mood-strip">
-    <div class="yam-mood-card" id="yamMoodElle">
-      <div class="yam-mood-avatar" id="yamMoodElleAvatar"><img class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;"></div>
-      <div class="yam-mood-info">
-        <div class="yam-mood-name elle-name" id="yamMoodElleName">Elle</div>
-        <div class="yam-mood-state" id="yamMoodElleState">—</div>
-        <div class="yam-mood-likes" id="likeBadgeGirl"><span id="likeNumGirl" style="font-weight:700;color:#e879a0;">—</span> <span style="color:#e879a0;">♥</span></div>
+  <!-- ─── GROUPE : Humeur + Compteur ─── -->
+  <div class="ios-group fade-in" style="margin-top:4px;">
+
+    <!-- Humeur du couple + compteurs cœurs -->
+    <div class="yam-mood-strip" style="margin:0;border-radius:0;border:none;border-bottom:1px solid var(--group-sep);">
+      <div class="yam-mood-card" id="yamMoodElle">
+        <div class="yam-mood-avatar" id="yamMoodElleAvatar"><img class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;"></div>
+        <div class="yam-mood-info">
+          <div class="yam-mood-name elle-name" id="yamMoodElleName">Elle</div>
+          <div class="yam-mood-state" id="yamMoodElleState">—</div>
+          <div class="yam-mood-likes" id="likeBadgeGirl"><span id="likeNumGirl" style="font-weight:700;color:#e879a0;">—</span> <span style="color:#e879a0;">♥</span></div>
+        </div>
+      </div>
+
+      <!-- Bouton spam cœur central -->
+      <div id="yamHeartSpamBtn" onclick="spawnHeart()" title="Envoie de l'amour !" style="
+        width:52px;height:52px;border-radius:50%;
+        background:linear-gradient(135deg,rgba(232,121,160,0.18),rgba(255,110,176,0.12));
+        border:1.5px solid rgba(232,121,160,0.4);
+        display:flex;align-items:center;justify-content:center;
+        font-size:26px;cursor:pointer;flex-shrink:0;
+        transition:transform 0.15s,box-shadow 0.15s,border-color 0.15s;
+        box-shadow:0 4px 16px rgba(232,121,160,0.15);
+        -webkit-tap-highlight-color:transparent;
+        user-select:none;">💗</div>
+
+      <div class="yam-mood-card" id="yamMoodLui">
+        <div class="yam-mood-avatar" id="yamMoodLuiAvatar"><img class="yam-av-img" src="assets/images/profil_boy.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;"></div>
+        <div class="yam-mood-info">
+          <div class="yam-mood-name lui-name" id="yamMoodLuiName">Lui</div>
+          <div class="yam-mood-state" id="yamMoodLuiState">—</div>
+          <div class="yam-mood-likes" id="likeBadgeBoy"><span id="likeNumBoy" style="font-weight:700;color:#5b9cf6;">—</span> <span style="color:#5b9cf6;">♥</span></div>
+        </div>
       </div>
     </div>
 
-    <!-- Bouton spam cœur central -->
-    <div id="yamHeartSpamBtn" onclick="spawnHeart()" title="Envoie de l'amour !" style="
-      width:52px;height:52px;border-radius:50%;
-      background:linear-gradient(135deg,rgba(232,121,160,0.18),rgba(255,110,176,0.12));
-      border:1.5px solid rgba(232,121,160,0.4);
-      display:flex;align-items:center;justify-content:center;
-      font-size:26px;cursor:pointer;flex-shrink:0;
-      transition:transform 0.15s,box-shadow 0.15s,border-color 0.15s;
-      box-shadow:0 4px 16px rgba(232,121,160,0.15);
-      -webkit-tap-highlight-color:transparent;
-      user-select:none;">💗</div>
-
-    <div class="yam-mood-card" id="yamMoodLui">
-      <div class="yam-mood-avatar" id="yamMoodLuiAvatar"><img class="yam-av-img" src="assets/images/profil_boy.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;"></div>
-      <div class="yam-mood-info">
-        <div class="yam-mood-name lui-name" id="yamMoodLuiName">Lui</div>
-        <div class="yam-mood-state" id="yamMoodLuiState">—</div>
-        <div class="yam-mood-likes" id="likeBadgeBoy"><span id="likeNumBoy" style="font-weight:700;color:#5b9cf6;">—</span> <span style="color:#5b9cf6;">♥</span></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Compteur -->
-  <div class="section fade-in">
-    <div class="section-label">On compte les jours</div>
-    <div class="counter-block" id="counterBlock">
-      <div class="counter-block-top"></div>
-      <div class="counter-block-inner">
-        <div class="counter-block-unit main-unit">
-          <span class="c-num c-num-big" id="cnt-days">0</span>
-          <span class="c-lbl">Jours</span>
-        </div>
-        <div class="counter-block-sep">:</div>
-        <div class="counter-block-unit">
-          <span class="c-num" id="cnt-hours">00</span>
-          <span class="c-lbl">Heures</span>
-        </div>
-        <div class="counter-block-sep">:</div>
-        <div class="counter-block-unit">
-          <span class="c-num" id="cnt-mins">00</span>
-          <span class="c-lbl">Min</span>
-        </div>
-        <div class="counter-block-sep">:</div>
-        <div class="counter-block-unit">
-          <span class="c-num" id="cnt-secs">00</span>
-          <span class="c-lbl">Sec</span>
+    <!-- Compteur -->
+    <div style="padding:14px 14px 12px;">
+      <div style="font-size:10px;font-weight:700;color:var(--group-label);text-transform:uppercase;letter-spacing:1.8px;margin-bottom:10px;">On compte les jours</div>
+      <div class="counter-block" id="counterBlock" style="margin:0 !important;border-radius:12px !important;">
+        <div class="counter-block-top"></div>
+        <div class="counter-block-inner">
+          <div class="counter-block-unit main-unit">
+            <span class="c-num c-num-big" id="cnt-days">0</span>
+            <span class="c-lbl">Jours</span>
+          </div>
+          <div class="counter-block-sep">:</div>
+          <div class="counter-block-unit">
+            <span class="c-num" id="cnt-hours">00</span>
+            <span class="c-lbl">Heures</span>
+          </div>
+          <div class="counter-block-sep">:</div>
+          <div class="counter-block-unit">
+            <span class="c-num" id="cnt-mins">00</span>
+            <span class="c-lbl">Min</span>
+          </div>
+          <div class="counter-block-sep">:</div>
+          <div class="counter-block-unit">
+            <span class="c-num" id="cnt-secs">00</span>
+            <span class="c-lbl">Sec</span>
+          </div>
         </div>
       </div>
+      <div class="counter-since"></div>
     </div>
-    <div class="counter-since"></div>
-  </div>
+
+  </div><!-- /ios-group -->
 
   <!-- Raison aléatoire -->
   <div class="section fade-in" id="reasonSection">
     <div class="section-label">Pourquoi je t'aime</div>
-    <div id="reasonBox">
+    <div id="reasonBox" style="padding:4px 0 6px;">
       <span class="r-label">Une raison parmi tant d'autres ✨</span>
       <div id="reasonText">...</div>
       <span class="r-hint">👆 Tape pour en découvrir une autre</span>
@@ -617,7 +623,7 @@
 <div id="nousContentWrapper" style="display:none;">
 
 <!-- PROFIL COUPLE PAIRED -->
-<div id="nousProfilSection" style="padding:28px 16px 8px;">
+<div id="nousProfilSection" style="padding:20px 16px 8px;">
   <div style="display:flex;align-items:center;justify-content:center;gap:20px;">
     <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
       <div id="nousProfilGirlAvatar" style="width:72px;height:72px;border-radius:50%;border:2.5px solid rgba(232,121,160,0.6);overflow:hidden;box-shadow:0 4px 20px rgba(232,121,160,0.25);"><img src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div>
@@ -634,8 +640,11 @@
   </div>
 </div>
 
+<!-- ─── GROUPE : Mots doux + Notre Histoire ─── -->
+<div class="ios-group fade-in" style="margin-top:4px;">
+
 <!-- MOTS DOUX IA -->
-<div class="section fade-in" id="motsDoux" style="margin-top:8px;">
+<div class="section" id="motsDoux" style="margin:0 !important;border:none !important;border-radius:0 !important;border-bottom:1px solid var(--group-sep) !important;">
   <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
     <span>Un mot doux ✨</span>
     <button id="motsDoux_refreshBtn" onclick="motsDoux_refresh(true)" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--muted);display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif;opacity:0.75;">
@@ -643,7 +652,7 @@
       Nouveau
     </button>
   </div>
-  <div id="motsDoux_card" class="mots-doux-card">
+  <div id="motsDoux_card" class="mots-doux-card" style="margin:0 0 14px;">
     <div id="motsDoux_spinner" class="mots-doux-spinner" style="display:none;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="spin-anim"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
     </div>
@@ -653,7 +662,7 @@
 </div>
 
 <!-- NOTRE HISTOIRE — éditable -->
-<div class="section fade-in" id="timelineSection">
+<div class="section fade-in" id="timelineSection" style="margin:0 !important;border:none !important;border-radius:0 !important;">
   <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
     <span>Notre histoire</span>
     <button onclick="histoireOpenGestion()" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--muted);display:flex;align-items:center;gap:5px;opacity:0.75;" aria-label="Modifier notre histoire">
@@ -681,8 +690,13 @@
   </div>
 </div>
 
+</div><!-- /ios-group mots doux + histoire -->
+
+<!-- ─── GROUPE : Photos Elle + Lui ─── -->
+<div class="ios-group fade-in">
+
 <!-- PHOTOS ELLE (masquée par défaut pour girl) -->
-<div class="section fade-in">
+<div class="section" style="margin:0 !important;border:none !important;border-radius:0 !important;border-bottom:1px solid var(--group-sep) !important;">
   <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
     <div style="display:flex;align-items:center;gap:6px;">
       <span id="elleSectionTitle">Elle</span>
@@ -707,7 +721,7 @@
 </div>
 
 <!-- PHOTOS LUI (masquée par défaut pour boy) -->
-<div class="section fade-in">
+<div class="section fade-in" style="margin:0 !important;border:none !important;border-radius:0 !important;">
   <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
     <div style="display:flex;align-items:center;gap:6px;">
       <span id="luiSectionTitle">Lui</span>
@@ -730,6 +744,8 @@
   <input type="file" id="luiFileInput" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="luiHandleFile(this)">
   </div>
 </div>
+
+</div><!-- /ios-group photos Elle + Lui -->
 
 <!-- MÉMO COUPLE — Note + Todo côte à côte, sans PIN -->
 <div id="memoCoupleSection" class="fade-in">
@@ -3306,6 +3322,5 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   setTimeout(hookSetProfile, 500);
 })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/eruda"></script><script>eruda.init();</script>
 </body>
 </html>
