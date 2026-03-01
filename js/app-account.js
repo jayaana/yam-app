@@ -109,8 +109,6 @@ function _v2AfterLogin(result, msgId){
     return;
   }
   window.v2HideLogin();
-  // Remettre le scroll à 0 — la page de connexion peut avoir été scrollée
-  // pour remplir les champs, on repart du haut de l'app
   window.scrollTo({ top: 0, behavior: 'instant' });
   // Déclencher l'init app
   var u = v2GetUser();
@@ -241,7 +239,6 @@ function loadCoupleConfig(){
   })
   .then(function(cfg){
     if(cfg) applyYamCouple();
-    // Remettre le scroll à 0 après injection du contenu
     window.scrollTo({ top: 0, behavior: 'instant' });
     return cfg;
   })
