@@ -69,11 +69,10 @@ body { overscroll-behavior: none !important; overscroll-behavior-y: none !import
 #safeZoneShield {
   position: fixed;
   top: 0; left: 0; right: 0;
-  height: 59px;
-  background: #121212;
+  height: 15px;
+  background: var(--bg);
   z-index: 10001;
   pointer-events: none;
-  transition: background 0.3s;
 }
 body.light #safeZoneShield {
   background: #f9e8f0;
