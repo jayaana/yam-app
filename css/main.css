@@ -402,8 +402,7 @@ input, textarea, [contenteditable] {
 
 header {
   padding: 18px 16px 18px;
-  /* ↓ Espace supplémentaire pour Dynamic Island / notch iOS */
-  padding-top: calc(var(--safe-top) + 14px);
+  padding-top: 70px;
   position: relative;
   z-index: 10000;
   background: var(--bg);
@@ -1295,7 +1294,7 @@ body.light header {
 
 /* ── Bouton thème dans le header : décaler sous le Dynamic Island ── */
 #themeToggleHome {
-  top: calc(var(--safe-top) + 10px) !important;
+  top: 26px !important;
 }
 body.light header::before { background: radial-gradient(circle, rgba(200,24,94,0.12) 0%, transparent 70%); }
 
