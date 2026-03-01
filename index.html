@@ -897,20 +897,25 @@
 </div>
 
 <!-- MODAL GESTION LIVRES -->
-<div id="livresGestionOverlay" class="nous-modal-overlay" data-close-fn="livresCloseGestion">
-  <div class="nous-modal-sheet" style="max-height:88vh;overflow-y:auto;display:flex;flex-direction:column;" data-scrollable>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-shrink:0;">
-      <div style="font-size:17px;font-weight:700;color:var(--text);">Notre bibliothèque</div>
-      <button onclick="livresCloseGestion()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--muted);padding:4px;">✕</button>
+<div id="livresGestionOverlay" class="souvenir-gestion-overlay">
+  <div class="souvenir-gestion-header">
+    <div style="font-size:17px;font-weight:700;color:var(--text);">Notre bibliothèque 📚</div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button onclick="livresOpenNew()" style="background:linear-gradient(135deg,#e879a0,#9b59b6);border:none;cursor:pointer;padding:7px 14px;color:#fff;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif;border-radius:10px;display:flex;align-items:center;gap:5px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Ajouter
+      </button>
+      <button onclick="livresCloseGestion()" style="background:none;border:none;cursor:pointer;padding:6px;color:var(--muted);display:flex;align-items:center;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
-    <div id="livresGestionList" style="display:flex;flex-direction:column;gap:10px;"></div>
-    <button onclick="livresOpenNew()" style="margin-top:12px;width:100%;padding:13px;background:linear-gradient(135deg,#e879a0,#9b59b6);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;flex-shrink:0;">+ Nouvelle pochette</button>
   </div>
+  <div id="livresGestionList" class="souvenir-gestion-list"></div>
 </div>
 
 <!-- MODAL CRÉATION/ÉDITION LIVRE -->
 <div id="livreEditModal" class="nous-modal-overlay" data-close-fn="livresCloseEdit">
-  <div class="nous-modal-sheet" style="max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;" data-scrollable>
+  <div class="nous-modal-sheet" style="overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding-bottom:calc(var(--nav-height) + 24px);" data-scrollable>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-shrink:0;">
       <div id="livreEditModalTitle" style="font-size:17px;font-weight:700;color:var(--text);">Nouvelle pochette</div>
       <button onclick="livresCloseEdit()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--muted);padding:4px;">✕</button>
@@ -932,8 +937,8 @@
       <input type="text" id="livreEditDesc" placeholder="Une description courte..." maxlength="100" style="width:100%;padding:11px 13px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;">
     </div>
     <div style="display:flex;gap:10px;margin-top:8px;flex-shrink:0;">
-      <button id="livreEditDelBtn" onclick="livresDelete()" style="display:none;padding:12px 16px;background:rgba(220,50,50,0.12);border:1px solid rgba(220,50,50,0.25);border-radius:12px;color:#e05555;font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;">Supprimer</button>
       <button id="livreEditSaveBtn" onclick="livresSave()" style="flex:1;padding:12px;background:linear-gradient(135deg,#e879a0,#9b59b6);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:15px;font-family:'DM Sans',sans-serif;cursor:pointer;">Sauvegarder</button>
+      <button id="livreEditDelBtn" onclick="livresDelete()" style="display:none;padding:12px 16px;background:rgba(220,50,50,0.12);border:1px solid rgba(220,50,50,0.25);border-radius:12px;color:#e05555;font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;">🗑️</button>
     </div>
   </div>
 </div>
@@ -963,12 +968,13 @@
 
 <!-- ── Vue Note (lecture) ── -->
 <div id="memoNoteViewModal" class="nous-modal-overlay">
-  <div class="nous-modal-sheet" style="max-height:82vh;overflow-y:auto;display:flex;flex-direction:column;">
+  <div class="nous-modal-sheet" style="max-height:82vh;overflow-y:auto;display:flex;flex-direction:column;padding-bottom:calc(var(--nav-height) + 20px);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-shrink:0;">
       <div id="memoNoteViewTitle" style="font-size:17px;font-weight:700;color:var(--text);">Note</div>
+      <span onclick="closeMemoNoteView()" style="font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;">✕</span>
     </div>
     <div id="memoNoteViewDate" style="font-size:11px;color:var(--muted);margin-bottom:14px;flex-shrink:0;"></div>
-    <div id="memoNoteViewText" style="flex:1;font-size:15px;color:var(--text);line-height:1.7;white-space:pre-wrap;overflow-y:auto;"></div>
+    <div id="memoNoteViewText" style="flex:1;font-size:15px;color:var(--text);line-height:1.7;white-space:pre-wrap;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
     <div style="display:flex;gap:10px;margin-top:20px;flex-shrink:0;">
       <button onclick="closeMemoNoteView()" style="flex:1;padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">Fermer</button>
       <button onclick="closeMemoNoteView();openMemoNoteEdit();" style="flex:1;padding:12px;background:linear-gradient(135deg,#e879a0,#9b59b6);border:none;border-radius:12px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Modifier</button>
@@ -978,11 +984,12 @@
 
 <!-- ── Vue Todo (lecture + cochable uniquement) ── -->
 <div id="memoTodoViewModal" class="nous-modal-overlay">
-  <div class="nous-modal-sheet" style="max-height:86vh;overflow-y:auto;display:flex;flex-direction:column;">
+  <div class="nous-modal-sheet" style="max-height:86vh;overflow-y:auto;display:flex;flex-direction:column;padding-bottom:calc(var(--nav-height) + 20px);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-shrink:0;">
       <div style="font-size:17px;font-weight:700;color:var(--text);">To-do list</div>
+      <span onclick="closeMemoTodoView()" style="font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;">✕</span>
     </div>
-    <div id="memoTodoViewList" style="flex:1;display:flex;flex-direction:column;gap:6px;overflow-y:auto;"></div>
+    <div id="memoTodoViewList" style="flex:1;display:flex;flex-direction:column;gap:6px;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
     <div style="display:flex;gap:10px;margin-top:20px;flex-shrink:0;">
       <button onclick="closeMemoTodoView()" style="flex:1;padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">Fermer</button>
       <button onclick="closeMemoTodoView();openMemoTodoEdit();" style="flex:1;padding:12px;background:linear-gradient(135deg,#e879a0,#9b59b6);border:none;border-radius:12px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Modifier</button>
@@ -992,29 +999,31 @@
 
 <!-- ── Modal édition Note seule ── -->
 <div id="memoNoteEditModal" class="nous-modal-overlay">
-  <div class="nous-modal-sheet" style="max-height:88vh;overflow-y:auto;display:flex;flex-direction:column;">
+  <div class="nous-modal-sheet" style="max-height:88vh;overflow-y:auto;display:flex;flex-direction:column;padding-bottom:calc(var(--nav-height) + 20px);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-shrink:0;">
       <div style="font-size:17px;font-weight:700;color:var(--text);">Modifier la note</div>
+      <span onclick="closeMemoNoteEdit()" style="font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;">✕</span>
     </div>
     <div style="flex-shrink:0;">
       <input type="text" id="memoPopupTitleInput" placeholder="Titre..." maxlength="40" style="width:100%;padding:10px 12px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;margin-bottom:8px;">
-      <textarea id="memoPopupTextarea" placeholder="Écris ta note ici..." rows="7" style="width:100%;padding:10px 12px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;resize:none;line-height:1.5;"></textarea>
+      <textarea id="memoPopupTextarea" placeholder="Écris ta note ici..." rows="7" style="width:100%;padding:10px 12px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;resize:none;line-height:1.5;-webkit-overflow-scrolling:touch;"></textarea>
       <div id="memoPopupDate" style="font-size:11px;color:var(--muted);margin-top:6px;"></div>
     </div>
     <div style="display:flex;gap:10px;margin-top:14px;flex-shrink:0;">
       <button onclick="closeMemoNoteEdit()" style="flex:1;padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">Annuler</button>
-      <button id="memoPopupSaveBtn" onclick="memoSaveNote()" style="flex:1;padding:12px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif;border:none;border-radius:12px;cursor:pointer;">Sauvegarder</button>
+      <button id="memoPopupSaveBtn" onclick="memoSaveNote()" style="flex:1;padding:12px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-weight:700;font-size:14px;font-family:'DM Sans',sans-serif;border:none;border-radius:12px;cursor:pointer;">Modifier</button>
     </div>
   </div>
 </div>
 
 <!-- ── Modal édition To-do seule ── -->
 <div id="memoTodoEditModal" class="nous-modal-overlay">
-  <div class="nous-modal-sheet" style="max-height:88vh;overflow-y:auto;display:flex;flex-direction:column;">
+  <div class="nous-modal-sheet" style="max-height:88vh;overflow-y:auto;display:flex;flex-direction:column;padding-bottom:calc(var(--nav-height) + 20px);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-shrink:0;">
       <div style="font-size:17px;font-weight:700;color:var(--text);">Modifier la to-do</div>
+      <span onclick="closeMemoTodoEdit()" style="font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;">✕</span>
     </div>
-    <div id="memoPopupTodoList" style="display:flex;flex-direction:column;gap:4px;flex:1;min-height:0;overflow-y:auto;"></div>
+    <div id="memoPopupTodoList" style="display:flex;flex-direction:column;gap:4px;flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
     <div style="display:flex;gap:8px;margin-top:10px;flex-shrink:0;">
       <input type="text" id="memoPopupTodoInput" placeholder="Ajouter un item..." maxlength="120" style="flex:1;padding:10px 12px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;">
       <button onclick="memoAddTodoItem()" style="padding:10px 16px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:18px;cursor:pointer;font-family:'DM Sans',sans-serif;">+</button>
@@ -1028,7 +1037,7 @@
 
 <!-- Petits mots — gestion (mes mots écrits pour mon partenaire) -->
 <div id="petitsMotsGestionModal" class="nous-modal-overlay">
-  <div class="nous-modal-sheet" style="max-height:80vh;overflow-y:auto;">
+  <div class="nous-modal-sheet" style="max-height:80vh;overflow-y:auto;padding-bottom:calc(var(--nav-height) + 24px);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div style="font-size:17px;font-weight:700;color:var(--text);">Lui écrire un mot</div>
       <span onclick="closePetitsMotsGestion()" style="font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;">✕</span>
@@ -1039,7 +1048,7 @@
 
 <!-- Petits mots — éditeur -->
 <div id="petitsMotsEditor" class="nous-modal-overlay">
-  <div class="nous-modal-sheet">
+  <div class="nous-modal-sheet" style="padding-bottom:calc(var(--nav-height) + 24px);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div style="font-size:17px;font-weight:700;color:var(--text);">Écrire un mot</div>
       <span onclick="closePetitsMotsEditor()" style="font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;">✕</span>
@@ -1051,7 +1060,7 @@
         <input type="text" id="petitsMotsEditorIcon" placeholder="Icône" maxlength="4" style="width:60px;padding:10px;font-size:18px;text-align:center;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;">
         <div id="petitsMotsColorPicker" style="display:flex;gap:6px;flex-wrap:wrap;flex:1;"></div>
       </div>
-      <button id="petitsMotsSaveBtn" onclick="savePetitMot()" style="width:100%;padding:13px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-weight:700;font-size:15px;font-family:'DM Sans',sans-serif;border:none;border-radius:12px;cursor:pointer;">Sauvegarder</button>
+      <button id="petitsMotsSaveBtn" onclick="savePetitMot()" style="width:100%;padding:13px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-weight:700;font-size:15px;font-family:'DM Sans',sans-serif;border:none;border-radius:12px;cursor:pointer;margin-top:8px;">Sauvegarder</button>
     </div>
   </div>
 </div>
@@ -1060,7 +1069,7 @@
 
 <!-- Modal Souvenir -->
 <div id="souvenirModal" class="nous-modal-overlay">
-  <div class="nous-modal-sheet">
+  <div class="nous-modal-sheet" style="overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding-bottom:calc(var(--nav-height) + 24px);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div id="souvenirModalTitle" style="font-size:17px;font-weight:700;color:var(--text);">Nouveau souvenir</div>
       <span onclick="closeSouvenirModal()" style="font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;">✕</span>
@@ -1083,8 +1092,11 @@
       </div>
       <input id="souvenirInputLieu" type="text" placeholder="📍 Lieu (optionnel)" maxlength="80" style="width:100%;padding:12px 14px;font-size:15px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;">
       <textarea id="souvenirInputDesc" placeholder="Description, anecdote..." maxlength="300" rows="3" style="width:100%;padding:12px 14px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;resize:none;"></textarea>
-      <button id="souvenirSaveBtn" onclick="souvenirSave()" style="width:100%;padding:13px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-weight:700;font-size:15px;font-family:'DM Sans',sans-serif;border:none;border-radius:12px;cursor:pointer;">Sauvegarder</button>
-      <button id="souvenirModalDelBtn" onclick="souvenirDelete()" style="display:none;width:100%;padding:11px;background:transparent;color:#e05555;font-size:13px;font-family:'DM Sans',sans-serif;border:1px solid rgba(224,85,85,0.3);border-radius:12px;cursor:pointer;">Supprimer ce souvenir</button>
+      <!-- Boutons côte à côte -->
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button id="souvenirSaveBtn" onclick="souvenirSave()" style="flex:1;padding:13px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-weight:700;font-size:15px;font-family:'DM Sans',sans-serif;border:none;border-radius:12px;cursor:pointer;">Sauvegarder</button>
+        <button id="souvenirModalDelBtn" onclick="souvenirDelete()" style="display:none;flex:1;padding:13px;background:transparent;color:#e05555;font-size:13px;font-family:'DM Sans',sans-serif;border:1px solid rgba(224,85,85,0.3);border-radius:12px;cursor:pointer;">Supprimer 🗑️</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1130,7 +1142,7 @@
 
 <!-- Modal item Histoire -->
 <div id="histoireItemModal" class="nous-modal-overlay">
-  <div class="nous-modal-sheet">
+  <div class="nous-modal-sheet" style="overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding-bottom:calc(var(--nav-height) + 24px);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div id="histoireItemModalTitle" style="font-size:17px;font-weight:700;color:var(--text);">Nouveau chapitre</div>
       <span onclick="histoireCloseItemModal()" style="font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;">✕</span>
@@ -1139,16 +1151,18 @@
       <input id="histoireItemEmoji" type="text" maxlength="4" placeholder="💘" style="width:52px;padding:12px;font-size:22px;text-align:center;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;">
       <input id="histoireItemDate" type="text" placeholder="Date (ex: 19 octobre 2024)..." maxlength="40" style="width:100%;padding:12px 14px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;">
       <input id="histoireItemTitle" type="text" placeholder="Titre du moment..." maxlength="60" style="width:100%;padding:12px 14px;font-size:15px;font-weight:700;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;">
-      <textarea id="histoireItemText" placeholder="Raconte ce moment..." maxlength="400" rows="4" style="width:100%;padding:12px 14px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;resize:none;line-height:1.5;"></textarea>
-      <button id="histoireItemSaveBtn" onclick="histoireSaveItem()" style="width:100%;padding:13px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-weight:700;font-size:15px;font-family:'DM Sans',sans-serif;border:none;border-radius:12px;cursor:pointer;margin-top:4px;">Sauvegarder</button>
-      <button id="histoireItemDeleteBtn" onclick="histoireDeleteItem()" style="display:none;width:100%;padding:11px;background:transparent;color:#e05555;font-size:13px;font-family:'DM Sans',sans-serif;border:1px solid rgba(224,85,85,0.3);border-radius:12px;cursor:pointer;">Supprimer 🗑️</button>
+      <textarea id="histoireItemText" placeholder="Raconte ce moment..." maxlength="400" rows="4" style="width:100%;padding:12px 14px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;box-sizing:border-box;resize:none;line-height:1.5;-webkit-overflow-scrolling:touch;"></textarea>
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button id="histoireItemSaveBtn" onclick="histoireSaveItem()" style="flex:1;padding:13px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-weight:700;font-size:15px;font-family:'DM Sans',sans-serif;border:none;border-radius:12px;cursor:pointer;">Sauvegarder</button>
+        <button id="histoireItemDeleteBtn" onclick="histoireDeleteItem()" style="display:none;flex:1;padding:13px;background:transparent;color:#e05555;font-size:13px;font-family:'DM Sans',sans-serif;border:1px solid rgba(224,85,85,0.3);border-radius:12px;cursor:pointer;">Supprimer 🗑️</button>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- Modal Activité -->
 <div id="activiteModal" class="nous-modal-overlay">
-  <div class="nous-modal-sheet">
+  <div class="nous-modal-sheet" style="overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding-bottom:calc(var(--nav-height) + 24px);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div id="activiteModalTitle" style="font-size:17px;font-weight:700;color:var(--text);">Nouvelle activité ✨</div>
       <span onclick="closeActiviteModal()" style="font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;">✕</span>
@@ -1162,8 +1176,11 @@
       <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px;">Étapes</div>
       <div id="activiteModalSteps" style="display:flex;flex-direction:column;gap:6px;"></div>
       <button onclick="nousAddStep()" style="padding:10px;background:var(--s2);border:1px dashed var(--border);border-radius:10px;color:var(--muted);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;">+ Ajouter une étape</button>
-      <button id="activiteSaveBtn" onclick="activiteSave()" style="width:100%;padding:13px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-weight:700;font-size:15px;font-family:'DM Sans',sans-serif;border:none;border-radius:12px;cursor:pointer;margin-top:4px;">Sauvegarder</button>
-      <button onclick="activiteDelete()" style="width:100%;padding:11px;background:transparent;color:#e05555;font-size:13px;font-family:'DM Sans',sans-serif;border:1px solid rgba(224,85,85,0.3);border-radius:12px;cursor:pointer;">Supprimer 🗑️</button>
+      <!-- Boutons côte à côte -->
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button id="activiteSaveBtn" onclick="activiteSave()" style="flex:1;padding:13px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-weight:700;font-size:15px;font-family:'DM Sans',sans-serif;border:none;border-radius:12px;cursor:pointer;">Sauvegarder</button>
+        <button onclick="activiteDelete()" style="flex:1;padding:13px;background:transparent;color:#e05555;font-size:13px;font-family:'DM Sans',sans-serif;border:1px solid rgba(224,85,85,0.3);border-radius:12px;cursor:pointer;">Supprimer 🗑️</button>
+      </div>
     </div>
   </div>
 </div>
@@ -3057,7 +3074,7 @@ document.addEventListener('DOMContentLoaded', function(){
   display: none;
   position: fixed;
   inset: 0;
-  z-index: 910;
+  z-index: 10020;
   background: var(--bg);
   flex-direction: column;
   overscroll-behavior: contain;
@@ -3190,7 +3207,7 @@ document.addEventListener('DOMContentLoaded', function(){
   display: flex;
   position: fixed;
   inset: 0; /* descend jusqu'au bas — le clavier couvre la nav nativement */
-  z-index: 920;
+  z-index: 10025;
   align-items: flex-end;
   justify-content: center;
   background: rgba(0,0,0,0.6);
