@@ -1,0 +1,521 @@
+/* ═══════════════════════════════════════════════════════════
+   YAM — design-system.css
+   Refonte visuelle Apple / iOS :
+   - Coins hauts arrondis sur les onglets
+   - Sections groupées façon iOS grouped card
+   - Variables de surface étendues
+   - Compatible dark & light
+   À importer dans index.html APRÈS main.css :
+   <link rel="stylesheet" href="css/design-system.css">
+═══════════════════════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════════════════════
+   0. VARIABLES ÉTENDUES
+   On complète les variables de main.css sans les casser
+══════════════════════════════════════════════════════════ */
+:root {
+  /* Rayon Apple / iOS */
+  --page-radius:   24px;   /* coins hauts des onglets */
+  --group-radius:  16px;   /* cartes de section */
+  --row-radius:    12px;   /* éléments internes */
+
+  /* Surfaces (dark par défaut) */
+  --page-bg:       #0e0e0e;          /* fond derrière les onglets */
+  --group-bg:      rgba(30,30,30,1); /* fond des groupes */
+  --group-sep:     rgba(255,255,255,0.07); /* séparateur de ligne */
+  --group-label:   rgba(255,255,255,0.36); /* titre de groupe */
+
+  /* Ombre page */
+  --page-shadow:   0 -2px 16px rgba(0,0,0,0.4);
+
+  /* Transition partagée */
+  --ease:          cubic-bezier(.4,0,.2,1);
+}
+
+/* LIGHT */
+body.light {
+  --page-bg:       #e8d8e4;
+  --group-bg:      rgba(255,248,252,1);
+  --group-sep:     rgba(200,24,94,0.09);
+  --group-label:   rgba(30,5,18,0.45);
+  --page-shadow:   0 -2px 16px rgba(180,20,80,0.08);
+}
+
+/* Fix background html en thème clair */
+html.light { background: #e8d8e4 !important; }
+body.light  { background: #e8d8e4 !important; }
+
+/* ══════════════════════════════════════════════════════════
+   1. ONGLETS PRINCIPAUX — coins hauts arrondis façon iOS
+   Chaque panneau devient une "feuille" qui glisse sur le fond
+══════════════════════════════════════════════════════════ */
+.yam-tab-panel {
+  /* Fond du panneau légèrement distinct du header */
+  background: var(--bg);
+  /* Coins hauts arrondis — signature Apple */
+  border-radius: var(--page-radius) var(--page-radius) 0 0;
+  /* Remonte légèrement pour chevaucher le header et créer la continuité */
+  margin-top: -20px;
+  position: relative;
+  z-index: 1;
+  /* Ombre subtile pour détacher la feuille */
+  box-shadow: var(--page-shadow);
+  /* Clip les enfants qui dépasseraient les coins */
+  overflow: visible;
+
+  /* Animation d'entrée lors du changement d'onglet */
+  transition:
+    opacity 0.22s var(--ease),
+    transform 0.22s var(--ease);
+}
+
+/* La poignée iOS (pill) est gérée par règle spécifique en section 22 */
+
+/* Thème clair */
+body.light .yam-tab-panel {
+  background: var(--bg);
+  box-shadow: var(--page-shadow);
+}
+
+/* ══════════════════════════════════════════════════════════
+   2. SECTION GROUPES — Grouped card façon iOS Settings
+   Chaque .section devient une carte autonome et arrondie
+══════════════════════════════════════════════════════════ */
+.section {
+  /* Réinitialise le padding hérité de main.css */
+  padding: 0 !important;
+  /* Marge autour de la carte */
+  margin: 0 14px 18px !important;
+  /* Fond de groupe */
+  background: var(--group-bg);
+  border-radius: var(--group-radius);
+  /* Bordure subtile */
+  border: 1px solid var(--border);
+  /* Clip les séparateurs internes */
+  overflow: hidden;
+}
+
+/* L'étiquette de section passe en en-tête du groupe */
+.section > .section-label:first-child,
+.section > .section-label:first-of-type {
+  /* Reset de la ligne étendue de main.css */
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--group-label);
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  margin-bottom: 0 !important;
+
+  /* Padding interne */
+  padding: 14px 16px 10px;
+
+  /* Supprime la ligne après l'étiquette de main.css */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  /* Séparateur bas léger */
+  border-bottom: 1px solid var(--group-sep);
+}
+.section > .section-label:first-child::after,
+.section > .section-label:first-of-type::after {
+  display: none !important; /* supprimer la ligne de main.css */
+}
+
+/* Contenu interne de la section */
+.section > *:not(.section-label) {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+/* Bouton "Tout voir" dans le label reste à droite */
+.section > .section-label button,
+.section > .section-label a {
+  margin-left: auto;
+}
+
+/* ── Sections avec section-label inline (display:flex) ──
+   Certaines sections utilisent section-label avec justify-content:space-between.
+   On préserve ce comportement. */
+.section .section-label[style*="justify-content"] {
+  justify-content: space-between;
+}
+
+/* ══════════════════════════════════════════════════════════
+   3. GROUPES COMPOSITES (plusieurs sections adjacentes)
+   Classes utilitaires à ajouter en JS ou manuellement
+   dans l'HTML pour fusionner des sections en un seul groupe.
+══════════════════════════════════════════════════════════ */
+
+/* Wrapper qui fusionne plusieurs éléments en un groupe iOS */
+.ios-group {
+  margin: 0 14px 18px !important;
+  background: var(--group-bg);
+  border-radius: var(--group-radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+/* Sections enfants d'un ios-group perdent leurs propres bordures */
+.ios-group > .section {
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Séparateur entre sections dans un groupe */
+.ios-group > .section + .section {
+  border-top: 1px solid var(--group-sep) !important;
+}
+
+/* Titre de groupe AU-DESSUS (en dehors du .ios-group) */
+.ios-group-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--group-label);
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  padding: 20px 20px 8px;
+  display: block;
+}
+
+/* ══════════════════════════════════════════════════════════
+   4. SECTION-LABEL UTILISÉE HORS DE .section
+   (ex: #memoCoupleSection, #wheelSection, etc.)
+══════════════════════════════════════════════════════════ */
+
+/* Sections qui ne portent PAS la classe .section */
+#memoCoupleSection,
+#postitsSection,
+#souvenirsSection,
+#activitesSection,
+#Books,
+#wheelSection,
+#luiSection,
+#loveSection {
+  margin: 0 14px 18px;
+  background: var(--group-bg);
+  border-radius: var(--group-radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  padding: 0 !important;
+}
+
+/* Leurs section-label internes */
+#memoCoupleSection .section-label,
+#memoCoupleSection .memo-header-row,
+#wheelSection      .section-label,
+#luiSection        .section-label {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--group-sep);
+  margin-bottom: 0 !important;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--group-label);
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+}
+
+/* Contenus des sections hors .section */
+#memoCoupleSection > *,
+#wheelSection > *,
+#luiSection > *,
+#loveSection > * {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* ══════════════════════════════════════════════════════════
+   5. MOOD STRIP & COMPTEUR — groupés ensemble sur l'accueil
+══════════════════════════════════════════════════════════ */
+.yam-mood-strip {
+  margin: 16px 14px 0;
+  background: var(--group-bg);
+  border-radius: var(--group-radius);
+  border: 1px solid var(--border);
+  padding: 14px 12px;
+}
+
+/* Compteur — carte distincte sous la mood strip */
+.counter-block {
+  margin: 12px 14px 0 !important;
+  border-radius: var(--group-radius) !important;
+}
+
+/* Section compteur wrapper */
+.section#counterSection,
+.section:has(#counterBlock) {
+  background: transparent !important;
+  border: none !important;
+  overflow: visible !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   6. MASCOTTE ZONE — harmonisation avec le style page
+══════════════════════════════════════════════════════════ */
+.yam-mascotte-zone {
+  padding-top: 20px;
+  padding-bottom: 8px;
+  background: transparent;
+}
+
+/* ══════════════════════════════════════════════════════════
+   7. SLIDER & ALBUM CARDS dans les sections
+══════════════════════════════════════════════════════════ */
+.slider {
+  padding: 4px 0 12px !important;
+  /* Permet le scroll horizontal depuis le bord */
+  margin-left: -4px;
+  padding-left: 16px !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   8. MÉMO DUO CARDS — padding interne harmonisé
+══════════════════════════════════════════════════════════ */
+.memo-duo-wrap {
+  padding: 12px 14px 14px !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   9. BOUTONS PLEINE LARGEUR en bas de section
+══════════════════════════════════════════════════════════ */
+/* Bouton "Ajouter" type dashed border en bas de carte */
+.section [onclick*="open"] button,
+.section [onclick*="new"] {
+  border-radius: var(--row-radius) !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   10. SÉPARATEURS DE LIGNES internes (style iOS)
+   Pour les listes : chaque item a un séparateur bas sauf dernier
+══════════════════════════════════════════════════════════ */
+.section-row {
+  padding: 13px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--group-sep);
+}
+.section-row:last-child {
+  border-bottom: none;
+}
+
+/* ══════════════════════════════════════════════════════════
+   11. POST-IT SECTION — poignée arrondie + padding
+══════════════════════════════════════════════════════════ */
+#postitsSection .postit-wrap { padding: 12px 14px 4px; }
+#postitsSection .stack-hint  { padding: 0 14px; }
+#postitsSection .stack-ctr   { padding: 0 14px 14px; }
+
+/* ══════════════════════════════════════════════════════════
+   12. SOUVENIRS — grille interne sans débordement
+══════════════════════════════════════════════════════════ */
+#souvenirsSection > div { overflow: visible; }
+#souvenirsSection [style*="overflow-x:auto"] { padding: 0 14px 4px !important; }
+
+/* ══════════════════════════════════════════════════════════
+   13. ROUE — section sans overflow clip (canvas)
+══════════════════════════════════════════════════════════ */
+#wheelSection {
+  overflow: visible !important;
+}
+#wheelSection .wheel-container {
+  border-radius: 0 0 var(--group-radius) var(--group-radius);
+}
+
+/* ══════════════════════════════════════════════════════════
+   14. NAV BAR — harmonisation avec les onglets
+══════════════════════════════════════════════════════════ */
+.bottom-nav {
+  /* Coins hauts pour un langage visuel arrondi cohérent */
+  border-radius: 22px 22px 0 0 !important;
+  border-top: none !important;
+  /* Ombre vers le haut pour détacher la nav du contenu */
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.35);
+  overflow: hidden;
+}
+
+body.light .bottom-nav {
+  background: rgba(255,245,250,0.97) !important;
+  box-shadow: 0 -4px 20px rgba(180,20,80,0.1);
+}
+
+/* ══════════════════════════════════════════════════════════
+   15. HEADER — fond unificateur
+   Le header devient le "matelas" visible derrière les coins
+══════════════════════════════════════════════════════════ */
+header {
+  background: var(--page-bg) !important;
+  padding-bottom: 32px !important; /* espace pour que le radius soit visible */
+}
+
+body.light header {
+  background: var(--page-bg) !important;
+}
+
+/* Supprime l'ancienne ligne séparatrice (remplacée par le radius) */
+header + div[style*="height:1px"] {
+  display: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   16. ONGLET MUSIQUE — TopBar intégrée au style
+══════════════════════════════════════════════════════════ */
+.top50-header {
+  border-radius: var(--group-radius) var(--group-radius) 0 0;
+  overflow: hidden;
+}
+
+/* ══════════════════════════════════════════════════════════
+   17. TRANSITIONS entre onglets — slide + fade amélioré
+══════════════════════════════════════════════════════════ */
+.yam-tab-panel:not(.active) {
+  pointer-events: none;
+}
+
+/* Active state (renforce l'animation de app-nav.js) */
+@keyframes tabSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.yam-tab-panel.active {
+  animation: tabSlideUp 0.28s var(--ease) both;
+}
+
+/* ══════════════════════════════════════════════════════════
+   18. LIGHT THEME — surfaces et contrastes
+   La palette rose/lie-de-vin de main.css est préservée,
+   on améliore la hiérarchie des surfaces
+══════════════════════════════════════════════════════════ */
+body.light .yam-tab-panel {
+  background: #f7e6f0 !important;
+}
+
+body.light .section,
+body.light #memoCoupleSection,
+body.light #postitsSection,
+body.light #souvenirsSection,
+body.light #activitesSection,
+body.light #Books,
+body.light #wheelSection,
+body.light #luiSection,
+body.light #loveSection {
+  background: rgba(255,248,252,1) !important;
+  border-color: rgba(200,24,94,0.12) !important;
+  box-shadow: 0 2px 12px rgba(180,20,80,0.06);
+}
+
+body.light .yam-mood-strip {
+  background: rgba(255,248,252,1) !important;
+  border-color: rgba(200,24,94,0.12) !important;
+}
+
+body.light .section-label,
+body.light .ios-group-title {
+  color: rgba(30,5,18,0.45) !important;
+}
+
+/* Compteur en light */
+body.light .counter-block {
+  background: rgba(255,248,252,1) !important;
+  border-color: rgba(200,24,94,0.15) !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   19. RESPONSIVE / SAFE AREAS
+   Assure que les sections ne collent pas aux bords sur iPad
+══════════════════════════════════════════════════════════ */
+@media (min-width: 430px) {
+  .section,
+  #memoCoupleSection,
+  #postitsSection,
+  #souvenirsSection,
+  #activitesSection,
+  #Books,
+  #wheelSection,
+  .yam-mood-strip,
+  .ios-group {
+    margin-left: 18px !important;
+    margin-right: 18px !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   20. SCROLLBAR MASQUÉE partout (cohérence iOS)
+══════════════════════════════════════════════════════════ */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar { display: none; }
+
+/* ══════════════════════════════════════════════════════════
+   21. SECTIONS DES AUTRES ONGLETS (Musique, Jeux, etc.)
+   Même traitement que les sections de l'accueil
+══════════════════════════════════════════════════════════ */
+
+/* Onglet Musique — sections */
+#loveSection,
+#yamMusiqueTab > div:not(#loveSection):not([id*="Overlay"]):not([id*="Modal"]):not([id*="Picker"]) {
+  margin: 0 14px 14px;
+}
+
+/* Onglet Jeux — sections */
+#yamJeuxTab > div:not([id*="Overlay"]):not([id*="Modal"]):not([id*="View"]) {
+  /* Le style de chaque section de jeux est géré par les jeux eux-mêmes */
+}
+
+/* Onglet Messages — pas de carte (plein écran) */
+#yamMessagesTab {
+  border-radius: var(--page-radius) var(--page-radius) 0 0;
+  background: var(--bg);
+}
+
+/* ══════════════════════════════════════════════════════════
+   22. POIGNÉE GRISE (pill indicator) — visible uniquement
+   sur les premiers onglets, pas sur les overlays
+══════════════════════════════════════════════════════════ */
+#yamHomeTab::before,
+#yamNousTab::before,
+#yamMusiqueTab::before,
+#yamJeuxTab::before {
+  content: '';
+  display: block;
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--group-sep);
+  margin: 10px auto 2px;
+}
+
+/* Pas de poignée sur Messages (plein écran) */
+#yamMessagesTab::before { display: none; }
+
+/* ══════════════════════════════════════════════════════════
+   23. ACTIVITÉ IA CARD — intégration dans la carte de section
+══════════════════════════════════════════════════════════ */
+.activite-ia-card {
+  border-radius: var(--row-radius) !important;
+  margin: 0 0 8px !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   24. TOAST et OVERLAYS — pas affectés par le design system
+══════════════════════════════════════════════════════════ */
+#uxToast,
+.nous-modal-overlay,
+.souvenir-gestion-overlay,
+#hiddenPage,
+#v2LoginOverlay {
+  /* Ces éléments sont en position fixed/absolute — non affectés */
+  border-radius: initial;
+  margin: initial;
+}
