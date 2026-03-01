@@ -28,26 +28,36 @@
       if(nav) nav.classList.toggle('nav-active', key === tab);
     });
 
+    // Désactiver temporairement scroll-behavior:smooth pour que scrollTo(0,0)
+    // soit vraiment instantané sur tous les navigateurs/iOS
+    document.documentElement.style.scrollBehavior = 'auto';
+    document.body.style.scrollBehavior = 'auto';
+
     // Remettre Y à 0 pendant que tout est caché — personne ne voit le saut
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    window.scrollTo(0, 0);
 
     // Afficher le panel cible — on est déjà à Y=0
     var incomingPanel = TAB_MAP[tab] && document.getElementById(TAB_MAP[tab].panel);
     if(incomingPanel) incomingPanel.classList.add('active');
+
+    // Forcer une seconde fois après display:block (certains navigateurs restaurent le scroll)
+    window.scrollTo(0, 0);
 
     _currentTab = tab;
     window._currentTab = tab;
 
     if(window.updateFloatingThemeBtn) window.updateFloatingThemeBtn();
 
-    // ── Refresh automatique au changement d'onglet ──
-    // On ancre le scroll à 0 pendant 400ms pour neutraliser tout décalage
-    // causé par les fonctions de refresh qui modifient le DOM
+    // ── Ancre scroll à 0 pendant 600ms ──
+    // Neutralise les décalages causés par les fonctions de refresh qui modifient le DOM
     var _scrollAnchor = function() { window.scrollTo(0, 0); };
     document.addEventListener('scroll', _scrollAnchor, { passive: true });
     setTimeout(function(){
       document.removeEventListener('scroll', _scrollAnchor);
-    }, 400);
+      // Restaurer scroll-behavior normal
+      document.documentElement.style.scrollBehavior = '';
+      document.body.style.scrollBehavior = '';
+    }, 600);
 
     setTimeout(function(){
       var fns = {
