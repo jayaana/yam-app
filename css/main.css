@@ -3,8 +3,8 @@
 ═══════════════════════════════════════════ */
 
 /* ══ iOS SAFE AREAS — Dynamic Island ══
-   Ces variables sont recalculées automatiquement
-   par le navigateur selon le modèle d'iPhone.
+   Gérées nativement par le navigateur via env().
+   Requiert viewport-fit=cover dans le meta viewport.
    Sur iPhone 14 Pro / 15 / 16 : --safe-top ≈ 59px
    Sur iPhone avec notch        : --safe-top ≈ 44px
    Sur iPhone sans notch        : --safe-top ≈ 20px
