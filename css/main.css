@@ -389,8 +389,7 @@ input, textarea, [contenteditable] {
 
 header {
   padding: 18px 16px 18px;
-  /* ↓ Espace supplémentaire pour Dynamic Island / notch iOS */
-  padding-top: calc(var(--safe-top) + 14px);
+  padding-top: calc(var(--safe-top) + 4px);
   position: relative;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
