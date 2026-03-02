@@ -214,6 +214,15 @@ body.dm-chat-active #hiddenPage {
 
 /* ── 4. Menu Jeux — la section-label est couverte par le header — géré inline ── */
 
+/* ── Jeux/Quiz/Bêtises actifs — masquer header principal, sticky header et nav ── */
+body.subview-active header,
+body.subview-active #yamStickyHeader {
+  display: none !important;
+}
+body.subview-active .bottom-nav {
+  display: none !important;
+}
+
 /* ── Musique — désactiver le rendu ios-group / section card dans cet onglet ── */
 #yamMusiqueTab .section,
 #yamMusiqueTab .ios-group,
@@ -415,8 +424,35 @@ body.dm-chat-active #hiddenPage {
 /* ── 9. Onglet NOUS — bouton engrenage en haut à droite ── */
 /* nousProfilSection reste visible (compteur jours) */
 
-/* ── 10. Messages — masquer la barre nav quand hiddenPage (InstaLove) est ouvert ── */
-body.hidden-page-open .bottom-nav {
+/* ── 10. Messages — masquer la nav UNIQUEMENT dans la conversation (écran chat) ── */
+/* dm-chat-active = class ajoutée par app-messages.js quand on entre dans le chat */
+body.dm-chat-active .bottom-nav {
+  display: none !important;
+}
+
+/* ── 10b. Jeux, Quiz, Bêtises — masquer header + nav quand actifs ── */
+/* Ces vues reçoivent la classe .active via _yamSlide dans app-nav.js */
+#gamesView.active ~ * header,
+#gamesView.active,
+#quizView.active,
+#memoryView.active,
+#penduView.active,
+#puzzleView.active,
+#snakeView.active,
+#skyjoView.active,
+#prankMenu.active {
+  /* les vues elles-mêmes couvrent tout l'écran — géré via CSS ci-dessous */
+}
+
+/* Masquer header principal + sticky + nav quand un jeu/quiz/bêtise est actif */
+#gamesView.active ~ .bottom-nav,
+#quizView.active ~ .bottom-nav,
+#memoryView.active ~ .bottom-nav,
+#penduView.active ~ .bottom-nav,
+#puzzleView.active ~ .bottom-nav,
+#snakeView.active ~ .bottom-nav,
+#skyjoView.active ~ .bottom-nav,
+#prankMenu.active ~ .bottom-nav {
   display: none !important;
 }
 
@@ -3302,6 +3338,36 @@ function v2ApplyDynamicNames(){
 </script>
 
 <script>
+/* ── Subview active : masquer header/nav quand jeux/quiz/bêtises ouverts ── */
+(function() {
+  var SUBVIEW_IDS = ['gamesView','quizView','memoryView','penduView','puzzleView','snakeView','skyjoView','prankMenu'];
+
+  function updateSubviewState() {
+    var anyActive = SUBVIEW_IDS.some(function(id) {
+      var el = document.getElementById(id);
+      return el && (el.classList.contains('active') || el.style.display === 'flex' || el.style.display === 'block');
+    });
+    document.body.classList.toggle('subview-active', anyActive);
+  }
+
+  function watchSubviews() {
+    var obs = new MutationObserver(updateSubviewState);
+    SUBVIEW_IDS.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) obs.observe(el, { attributes: true, attributeFilter: ['class', 'style'] });
+    });
+    // Vérification initiale
+    updateSubviewState();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', watchSubviews);
+  } else {
+    // Attendre que les éléments soient dans le DOM
+    setTimeout(watchSubviews, 300);
+  }
+})();
+
 /* ── Toggle AccountModal (ouvre ou ferme selon état) ── */
 window.yamToggleAccountModal = function() {
   var modal = document.getElementById('accountModal');
@@ -3313,33 +3379,8 @@ window.yamToggleAccountModal = function() {
   }
 };
 
-/* ── Masquer/afficher la bottom-nav quand InstaLove (hiddenPage) s'ouvre/ferme ── */
-(function() {
-  function watchHiddenPage() {
-    var hp = document.getElementById('hiddenPage');
-    if (!hp) { setTimeout(watchHiddenPage, 200); return; }
-
-    // MutationObserver sur classList de hiddenPage
-    var obs = new MutationObserver(function() {
-      if (hp.classList.contains('active')) {
-        document.body.classList.add('hidden-page-open');
-      } else {
-        document.body.classList.remove('hidden-page-open');
-      }
-    });
-    obs.observe(hp, { attributes: true, attributeFilter: ['class'] });
-
-    // Écouter aussi l'event hiddenPageClosed pour être sûr
-    document.addEventListener('hiddenPageClosed', function() {
-      document.body.classList.remove('hidden-page-open');
-    });
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', watchHiddenPage);
-  } else {
-    watchHiddenPage();
-  }
-})();
+/* ── nav masquée en mode chat via dm-chat-active (géré nativement par app-messages.js) ── */
+/* Aucun observer supplémentaire nécessaire */
 </script>
 
 <!-- ═══════════════════════════════════════════
