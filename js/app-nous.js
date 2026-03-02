@@ -2240,7 +2240,7 @@ loadLikeCounters();
 
   function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
   var SB2_EDGE = SB2_URL + '/functions/v1/gemini-suggest';
-  var _MD_BATCH_SIZE = 15;  // nombre de mots doux générés par jour
+  var _MD_BATCH_SIZE = 10;  // nombre de mots doux générés par jour
 
   // ── Clés localStorage ──
   function _cacheKey(coupleId){ return 'yam_motdoux_batch_' + coupleId; }
@@ -2346,9 +2346,23 @@ loadLikeCounters();
       }
       // Varier le moment de la journée pour diversifier les messages
       var moment = moments[index % moments.length];
-      var prompt = 'Tu es le partenaire dans un couple amoureux. Écris UN seul mot doux unique et différent des précédents, tendre et sincère, de 1 à 3 phrases maximum, destiné à '+ partnerName +
-        '. Le couple est ensemble depuis '+daysTogether+' jours. On est en '+saison+', en ce '+moment+'.'+
-        ' Le message doit être naturel, chaleureux, jamais mièvre ni répétitif. Pas de guillemets. Pas d\'explication. Juste le message.';
+      var exemples = [
+        'J\'adore quand tu souris sans raison, ça illumine n\'importe quelle pièce.',
+        'Ce soir j\'aurais juste envie de te tenir la main et de ne rien dire.',
+        'Il y a des jours où je réalise à quel point j\'ai de la chance que tu existes.',
+        'Tu es le genre de personne qui rend les matins difficiles supportables.',
+        'Même les silences avec toi ont quelque chose de doux.'
+      ];
+      var prompt = 'Tu es dans un couple amoureux. Écris UN seul petit mot doux pour ton partenaire. ' +
+        'Règles STRICTES : ' +
+        '1) 1 à 2 phrases maximum, jamais plus. ' +
+        '2) NE commence JAMAIS par un prénom ou un surnom. ' +
+        '3) Le message doit être concret et touchant, pas une généralité vide. ' +
+        '4) Pas un seul mot suivi d\'un point. ' +
+        '5) Aucun guillemet. Aucune explication. Seulement le message. ' +
+        'On est en ' + saison + ', ' + moment + '. Ensemble depuis ' + daysTogether + ' jours. ' +
+        'Voici des exemples du ton attendu (ne les copie pas, invente quelque chose de différent) : ' +
+        exemples[index % exemples.length];
 
       fetch(SB2_EDGE, {
         method: 'POST',
@@ -2454,6 +2468,18 @@ loadLikeCounters();
     if(_motsDoux_init_done) return;
     _motsDoux_init_done = true;
     window.motsDoux_refresh(false);
+    // Clic sur la card = nouveau mot (comme le bouton Nouveau)
+    setTimeout(function(){
+      var card = document.getElementById('motsDoux_card');
+      if(card){
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', function(e){
+          // Éviter double-déclenchement si clic sur le bouton refresh lui-même
+          if(e.target.closest('#motsDoux_refreshBtn')) return;
+          window.motsDoux_refresh(true);
+        });
+      }
+    }, 500);
   });
   // Fallback unique : si event raté
   setTimeout(function(){
