@@ -236,7 +236,8 @@ function _nousInitAll() {
   document.querySelectorAll('#nousContentWrapper .fade-in').forEach(function(el){
     if (window._fadeObs) window._fadeObs.observe(el);
   });
-  setTimeout(function(){ if(typeof window.yamRefreshNewBadges==='function') window.yamRefreshNewBadges(); }, 500);
+  // Force fetch Supabase au 1er chargement (cache vide) — délai pour laisser la session s'établir
+  setTimeout(function(){ if(typeof window.yamForceRefreshNewBadges==='function') window.yamForceRefreshNewBadges(); }, 600);
 }
 
 
@@ -350,31 +351,34 @@ function _nousLoadProfil() {
 
   // ── Applique l'état des badges sur le DOM (lecture depuis cache) ──
   function _applyBadges(){
-    // Mémo note
+    // Mémo note — card entière
     var memoNoteCard = document.querySelector('#memoCoupleSection .memo-duo-card:first-child');
     if(memoNoteCard) window.yamShowNewBadge(memoNoteCard, window.yamIsNew('memo_note'));
-    // Mémo todo
+    // Mémo todo — card entière
     var memoTodoCard = document.querySelector('#memoCoupleSection .memo-duo-card:last-child');
     if(memoTodoCard) window.yamShowNewBadge(memoTodoCard, window.yamIsNew('memo_todo'));
-    // Souvenirs
+    // Souvenirs — section label
     var souvenirSection = document.getElementById('souvenirsSection');
     if(souvenirSection) window.yamShowNewBadge(souvenirSection, window.yamIsNew('souvenir'));
-    // Livres
+    // Livres — badge inline HTML existant
     var livresNew = document.getElementById('livresNewBadge');
     if(livresNew) livresNew.style.display = window.yamIsNew('livre') ? '' : 'none';
-    // Petits mots
+    // Petits mots — badge inline HTML existant
     var pmNew = document.getElementById('postitNewBadge');
     if(pmNew) pmNew.style.display = window.yamIsNew('petit_mot') ? '' : 'none';
-    // Pochettes Elle/Lui — badges sur chaque slot si section concernée
+    // Pochettes Elle/Lui — badge sur la card complète (album-card lui-card-wrap)
     ['animal','fleurs','personnage','saison','repas'].forEach(function(slot){
       ['elle','lui'].forEach(function(who){
-        var card = document.getElementById(who+'-btn-'+slot);
+        // Cibler la card parente (.album-card) via le data-slot
+        var dataSlot = who==='elle' ? who+'-'+slot : slot;
+        var card = document.querySelector('.album-card[data-slot="'+dataSlot+'"]');
         if(card) window.yamShowNewBadge(card, window.yamIsNew(who+'_slot_'+slot));
       });
     });
   }
 
   // ── Rafraîchit le cache depuis Supabase puis applique les badges ──
+  // Toujours async : on attend le fetch avant d'appliquer
   window.yamRefreshNewBadges = function(){
     _ensureCache(_applyBadges);
   };
@@ -385,10 +389,10 @@ function _nousLoadProfil() {
     _fetchAllBadges(_applyBadges);
   };
 
-  // ── Marque ET rafraîchit immédiatement (optimiste) ──
+  // ── Marque ET rafraîchit : écrit dans SB puis recharge pour confirmer ──
   window.yamMarkNewAndRefresh = function(section){
-    window.yamMarkNew(section);
-    _applyBadges(); // immédiat côté local (cache déjà mis à jour dans yamMarkNew)
+    window.yamMarkNew(section);   // upsert SB + cache optimiste local
+    _applyBadges();               // affichage immédiat côté local
   };
 
   // ── Polling toutes les 30s : force rechargement Supabase pour la personne B ──
