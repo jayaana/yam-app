@@ -3573,7 +3573,7 @@ body.skyjo-bg-paused #skyjoDiscardCard.sj-selectable {
 /* ════ MINI PLAYER ════ */
 #miniPlayer {
   position: fixed;
-  bottom: var(--nav-height); /* au-dessus de la bottom-nav, inclut déjà safe-area */
+  bottom: calc(var(--nav-height) + 8px); /* 8px au-dessus de la nav pour ne pas être recouvert */
   left: 0; width: 100%;
   z-index: 1001;
   transform: translateY(100%);
