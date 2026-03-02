@@ -468,6 +468,13 @@ function descEditClose(){
 function descEditSave(){
   var val = document.getElementById('descEditInput').value.trim();
   document.getElementById('descEditModal').classList.remove('open');
+  // Restaurer le scroll arrière-plan (identique à descEditClose)
+  if(typeof window._nousUnblockScroll === 'function') window._nousUnblockScroll();
+  else {
+    var nousWrap = document.getElementById('nousContentWrapper');
+    if(nousWrap) nousWrap.style.overflow = '';
+    window._yamScrollLocked = false;
+  }
   if(_descEditCallback){ _descEditCallback(val); _descEditCallback = null; }
 }
 document.addEventListener('DOMContentLoaded', function(){
