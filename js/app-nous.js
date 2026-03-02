@@ -3273,7 +3273,7 @@ window.nousLoad = function(){
     if(meta) meta.textContent = 'Génération en cours ✨';
     if(pills) pills.innerHTML = '';
 
-    var prompt = 'Tu es un assistant créatif pour un couple amoureux. Génère EXACTEMENT 5 noms communs concrets et visuels, qu'on peut facilement photographier ou illustrer, pour décrire son partenaire de façon poétique. Chaque mot doit évoquer une qualité ou une émotion à travers une image concrète. Par exemple : Dessert (sa douceur), Vague (son énergie), Bougie (sa chaleur), Forêt (son mystère), Miel (sa tendresse). Les mots doivent être simples, beaux, photographiables — pas des noms propres, pas des villes, pas des marques. Réponds UNIQUEMENT en JSON strict, tableau de 5 strings, un seul mot par élément, sans texte autour. Exemple : ["Dessert","Vague","Bougie","Forêt","Miel"]';
+    var prompt = 'Tu es un assistant créatif pour un couple amoureux. Génère EXACTEMENT 5 noms communs concrets et visuels, faciles à photographier ou illustrer, pour décrire son partenaire de façon poétique. Chaque mot doit évoquer une qualité ou une émotion à travers une image concrète. Par exemple : Dessert (sa douceur), Vague (son énergie), Bougie (sa chaleur), Forêt (son mystère), Miel (sa tendresse). Les mots doivent être simples, beaux, photographiables. Réponds UNIQUEMENT en JSON strict, tableau de 5 strings, un seul mot par élément, sans texte autour. Exemple : ["Dessert","Vague","Bougie","Forêt","Miel"]';
 
     fetch(GROQ_EDGE, {
       method: 'POST',
