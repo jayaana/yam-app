@@ -397,6 +397,44 @@ body.dm-chat-active #hiddenPage {
 
 /* ── 9. Onglet NOUS — bouton engrenage en haut à droite ── */
 /* nousProfilSection reste visible (compteur jours) */
+
+/* ── 10. Barre de saisie chat Messages — remonter au-dessus de la nav ── */
+.dm-input-bar {
+  padding-bottom: calc(var(--nav-height, 70px) + 6px) !important;
+  background: var(--bg) !important;
+}
+/* En mode chat actif (clavier ouvert) on désactive le padding extra */
+body.dm-chat-active .dm-input-bar {
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+}
+
+/* ── 11. Bloquer le scroll arrière-plan quand accountModal est ouvert ── */
+body.account-modal-open {
+  overflow: hidden !important;
+  touch-action: none !important;
+  position: fixed !important;
+  width: 100% !important;
+}
+
+/* ── 12. Engrenage Nous — visible seulement sur onglet Nous ── */
+/* Par défaut caché, affiché via classe .nous-active sur body */
+body.nous-active #headerGearBtn {
+  display: flex !important;
+}
+body.nous-active #yamStickyGearBtn {
+  display: flex !important;
+}
+/* Cacher les avatars du header grand + sticky sur l'onglet Nous */
+body.nous-active #profileAvatarWrap #profileAvatarOther,
+body.nous-active #profileAvatarWrap #profileAvatar,
+body.nous-active #profileAvatarWrap #profileMoodOther,
+body.nous-active #profileAvatarWrap #moodBandeau {
+  display: none !important;
+}
+body.nous-active #yamStickyAvatarOther,
+body.nous-active #yamStickyAvatarSelf {
+  display: none !important;
+}
 #nousGearBtnWrap {
   display: flex;
   justify-content: flex-end;
@@ -429,17 +467,17 @@ body.dm-chat-active #hiddenPage {
   <div style="width:56px;flex-shrink:0;"></div>
   <!-- Titre centré -->
   <span id="yamStickyHeaderTitle">Accueil</span>
-  <!-- Bouton engrenage Mon Compte (remplace les avatars) -->
-  <div id="yamStickyAvatars" style="display:flex;align-items:center;gap:8px;">
-    <!-- Avatars cachés mais conservés pour la synchro JS -->
-    <div id="yamStickyAvatarOther" style="display:none;">
+  <!-- Avatars (visibles par défaut) + Engrenage (visible seulement dans l'onglet Nous) -->
+  <div id="yamStickyAvatars">
+    <div id="yamStickyAvatarOther">
       <img id="yamStickyAvatarOtherEmoji" class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;">
       <div id="yamStickyPresenceDot"></div>
     </div>
-    <div id="yamStickyAvatarSelf" style="display:none;">
+    <div id="yamStickyAvatarSelf" onclick="yamStickyOpenProfile()">
       <img id="yamStickyAvatarSelfEmoji" class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;">
     </div>
-    <button id="yamStickyGearBtn" onclick="openAccountModal()" title="Mon compte" style="width:36px;height:36px;border-radius:50%;background:var(--s2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background 0.18s,transform 0.15s;flex-shrink:0;padding:0;">
+    <!-- Engrenage — caché par défaut, visible seulement sur l'onglet Nous via JS -->
+    <button id="yamStickyGearBtn" onclick="yamToggleAccountModal()" title="Mon compte" style="display:none;width:36px;height:36px;border-radius:50%;background:var(--s2);border:1.5px solid var(--border);align-items:center;justify-content:center;cursor:pointer;transition:background 0.18s,transform 0.15s;flex-shrink:0;padding:0;">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);">
         <circle cx="12" cy="12" r="3"/>
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -692,24 +730,25 @@ body.dm-chat-active #hiddenPage {
 
 <header style="position:relative;">
 
-  <!-- Bouton engrenage Mon Compte dans le header — remplace les avatars doubles -->
+  <!-- Système double avatar profil + humeur (visible sur tous les onglets sauf Nous) -->
   <div id="profileAvatarWrap">
-    <!-- Avatars conservés cachés pour la synchro JS (NL, mood, etc.) -->
-    <div id="profileAvatarOther" style="display:none!important;pointer-events:none;">
+    <!-- Avatar de l'autre (secondaire) -->
+    <div id="profileAvatarOther">
       <img id="profileAvatarOtherEmoji" class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;">
       <div id="presenceDot"></div>
     </div>
-    <div id="profileMoodOther" style="display:none!important;"></div>
-    <div id="moodBandeau" onclick="triggerMoodBandeau()" style="display:none!important;">
+    <div id="profileMoodOther"></div>
+    <div id="moodBandeau" onclick="triggerMoodBandeau()">
       <span id="moodBandeauText" style="margin-right:4px;"></span>
       <span id="moodBandeauEmoji" style="font-size:13px;line-height:1;flex-shrink:0;"></span>
     </div>
-    <div id="profileAvatar" style="display:none!important;">
+    <!-- Avatar principal -->
+    <div id="profileAvatar" onclick="toggleProfilePopup()">
       <img id="profileAvatarEmoji" class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;">
       <div id="profileMoodSelf"></div>
     </div>
-    <!-- Vrai bouton affiché : engrenage Mon Compte -->
-    <button id="headerGearBtn" onclick="openAccountModal()" title="Mon compte" style="position:absolute;top:12px;left:16px;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.08);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background 0.18s,transform 0.15s;z-index:15;padding:0;backdrop-filter:blur(4px);">
+    <!-- Engrenage Mon Compte — caché par défaut, visible seulement sur l'onglet Nous -->
+    <button id="headerGearBtn" onclick="yamToggleAccountModal()" title="Mon compte" style="display:none;position:absolute;top:12px;left:16px;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.08);border:1.5px solid var(--border);align-items:center;justify-content:center;cursor:pointer;transition:background 0.18s,transform 0.15s;z-index:15;padding:0;backdrop-filter:blur(4px);">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--sub,#aaa);">
         <circle cx="12" cy="12" r="3"/>
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -3226,7 +3265,41 @@ function v2ApplyDynamicNames(){
     }
   };
 
+  // ── Engrenage conditionnel : visible seulement sur onglet Nous ──
+  function updateGearVisibility(tab) {
+    if (tab === 'nous') {
+      document.body.classList.add('nous-active');
+    } else {
+      document.body.classList.remove('nous-active');
+      // Si on quitte Nous et que le modal est ouvert, le fermer
+      var modal = document.getElementById('accountModal');
+      if (modal && modal.style.display === 'flex') {
+        if (typeof window.closeAccountModal === 'function') window.closeAccountModal();
+      }
+    }
+  }
+
+  // Patcher setTab pour gérer la visibilité de l'engrenage
+  var _origSetTab = setTab;
+  setTab = function(tab) {
+    _origSetTab(tab);
+    updateGearVisibility(tab);
+  };
+
 })();
+</script>
+
+<script>
+/* ── Toggle AccountModal (ouvre ou ferme selon état) ── */
+window.yamToggleAccountModal = function() {
+  var modal = document.getElementById('accountModal');
+  if (!modal) return;
+  if (modal.style.display === 'flex') {
+    if (typeof window.closeAccountModal === 'function') window.closeAccountModal();
+  } else {
+    if (typeof window.openAccountModal === 'function') window.openAccountModal();
+  }
+};
 </script>
 
 <!-- ═══════════════════════════════════════════
