@@ -109,6 +109,12 @@ function _v2AfterLogin(result, msgId){
     return;
   }
   window.v2HideLogin();
+  // Reload unique après connexion pour garantir un état propre
+  if(!sessionStorage.getItem('yam_post_login_reloaded')){
+    sessionStorage.setItem('yam_post_login_reloaded', '1');
+    location.reload();
+    return;
+  }
   // Remettre le scroll à 0 — la page de connexion peut avoir été scrollée
   // pour remplir les champs, on repart du haut de l'app
   window.scrollTo({ top: 0, behavior: 'instant' });
