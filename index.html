@@ -1153,7 +1153,7 @@ body.nous-active #yamStickyAvatarSelf {
 
   <!-- Zone mascotte YAM -->
   <div class="yam-mascotte-zone">
-    <img src="https://raw.githubusercontent.com/jayaana/Playlist-love/main/yam_mascotte.png" alt="YAM mascotte" style="width:90px;height:90px;object-fit:contain;animation:yamFloat 3s ease-in-out infinite;" />
+    <img src="https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_start.gif" alt="YAM mascotte" style="width:90px;height:90px;object-fit:contain;animation:yamFloat 3s ease-in-out infinite;" />
     <div class="yam-mascotte-label">YAM arrive bientôt</div>
     <div class="yam-mascotte-sub">Votre compagnon de couple 💑</div>
   </div>
@@ -4228,5 +4228,11 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   setTimeout(hookSetProfile, 500);
 })();
 </script>
+
+<!-- GIF YAM qui danse quand la musique joue -->
+<div id="yamDancingGif" style="position:fixed;bottom:calc(var(--nav-height) + 10px);right:16px;width:60px;height:60px;z-index:1500;display:none;pointer-events:none;">
+  <img src="https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_dance.gif" alt="YAM danse" style="width:100%;height:100%;object-fit:contain;" />
+</div>
+
 </body>
 </html>
