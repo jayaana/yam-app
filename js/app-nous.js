@@ -3149,3 +3149,232 @@ window.nousLoad = function(){
     _nousInitAll();
   }
 };
+
+
+// ════════════════════════════════════════════════════════════════════
+// SUGGESTIONS DE LA SEMAINE — 5 mots générés par IA (Groq)
+// Partagés entre les 2 via Supabase (v2_suggestion_songs réutilisé
+// ou v2_new_badges — ici on utilise v2_photo_descs category='semaine')
+// Régénérables 1x/semaine — identiques pour les 2 partenaires
+// ════════════════════════════════════════════════════════════════════
+(function(){
+
+  var GROQ_EDGE  = SB2_URL + '/functions/v1/gemini-suggest';
+  var SLOTS_LUI  = ['animal','fleurs','personnage','saison','repas'];
+  var SLOTS_ELLE = ['animal','fleurs','personnage','saison','repas'];
+  var SLOT_LABELS = { animal:'Animal 🐾', fleurs:'Fleurs 🌸', personnage:'Personnage 🧑', saison:'Saison 🍂', repas:'Repas 🍽️' };
+
+  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
+  function _getWeekKey(){
+    var d = new Date();
+    var jan1 = new Date(d.getFullYear(), 0, 1);
+    var week = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+    return d.getFullYear() + '-W' + week;
+  }
+
+  // ── Charger depuis Supabase (category='semaine', slot=weekKey) ──
+  function _loadFromSB(callback){
+    var cid = _getCoupleId(); if(!cid){ callback(null, 0); return; }
+    var wk = _getWeekKey();
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+cid+'&category=eq.semaine&slot=eq.'+encodeURIComponent(wk)+'&select=description&limit=1', {headers: sb2Headers()})
+    .then(function(r){ return r.ok ? r.json() : []; })
+    .then(function(rows){
+      if(rows && rows[0] && rows[0].description){
+        try{
+          var parsed = JSON.parse(rows[0].description);
+          // Nouveau format : { words: [...], regen: N }
+          if(parsed && parsed.words){ callback(parsed.words, parsed.regen||0); return; }
+          // Ancien format : tableau direct
+          if(Array.isArray(parsed)){ callback(parsed, 0); return; }
+        }catch(e){}
+      }
+      callback(null, 0);
+    })
+    .catch(function(){ callback(null, 0); });
+  }
+
+  // ── Sauvegarder dans Supabase (words + compteur de regens) ──
+  function _saveSB(words, regenCount){
+    var cid = _getCoupleId(); if(!cid) return;
+    var wk = _getWeekKey();
+    var payload = { words: words, regen: regenCount||0 };
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs', {
+      method: 'POST',
+      headers: sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),
+      body: JSON.stringify({ couple_id: cid, category: 'semaine', slot: wk, description: JSON.stringify(payload) })
+    }).catch(function(){});
+  }
+
+  // ── Lire le compteur de regens depuis les données chargées ──
+  var _currentRegen = 0;
+  var _currentWords = null;
+
+  // ── Rendre les pills ──
+  function _renderPills(words, weekKey, regenCount){
+    var pills = document.getElementById('semainePills'); if(!pills) return;
+    var meta  = document.getElementById('semaineMeta');
+    var btn   = document.getElementById('semaineGenBtn');
+    pills.innerHTML = '';
+    var regenLeft = 1 - (regenCount||0);
+    if(meta) meta.textContent = 'Semaine ' + weekKey + ' · ' + (regenLeft > 0 ? '1 rafraîchissement restant' : 'Plus de rafraîchissement cette semaine');
+    if(btn){
+      if(regenLeft > 0){
+        btn.textContent = 'Rafraîchir';
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      } else {
+        btn.textContent = 'Rafraîchir';
+        btn.disabled = true;
+        btn.style.opacity = '0.4';
+      }
+    }
+    words.forEach(function(w){
+      var pill = document.createElement('span');
+      pill.textContent = w;
+      pill.style.cssText = 'display:inline-flex;align-items:center;padding:6px 13px;border-radius:20px;background:linear-gradient(135deg,rgba(232,121,160,0.18),rgba(155,89,182,0.18));border:1px solid rgba(232,121,160,0.35);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;transition:transform 0.1s,opacity 0.1s;font-family:\'DM Sans\',sans-serif;';
+      pill.addEventListener('click', function(){ window._openSlotModal(w); });
+      pill.addEventListener('touchstart', function(){ pill.style.transform='scale(0.95)'; pill.style.opacity='0.8'; }, {passive:true});
+      pill.addEventListener('touchend',   function(){ pill.style.transform=''; pill.style.opacity=''; }, {passive:true});
+      pills.appendChild(pill);
+    });
+  }
+
+  // ── Charger et afficher ──
+  function _semaineLoad(){
+    var meta = document.getElementById('semaineMeta'); if(meta) meta.textContent = '';
+    var pills = document.getElementById('semainePills'); if(pills) pills.innerHTML = '';
+    _loadFromSB(function(words, regenCount){
+      _currentRegen = regenCount||0;
+      _currentWords = words;
+      if(words && words.length){
+        _renderPills(words, _getWeekKey(), _currentRegen);
+      } else {
+        var meta2 = document.getElementById('semaineMeta');
+        if(meta2) meta2.textContent = 'Aucune suggestion cette semaine — appuie sur Générer ✨';
+        var btn = document.getElementById('semaineGenBtn');
+        if(btn){ btn.textContent = 'Générer'; btn.disabled = false; btn.style.opacity = '1'; }
+      }
+    });
+  }
+
+  // ── Générer via Groq ──
+  window.semaineGenerate = function(){
+    var cid = _getCoupleId(); if(!cid) return;
+    // Vérifier la limite : 1 génération initiale + 1 rafraîchissement = 2 max
+    // La 1ère génération (currentWords===null) est toujours autorisée
+    if(_currentWords !== null && _currentRegen >= 1){
+      if(typeof showToast==='function') showToast('Plus de rafraîchissement disponible cette semaine 🙈', 'error', 2500);
+      return;
+    }
+    var btn  = document.getElementById('semaineGenBtn');
+    var meta = document.getElementById('semaineMeta');
+    var pills = document.getElementById('semainePills');
+    if(btn){ btn.disabled=true; btn.textContent='...'; }
+    if(meta) meta.textContent = 'Génération en cours ✨';
+    if(pills) pills.innerHTML = '';
+
+    var prompt = 'Tu es un assistant créatif pour un couple amoureux. Génère EXACTEMENT 5 noms communs concrets et visuels, qu'on peut facilement photographier ou illustrer, pour décrire son partenaire de façon poétique. Chaque mot doit évoquer une qualité ou une émotion à travers une image concrète. Par exemple : Dessert (sa douceur), Vague (son énergie), Bougie (sa chaleur), Forêt (son mystère), Miel (sa tendresse). Les mots doivent être simples, beaux, photographiables — pas des noms propres, pas des villes, pas des marques. Réponds UNIQUEMENT en JSON strict, tableau de 5 strings, un seul mot par élément, sans texte autour. Exemple : ["Dessert","Vague","Bougie","Forêt","Miel"]';
+
+    fetch(GROQ_EDGE, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','x-app-secret':SB2_APP_SECRET,'apikey':SB2_KEY,'Authorization':'Bearer '+SB2_KEY},
+      body: JSON.stringify({prompt: prompt})
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(data.error) throw new Error(data.error);
+      var raw = (data.text||'').replace(/```json|```/g,'').trim();
+      var words = JSON.parse(raw);
+      if(!Array.isArray(words)||words.length<5) throw new Error('Format invalide');
+      words = words.slice(0,5);
+      var newRegen = _currentWords === null ? 0 : _currentRegen + 1;
+      _currentRegen = newRegen;
+      _currentWords = words;
+      _saveSB(words, newRegen);
+      _renderPills(words, _getWeekKey(), newRegen);
+    })
+    .catch(function(){
+      // Fallbacks poétiques
+      var fallbacks = ['Renard','Pivoine','Hermione','Automne','Miel'];
+      var newRegen2 = _currentWords === null ? 0 : _currentRegen + 1;
+      _currentRegen = newRegen2;
+      _currentWords = fallbacks;
+      _saveSB(fallbacks, newRegen2);
+      _renderPills(fallbacks, _getWeekKey(), newRegen2);
+      if(meta) meta.textContent = 'Suggestions hors-ligne · Semaine '+_getWeekKey();
+    })
+    .finally(function(){
+      if(btn){ btn.disabled=false; btn.textContent='Régénérer'; }
+    });
+  };
+
+  // ── Modale choix slot ──
+  var _currentWord = '';
+
+  window._openSlotModal = function(word){
+    _currentWord = word;
+    var modal = document.getElementById('semaineSlotModal'); if(!modal) return;
+    var wordEl = document.getElementById('semaineSlotWord'); if(wordEl) wordEl.textContent = word;
+    var list = document.getElementById('semaineSlotList'); if(!list) return;
+    list.innerHTML = '';
+
+    // Copier dans le presse-papier
+    if(navigator.clipboard){ navigator.clipboard.writeText(word).catch(function(){}); }
+
+    // Boutons pour chaque slot ELLE et LUI
+    [
+      {section:'elle', slots: SLOTS_ELLE},
+      {section:'lui',  slots: SLOTS_LUI}
+    ].forEach(function(s){
+      var profile = (typeof getProfile==='function') ? getProfile() : 'girl';
+      // girl édite lui, boy édite elle
+      if((profile==='girl' && s.section==='elle') || (profile==='boy' && s.section==='lui')) return;
+      s.slots.forEach(function(slot){
+        var lbl = (s.section==='elle'?'Elle · ':'Lui · ') + SLOT_LABELS[slot];
+        var btn2 = document.createElement('button');
+        btn2.textContent = lbl;
+        btn2.style.cssText = 'width:100%;padding:11px 14px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;text-align:left;font-family:\'DM Sans\',sans-serif;';
+        btn2.addEventListener('click', function(){
+          semaineCloseSlotModal();
+          // Ouvrir la modale d'édition du slot avec le mot pré-rempli
+          if(typeof window.slotOpenEdit === 'function'){
+            window.slotOpenEdit(s.section, slot);
+            // Pré-remplir le champ banner après ouverture
+            setTimeout(function(){
+              var inp = document.getElementById('slotEditBannerInput');
+              if(inp){ inp.value = word; inp.dispatchEvent(new Event('input')); }
+            }, 300);
+          }
+        });
+        list.appendChild(btn2);
+      });
+    });
+
+    // Bouton "Juste copier"
+    var copyBtn = document.createElement('button');
+    copyBtn.textContent = '📋 Copié dans le presse-papier';
+    copyBtn.style.cssText = 'width:100%;padding:11px 14px;border-radius:12px;border:1px solid rgba(232,121,160,0.3);background:rgba(232,121,160,0.08);color:#e879a0;font-size:13px;font-weight:600;cursor:default;text-align:center;font-family:\'DM Sans\',sans-serif;';
+    list.appendChild(copyBtn);
+
+    modal.style.display = 'flex';
+    _blockBackgroundScroll();
+  };
+  // alias public
+  window.semaineOpenPill = window._openSlotModal;
+
+  window.semaineCloseSlotModal = function(){
+    var modal = document.getElementById('semaineSlotModal'); if(!modal) return;
+    modal.style.display = 'none';
+    _unblockBackgroundScroll();
+  };
+
+  // Fermer au clic fond
+  document.addEventListener('DOMContentLoaded', function(){
+    var modal = document.getElementById('semaineSlotModal');
+    if(modal) modal.addEventListener('click', function(e){ if(e.target===modal) window.semaineCloseSlotModal(); });
+  });
+
+  // Init au chargement de la section
+  document.addEventListener('nousContentReady', function(){ _semaineLoad(); });
+
+})();
