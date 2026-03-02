@@ -223,6 +223,53 @@ body.subview-active .bottom-nav {
   display: none !important;
 }
 
+/* ── Bêtises — par-dessus TOUT, aucun élément ne peut passer devant ── */
+#prankMenu,
+#prankOverlay,
+#prankMsgModal,
+#prankGotcha,
+#prankShakeBanner,
+#prankCurtain,
+#prankCurtainBanner,
+#prankIntrus,
+#prankIntrusBanner,
+#prankReverse,
+#prankPaint,
+#prankLock,
+#prankKeyboard,
+#prankMemoryOverlay,
+#prankTargetBanner,
+#prankEyesBanner,
+#prankFogBanner,
+#prankColorsBanner,
+#prankSplashBanner,
+#prankFogOverlay,
+#prankNotif,
+.prank-curtain-banner,
+.prank-toast {
+  z-index: 99999 !important;
+}
+/* prankMenu plein écran sans header ni nav qui débordent */
+#prankMenu {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100dvh !important;
+  overflow-y: auto !important;
+}
+/* Les overlays de bêtises couvrent tout l'écran sans exception */
+#prankOverlay,
+#prankMsgModal,
+#prankGotcha {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 /* ── Musique — désactiver le rendu ios-group / section card dans cet onglet ── */
 #yamMusiqueTab .section,
 #yamMusiqueTab .ios-group,
@@ -833,7 +880,7 @@ body.nous-active #yamStickyAvatarSelf {
 
   <div class="hdr-tag">You And Me</div>
   <div class="hdr-name">YAM</div>
-  <div class="hdr-sub">Notre univers en musique</div>
+  <div class="hdr-sub" id="hdrSub">Notre univers en musique</div>
   <!-- Bouton thème — dans le header, disparaît au scroll comme les avatars -->
   <button id="themeToggleHome" onclick="applyThemeToggle()" title="Thème" style="
     position:absolute;
@@ -3345,7 +3392,12 @@ function v2ApplyDynamicNames(){
   function updateSubviewState() {
     var anyActive = SUBVIEW_IDS.some(function(id) {
       var el = document.getElementById(id);
-      return el && (el.classList.contains('active') || el.style.display === 'flex' || el.style.display === 'block');
+      return el && (
+        el.classList.contains('active') ||
+        el.classList.contains('show') ||
+        el.style.display === 'flex' ||
+        el.style.display === 'block'
+      );
     });
     document.body.classList.toggle('subview-active', anyActive);
   }
@@ -3363,8 +3415,62 @@ function v2ApplyDynamicNames(){
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', watchSubviews);
   } else {
-    // Attendre que les éléments soient dans le DOM
     setTimeout(watchSubviews, 300);
+  }
+
+  // Patch openPrankMenu / closePrankMenu pour forcer subview-active
+  // (prankMenu utilise peut-être "show" ou display sans MutationObserver fiable)
+  function patchPrankMenu() {
+    if (typeof window.openPrankMenu === 'function' && !window._prankPatched) {
+      var _origOpen = window.openPrankMenu;
+      window.openPrankMenu = function() {
+        _origOpen.apply(this, arguments);
+        document.body.classList.add('subview-active');
+      };
+      var _origClose = window.closePrankMenu;
+      if (typeof _origClose === 'function') {
+        window.closePrankMenu = function() {
+          _origClose.apply(this, arguments);
+          setTimeout(updateSubviewState, 50);
+        };
+      }
+      window._prankPatched = true;
+    } else if (!window._prankPatched) {
+      setTimeout(patchPrankMenu, 200);
+    }
+  }
+  setTimeout(patchPrankMenu, 500);
+})();
+
+/* ── hdr-sub dynamique : "Notre univers en musique" sur Musique, "Notre univers" ailleurs ── */
+(function() {
+  var HDR_MUSIQUE = 'Notre univers en musique';
+  var HDR_DEFAULT = 'Notre univers';
+
+  function updateHdrSub(tab) {
+    var el = document.getElementById('hdrSub');
+    if (!el) return;
+    el.textContent = (tab === 'musique') ? HDR_MUSIQUE : HDR_DEFAULT;
+  }
+
+  function patchHdrSub() {
+    if (typeof window.yamSwitchTab !== 'function') {
+      setTimeout(patchHdrSub, 150);
+      return;
+    }
+    var _orig = window.yamSwitchTab;
+    window.yamSwitchTab = function(tab) {
+      _orig(tab);
+      updateHdrSub(tab);
+    };
+    // Init
+    updateHdrSub('home');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', patchHdrSub);
+  } else {
+    patchHdrSub();
   }
 })();
 
