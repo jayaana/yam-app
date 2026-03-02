@@ -447,7 +447,7 @@ window.nousSignalNew = function() {
   function _saveSectionTitle(slot, val){
     var coupleId = _getCoupleId(); if(!coupleId) return;
     // slot est une string compatible avec la colonne text de v2_photo_descs
-    fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:coupleId,category:'label',slot:String(slot),description:val})}).catch(function(){});
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,category:'label',slot:String(slot),description:val})}).catch(function(){});
   }
 
   // Éditer le titre de ELLE (accessible par boy seulement)
@@ -2361,7 +2361,7 @@ loadLikeCounters();
         '4) Pas un seul mot suivi d\'un point. ' +
         '5) Aucun guillemet. Aucune explication. Seulement le message. ' +
         'On est en ' + saison + ', ' + moment + '. Ensemble depuis ' + daysTogether + ' jours. ' +
-        'Voici des exemples du ton attendu (ne les copie pas, invente quelque chose de différent) : ' +
+        'Voici un exemple du ton attendu (ne le copie pas, invente quelque chose de différent) : ' +
         exemples[index % exemples.length];
 
       fetch(SB2_EDGE, {
