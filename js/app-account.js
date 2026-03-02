@@ -72,10 +72,12 @@ var _v2Role = 'girl'; // rôle sélectionné dans le formulaire inscription/rejo
 window.v2ShowLogin = function(){
   var el = document.getElementById('v2LoginOverlay');
   if(el) el.style.display = 'flex';
+  document.body.classList.add('v2-login-active');
 };
 window.v2HideLogin = function(){
   var el = document.getElementById('v2LoginOverlay');
   if(el) el.style.display = 'none';
+  document.body.classList.remove('v2-login-active');
 };
 
 window.v2SwitchTab = function(tab){
@@ -109,14 +111,11 @@ function _v2AfterLogin(result, msgId){
     return;
   }
   window.v2HideLogin();
-  // Reload unique après connexion pour garantir un état propre
-  if(!sessionStorage.getItem('yam_post_login_reloaded')){
-    sessionStorage.setItem('yam_post_login_reloaded', '1');
-    location.reload();
-    return;
-  }
-  // Remettre le scroll à 0 — la page de connexion peut avoir été scrollée
-  // pour remplir les champs, on repart du haut de l'app
+  // Clic sur navHome après que setProfile ait initialisé l'app
+  setTimeout(function(){
+    var homeBtn = document.getElementById('navHome');
+    if(homeBtn) homeBtn.click();
+  }, 400);
   window.scrollTo({ top: 0, behavior: 'instant' });
   // Déclencher l'init app
   var u = v2GetUser();
