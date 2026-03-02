@@ -1556,14 +1556,14 @@ body.nous-active #yamStickyAvatarSelf {
   <!-- Slider dynamique — rempli par JS -->
   <div class="slider" id="livresSlider" style="gap:12px;"></div>
   <!-- Boutons bas côte à côte -->
-  <div style="display:flex;flex-direction:column;gap:8px;padding:12px 0 4px;">
-    <button id="livreIdeaBtn" onclick="livresIdeeDuJour()" class="activite-ia-btn">
+  <div style="display:flex;gap:10px;padding:12px 0 4px;">
+    <button id="livreIdeaBtn" onclick="livresIdeeDuJour()" class="activite-ia-btn" style="flex:1;width:0;min-width:0;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       Idée du jour
     </button>
-    <button onclick="livresOpenNew()" class="activite-new-btn">
+    <button onclick="livresOpenNew()" class="activite-new-btn" style="flex:1;width:0;min-width:0;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      + Nouvelle pochette
+      Nouvelle pochette
     </button>
   </div>
   <!-- Zone idée du jour Groq -->
