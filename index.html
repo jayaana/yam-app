@@ -214,55 +214,25 @@ body.dm-chat-active #hiddenPage {
 
 /* ── 4. Menu Jeux — la section-label est couverte par le header — géré inline ── */
 
-/* ── Masquer l'avatar partenaire du header — remplacé par bouton thème ── */
-#profileAvatarOther {
-  display: none !important;
-}
-#profileMoodOther {
-  display: none !important;
-}
-#moodBandeau {
-  display: none !important;
-}
-
-/* ── Suggestions IA repliables ── */
-#semaineContent {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s;
-  opacity: 0;
-}
-#semaineContent.open {
-  max-height: 300px;
-  opacity: 1;
-}
-#semaineToggleBtn {
-  animation: semaineGlow 3s ease-in-out infinite;
-}
-@keyframes semaineGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(232,121,160,0); }
-  50% { box-shadow: 0 0 10px 2px rgba(232,121,160,0.25); }
-}
+/* ── Jeux/Quiz/Bêtises actifs — masquer header principal, sticky header et nav ── */
 body.subview-active header,
 body.subview-active #yamStickyHeader {
   display: none !important;
 }
+body.subview-active .bottom-nav {
+  display: none !important;
+}
 
-/* ── Écran connexion : masquer header + bloquer scroll arrière-plan ── */
+/* ══ ÉCRAN LOGIN : header masqué + scroll arrière-plan bloqué ══ */
 body.v2-login-active header,
 body.v2-login-active #yamStickyHeader {
   display: none !important;
 }
 body.v2-login-active {
   overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
   touch-action: none;
-}
-/* Bouton thème flottant sur login — visible en haut à droite */
-body.v2-login-active #v2LoginThemeBtn {
-  display: flex !important;
-}
-body.subview-active .bottom-nav {
-  display: none !important;
 }
 
 /* ── Bêtises — par-dessus TOUT, aucun élément ne peut passer devant ── */
@@ -568,6 +538,18 @@ body.nous-active #headerGearBtn {
 body.nous-active #yamStickyGearBtn {
   display: flex !important;
 }
+/* ══ Avatar partenaire supprimé du header — conservé en DOM pour le JS ══ */
+#profileAvatarOther,
+#profileMoodOther,
+#moodBandeau {
+  display: none !important;
+}
+
+/* ══ Bouton thème du header : caché sur login (overlay couvre tout) ══ */
+body.v2-login-active #themeToggleHome {
+  display: none !important;
+}
+
 /* Cacher les avatars du header grand + sticky sur l'onglet Nous */
 body.nous-active #profileAvatarWrap #profileAvatarOther,
 body.nous-active #profileAvatarWrap #profileAvatar,
@@ -634,26 +616,34 @@ body.nous-active #yamStickyAvatarSelf {
      ÉCRAN LOGIN V2
 ════════════════════════════════════════════════════════════ -->
 <div id="v2LoginOverlay">
-  <!-- Bouton thème — top-right, visible uniquement sur l'écran de connexion -->
-  <button id="v2LoginThemeBtn" onclick="applyThemeToggle()" title="Changer le thème" style="
-    display: none;
-    position: absolute;
-    top: calc(env(safe-area-inset-top, 0px) + 12px);
-    right: 16px;
-    width: 36px; height: 36px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.15);
-    color: rgba(255,255,255,0.7);
-    align-items: center; justify-content: center;
-    cursor: pointer;
-    z-index: 10;
-    backdrop-filter: blur(6px);
-    transition: background 0.2s;
-    padding: 0;
-  ">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="v2LoginThemeMoon"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="v2LoginThemeSun" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+
+  <!-- ══ Bouton thème — remplace l'avatar partenaire, top-right ══ -->
+  <button
+    id="v2LoginThemeBtn"
+    onclick="applyThemeToggle()"
+    title="Changer le thème"
+    style="
+      position: absolute;
+      top: max(env(safe-area-inset-top, 0px) + 12px, 20px);
+      right: 16px;
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      border: 1.5px solid rgba(255,255,255,0.14);
+      color: rgba(255,255,255,0.75);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: background 0.2s, transform 0.15s;
+      padding: 0;
+    "
+    onmouseenter="this.style.background='rgba(255,255,255,0.14)'"
+    onmouseleave="this.style.background='rgba(255,255,255,0.08)'"
+  >
+    <svg id="v2LoginIconMoon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
+    <svg id="v2LoginIconSun"  width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
   </button>
   <!-- Particules déco fond -->
   <div class="v2-bg-deco">
@@ -1371,43 +1361,17 @@ body.nous-active #yamStickyAvatarSelf {
   </div>
   <input type="file" id="luiFileInput" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="luiHandleFile(this)">
 
-  <!-- SUGGESTIONS DE LA SEMAINE — repliées par défaut -->
-  <div id="semaineCard" style="margin:14px 16px 4px;">
-    <!-- Bouton toggle — attire l'attention avec pulsation douce -->
-    <button id="semaineToggleBtn" onclick="semaineToggle()" style="
-      width:100%;display:flex;align-items:center;justify-content:space-between;
-      background:linear-gradient(135deg,rgba(232,121,160,0.14),rgba(155,89,182,0.14));
-      border:1.5px solid rgba(232,121,160,0.35);
-      border-radius:14px;padding:11px 14px;cursor:pointer;
-      font-family:'DM Sans',sans-serif;transition:all 0.2s;
-      -webkit-tap-highlight-color:transparent;
-    ">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:16px;">✨</span>
-        <span style="font-size:13px;font-weight:700;color:var(--text);">Suggestion de la semaine</span>
+  <!-- SUGGESTIONS DE LA SEMAINE -->
+  <div id="semaineCard" style="margin:14px 16px 4px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:14px 16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:7px;">
+        <span style="font-size:15px;">✨</span>
+        <span style="font-size:13px;font-weight:700;color:var(--text);">Suggestions de la semaine</span>
       </div>
-      <span id="semaineEyeIcon" style="font-size:17px;transition:transform 0.2s;">👁️</span>
-    </button>
-    <!-- Contenu repliable -->
-    <div id="semaineContent" style="
-      background:rgba(255,255,255,0.04);
-      border:1.5px solid rgba(232,121,160,0.2);border-top:none;
-      border-radius:0 0 14px 14px;
-      padding:0 14px;
-      max-height:0;overflow:hidden;opacity:0;
-      transition:max-height 0.35s cubic-bezier(0.4,0,0.2,1),opacity 0.25s,padding 0.25s;
-    ">
-      <div style="padding-top:12px;padding-bottom:14px;">
-        <div id="semaineMeta" style="font-size:10px;color:var(--muted);margin-bottom:8px;min-height:14px;"></div>
-        <div id="semainePills" style="display:flex;flex-wrap:wrap;gap:7px;min-height:28px;"></div>
-        <div style="display:flex;justify-content:flex-end;margin-top:10px;">
-          <button id="semaineGenBtn" onclick="semaineGenerate()" style="background:linear-gradient(135deg,#e879a0,#9b59b6);border:none;border-radius:10px;color:#fff;font-size:11px;font-weight:700;padding:6px 13px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;display:flex;align-items:center;gap:5px;">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-            Générer
-          </button>
-        </div>
-      </div>
+      <button id="semaineGenBtn" onclick="semaineGenerate()" style="background:linear-gradient(135deg,#e879a0,#9b59b6);border:none;border-radius:10px;color:#fff;font-size:11px;font-weight:700;padding:5px 11px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">Générer</button>
     </div>
+    <div id="semaineMeta" style="font-size:10px;color:var(--muted);margin-bottom:8px;min-height:14px;"></div>
+    <div id="semainePills" style="display:flex;flex-wrap:wrap;gap:7px;min-height:28px;"></div>
   </div>
 
   <!-- MODALE choix slot après clic pill -->
