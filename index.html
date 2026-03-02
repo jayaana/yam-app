@@ -214,6 +214,23 @@ body.dm-chat-active #hiddenPage {
 
 /* ── 4. Menu Jeux — la section-label est couverte par le header — géré inline ── */
 
+/* ── Musique — désactiver le rendu ios-group / section card dans cet onglet ── */
+#yamMusiqueTab .section,
+#yamMusiqueTab .ios-group,
+#yamMusiqueTab .ios-group > .section {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+#yamMusiqueTab .section-label {
+  padding-left: 16px;
+}
+
 /* ── 5. Musique — top50-header : padding interne pour ne pas coller au bord ── */
 .top50-header {
   padding-left: 16px !important;
@@ -398,14 +415,9 @@ body.dm-chat-active #hiddenPage {
 /* ── 9. Onglet NOUS — bouton engrenage en haut à droite ── */
 /* nousProfilSection reste visible (compteur jours) */
 
-/* ── 10. Barre de saisie chat Messages — remonter au-dessus de la nav ── */
-.dm-input-bar {
-  padding-bottom: calc(var(--nav-height, 70px) + 6px) !important;
-  background: var(--bg) !important;
-}
-/* En mode chat actif (clavier ouvert) on désactive le padding extra */
-body.dm-chat-active .dm-input-bar {
-  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+/* ── 10. Messages — masquer la barre nav quand hiddenPage (InstaLove) est ouvert ── */
+body.hidden-page-open .bottom-nav {
+  display: none !important;
 }
 
 /* ── 11. Bloquer le scroll arrière-plan quand accountModal est ouvert ── */
@@ -1197,7 +1209,7 @@ body.nous-active #yamStickyAvatarSelf {
 
 <!-- ROUE -->
 <div id="wheelSection" class="fade-in">
-  <div class="section-label" style="padding:26px 16px 0">On fait quoi ce soir ? 🎲</div>
+  <div class="section-label" style="padding:26px 16px 0;border-bottom:none !important;">On fait quoi ce soir ?</div>
   <div style="padding:0 16px">
     <div class="wheel-container">
       <div class="wheel-wrap">
@@ -3300,6 +3312,34 @@ window.yamToggleAccountModal = function() {
     if (typeof window.openAccountModal === 'function') window.openAccountModal();
   }
 };
+
+/* ── Masquer/afficher la bottom-nav quand InstaLove (hiddenPage) s'ouvre/ferme ── */
+(function() {
+  function watchHiddenPage() {
+    var hp = document.getElementById('hiddenPage');
+    if (!hp) { setTimeout(watchHiddenPage, 200); return; }
+
+    // MutationObserver sur classList de hiddenPage
+    var obs = new MutationObserver(function() {
+      if (hp.classList.contains('active')) {
+        document.body.classList.add('hidden-page-open');
+      } else {
+        document.body.classList.remove('hidden-page-open');
+      }
+    });
+    obs.observe(hp, { attributes: true, attributeFilter: ['class'] });
+
+    // Écouter aussi l'event hiddenPageClosed pour être sûr
+    document.addEventListener('hiddenPageClosed', function() {
+      document.body.classList.remove('hidden-page-open');
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', watchHiddenPage);
+  } else {
+    watchHiddenPage();
+  }
+})();
 </script>
 
 <!-- ═══════════════════════════════════════════
