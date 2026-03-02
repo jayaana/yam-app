@@ -441,6 +441,13 @@ window.openAccountModal = function(){
   var sheet = document.getElementById('accountSheet');
   modal.style.display = 'flex';
   sheet.style.transform = 'translateY(100%)';
+  // Bloquer le scroll de l'arrière-plan
+  document.body.classList.add('account-modal-open');
+  // Engrenage actif
+  var gear1 = document.getElementById('headerGearBtn');
+  var gear2 = document.getElementById('yamStickyGearBtn');
+  if(gear1) gear1.style.background = 'rgba(0,201,167,0.15)';
+  if(gear2) gear2.style.background = 'rgba(0,201,167,0.15)';
   requestAnimationFrame(function(){
     requestAnimationFrame(function(){
       sheet.style.transform = 'translateY(0)';
@@ -532,6 +539,13 @@ window.closeAccountModal = function(){
   var pwdArrow = document.getElementById('acPwdToggleArrow');
   if(pwdSec){ pwdSec.style.maxHeight='0'; pwdSec.style.opacity='0'; pwdSec.style.pointerEvents='none'; }
   if(pwdArrow) pwdArrow.style.transform = '';
+  // Remettre l'engrenage à son état normal
+  var gear1 = document.getElementById('headerGearBtn');
+  var gear2 = document.getElementById('yamStickyGearBtn');
+  if(gear1) gear1.style.background = 'rgba(255,255,255,0.08)';
+  if(gear2) gear2.style.background = 'var(--s2)';
+  // Débloquer le scroll
+  document.body.classList.remove('account-modal-open');
   setTimeout(function(){ modal.style.display = 'none'; }, 300);
 };
 
