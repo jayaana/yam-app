@@ -682,6 +682,31 @@ window.nousSignalNew = function() {
   };
 
   // Sauvegarder titre + description (identique à livresSave)
+  // Helper upsert : vérifie si la ligne existe (GET) puis PATCH ou POST
+  function _upsertPhotoDesc(coupleId, category, slot, description){
+    var qUrl=SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+coupleId+'&category=eq.'+category+'&slot=eq.'+slot+'&select=id&limit=1';
+    fetch(qUrl,{headers:sb2Headers()})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){
+      if(rows && rows.length>0){
+        // Ligne existante → PATCH
+        var id=rows[0].id;
+        fetch(SB2_URL+'/rest/v1/v2_photo_descs?id=eq.'+id+'&couple_id=eq.'+coupleId,{
+          method:'PATCH',
+          headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
+          body:JSON.stringify({description:description})
+        }).catch(function(){});
+      } else {
+        // Nouvelle ligne → POST
+        fetch(SB2_URL+'/rest/v1/v2_photo_descs',{
+          method:'POST',
+          headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
+          body:JSON.stringify({couple_id:coupleId,category:category,slot:slot,description:description})
+        }).catch(function(){});
+      }
+    }).catch(function(){});
+  }
+
   window.slotEditSave = function(){
     if(!_editSection||!_editSlot) return;
     var coupleId=_getCoupleId(); if(!coupleId) return;
@@ -692,16 +717,19 @@ window.nousSignalNew = function() {
     var banners=s==='elle'?_elleBanners:_luiBanners;
     var descs=s==='elle'?_elleDescs:_luiDescs;
 
+    // Sauvegarder banner si renseigné
     if(bannerVal){
       banners[sl]=bannerVal;
       var bEl=document.getElementById(s+'-banner-'+sl); if(bEl) bEl.textContent=bannerVal;
       var lbl=document.querySelector('#'+s+'-empty-'+sl+' .lui-img-empty-lbl'); if(lbl) lbl.textContent=bannerVal;
-      fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,category:s==='elle'?'elle_banner':'lui_banner',slot:sl,description:bannerVal})}).catch(function(){});
+      _upsertPhotoDesc(coupleId, s==='elle'?'elle_banner':'lui_banner', sl, bannerVal);
     }
+
+    // Sauvegarder description si renseignée
     if(descVal){
       descs[sl]=descVal;
       var dEl=document.getElementById(s+'-desc-'+sl); if(dEl) dEl.textContent=descVal;
-      fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,category:s,slot:sl,description:descVal})}).catch(function(){});
+      _upsertPhotoDesc(coupleId, s, sl, descVal);
     }
 
     if(typeof showToast==='function') showToast('Pochette mise à jour ✓','success',2000);
