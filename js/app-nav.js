@@ -83,6 +83,15 @@
       window.particleActive = false;
       if(window.hideDance) window.hideDance();
     }
+    
+    // Vérifier le GIF de la mascotte quand on arrive sur l'onglet Accueil
+    if(tab === 'home'){
+      if(musicPlaying && window.showDance){
+        window.showDance();
+      } else if(window.hideDance){
+        window.hideDance();
+      }
+    }
 
     // MiniPlayer : visible seulement sur onglet musique
     var mp2 = document.getElementById('miniPlayer');
