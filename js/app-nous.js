@@ -2189,7 +2189,7 @@ loadLikeCounters();
     // Avancer la position pour le prochain appel
     _saveCache(coupleId, cache.mots, pos + 1);
     var dateLabel = new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
-    _displayMot(text, 'Mot doux IA · ' + dateLabel + ' · ' + (pos+1) + '/' + cache.mots.length);
+    _displayMot(text, 'Mots du jour · ' + dateLabel + ' · ' + (pos+1) + '/' + cache.mots.length);
     return true;
   }
 
