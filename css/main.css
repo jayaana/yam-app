@@ -3821,7 +3821,7 @@ body.light #navMusique.music-sync .nav-note-boy  { filter: drop-shadow(0 0 4px r
   background: rgba(18,18,18,0.98);
   border: 1px solid rgba(255,255,255,0.10);
   border-radius: 14px;
-  padding: 8px 10px;
+  padding: 16px 10px;
   display: flex;
   align-items: center;
   gap: 9px;
