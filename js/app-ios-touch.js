@@ -150,7 +150,7 @@
       if (bar) {
         bar.style.transition    = 'padding-bottom 0.25s ease';
         // Ajuste pour ne pas remonter trop haut - garde un padding minimal
-        bar.style.paddingBottom = Math.max(12, kbH - 20) + 'px';
+        bar.style.paddingBottom = Math.max(8, kbH - 60) + 'px';
         var msgs = document.getElementById('dmMessages');
         if (msgs) {
           setTimeout(function () { msgs.scrollTop = msgs.scrollHeight; }, 80);
