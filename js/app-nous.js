@@ -446,8 +446,31 @@ window.nousSignalNew = function() {
 
   function _saveSectionTitle(slot, val){
     var coupleId = _getCoupleId(); if(!coupleId) return;
-    // slot est une string compatible avec la colonne text de v2_photo_descs
-    fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,category:'label',slot:String(slot),description:val})}).catch(function(){});
+    // Cherche aussi les anciens slots ('0' pour elle_title, '99' pour lui_title)
+    var altSlot = slot === 'elle_title' ? '0' : slot === 'lui_title' ? '99' : null;
+    var slotFilter = altSlot
+      ? 'slot=in.('+encodeURIComponent(slot)+','+encodeURIComponent(altSlot)+')'
+      : 'slot=eq.'+encodeURIComponent(slot);
+    var qUrl = SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+coupleId+'&category=eq.label&'+slotFilter+'&select=id&limit=1';
+    fetch(qUrl, {headers: sb2Headers()})
+    .then(function(r){ return r.ok ? r.json() : []; })
+    .then(function(rows){
+      if(rows && rows.length > 0){
+        // Ligne existante → PATCH
+        fetch(SB2_URL+'/rest/v1/v2_photo_descs?id=eq.'+rows[0].id+'&couple_id=eq.'+coupleId, {
+          method: 'PATCH',
+          headers: sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
+          body: JSON.stringify({description: val, slot: String(slot)})
+        }).catch(function(){});
+      } else {
+        // Nouvelle ligne → POST
+        fetch(SB2_URL+'/rest/v1/v2_photo_descs', {
+          method: 'POST',
+          headers: sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
+          body: JSON.stringify({couple_id: coupleId, category: 'label', slot: String(slot), description: val})
+        }).catch(function(){});
+      }
+    }).catch(function(){});
   }
 
   // Éditer le titre de ELLE (accessible par boy seulement)
