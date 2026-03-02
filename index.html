@@ -223,7 +223,7 @@ body.subview-active .bottom-nav {
   display: none !important;
 }
 
-/* ══ ÉCRAN LOGIN — header masqué + arrière-plan scroll bloqué ══ */
+/* ══ ÉCRAN LOGIN — header masqué + scroll arrière-plan verrouillé ══ */
 body.v2-login-active header,
 body.v2-login-active #yamStickyHeader {
   display: none !important;
@@ -232,15 +232,29 @@ body.v2-login-active {
   overflow: hidden !important;
   position: fixed !important;
   width: 100% !important;
-  touch-action: none;
+  height: 100% !important;
+  touch-action: none !important;
+  -webkit-overflow-scrolling: auto !important;
+  overscroll-behavior: none !important;
 }
-/* Avatar partenaire + bandeau humeur : masqués uniquement sur login */
+/* Bloquer aussi sur html pour iOS Safari */
+html:has(body.v2-login-active) {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+/* Limiter le scroll à l'intérieur de l'overlay uniquement */
+#v2LoginOverlay {
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+/* Avatar principal + partenaire + bandeau : masqués uniquement sur login */
 body.v2-login-active #profileAvatarOther,
 body.v2-login-active #profileMoodOther,
+body.v2-login-active #profileAvatar,
 body.v2-login-active #moodBandeau {
   display: none !important;
 }
-/* Bouton thème du header : inutile sur login (overlay couvre tout) */
+/* Bouton thème du header : inutile sur login */
 body.v2-login-active #themeToggleHome {
   display: none !important;
 }
@@ -3297,12 +3311,22 @@ function v2CopyCode(el, code){
 
 function v2CloseLogin(){
   document.getElementById('v2LoginOverlay').classList.remove('active');
+  document.body.classList.remove('v2-login-active');
+  // Restaurer la position de scroll mémorisée
+  var scrollY = parseInt(document.body.dataset.scrollY || '0', 10);
+  document.body.style.top = '';
+  window.scrollTo(0, scrollY);
   // Après connexion, appliquer les noms dynamiques partout dans l'UI
   setTimeout(v2ApplyDynamicNames, 100);
 }
 
 function v2ShowLogin(){
   document.getElementById('v2LoginOverlay').classList.add('active');
+  // Mémoriser et verrouiller la position de scroll (technique iOS)
+  var scrollY = window.scrollY || window.pageYOffset || 0;
+  document.body.dataset.scrollY = scrollY;
+  document.body.style.top = '-' + scrollY + 'px';
+  document.body.classList.add('v2-login-active');
 }
 
 /* ════════════════════════════════════════════
