@@ -61,9 +61,9 @@
 
     setTimeout(function(){
       var fns = {
-        home:     [window.loadLikeCounters, window._presencePoll],
+        home:     [window.loadLikeCounters, window._presencePoll, window.yamRefreshNewBadges],
         messages: [window.nlPoll, window._checkUnread],
-        nous:     [window.loadLikeCounters, window.elleLoadImages, window.luiLoadImages],
+        nous:     [window.loadLikeCounters, window.elleLoadImages, window.luiLoadImages, window.yamRefreshNewBadges],
         musique:  [window.sgLoad],
         jeux:     []
       };
