@@ -69,14 +69,14 @@ function stopCurrent(){
   if(currentAudio){currentAudio.pause();if(currentBtn){currentBtn.innerHTML='&#9654;';currentBtn.classList.remove('active');}if(currentRow)currentRow.classList.remove('playing');particleActive=false;hideDance();currentAudio=null;currentBtn=null;currentRow=null;}
 }
 
-// Fonctions pour afficher/cacher le GIF de danse
+// Fonctions pour changer le GIF de la mascotte quand la musique joue
 function showDance(){
-  var gif = document.getElementById('yamDancingGif');
-  if(gif) gif.style.display = 'block';
+  var mascotte = document.querySelector('.yam-mascotte-zone img');
+  if(mascotte) mascotte.src = 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_dance.gif';
 }
 function hideDance(){
-  var gif = document.getElementById('yamDancingGif');
-  if(gif) gif.style.display = 'none';
+  var mascotte = document.querySelector('.yam-mascotte-zone img');
+  if(mascotte) mascotte.src = 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_start.gif';
 }
 
 function createSongEl(song, num) {
