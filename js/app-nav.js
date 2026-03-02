@@ -114,6 +114,16 @@
       navMus.classList.toggle('music-playing', musicPlaying && tab !== 'musique');
     }
 
+    // Mascotte YAM dansante à l'accueil : même principe que l'icône musique
+    var mascotteImg = document.querySelector('.yam-mascotte-zone img');
+    if(mascotteImg){
+      if(musicPlaying && tab === 'home'){
+        mascotteImg.src = 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_dance.gif';
+      } else if(tab === 'home'){
+        mascotteImg.src = 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_start.gif';
+      }
+    }
+
     // Cœur doré : retiré quand on entre dans "nous", restauré si événement actif quand on en sort
     var navNous2 = document.getElementById('navNous');
     if(navNous2){
