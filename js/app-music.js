@@ -72,11 +72,19 @@ function stopCurrent(){
 // Fonctions pour changer le GIF de la mascotte quand la musique joue
 function showDance(){
   var mascotte = document.querySelector('.yam-mascotte-zone img');
-  if(mascotte) mascotte.src = 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_dance.gif';
+  console.log('[YAM] showDance - mascotte trouvée:', mascotte);
+  if(mascotte) {
+    console.log('[YAM] Changement vers yam_dance.gif');
+    mascotte.src = 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_dance.gif';
+  }
 }
 function hideDance(){
   var mascotte = document.querySelector('.yam-mascotte-zone img');
-  if(mascotte) mascotte.src = 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_start.gif';
+  console.log('[YAM] hideDance - mascotte trouvée:', mascotte);
+  if(mascotte) {
+    console.log('[YAM] Retour vers yam_start.gif');
+    mascotte.src = 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_start.gif';
+  }
 }
 
 function createSongEl(song, num) {
