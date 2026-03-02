@@ -364,9 +364,9 @@ function _nousLoadProfil() {
     // Mémo todo — card entière
     var memoTodoCard = document.querySelector('#memoCoupleSection .memo-duo-card:last-child');
     if(memoTodoCard) window.yamShowNewBadge(memoTodoCard, window.yamIsNew('memo_todo'));
-    // Souvenirs — badge sur la section entière
-    var souvenirSection = document.getElementById('souvenirsSection');
-    if(souvenirSection) window.yamShowNewBadge(souvenirSection, window.yamIsNew('souvenir'));
+    // Souvenirs — badge à gauche de "Tout voir" (comme livres)
+    var souvenirNew = document.getElementById('souvenirNewBadge');
+    if(souvenirNew) souvenirNew.style.display = window.yamIsNew('souvenir') ? '' : 'none';
     // Souvenirs — badge sur chaque card individuelle (géré dans _buildSouvenirCard)
     // Livres — badge inline HTML existant
     var livresNew = document.getElementById('livresNewBadge');
