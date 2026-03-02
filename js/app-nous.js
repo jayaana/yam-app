@@ -1548,13 +1548,10 @@ loadLikeCounters();
       +'<div class="souvenir-edit-icon">'+pencilSVG+'</div>'
       +'</div>';
     card.querySelector('.souvenir-edit-icon').addEventListener('click',function(e){ e.stopPropagation(); nousOpenSouvenirModal(s); });
-    // Badge NEW si ce souvenir a été modifié récemment
-    // ⚠️  .souvenir-card a overflow:hidden → badge rogné si posé sur la card racine.
-    //     On l'accroche sur .souvenir-photo qui est position:relative sans overflow:hidden.
+    // Badge NEW — posé sur la card racine (position:relative, sans overflow:hidden)
+    // .souvenir-photo a overflow:hidden pour rogner la photo → badge invisible si posé dessus
     if(s.id && typeof window.yamIsNew==='function' && window.yamIsNew('souvenir_'+s.id)){
-      var photoEl = card.querySelector('.souvenir-photo');
-      var target  = photoEl || card;
-      if(typeof window.yamShowNewBadge==='function') window.yamShowNewBadge(target, true);
+      if(typeof window.yamShowNewBadge==='function') window.yamShowNewBadge(card, true);
     }
     return card;
   }
