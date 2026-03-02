@@ -72,12 +72,20 @@ var _v2Role = 'girl'; // rôle sélectionné dans le formulaire inscription/rejo
 window.v2ShowLogin = function(){
   var el = document.getElementById('v2LoginOverlay');
   if(el) el.style.display = 'flex';
+  // Mémoriser et verrouiller la position de scroll (technique iOS)
+  var scrollY = window.scrollY || window.pageYOffset || 0;
+  document.body.dataset.scrollY = scrollY;
+  document.body.style.top = '-' + scrollY + 'px';
   document.body.classList.add('v2-login-active');
 };
 window.v2HideLogin = function(){
   var el = document.getElementById('v2LoginOverlay');
   if(el) el.style.display = 'none';
   document.body.classList.remove('v2-login-active');
+  // Restaurer la position de scroll mémorisée
+  var scrollY = parseInt(document.body.dataset.scrollY || '0', 10);
+  document.body.style.top = '';
+  window.scrollTo(0, scrollY);
 };
 
 window.v2SwitchTab = function(tab){
