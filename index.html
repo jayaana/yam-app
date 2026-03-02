@@ -168,6 +168,245 @@
   };
 })();
 </script>
+
+<!-- ═══════════════════════════════════════════════════
+     CORRECTIONS VISUELLES — patch global
+═════════════════════════════════════════════════════ -->
+<style>
+
+/* ── 1. Avatar partenaire (secondaire) : remonter légèrement ── */
+#profileAvatarOther {
+  margin-bottom: 4px !important;
+}
+
+/* ── 2. Header Messages (hiddenPage / dm-topbar) — harmonisation ── */
+/* On supprime le style inline trop haut et on le refait proprement */
+.dm-topbar {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 50 !important;
+  background: var(--bg) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+/* ── 3. hiddenPage — la barre nav ne doit PAS être couverte ── */
+/* hiddenPage doit finir au-dessus de la nav (bottom = nav-height) */
+#hiddenPage {
+  bottom: var(--nav-height, 70px) !important;
+}
+/* En mode chat actif le keyboard couvre la nav — on garde bottom:0 */
+body.dm-chat-active #hiddenPage {
+  bottom: 0 !important;
+}
+
+/* ── 4. Menu Jeux — la section-label est couverte par le header — géré inline ── */
+
+/* ── 5. Musique — top50-header : padding interne pour ne pas coller au bord ── */
+.top50-header {
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+}
+.top50-meta,
+.top50-title,
+.top50-desc {
+  padding-left: 0 !important;
+}
+
+/* ── 6. Bibliothèque "Notre bibliothèque" — pochettes pas collées au bord gauche ── */
+/* Le slider livresSlider doit avoir le même padding que elleSlider/luiSlider */
+#livresSlider {
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+  scroll-padding-left: 16px !important;
+}
+/* Assurer que le premier item a un gap visible */
+#livresSlider .album-card:first-child,
+#livresSlider > div:first-child {
+  margin-left: 0 !important;
+}
+
+/* ── 7. Bouton croix travaillé — remplace tous les ✕ basiques ── */
+/* On réutilise une classe commune .yam-close-btn */
+.yam-close-btn {
+  position: relative;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  background: var(--s2) !important;
+  border: 1.5px solid var(--border) !important;
+  color: var(--muted) !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  transition: background 0.18s, transform 0.15s, border-color 0.18s !important;
+  padding: 0 !important;
+  font-size: 0 !important; /* Masque le texte ✕ */
+}
+.yam-close-btn::before,
+.yam-close-btn::after {
+  content: '';
+  position: absolute;
+  width: 13px;
+  height: 1.8px;
+  background: var(--muted);
+  border-radius: 2px;
+  transition: background 0.18s;
+}
+.yam-close-btn::before { transform: rotate(45deg); }
+.yam-close-btn::after  { transform: rotate(-45deg); }
+.yam-close-btn:hover {
+  background: var(--s3, rgba(255,255,255,0.1)) !important;
+  border-color: var(--text) !important;
+}
+.yam-close-btn:hover::before,
+.yam-close-btn:hover::after {
+  background: var(--text);
+}
+.yam-close-btn:active {
+  transform: scale(0.88) !important;
+}
+
+/* Application aux boutons ✕ existants (span + button) dans les modales */
+.nous-modal-overlay .nous-modal-header button[onclick*="Close"],
+.nous-modal-overlay .nous-modal-header span[onclick*="close"],
+#livreEditModal button[onclick*="Close"],
+#slotEditModal button[onclick*="Close"],
+.memo-note-view .nous-modal-header span[onclick*="close"],
+.memo-todo-view .nous-modal-header span[onclick*="close"],
+#memoNoteEditModal .nous-modal-header span[onclick*="close"],
+#memoTodoEditModal .nous-modal-header span[onclick*="close"],
+#petitsMotsGestionModal .nous-modal-header span[onclick*="close"],
+#petitsMotsEditorModal .nous-modal-header span[onclick*="close"],
+#souvenirModal .nous-modal-header span[onclick*="close"],
+#histoireItemModal .nous-modal-header span[onclick*="close"],
+#activiteModal .nous-modal-header span[onclick*="close"],
+.sg-modal-inner .sg-modal-close,
+.search-popup .search-close-btn,
+.mood-picker-close {
+  position: relative !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  background: var(--s2) !important;
+  border: 1.5px solid var(--border) !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  transition: background 0.18s, transform 0.15s !important;
+  flex-shrink: 0 !important;
+}
+.nous-modal-overlay .nous-modal-header button[onclick*="Close"]::before,
+.nous-modal-overlay .nous-modal-header button[onclick*="Close"]::after,
+.nous-modal-overlay .nous-modal-header span[onclick*="close"]::before,
+.nous-modal-overlay .nous-modal-header span[onclick*="close"]::after,
+#livreEditModal button[onclick*="Close"]::before,
+#livreEditModal button[onclick*="Close"]::after,
+#slotEditModal button[onclick*="Close"]::before,
+#slotEditModal button[onclick*="Close"]::after,
+.sg-modal-inner .sg-modal-close::before,
+.sg-modal-inner .sg-modal-close::after,
+.search-popup .search-close-btn::before,
+.search-popup .search-close-btn::after,
+.mood-picker-close::before,
+.mood-picker-close::after {
+  content: '';
+  position: absolute;
+  width: 13px;
+  height: 1.8px;
+  background: var(--muted);
+  border-radius: 2px;
+}
+.nous-modal-overlay .nous-modal-header button[onclick*="Close"]::before,
+.nous-modal-overlay .nous-modal-header span[onclick*="close"]::before,
+#livreEditModal button[onclick*="Close"]::before,
+#slotEditModal button[onclick*="Close"]::before,
+.sg-modal-inner .sg-modal-close::before,
+.search-popup .search-close-btn::before,
+.mood-picker-close::before {
+  transform: rotate(45deg);
+}
+.nous-modal-overlay .nous-modal-header button[onclick*="Close"]::after,
+.nous-modal-overlay .nous-modal-header span[onclick*="close"]::after,
+#livreEditModal button[onclick*="Close"]::after,
+#slotEditModal button[onclick*="Close"]::after,
+.sg-modal-inner .sg-modal-close::after,
+.search-popup .search-close-btn::after,
+.mood-picker-close::after {
+  transform: rotate(-45deg);
+}
+
+/* ── 8. Fenêtre compte — ne pas couvrir par le header ── */
+/* Le modal est align-items:flex-end donc la feuille monte depuis le bas. OK.
+   On s'assure que le max-height tient compte du safe-top */
+#accountSheet {
+  max-height: calc(90dvh) !important;
+  padding-top: 0 !important;
+}
+/* La top bar couvre l'overlay fond — on augmente légèrement le padding top du sheet */
+
+/* ── Dépliant mot de passe — géré via JS dans app-account.js ── */
+/* Style pour l'état replié/déplié */
+#acPwdSection {
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+#acPwdSection.collapsed {
+  max-height: 0 !important;
+  opacity: 0;
+  pointer-events: none;
+}
+#acPwdSection.expanded {
+  max-height: 400px;
+  opacity: 1;
+}
+#acPwdToggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 10px 0;
+  user-select: none;
+}
+#acPwdToggleArrow {
+  transition: transform 0.25s ease;
+  font-size: 12px;
+  color: var(--muted);
+}
+#acPwdToggleArrow.open {
+  transform: rotate(180deg);
+}
+
+/* ── 9. Onglet NOUS — bouton engrenage + suppression profils ── */
+#nousProfilSection {
+  display: none !important;
+}
+#nousGearBtnWrap {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 16px 4px;
+}
+#nousGearBtn {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: var(--s2);
+  border: 1.5px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background 0.18s, transform 0.15s;
+  flex-shrink: 0;
+}
+#nousGearBtn:hover { background: var(--s3, rgba(255,255,255,0.08)); }
+#nousGearBtn:active { transform: scale(0.9); }
+#nousGearBtn svg { color: var(--muted); }
+
+</style>
 </head>
 <body>
 
@@ -622,7 +861,17 @@
 <!-- ── CONTENU NOUS ── -->
 <div id="nousContentWrapper" style="display:none;">
 
-<!-- PROFIL COUPLE PAIRED -->
+<!-- Bouton engrenage Compte -->
+<div id="nousGearBtnWrap">
+  <button id="nousGearBtn" onclick="openAccountModal()" title="Mon compte">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  </button>
+</div>
+
+<!-- PROFIL COUPLE PAIRED (masqué via CSS) -->
 <div id="nousProfilSection" style="padding:20px 16px 8px;">
   <div style="display:flex;align-items:center;justify-content:center;gap:20px;">
     <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
@@ -1334,7 +1583,7 @@
 ═══════════════════════════════════════════ -->
 <div id="yamJeuxTab" class="yam-tab-panel">
 
-  <div class="yam-jeux-header">
+  <div class="yam-jeux-header" style="padding-top: calc(var(--safe-top, 44px) + 68px);">
     <div class="section-label" style="margin-bottom:0">Jouer ensemble 🎮</div>
   </div>
 
