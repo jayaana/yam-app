@@ -310,7 +310,7 @@ window.setProfile = function(g){
     // Header
     '<div style="display:flex;align-items:center;justify-content:space-between;padding:0 20px 16px;">' +
     '<div style="font-family:\'Playfair Display\',serif;font-size:20px;font-weight:700;color:var(--text);">Mon Compte</div>' +
-    '<button onclick="closeAccountModal()" style="width:32px;height:32px;border-radius:50%;background:var(--s2);border:none;color:var(--muted);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>' +
+    '<button onclick="closeAccountModal()" class="yam-close-btn" style="flex-shrink:0;" aria-label="Fermer"></button>' +
     '</div>' +
 
     '<div style="padding:0 20px 20px;">' +
@@ -399,18 +399,23 @@ window.setProfile = function(g){
 
       '<div style="height:1px;background:var(--border);margin:0 -4px 16px;"></div>' +
 
-      // Changer mot de passe
+      // Changer mot de passe — dépliant
       '<div style="margin-bottom:16px;">' +
-        '<div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Changer de mot de passe</div>' +
-        '<div style="display:flex;flex-direction:column;gap:8px;">' +
-          '<input type="password" id="acOldPwd" placeholder="Mot de passe actuel" autocomplete="current-password" ' +
-          'style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-size:14px;font-family:\'DM Sans\',sans-serif;outline:none;" />' +
-          '<input type="password" id="acNewPwd" placeholder="Nouveau mot de passe" autocomplete="new-password" ' +
-          'style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-size:14px;font-family:\'DM Sans\',sans-serif;outline:none;" />' +
-          '<input type="password" id="acConfirmPwd" placeholder="Confirmer le nouveau mot de passe" autocomplete="new-password" ' +
-          'style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-size:14px;font-family:\'DM Sans\',sans-serif;outline:none;" />' +
-          '<button onclick="acChangePwd()" style="background:var(--green);color:#000;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif;">Changer le mot de passe</button>' +
-          '<div id="acPwdMsg" style="font-size:12px;text-align:center;min-height:18px;color:var(--green);"></div>' +
+        '<div id="acPwdToggleRow" onclick="acTogglePwdSection()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:4px 0 10px;user-select:none;">' +
+          '<div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Changer de mot de passe</div>' +
+          '<svg id="acPwdToggleArrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);transition:transform 0.25s ease;flex-shrink:0;"><polyline points=\'6 9 12 15 18 9\'/></svg>' +
+        '</div>' +
+        '<div id="acPwdSection" style="overflow:hidden;max-height:0;opacity:0;transition:max-height 0.3s ease,opacity 0.3s ease;pointer-events:none;">' +
+          '<div style="display:flex;flex-direction:column;gap:8px;">' +
+            '<input type="password" id="acOldPwd" placeholder="Mot de passe actuel" autocomplete="current-password" ' +
+            'style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-size:14px;font-family:\'DM Sans\',sans-serif;outline:none;" />' +
+            '<input type="password" id="acNewPwd" placeholder="Nouveau mot de passe" autocomplete="new-password" ' +
+            'style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-size:14px;font-family:\'DM Sans\',sans-serif;outline:none;" />' +
+            '<input type="password" id="acConfirmPwd" placeholder="Confirmer le nouveau mot de passe" autocomplete="new-password" ' +
+            'style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-size:14px;font-family:\'DM Sans\',sans-serif;outline:none;" />' +
+            '<button onclick="acChangePwd()" style="background:var(--green);color:#000;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif;">Changer le mot de passe</button>' +
+            '<div id="acPwdMsg" style="font-size:12px;text-align:center;min-height:18px;color:var(--green);"></div>' +
+          '</div>' +
         '</div>' +
       '</div>' +
 
@@ -522,6 +527,11 @@ window.closeAccountModal = function(){
   var modal = document.getElementById('accountModal');
   if(!sheet || !modal) return;
   sheet.style.transform = 'translateY(100%)';
+  // Refermer le dépliant mot de passe
+  var pwdSec = document.getElementById('acPwdSection');
+  var pwdArrow = document.getElementById('acPwdToggleArrow');
+  if(pwdSec){ pwdSec.style.maxHeight='0'; pwdSec.style.opacity='0'; pwdSec.style.pointerEvents='none'; }
+  if(pwdArrow) pwdArrow.style.transform = '';
   setTimeout(function(){ modal.style.display = 'none'; }, 300);
 };
 
@@ -1624,3 +1634,22 @@ window.addEventListener('load', function(){
     };
   });
 })();
+
+/* ── Dépliant mot de passe ── */
+window.acTogglePwdSection = function(){
+  var section = document.getElementById('acPwdSection');
+  var arrow   = document.getElementById('acPwdToggleArrow');
+  if(!section) return;
+  var isOpen = section.style.maxHeight && section.style.maxHeight !== '0px' && section.style.maxHeight !== '0';
+  if(isOpen){
+    section.style.maxHeight = '0';
+    section.style.opacity = '0';
+    section.style.pointerEvents = 'none';
+    if(arrow) arrow.style.transform = '';
+  } else {
+    section.style.maxHeight = '400px';
+    section.style.opacity = '1';
+    section.style.pointerEvents = '';
+    if(arrow) arrow.style.transform = 'rotate(180deg)';
+  }
+};
