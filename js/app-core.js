@@ -364,13 +364,14 @@ function applyThemeToggle() {
     if(i % 2 === 0) svg.style.display = isLight ? 'none' : ''; // lune
     else            svg.style.display = isLight ? ''     : 'none'; // soleil
   });
-  // Sync icône bouton thème écran login
-  var v2Moon = document.getElementById('v2LoginThemeMoon');
-  var v2Sun  = document.getElementById('v2LoginThemeSun');
-  if(v2Moon) v2Moon.style.display = isLight ? 'none' : '';
-  if(v2Sun)  v2Sun.style.display  = isLight ? ''     : 'none';
   // Haptic (si disponible — défini dans app-nav.js)
   if(typeof haptic === 'function') haptic('light');
+
+  // ── Sync icône bouton thème écran login ──
+  var _v2Moon = document.getElementById('v2LoginIconMoon');
+  var _v2Sun  = document.getElementById('v2LoginIconSun');
+  if(_v2Moon) _v2Moon.style.display = isLight ? 'none' : '';
+  if(_v2Sun)  _v2Sun.style.display  = isLight ? ''     : 'none';
 }
 
 // ── Restauration du thème au chargement ──
@@ -395,10 +396,10 @@ function applyThemeToggle() {
         if(sun)  sun.style.display  = '';
       });
       // Sync icône login
-      var v2Moon = document.getElementById('v2LoginThemeMoon');
-      var v2Sun  = document.getElementById('v2LoginThemeSun');
-      if(v2Moon) v2Moon.style.display = 'none';
-      if(v2Sun)  v2Sun.style.display  = '';
+      var _v2Moon = document.getElementById('v2LoginIconMoon');
+      var _v2Sun  = document.getElementById('v2LoginIconSun');
+      if(_v2Moon) _v2Moon.style.display = 'none';
+      if(_v2Sun)  _v2Sun.style.display  = '';
     });
   }
 })();
