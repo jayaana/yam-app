@@ -1549,8 +1549,12 @@ loadLikeCounters();
       +'</div>';
     card.querySelector('.souvenir-edit-icon').addEventListener('click',function(e){ e.stopPropagation(); nousOpenSouvenirModal(s); });
     // Badge NEW si ce souvenir a été modifié récemment
+    // ⚠️  La card racine a overflow:hidden → le badge absolu est rogné.
+    //     On l'accroche sur .souvenir-photo qui est position:relative sans overflow:hidden.
     if(s.id && typeof window.yamIsNew==='function' && window.yamIsNew('souvenir_'+s.id)){
-      if(typeof window.yamShowNewBadge==='function') window.yamShowNewBadge(card, true);
+      var photoEl = card.querySelector('.souvenir-photo');
+      var target  = photoEl || card;
+      if(typeof window.yamShowNewBadge==='function') window.yamShowNewBadge(target, true);
     }
     return card;
   }
@@ -3255,31 +3259,6 @@ window.nousLoad = function(){
   }
 
   // ── Générer via Groq ──
-  /* ── Toggle suggestions IA repliables ── */
-  window.semaineToggle = function(){
-    var content = document.getElementById('semaineContent');
-    var eye     = document.getElementById('semaineEyeIcon');
-    var btn     = document.getElementById('semaineToggleBtn');
-    if(!content) return;
-    var isOpen = content.dataset.open === '1';
-    if(!isOpen){
-      // Ouvrir
-      content.style.maxHeight = '300px';
-      content.style.opacity   = '1';
-      content.style.padding   = '0 14px';
-      content.dataset.open    = '1';
-      if(eye) eye.textContent = '🙈';
-      if(btn){ btn.style.borderRadius = '14px 14px 0 0'; btn.style.borderBottom = '1.5px solid transparent'; }
-    } else {
-      // Fermer
-      content.style.maxHeight = '0';
-      content.style.opacity   = '0';
-      content.dataset.open    = '0';
-      if(eye) eye.textContent = '👁️';
-      if(btn){ btn.style.borderRadius = '14px'; btn.style.borderBottom = ''; }
-    }
-  };
-
   window.semaineGenerate = function(){
     var cid = _getCoupleId(); if(!cid) return;
     // Vérifier la limite : 1 génération initiale + 1 rafraîchissement = 2 max
