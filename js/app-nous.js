@@ -266,32 +266,69 @@ function _nousLoadProfil() {
 
 // ════════════════════════════════════════════════════════════════════
 // BADGE "NEW" UNIVERSEL — 5h après toute modification
-// Clé localStorage : yam_new_{section}_{coupleId} = timestamp ISO
+// Stockage : Supabase table v2_new_badges (couple_id, section, marked_at)
+// → partagé entre les deux appareils du couple en temps réel
 // Sections : elle_slot_{slot}, lui_slot_{slot}, souvenir, memo_note,
-//            memo_todo, livre_{id}, petit_mot_{id}
+//            memo_todo, livre, petit_mot
 // ════════════════════════════════════════════════════════════════════
 (function(){
   var NEW_DURATION_MS = 5 * 60 * 60 * 1000; // 5 heures
 
-  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
-  function _getProfile(){ return (typeof getProfile==='function')?getProfile():'girl'; }
+  // Cache local en mémoire : { section: timestamp_ms } — évite des requêtes répétées
+  var _badgeCache    = {};   // section → marked_at (ms)
+  var _cacheLoadedAt = 0;    // timestamp du dernier fetch complet
+  var CACHE_TTL      = 60 * 1000; // 1 min — recharge depuis Supabase si plus vieux
 
-  // Enregistre un "new" pour une clé
+  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
+
+  // ── Charge tous les badges du couple depuis Supabase ──
+  function _fetchAllBadges(callback){
+    var cid = _getCoupleId(); if(!cid){ if(callback) callback(); return; }
+    fetch(SB2_URL+'/rest/v1/v2_new_badges?couple_id=eq.'+encodeURIComponent(cid)+'&select=section,marked_at', {headers: sb2Headers()})
+    .then(function(r){ return r.ok ? r.json() : []; })
+    .then(function(rows){
+      _badgeCache = {};
+      if(Array.isArray(rows)){
+        rows.forEach(function(row){
+          _badgeCache[row.section] = new Date(row.marked_at).getTime();
+        });
+      }
+      _cacheLoadedAt = Date.now();
+      if(callback) callback();
+    })
+    .catch(function(){ if(callback) callback(); });
+  }
+
+  // ── Rafraîchit le cache si périmé, puis appelle callback ──
+  function _ensureCache(callback){
+    if(Date.now() - _cacheLoadedAt < CACHE_TTL){
+      if(callback) callback();
+    } else {
+      _fetchAllBadges(callback);
+    }
+  }
+
+  // ── Enregistre un "new" pour une section dans Supabase ──
   window.yamMarkNew = function(section){
     var cid = _getCoupleId(); if(!cid) return;
-    var key = 'yam_new_'+section+'_'+cid;
-    localStorage.setItem(key, Date.now().toString());
+    var now = new Date().toISOString();
+    // Mise à jour optimiste du cache local immédiatement
+    _badgeCache[section] = Date.now();
+    // Upsert dans Supabase (merge-duplicates sur la PK couple_id+section)
+    fetch(SB2_URL+'/rest/v1/v2_new_badges', {
+      method: 'POST',
+      headers: sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),
+      body: JSON.stringify({ couple_id: cid, section: section, marked_at: now })
+    }).catch(function(){ /* silencieux — le cache local a déjà été mis à jour */ });
   };
 
-  // Vérifie si une clé est "new" (dans les 5h)
+  // ── Vérifie si une section est "new" (dans les 5h) — lecture depuis le cache ──
   window.yamIsNew = function(section){
-    var cid = _getCoupleId(); if(!cid) return false;
-    var key = 'yam_new_'+section+'_'+cid;
-    var ts = parseInt(localStorage.getItem(key)||'0');
-    return ts && (Date.now()-ts) < NEW_DURATION_MS;
+    var ts = _badgeCache[section];
+    return !!(ts && (Date.now() - ts) < NEW_DURATION_MS);
   };
 
-  // Affiche un badge NEW sur un élément DOM (injecté comme position:absolute en haut à droite)
+  // ── Affiche/cache un badge NEW sur un élément DOM ──
   window.yamShowNewBadge = function(el, show){
     if(!el) return;
     var badge = el.querySelector('.yam-new-badge');
@@ -301,7 +338,6 @@ function _nousLoadProfil() {
         badge.className = 'yam-new-badge';
         badge.textContent = 'NEW';
         badge.style.cssText = 'position:absolute;top:4px;right:4px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-size:8px;font-weight:800;letter-spacing:0.5px;padding:2px 5px;border-radius:6px;text-transform:uppercase;z-index:10;pointer-events:none;line-height:1.4;';
-        // S'assurer que le parent est en position relative
         var ps = window.getComputedStyle(el).position;
         if(ps === 'static') el.style.position = 'relative';
         el.appendChild(badge);
@@ -312,33 +348,55 @@ function _nousLoadProfil() {
     }
   };
 
-  // Rafraîchit les badges NEW sur les sections
-  window.yamRefreshNewBadges = function(){
+  // ── Applique l'état des badges sur le DOM (lecture depuis cache) ──
+  function _applyBadges(){
     // Mémo note
     var memoNoteCard = document.querySelector('#memoCoupleSection .memo-duo-card:first-child');
     if(memoNoteCard) window.yamShowNewBadge(memoNoteCard, window.yamIsNew('memo_note'));
     // Mémo todo
     var memoTodoCard = document.querySelector('#memoCoupleSection .memo-duo-card:last-child');
     if(memoTodoCard) window.yamShowNewBadge(memoTodoCard, window.yamIsNew('memo_todo'));
-    // Souvenirs (section label)
+    // Souvenirs
     var souvenirSection = document.getElementById('souvenirsSection');
     if(souvenirSection) window.yamShowNewBadge(souvenirSection, window.yamIsNew('souvenir'));
     // Livres
     var livresNew = document.getElementById('livresNewBadge');
     if(livresNew) livresNew.style.display = window.yamIsNew('livre') ? '' : 'none';
-    // Petits mots — badge à droite du compteur (seulement pour le receveur des nouveaux mots)
+    // Petits mots
     var pmNew = document.getElementById('postitNewBadge');
     if(pmNew) pmNew.style.display = window.yamIsNew('petit_mot') ? '' : 'none';
+    // Pochettes Elle/Lui — badges sur chaque slot si section concernée
+    ['animal','fleurs','personnage','saison','repas'].forEach(function(slot){
+      ['elle','lui'].forEach(function(who){
+        var card = document.getElementById(who+'-btn-'+slot);
+        if(card) window.yamShowNewBadge(card, window.yamIsNew(who+'_slot_'+slot));
+      });
+    });
+  }
+
+  // ── Rafraîchit le cache depuis Supabase puis applique les badges ──
+  window.yamRefreshNewBadges = function(){
+    _ensureCache(_applyBadges);
   };
 
-  // Exposé pour être appelé partout
+  // ── Force un rechargement complet depuis Supabase (ignore le TTL) ──
+  window.yamForceRefreshNewBadges = function(){
+    _cacheLoadedAt = 0;
+    _fetchAllBadges(_applyBadges);
+  };
+
+  // ── Marque ET rafraîchit immédiatement (optimiste) ──
   window.yamMarkNewAndRefresh = function(section){
     window.yamMarkNew(section);
-    window.yamRefreshNewBadges();
+    _applyBadges(); // immédiat côté local (cache déjà mis à jour dans yamMarkNew)
   };
 
-  // Polling toutes les 30s pour rafraîchir l'état des badges (expiration auto)
-  setInterval(function(){ if(typeof window.yamRefreshNewBadges === 'function') window.yamRefreshNewBadges(); }, 30000);
+  // ── Polling toutes les 30s : force rechargement Supabase pour la personne B ──
+  setInterval(function(){
+    _cacheLoadedAt = 0; // invalide le cache → prochain appel ira chercher dans SB
+    if(typeof window.yamRefreshNewBadges === 'function') window.yamRefreshNewBadges();
+  }, 30000);
+
 })();
 
 // ── Badge nav Nous (icône de l'onglet) ──
