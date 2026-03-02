@@ -236,8 +236,15 @@ function _nousInitAll() {
   document.querySelectorAll('#nousContentWrapper .fade-in').forEach(function(el){
     if (window._fadeObs) window._fadeObs.observe(el);
   });
-  // Force fetch Supabase au 1er chargement (cache vide) — délai pour laisser la session s'établir
-  setTimeout(function(){ if(typeof window.yamForceRefreshNewBadges==='function') window.yamForceRefreshNewBadges(); }, 600);
+  // Force fetch Supabase au 1er chargement — retry jusqu'à ce que couple_id soit dispo
+  (function _tryRefreshBadges(attempts){
+    var u = (typeof v2GetUser==='function') ? v2GetUser() : null;
+    if(u && u.couple_id){
+      if(typeof window.yamForceRefreshNewBadges==='function') window.yamForceRefreshNewBadges();
+    } else if(attempts > 0){
+      setTimeout(function(){ _tryRefreshBadges(attempts-1); }, 800);
+    }
+  })(10);
 }
 
 
@@ -357,9 +364,7 @@ function _nousLoadProfil() {
     // Mémo todo — card entière
     var memoTodoCard = document.querySelector('#memoCoupleSection .memo-duo-card:last-child');
     if(memoTodoCard) window.yamShowNewBadge(memoTodoCard, window.yamIsNew('memo_todo'));
-    // Souvenirs — section label
-    var souvenirSection = document.getElementById('souvenirsSection');
-    if(souvenirSection) window.yamShowNewBadge(souvenirSection, window.yamIsNew('souvenir'));
+    // Souvenirs — badge sur chaque card individuelle (géré dans _buildSouvenirCard)
     // Livres — badge inline HTML existant
     var livresNew = document.getElementById('livresNewBadge');
     if(livresNew) livresNew.style.display = window.yamIsNew('livre') ? '' : 'none';
@@ -395,11 +400,7 @@ function _nousLoadProfil() {
     _applyBadges();               // affichage immédiat côté local
   };
 
-  // ── Polling toutes les 30s : force rechargement Supabase pour la personne B ──
-  setInterval(function(){
-    _cacheLoadedAt = 0; // invalide le cache → prochain appel ira chercher dans SB
-    if(typeof window.yamRefreshNewBadges === 'function') window.yamRefreshNewBadges();
-  }, 30000);
+  // Pas de polling — refresh unique au lancement via _tryRefreshBadges dans _nousInitAll
 
 })();
 
@@ -1544,6 +1545,10 @@ loadLikeCounters();
       +'<div class="souvenir-edit-icon">'+pencilSVG+'</div>'
       +'</div>';
     card.querySelector('.souvenir-edit-icon').addEventListener('click',function(e){ e.stopPropagation(); nousOpenSouvenirModal(s); });
+    // Badge NEW si ce souvenir a été modifié récemment
+    if(s.id && typeof window.yamIsNew==='function' && window.yamIsNew('souvenir_'+s.id)){
+      if(typeof window.yamShowNewBadge==='function') window.yamShowNewBadge(card, true);
+    }
     return card;
   }
 
@@ -1713,13 +1718,30 @@ loadLikeCounters();
       photo_url:modal.dataset.photoUrl||null
     };
     var saveBtn=document.getElementById('souvenirSaveBtn'); if(saveBtn){ saveBtn.textContent='...'; saveBtn.disabled=true; }
-    var done=function(){ if(saveBtn){ saveBtn.textContent='Sauvegarder'; saveBtn.disabled=false; }
-      if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh('souvenir');
-      window.closeSouvenirModal(); window.nousLoadSouvenirs(); };
     if(id){
-      fetch(SB2_URL+'/rest/v1/v2_memories?id=eq.'+id,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done).catch(done);
+      // Modification — ID déjà connu
+      fetch(SB2_URL+'/rest/v1/v2_memories?id=eq.'+id,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
+      .then(function(){
+        if(saveBtn){ saveBtn.textContent='Sauvegarder'; saveBtn.disabled=false; }
+        if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh('souvenir_'+id);
+        window.closeSouvenirModal(); window.nousLoadSouvenirs();
+      }).catch(function(){
+        if(saveBtn){ saveBtn.textContent='Sauvegarder'; saveBtn.disabled=false; }
+        window.closeSouvenirModal(); window.nousLoadSouvenirs();
+      });
     } else {
-      fetch(SB2_URL+'/rest/v1/v2_memories',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done).catch(done);
+      // Création — on récupère l'ID retourné
+      fetch(SB2_URL+'/rest/v1/v2_memories',{method:'POST',headers:sb2Headers({'Prefer':'return=representation','Content-Type':'application/json'}),body:JSON.stringify(data)})
+      .then(function(r){ return r.json(); })
+      .then(function(rows){
+        if(saveBtn){ saveBtn.textContent='Sauvegarder'; saveBtn.disabled=false; }
+        var newId = Array.isArray(rows) && rows[0] ? rows[0].id : null;
+        if(newId && typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh('souvenir_'+newId);
+        window.closeSouvenirModal(); window.nousLoadSouvenirs();
+      }).catch(function(){
+        if(saveBtn){ saveBtn.textContent='Sauvegarder'; saveBtn.disabled=false; }
+        window.closeSouvenirModal(); window.nousLoadSouvenirs();
+      });
     }
   };
 
