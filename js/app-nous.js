@@ -2468,18 +2468,6 @@ loadLikeCounters();
     if(_motsDoux_init_done) return;
     _motsDoux_init_done = true;
     window.motsDoux_refresh(false);
-    // Clic sur la card = nouveau mot (comme le bouton Nouveau)
-    setTimeout(function(){
-      var card = document.getElementById('motsDoux_card');
-      if(card){
-        card.style.cursor = 'pointer';
-        card.addEventListener('click', function(e){
-          // Éviter double-déclenchement si clic sur le bouton refresh lui-même
-          if(e.target.closest('#motsDoux_refreshBtn')) return;
-          window.motsDoux_refresh(true);
-        });
-      }
-    }, 500);
   });
   // Fallback unique : si event raté
   setTimeout(function(){
