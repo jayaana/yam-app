@@ -3210,42 +3210,29 @@ window.nousLoad = function(){
   var _currentWords = null;
 
   // ── Rendre les pills ──
-  // Emojis décoratifs par index de mot
-  var _wordEmojis = ['🌿','🌊','🕯️','🍂','✨'];
-
   function _renderPills(words, weekKey, regenCount){
     var pills = document.getElementById('semainePills'); if(!pills) return;
     var meta  = document.getElementById('semaineMeta');
     var btn   = document.getElementById('semaineGenBtn');
     pills.innerHTML = '';
     var regenLeft = 1 - (regenCount||0);
-    if(meta) meta.textContent = regenLeft > 0 ? '1 rafraîchissement restant cette semaine' : 'Plus de rafraîchissement cette semaine';
+    if(meta) meta.textContent = 'Semaine ' + weekKey + ' · ' + (regenLeft > 0 ? '1 rafraîchissement restant' : 'Plus de rafraîchissement cette semaine');
     if(btn){
-      btn.textContent = 'Rafraîchir';
-      btn.disabled = regenLeft <= 0;
-      btn.style.opacity = regenLeft > 0 ? '1' : '0.4';
+      if(regenLeft > 0){
+        btn.textContent = 'Rafraîchir';
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      } else {
+        btn.textContent = 'Rafraîchir';
+        btn.disabled = true;
+        btn.style.opacity = '0.4';
+      }
     }
-    // Conteneur grille 5 cartes horizontales scrollables
-    pills.style.cssText = 'display:flex;gap:9px;overflow-x:auto;padding:4px 2px 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none;';
-    words.forEach(function(w, i){
-      var card = document.createElement('div');
-      card.style.cssText = 'flex:0 0 auto;width:88px;background:linear-gradient(145deg,rgba(232,121,160,0.13),rgba(155,89,182,0.13));border:1px solid rgba(232,121,160,0.25);border-radius:14px;padding:12px 8px 10px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;position:relative;user-select:none;-webkit-user-select:none;';
-      var emoji = document.createElement('div');
-      emoji.textContent = _wordEmojis[i] || '✨';
-      emoji.style.cssText = 'font-size:22px;line-height:1;';
-      var label = document.createElement('div');
-      label.textContent = w;
-      label.style.cssText = 'font-size:12px;font-weight:700;color:var(--text);text-align:center;line-height:1.3;word-break:break-word;font-family:\'DM Sans\',sans-serif;';
-      var hint = document.createElement('div');
-      hint.textContent = 'Utiliser →';
-      hint.style.cssText = 'font-size:9px;font-weight:600;color:rgba(232,121,160,0.7);text-transform:uppercase;letter-spacing:0.4px;';
-      card.appendChild(emoji);
-      card.appendChild(label);
-      card.appendChild(hint);
-      card.addEventListener('click', function(){ window._openSlotModal(w); });
-      card.addEventListener('touchstart', function(){ card.style.transform='scale(0.95)'; card.style.boxShadow='0 4px 16px rgba(232,121,160,0.2)'; }, {passive:true});
-      card.addEventListener('touchend',   function(){ card.style.transform=''; card.style.boxShadow=''; }, {passive:true});
-      pills.appendChild(card);
+    words.forEach(function(w){
+      var pill = document.createElement('span');
+      pill.textContent = w;
+      pill.style.cssText = 'display:inline-flex;align-items:center;padding:7px 14px;border-radius:20px;background:linear-gradient(135deg,rgba(232,121,160,0.15),rgba(155,89,182,0.15));border:1px solid rgba(232,121,160,0.3);color:var(--text);font-size:13px;font-weight:600;font-family:\'DM Sans\',sans-serif;pointer-events:none;user-select:none;-webkit-user-select:none;';
+      pills.appendChild(pill);
     });
   }
 
@@ -3318,33 +3305,39 @@ window.nousLoad = function(){
     });
   };
 
-  // ── Modale choix slot ──
-  var _currentWord = '';
+  // Mots en lecture seule — pas de modale
 
-  window._openSlotModal = function(word){
-    _currentWord = word;
-    var modal = document.getElementById('semaineSlotModal'); if(!modal) return;
+  // STUB vide pour éviter les erreurs si appelé ailleurs
+  window._openSlotModal = function(){};
+  window.semaineCloseSlotModal = function(){};
+
+  /*
     var wordEl = document.getElementById('semaineSlotWord'); if(wordEl) wordEl.textContent = word;
     var list = document.getElementById('semaineSlotList'); if(!list) return;
     list.innerHTML = '';
 
-    // Boutons pour chaque slot selon profil
+    // Copier dans le presse-papier
+    if(navigator.clipboard){ navigator.clipboard.writeText(word).catch(function(){}); }
+
+    // Boutons pour chaque slot ELLE et LUI
     [
       {section:'elle', slots: SLOTS_ELLE},
       {section:'lui',  slots: SLOTS_LUI}
     ].forEach(function(s){
       var profile = (typeof getProfile==='function') ? getProfile() : 'girl';
+      // girl édite lui, boy édite elle
       if((profile==='girl' && s.section==='elle') || (profile==='boy' && s.section==='lui')) return;
       s.slots.forEach(function(slot){
-        var icon = {animal:'🐾',fleurs:'🌸',personnage:'🧑',saison:'🍂',repas:'🍽️'}[slot]||'';
-        var lbl = (s.section==='elle'?'Elle':'Lui') + ' — ' + icon + ' ' + slot.charAt(0).toUpperCase()+slot.slice(1);
+        var lbl = (s.section==='elle'?'Elle · ':'Lui · ') + SLOT_LABELS[slot];
         var btn2 = document.createElement('button');
-        btn2.innerHTML = '<span style="font-size:16px;">'+icon+'</span><span style="flex:1;text-align:left;">'+lbl+'</span><span style="font-size:11px;color:rgba(232,121,160,0.8);">Utiliser →</span>';
-        btn2.style.cssText = 'width:100%;padding:13px 14px;border-radius:14px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:10px;font-family:\'DM Sans\',sans-serif;';
+        btn2.textContent = lbl;
+        btn2.style.cssText = 'width:100%;padding:11px 14px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;text-align:left;font-family:\'DM Sans\',sans-serif;';
         btn2.addEventListener('click', function(){
           semaineCloseSlotModal();
+          // Ouvrir la modale d'édition du slot avec le mot pré-rempli
           if(typeof window.slotOpenEdit === 'function'){
             window.slotOpenEdit(s.section, slot);
+            // Pré-remplir le champ banner après ouverture
             setTimeout(function(){
               var inp = document.getElementById('slotEditBannerInput');
               if(inp){ inp.value = word; inp.dispatchEvent(new Event('input')); }
@@ -3354,6 +3347,12 @@ window.nousLoad = function(){
         list.appendChild(btn2);
       });
     });
+
+    // Bouton "Juste copier"
+    var copyBtn = document.createElement('button');
+    copyBtn.textContent = '📋 Copié dans le presse-papier';
+    copyBtn.style.cssText = 'width:100%;padding:11px 14px;border-radius:12px;border:1px solid rgba(232,121,160,0.3);background:rgba(232,121,160,0.08);color:#e879a0;font-size:13px;font-weight:600;cursor:default;text-align:center;font-family:\'DM Sans\',sans-serif;';
+    list.appendChild(copyBtn);
 
     modal.style.display = 'flex';
     _blockBackgroundScroll();
@@ -3367,11 +3366,7 @@ window.nousLoad = function(){
     _unblockBackgroundScroll();
   };
 
-  // Fermer au clic fond
-  document.addEventListener('DOMContentLoaded', function(){
-    var modal = document.getElementById('semaineSlotModal');
-    if(modal) modal.addEventListener('click', function(e){ if(e.target===modal) window.semaineCloseSlotModal(); });
-  });
+  */
 
   // Init au chargement de la section
   document.addEventListener('nousContentReady', function(){ _semaineLoad(); });
