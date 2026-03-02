@@ -1143,6 +1143,30 @@ body.nous-active #yamStickyAvatarSelf {
     <div class="album-card lui-card-wrap" data-slot="repas"><div class="album-image"><span class="album-heart">🤍</span><div class="lui-img-empty" id="lui-empty-repas"><div class="lui-img-empty-icon">🍽️</div><div class="lui-img-empty-lbl">Repas</div></div><img id="lui-img-repas" src="" style="display:none"><div class="album-banner editable" id="lui-banner-repas" onclick="slotOpenEdit('lui','repas')">Repas</div><div class="lui-upload-btn empty" id="lui-btn-repas" onclick="slotOpenEdit('lui','repas')"><div class="lui-upload-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div><div class="lui-upload-lbl">Ajouter</div></div><div class="lui-uploading" id="lui-loading-repas"><div class="lui-upload-progress"><div class="lui-upload-bar" id="lui-bar-repas"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc" id="lui-desc-repas">Son repas préféré 🍽️</div></div>
   </div>
   <input type="file" id="luiFileInput" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="luiHandleFile(this)">
+
+  <!-- SUGGESTIONS DE LA SEMAINE -->
+  <div id="semaineCard" style="margin:14px 16px 4px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:14px 16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:7px;">
+        <span style="font-size:15px;">✨</span>
+        <span style="font-size:13px;font-weight:700;color:var(--text);">Suggestions de la semaine</span>
+      </div>
+      <button id="semaineGenBtn" onclick="semaineGenerate()" style="background:linear-gradient(135deg,#e879a0,#9b59b6);border:none;border-radius:10px;color:#fff;font-size:11px;font-weight:700;padding:5px 11px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">Générer</button>
+    </div>
+    <div id="semaineMeta" style="font-size:10px;color:var(--muted);margin-bottom:8px;min-height:14px;"></div>
+    <div id="semainePills" style="display:flex;flex-wrap:wrap;gap:7px;min-height:28px;"></div>
+  </div>
+
+  <!-- MODALE choix slot après clic pill -->
+  <div id="semaineSlotModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);align-items:flex-end;justify-content:center;">
+    <div style="background:var(--card);border-radius:20px 20px 0 0;padding:20px 20px 36px;width:100%;max-width:480px;box-sizing:border-box;">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">Utiliser "<span id="semaineSlotWord"></span>"</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Pour quel slot veux-tu utiliser ce mot comme titre ?</div>
+      <div id="semaineSlotList" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <button onclick="semaineCloseSlotModal()" style="margin-top:14px;width:100%;padding:12px;border-radius:12px;border:none;background:rgba(255,255,255,0.07);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Annuler</button>
+    </div>
+  </div>
+
   </div>
 </div>
 
@@ -1201,13 +1225,10 @@ body.nous-active #yamStickyAvatarSelf {
 <div class="section fade-in" id="souvenirsSection">
   <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
     <span>Nos souvenirs</span>
-    <div style="display:flex;align-items:center;gap:6px;">
-      <span id="souvenirNewBadge" style="display:none;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-size:9px;font-weight:800;letter-spacing:0.5px;padding:2px 6px;border-radius:8px;text-transform:uppercase;">NEW</span>
-      <button onclick="nousOpenSouvenirGestion()" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--muted);display:flex;align-items:center;gap:5px;opacity:0.75;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif;letter-spacing:0.3px;" aria-label="Voir tous les souvenirs">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-        Tout voir
-      </button>
-    </div>
+    <button onclick="nousOpenSouvenirGestion()" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--muted);display:flex;align-items:center;gap:5px;opacity:0.75;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif;letter-spacing:0.3px;" aria-label="Voir tous les souvenirs">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      Tout voir
+    </button>
   </div>
 
   <!-- Rangée : Récents -->
