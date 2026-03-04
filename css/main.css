@@ -550,8 +550,8 @@ input, textarea, [contenteditable] {
 }
 
 header {
-  padding: 18px 16px 18px;
-  padding-top: 5px;
+  padding: 14px 16px 10px;
+  padding-top: calc(var(--safe-top, 0px) + 10px);
   position: relative;
   z-index: 10000;
   background: var(--bg);
@@ -563,7 +563,7 @@ header::before {
   position: absolute;
   top: -60px; right: -40px;
   width: 260px; height: 260px;
-  background: radial-gradient(circle, rgba(201,120,96,0.10) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(201,120,96,0.08) 0%, transparent 70%);
   pointer-events: none;
   animation: pulseGlow 6s ease-in-out infinite;
   will-change: opacity;
@@ -4748,21 +4748,15 @@ body.anniv-mode .counter-block-top {
 
 /* ── Avatar Profil ── */
 /* ── Double avatar profil ── */
+/* profileAvatarWrap caché — plus utilisé dans le nouveau header */
 #profileAvatarWrap {
-  position: absolute;
-  /* Aligner avec le bas du header, en tenant compte de la safe-area */
-  top: calc(var(--safe-top) + 50px); right: 16px;
-  transform: translateY(0);
-  width: 64px; height: 64px;
-  z-index: 10;
-  overflow: visible;
+  display: none !important;
 }
 
-/* Avatar principal — sélectionné */
+/* Avatar principal — inline dans le header flex */
 #profileAvatar {
-  position: absolute;
-  top: 0; right: 0;
-  width: 42px; height: 42px;
+  position: relative;
+  width: 38px; height: 38px;
   border-radius: 50%;
   background: #1a2a4a;
   border: 2px solid rgba(91,156,246,0.4);
@@ -4770,7 +4764,8 @@ body.anniv-mode .counter-block-top {
   font-size: 20px; cursor: pointer;
   transition: box-shadow 0.3s, border-color 0.3s, background 0.3s, opacity 0.3s;
   user-select: none;
-  z-index: 2;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 #profileAvatar.neutral { animation: avatarPulse 3s ease-in-out infinite; }
 @keyframes avatarPulse {
