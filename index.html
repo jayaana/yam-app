@@ -1351,95 +1351,183 @@ body.nous-active #yamStickyAvatarSelf {
 </div>
 
 <!-- ═══════════════════════════════════════════
-     YAM — ONGLET ACCUEIL
+     YAM — ONGLET ACCUEIL (rework v2)
 ═══════════════════════════════════════════ -->
 <div id="yamHomeTab" class="yam-tab-panel active">
 
-  <!-- Zone mascotte YAM -->
-  <div class="yam-mascotte-zone">
-    <img src="https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_start.gif" alt="YAM mascotte" style="width:90px;height:90px;object-fit:contain;animation:yamFloat 3s ease-in-out infinite;" />
-    <div class="yam-mascotte-label">YAM arrive bientôt</div>
-    <div class="yam-mascotte-sub">Votre compagnon de couple 💑</div>
-  </div>
-
-  <!-- ─── GROUPE : Humeur + Compteur ─── -->
-  <div class="ios-group fade-in" style="margin-top:4px;">
-
-    <!-- Humeur du couple + compteurs cœurs -->
-    <div class="yam-mood-strip" style="margin:0;border-radius:0;border:none;border-bottom:1px solid var(--group-sep);">
-      <div class="yam-mood-card" id="yamMoodElle">
-        <div class="yam-mood-avatar" id="yamMoodElleAvatar"><img class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;"></div>
-        <div class="yam-mood-info">
-          <div class="yam-mood-name elle-name" id="yamMoodElleName">Elle</div>
-          <div class="yam-mood-state" id="yamMoodElleState">—</div>
-          <div class="yam-mood-likes" id="likeBadgeGirl"><span id="likeNumGirl" style="font-weight:700;color:#e75a7c;">—</span> <span style="color:#e75a7c;">♥</span></div>
-        </div>
-      </div>
-
-      <!-- Bouton spam cœur central -->
-      <div id="yamHeartSpamBtn" onclick="spawnHeart()" title="Envoie de l'amour !" style="
-        width:52px;height:52px;border-radius:50%;
-        background:linear-gradient(135deg,rgba(232,121,160,0.18),rgba(255,110,176,0.12));
-        border:1.5px solid rgba(232,121,160,0.4);
-        display:flex;align-items:center;justify-content:center;
-        font-size:26px;cursor:pointer;flex-shrink:0;
-        transition:transform 0.15s,box-shadow 0.15s,border-color 0.15s;
-        box-shadow:0 4px 16px rgba(232,121,160,0.15);
-        -webkit-tap-highlight-color:transparent;
-        user-select:none;">💗</div>
-
-      <div class="yam-mood-card" id="yamMoodLui">
-        <div class="yam-mood-avatar" id="yamMoodLuiAvatar"><img class="yam-av-img" src="assets/images/profil_boy.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;"></div>
-        <div class="yam-mood-info">
-          <div class="yam-mood-name lui-name" id="yamMoodLuiName">Lui</div>
-          <div class="yam-mood-state" id="yamMoodLuiState">—</div>
-          <div class="yam-mood-likes" id="likeBadgeBoy"><span id="likeNumBoy" style="font-weight:700;color:#5b9cf6;">—</span> <span style="color:#5b9cf6;">♥</span></div>
-        </div>
-      </div>
+  <!-- ── 1. MASCOTTE + MESSAGE DU JOUR ── -->
+  <div class="home-mascot-row fade-in">
+    <div class="home-mascot-wrap">
+      <img id="homeMascotImg"
+        src="https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_start.gif"
+        alt="YAM" />
     </div>
-
-    <!-- Compteur -->
-    <div style="padding:14px 14px 12px;">
-      <div style="font-size:10px;font-weight:700;color:var(--group-label);text-transform:uppercase;letter-spacing:1.8px;margin-bottom:10px;">On compte les jours</div>
-      <div class="counter-block" id="counterBlock" style="margin:0 !important;border-radius:12px !important;">
-        <div class="counter-block-top"></div>
-        <div class="counter-block-inner">
-          <div class="counter-block-unit main-unit">
-            <span class="c-num c-num-big" id="cnt-days">0</span>
-            <span class="c-lbl">Jours</span>
-          </div>
-          <div class="counter-block-sep">:</div>
-          <div class="counter-block-unit">
-            <span class="c-num" id="cnt-hours">00</span>
-            <span class="c-lbl">Heures</span>
-          </div>
-          <div class="counter-block-sep">:</div>
-          <div class="counter-block-unit">
-            <span class="c-num" id="cnt-mins">00</span>
-            <span class="c-lbl">Min</span>
-          </div>
-          <div class="counter-block-sep">:</div>
-          <div class="counter-block-unit">
-            <span class="c-num" id="cnt-secs">00</span>
-            <span class="c-lbl">Sec</span>
-          </div>
-        </div>
-      </div>
-      <div class="counter-since"></div>
-    </div>
-
-  </div><!-- /ios-group -->
-
-  <!-- Raison aléatoire -->
-  <div class="section fade-in" id="reasonSection">
-    <div class="section-label">Pourquoi je t'aime</div>
-    <div id="reasonBox" style="padding:4px 0 6px;">
-      <span class="r-label">Une raison parmi tant d'autres ✨</span>
-      <div id="reasonText">...</div>
-      <span class="r-hint">👆 Tape pour en découvrir une autre</span>
+    <div class="home-msg-bubble">
+      <div class="home-msg-label">✨ MESSAGE DU JOUR</div>
+      <div class="home-msg-text" id="homeMsgText">Coucou mon amour ! N'oublie pas notre date ce soir 🌙 ✨</div>
     </div>
   </div>
 
+  <!-- ── 2. COMPTEUR + EVENTS/BOUTIQUE ── -->
+  <div class="home-counter-row fade-in">
+    <div class="home-counter-block">
+      <div class="home-counter-label">ON COMPTE LES JOURS</div>
+      <div class="home-counter-nums">
+        <div class="home-c-unit">
+          <span class="home-c-num" id="cnt-days">427</span>
+          <span class="home-c-lbl">J</span>
+        </div>
+        <span class="home-c-sep">:</span>
+        <div class="home-c-unit">
+          <span class="home-c-num" id="cnt-hours">22</span>
+          <span class="home-c-lbl">H</span>
+        </div>
+        <span class="home-c-sep">:</span>
+        <div class="home-c-unit">
+          <span class="home-c-num" id="cnt-mins">17</span>
+          <span class="home-c-lbl">M</span>
+        </div>
+        <span class="home-c-sep">:</span>
+        <div class="home-c-unit">
+          <span class="home-c-num" id="cnt-secs">10</span>
+          <span class="home-c-lbl">S</span>
+        </div>
+      </div>
+    </div>
+    <div class="home-feature-btns">
+      <div class="home-feat-btn" title="Bientôt disponible">
+        <span class="home-feat-icon">📅</span>
+        <span class="home-feat-lbl">Events</span>
+      </div>
+      <div class="home-feat-btn" title="Bientôt disponible" style="position:relative;">
+        <span class="home-feat-new">NEW</span>
+        <span class="home-feat-icon">🛍️</span>
+        <span class="home-feat-lbl">Boutique</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 3. MÉTÉO DU CŒUR ── -->
+  <div class="home-section-title fade-in">Météo du cœur</div>
+  <div class="home-mood-row fade-in">
+
+    <!-- Bulle Elle -->
+    <div class="home-mood-card" id="homeMoodElle">
+      <div class="home-mood-topbar">
+        <div class="home-mood-avatar-wrap">
+          <img class="home-mood-avatar" id="homeMoodElleAvatar" src="assets/images/profil_girl.png" alt="" />
+          <span class="home-mood-online" id="homeMoodElleOnline"></span>
+        </div>
+        <div class="home-mood-nameblock">
+          <span class="home-mood-name elle-name" id="homeMoodElleName">Elle</span>
+          <span class="home-mood-status" id="homeMoodElleStatus">Hors ligne</span>
+        </div>
+        <button class="home-mood-edit-btn" id="homeMoodElleEditBtn" style="display:none;" onclick="openMoodPicker(event)" title="Modifier mon humeur">Éditer</button>
+      </div>
+      <div class="home-mood-body">
+        <div class="home-mood-quote" id="homeMoodElleQuote">—</div>
+      </div>
+      <div class="home-mood-footer">
+        <span class="home-mood-emoji" id="homeMoodElleEmoji"></span>
+        <span class="home-mood-emoji-label" id="homeMoodElleLabel"></span>
+        <div class="home-mood-hearts">
+          <span class="home-mood-heart-count" id="likeNumGirl">—</span>
+          <span class="home-mood-heart-icon">♥</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bulle Lui -->
+    <div class="home-mood-card" id="homeMoodLui">
+      <div class="home-mood-topbar">
+        <div class="home-mood-avatar-wrap">
+          <img class="home-mood-avatar" id="homeMoodLuiAvatar" src="assets/images/profil_boy.png" alt="" />
+          <span class="home-mood-online" id="homeMoodLuiOnline"></span>
+        </div>
+        <div class="home-mood-nameblock">
+          <span class="home-mood-name lui-name" id="homeMoodLuiName">Lui</span>
+          <span class="home-mood-status" id="homeMoodLuiStatus">Hors ligne</span>
+        </div>
+        <button class="home-mood-edit-btn" id="homeMoodLuiEditBtn" style="display:none;" onclick="openMoodPicker(event)" title="Modifier mon humeur">Éditer</button>
+      </div>
+      <div class="home-mood-body">
+        <div class="home-mood-quote" id="homeMoodLuiQuote">—</div>
+      </div>
+      <div class="home-mood-footer">
+        <span class="home-mood-emoji" id="homeMoodLuiEmoji"></span>
+        <span class="home-mood-emoji-label" id="homeMoodLuiLabel"></span>
+        <div class="home-mood-hearts">
+          <span class="home-mood-heart-count" id="likeNumBoy">—</span>
+          <span class="home-mood-heart-icon" style="color:#5b9cf6;">♥</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 4. RAPPEL DU JOUR + SPAM CŒURS ── -->
+  <div class="home-section-title fade-in">Rappel du jour</div>
+  <div class="home-rappel-row fade-in">
+
+    <!-- Carte rappel -->
+    <div class="home-rappel-card">
+      <div class="home-rappel-badge">AUJOURD'HUI</div>
+      <div class="home-rappel-text" id="homeRappelText">Appelle-la juste pour dire bonsoir</div>
+      <div class="home-rappel-actions">
+        <button class="home-rappel-done" onclick="homeRappelDone()">C'est fait ✓</button>
+        <button class="home-rappel-later" onclick="homeRappelNext()">Plus tard</button>
+      </div>
+      <div class="home-rappel-nav">
+        <button class="home-rappel-nav-btn" onclick="homeRappelPrev()">‹</button>
+        <span class="home-rappel-counter" id="homeRappelCounter">1/3</span>
+        <button class="home-rappel-nav-btn" onclick="homeRappelNext()">›</button>
+      </div>
+    </div>
+
+    <!-- Spam coeurs -->
+    <div class="home-spam-block">
+      <div class="home-spam-label">SPAM DE CŒURS</div>
+      <div class="home-spam-heart-wrap" id="homeSpamHeart" onclick="spawnHeart()" title="Envoie de l'amour !">
+        <span class="home-spam-heart-emoji" id="homeSpamHeartEmoji">💗</span>
+      </div>
+      <div class="home-spam-count" id="homeSpamCount">0/10</div>
+      <div class="home-spam-bar-wrap">
+        <div class="home-spam-bar" id="homeSpamBar" style="width:0%"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 5. IDÉES & SURPRISES ── -->
+  <div class="home-section-titlebar fade-in">
+    <span class="home-section-title" style="margin:0;">Idées &amp; surprises</span>
+    <span class="home-beta-badge">BETA</span>
+  </div>
+  <div class="home-ideas-grid fade-in">
+    <div class="home-idea-card" title="Bientôt disponible">
+      <div class="home-idea-icon" style="background:linear-gradient(135deg,#ffb3c6,#e75a7c);">🎁</div>
+      <div class="home-idea-name">Idée cadeau</div>
+      <div class="home-idea-sub">Personnalisée</div>
+    </div>
+    <div class="home-idea-card" title="Bientôt disponible">
+      <div class="home-idea-icon" style="background:linear-gradient(135deg,#a8edea,#6e9484);">🕯️</div>
+      <div class="home-idea-name">Date night</div>
+      <div class="home-idea-sub">Ce week-end</div>
+    </div>
+    <div class="home-idea-card" title="Bientôt disponible">
+      <div class="home-idea-icon" style="background:linear-gradient(135deg,#ffd89b,#c97860);">💝</div>
+      <div class="home-idea-name">Capsule</div>
+      <div class="home-idea-sub">Dans 1 an</div>
+    </div>
+    <div class="home-idea-card" title="Bientôt disponible">
+      <div class="home-idea-icon" style="background:linear-gradient(135deg,#c9a8f5,#7c6af7);">🎵</div>
+      <div class="home-idea-name">Playlist</div>
+      <div class="home-idea-sub">Du jour</div>
+    </div>
+  </div>
+
+  <!-- Espace bas -->
+  <div style="height:24px;"></div>
 
 </div><!-- /yamHomeTab -->
 
@@ -4358,6 +4446,554 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 .activite-ia-meta { font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
 .activite-ia-add-btn { padding: 10px 16px; background: linear-gradient(135deg,#e75a7c,#7c6af7); color: #fff; font-size: 13px; font-weight: 700; font-family: 'Bricolage Grotesque',sans-serif; border: none; border-radius: 10px; cursor: pointer; }
 </style>
+
+<style>
+/* ══════════════════════════════════════════════
+   HOME TAB — Rework v2
+══════════════════════════════════════════════ */
+
+/* ── 1. Mascotte + Message du jour ── */
+.home-mascot-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 16px 0;
+}
+.home-mascot-wrap {
+  flex-shrink: 0;
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(201,120,96,0.15), rgba(124,106,247,0.15));
+  border: 2px solid rgba(201,120,96,0.2);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 20px rgba(201,120,96,0.15);
+  animation: yamFloat 3s ease-in-out infinite;
+  overflow: hidden;
+}
+@keyframes yamFloat {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+.home-mascot-wrap img {
+  width: 62px; height: 62px; object-fit: contain;
+}
+.home-msg-bubble {
+  flex: 1;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 18px 18px 18px 4px;
+  padding: 12px 14px;
+  box-shadow: var(--sh-sm);
+  position: relative;
+}
+.home-msg-label {
+  font-size: 9px; font-weight: 800;
+  color: var(--green);
+  text-transform: uppercase; letter-spacing: 1.8px;
+  margin-bottom: 6px;
+}
+.home-msg-text {
+  font-size: 13px; color: var(--text);
+  line-height: 1.55; font-weight: 500;
+}
+
+/* ── 2. Compteur + Boutons Events/Boutique ── */
+.home-counter-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px 0;
+}
+.home-counter-block {
+  flex: 1;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 12px 14px;
+  box-shadow: var(--sh-sm);
+}
+.home-counter-label {
+  font-size: 9px; font-weight: 800;
+  color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1.8px;
+  margin-bottom: 8px;
+}
+.home-counter-nums {
+  display: flex; align-items: center; gap: 2px;
+}
+.home-c-unit {
+  display: flex; flex-direction: column; align-items: center; flex: 1;
+}
+.home-c-num {
+  font-size: 22px; font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums; line-height: 1;
+}
+.home-c-lbl {
+  font-size: 9px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px;
+}
+.home-c-sep {
+  font-size: 18px; font-weight: 700;
+  color: var(--muted); opacity: 0.5;
+  margin-bottom: 10px; flex-shrink: 0;
+}
+.home-feature-btns {
+  display: flex; flex-direction: column; gap: 8px;
+  flex-shrink: 0;
+}
+.home-feat-btn {
+  width: 68px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 8px 4px 7px;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 4px;
+  cursor: default;
+  box-shadow: var(--sh-sm);
+  position: relative;
+  opacity: 0.85;
+}
+.home-feat-icon { font-size: 22px; line-height: 1; }
+.home-feat-lbl {
+  font-size: 10px; font-weight: 700;
+  color: var(--sub); letter-spacing: 0.2px;
+}
+.home-feat-new {
+  position: absolute; top: -5px; right: -5px;
+  background: linear-gradient(135deg,#ff6b35,#ffa726);
+  color: #fff; font-size: 7px; font-weight: 800;
+  letter-spacing: 0.5px; padding: 2px 5px;
+  border-radius: 6px; text-transform: uppercase;
+  box-shadow: 0 2px 6px rgba(255,107,53,0.4);
+}
+
+/* ── 3. Météo du cœur ── */
+.home-section-title {
+  font-size: 16px; font-weight: 800;
+  color: var(--text);
+  padding: 18px 16px 10px;
+  letter-spacing: -0.2px;
+}
+.home-section-titlebar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 18px 16px 10px;
+}
+.home-beta-badge {
+  background: #7c6af7; color: #fff;
+  font-size: 8px; font-weight: 800;
+  letter-spacing: 0.8px; padding: 3px 7px;
+  border-radius: 6px; text-transform: uppercase;
+}
+.home-mood-row {
+  display: flex; gap: 10px;
+  padding: 0 16px;
+}
+.home-mood-card {
+  flex: 1;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 12px;
+  box-shadow: var(--sh-sm);
+  display: flex; flex-direction: column; gap: 8px;
+  min-width: 0;
+}
+.home-mood-topbar {
+  display: flex; align-items: center; gap: 8px;
+}
+.home-mood-avatar-wrap {
+  position: relative; flex-shrink: 0;
+  width: 36px; height: 36px;
+}
+.home-mood-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%; object-fit: cover;
+  border: 2px solid var(--border);
+}
+.home-mood-online {
+  position: absolute; bottom: 0; right: 0;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--muted);
+  border: 2px solid var(--s1);
+  transition: background 0.3s;
+}
+.home-mood-online.online { background: #3ecf8e; }
+.home-mood-nameblock {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 1px;
+}
+.home-mood-name {
+  font-size: 13px; font-weight: 700; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.home-mood-status {
+  font-size: 10px; color: var(--muted); font-weight: 500;
+}
+.home-mood-status.online { color: #3ecf8e; font-weight: 600; }
+.home-mood-edit-btn {
+  flex-shrink: 0;
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 4px 9px;
+  font-size: 11px; font-weight: 600;
+  color: var(--sub); cursor: pointer;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  transition: background 0.15s, color 0.15s;
+}
+.home-mood-edit-btn:hover { background: var(--s3); color: var(--text); }
+.home-mood-body {
+  min-height: 32px;
+}
+.home-mood-quote {
+  font-size: 12px; color: var(--sub);
+  font-style: italic; line-height: 1.45;
+  word-break: break-word;
+}
+.home-mood-footer {
+  display: flex; align-items: center; gap: 6px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px; margin-top: 2px;
+}
+.home-mood-emoji { font-size: 16px; line-height: 1; }
+.home-mood-emoji-label {
+  font-size: 11px; color: var(--sub);
+  font-weight: 600; flex: 1; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.home-mood-hearts {
+  display: flex; align-items: center; gap: 3px;
+  margin-left: auto; flex-shrink: 0;
+}
+.home-mood-heart-count {
+  font-size: 12px; font-weight: 700; color: #e75a7c;
+}
+.home-mood-heart-icon {
+  font-size: 13px; color: #e75a7c;
+}
+
+/* ── 4. Rappel du jour ── */
+.home-rappel-row {
+  display: flex; gap: 10px;
+  padding: 0 16px;
+  align-items: stretch;
+}
+.home-rappel-card {
+  flex: 1;
+  background: linear-gradient(145deg, rgba(231,90,124,0.08), rgba(201,120,96,0.06));
+  border: 1px solid rgba(231,90,124,0.2);
+  border-radius: 18px;
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.home-rappel-badge {
+  font-size: 9px; font-weight: 800;
+  color: #e75a7c;
+  text-transform: uppercase; letter-spacing: 1.5px;
+}
+.home-rappel-text {
+  font-size: 13px; font-weight: 600;
+  color: var(--text); line-height: 1.45;
+}
+.home-rappel-actions {
+  display: flex; gap: 8px;
+}
+.home-rappel-done {
+  flex: 1; padding: 9px 8px;
+  background: #e75a7c; color: #fff;
+  font-size: 12px; font-weight: 700;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  border: none; border-radius: 10px; cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.home-rappel-done:active { transform: scale(0.97); opacity: 0.85; }
+.home-rappel-later {
+  flex: 1; padding: 9px 8px;
+  background: var(--s2); color: var(--sub);
+  font-size: 12px; font-weight: 600;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  border: 1px solid var(--border); border-radius: 10px; cursor: pointer;
+  transition: background 0.15s;
+}
+.home-rappel-later:hover { background: var(--s3); }
+.home-rappel-nav {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.home-rappel-nav-btn {
+  width: 26px; height: 26px;
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: 50%; color: var(--sub);
+  font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  transition: background 0.15s;
+}
+.home-rappel-nav-btn:hover { background: var(--s3); }
+.home-rappel-counter {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+}
+
+/* Spam coeurs */
+.home-spam-block {
+  width: 90px; flex-shrink: 0;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 12px 8px;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 8px;
+  box-shadow: var(--sh-sm);
+}
+.home-spam-label {
+  font-size: 8px; font-weight: 800;
+  color: var(--muted); text-transform: uppercase;
+  letter-spacing: 1px; text-align: center;
+}
+.home-spam-heart-wrap {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(231,90,124,0.15), rgba(255,150,180,0.1));
+  border: 1.5px solid rgba(231,90,124,0.35);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.15s;
+  box-shadow: 0 4px 14px rgba(231,90,124,0.15);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.home-spam-heart-wrap:active { transform: scale(0.88); }
+.home-spam-heart-emoji { font-size: 26px; line-height: 1; pointer-events: none; }
+.home-spam-count {
+  font-size: 12px; font-weight: 800;
+  color: #e75a7c;
+}
+.home-spam-bar-wrap {
+  width: 100%; height: 4px;
+  background: var(--s2);
+  border-radius: 2px; overflow: hidden;
+}
+.home-spam-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #e75a7c, #c97860);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* ── 5. Idées & Surprises ── */
+.home-ideas-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 0 16px;
+}
+.home-idea-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 12px 6px 10px;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 6px;
+  cursor: default;
+  box-shadow: var(--sh-sm);
+  opacity: 0.9;
+}
+.home-idea-icon {
+  width: 44px; height: 44px;
+  border-radius: 13px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+.home-idea-name {
+  font-size: 11px; font-weight: 700;
+  color: var(--text); text-align: center;
+  line-height: 1.2;
+}
+.home-idea-sub {
+  font-size: 9px; color: var(--muted);
+  text-align: center;
+}
+</style>
+
+<script>
+/* ══ HOME TAB — Rappels du jour (hardcodé) ══ */
+(function(){
+  var rappels = [
+    'Appelle-la juste pour dire bonsoir',
+    'Envoie-lui un message doux sans raison',
+    'Demande-lui comment s\'est passée sa journée ☀️'
+  ];
+  var idx = 0;
+  var doneList = [];
+
+  function renderRappel(){
+    var el = document.getElementById('homeRappelText');
+    var ctr = document.getElementById('homeRappelCounter');
+    if(el) el.textContent = rappels[idx];
+    if(ctr) ctr.textContent = (idx+1)+'/'+rappels.length;
+  }
+
+  window.homeRappelNext = function(){
+    idx = (idx + 1) % rappels.length;
+    renderRappel();
+  };
+  window.homeRappelPrev = function(){
+    idx = (idx - 1 + rappels.length) % rappels.length;
+    renderRappel();
+  };
+  window.homeRappelDone = function(){
+    if(typeof showToast === 'function') showToast('Bravo ! 💕', 'success');
+    doneList.push(idx);
+    homeRappelNext();
+  };
+
+  document.addEventListener('DOMContentLoaded', renderRappel);
+})();
+
+/* ══ HOME TAB — Sync humeurs + online + avatars dans les nouvelles bulles ══ */
+(function(){
+  function homeSyncMood(){
+    var profile = window.getProfile ? window.getProfile() : (typeof v2GetUser === 'function' ? (v2GetUser() ? (v2GetUser().role || null) : null) : null);
+
+    // Noms depuis session
+    var user = typeof v2GetUser === 'function' ? v2GetUser() : null;
+    if(user){
+      var selfName  = user.pseudo || (profile === 'girl' ? 'Elle' : 'Lui');
+      var partName  = user.partner_pseudo || (profile === 'girl' ? 'Lui' : 'Elle');
+      if(profile === 'girl'){
+        var n = document.getElementById('homeMoodElleName'); if(n) n.textContent = selfName;
+        var m = document.getElementById('homeMoodLuiName');  if(m) m.textContent = partName;
+      } else if(profile === 'boy'){
+        var n = document.getElementById('homeMoodLuiName');  if(n) n.textContent = selfName;
+        var m = document.getElementById('homeMoodElleName'); if(m) m.textContent = partName;
+      }
+    }
+
+    // Bouton Éditer — visible uniquement sur sa propre bulle
+    var elleEditBtn = document.getElementById('homeMoodElleEditBtn');
+    var luiEditBtn  = document.getElementById('homeMoodLuiEditBtn');
+    if(elleEditBtn) elleEditBtn.style.display = (profile === 'girl') ? '' : 'none';
+    if(luiEditBtn)  luiEditBtn.style.display  = (profile === 'boy')  ? '' : 'none';
+
+    // Humeurs depuis profileMoodSelf / profileMoodOther
+    var selfMoodEl  = document.getElementById('profileMoodSelf');
+    var otherMoodEl = document.getElementById('profileMoodOther');
+    var selfEmoji   = selfMoodEl  && selfMoodEl.classList.contains('visible')  ? selfMoodEl.textContent.trim()  : '';
+    var otherEmoji  = otherMoodEl && otherMoodEl.classList.contains('visible') ? otherMoodEl.textContent.trim() : '';
+
+    var selfLabel  = '';
+    var otherLabel = '';
+    if(selfEmoji){
+      var labels = (profile === 'boy') ? (window.MOOD_LABELS_BOY||{}) : (window.MOOD_LABELS||{});
+      selfLabel = labels[selfEmoji] || '';
+    }
+    if(otherEmoji){
+      var otherProfile = (profile === 'girl') ? 'boy' : 'girl';
+      var otherLabels  = (otherProfile === 'boy') ? (window.MOOD_LABELS_BOY||{}) : (window.MOOD_LABELS||{});
+      otherLabel = otherLabels[otherEmoji] || '';
+    }
+
+    function setMoodCard(cardId, emojiId, labelId, quoteId, emoji, label){
+      var emojiEl = document.getElementById(emojiId);
+      var labelEl = document.getElementById(labelId);
+      var quoteEl = document.getElementById(quoteId);
+      if(emojiEl) emojiEl.textContent = emoji;
+      if(labelEl) labelEl.textContent = label;
+      if(quoteEl) quoteEl.textContent = emoji ? (label || emoji) : '—';
+    }
+
+    if(profile === 'girl'){
+      setMoodCard('homeMoodElle','homeMoodElleEmoji','homeMoodElleLabel','homeMoodElleQuote', selfEmoji,  selfLabel);
+      setMoodCard('homeMoodLui', 'homeMoodLuiEmoji', 'homeMoodLuiLabel', 'homeMoodLuiQuote',  otherEmoji, otherLabel);
+    } else {
+      setMoodCard('homeMoodLui', 'homeMoodLuiEmoji', 'homeMoodLuiLabel', 'homeMoodLuiQuote',  selfEmoji,  selfLabel);
+      setMoodCard('homeMoodElle','homeMoodElleEmoji','homeMoodElleLabel','homeMoodElleQuote', otherEmoji, otherLabel);
+    }
+
+    // Online status
+    var dot = document.getElementById('presenceDot');
+    var otherOnline = !!(dot && dot.classList.contains('visible'));
+    var selfOnline  = !!profile;
+
+    function setOnline(statusId, dotId, isOnline){
+      var statusEl = document.getElementById(statusId);
+      var dotEl    = document.getElementById(dotId);
+      if(statusEl){
+        statusEl.textContent = isOnline ? 'En ligne' : 'Hors ligne';
+        statusEl.className   = 'home-mood-status' + (isOnline ? ' online' : '');
+      }
+      if(dotEl) dotEl.className = 'home-mood-online' + (isOnline ? ' online' : '');
+    }
+
+    if(profile === 'girl'){
+      setOnline('homeMoodElleStatus','homeMoodElleOnline', selfOnline);
+      setOnline('homeMoodLuiStatus', 'homeMoodLuiOnline',  otherOnline);
+    } else {
+      setOnline('homeMoodLuiStatus', 'homeMoodLuiOnline',  selfOnline);
+      setOnline('homeMoodElleStatus','homeMoodElleOnline', otherOnline);
+    }
+
+    // Avatars
+    function syncAvatar(imgId, role){
+      var img = document.getElementById(imgId);
+      if(!img) return;
+      var realAv = window._yamRealAvatars && window._yamRealAvatars[role];
+      if(realAv) img.src = realAv;
+      else img.src = 'assets/images/profil_' + role + '.png';
+    }
+    syncAvatar('homeMoodElleAvatar','girl');
+    syncAvatar('homeMoodLuiAvatar', 'boy');
+  }
+
+  // Sync spam count display
+  function homeSyncSpam(){
+    var girl = document.getElementById('likeNumGirl');
+    var boy  = document.getElementById('likeNumBoy');
+    var profile = window.getProfile ? window.getProfile() : null;
+
+    var selfCount  = 0;
+    var totalCount = 0;
+    if(girl && boy){
+      var gVal = parseInt(girl.textContent) || 0;
+      var bVal = parseInt(boy.textContent)  || 0;
+      selfCount  = (profile === 'girl') ? gVal : bVal;
+      totalCount = gVal + bVal;
+    }
+
+    var countEl = document.getElementById('homeSpamCount');
+    var barEl   = document.getElementById('homeSpamBar');
+    if(countEl) countEl.textContent = selfCount + '/10';
+    if(barEl){
+      var pct = Math.min((selfCount / 10) * 100, 100);
+      barEl.style.width = pct + '%';
+    }
+  }
+
+  // Mascotte sync avec musique
+  function homeSyncMascot(){
+    var img = document.getElementById('homeMascotImg');
+    if(!img) return;
+    var audio = document.querySelector('audio');
+    var isPlaying = audio && !audio.paused;
+    img.src = isPlaying
+      ? 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_dance.gif'
+      : 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_start.gif';
+  }
+
+  // Init et polling
+  document.addEventListener('DOMContentLoaded', function(){
+    setTimeout(homeSyncMood, 500);
+    setTimeout(homeSyncSpam, 800);
+    setInterval(homeSyncMood, 8000);
+    setInterval(homeSyncSpam, 5000);
+    setInterval(homeSyncMascot, 3000);
+  });
+
+  window._homeSyncMood  = homeSyncMood;
+  window._homeSyncSpam  = homeSyncSpam;
+})();
+</script>
+
 <script>
 (function(){
   function initDefaultAvatars(){
