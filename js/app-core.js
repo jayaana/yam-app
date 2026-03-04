@@ -338,39 +338,41 @@ function updateCounter() {
   startCounter();
 })();
 
-// ── THEME ── (version consolidée — R3 : persistence localStorage + home btn + haptic)
+// ── THEME ── (version duo-theme — warm/dark avec data-theme + body.light compat)
 function applyThemeToggle() {
-  document.body.classList.toggle('light');
   var isLight = document.body.classList.contains('light');
-  document.documentElement.classList.toggle('light', isLight);
+  var goWarm = !isLight; // toggle
+  document.body.classList.toggle('light', goWarm);
+  document.documentElement.classList.toggle('light', goWarm);
+  document.documentElement.setAttribute('data-theme', goWarm ? 'warm' : 'dark');
   // Met à jour la couleur de la safe zone iOS instantanément
   var themeMeta = document.getElementById('themeColorMeta');
-  if(themeMeta) themeMeta.setAttribute('content', isLight ? '#f9e8f0' : '#121212');
+  if(themeMeta) themeMeta.setAttribute('content', goWarm ? '#e2d9cf' : '#121212');
   // Persistance
-  localStorage.setItem('jayana_theme', isLight ? 'light' : 'dark');
+  localStorage.setItem('jayana_theme', goWarm ? 'light' : 'dark');
   // Labels boutons principaux
-  document.getElementById('themeToggle').textContent = isLight ? '🌙' : '☀️';
-  document.getElementById('floatingThemeBtn').textContent = isLight ? '🌙' : '☀️';
-  // Bouton home tab - pas de textContent, uniquement SVG
-  // Les icônes Moon/Sun sont déjà gérées ci-dessous
+  var t1 = document.getElementById('themeToggle');
+  var t2 = document.getElementById('floatingThemeBtn');
+  if(t1) t1.textContent = goWarm ? '🌙' : '☀️';
+  if(t2) t2.textContent = goWarm ? '🌙' : '☀️';
   // Sync icônes lune/soleil dans Quiz, Jeux, sous-jeux et Bêtises
   ['qz','gv','dm','pm','home'].forEach(function(prefix){
     var moon = document.getElementById(prefix+'ThemeIconMoon');
     var sun  = document.getElementById(prefix+'ThemeIconSun');
-    if(moon) moon.style.display = isLight ? 'none' : '';
-    if(sun)  sun.style.display  = isLight ? ''     : 'none';
+    if(moon) moon.style.display = goWarm ? 'none' : '';
+    if(sun)  sun.style.display  = goWarm ? ''     : 'none';
   });
   document.querySelectorAll('.game-view-header .dm-topbar-theme svg').forEach(function(svg, i){
-    if(i % 2 === 0) svg.style.display = isLight ? 'none' : ''; // lune
-    else            svg.style.display = isLight ? ''     : 'none'; // soleil
+    if(i % 2 === 0) svg.style.display = goWarm ? 'none' : ''; // lune
+    else            svg.style.display = goWarm ? ''     : 'none'; // soleil
   });
   // Haptic (si disponible — défini dans app-nav.js)
   if(typeof haptic === 'function') haptic('light');
   // Sync icône lune/soleil du bouton thème sur l'écran de connexion
   var _v2Moon = document.getElementById('v2LoginIconMoon');
   var _v2Sun  = document.getElementById('v2LoginIconSun');
-  if(_v2Moon) _v2Moon.style.display = isLight ? 'none' : '';
-  if(_v2Sun)  _v2Sun.style.display  = isLight ? ''     : 'none';
+  if(_v2Moon) _v2Moon.style.display = goWarm ? 'none' : '';
+  if(_v2Sun)  _v2Sun.style.display  = goWarm ? ''     : 'none';
 }
 
 // ── Restauration du thème au chargement ──
@@ -379,9 +381,10 @@ function applyThemeToggle() {
   if(saved === 'light' && !document.body.classList.contains('light')){
     document.body.classList.add('light');
     document.documentElement.classList.add('light');
+    document.documentElement.setAttribute('data-theme', 'warm');
     // Corrige la safe zone dès le chargement sans attendre le DOM
     var themeMeta = document.getElementById('themeColorMeta');
-    if(themeMeta) themeMeta.setAttribute('content', '#f9e8f0');
+    if(themeMeta) themeMeta.setAttribute('content', '#e2d9cf');
     document.addEventListener('DOMContentLoaded', function(){
       var btn = document.getElementById('themeToggle');
       if(btn) btn.textContent = '🌙';
@@ -400,6 +403,9 @@ function applyThemeToggle() {
       if(_v2Moon) _v2Moon.style.display = 'none';
       if(_v2Sun)  _v2Sun.style.display  = '';
     });
+  } else {
+    // Thème dark par défaut — s'assurer que data-theme est à jour
+    document.documentElement.setAttribute('data-theme', 'dark');
   }
 })();
 
