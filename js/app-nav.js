@@ -123,6 +123,18 @@
         mascotteImg.src = 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_start.gif';
       }
     }
+    // Nouvelle mascotte home v2
+    var homeMascotImg = document.getElementById('homeMascotImg');
+    if(homeMascotImg && tab === 'home'){
+      homeMascotImg.src = musicPlaying
+        ? 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_dance.gif'
+        : 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_start.gif';
+    }
+    // Sync humeurs home au retour sur l'accueil
+    if(tab === 'home'){
+      if(window._homeSyncMood) setTimeout(window._homeSyncMood, 100);
+      if(window._homeSyncSpam) setTimeout(window._homeSyncSpam, 200);
+    }
 
     // Cœur doré : retiré quand on entre dans "nous", restauré si événement actif quand on en sort
     var navNous2 = document.getElementById('navNous');
@@ -197,6 +209,8 @@
   window.yamSyncMood = yamSyncMood;
   setTimeout(yamSyncMood, 1500);
   setInterval(yamSyncMood, 15000);
+  // Aussi sync les nouvelles bulles home
+  setInterval(function(){ if(window._homeSyncMood) window._homeSyncMood(); }, 15000);
 
   // Badge non-lus sur l'icône Messages dans la nav
   var _origLockNavBtn = document.getElementById('lockNavBtn');
