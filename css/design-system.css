@@ -34,16 +34,16 @@
 
 /* LIGHT */
 body.light {
-  --page-bg:       #e8d8e4;
-  --group-bg:      rgba(255,248,252,1);
-  --group-sep:     rgba(200,24,94,0.09);
-  --group-label:   rgba(30,5,18,0.45);
-  --page-shadow:   0 -2px 16px rgba(180,20,80,0.08);
+  --page-bg:       #e2d9cf;
+  --group-bg:      rgba(255,255,255,1);
+  --group-sep:     rgba(201,120,96,0.09);
+  --group-label:   rgba(38,26,18,0.45);
+  --page-shadow:   0 -2px 16px rgba(100,60,30,0.08);
 }
 
 /* Fix background html en thème clair */
-html.light { background: #e8d8e4 !important; }
-body.light  { background: #e8d8e4 !important; }
+html.light { background: #e2d9cf !important; }
+body.light  { background: #e2d9cf !important; }
 
 /* ══════════════════════════════════════════════════════════
    1. ONGLETS PRINCIPAUX — coins hauts arrondis façon iOS
@@ -338,8 +338,8 @@ body.light .yam-tab-panel {
 }
 
 body.light .bottom-nav {
-  background: rgba(255,245,250,0.97) !important;
-  box-shadow: 0 -4px 20px rgba(180,20,80,0.1);
+  background: rgba(245,241,237,0.97) !important;
+  box-shadow: 0 -4px 20px rgba(100,60,30,0.1);
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -396,7 +396,7 @@ header + div[style*="height:1px"] {
    on améliore la hiérarchie des surfaces
 ══════════════════════════════════════════════════════════ */
 body.light .yam-tab-panel {
-  background: #f7e6f0 !important;
+  background: var(--bg) !important;
 }
 
 body.light .section,
@@ -408,25 +408,25 @@ body.light #Books,
 body.light #wheelSection,
 body.light #luiSection,
 body.light #loveSection {
-  background: rgba(255,248,252,1) !important;
-  border-color: rgba(200,24,94,0.12) !important;
-  box-shadow: 0 2px 12px rgba(180,20,80,0.06);
+  background: rgba(255,255,255,1) !important;
+  border-color: rgba(160,120,90,0.12) !important;
+  box-shadow: 0 2px 12px rgba(100,60,30,0.06);
 }
 
 body.light .yam-mood-strip {
-  background: rgba(255,248,252,1) !important;
-  border-color: rgba(200,24,94,0.12) !important;
+  background: rgba(255,255,255,1) !important;
+  border-color: rgba(160,120,90,0.12) !important;
 }
 
 body.light .section-label,
 body.light .ios-group-title {
-  color: rgba(30,5,18,0.45) !important;
+  color: rgba(38,26,18,0.45) !important;
 }
 
 /* Compteur en light */
 body.light .counter-block {
-  background: rgba(255,248,252,1) !important;
-  border-color: rgba(200,24,94,0.15) !important;
+  background: rgba(255,255,255,1) !important;
+  border-color: rgba(160,120,90,0.15) !important;
 }
 
 /* ══════════════════════════════════════════════════════════
