@@ -1263,22 +1263,49 @@ body.nous-active #yamStickyAvatarSelf {
 
 <header style="position:relative;">
 
-  <!-- Système double avatar profil + humeur (visible sur tous les onglets sauf Nous) -->
-  <div id="profileAvatarWrap">
-    <!-- Avatar de l'autre (secondaire) -->
-    <div id="profileAvatarOther">
-      <img id="profileAvatarOtherEmoji" class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;">
+  <!-- ══ NOUVEAU HEADER : YAM à gauche | toggle thème + avatar à droite ══ -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 0 4px 0;">
+
+    <!-- Gauche : YOU AND ME + YAM -->
+    <div>
+      <div class="hdr-tag" style="margin-bottom:2px;">You And Me</div>
+      <div class="hdr-name" style="font-size:clamp(28px,8vw,42px);line-height:1.05;">YAM</div>
+    </div>
+
+    <!-- Droite : toggle thème + avatar -->
+    <div style="display:flex;align-items:center;gap:8px;padding-top:4px;">
+
+      <!-- Toggle thème -->
+      <button id="themeToggleHome" onclick="applyThemeToggle()" title="Thème" style="
+        width:34px;height:34px;border-radius:50%;
+        background:var(--s2);border:1px solid var(--border);
+        color:var(--sub);display:flex;align-items:center;justify-content:center;
+        cursor:pointer;padding:0;flex-shrink:0;
+        transition:background 0.2s,color 0.2s;
+      ">
+        <svg id="homeThemeIconMoon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
+        <svg id="homeThemeIconSun"  width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+
+      <!-- Avatar principal (cliquable → popup compte) -->
+      <div id="profileAvatar" onclick="toggleProfilePopup()" style="cursor:pointer;flex-shrink:0;">
+        <img id="profileAvatarEmoji" class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;">
+        <div id="profileMoodSelf"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Éléments fonctionnels cachés — conservés pour compatibilité JS -->
+  <div id="profileAvatarWrap" style="display:none;">
+    <div id="profileAvatarOther" style="display:none;">
+      <img id="profileAvatarOtherEmoji" class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="display:none;">
       <div id="presenceDot"></div>
     </div>
-    <div id="profileMoodOther"></div>
-    <div id="moodBandeau" onclick="triggerMoodBandeau()">
-      <span id="moodBandeauText" style="margin-right:4px;"></span>
-      <span id="moodBandeauEmoji" style="font-size:13px;line-height:1;flex-shrink:0;"></span>
-    </div>
-    <!-- Avatar principal -->
-    <div id="profileAvatar" onclick="toggleProfilePopup()">
-      <img id="profileAvatarEmoji" class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;">
-      <div id="profileMoodSelf"></div>
+    <div id="profileMoodOther" style="display:none;"></div>
+    <div id="moodBandeau" style="display:none;" onclick="triggerMoodBandeau()">
+      <span id="moodBandeauText"></span>
+      <span id="moodBandeauEmoji"></span>
     </div>
     <!-- Engrenage Mon Compte — caché par défaut, visible seulement sur l'onglet Nous -->
     <button id="headerGearBtn" onclick="yamToggleAccountModal()" title="Mon compte" style="display:none;position:absolute;top:12px;left:16px;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.08);border:1.5px solid var(--border);align-items:center;justify-content:center;cursor:pointer;transition:background 0.18s,transform 0.15s;z-index:15;padding:0;backdrop-filter:blur(4px);">
@@ -1316,28 +1343,7 @@ body.nous-active #yamStickyAvatarSelf {
     <div id="moodPickerDesc"></div>
   </div>
 
-  <div class="hdr-tag">You And Me</div>
-  <div class="hdr-name">YAM</div>
-  <div class="hdr-sub" id="hdrSub">Notre univers en musique</div>
-  <!-- Bouton thème — dans le header, disparaît au scroll comme les avatars -->
-  <button id="themeToggleHome" onclick="applyThemeToggle()" title="Thème" style="
-    position:absolute;
-    top:12px;
-    right:16px;
-    width:34px; height:34px;
-    border-radius:50%;
-    background:var(--s2);
-    border:1px solid var(--border);
-    color:var(--sub);
-    display:flex; align-items:center; justify-content:center;
-    cursor:pointer;
-    z-index:15;
-    transition:background 0.2s, color 0.2s;
-    padding:0;
-  ">
-    <svg id="homeThemeIconMoon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
-    <svg id="homeThemeIconSun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-  </button>
+  <div id="hdrSub" style="display:none;"></div>
 </header>
 <!-- Ligne de séparation décalée pour ne pas couper les avatars -->
 <!-- Ligne de séparation supprimée — remplacée par les coins arrondis des onglets -->
@@ -4501,72 +4507,75 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 .home-counter-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px 0;
+  gap: 16px;
+  padding: 16px 16px 0;
 }
 .home-counter-block {
   flex: 1;
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 12px 14px;
-  box-shadow: var(--sh-sm);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
 }
 .home-counter-label {
   font-size: 9px; font-weight: 800;
   color: var(--muted);
   text-transform: uppercase; letter-spacing: 1.8px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 .home-counter-nums {
-  display: flex; align-items: center; gap: 2px;
+  display: flex; align-items: flex-end; gap: 0;
 }
 .home-c-unit {
-  display: flex; flex-direction: column; align-items: center; flex: 1;
+  display: flex; flex-direction: column; align-items: flex-start; flex: none;
 }
 .home-c-num {
-  font-size: 22px; font-weight: 800;
+  font-size: 30px; font-weight: 800;
   color: var(--text);
   font-variant-numeric: tabular-nums; line-height: 1;
+  letter-spacing: -1px;
 }
 .home-c-lbl {
   font-size: 9px; color: var(--muted);
-  text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px;
+  text-transform: uppercase; letter-spacing: 0.8px; margin-top: 3px;
+  padding-left: 2px;
 }
 .home-c-sep {
-  font-size: 18px; font-weight: 700;
-  color: var(--muted); opacity: 0.5;
-  margin-bottom: 10px; flex-shrink: 0;
+  font-size: 24px; font-weight: 700;
+  color: var(--muted); opacity: 0.4;
+  line-height: 1; align-self: flex-start;
+  margin: 0 2px 14px;
+  flex-shrink: 0;
 }
 .home-feature-btns {
-  display: flex; flex-direction: column; gap: 8px;
+  display: flex; flex-direction: row; gap: 8px;
   flex-shrink: 0;
 }
 .home-feat-btn {
-  width: 68px;
+  width: 72px;
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 8px 4px 7px;
+  border-radius: 16px;
+  padding: 10px 4px 9px;
   display: flex; flex-direction: column;
-  align-items: center; gap: 4px;
+  align-items: center; gap: 5px;
   cursor: default;
   box-shadow: var(--sh-sm);
   position: relative;
-  opacity: 0.85;
 }
-.home-feat-icon { font-size: 22px; line-height: 1; }
+.home-feat-icon { font-size: 24px; line-height: 1; }
 .home-feat-lbl {
   font-size: 10px; font-weight: 700;
   color: var(--sub); letter-spacing: 0.2px;
 }
 .home-feat-new {
-  position: absolute; top: -5px; right: -5px;
-  background: linear-gradient(135deg,#ff6b35,#ffa726);
+  position: absolute; top: -6px; right: -6px;
+  background: #e75a7c;
   color: #fff; font-size: 7px; font-weight: 800;
-  letter-spacing: 0.5px; padding: 2px 5px;
+  letter-spacing: 0.5px; padding: 2px 6px;
   border-radius: 6px; text-transform: uppercase;
-  box-shadow: 0 2px 6px rgba(255,107,53,0.4);
+  box-shadow: 0 2px 6px rgba(231,90,124,0.4);
 }
 
 /* ── 3. Météo du cœur ── */
