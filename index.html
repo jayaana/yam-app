@@ -3043,6 +3043,74 @@ window.souvenirHandlePhoto  = window.souvenirHandlePhoto  || function(input){ co
 window.souvenirSave         = window.souvenirSave         || function(){ console.warn('souvenirSave: app-nous.js non chargé'); };
 window.souvenirDelete       = window.souvenirDelete       || function(){ console.warn('souvenirDelete: app-nous.js non chargé'); };
 window.souvenirOpenCreate   = window.souvenirOpenCreate   || function(){ var m=document.getElementById('souvenirModal'); if(m)m.classList.add('open'); };
+</script>
+
+
+<!-- ═══════════════════════════════════════
+     MAINTENANCE CODE OVERLAY
+     ═══════════════════════════════════════ -->
+<div id="maintenanceOverlay" style="display:none;position:fixed;inset:0;z-index:99999;background:var(--bg,#f5f1ed);font-family:'Bricolage Grotesque',sans-serif;align-items:center;justify-content:center;flex-direction:column;padding:24px;">
+  <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;">
+    <div style="position:absolute;top:-80px;right:-80px;width:280px;height:280px;border-radius:50%;background:var(--body-grad1,rgba(201,120,96,0.07));filter:blur(40px);"></div>
+    <div style="position:absolute;bottom:-60px;left:-60px;width:240px;height:240px;border-radius:50%;background:var(--body-grad2,rgba(110,148,132,0.06));filter:blur(40px);"></div>
+  </div>
+  <div style="position:relative;z-index:1;width:100%;max-width:360px;display:flex;flex-direction:column;align-items:center;">
+    <div style="font-size:52px;margin-bottom:18px;filter:drop-shadow(0 4px 12px rgba(201,120,96,0.25));">🔧</div>
+    <div style="font-size:22px;font-weight:700;color:var(--text,#261a12);text-align:center;margin-bottom:6px;">Site en maintenance</div>
+    <div style="font-size:13px;color:var(--text-soft,rgba(38,26,18,0.5));text-align:center;margin-bottom:28px;line-height:1.5;">Une mise à jour est en cours.<br>Entrez le code d'accès pour continuer.</div>
+    <div style="position:relative;width:100%;margin-bottom:12px;">
+      <input id="maintenanceInput" type="password" placeholder="Code d'accès…" autocomplete="off" spellcheck="false"
+        oninput="yamMaintenanceClear()" onkeydown="if(event.key==='Enter')yamMaintenanceSubmit()"
+        style="width:100%;padding:14px 48px 14px 18px;border-radius:16px;border:1.5px solid var(--border,rgba(160,120,90,0.13));background:var(--card,#fff);color:var(--text,#261a12);font-size:16px;font-family:'Bricolage Grotesque',sans-serif;font-weight:600;letter-spacing:0.05em;box-shadow:var(--sh-sm);outline:none;transition:border-color 0.2s;"/>
+      <button onclick="yamMaintenanceToggleVis()" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;color:var(--text-dim,rgba(38,26,18,0.28));font-size:16px;line-height:1;">👁</button>
+    </div>
+    <div id="maintenanceError" style="font-size:12px;font-weight:600;color:#e75a7c;min-height:18px;margin-bottom:8px;transition:opacity 0.2s;opacity:0;">Code incorrect, réessaie 🙈</div>
+    <button onclick="yamMaintenanceSubmit()"
+      style="width:100%;padding:14px;border-radius:16px;border:none;background:linear-gradient(135deg,var(--peach,#c97860),#e0906e);color:white;font-size:15px;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;box-shadow:0 4px 16px rgba(201,120,96,0.3);transition:opacity 0.2s,transform 0.1s;letter-spacing:0.02em;"
+      onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''" onmouseleave="this.style.transform=''">Accéder à l'app ✨</button>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   MAINTENANCE CODE — "majversion2"
+   ═══════════════════════════════════════════════════ */
+(function() {
+  var MAINTENANCE_CODE = 'majversion2';
+  var SESSION_KEY = 'yam_maintenance_ok';
+  if (sessionStorage.getItem(SESSION_KEY) === '1') return;
+  var overlay = document.getElementById('maintenanceOverlay');
+  if (overlay) overlay.style.display = 'flex';
+  window.yamMaintenanceSubmit = function() {
+    var input = document.getElementById('maintenanceInput');
+    if (!input) return;
+    if (input.value === MAINTENANCE_CODE) {
+      sessionStorage.setItem(SESSION_KEY, '1');
+      overlay.style.transition = 'opacity 0.4s';
+      overlay.style.opacity = '0';
+      setTimeout(function() { overlay.style.display = 'none'; }, 400);
+    } else {
+      var err = document.getElementById('maintenanceError');
+      if (err) err.style.opacity = '1';
+      input.style.borderColor = '#e75a7c';
+      input.style.animation = 'yamShake 0.35s ease';
+      setTimeout(function() { input.style.animation = ''; }, 400);
+    }
+  };
+  window.yamMaintenanceClear = function() {
+    var err = document.getElementById('maintenanceError');
+    var input = document.getElementById('maintenanceInput');
+    if (err) err.style.opacity = '0';
+    if (input) input.style.borderColor = 'var(--border,rgba(160,120,90,0.13))';
+  };
+  window.yamMaintenanceToggleVis = function() {
+    var input = document.getElementById('maintenanceInput');
+    if (input) input.type = input.type === 'password' ? 'text' : 'password';
+  };
+  var shakeStyle = document.createElement('style');
+  shakeStyle.textContent = '@keyframes yamShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}';
+  document.head.appendChild(shakeStyle);
+})();
 window.histoireOpenItemModal= window.histoireOpenItemModal|| function(){ console.warn('histoireOpenItemModal: app-nous.js non chargé'); };
 window.renderMemoCouple     = window.renderMemoCouple     || function(tab){ var m=document.getElementById('memoPopupModal'); if(m)m.classList.add('open'); };
 window.skyjoAuthSelect      = window.skyjoAuthSelect      || function(role){ console.warn('skyjoAuthSelect: app-skyjo.js non chargé'); };
