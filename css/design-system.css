@@ -33,7 +33,7 @@
 }
 
 /* LIGHT */
-[data-theme="warm"] {
+body.light {
   --page-bg:       #e8d8e4;
   --group-bg:      rgba(255,248,252,1);
   --group-sep:     rgba(200,24,94,0.09);
@@ -42,14 +42,14 @@
 }
 
 /* Fix background html en thème clair */
-html[data-theme="warm"] { background: #e8d8e4 !important; }
-[data-theme="warm"]  { background: #e8d8e4 !important; }
+html.light { background: #e8d8e4 !important; }
+body.light  { background: #e8d8e4 !important; }
 
 /* ══════════════════════════════════════════════════════════
    1. ONGLETS PRINCIPAUX — coins hauts arrondis façon iOS
    Chaque panneau devient une "feuille" qui glisse sur le fond
 ══════════════════════════════════════════════════════════ */
-.tab-view, .yam-tab-panel {
+.yam-tab-panel {
   /* Fond du panneau légèrement distinct du header */
   background: var(--bg);
   /* Coins hauts arrondis — signature Apple */
@@ -72,7 +72,7 @@ html[data-theme="warm"] { background: #e8d8e4 !important; }
 /* La poignée iOS (pill) est gérée par règle spécifique en section 22 */
 
 /* Thème clair */
-[data-theme="warm"] .tab-view, .yam-tab-panel {
+body.light .yam-tab-panel {
   background: var(--bg);
   box-shadow: var(--page-shadow);
 }
@@ -337,7 +337,7 @@ html[data-theme="warm"] { background: #e8d8e4 !important; }
   overflow: hidden;
 }
 
-[data-theme="warm"] .bottom-nav {
+body.light .bottom-nav {
   background: rgba(255,245,250,0.97) !important;
   box-shadow: 0 -4px 20px rgba(180,20,80,0.1);
 }
@@ -351,7 +351,7 @@ header {
   padding-bottom: 32px !important; /* espace pour que le radius soit visible */
 }
 
-[data-theme="warm"] header {
+body.light header {
   background: var(--page-bg) !important;
 }
 
@@ -371,7 +371,7 @@ header + div[style*="height:1px"] {
 /* ══════════════════════════════════════════════════════════
    17. TRANSITIONS entre onglets — slide + fade amélioré
 ══════════════════════════════════════════════════════════ */
-.tab-view, .yam-tab-panel:not(.active) {
+.yam-tab-panel:not(.active) {
   pointer-events: none;
 }
 
@@ -386,7 +386,7 @@ header + div[style*="height:1px"] {
     transform: translateY(0);
   }
 }
-.tab-view, .yam-tab-panel.active {
+.yam-tab-panel.active {
   animation: tabSlideUp 0.28s var(--ease) both;
 }
 
@@ -395,36 +395,36 @@ header + div[style*="height:1px"] {
    La palette rose/lie-de-vin de main.css est préservée,
    on améliore la hiérarchie des surfaces
 ══════════════════════════════════════════════════════════ */
-[data-theme="warm"] .tab-view, .yam-tab-panel {
+body.light .yam-tab-panel {
   background: #f7e6f0 !important;
 }
 
-[data-theme="warm"] .section,
-[data-theme="warm"] #memoCoupleSection,
-[data-theme="warm"] #postitsSection,
-[data-theme="warm"] #souvenirsSection,
-[data-theme="warm"] #activitesSection,
-[data-theme="warm"] #Books,
-[data-theme="warm"] #wheelSection,
-[data-theme="warm"] #luiSection,
-[data-theme="warm"] #loveSection {
+body.light .section,
+body.light #memoCoupleSection,
+body.light #postitsSection,
+body.light #souvenirsSection,
+body.light #activitesSection,
+body.light #Books,
+body.light #wheelSection,
+body.light #luiSection,
+body.light #loveSection {
   background: rgba(255,248,252,1) !important;
   border-color: rgba(200,24,94,0.12) !important;
   box-shadow: 0 2px 12px rgba(180,20,80,0.06);
 }
 
-[data-theme="warm"] .yam-mood-strip {
+body.light .yam-mood-strip {
   background: rgba(255,248,252,1) !important;
   border-color: rgba(200,24,94,0.12) !important;
 }
 
-[data-theme="warm"] .section-label,
-[data-theme="warm"] .ios-group-title {
+body.light .section-label,
+body.light .ios-group-title {
   color: rgba(30,5,18,0.45) !important;
 }
 
 /* Compteur en light */
-[data-theme="warm"] .counter-block {
+body.light .counter-block {
   background: rgba(255,248,252,1) !important;
   border-color: rgba(200,24,94,0.15) !important;
 }
@@ -464,17 +464,17 @@ header + div[style*="height:1px"] {
 
 /* Onglet Musique — sections */
 #loveSection,
-#view-musique > div, #yamMusiqueTab > div:not(#loveSection):not([id*="Overlay"]):not([id*="Modal"]):not([id*="Picker"]) {
+#yamMusiqueTab > div:not(#loveSection):not([id*="Overlay"]):not([id*="Modal"]):not([id*="Picker"]) {
   margin: 0 14px 14px;
 }
 
 /* Onglet Jeux — sections */
-#view-jeux > div, #yamJeuxTab > div:not([id*="Overlay"]):not([id*="Modal"]):not([id*="View"]) {
+#yamJeuxTab > div:not([id*="Overlay"]):not([id*="Modal"]):not([id*="View"]) {
   /* Le style de chaque section de jeux est géré par les jeux eux-mêmes */
 }
 
 /* Onglet Messages — pas de carte (plein écran) */
-#view-messages, #yamMessagesTab {
+#yamMessagesTab {
   border-radius: var(--page-radius) var(--page-radius) 0 0;
   background: var(--bg);
 }
@@ -483,13 +483,9 @@ header + div[style*="height:1px"] {
    22. POIGNÉE GRISE (pill indicator) — visible uniquement
    sur les premiers onglets, pas sur les overlays
 ══════════════════════════════════════════════════════════ */
-#view-home::before,
 #yamHomeTab::before,
-#view-nous::before,
 #yamNousTab::before,
-#view-musique::before,
 #yamMusiqueTab::before,
-#view-jeux::before,
 #yamJeuxTab::before {
   content: '';
   display: block;
@@ -501,7 +497,7 @@ header + div[style*="height:1px"] {
 }
 
 /* Pas de poignée sur Messages (plein écran) */
-#view-messages::before, #yamMessagesTab::before { display: none; }
+#yamMessagesTab::before { display: none; }
 
 /* ══════════════════════════════════════════════════════════
    23. ACTIVITÉ IA CARD — intégration dans la carte de section
