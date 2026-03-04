@@ -9,19 +9,25 @@
    Sur iPhone avec notch        : --safe-top ≈ 44px
    Sur iPhone sans notch        : --safe-top ≈ 20px
 ════════════════════════════════════════════ */
+:root {
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left:   env(safe-area-inset-left, 0px);
+  --safe-right:  env(safe-area-inset-right, 0px);
+  /* Hauteur réelle de la nav bar (64px) + home indicator */
+  --nav-height:  calc(64px + env(safe-area-inset-bottom, 0px));
+}
+
 /* ═══════════════════════════════════════════════════
    THÈME WARM (clair/chaleureux) — thème par défaut
    ═══════════════════════════════════════════════════ */
 :root,
 [data-theme="warm"] {
-  /* Fonds */
   --bg:           #f5f1ed;
   --bg2:          #ede6de;
   --bg3:          #e4dbd1;
   --body-bg:      #e2d9cf;
   --card:         #ffffff;
-
-  /* Couleurs principales */
   --peach:        #c97860;
   --peach-s:      #e8b09a;
   --sage:         #6e9484;
@@ -32,186 +38,72 @@
   --accent:       #e75a7c;
   --accent-s:     rgba(231,90,124,0.15);
   --violet:       #7c6af7;
-
-  /* Texte */
   --text:         #261a12;
   --text-soft:    rgba(38,26,18,0.5);
   --text-dim:     rgba(38,26,18,0.28);
-
-  /* Bords & ombres */
   --border:       rgba(160,120,90,0.13);
   --divider:      rgba(160,120,90,0.08);
   --sh-sm:        0 1px 3px rgba(100,60,30,0.04),0 1px 6px rgba(100,60,30,0.03);
   --sh-md:        0 2px 10px rgba(100,60,30,0.06);
   --sh-lg:        0 4px 20px rgba(100,60,30,0.08);
-
-  /* Spécifiques composants */
-  --phone-sh:     0 0 0 1px var(--border),0 40px 80px rgba(80,40,20,0.18),inset 0 1px 0 rgba(255,255,255,0.7);
   --tabbar-bg:    rgba(255,255,255,0.92);
   --notif-border: white;
-  --body-grad1:   rgba(201,120,96,0.07);
-  --body-grad2:   rgba(110,148,132,0.06);
   
-  /* Chat/Messages */
-  --msg-bubble:   #ffffff;
-  --msg-border:   rgba(201,120,96,0.15);
-  --peach-bg:     rgba(201,120,96,0.15);
-  --peach-border: rgba(201,120,96,0.3);
-  --msg-arrow:    #ffffff;
-  --chat-bubble-girl-bg: #fff5f8;
-  --chat-bubble-girl-b:  rgba(220,100,130,0.25);
-  --chat-bubble-girl-tip:#fff5f8;
-  --chat-bubble-boy-bg:  #f0f4ff;
-  --chat-bubble-boy-b:   rgba(80,150,210,0.25);
-  --chat-bubble-boy-tip: #f0f4ff;
-  
-  /* Mood/Avatars */
-  --mood-footer-girl:    linear-gradient(135deg, rgba(255,200,87,0.15), rgba(255,160,122,0.12));
-  --mood-footer-girl-b:  rgba(255,160,122,0.2);
-  --mood-footer-boy:     linear-gradient(135deg, rgba(110,148,132,0.12), rgba(168,196,186,0.1));
-  --mood-footer-boy-b:   rgba(110,148,132,0.2);
-  --mood-txt-girl:       var(--peach);
-  --mood-txt-boy:        var(--sage);
-  --mood-sep:            rgba(255,160,122,0.3);
-  --mood-sep-boy:        rgba(110,148,132,0.3);
-  --avatar-girl-border:  rgba(240,100,150,0.55);
-  --avatar-girl-glow:    rgba(240,100,150,0.3);
-  --avatar-boy-border:   rgba(70,140,220,0.55);
-  --avatar-boy-glow:     rgba(70,140,220,0.3);
-  
-  /* Beta badge */
-  --beta-bg:             #7c6af7;
-  --beta-color:          white;
-  --beta-border:         transparent;
-  
-  /* NEW badge */
-  --new-badge-bg:        linear-gradient(135deg,#ff6b6b,#ff8787);
-  --new-badge-color:     white;
-  --new-badge-sh:        0 2px 6px rgba(255,107,107,0.4);
-  
-  /* Transition smooth */
-  transition: background 0.4s ease;
+  /* Aliases pour compatibilité avec le code v1 existant */
+  --s1: var(--bg2);
+  --s2: var(--bg3);
+  --s3: var(--bg3);
+  --green: var(--sage);
+  --green2: var(--online-color);
+  --sub: var(--text-soft);
+  --muted: var(--text-dim);
+  --shadow: var(--sh-lg);
+  --radius: 18px;
 }
 
 /* ═══════════════════════════════════════════════════
-   THÈME DARK (sombre/minimaliste)
+   THÈME DARK — Mode sombre élégant
    ═══════════════════════════════════════════════════ */
 [data-theme="dark"] {
-  /* Fonds */
   --bg:           #121212;
-  --bg2:          #1e1e1e;
-  --bg3:          #2a2a2a;
-  --body-bg:      #0a0a0a;
+  --bg2:          #1a1a1a;
+  --bg3:          #242424;
+  --body-bg:      #0f0f0f;
   --card:         #1e1e1e;
-
-  /* Couleurs principales */
-  --peach:        #e0e0e0;
-  --peach-s:      #a8a8a8;
-  --sage:         #a8a8a8;
-  --sage-s:       #888888;
+  --peach:        rgba(240,240,240,0.9);
+  --peach-s:      rgba(240,240,240,0.6);
+  --sage:         rgba(240,240,240,0.85);
+  --sage-s:       rgba(240,240,240,0.5);
   --online-color: #3ecf8e;
   --online-glow:  rgba(62,207,142,0.4);
-  --sand:         #c0c0c0;
-  --accent:       rgba(240,240,240,0.7);
-  --accent-s:     rgba(255,255,255,0.06);
-  --violet:       rgba(255,255,255,0.08);
-
-  /* Texte */
-  --text:         #f0f0f0;
-  --text-soft:    rgba(240,240,240,0.5);
-  --text-dim:     rgba(240,240,240,0.28);
-
-  /* Bords & ombres */
+  --sand:         rgba(240,240,240,0.7);
+  --accent:       rgba(240,240,240,0.9);
+  --accent-s:     rgba(255,255,255,0.08);
+  --violet:       #9b8aff;
+  --text:         rgba(255,255,255,0.95);
+  --text-soft:    rgba(255,255,255,0.6);
+  --text-dim:     rgba(255,255,255,0.35);
   --border:       rgba(255,255,255,0.08);
-  --divider:      rgba(255,255,255,0.05);
-  --sh-sm:        0 1px 4px rgba(0,0,0,0.4);
-  --sh-md:        0 2px 12px rgba(0,0,0,0.5);
-  --sh-lg:        0 4px 24px rgba(0,0,0,0.6);
-
-  /* Spécifiques composants */
-  --phone-sh:     0 0 0 1px var(--border),0 40px 80px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.05);
-  --tabbar-bg:    rgba(18,18,18,0.97);
-  --notif-border: #121212;
-  --body-grad1:   rgba(255,255,255,0.02);
-  --body-grad2:   rgba(255,255,255,0.01);
+  --divider:      rgba(255,255,255,0.04);
+  --sh-sm:        0 2px 8px rgba(0,0,0,0.3),0 1px 3px rgba(0,0,0,0.2);
+  --sh-md:        0 4px 16px rgba(0,0,0,0.4);
+  --sh-lg:        0 8px 32px rgba(0,0,0,0.5);
+  --tabbar-bg:    rgba(24,24,24,0.92);
+  --notif-border: var(--bg);
   
-  /* Chat/Messages */
-  --msg-bubble:   #1e1e1e;
-  --msg-border:   rgba(255,255,255,0.08);
-  --peach-bg:     rgba(255,255,255,0.05);
-  --peach-border: rgba(255,255,255,0.1);
-  --msg-arrow:    #1e1e1e;
-  --chat-bubble-girl-bg: #1a1a1a;
-  --chat-bubble-girl-b:  rgba(255,255,255,0.08);
-  --chat-bubble-girl-tip:#1a1a1a;
-  --chat-bubble-boy-bg:  #1a1a1a;
-  --chat-bubble-boy-b:   rgba(255,255,255,0.08);
-  --chat-bubble-boy-tip: #1a1a1a;
-  
-  /* Mood/Avatars */
-  --mood-footer-girl:    rgba(255,255,255,0.03);
-  --mood-footer-girl-b:  rgba(255,255,255,0.08);
-  --mood-footer-boy:     rgba(255,255,255,0.03);
-  --mood-footer-boy-b:   rgba(255,255,255,0.08);
-  --mood-txt-girl:       var(--text-soft);
-  --mood-txt-boy:        var(--text-soft);
-  --mood-sep:            rgba(255,255,255,0.08);
-  --mood-sep-boy:        rgba(255,255,255,0.08);
-  --avatar-girl-border:  rgba(255,255,255,0.15);
-  --avatar-girl-glow:    rgba(255,255,255,0.05);
-  --avatar-boy-border:   rgba(255,255,255,0.15);
-  --avatar-boy-glow:     rgba(255,255,255,0.05);
-  
-  /* Beta badge */
-  --beta-bg:             rgba(255,255,255,0.08);
-  --beta-color:          var(--text-soft);
-  --beta-border:         rgba(255,255,255,0.1);
-  
-  /* NEW badge */
-  --new-badge-bg:        rgba(255,107,107,0.2);
-  --new-badge-color:     #ff8787;
-  --new-badge-sh:        0 2px 6px rgba(255,107,107,0.2);
-  
-  /* Transition smooth */
-  transition: background 0.4s ease;
+  /* Aliases pour compatibilité avec le code v1 existant */
+  --s1: var(--bg2);
+  --s2: var(--bg3);
+  --s3: var(--bg3);
+  --green: var(--sage);
+  --green2: var(--online-color);
+  --sub: var(--text-soft);
+  --muted: var(--text-dim);
+  --shadow: var(--sh-lg);
+  --radius: 18px;
 }
 
-/* Transition douce au changement de thème */
-html { transition: background 0.4s ease; }
-body, .card, .btn { transition: background 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease; }
-
-
-
-:root {
-  --bg:      #121212;
-  --s1:      #181818;
-  --s2:      #242424;
-  --s3:      #2a2a2a;
-  --text:    #ffffff;
-  --sub:     #b3b3b3;
-  --muted:   #6a6a6a;
-  --green:   #00c9a7;
-  --green2:  #00e5bd;
-  --border:  rgba(255,255,255,0.07);
-  --shadow:  0 8px 32px rgba(0,0,0,0.45);
-  --radius:  10px;
-}
-html.light {
-  background: #f9e8f0;
-}
-body.light {
-  --bg:     #f9e8f0;
-  --s1:     #fff5f8;
-  --s2:     #fde0ec;
-  --s3:     #fad0e2;
-  --text:   #1e0510;
-  --sub:    #6b2040;
-  --muted:  #b06080;
-  --green:  #c8185e;
-  --green2: #e0286e;
-  --border: rgba(200,24,94,0.18);
-  --shadow: 0 8px 32px rgba(180,20,80,0.16);
-}
+/* Suppression de html.light et body.light (remplacés par [data-theme]) */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html {
   scroll-behavior: smooth;
@@ -222,7 +114,8 @@ html {
   overscroll-behavior-y: none !important;
   /* La safe zone iOS affiche le background de html avant tout autre rendu.
      Cette couleur doit toujours correspondre au theme actif. */
-  background: #121212;
+  background: var(--bg);
+  transition: background 0.4s ease;
 }
 body { overscroll-behavior: none !important; overscroll-behavior-y: none !important; -webkit-overflow-scrolling: touch; touch-action: manipulation; }
 /* touch-action:manipulation autorise tap/scroll sans bloquer la sélection de texte.
@@ -5342,3 +5235,20 @@ body.light #counterBlock.glowing .c-num-big {
   will-change: transform, opacity;
 }
 </style>
+
+/* ═══════════════════════════════════════════════════
+   FIX NAVBAR iOS — Position sticky
+   ═══════════════════════════════════════════════════ */
+#yamTabbar {
+  position: sticky !important;
+  bottom: 0;
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.yam-tab {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
