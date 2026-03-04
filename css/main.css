@@ -4767,6 +4767,8 @@ body.anniv-mode .counter-block-top {
   overflow: hidden;
   flex-shrink: 0;
 }
+/* Cacher l'emoji humeur sur la bulle avatar du header */
+#profileAvatar #profileMoodSelf { display: none !important; }
 #profileAvatar.neutral { animation: avatarPulse 3s ease-in-out infinite; }
 @keyframes avatarPulse {
   0%,100% { border-color: rgba(91,156,246,0.3); }
@@ -4983,7 +4985,7 @@ body.light #profileMoodOther.mood-highlight-boy {
 
 #profilePopup {
   position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) + 44px + 8px); right: 64px;
+  top: calc(env(safe-area-inset-top, 0px) + 58px); right: 12px;
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: 12px;
