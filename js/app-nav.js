@@ -6,11 +6,11 @@
 ══════════════════════════════════════════ */
 (function(){
   var TAB_MAP = {
-    home:    { panel: 'view-home',     nav: 'tab-home' },
-    messages:{ panel: 'view-messages', nav: 'tab-messages' },
-    jeux:    { panel: 'view-jeux',     nav: 'tab-jeux' },
-    musique: { panel: 'view-musique',  nav: 'tab-musique' },
-    nous:    { panel: 'view-nous',     nav: 'tab-nous' }
+    home:    { panel: 'yamHomeTab',     nav: 'navHome' },
+    messages:{ panel: 'yamMessagesTab', nav: 'navMessages' },
+    jeux:    { panel: 'yamJeuxTab',     nav: 'navJeux' },
+    musique: { panel: 'yamMusiqueTab',  nav: 'navMusique' },
+    nous:    { panel: 'yamNousTab',     nav: 'navNous' }
   };
   var _currentTab = 'home';
 
@@ -25,7 +25,7 @@
         if(el) el.classList.remove('active');
       }
       var nav = document.getElementById(t.nav);
-      if(nav) nav.classList.toggle('active', key === tab); nav.classList.toggle('nav-active', key === tab);
+      if(nav) nav.classList.toggle('nav-active', key === tab);
     });
 
     // Désactiver temporairement scroll-behavior:smooth pour que scrollTo(0,0)
@@ -109,7 +109,7 @@
     }
 
     // Icône musique dansante : active si musique joue + pas sur onglet musique
-    var navMus = document.getElementById('tab-musique');
+    var navMus = document.getElementById('navMusique');
     if(navMus){
       navMus.classList.toggle('music-playing', musicPlaying && tab !== 'musique');
     }
@@ -125,7 +125,7 @@
     }
 
     // Cœur doré : retiré quand on entre dans "nous", restauré si événement actif quand on en sort
-    var navNous2 = document.getElementById('tab-nous');
+    var navNous2 = document.getElementById('navNous');
     if(navNous2){
       if(tab === 'nous'){
         navNous2.classList.remove('event-active');
@@ -140,16 +140,16 @@
 
   // When hiddenPage closes, restore messages tab as active
   document.addEventListener('hiddenPageClosed', function() {
-    var navMsgEl = document.getElementById('tab-messages');
-    if(navMsgEl) navMsgEl.classList.add('nav-active'); navMsgEl.classList.add('active');
-    var msgPanel = document.getElementById('view-messages');
+    var navMsgEl = document.getElementById('navMessages');
+    if(navMsgEl) navMsgEl.classList.add('nav-active');
+    var msgPanel = document.getElementById('yamMessagesTab');
     if(msgPanel) msgPanel.classList.add('active');
     // Hide all other panels
-    ['view-home','view-jeux','view-musique','view-nous'].forEach(function(id){
+    ['yamHomeTab','yamJeuxTab','yamMusiqueTab','yamNousTab'].forEach(function(id){
       var el = document.getElementById(id);
       if(el) el.classList.remove('active');
       var key = Object.keys(TAB_MAP).find(function(k){ return TAB_MAP[k].panel === id; });
-      if(key){ var nav = document.getElementById(TAB_MAP[key].nav); if(nav) nav.classList.remove('nav-active'); nav.classList.remove('active'); }
+      if(key){ var nav = document.getElementById(TAB_MAP[key].nav); if(nav) nav.classList.remove('nav-active'); }
     });
     _currentTab = 'messages';
   });
@@ -201,7 +201,7 @@
   // Badge non-lus sur l'icône Messages dans la nav
   var _origLockNavBtn = document.getElementById('lockNavBtn');
   function _syncNavMsgUnread(){
-    var navMsg = document.getElementById('tab-messages');
+    var navMsg = document.getElementById('navMessages');
     if(!navMsg) return;
     var hasUnread = _origLockNavBtn && _origLockNavBtn.classList.contains('has-unread');
     navMsg.classList.toggle('has-unread', !!hasUnread);
@@ -266,7 +266,7 @@
   var storyHeart   = document.getElementById('storyHeart');
 
   function applyState() {
-    var navNous = document.getElementById('tab-nous');
+    var navNous = document.getElementById('navNous');
     if (isInVideoWindow()) {
       // Cacher la timeline, montrer la vidéo en boucle
       tlContent.style.display  = 'none';
@@ -396,7 +396,7 @@ function HP(){this.reset();}
 // Particules réduites pour perf iPhone — max 20, opacité douce, vitesse modérée
 HP.prototype.reset=function(){this.x=Math.random()*canvas.width;this.y=canvas.height+30;this.sz=Math.random()*5+2;this.vy=Math.random()*0.7+0.4;this.vx=(Math.random()-.5)*.35;this.a=Math.random()*.28+.18;};
 HP.prototype.update=function(){this.y-=this.vy;this.x+=this.vx;this.a-=.0015;if(this.y<-10||this.a<=0)this.reset();};
-HP.prototype.draw=function(){var col=document.documentElement.getAttribute('data-theme') === 'warm'?'rgba(200,24,94,'+this.a+')':'rgba(0,201,167,'+this.a+')';ctx.save();ctx.translate(this.x,this.y);ctx.beginPath();var t=this.sz*.3;ctx.moveTo(0,t);ctx.bezierCurveTo(0,0,-this.sz/2,0,-this.sz/2,t);ctx.bezierCurveTo(-this.sz/2,this.sz/2,0,this.sz*.75,0,this.sz);ctx.bezierCurveTo(0,this.sz*.75,this.sz/2,this.sz/2,this.sz/2,t);ctx.bezierCurveTo(this.sz/2,0,0,0,0,t);ctx.fillStyle=col;ctx.fill();ctx.restore();};
+HP.prototype.draw=function(){var col=document.body.classList.contains('light')?'rgba(200,24,94,'+this.a+')':'rgba(0,201,167,'+this.a+')';ctx.save();ctx.translate(this.x,this.y);ctx.beginPath();var t=this.sz*.3;ctx.moveTo(0,t);ctx.bezierCurveTo(0,0,-this.sz/2,0,-this.sz/2,t);ctx.bezierCurveTo(-this.sz/2,this.sz/2,0,this.sz*.75,0,this.sz);ctx.bezierCurveTo(0,this.sz*.75,this.sz/2,this.sz/2,this.sz/2,t);ctx.bezierCurveTo(this.sz/2,0,0,0,0,t);ctx.fillStyle=col;ctx.fill();ctx.restore();};
 window._animPStopped = false;
 function animP(){if(window._animPStopped)return;ctx.clearRect(0,0,canvas.width,canvas.height);if(particleActive){if(particles.length<70)particles.push(new HP());particles.forEach(function(p){p.update();p.draw();});}requestAnimationFrame(animP);}
 // Ne pas démarrer animP ici — Perf v3 gère le RAF
@@ -741,12 +741,12 @@ function _yamSlide(incoming, outgoing, dir){
 
 function openGames(){
   resetZoom();
-  _yamSlide(document.getElementById('gamesView'), document.getElementById('view-jeux'), 'forward');
+  _yamSlide(document.getElementById('gamesView'), document.getElementById('yamJeuxTab'), 'forward');
   particleActive=false;hideDance();
 }
 function closeGames(){
   _yamSlide(null, document.getElementById('gamesView'), 'backward');
-  document.getElementById('view-jeux').classList.add('active');
+  document.getElementById('yamJeuxTab').classList.add('active');
 }
 function openMemoryGame(){
   _loadGames();
