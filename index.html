@@ -294,11 +294,16 @@
     font-family: 'Bricolage Grotesque', sans-serif;
     background: var(--bg);
     color: var(--text);
-    min-height: 100vh;
-    min-height: 100dvh;
+    /* position:fixed + inset:0 est la bonne approche iOS,
+       mais on force la hauteur a 100dvh pour coller au viewport dynamique */
+    height: 100dvh;
+    width: 100%;
     overflow: hidden;
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
   }
 
   /* Inputs — fix iOS zoom */
@@ -314,8 +319,9 @@
   /* ─── App Shell ─── */
   #yamApp {
     width: 100%;
+    /* On utilise 100% (pas 100dvh) car body est deja fixed+inset:0.
+       Evite le double calcul qui decale la tabbar sur iOS Safari */
     height: 100%;
-    height: 100dvh;
     display: flex;
     flex-direction: column;
     background: var(--bg);
@@ -483,7 +489,11 @@
     flex-shrink: 0;
     padding: 8px 0 calc(env(safe-area-inset-bottom, 0px) + 12px);
     z-index: 100;
-    position: relative;
+    /* Fix decalage iOS Safari : sticky + bottom:0 empeche
+       le visualViewport resize de la deplacer indefiniment */
+    position: sticky;
+    bottom: 0;
+    transform: translateZ(0);
   }
 
   .yam-tab {
