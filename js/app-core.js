@@ -340,71 +340,114 @@ function updateCounter() {
 
 // ── THEME ── (version consolidée — R3 : persistence localStorage + home btn + haptic)
 function applyThemeToggle() {
-  document.body.classList.toggle('light');
-  var isLight = document.body.classList.contains('light');
-  document.documentElement.classList.toggle('light', isLight);
-  // Met à jour la couleur de la safe zone iOS instantanément
+  // ── v2 : data-theme sur <html> au lieu de body.classList ──
+  var html = document.documentElement;
+  var currentTheme = html.getAttribute('data-theme') || 'dark';
+  var isWarm = currentTheme !== 'warm';
+  var newTheme = isWarm ? 'warm' : 'dark';
+
+  html.setAttribute('data-theme', newTheme);
+
+  // Compat v1 — certains sélecteurs CSS utilisent encore body.light / html.light
+  document.body.classList.toggle('light', isWarm);
+  html.classList.toggle('light', isWarm);
+
+  // Met à jour theme-color iOS (barre de statut)
   var themeMeta = document.getElementById('themeColorMeta');
-  if(themeMeta) themeMeta.setAttribute('content', isLight ? '#f9e8f0' : '#121212');
+  if(themeMeta) themeMeta.setAttribute('content', isWarm ? '#f5f1ed' : '#121212');
+
   // Persistance
-  localStorage.setItem('jayana_theme', isLight ? 'light' : 'dark');
-  // Labels boutons principaux
-  document.getElementById('themeToggle').textContent = isLight ? '🌙' : '☀️';
-  document.getElementById('floatingThemeBtn').textContent = isLight ? '🌙' : '☀️';
-  // Bouton home tab - pas de textContent, uniquement SVG
-  // Les icônes Moon/Sun sont déjà gérées ci-dessous
-  // Sync icônes lune/soleil dans Quiz, Jeux, sous-jeux et Bêtises
+  localStorage.setItem('jayana_theme', isWarm ? 'warm' : 'dark');
+
+  // Icônes Moon/Sun dans les boutons thème
   ['qz','gv','dm','pm','home'].forEach(function(prefix){
     var moon = document.getElementById(prefix+'ThemeIconMoon');
     var sun  = document.getElementById(prefix+'ThemeIconSun');
-    if(moon) moon.style.display = isLight ? 'none' : '';
-    if(sun)  sun.style.display  = isLight ? ''     : 'none';
+    if(moon) moon.style.display = isWarm ? 'none' : '';
+    if(sun)  sun.style.display  = isWarm ? ''     : 'none';
   });
   document.querySelectorAll('.game-view-header .dm-topbar-theme svg').forEach(function(svg, i){
-    if(i % 2 === 0) svg.style.display = isLight ? 'none' : ''; // lune
-    else            svg.style.display = isLight ? ''     : 'none'; // soleil
+    if(i % 2 === 0) svg.style.display = isWarm ? 'none' : '';
+    else            svg.style.display = isWarm ? ''     : 'none';
   });
-  // Haptic (si disponible — défini dans app-nav.js)
-  if(typeof haptic === 'function') haptic('light');
-  // Sync icône lune/soleil du bouton thème sur l'écran de connexion
+
+  // Icône du bouton thème principal (themeToggleBtn dans le header v2)
+  var toggleBtn = document.getElementById('themeToggleBtn') || document.getElementById('themeToggle');
+  if(toggleBtn){
+    var moonPath = toggleBtn.querySelector('path');
+    if(moonPath){
+      // Soleil quand dark, lune quand warm
+      if(isWarm){
+        // Afficher lune
+        moonPath.setAttribute('d','M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z');
+      } else {
+        // Afficher soleil
+        toggleBtn.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+      }
+    }
+  }
+  // Compat ancien bouton texte
+  var floatBtn = document.getElementById('floatingThemeBtn');
+  if(floatBtn) floatBtn.textContent = isWarm ? '🌙' : '☀️';
+  var oldToggle = document.getElementById('themeToggle');
+  if(oldToggle && oldToggle.textContent) oldToggle.textContent = isWarm ? '🌙' : '☀️';
+
+  // Sync icône login
   var _v2Moon = document.getElementById('v2LoginIconMoon');
   var _v2Sun  = document.getElementById('v2LoginIconSun');
-  if(_v2Moon) _v2Moon.style.display = isLight ? 'none' : '';
-  if(_v2Sun)  _v2Sun.style.display  = isLight ? ''     : 'none';
+  if(_v2Moon) _v2Moon.style.display = isWarm ? 'none' : '';
+  if(_v2Sun)  _v2Sun.style.display  = isWarm ? ''     : 'none';
+
+  // Haptic
+  if(typeof haptic === 'function') haptic('light');
 }
 
-// ── Restauration du thème au chargement ──
+// ── Restauration du thème au chargement (v2) ──
 (function(){
   var saved = localStorage.getItem('jayana_theme');
-  if(saved === 'light' && !document.body.classList.contains('light')){
-    document.body.classList.add('light');
-    document.documentElement.classList.add('light');
-    // Corrige la safe zone dès le chargement sans attendre le DOM
-    var themeMeta = document.getElementById('themeColorMeta');
-    if(themeMeta) themeMeta.setAttribute('content', '#f9e8f0');
-    document.addEventListener('DOMContentLoaded', function(){
+  // Support ancien format 'light' + nouveau format 'warm'
+  var isWarm = (saved === 'light' || saved === 'warm');
+  var html = document.documentElement;
+
+  // Appliquer data-theme immédiatement (avant premier paint)
+  html.setAttribute('data-theme', isWarm ? 'warm' : 'dark');
+
+  // Compat v1
+  if(isWarm){
+    html.classList.add('light');
+    document.body && document.body.classList.add('light');
+  }
+
+  // Normaliser le localStorage vers le nouveau format
+  if(saved === 'light') localStorage.setItem('jayana_theme', 'warm');
+
+  document.addEventListener('DOMContentLoaded', function(){
+    if(isWarm){
+      // Boutons texte compat
       var btn = document.getElementById('themeToggle');
-      if(btn) btn.textContent = '🌙';
+      if(btn && btn.textContent) btn.textContent = '🌙';
       var fBtn = document.getElementById('floatingThemeBtn');
       if(fBtn) fBtn.textContent = '🌙';
-      // themeToggleHome utilise uniquement SVG, pas de textContent nécessaire
+      // Icônes Moon/Sun
       ['qz','gv','dm','pm','home'].forEach(function(prefix){
         var moon = document.getElementById(prefix+'ThemeIconMoon');
         var sun  = document.getElementById(prefix+'ThemeIconSun');
         if(moon) moon.style.display = 'none';
         if(sun)  sun.style.display  = '';
       });
-      // Sync icône bouton thème login (thème clair au démarrage → soleil visible)
       var _v2Moon = document.getElementById('v2LoginIconMoon');
       var _v2Sun  = document.getElementById('v2LoginIconSun');
       if(_v2Moon) _v2Moon.style.display = 'none';
       if(_v2Sun)  _v2Sun.style.display  = '';
-    });
-  }
+    }
+  });
 })();
 
-document.getElementById('themeToggle').addEventListener('click', applyThemeToggle);
-document.getElementById('floatingThemeBtn').addEventListener('click', applyThemeToggle);
+// Listener thème — supporte nouveau ID (themeToggleBtn) + anciens IDs
+['themeToggleBtn','themeToggle','floatingThemeBtn'].forEach(function(id){
+  var el = document.getElementById(id);
+  if(el) el.addEventListener('click', applyThemeToggle);
+});
 
 // Injecter le bouton thème dans les headers des sous-jeux
 (function(){
