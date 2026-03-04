@@ -1512,28 +1512,36 @@ body.nous-active #yamStickyAvatarSelf {
   <div class="home-ideas-grid fade-in">
     <div class="home-idea-card" title="Bientôt disponible">
       <div class="home-idea-icon" style="background:linear-gradient(135deg,#ffb3c6,#e75a7c);">🎁</div>
-      <div class="home-idea-name">Idée cadeau</div>
-      <div class="home-idea-sub">Personnalisée</div>
+      <div class="home-idea-footer">
+        <div class="home-idea-name">Idée cadeau</div>
+        <div class="home-idea-sub">Personnalisée</div>
+      </div>
     </div>
     <div class="home-idea-card" title="Bientôt disponible">
       <div class="home-idea-icon" style="background:linear-gradient(135deg,#a8edea,#6e9484);">🕯️</div>
-      <div class="home-idea-name">Date night</div>
-      <div class="home-idea-sub">Ce week-end</div>
+      <div class="home-idea-footer">
+        <div class="home-idea-name">Date night</div>
+        <div class="home-idea-sub">Ce week-end</div>
+      </div>
     </div>
     <div class="home-idea-card" title="Bientôt disponible">
       <div class="home-idea-icon" style="background:linear-gradient(135deg,#ffd89b,#c97860);">💝</div>
-      <div class="home-idea-name">Capsule</div>
-      <div class="home-idea-sub">Dans 1 an</div>
+      <div class="home-idea-footer">
+        <div class="home-idea-name">Capsule</div>
+        <div class="home-idea-sub">Dans 1 an</div>
+      </div>
     </div>
     <div class="home-idea-card" title="Bientôt disponible">
       <div class="home-idea-icon" style="background:linear-gradient(135deg,#c9a8f5,#7c6af7);">🎵</div>
-      <div class="home-idea-name">Playlist</div>
-      <div class="home-idea-sub">Du jour</div>
+      <div class="home-idea-footer">
+        <div class="home-idea-name">Playlist</div>
+        <div class="home-idea-sub">Du jour</div>
+      </div>
     </div>
   </div>
 
-  <!-- Espace bas -->
-  <div style="height:24px;"></div>
+  <!-- Espace bas minimal -->
+  <div style="height:8px;"></div>
 
 </div><!-- /yamHomeTab -->
 
@@ -4461,45 +4469,67 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 /* ── 1. Mascotte + Message du jour ── */
 .home-mascot-row {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px 0;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 18px 16px 0;
 }
 .home-mascot-wrap {
   flex-shrink: 0;
-  width: 56px; height: 56px;
+  width: 76px; height: 76px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(201,120,96,0.15), rgba(124,106,247,0.15));
-  border: 2px solid rgba(201,120,96,0.2);
+  background: linear-gradient(135deg, rgba(201,120,96,0.18), rgba(124,106,247,0.18));
+  border: 2.5px solid rgba(201,120,96,0.25);
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 3px 12px rgba(201,120,96,0.12);
+  box-shadow: 0 6px 20px rgba(201,120,96,0.18), 0 2px 6px rgba(201,120,96,0.1);
   animation: yamFloat 3s ease-in-out infinite;
   overflow: hidden;
+  position: relative;
 }
 @keyframes yamFloat {
   0%,100% { transform: translateY(0); }
-  50%      { transform: translateY(-4px); }
+  50%      { transform: translateY(-5px); }
 }
 .home-mascot-wrap img {
-  width: 48px; height: 48px; object-fit: contain;
+  width: 64px; height: 64px; object-fit: contain;
 }
+/* Vraie bulle de dialogue avec pointeur vers la gauche (vers la mascotte) */
 .home-msg-bubble {
   flex: 1;
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 14px 14px 14px 4px;
-  padding: 9px 12px;
+  border-radius: 16px 16px 16px 4px;
+  padding: 11px 13px;
   box-shadow: var(--sh-sm);
+  position: relative;
+  margin-bottom: 6px;
+}
+.home-msg-bubble::before {
+  content: '';
+  position: absolute;
+  bottom: 12px; left: -8px;
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 7px 9px 7px 0;
+  border-color: transparent var(--border) transparent transparent;
+}
+.home-msg-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: 13px; left: -6px;
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 6px 8px 6px 0;
+  border-color: transparent var(--s1) transparent transparent;
 }
 .home-msg-label {
   font-size: 8px; font-weight: 800;
   color: var(--green);
   text-transform: uppercase; letter-spacing: 1.6px;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
 .home-msg-text {
-  font-size: 12px; color: var(--text);
-  line-height: 1.45; font-weight: 500;
+  font-size: 13px; color: var(--text);
+  line-height: 1.5; font-weight: 500;
 }
 
 /* ── 2. Compteur + Events/Boutique ── */
@@ -4507,7 +4537,7 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px 0;
+  padding: 14px 16px 0;
 }
 .home-counter-block {
   flex: 1;
@@ -4518,7 +4548,7 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   font-size: 8px; font-weight: 800;
   color: var(--muted);
   text-transform: uppercase; letter-spacing: 1.6px;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
 .home-counter-nums {
   display: flex; align-items: flex-end; gap: 0;
@@ -4527,7 +4557,7 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   display: flex; flex-direction: column; align-items: flex-start; flex: none;
 }
 .home-c-num {
-  font-size: 20px; font-weight: 800;
+  font-size: 22px; font-weight: 800;
   color: var(--text);
   font-variant-numeric: tabular-nums; line-height: 1;
   letter-spacing: -0.5px;
@@ -4538,10 +4568,10 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   padding-left: 1px;
 }
 .home-c-sep {
-  font-size: 16px; font-weight: 700;
+  font-size: 18px; font-weight: 700;
   color: var(--muted); opacity: 0.35;
   line-height: 1; align-self: flex-start;
-  margin: 0 1px 10px;
+  margin: 0 1px 12px;
   flex-shrink: 0;
 }
 .home-feature-btns {
@@ -4578,12 +4608,12 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 .home-section-title {
   font-size: 13px; font-weight: 800;
   color: var(--text);
-  padding: 10px 14px 6px;
+  padding: 12px 16px 6px;
   letter-spacing: -0.1px;
 }
 .home-section-titlebar {
   display: flex; align-items: center; gap: 7px;
-  padding: 10px 14px 6px;
+  padding: 12px 16px 6px;
 }
 .home-beta-badge {
   background: #7c6af7; color: #fff;
@@ -4593,7 +4623,7 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 }
 .home-mood-row {
   display: flex; gap: 8px;
-  padding: 0 14px;
+  padding: 0 16px;
 }
 .home-mood-card {
   flex: 1;
@@ -4648,7 +4678,7 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   transition: background 0.15s, color 0.15s;
 }
 .home-mood-edit-btn:hover { background: var(--s3); color: var(--text); }
-.home-mood-body { min-height: 24px; }
+.home-mood-body { min-height: 22px; }
 .home-mood-quote {
   font-size: 11px; color: var(--sub);
   font-style: italic; line-height: 1.4;
@@ -4657,7 +4687,7 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 .home-mood-footer {
   display: flex; align-items: center; gap: 5px;
   border-top: 1px solid var(--border);
-  padding-top: 6px; margin-top: 0;
+  padding-top: 5px; margin-top: 0;
 }
 .home-mood-emoji { font-size: 13px; line-height: 1; }
 .home-mood-emoji-label {
@@ -4674,10 +4704,10 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 }
 .home-mood-heart-icon { font-size: 11px; color: #e75a7c; }
 
-/* ── 4. Rappel du jour ── */
+/* ── 4. Rappel du jour — compact ── */
 .home-rappel-row {
   display: flex; gap: 8px;
-  padding: 0 14px;
+  padding: 0 16px;
   align-items: stretch;
 }
 .home-rappel-card {
@@ -4685,47 +4715,50 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   background: linear-gradient(145deg, rgba(231,90,124,0.07), rgba(201,120,96,0.05));
   border: 1px solid rgba(231,90,124,0.18);
   border-radius: 14px;
-  padding: 10px;
-  display: flex; flex-direction: column; gap: 7px;
+  padding: 8px 10px;
+  display: flex; flex-direction: column; gap: 5px;
+  max-width: calc(100% - 84px); /* laisse place au spam */
 }
 .home-rappel-badge {
-  font-size: 8px; font-weight: 800;
+  font-size: 7px; font-weight: 800;
   color: #e75a7c;
   text-transform: uppercase; letter-spacing: 1.3px;
 }
 .home-rappel-text {
-  font-size: 12px; font-weight: 600;
-  color: var(--text); line-height: 1.35;
+  font-size: 11px; font-weight: 600;
+  color: var(--text); line-height: 1.3;
 }
 .home-rappel-actions {
-  display: flex; gap: 6px;
+  display: flex; gap: 5px;
 }
 .home-rappel-done {
-  flex: 1; padding: 7px 6px;
+  flex: 1; padding: 5px 4px;
   background: #e75a7c; color: #fff;
-  font-size: 11px; font-weight: 700;
+  font-size: 10px; font-weight: 700;
   font-family: 'Bricolage Grotesque', sans-serif;
-  border: none; border-radius: 8px; cursor: pointer;
+  border: none; border-radius: 7px; cursor: pointer;
   transition: opacity 0.15s, transform 0.1s;
+  white-space: nowrap;
 }
 .home-rappel-done:active { transform: scale(0.97); opacity: 0.85; }
 .home-rappel-later {
-  flex: 1; padding: 7px 6px;
+  flex: 1; padding: 5px 4px;
   background: var(--s2); color: var(--sub);
-  font-size: 11px; font-weight: 600;
+  font-size: 10px; font-weight: 600;
   font-family: 'Bricolage Grotesque', sans-serif;
-  border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 7px; cursor: pointer;
   transition: background 0.15s;
+  white-space: nowrap;
 }
 .home-rappel-later:hover { background: var(--s3); }
 .home-rappel-nav {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
 }
 .home-rappel-nav-btn {
-  width: 22px; height: 22px;
+  width: 20px; height: 20px;
   background: var(--s2); border: 1px solid var(--border);
   border-radius: 50%; color: var(--sub);
-  font-size: 12px; cursor: pointer;
+  font-size: 11px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   font-family: 'Bricolage Grotesque', sans-serif;
   transition: background 0.15s;
@@ -4735,16 +4768,15 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   font-size: 10px; font-weight: 700; color: var(--muted);
 }
 
-/* Spam coeurs */
+/* Spam coeurs — plus joli, sans cadre dur */
 .home-spam-block {
-  width: 76px; flex-shrink: 0;
-  background: var(--s1);
-  border: 1px solid var(--border);
+  width: 72px; flex-shrink: 0;
+  background: transparent;
+  border: none;
   border-radius: 14px;
-  padding: 9px 6px;
+  padding: 4px 4px 6px;
   display: flex; flex-direction: column;
-  align-items: center; gap: 6px;
-  box-shadow: var(--sh-sm);
+  align-items: center; gap: 5px;
 }
 .home-spam-label {
   font-size: 7px; font-weight: 800;
@@ -4752,19 +4784,30 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   letter-spacing: 0.8px; text-align: center;
 }
 .home-spam-heart-wrap {
-  width: 42px; height: 42px;
+  width: 52px; height: 52px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(231,90,124,0.14), rgba(255,150,180,0.09));
-  border: 1.5px solid rgba(231,90,124,0.3);
+  background: radial-gradient(circle at 35% 35%, #ff8fab, #e75a7c 55%, #c0003c);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
-  transition: transform 0.12s, box-shadow 0.15s;
-  box-shadow: 0 3px 10px rgba(231,90,124,0.12);
+  transition: transform 0.12s, box-shadow 0.2s;
+  box-shadow: 0 4px 18px rgba(231,90,124,0.45), 0 1px 4px rgba(231,90,124,0.3), inset 0 -3px 8px rgba(0,0,0,0.15), inset 0 2px 4px rgba(255,200,210,0.3);
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+  position: relative;
 }
-.home-spam-heart-wrap:active { transform: scale(0.88); }
-.home-spam-heart-emoji { font-size: 22px; line-height: 1; pointer-events: none; }
+/* Petit reflet */
+.home-spam-heart-wrap::before {
+  content: '';
+  position: absolute;
+  top: 10px; left: 13px;
+  width: 12px; height: 7px;
+  background: rgba(255,255,255,0.35);
+  border-radius: 50%;
+  transform: rotate(-30deg);
+  pointer-events: none;
+}
+.home-spam-heart-wrap:active { transform: scale(0.85); box-shadow: 0 2px 10px rgba(231,90,124,0.35); }
+.home-spam-heart-emoji { font-size: 26px; line-height: 1; pointer-events: none; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2)); }
 .home-spam-count {
   font-size: 11px; font-weight: 800;
   color: #e75a7c;
@@ -4781,37 +4824,48 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   transition: width 0.3s ease;
 }
 
-/* ── 5. Idées & Surprises ── */
+/* ── 5. Idées & Surprises — pochettes style ── */
 .home-ideas-grid {
   display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  padding: 0 14px;
+  gap: 7px;
+  padding: 0 16px;
 }
 .home-idea-card {
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 13px;
-  padding: 9px 4px 8px;
+  border-radius: 14px;
+  overflow: hidden;
   display: flex; flex-direction: column;
-  align-items: center; gap: 5px;
+  align-items: stretch;
   cursor: default;
   box-shadow: var(--sh-sm);
+  position: relative;
 }
 .home-idea-icon {
-  width: 36px; height: 36px;
-  border-radius: 10px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
   display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+  font-size: 22px;
+  border-radius: 0;
+  flex-shrink: 0;
+}
+/* Bandeau en bas de la pochette */
+.home-idea-footer {
+  padding: 5px 5px 6px;
+  background: var(--s1);
+  border-top: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  align-items: flex-start; gap: 1px;
 }
 .home-idea-name {
-  font-size: 10px; font-weight: 700;
-  color: var(--text); text-align: center;
+  font-size: 9px; font-weight: 700;
+  color: var(--text);
   line-height: 1.2;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  width: 100%;
 }
 .home-idea-sub {
-  font-size: 9px; color: var(--muted);
-  text-align: center;
+  font-size: 8px; color: var(--muted);
 }
 </style>
 
