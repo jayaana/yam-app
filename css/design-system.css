@@ -348,7 +348,7 @@ body.light .bottom-nav {
 ══════════════════════════════════════════════════════════ */
 header {
   background: var(--page-bg) !important;
-  padding-bottom: 32px !important; /* espace pour que le radius soit visible */
+  padding-bottom: 8px !important; /* nouveau header compact */
 }
 
 body.light header {
