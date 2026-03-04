@@ -4461,68 +4461,64 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 /* ── 1. Mascotte + Message du jour ── */
 .home-mascot-row {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 16px 16px 0;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px 0;
 }
 .home-mascot-wrap {
   flex-shrink: 0;
-  width: 72px; height: 72px;
+  width: 56px; height: 56px;
   border-radius: 50%;
   background: linear-gradient(135deg, rgba(201,120,96,0.15), rgba(124,106,247,0.15));
   border: 2px solid rgba(201,120,96,0.2);
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 20px rgba(201,120,96,0.15);
+  box-shadow: 0 3px 12px rgba(201,120,96,0.12);
   animation: yamFloat 3s ease-in-out infinite;
   overflow: hidden;
 }
 @keyframes yamFloat {
   0%,100% { transform: translateY(0); }
-  50%      { transform: translateY(-6px); }
+  50%      { transform: translateY(-4px); }
 }
 .home-mascot-wrap img {
-  width: 62px; height: 62px; object-fit: contain;
+  width: 48px; height: 48px; object-fit: contain;
 }
 .home-msg-bubble {
   flex: 1;
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 18px 18px 18px 4px;
-  padding: 12px 14px;
+  border-radius: 14px 14px 14px 4px;
+  padding: 9px 12px;
   box-shadow: var(--sh-sm);
-  position: relative;
 }
 .home-msg-label {
-  font-size: 9px; font-weight: 800;
+  font-size: 8px; font-weight: 800;
   color: var(--green);
-  text-transform: uppercase; letter-spacing: 1.8px;
-  margin-bottom: 6px;
+  text-transform: uppercase; letter-spacing: 1.6px;
+  margin-bottom: 4px;
 }
 .home-msg-text {
-  font-size: 13px; color: var(--text);
-  line-height: 1.55; font-weight: 500;
+  font-size: 12px; color: var(--text);
+  line-height: 1.45; font-weight: 500;
 }
 
-/* ── 2. Compteur + Boutons Events/Boutique ── */
+/* ── 2. Compteur + Events/Boutique ── */
 .home-counter-row {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px 16px 0;
+  gap: 12px;
+  padding: 10px 14px 0;
 }
 .home-counter-block {
   flex: 1;
   background: transparent;
-  border: none;
-  border-radius: 0;
-  padding: 0;
-  box-shadow: none;
+  border: none; padding: 0; box-shadow: none;
 }
 .home-counter-label {
-  font-size: 9px; font-weight: 800;
+  font-size: 8px; font-weight: 800;
   color: var(--muted);
-  text-transform: uppercase; letter-spacing: 1.8px;
-  margin-bottom: 6px;
+  text-transform: uppercase; letter-spacing: 1.6px;
+  margin-bottom: 4px;
 }
 .home-counter-nums {
   display: flex; align-items: flex-end; gap: 0;
@@ -4531,102 +4527,102 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   display: flex; flex-direction: column; align-items: flex-start; flex: none;
 }
 .home-c-num {
-  font-size: 30px; font-weight: 800;
+  font-size: 20px; font-weight: 800;
   color: var(--text);
   font-variant-numeric: tabular-nums; line-height: 1;
-  letter-spacing: -1px;
+  letter-spacing: -0.5px;
 }
 .home-c-lbl {
-  font-size: 9px; color: var(--muted);
-  text-transform: uppercase; letter-spacing: 0.8px; margin-top: 3px;
-  padding-left: 2px;
+  font-size: 8px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.6px; margin-top: 2px;
+  padding-left: 1px;
 }
 .home-c-sep {
-  font-size: 24px; font-weight: 700;
-  color: var(--muted); opacity: 0.4;
+  font-size: 16px; font-weight: 700;
+  color: var(--muted); opacity: 0.35;
   line-height: 1; align-self: flex-start;
-  margin: 0 2px 14px;
+  margin: 0 1px 10px;
   flex-shrink: 0;
 }
 .home-feature-btns {
-  display: flex; flex-direction: row; gap: 8px;
+  display: flex; flex-direction: row; gap: 6px;
   flex-shrink: 0;
 }
 .home-feat-btn {
-  width: 72px;
+  width: 62px;
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 10px 4px 9px;
+  border-radius: 13px;
+  padding: 8px 4px 7px;
   display: flex; flex-direction: column;
-  align-items: center; gap: 5px;
+  align-items: center; gap: 4px;
   cursor: default;
   box-shadow: var(--sh-sm);
   position: relative;
 }
-.home-feat-icon { font-size: 24px; line-height: 1; }
+.home-feat-icon { font-size: 20px; line-height: 1; }
 .home-feat-lbl {
-  font-size: 10px; font-weight: 700;
-  color: var(--sub); letter-spacing: 0.2px;
+  font-size: 9px; font-weight: 700;
+  color: var(--sub);
 }
 .home-feat-new {
-  position: absolute; top: -6px; right: -6px;
+  position: absolute; top: -5px; right: -5px;
   background: #e75a7c;
   color: #fff; font-size: 7px; font-weight: 800;
-  letter-spacing: 0.5px; padding: 2px 6px;
-  border-radius: 6px; text-transform: uppercase;
-  box-shadow: 0 2px 6px rgba(231,90,124,0.4);
+  letter-spacing: 0.4px; padding: 2px 5px;
+  border-radius: 5px; text-transform: uppercase;
+  box-shadow: 0 2px 5px rgba(231,90,124,0.4);
 }
 
 /* ── 3. Météo du cœur ── */
 .home-section-title {
-  font-size: 16px; font-weight: 800;
+  font-size: 13px; font-weight: 800;
   color: var(--text);
-  padding: 18px 16px 10px;
-  letter-spacing: -0.2px;
+  padding: 10px 14px 6px;
+  letter-spacing: -0.1px;
 }
 .home-section-titlebar {
-  display: flex; align-items: center; gap: 8px;
-  padding: 18px 16px 10px;
+  display: flex; align-items: center; gap: 7px;
+  padding: 10px 14px 6px;
 }
 .home-beta-badge {
   background: #7c6af7; color: #fff;
-  font-size: 8px; font-weight: 800;
-  letter-spacing: 0.8px; padding: 3px 7px;
-  border-radius: 6px; text-transform: uppercase;
+  font-size: 7px; font-weight: 800;
+  letter-spacing: 0.6px; padding: 2px 6px;
+  border-radius: 5px; text-transform: uppercase;
 }
 .home-mood-row {
-  display: flex; gap: 10px;
-  padding: 0 16px;
+  display: flex; gap: 8px;
+  padding: 0 14px;
 }
 .home-mood-card {
   flex: 1;
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 12px;
+  border-radius: 14px;
+  padding: 9px 10px;
   box-shadow: var(--sh-sm);
-  display: flex; flex-direction: column; gap: 8px;
+  display: flex; flex-direction: column; gap: 6px;
   min-width: 0;
 }
 .home-mood-topbar {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 6px;
 }
 .home-mood-avatar-wrap {
   position: relative; flex-shrink: 0;
-  width: 36px; height: 36px;
+  width: 28px; height: 28px;
 }
 .home-mood-avatar {
-  width: 36px; height: 36px;
+  width: 28px; height: 28px;
   border-radius: 50%; object-fit: cover;
-  border: 2px solid var(--border);
+  border: 1.5px solid var(--border);
 }
 .home-mood-online {
-  position: absolute; bottom: 0; right: 0;
-  width: 10px; height: 10px;
+  position: absolute; bottom: -1px; right: -1px;
+  width: 8px; height: 8px;
   border-radius: 50%;
   background: var(--muted);
-  border: 2px solid var(--s1);
+  border: 1.5px solid var(--s1);
   transition: background 0.3s;
 }
 .home-mood-online.online { background: #3ecf8e; }
@@ -4635,150 +4631,146 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   display: flex; flex-direction: column; gap: 1px;
 }
 .home-mood-name {
-  font-size: 13px; font-weight: 700; color: var(--text);
+  font-size: 11px; font-weight: 700; color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .home-mood-status {
-  font-size: 10px; color: var(--muted); font-weight: 500;
+  font-size: 9px; color: var(--muted); font-weight: 500;
 }
 .home-mood-status.online { color: #3ecf8e; font-weight: 600; }
 .home-mood-edit-btn {
   flex-shrink: 0;
   background: var(--s2); border: 1px solid var(--border);
-  border-radius: 8px; padding: 4px 9px;
-  font-size: 11px; font-weight: 600;
+  border-radius: 6px; padding: 3px 7px;
+  font-size: 10px; font-weight: 600;
   color: var(--sub); cursor: pointer;
   font-family: 'Bricolage Grotesque', sans-serif;
   transition: background 0.15s, color 0.15s;
 }
 .home-mood-edit-btn:hover { background: var(--s3); color: var(--text); }
-.home-mood-body {
-  min-height: 32px;
-}
+.home-mood-body { min-height: 24px; }
 .home-mood-quote {
-  font-size: 12px; color: var(--sub);
-  font-style: italic; line-height: 1.45;
+  font-size: 11px; color: var(--sub);
+  font-style: italic; line-height: 1.4;
   word-break: break-word;
 }
 .home-mood-footer {
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 5px;
   border-top: 1px solid var(--border);
-  padding-top: 8px; margin-top: 2px;
+  padding-top: 6px; margin-top: 0;
 }
-.home-mood-emoji { font-size: 16px; line-height: 1; }
+.home-mood-emoji { font-size: 13px; line-height: 1; }
 .home-mood-emoji-label {
-  font-size: 11px; color: var(--sub);
+  font-size: 10px; color: var(--sub);
   font-weight: 600; flex: 1; min-width: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .home-mood-hearts {
-  display: flex; align-items: center; gap: 3px;
+  display: flex; align-items: center; gap: 2px;
   margin-left: auto; flex-shrink: 0;
 }
 .home-mood-heart-count {
-  font-size: 12px; font-weight: 700; color: #e75a7c;
+  font-size: 11px; font-weight: 700; color: #e75a7c;
 }
-.home-mood-heart-icon {
-  font-size: 13px; color: #e75a7c;
-}
+.home-mood-heart-icon { font-size: 11px; color: #e75a7c; }
 
 /* ── 4. Rappel du jour ── */
 .home-rappel-row {
-  display: flex; gap: 10px;
-  padding: 0 16px;
+  display: flex; gap: 8px;
+  padding: 0 14px;
   align-items: stretch;
 }
 .home-rappel-card {
   flex: 1;
-  background: linear-gradient(145deg, rgba(231,90,124,0.08), rgba(201,120,96,0.06));
-  border: 1px solid rgba(231,90,124,0.2);
-  border-radius: 18px;
-  padding: 14px;
-  display: flex; flex-direction: column; gap: 10px;
+  background: linear-gradient(145deg, rgba(231,90,124,0.07), rgba(201,120,96,0.05));
+  border: 1px solid rgba(231,90,124,0.18);
+  border-radius: 14px;
+  padding: 10px;
+  display: flex; flex-direction: column; gap: 7px;
 }
 .home-rappel-badge {
-  font-size: 9px; font-weight: 800;
+  font-size: 8px; font-weight: 800;
   color: #e75a7c;
-  text-transform: uppercase; letter-spacing: 1.5px;
+  text-transform: uppercase; letter-spacing: 1.3px;
 }
 .home-rappel-text {
-  font-size: 13px; font-weight: 600;
-  color: var(--text); line-height: 1.45;
+  font-size: 12px; font-weight: 600;
+  color: var(--text); line-height: 1.35;
 }
 .home-rappel-actions {
-  display: flex; gap: 8px;
+  display: flex; gap: 6px;
 }
 .home-rappel-done {
-  flex: 1; padding: 9px 8px;
+  flex: 1; padding: 7px 6px;
   background: #e75a7c; color: #fff;
-  font-size: 12px; font-weight: 700;
+  font-size: 11px; font-weight: 700;
   font-family: 'Bricolage Grotesque', sans-serif;
-  border: none; border-radius: 10px; cursor: pointer;
+  border: none; border-radius: 8px; cursor: pointer;
   transition: opacity 0.15s, transform 0.1s;
 }
 .home-rappel-done:active { transform: scale(0.97); opacity: 0.85; }
 .home-rappel-later {
-  flex: 1; padding: 9px 8px;
+  flex: 1; padding: 7px 6px;
   background: var(--s2); color: var(--sub);
-  font-size: 12px; font-weight: 600;
+  font-size: 11px; font-weight: 600;
   font-family: 'Bricolage Grotesque', sans-serif;
-  border: 1px solid var(--border); border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
   transition: background 0.15s;
 }
 .home-rappel-later:hover { background: var(--s3); }
 .home-rappel-nav {
-  display: flex; align-items: center; justify-content: center; gap: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
 }
 .home-rappel-nav-btn {
-  width: 26px; height: 26px;
+  width: 22px; height: 22px;
   background: var(--s2); border: 1px solid var(--border);
   border-radius: 50%; color: var(--sub);
-  font-size: 14px; cursor: pointer;
+  font-size: 12px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   font-family: 'Bricolage Grotesque', sans-serif;
   transition: background 0.15s;
 }
 .home-rappel-nav-btn:hover { background: var(--s3); }
 .home-rappel-counter {
-  font-size: 11px; font-weight: 700; color: var(--muted);
+  font-size: 10px; font-weight: 700; color: var(--muted);
 }
 
 /* Spam coeurs */
 .home-spam-block {
-  width: 90px; flex-shrink: 0;
+  width: 76px; flex-shrink: 0;
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 12px 8px;
+  border-radius: 14px;
+  padding: 9px 6px;
   display: flex; flex-direction: column;
-  align-items: center; gap: 8px;
+  align-items: center; gap: 6px;
   box-shadow: var(--sh-sm);
 }
 .home-spam-label {
-  font-size: 8px; font-weight: 800;
+  font-size: 7px; font-weight: 800;
   color: var(--muted); text-transform: uppercase;
-  letter-spacing: 1px; text-align: center;
+  letter-spacing: 0.8px; text-align: center;
 }
 .home-spam-heart-wrap {
-  width: 52px; height: 52px;
+  width: 42px; height: 42px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(231,90,124,0.15), rgba(255,150,180,0.1));
-  border: 1.5px solid rgba(231,90,124,0.35);
+  background: linear-gradient(135deg, rgba(231,90,124,0.14), rgba(255,150,180,0.09));
+  border: 1.5px solid rgba(231,90,124,0.3);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   transition: transform 0.12s, box-shadow 0.15s;
-  box-shadow: 0 4px 14px rgba(231,90,124,0.15);
+  box-shadow: 0 3px 10px rgba(231,90,124,0.12);
   -webkit-tap-highlight-color: transparent;
   user-select: none;
 }
 .home-spam-heart-wrap:active { transform: scale(0.88); }
-.home-spam-heart-emoji { font-size: 26px; line-height: 1; pointer-events: none; }
+.home-spam-heart-emoji { font-size: 22px; line-height: 1; pointer-events: none; }
 .home-spam-count {
-  font-size: 12px; font-weight: 800;
+  font-size: 11px; font-weight: 800;
   color: #e75a7c;
 }
 .home-spam-bar-wrap {
-  width: 100%; height: 4px;
+  width: 100%; height: 3px;
   background: var(--s2);
   border-radius: 2px; overflow: hidden;
 }
@@ -4792,29 +4784,28 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 /* ── 5. Idées & Surprises ── */
 .home-ideas-grid {
   display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  padding: 0 16px;
+  gap: 8px;
+  padding: 0 14px;
 }
 .home-idea-card {
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 12px 6px 10px;
+  border-radius: 13px;
+  padding: 9px 4px 8px;
   display: flex; flex-direction: column;
-  align-items: center; gap: 6px;
+  align-items: center; gap: 5px;
   cursor: default;
   box-shadow: var(--sh-sm);
-  opacity: 0.9;
 }
 .home-idea-icon {
-  width: 44px; height: 44px;
-  border-radius: 13px;
+  width: 36px; height: 36px;
+  border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 22px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  font-size: 18px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
 }
 .home-idea-name {
-  font-size: 11px; font-weight: 700;
+  font-size: 10px; font-weight: 700;
   color: var(--text); text-align: center;
   line-height: 1.2;
 }
