@@ -340,45 +340,37 @@ function updateCounter() {
 
 // ── THEME ── (version consolidée — R3 : persistence localStorage + home btn + haptic)
 function applyThemeToggle() {
-  // Lecture du thème actuel
-  var html = document.documentElement;
-  var currentTheme = html.getAttribute('data-theme') || 'warm';
-  
-  // Basculer entre warm et dark
-  var newTheme = currentTheme === 'warm' ? 'dark' : 'warm';
-  
-  // Appliquer le nouveau thème
-  html.setAttribute('data-theme', newTheme);
-  
-  // Stocker en localStorage
-  try {
-    localStorage.setItem('yam_theme_v2', newTheme);
-  } catch(e) {}
-  
-  // Mettre à jour toutes les icônes de thème
-  var icons = document.querySelectorAll('#themeIcon, .themeIconInner, #v2LoginThemeIcon');
-  icons.forEach(function(icon) {
-    if (newTheme === 'warm') {
-      // Mode warm → afficher lune (pour passer au dark)
-      icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/>';
-    } else {
-      // Mode dark → afficher soleil (pour passer au warm)
-      icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
-    }
+  document.body.classList.toggle('light');
+  var isLight = document.body.classList.contains('light');
+  document.documentElement.classList.toggle('light', isLight);
+  // Met à jour la couleur de la safe zone iOS instantanément
+  var themeMeta = document.getElementById('themeColorMeta');
+  if(themeMeta) themeMeta.setAttribute('content', isLight ? '#f9e8f0' : '#121212');
+  // Persistance
+  localStorage.setItem('jayana_theme', isLight ? 'light' : 'dark');
+  // Labels boutons principaux
+  document.getElementById('themeToggle').textContent = isLight ? '🌙' : '☀️';
+  document.getElementById('floatingThemeBtn').textContent = isLight ? '🌙' : '☀️';
+  // Bouton home tab - pas de textContent, uniquement SVG
+  // Les icônes Moon/Sun sont déjà gérées ci-dessous
+  // Sync icônes lune/soleil dans Quiz, Jeux, sous-jeux et Bêtises
+  ['qz','gv','dm','pm','home'].forEach(function(prefix){
+    var moon = document.getElementById(prefix+'ThemeIconMoon');
+    var sun  = document.getElementById(prefix+'ThemeIconSun');
+    if(moon) moon.style.display = isLight ? 'none' : '';
+    if(sun)  sun.style.display  = isLight ? ''     : 'none';
   });
-  
-  // Animation flash sur tous les boutons thème
-  document.querySelectorAll('[onclick*="applyThemeToggle"]').forEach(function(btn) {
-    btn.style.transform = 'scale(0.85) rotate(15deg)';
-    setTimeout(function() {
-      btn.style.transform = '';
-    }, 300);
+  document.querySelectorAll('.game-view-header .dm-topbar-theme svg').forEach(function(svg, i){
+    if(i % 2 === 0) svg.style.display = isLight ? 'none' : ''; // lune
+    else            svg.style.display = isLight ? ''     : 'none'; // soleil
   });
-  
-  // Toast de confirmation
-  if (typeof showToast === 'function') {
-    showToast(newTheme === 'warm' ? 'Thème Warm ☀️' : 'Thème Dark 🌙', 'success', 1500);
-  }
+  // Haptic (si disponible — défini dans app-nav.js)
+  if(typeof haptic === 'function') haptic('light');
+  // Sync icône lune/soleil du bouton thème sur l'écran de connexion
+  var _v2Moon = document.getElementById('v2LoginIconMoon');
+  var _v2Sun  = document.getElementById('v2LoginIconSun');
+  if(_v2Moon) _v2Moon.style.display = isLight ? 'none' : '';
+  if(_v2Sun)  _v2Sun.style.display  = isLight ? ''     : 'none';
 }
 
 // ── Restauration du thème au chargement ──
@@ -640,29 +632,4 @@ document.addEventListener('DOMContentLoaded', function(){
 
   window._presencePoll = presencePoll;
   window._presencePush = presencePush;
-})();
-
-
-// ═══════════════════════════════════════════════
-// INITIALISATION THÈME v2 au chargement
-// ═══════════════════════════════════════════════
-(function() {
-  var savedTheme = 'warm';
-  try {
-    savedTheme = localStorage.getItem('yam_theme_v2') || 'warm';
-  } catch(e) {}
-  
-  document.documentElement.setAttribute('data-theme', savedTheme);
-  
-  // Mettre à jour les icônes au chargement
-  setTimeout(function() {
-    var icons = document.querySelectorAll('#themeIcon, .themeIconInner, #v2LoginThemeIcon');
-    icons.forEach(function(icon) {
-      if (savedTheme === 'warm') {
-        icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/>';
-      } else {
-        icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
-      }
-    });
-  }, 100);
 })();
