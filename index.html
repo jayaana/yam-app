@@ -1417,8 +1417,8 @@ body.nous-active #yamStickyAvatarSelf {
   <div class="home-section-title fade-in">Météo du cœur</div>
   <div class="home-mood-row fade-in">
 
-    <!-- Bulle Elle -->
-    <div class="home-mood-card" id="homeMoodElle">
+    <!-- Carte Elle — rose -->
+    <div class="home-mood-card mood-elle" id="homeMoodElle">
       <div class="home-mood-topbar">
         <div class="home-mood-avatar-wrap">
           <img class="home-mood-avatar" id="homeMoodElleAvatar" src="assets/images/profil_girl.png" alt="" />
@@ -1430,21 +1430,23 @@ body.nous-active #yamStickyAvatarSelf {
         </div>
         <button class="home-mood-edit-btn" id="homeMoodElleEditBtn" style="display:none;" onclick="openMoodPicker(event)" title="Modifier mon humeur">Éditer</button>
       </div>
-      <div class="home-mood-body">
+      <!-- bulle message qui pointe vers l'avatar (gauche) -->
+      <div class="home-mood-bubble mood-bubble-elle">
         <div class="home-mood-quote" id="homeMoodElleQuote">—</div>
       </div>
-      <div class="home-mood-footer">
-        <span class="home-mood-emoji" id="homeMoodElleEmoji"></span>
-        <span class="home-mood-emoji-label" id="homeMoodElleLabel"></span>
+      <!-- bandeau bas coloré rose -->
+      <div class="home-mood-footer mood-footer-elle">
+        <span class="home-mood-emoji" id="homeMoodElleEmoji">🌸</span>
+        <span class="home-mood-emoji-label" id="homeMoodElleLabel">Humeur</span>
         <div class="home-mood-hearts">
-          <span class="home-mood-heart-count" id="likeNumGirl">—</span>
+          <span class="home-mood-heart-count" id="likeNumGirl">0</span>
           <span class="home-mood-heart-icon">♥</span>
         </div>
       </div>
     </div>
 
-    <!-- Bulle Lui -->
-    <div class="home-mood-card" id="homeMoodLui">
+    <!-- Carte Lui — bleu -->
+    <div class="home-mood-card mood-lui" id="homeMoodLui">
       <div class="home-mood-topbar">
         <div class="home-mood-avatar-wrap">
           <img class="home-mood-avatar" id="homeMoodLuiAvatar" src="assets/images/profil_boy.png" alt="" />
@@ -1456,14 +1458,16 @@ body.nous-active #yamStickyAvatarSelf {
         </div>
         <button class="home-mood-edit-btn" id="homeMoodLuiEditBtn" style="display:none;" onclick="openMoodPicker(event)" title="Modifier mon humeur">Éditer</button>
       </div>
-      <div class="home-mood-body">
+      <!-- bulle message qui pointe vers l'avatar (gauche) -->
+      <div class="home-mood-bubble mood-bubble-lui">
         <div class="home-mood-quote" id="homeMoodLuiQuote">—</div>
       </div>
-      <div class="home-mood-footer">
-        <span class="home-mood-emoji" id="homeMoodLuiEmoji"></span>
-        <span class="home-mood-emoji-label" id="homeMoodLuiLabel"></span>
+      <!-- bandeau bas coloré bleu -->
+      <div class="home-mood-footer mood-footer-lui">
+        <span class="home-mood-emoji" id="homeMoodLuiEmoji">🌊</span>
+        <span class="home-mood-emoji-label" id="homeMoodLuiLabel">Humeur</span>
         <div class="home-mood-hearts">
-          <span class="home-mood-heart-count" id="likeNumBoy">—</span>
+          <span class="home-mood-heart-count" id="likeNumBoy">0</span>
           <span class="home-mood-heart-icon" style="color:#5b9cf6;">♥</span>
         </div>
       </div>
@@ -1493,11 +1497,11 @@ body.nous-active #yamStickyAvatarSelf {
       </div>
     </div>
 
-    <!-- Spam coeurs -->
+    <!-- Spam coeurs — coeur libre qui pulse, pas de conteneur -->
     <div class="home-spam-block">
       <div class="home-spam-label">SPAM DE CŒURS</div>
       <div class="home-spam-heart-wrap" id="homeSpamHeart" onclick="spawnHeart()" title="Envoie de l'amour !">
-        <span class="home-spam-heart-emoji" id="homeSpamHeartEmoji">💗</span>
+        <span class="home-spam-heart-emoji" id="homeSpamHeartEmoji">🩷</span>
       </div>
       <div class="home-spam-count" id="homeSpamCount">0/10</div>
       <div class="home-spam-bar-wrap">
@@ -4466,7 +4470,7 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 
 <style>
 /* ══════════════════════════════════════════════
-   HOME TAB — Rework v2
+   HOME TAB — v4
 ══════════════════════════════════════════════ */
 
 /* ── 1. Mascotte + Message du jour ── */
@@ -4636,21 +4640,23 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   flex: 1;
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 9px 10px 8px;
+  border-radius: 16px;
+  overflow: hidden;
   box-shadow: var(--sh-sm);
-  display: flex; flex-direction: column; gap: 5px;
+  display: flex; flex-direction: column;
   min-width: 0;
 }
+/* Topbar : avatar + nom + bouton edit */
 .home-mood-topbar {
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 10px 6px;
 }
 .home-mood-avatar-wrap {
   position: relative; flex-shrink: 0;
-  width: 28px; height: 28px;
+  width: 30px; height: 30px;
 }
 .home-mood-avatar {
-  width: 28px; height: 28px;
+  width: 30px; height: 30px;
   border-radius: 50%; object-fit: cover;
   border: 1.5px solid var(--border);
 }
@@ -4671,57 +4677,73 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   font-size: 11px; font-weight: 700; color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.home-mood-status {
-  font-size: 9px; color: var(--muted); font-weight: 500;
-}
+.home-mood-status { font-size: 9px; color: var(--muted); font-weight: 500; }
 .home-mood-status.online { color: #3ecf8e; font-weight: 600; }
 .home-mood-edit-btn {
   flex-shrink: 0;
   background: var(--s2); border: 1px solid var(--border);
-  border-radius: 6px; padding: 3px 7px;
+  border-radius: 7px; padding: 3px 8px;
   font-size: 10px; font-weight: 600;
   color: var(--sub); cursor: pointer;
   font-family: 'Bricolage Grotesque', sans-serif;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s;
 }
-.home-mood-edit-btn:hover { background: var(--s3); color: var(--text); }
-/* Bulle de dialogue pour le message humeur */
-.home-mood-body {
+.home-mood-edit-btn:hover { background: var(--s3); }
+
+/* Bulle message — pointe à GAUCHE vers l'avatar */
+.home-mood-bubble {
   position: relative;
-  background: var(--s2);
-  border: 1px solid var(--border);
-  border-radius: 10px 10px 10px 4px;
-  padding: 6px 8px;
-  min-height: 0;
+  margin: 0 10px 8px 10px;
+  padding: 7px 9px;
+  border-radius: 4px 12px 12px 12px;
+  min-height: 28px;
 }
-.home-mood-body::before {
+/* Oreille de la bulle qui pointe vers le haut-gauche (vers l'avatar) */
+.home-mood-bubble::before {
   content: '';
   position: absolute;
-  top: 8px; left: -6px;
+  top: -6px; left: 10px;
   width: 0; height: 0;
   border-style: solid;
-  border-width: 5px 7px 5px 0;
-  border-color: transparent var(--border) transparent transparent;
+  border-width: 0 0 7px 7px;
 }
-.home-mood-body::after {
-  content: '';
-  position: absolute;
-  top: 9px; left: -4px;
-  width: 0; height: 0;
-  border-style: solid;
-  border-width: 4px 6px 4px 0;
-  border-color: transparent var(--s2) transparent transparent;
+/* Elle = rose */
+.mood-bubble-elle {
+  background: rgba(231,90,124,0.10);
+  border: 1px solid rgba(231,90,124,0.2);
+}
+.mood-bubble-elle::before {
+  border-color: transparent transparent rgba(231,90,124,0.25) transparent;
+}
+/* Lui = bleu */
+.mood-bubble-lui {
+  background: rgba(91,156,246,0.10);
+  border: 1px solid rgba(91,156,246,0.2);
+}
+.mood-bubble-lui::before {
+  border-color: transparent transparent rgba(91,156,246,0.25) transparent;
 }
 .home-mood-quote {
-  font-size: 10px; color: var(--sub);
+  font-size: 10.5px; color: var(--sub);
   font-style: italic; line-height: 1.4;
   word-break: break-word;
 }
+
+/* Bandeau coloré en bas — humeur + cœurs */
 .home-mood-footer {
   display: flex; align-items: center; gap: 5px;
-  padding-top: 2px;
+  padding: 6px 10px 7px;
+  margin-top: auto;
 }
-.home-mood-emoji { font-size: 13px; line-height: 1; }
+.mood-footer-elle {
+  background: rgba(231,90,124,0.10);
+  border-top: 1px solid rgba(231,90,124,0.18);
+}
+.mood-footer-lui {
+  background: rgba(91,156,246,0.10);
+  border-top: 1px solid rgba(91,156,246,0.18);
+}
+.home-mood-emoji { font-size: 14px; line-height: 1; }
 .home-mood-emoji-label {
   font-size: 10px; color: var(--sub);
   font-weight: 600; flex: 1; min-width: 0;
@@ -4731,10 +4753,8 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   display: flex; align-items: center; gap: 3px;
   margin-left: auto; flex-shrink: 0;
 }
-.home-mood-heart-count {
-  font-size: 11px; font-weight: 700; color: #e75a7c;
-}
-.home-mood-heart-icon { font-size: 11px; color: #e75a7c; }
+.home-mood-heart-count { font-size: 11px; font-weight: 700; color: #e75a7c; }
+.home-mood-heart-icon  { font-size: 11px; color: #e75a7c; }
 
 /* ── 4. Rappel du jour ── */
 .home-rappel-row {
@@ -4742,10 +4762,12 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   padding: 0 16px;
   align-items: center;
 }
+/* Carte rappel — largeur fixe, laisse 90px pour le spam */
 .home-rappel-card {
   flex: 1;
+  max-width: calc(100% - 98px);
   background: linear-gradient(145deg, rgba(231,90,124,0.07), rgba(201,120,96,0.04));
-  border: 1px solid rgba(231,90,124,0.18);
+  border: 1px solid rgba(231,90,124,0.2);
   border-radius: 14px;
   padding: 8px 10px 7px;
   display: flex; flex-direction: column; gap: 5px;
@@ -4761,15 +4783,13 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   background: rgba(231,90,124,0.15);
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 8px;
+  font-size: 8px; flex-shrink: 0;
 }
 .home-rappel-text {
   font-size: 11px; font-weight: 600;
   color: var(--text); line-height: 1.3;
 }
-.home-rappel-actions {
-  display: flex; gap: 5px;
-}
+.home-rappel-actions { display: flex; gap: 5px; }
 .home-rappel-done {
   flex: 1; padding: 5px 6px;
   background: #e75a7c; color: #fff;
@@ -4801,72 +4821,60 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   transition: background 0.15s;
 }
 .home-rappel-nav-btn:hover { background: var(--s3); }
-.home-rappel-counter {
-  font-size: 10px; font-weight: 700; color: var(--muted);
-}
+.home-rappel-counter { font-size: 10px; font-weight: 700; color: var(--muted); }
 
-/* ── SPAM DE CŒURS — gros cœur libre qui pulse, sans conteneur ── */
+/* ── SPAM DE CŒURS — emoji géant libre, qui pulse ── */
 .home-spam-block {
   flex-shrink: 0;
-  width: 80px;
+  width: 82px;
   display: flex; flex-direction: column;
-  align-items: center; gap: 4px;
-  padding: 0;
-  background: none; border: none;
+  align-items: center; gap: 3px;
+  background: none; border: none; padding: 0;
 }
 .home-spam-label {
   font-size: 7px; font-weight: 800;
   color: var(--muted); text-transform: uppercase;
-  letter-spacing: 0.8px; text-align: center;
-  line-height: 1.2;
+  letter-spacing: 0.7px; text-align: center; line-height: 1.3;
 }
-/* Le cœur est libre — juste l'emoji géant qui pulse */
 .home-spam-heart-wrap {
   width: 60px; height: 60px;
-  background: none;
-  border: none;
-  box-shadow: none;
+  background: none; border: none; box-shadow: none;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  animation: heartPulse 1.8s ease-in-out infinite;
+  -webkit-tap-highlight-color: transparent; user-select: none;
+  animation: heartPulse 2s ease-in-out infinite;
 }
 @keyframes heartPulse {
   0%, 100% { transform: scale(1); }
-  15%       { transform: scale(1.12); }
-  30%       { transform: scale(1); }
-  45%       { transform: scale(1.07); }
-  60%       { transform: scale(1); }
+  20%       { transform: scale(1.14); }
+  40%       { transform: scale(0.97); }
+  60%       { transform: scale(1.06); }
+  80%       { transform: scale(1); }
 }
 .home-spam-heart-wrap:active {
   animation: none;
-  transform: scale(0.82);
+  transform: scale(0.8);
   transition: transform 0.1s;
 }
 .home-spam-heart-emoji {
-  font-size: 48px;
-  line-height: 1;
+  font-size: 50px; line-height: 1;
   pointer-events: none;
-  filter: drop-shadow(0 4px 12px rgba(231,90,124,0.5)) drop-shadow(0 1px 3px rgba(180,0,60,0.3));
+  filter: drop-shadow(0 6px 14px rgba(231,90,124,0.55));
 }
 .home-spam-count {
-  font-size: 11px; font-weight: 800;
-  color: #e75a7c;
+  font-size: 11px; font-weight: 800; color: #e75a7c;
 }
 .home-spam-bar-wrap {
   width: 100%; height: 3px;
-  background: var(--s2);
-  border-radius: 2px; overflow: hidden;
+  background: var(--s2); border-radius: 2px; overflow: hidden;
 }
 .home-spam-bar {
   height: 100%;
   background: linear-gradient(90deg, #e75a7c, #c97860);
-  border-radius: 2px;
-  transition: width 0.3s ease;
+  border-radius: 2px; transition: width 0.3s ease;
 }
 
-/* ── 5. Idées & Surprises — scroll horizontal, cartes carrées ── */
+/* ── 5. Idées & Surprises — 3 cartes visibles + scroll droite ── */
 .home-ideas-grid {
   display: flex;
   flex-direction: row;
@@ -4878,35 +4886,37 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   scrollbar-width: none;
 }
 .home-ideas-grid::-webkit-scrollbar { display: none; }
+/* 3 cartes visibles = (100% - 2*16px padding - 2*9px gap) / 3 ≈ calc((100vw - 41px) / 3) */
 .home-idea-card {
   flex-shrink: 0;
-  width: 88px;
+  width: calc((100vw - 41px) / 3);
+  max-width: 110px;
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: 16px;
   overflow: hidden;
   display: flex; flex-direction: column;
-  align-items: stretch;
   cursor: default;
   box-shadow: var(--sh-sm);
   scroll-snap-align: start;
 }
 .home-idea-icon {
-  width: 88px; height: 88px;
+  width: 100%;
+  height: calc((100vw - 41px) / 3);
+  max-height: 110px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 30px;
+  font-size: 32px;
   flex-shrink: 0;
 }
 .home-idea-footer {
-  padding: 6px 7px 7px;
+  padding: 5px 7px 7px;
   background: var(--s1);
   border-top: 1px solid var(--border);
   display: flex; flex-direction: column;
   align-items: flex-start; gap: 1px;
 }
 .home-idea-name {
-  font-size: 10px; font-weight: 700;
-  color: var(--text);
+  font-size: 10px; font-weight: 700; color: var(--text);
   line-height: 1.2;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   width: 100%;
