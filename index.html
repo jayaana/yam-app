@@ -1438,6 +1438,7 @@ body.nous-active #yamStickyAvatarSelf {
       <div class="home-mood-footer mood-footer-elle">
         <span class="home-mood-emoji" id="homeMoodElleEmoji">🌸</span>
         <span class="home-mood-emoji-label" id="homeMoodElleLabel">Humeur</span>
+        <span class="home-mood-sep"></span>
         <div class="home-mood-hearts">
           <span class="home-mood-heart-count" id="likeNumGirl">0</span>
           <span class="home-mood-heart-icon">♥</span>
@@ -1466,6 +1467,7 @@ body.nous-active #yamStickyAvatarSelf {
       <div class="home-mood-footer mood-footer-lui">
         <span class="home-mood-emoji" id="homeMoodLuiEmoji">🌊</span>
         <span class="home-mood-emoji-label" id="homeMoodLuiLabel">Humeur</span>
+        <span class="home-mood-sep"></span>
         <div class="home-mood-hearts">
           <span class="home-mood-heart-count" id="likeNumBoy">0</span>
           <span class="home-mood-heart-icon" style="color:#5b9cf6;">♥</span>
@@ -4691,37 +4693,54 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 .home-mood-edit-btn:hover { background: var(--s3); }
 
 /* Bulle message — pointe à GAUCHE vers l'avatar */
+/* Vraie bulle de dialogue — même technique que la mascotte */
+/* Le pointeur sort du côté gauche, centré verticalement, vers l'avatar */
 .home-mood-bubble {
   position: relative;
   margin: 0 10px 8px 10px;
-  padding: 7px 9px;
-  border-radius: 4px 12px 12px 12px;
-  min-height: 28px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  min-height: 30px;
 }
-/* Oreille de la bulle qui pointe vers le haut-gauche (vers l'avatar) */
+/* Triangle extérieur (couleur bordure) */
 .home-mood-bubble::before {
   content: '';
   position: absolute;
-  top: -6px; left: 10px;
+  top: 10px; left: -9px;
   width: 0; height: 0;
   border-style: solid;
-  border-width: 0 0 7px 7px;
+  border-width: 7px 10px 7px 0;
+}
+/* Triangle intérieur (couleur fond) — masque la bordure */
+.home-mood-bubble::after {
+  content: '';
+  position: absolute;
+  top: 11px; left: -7px;
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 6px 9px 6px 0;
 }
 /* Elle = rose */
 .mood-bubble-elle {
-  background: rgba(231,90,124,0.10);
-  border: 1px solid rgba(231,90,124,0.2);
+  background: rgba(231,90,124,0.08);
+  border: 1px solid rgba(231,90,124,0.25);
 }
 .mood-bubble-elle::before {
-  border-color: transparent transparent rgba(231,90,124,0.25) transparent;
+  border-color: transparent rgba(231,90,124,0.25) transparent transparent;
+}
+.mood-bubble-elle::after {
+  border-color: transparent rgba(231,90,124,0.08) transparent transparent;
 }
 /* Lui = bleu */
 .mood-bubble-lui {
-  background: rgba(91,156,246,0.10);
-  border: 1px solid rgba(91,156,246,0.2);
+  background: rgba(91,156,246,0.08);
+  border: 1px solid rgba(91,156,246,0.25);
 }
 .mood-bubble-lui::before {
-  border-color: transparent transparent rgba(91,156,246,0.25) transparent;
+  border-color: transparent rgba(91,156,246,0.25) transparent transparent;
+}
+.mood-bubble-lui::after {
+  border-color: transparent rgba(91,156,246,0.08) transparent transparent;
 }
 .home-mood-quote {
   font-size: 10.5px; color: var(--sub);
@@ -4729,7 +4748,7 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   word-break: break-word;
 }
 
-/* Bandeau coloré en bas — humeur + cœurs */
+/* Bandeau coloré en bas — humeur + séparateur + cœurs */
 .home-mood-footer {
   display: flex; align-items: center; gap: 5px;
   padding: 6px 10px 7px;
@@ -4749,9 +4768,17 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   font-weight: 600; flex: 1; min-width: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* Séparateur vertical entre humeur et cœurs */
+.home-mood-sep {
+  width: 1px; height: 12px;
+  background: var(--border);
+  opacity: 0.6;
+  flex-shrink: 0;
+  margin: 0 1px;
+}
 .home-mood-hearts {
   display: flex; align-items: center; gap: 3px;
-  margin-left: auto; flex-shrink: 0;
+  flex-shrink: 0;
 }
 .home-mood-heart-count { font-size: 11px; font-weight: 700; color: #e75a7c; }
 .home-mood-heart-icon  { font-size: 11px; color: #e75a7c; }
@@ -4875,54 +4902,59 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 }
 
 /* ── 5. Idées & Surprises — 3 cartes visibles + scroll droite ── */
+/* ── 5. Idées & Surprises — 3 cartes visibles + scroll droite ── */
+/* padding-left: 16px pour aligner avec les titres, pas de padding-right */
 .home-ideas-grid {
   display: flex;
   flex-direction: row;
-  gap: 9px;
-  padding: 0 16px;
+  gap: 8px;
+  padding: 0 0 0 16px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
 .home-ideas-grid::-webkit-scrollbar { display: none; }
-/* 3 cartes visibles = (100% - 2*16px padding - 2*9px gap) / 3 ≈ calc((100vw - 41px) / 3) */
+/*
+  3 cartes à l'écran : largeur = (100vw - 16px left padding - 2*8px gap) / 3
+  = (100vw - 32px) / 3
+  On veut que la 4e carte dépasse légèrement pour signaler le scroll.
+*/
 .home-idea-card {
   flex-shrink: 0;
-  width: calc((100vw - 41px) / 3);
-  max-width: 110px;
+  width: calc((100vw - 32px) / 3.2);
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: hidden;
   display: flex; flex-direction: column;
   cursor: default;
   box-shadow: var(--sh-sm);
   scroll-snap-align: start;
 }
+/* Carré parfait : même largeur = même hauteur pour l'icône */
 .home-idea-icon {
   width: 100%;
-  height: calc((100vw - 41px) / 3);
-  max-height: 110px;
+  aspect-ratio: 1 / 1;
   display: flex; align-items: center; justify-content: center;
-  font-size: 32px;
+  font-size: 26px;
   flex-shrink: 0;
 }
 .home-idea-footer {
-  padding: 5px 7px 7px;
+  padding: 5px 6px 6px;
   background: var(--s1);
   border-top: 1px solid var(--border);
   display: flex; flex-direction: column;
   align-items: flex-start; gap: 1px;
 }
 .home-idea-name {
-  font-size: 10px; font-weight: 700; color: var(--text);
+  font-size: 9px; font-weight: 700; color: var(--text);
   line-height: 1.2;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   width: 100%;
 }
 .home-idea-sub {
-  font-size: 9px; color: var(--muted);
+  font-size: 8px; color: var(--muted);
 }
 </style>
 
