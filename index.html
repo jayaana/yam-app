@@ -1533,28 +1533,28 @@ body.nous-active #yamStickyAvatarSelf {
   </div>
   <div class="home-ideas-grid fade-in">
     <div class="home-idea-card" title="Bientôt disponible">
-      <div class="home-idea-icon" style="background:#fde8ee;">🎁</div>
+      <div class="home-idea-icon home-idea-icon-cadeau" style="background:#fde8ee;">🎁</div>
       <div class="home-idea-footer">
         <div class="home-idea-name">Idée cadeau</div>
         <div class="home-idea-sub">Personnalisée</div>
       </div>
     </div>
     <div class="home-idea-card" title="Bientôt disponible">
-      <div class="home-idea-icon" style="background:#ddf0ee;">🕯️</div>
+      <div class="home-idea-icon home-idea-icon-date" style="background:#ddf0ee;">🕯️</div>
       <div class="home-idea-footer">
         <div class="home-idea-name">Date night</div>
         <div class="home-idea-sub">Ce week-end</div>
       </div>
     </div>
     <div class="home-idea-card" title="Bientôt disponible">
-      <div class="home-idea-icon" style="background:#fef0da;">💝</div>
+      <div class="home-idea-icon home-idea-icon-capsule" style="background:#fef0da;">💝</div>
       <div class="home-idea-footer">
         <div class="home-idea-name">Capsule</div>
         <div class="home-idea-sub">Dans 1 an</div>
       </div>
     </div>
     <div class="home-idea-card" title="Bientôt disponible">
-      <div class="home-idea-icon" style="background:#ece8fd;">🎵</div>
+      <div class="home-idea-icon home-idea-icon-playlist" style="background:#ece8fd;">🎵</div>
       <div class="home-idea-footer">
         <div class="home-idea-name">Playlist</div>
         <div class="home-idea-sub">Du jour</div>
@@ -5002,21 +5002,21 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 .home-rappel-add-btn {
   width: 20px !important; height: 20px !important; flex-shrink: 0 !important;
   border-radius: 7px !important;
-  background: rgba(255,255,255,0.65) !important;
-  border: 1.5px solid rgba(180,90,110,0.3) !important;
-  color: #b85a78 !important;
+  background: var(--rappel-btn-bg, rgba(255,255,255,0.65)) !important;
+  border: 1.5px solid var(--rappel-btn-border, rgba(180,90,110,0.3)) !important;
+  color: var(--rappel-btn-color, #b85a78) !important;
   display: flex !important; align-items: center !important; justify-content: center !important;
   cursor: pointer !important; padding: 0 !important;
   box-shadow: 0 1px 4px rgba(180,90,110,0.12) !important;
   transition: background 0.15s, transform 0.12s !important;
 }
 .home-rappel-badge {
-  font-size: 8px !important; color: #c0607a !important;
+  font-size: 8px !important; color: var(--rappel-badge-color, #c0607a) !important;
   gap: 6px !important;
 }
 .home-rappel-badge-dot {
   width: 22px !important; height: 22px !important;
-  background: #fff !important; border-radius: 7px !important;
+  background: var(--rappel-dot-bg, #fff) !important; border-radius: 7px !important;
   box-shadow: 0 1px 4px rgba(180,100,120,0.12) !important;
   font-size: 11px !important;
 }
@@ -5039,9 +5039,9 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 .home-rappel-nav { gap: 5px !important; padding-top: 0 !important; }
 .home-rappel-nav-btn {
   width: 18px !important; height: 18px !important;
-  background: rgba(255,255,255,0.7) !important;
-  border: 1px solid rgba(201,120,96,0.25) !important;
-  color: var(--green) !important; font-size: 11px !important;
+  background: var(--rappel-btn-bg, rgba(255,255,255,0.7)) !important;
+  border: 1px solid var(--rappel-btn-border, rgba(201,120,96,0.25)) !important;
+  color: var(--rappel-btn-color, var(--green)) !important; font-size: 11px !important;
 }
 .home-rappel-counter { color: var(--green) !important; font-size: 9px !important; }
 
@@ -5050,6 +5050,13 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 .home-spam-count { color: var(--spam-count-color, #e75a7c) !important; font-weight: 800; }
 .home-spam-bar { background: var(--spam-bar-gradient, linear-gradient(90deg,#e75a7c,#f0a0b8)) !important; }
 .home-spam-bar-wrap { background: var(--spam-bar-track, var(--s2)) !important; }
+.home-spam-heart-emoji { filter: var(--spam-heart-filter, none) !important; }
+
+/* ── Idées & Surprises — fonds des pochettes ── */
+.home-idea-icon-cadeau   { background: var(--idea-icon-cadeau, #fde8ee) !important; }
+.home-idea-icon-date     { background: var(--idea-icon-date,   #ddf0ee) !important; }
+.home-idea-icon-capsule  { background: var(--idea-icon-capsule,#fef0da) !important; }
+.home-idea-icon-playlist { background: var(--idea-icon-playlist,#ece8fd) !important; }
 </style>
 
 <script>
