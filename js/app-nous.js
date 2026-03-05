@@ -1176,49 +1176,71 @@ function _startLockBadgePolling(){
 // ════════════════════════════════════════════════════════════════════
 function fmtLikes(n){ if(!n||n<=0) return '0'; if(n>=1000000) return (n/1000000).toFixed(1).replace('.0','')+'M'; if(n>=1000) return (n/1000).toFixed(1).replace('.0','')+'k'; return String(n); }
 
-// Paliers cœurs
-var _heartMilestones = [10,50,100,500,1000,2000,5000,10000];
+
+// ── Paliers journaliers cœurs ──────────────────────────────────────────────
+var _heartMilestones = [10, 50, 100, 200, 500];
 var _lastMilestone   = 0;
 
-function _checkMilestone(total){
+// Cache journalier localStorage
+function _heartTodayKey(){
+  var u = (typeof v2GetUser==='function'&&v2GetUser()) ? v2GetUser().couple_id : 'x';
+  var d = new Date();
+  var dt = d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  return 'yam_hearts_day_'+u+'_'+dt;
+}
+function _getDailyCount(){
+  try{ return parseInt(localStorage.getItem(_heartTodayKey())||'0')||0; }catch(e){ return 0; }
+}
+function _incDailyCount(){
+  try{
+    var k=_heartTodayKey();
+    var n=(parseInt(localStorage.getItem(k)||'0')||0)+1;
+    localStorage.setItem(k,n);
+    return n;
+  }catch(e){ return 0; }
+}
+
+function _checkMilestone(daily){
   for(var i=_heartMilestones.length-1;i>=0;i--){
-    if(total >= _heartMilestones[i] && _heartMilestones[i] > _lastMilestone){
-      _lastMilestone = _heartMilestones[i];
+    if(daily>=_heartMilestones[i] && _heartMilestones[i]>_lastMilestone){
+      _lastMilestone=_heartMilestones[i];
       _triggerMilestone(_heartMilestones[i]);
       break;
     }
   }
 }
 function _triggerMilestone(n){
-  var overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;pointer-events:none;'
+  var overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;z-index:9999;pointer-events:none;'
     +'display:flex;align-items:center;justify-content:center;'
     +'background:rgba(232,100,150,0.18);animation:milestoneFlash 1.5s ease forwards;';
-  overlay.innerHTML = '<div style="text-align:center;animation:milestonePop 1.5s ease forwards;">'
+  overlay.innerHTML='<div style="text-align:center;animation:milestonePop 1.5s ease forwards;">'
     +'<div style="font-size:54px;line-height:1;">🩷</div>'
     +'<div style="font-size:21px;font-weight:900;color:#fff;text-shadow:0 2px 14px rgba(220,80,130,0.9);margin-top:8px;">'
-    +n.toLocaleString()+' coeurs !</div>'
+    +n+' cœurs aujourd\'hui !</div>'
     +'</div>';
   document.body.appendChild(overlay);
   setTimeout(function(){ overlay.remove(); },1600);
-  if(typeof showToast==='function') showToast('Palier '+n.toLocaleString()+' coeurs atteint ! 🩷','success');
+  if(typeof showToast==='function') showToast(n+' cœurs envoyés aujourd\'hui 🩷','success');
 }
 
-function _updateSpamBar(selfCount){
-  var nextM=10, prevM=0;
+function _updateSpamBar(daily){
+  // Prochain palier non encore atteint
+  var nextM=_heartMilestones[0], prevM=0;
   for(var i=0;i<_heartMilestones.length;i++){
-    if(selfCount<_heartMilestones[i]){nextM=_heartMilestones[i];break;}
-    if(i===_heartMilestones.length-1){nextM=_heartMilestones[i]*2;}
+    if(daily<_heartMilestones[i]){ nextM=_heartMilestones[i]; break; }
+    if(i===_heartMilestones.length-1){ nextM=_heartMilestones[i]+100; } // au delà du dernier
   }
   for(var j=_heartMilestones.length-1;j>=0;j--){
-    if(selfCount>=_heartMilestones[j]){prevM=_heartMilestones[j];break;}
+    if(daily>=_heartMilestones[j]){ prevM=_heartMilestones[j]; break; }
   }
-  var pct = (nextM>prevM) ? Math.min(((selfCount-prevM)/(nextM-prevM))*100,100) : 100;
+  var pct=(nextM>prevM)?Math.min(((daily-prevM)/(nextM-prevM))*100,100):100;
   var countEl=document.getElementById('homeSpamCount');
   var barEl=document.getElementById('homeSpamBar');
-  if(countEl) countEl.textContent=fmtLikes(selfCount)+'/'+fmtLikes(nextM);
+  if(countEl) countEl.textContent=daily+'/'+nextM;
   if(barEl)   barEl.style.width=pct+'%';
 }
+window._updateSpamBar = _updateSpamBar;
 
 function spawnHeart(){
   var profile=getProfile()||null; if(!profile) return;
@@ -1231,7 +1253,7 @@ function spawnHeart(){
   if(btn){ var r=btn.getBoundingClientRect(); sx=r.left+r.width/2; sy=r.top+r.height/2; }
   var h=document.createElement('div');
   h.className='like-heart-btn';
-  h.textContent='\uD83E\uDEF7'; // 🩷
+  h.textContent='🩷';
   var dx=(Math.random()-0.5)*70;
   h.style.setProperty('--dx',dx+'px');
   h.style.left=sx+'px';
@@ -1239,25 +1261,28 @@ function spawnHeart(){
   document.body.appendChild(h);
   setTimeout(function(){ h.remove(); },900);
 
-  // Compteur instantané
+  // Incrémenter le daily count + mettre à jour barre instantanément
+  var daily=_incDailyCount();
+  _updateSpamBar(daily);
+  _checkMilestone(daily);
+
+  // Incrémenter le total (pour les bulles météo)
   var numEl=document.getElementById(profile==='girl'?'likeNumGirl':'likeNumBoy');
-  var cur=0;
   if(numEl){
     var txt=(numEl.textContent||'0').trim();
+    var cur=0;
     if(txt.endsWith('M')) cur=parseFloat(txt)*1000000;
     else if(txt.endsWith('k')) cur=parseFloat(txt)*1000;
     else cur=parseInt(txt)||0;
-    cur++;
-    numEl.textContent=fmtLikes(cur);
+    numEl.textContent=fmtLikes(cur+1);
   }
-  _updateSpamBar(cur);
-  _checkMilestone(cur);
 
   fetch(SB2_URL+'/rest/v1/rpc/increment_like_counter',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},sb2Headers()),body:JSON.stringify({p_profile:profile,p_couple_id:coupleId})})
   .then(function(r){ if(!r.ok){ return r.text().then(function(){ loadLikeCounters(); }); } if(window.scheduleLikeSync) window.scheduleLikeSync(); })
   .catch(function(){ loadLikeCounters(); });
 }
 window.spawnHeart = spawnHeart;
+
 
 function loadLikeCounters(){
   var coupleId=(typeof v2GetUser==='function'&&v2GetUser())?v2GetUser().couple_id:null; if(!coupleId) return;
