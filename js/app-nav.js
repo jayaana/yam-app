@@ -15,6 +15,19 @@
   var _currentTab = 'home';
 
   window.yamSwitchTab = function(tab) {
+    // ── Onglet Messages → ouvre directement hiddenPage (le panel yamMessagesTab est vide)
+    if(tab === 'messages'){
+      if(window.openHiddenPage) window.openHiddenPage();
+      // Marquer navMessages actif visuellement
+      Object.keys(TAB_MAP).forEach(function(key){
+        var nav = document.getElementById(TAB_MAP[key].nav);
+        if(nav) nav.classList.toggle('nav-active', key === 'messages');
+      });
+      _currentTab = 'messages';
+      window._currentTab = 'messages';
+      return;
+    }
+
     if(window.closeAllViews) window.closeAllViews();
 
     // Cacher tous les panels (display:none) — window.scrollY ne change pas mais c'est invisible
@@ -148,20 +161,9 @@
     }
   };
 
-  // When hiddenPage closes, restore messages tab as active
+  // When hiddenPage closes, revenir sur home (yamMessagesTab est vide)
   document.addEventListener('hiddenPageClosed', function() {
-    var navMsgEl = document.getElementById('navMessages');
-    if(navMsgEl) navMsgEl.classList.add('nav-active');
-    var msgPanel = document.getElementById('yamMessagesTab');
-    if(msgPanel) msgPanel.classList.add('active');
-    // Hide all other panels
-    ['yamHomeTab','yamJeuxTab','yamMusiqueTab','yamNousTab'].forEach(function(id){
-      var el = document.getElementById(id);
-      if(el) el.classList.remove('active');
-      var key = Object.keys(TAB_MAP).find(function(k){ return TAB_MAP[k].panel === id; });
-      if(key){ var nav = document.getElementById(TAB_MAP[key].nav); if(nav) nav.classList.remove('nav-active'); }
-    });
-    _currentTab = 'messages';
+    yamSwitchTab('home');
   });
 
   // Override scrollToTop to go home
