@@ -360,7 +360,7 @@ body.light #uxToast.success { border-color: rgba(201,120,96,0.3); color: var(--g
   width: 56px;
   height: 34px;
   flex-shrink: 0;
-  padding-bottom: 2px;
+  padding-bottom: 0px;
 }
 
 /* Avatar principal (self) */
