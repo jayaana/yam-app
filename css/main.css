@@ -550,7 +550,7 @@ input, textarea, [contenteditable] {
 }
 
 header {
-  padding: 14px 16px 8px;
+  padding: 14px 16px 10px;
   padding-top: calc(var(--safe-top, 0px) + 6px);
   position: relative;
   z-index: 10000;
