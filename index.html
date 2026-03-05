@@ -1332,9 +1332,6 @@ body.nous-active #yamStickyAvatarSelf {
     </div>
   </div>
 
-  <!-- Overlay sombre derrière le picker humeur -->
-  <div id="moodPickerOverlay" onclick="closeMoodPicker()"></div>
-
   <!-- Picker humeur — contenu généré dynamiquement par app-account.js -->
   <div id="moodPicker"></div>
 
@@ -5274,6 +5271,9 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   setTimeout(hookSetProfile, 500);
 })();
 </script>
+
+<!-- Overlay sombre derrière le mood picker — doit être au niveau body pour couvrir toute la page -->
+<div id="moodPickerOverlay" onclick="closeMoodPicker()"></div>
 
 </body>
 </html>
