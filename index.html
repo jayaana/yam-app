@@ -5050,257 +5050,204 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 </style>
 
 <script>
-/* ══ HOME TAB — Mascotte IA (phrases Groq, communes au couple, 15/jour) ══ */
+/* ══ HOME TAB — Mascotte IA (15 phrases/jour, individuelles, accord genre) ══ */
 (function(){
-  var GROQ_EDGE    = SB2_URL + '/functions/v1/gemini-suggest';
-  var CACHE_CAT    = 'mascot';       // category dans v2_photo_descs
-  var BATCH_SIZE   = 15;
-  var _phrases     = [];
-  var _idx         = 0;
-  var _generating  = false;
+  var GROQ_EDGE   = SB2_URL + '/functions/v1/gemini-suggest';
+  var BATCH_SIZE  = 15;
+  var _phrases    = [];
+  var _idx        = 0;
+  var _generating = false;
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
+  function _getSession(){
+    try{ return JSON.parse(localStorage.getItem('yam_v2_session')||'null'); }
+    catch(e){ return null; }
+  }
+  function _getUserId(){  var s=_getSession(); return s&&s.user?s.user.id:null; }
+  function _getCoupleId(){ var s=_getSession(); return s&&s.user?s.user.couple_id:null; }
+  function _getRole(){    var s=_getSession(); return s&&s.user?(s.user.role||null):null; }
+  function _getPartnerName(){ var s=_getSession(); return s&&s.user&&s.user.partner_pseudo?s.user.partner_pseudo:null; }
   function _getTodayKey(){
-    var d = new Date();
+    var d=new Date();
     return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
   }
-
   function _getHourSlot(){
-    var h = new Date().getHours();
-    if(h >= 5  && h < 12) return 'matin';
-    if(h >= 12 && h < 18) return 'après-midi';
+    var h=new Date().getHours();
+    if(h>=5&&h<12)  return 'matin';
+    if(h>=12&&h<18) return 'après-midi';
     return 'soir';
   }
 
-  function _getCoupleId(){
-    try{
-      var s = JSON.parse(localStorage.getItem('yam_v2_session')||'null');
-      return s && s.user ? s.user.couple_id : null;
-    }catch(e){ return null; }
-  }
+  function _localKey(userId){ return 'yam_mascot_'+userId; }
+  function _sbSlot(role){ return _getTodayKey()+'_'+role; }
 
-  function _getPartnerName(){
+  function _loadLocal(userId){
     try{
-      var s = JSON.parse(localStorage.getItem('yam_v2_session')||'null');
-      return s && s.user && s.user.partner_pseudo ? s.user.partner_pseudo : 'ton amour';
-    }catch(e){ return 'ton amour'; }
-  }
-
-  function _localKey(coupleId){ return 'yam_mascot_batch_'+coupleId; }
-
-  // ── Cache localStorage ────────────────────────────────────────────────────
-  function _loadLocal(coupleId){
-    try{
-      var raw = localStorage.getItem(_localKey(coupleId));
-      if(!raw) return null;
-      var obj = JSON.parse(raw);
-      if(obj && obj.date === _getTodayKey() && Array.isArray(obj.phrases) && obj.phrases.length > 0)
-        return obj;
+      var obj=JSON.parse(localStorage.getItem(_localKey(userId))||'null');
+      if(obj&&obj.date===_getTodayKey()&&Array.isArray(obj.phrases)&&obj.phrases.length>=BATCH_SIZE) return obj;
     }catch(e){}
     return null;
   }
-
-  function _saveLocal(coupleId, phrases, idx){
-    try{
-      localStorage.setItem(_localKey(coupleId), JSON.stringify({
-        date: _getTodayKey(), phrases: phrases, idx: idx||0
-      }));
-    }catch(e){}
+  function _saveLocal(userId,phrases,idx){
+    try{ localStorage.setItem(_localKey(userId),JSON.stringify({date:_getTodayKey(),phrases:phrases,idx:idx||0})); }catch(e){}
   }
 
-  // ── Supabase (partagé entre les deux) ─────────────────────────────────────
-  function _loadFromSB(coupleId, cb){
-    var today = _getTodayKey();
-    fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+coupleId
-      +'&category=eq.'+CACHE_CAT+'&slot=eq.'+encodeURIComponent(today)
-      +'&select=description&limit=1', { headers: sb2Headers() })
-    .then(function(r){ return r.ok ? r.json() : []; })
+  function _loadFromSB(coupleId,role,cb){
+    var slot=_sbSlot(role);
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+coupleId+'&category=eq.mascot&slot=eq.'+encodeURIComponent(slot)+'&select=description&limit=1',{headers:sb2Headers()})
+    .then(function(r){return r.ok?r.json():[];})
     .then(function(rows){
-      if(rows && rows[0] && rows[0].description){
-        try{
-          var parsed = JSON.parse(rows[0].description);
-          if(Array.isArray(parsed) && parsed.length > 0){ cb(parsed); return; }
-        }catch(e){}
+      if(rows&&rows[0]&&rows[0].description){
+        try{ var p=JSON.parse(rows[0].description); if(Array.isArray(p)&&p.length>=BATCH_SIZE){cb(p);return;} }catch(e){}
       }
       cb(null);
-    })
-    .catch(function(){ cb(null); });
+    }).catch(function(){cb(null);});
   }
-
-  function _saveToSB(coupleId, phrases){
-    var today = _getTodayKey();
-    fetch(SB2_URL+'/rest/v1/v2_photo_descs', {
-      method: 'POST',
-      headers: sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),
-      body: JSON.stringify({ couple_id: coupleId, category: CACHE_CAT, slot: today, description: JSON.stringify(phrases) })
+  function _saveToSB(coupleId,role,phrases){
+    var slot=_sbSlot(role);
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs',{
+      method:'POST',
+      headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),
+      body:JSON.stringify({couple_id:coupleId,category:'mascot',slot:slot,description:JSON.stringify(phrases)})
     }).catch(function(){});
   }
 
-  // ── Affichage ─────────────────────────────────────────────────────────────
   function _setLoading(on){
-    var loading = document.getElementById('homeMsgLoading');
-    var inner   = document.getElementById('homeMsgInner');
-    var nav     = document.getElementById('homeMsgNav');
-    if(loading) loading.style.display = on ? 'inline-flex' : 'none';
-    if(inner)   inner.style.display   = on ? 'none' : '';
-    if(nav)     nav.style.display     = on ? 'none' : '';
+    var loading=document.getElementById('homeMsgLoading');
+    var inner=document.getElementById('homeMsgInner');
+    var nav=document.getElementById('homeMsgNav');
+    if(loading) loading.style.display=on?'inline-flex':'none';
+    if(inner)   inner.style.display=on?'none':'';
+    if(nav)     nav.style.display=(on||!_phrases.length)?'none':'';
   }
-
   function _display(idx){
-    var inner   = document.getElementById('homeMsgInner');
-    var counter = document.getElementById('homeMsgCounter');
-    if(!inner || !_phrases.length) return;
-    var phrase = _phrases[idx] || '';
-    // Transition douce
-    inner.style.opacity = '0';
+    var inner=document.getElementById('homeMsgInner');
+    var counter=document.getElementById('homeMsgCounter');
+    if(!inner||!_phrases.length) return;
+    inner.style.opacity='0';
     setTimeout(function(){
-      inner.textContent = phrase;
-      inner.style.transition = 'opacity 0.3s ease';
-      inner.style.opacity = '1';
-    }, 150);
-    if(counter) counter.textContent = (idx+1)+'/'+_phrases.length;
+      inner.textContent=_phrases[idx]||'';
+      inner.style.transition='opacity 0.3s ease';
+      inner.style.opacity='1';
+    },140);
+    if(counter) counter.textContent=(idx+1)+'/'+_phrases.length;
   }
 
-  // ── Navigation publique ───────────────────────────────────────────────────
-  window.yamMascotNext = function(){
+  window.yamMascotNext=function(){
     if(!_phrases.length) return;
-    _idx = (_idx + 1) % _phrases.length;
+    _idx=(_idx+1)%_phrases.length;
     _display(_idx);
-    var coupleId = _getCoupleId();
-    if(coupleId) _saveLocal(coupleId, _phrases, _idx);
+    var u=_getUserId(); if(u) _saveLocal(u,_phrases,_idx);
   };
-  window.yamMascotPrev = function(){
+  window.yamMascotPrev=function(){
     if(!_phrases.length) return;
-    _idx = (_idx - 1 + _phrases.length) % _phrases.length;
+    _idx=(_idx-1+_phrases.length)%_phrases.length;
     _display(_idx);
-    var coupleId = _getCoupleId();
-    if(coupleId) _saveLocal(coupleId, _phrases, _idx);
+    var u=_getUserId(); if(u) _saveLocal(u,_phrases,_idx);
   };
 
-  // ── Génération du batch ───────────────────────────────────────────────────
-  function _buildPrompt(i, partnerName, slot, daysTogether, saison){
-    // On varie le moment de la journée et le type de message selon l'index
-    var slotLabel = {
-      'matin':       'C\'est le matin',
-      'après-midi':  'C\'est l\'après-midi',
-      'soir':        'C\'est le soir'
-    }[slot] || 'C\'est le matin';
+  function _buildPrompt(i,role,partnerName,slot,daysTogether,saison){
+    var isBoy    = (role==='boy');
+    // Pronom pour parler DU partenaire (vu par l'utilisateur qui lit)
+    var proSuj   = isBoy ? 'elle'      : 'il';
+    var proCompl = isBoy ? 'la'        : 'le';
+    var proInd   = isBoy ? 'lui'       : 'lui';
+    var adjPart  = isBoy ? 'ta copine' : 'ton copain';
+    var pNom     = partnerName || adjPart;
+    var slotFr   = {'matin':'Ce matin','après-midi':'Cet après-midi','soir':'Ce soir'}[slot]||'Aujourd\'hui';
+    var moi      = isBoy ? 'un garçon' : 'une fille';
 
-    // Exemples de style par type — on cycle pour diversifier
-    var styles = [
-      'encourage à envoyer un message affectueux au partenaire (prénom : '+partnerName+')',
-      'propose une activité dans l\'appli (musique, jeux, bêtises, souvenirs, mots doux)',
-      'demande des nouvelles de l\'utilisateur avec bienveillance',
-      'rappelle de penser à son/sa partenaire de façon poétique',
-      'propose une petite attention concrète à faire aujourd\'hui pour '+partnerName,
+    // 15 types bien distincts
+    var TYPES=[
+      {useP:false, instr:'Dis que son/sa partenaire lui manque sûrement. Utilise "'+proSuj+'" pour parler du/de la partenaire. Ex: "'+proSuj.charAt(0).toUpperCase()+proSuj.slice(1)+' te manque, non ? 🥺"'},
+      {useP:true,  instr:'Suggère d\'envoyer un message affectueux a '+pNom+'. Ex: "T\'as envoyé un message a '+pNom+' aujourd\'hui ? 💬"'},
+      {useP:true,  instr:'Propose une partie de jeu dans l\'app (Memory, Skyjo, Pendu) avec '+pNom+'. Ex: "Une partie de Skyjo avec '+pNom+', ca te tente ? 🃏"'},
+      {useP:false, instr:'Demande comment '+moi+' se sent aujourd\'hui, avec bienveillance. Ex: "Tu passes une bonne journée, toi ? ☀️"'},
+      {useP:true,  instr:'Suggère de partager une chanson ou écouter de la musique avec '+pNom+'. Ex: "Et si tu partageais une chanson avec '+pNom+' ce soir ? 🎵"'},
+      {useP:false, instr:'Encourage a écrire un petit mot doux dans l\'app. Ex: "Un petit mot doux, ca fait toujours du bien a recevoir 💌"'},
+      {useP:false, instr:'Rappelle qu\'il y a des souvenirs a ajouter ou revoir dans l\'app. Ex: "Il y a un souvenir que tu voudrais garder pour toujours ? 📸"'},
+      {useP:false, instr:'Rappelle de penser a son/sa partenaire. Utilise "'+proSuj+'" et "'+proCompl+'". Ex: "'+proSuj.charAt(0).toUpperCase()+proSuj.slice(1)+' pense a toi aussi, tu sais 💭"'},
+      {useP:true,  instr:'Suggère malicieusement d\'envoyer une bêtise a '+pNom+'. Ex: "'+pNom+' ne s\'y attend pas... envoie-'+proInd+' une bêtise 😈"'},
+      {useP:false, instr:''+slotFr+' — question rhétorique liée a la relation et a ce moment. Ex: "'+slotFr+', c\'est l\'heure idéale pour un message surprise 😏"'},
+      {useP:true,  instr:'Propose une activité mignonne a faire avec '+pNom+' aujourd\'hui. Ex: "Pourquoi ne pas regarder le même film ce soir avec '+pNom+' ? 🎬"'},
+      {useP:false, instr:'Suggère d\'appeler ou entendre la voix du/de la partenaire. Utilise "'+adjPart+'". Ex: "Tu lui as parlé aujourd\'hui ? Entendre sa voix, ca change tout 📞"'},
+      {useP:false, instr:'Rappelle de mettre ou consulter l\'humeur du jour dans l\'app. Ex: "T\'as mis ton humeur du jour ? '+proSuj.charAt(0).toUpperCase()+proSuj.slice(1)+' a peut-être quelque chose a dire 🌤"'},
+      {useP:false, instr:'Rappelle le nombre de jours ensemble ('+daysTogether+' jours) de façon attendrissante. Ex: "'+daysTogether+' jours ensemble... pas mal, non ? 🥰"'},
+      {useP:false, instr:'Souhaite une belle journée en lien avec la relation. Ex: "Belle journée a toi — et n\'oublie pas que tu es aimé·e 💛"'},
     ];
-    var style = styles[i % styles.length];
+    var t=TYPES[i%TYPES.length];
 
-    return 'Tu es YAM, la mascotte d\'une application privée pour un couple amoureux. '
-      + 'Tu es espiègle, chaleureux, un peu mignon, jamais cucul ni excessif. '
-      + slotLabel + '. Ils sont ensemble depuis '+daysTogether+' jours. Saison : '+saison+'. '
-      + 'Écris UNE seule phrase courte (15 à 25 mots max) qui '+style+'. '
-      + 'Ajoute 1 ou 2 emojis pertinents, naturellement intégrés dans la phrase. '
-      + 'RÈGLES STRICTES : pas de guillemets, pas d\'explication, juste la phrase. '
-      + 'Commence par une formule variée (jamais "Coucou" deux fois de suite). '
-      + 'Exemple de ton : "Tu as pensé à lui envoyer un petit message aujourd\'hui ? 💬" '
-      + 'ou "Une petite partie de Memory avec '+partnerName+', ça te tente ? 🃏"';
+    return 'Tu es YAM, mascotte d\'une app pour couples. '
+      +'Tu parles DIRECTEMENT a '+moi+'. '+slotFr+', saison '+saison+', ensemble depuis '+daysTogether+' jours. '
+      +'Écris UNE seule phrase (10 mots max, 1 ligne). '
+      +t.instr+' '
+      +'REGLES ABSOLUES : pas de guillemets, pas d\'explication, juste la phrase. '
+      +'Sois direct, vivant, jamais bateau. 1 seul emoji max.';
   }
 
-  function _generateBatch(coupleId, onDone){
+  function _generateBatch(coupleId,role,onDone){
     if(_generating) return;
-    _generating = true;
+    _generating=true;
     _setLoading(true);
-
-    var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
-    var partnerName  = _getPartnerName();
-    var daysTogether = 0;
-    if(window.startDate) daysTogether = Math.floor((Date.now()-new Date(window.startDate))/(1000*60*60*24));
-    var saison   = ['hiver','hiver','printemps','printemps','printemps','été','été','été','automne','automne','automne','hiver'][new Date().getMonth()];
-    var slot     = _getHourSlot();
-    var collected = [];
+    var partnerName=_getPartnerName();
+    var daysTogether=0;
+    if(window.startDate) daysTogether=Math.floor((Date.now()-new Date(window.startDate))/(1000*60*60*24));
+    var saison=['hiver','hiver','printemps','printemps','printemps','été','été','été','automne','automne','automne','hiver'][new Date().getMonth()];
+    var slot=_getHourSlot();
+    var collected=[];
 
     function _fetchOne(i){
-      if(i >= BATCH_SIZE){
-        _generating = false;
-        _saveToSB(coupleId, collected);
-        _saveLocal(coupleId, collected, 0);
+      if(i>=BATCH_SIZE){
+        _generating=false;
+        _saveToSB(coupleId,role,collected);
+        var uid=_getUserId(); if(uid) _saveLocal(uid,collected,0);
         onDone(collected);
         return;
       }
-      var prompt = _buildPrompt(i, partnerName, slot, daysTogether, saison);
-      fetch(GROQ_EDGE, {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json', 'x-app-secret':SB2_APP_SECRET, 'apikey':SB2_KEY, 'Authorization':'Bearer '+SB2_KEY },
-        body: JSON.stringify({ prompt: prompt })
+      var prompt=_buildPrompt(i,role,partnerName,slot,daysTogether,saison);
+      fetch(GROQ_EDGE,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-app-secret':SB2_APP_SECRET,'apikey':SB2_KEY,'Authorization':'Bearer '+SB2_KEY},
+        body:JSON.stringify({prompt:prompt})
       })
-      .then(function(r){ return r.json(); })
+      .then(function(r){return r.json();})
       .then(function(data){
-        var text = (data.text||'').trim().replace(/^["«»]+|["«»]+$/g,'').trim();
-        if(text && text.length > 5) collected.push(text);
-        setTimeout(function(){ _fetchOne(i+1); }, 250);
+        var text=(data.text||'').trim().replace(/^["""«»\-–—]+|["""«»]+$/g,'').trim();
+        if(text&&text.length>4) collected.push(text);
+        setTimeout(function(){_fetchOne(i+1);},280);
       })
-      .catch(function(){
-        setTimeout(function(){ _fetchOne(i+1); }, 300);
-      });
+      .catch(function(){setTimeout(function(){_fetchOne(i+1);},350);});
     }
-
     _fetchOne(0);
   }
 
-  // ── Chargement principal ──────────────────────────────────────────────────
   function _load(){
-    var coupleId = _getCoupleId();
-    if(!coupleId){
-      // Pas connecté — afficher un message de bienvenue statique
+    var userId=_getUserId(), coupleId=_getCoupleId(), role=_getRole();
+    if(!userId||!coupleId||!role){
       _setLoading(false);
-      var inner = document.getElementById('homeMsgInner');
-      if(inner) inner.textContent = 'Bienvenue sur YAM ! Connecte-toi pour découvrir les messages du jour 💕';
+      var inner=document.getElementById('homeMsgInner');
+      if(inner) inner.textContent='Connecte-toi pour découvrir tes messages du jour 💕';
       return;
     }
-
-    // 1. Cache local d'abord (instantané)
-    var local = _loadLocal(coupleId);
-    if(local && local.phrases.length >= BATCH_SIZE){
-      _phrases = local.phrases;
-      _idx     = local.idx || 0;
-      _setLoading(false);
-      _display(_idx);
-      return;
-    }
-
-    // 2. Sinon vérifier Supabase (partagé avec le partenaire)
-    _loadFromSB(coupleId, function(sbPhrases){
-      if(sbPhrases && sbPhrases.length >= BATCH_SIZE){
-        _phrases = sbPhrases;
-        _idx     = 0;
-        _saveLocal(coupleId, _phrases, 0);
-        _setLoading(false);
-        _display(0);
-        return;
-      }
-      // 3. Générer un nouveau batch
-      _generateBatch(coupleId, function(phrases){
-        _phrases = phrases.length ? phrases : ['Bonne journée à vous deux 💕'];
-        _idx     = 0;
-        _setLoading(false);
-        _display(0);
+    var local=_loadLocal(userId);
+    if(local){ _phrases=local.phrases; _idx=local.idx||0; _setLoading(false); _display(_idx); return; }
+    _loadFromSB(coupleId,role,function(sbPhrases){
+      if(sbPhrases){ _phrases=sbPhrases; _idx=0; _saveLocal(userId,_phrases,0); _setLoading(false); _display(0); return; }
+      _generateBatch(coupleId,role,function(phrases){
+        _phrases=phrases.length?phrases:['Belle journée a vous deux 💕'];
+        _idx=0; _setLoading(false); _display(0);
       });
     });
   }
 
-  // ── Lancement après connexion ─────────────────────────────────────────────
-  // Tenter immédiatement, puis repatcher setProfile pour relancer si besoin
-  window.addEventListener('load', function(){
+  window.addEventListener('load',function(){
     setTimeout(function(){
       _load();
-      // Patch setProfile pour (re)lancer après connexion
-      var _origSP = window.setProfile;
-      window.setProfile = function(g){
+      var _origSP=window.setProfile;
+      window.setProfile=function(g){
         if(_origSP) _origSP(g);
-        if(g && !_phrases.length) setTimeout(_load, 600);
+        if(g&&!_phrases.length) setTimeout(_load,700);
       };
-    }, 500);
+    },500);
   });
 })();
 
