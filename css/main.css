@@ -421,7 +421,7 @@ body.light #yamStickyAvatarSelf { background: rgba(201,120,96,0.08); }
 }
 /* Thème clair */
 body.light #yamStickyHeader, html[data-theme="warm"] #yamStickyHeader {
-  background: rgba(245, 241, 237, 0.88);
+  background: rgba(240, 235, 229, 0.90);
   border-bottom: 1px solid rgba(160,120,90,0.12);
 }
 /* Masquer quand InstaLove est ouvert */
