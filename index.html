@@ -4994,6 +4994,22 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   border-radius: 18px !important; padding: 8px 10px 6px !important;
   display: flex; flex-direction: column; gap: 5px !important;
 }
+.home-rappel-topbar {
+  display: flex !important; align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important; margin-bottom: 2px !important;
+}
+.home-rappel-add-btn {
+  width: 20px !important; height: 20px !important; flex-shrink: 0 !important;
+  border-radius: 7px !important;
+  background: rgba(255,255,255,0.65) !important;
+  border: 1.5px solid rgba(180,90,110,0.3) !important;
+  color: #b85a78 !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  cursor: pointer !important; padding: 0 !important;
+  box-shadow: 0 1px 4px rgba(180,90,110,0.12) !important;
+  transition: background 0.15s, transform 0.12s !important;
+}
 .home-rappel-badge {
   font-size: 8px !important; color: #c0607a !important;
   gap: 6px !important;
@@ -5304,7 +5320,7 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   function _uid2(){ return Math.random().toString(36).slice(2,9)+Date.now().toString(36); }
 
   /* ── Supabase : 1 ligne par couple, slot fixe ── */
-  var _rowId = null; // id de la ligne Supabase une fois chargée
+  var _rowId = null; // id de la ligne Supabase
 
   function _load(cb){
     var cid=_cid(); if(!cid){cb([]);return;}
@@ -5312,29 +5328,25 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
     .then(function(r){return r.ok?r.json():[];})
     .then(function(rows){
       if(rows&&rows[0]){
-        _rowId = rows[0].id || null;
+        _rowId=rows[0].id||null;
         try{var p=JSON.parse(rows[0].description||'');if(Array.isArray(p)){cb(p);return;}}catch(e){}
       }
       cb([]);
     }).catch(function(){cb([]);});
   }
-
   function _save(){
     var cid=_cid(); if(!cid)return;
-    var payload = {couple_id:cid,category:CAT,slot:SLOT,description:JSON.stringify(_data)};
     if(_rowId){
-      // Ligne existante → PATCH sur l'id
       fetch(SB2_URL+'/rest/v1/v2_photo_descs?id=eq.'+_rowId,{
         method:'PATCH',
         headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
         body:JSON.stringify({description:JSON.stringify(_data)})
       }).catch(function(){});
     } else {
-      // Nouvelle ligne → POST, récupère l'id pour les prochains saves
       fetch(SB2_URL+'/rest/v1/v2_photo_descs',{
         method:'POST',
         headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=representation'}),
-        body:JSON.stringify(payload)
+        body:JSON.stringify({couple_id:cid,category:CAT,slot:SLOT,description:JSON.stringify(_data)})
       })
       .then(function(r){return r.ok?r.json():null;})
       .then(function(rows){if(rows&&rows[0])_rowId=rows[0].id;})
@@ -5383,8 +5395,8 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
     _save();
     if(typeof showToast==='function') showToast('Bravo ! 💕','success');
     var newAct=_active();
-    if(!newAct.length && typeof _genAI==='function') setTimeout(_genAI,400);
-    else { if(_idx>=newAct.length)_idx=Math.max(0,newAct.length-1); _card(); _sheet(); }
+    if(_idx>=newAct.length)_idx=Math.max(0,newAct.length-1);
+    _card(); _sheet();
   };
 
   /* ── Rendu sheet ── */
@@ -5412,8 +5424,6 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
         var newAct=_active();
         if(_idx>=newAct.length)_idx=Math.max(0,newAct.length-1);
         _card(); _sheet();
-        // Si tout est fait → regénérer
-        if(!newAct.length) setTimeout(_genAI,400);
       };
 
       // Texte éditable
@@ -5467,29 +5477,38 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   };
 
   /* ── Génération IA (3 rappels courts, communs aux deux) ── */
-  function _genAI(){
-    var cid=_cid(); if(!cid)return;
-    var role=_role(); var pn=_pname();
-    var isBoy=(role==='boy');
-    var adj=isBoy?'ta copine':'ton copain';
-    var p=pn||adj;
-    var loader=document.getElementById('rshLoader');
-    if(loader)loader.style.display='flex';
+  /* ── Génération IA — max 1x par jour, seulement si liste vide ── */
+  function _todayStr(){
+    var d=new Date();
+    return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  }
+  function _canGenToday(){
+    try{ return localStorage.getItem('yam_rgen_'+(_cid()||'')) !== _todayStr(); }catch(e){ return true; }
+  }
+  function _markGenToday(){
+    try{ localStorage.setItem('yam_rgen_'+(_cid()||''), _todayStr()); }catch(e){}
+  }
 
-    // 3 rappels distincts : contact, attention, activité
+  function _genAI(){
+    var cid=_cid(); if(!cid) return;
+    if(!_canGenToday()) return;  // déjà généré aujourd'hui
+    if(_data.length>0) return;   // liste pas vide
+
+    var loader=document.getElementById('rshLoader');
+    if(loader) loader.style.display='flex';
+
     var prompts=[
-      'Tu es YAM mascotte app couple. Génère UN rappel ultra-court (7 mots max) pour appeler ou envoyer un message vocal à '+p+'. Adressé aux deux membres du couple (pas de "elle" ou "lui"). Sans guillemets. Vivant, pas bateau.',
-      'Tu es YAM mascotte app couple. Génère UN rappel ultra-court (7 mots max) pour faire une petite attention surprise à '+p+' (message, note, dessin dans l\'app). Adressé aux deux. Sans guillemets. Pas bateau.',
-      'Tu es YAM mascotte app couple. Génère UN rappel ultra-court (7 mots max) pour faire une activité ensemble avec '+p+' (écouter musique, jouer, regarder film). Adressé aux deux. Sans guillemets. Concret, pas bateau.',
+      'Écris UN rappel de couple en 4 mots maximum. Impératif. S\'adresse aux DEUX ensemble. Pas de "je", pas de prénom, pas de "mon amour", pas de "vous deux". Thème : geste tendre (bisou, câlin, "je t\'aime"). Format exact attendu : "Faites-vous un bisou 😘" ou "Un câlin, maintenant ! 🤗" ou "Dites-vous je t\'aime 💕". Réponds UNIQUEMENT avec la phrase, rien d\'autre.',
+      'Écris UN rappel de couple en 4 mots maximum. Impératif. S\'adresse aux DEUX ensemble. Pas de "je", pas de prénom, pas de "mon amour", pas de "vous deux". Thème : se parler, s\'appeler, message. Format exact attendu : "Appelez-vous ce soir 📞" ou "Envoyez-vous un vocal 🎙" ou "Écrivez-vous ce soir 💬". Réponds UNIQUEMENT avec la phrase, rien d\'autre.',
+      'Écris UN rappel de couple en 4 mots maximum. Impératif. S\'adresse aux DEUX ensemble. Pas de "je", pas de prénom, pas de "mon amour", pas de "vous deux". Thème : activité partagée (photo, chanson, film, surprise). Format exact attendu : "Partagez une chanson 🎵" ou "Envoyez-vous une photo 📸" ou "Regardez un film ensemble 🎬". Réponds UNIQUEMENT avec la phrase, rien d\'autre.',
     ];
     var col=[];
     function _nx(i){
       if(i>=3){
-        if(loader)loader.style.display='none';
-        if(!col.length){
-          col=['Appelez-vous, même 2 minutes 📞','Envoyez-vous un message surprise 💌','Partagez une chanson ce soir 🎵'];
-        }
-        col.forEach(function(t){_data.push({id:_uid2(),text:t,done:false});});
+        if(loader) loader.style.display='none';
+        if(!col.length) col=['Faites-vous un bisou 😘','Appelez-vous ce soir 📞','Partagez une chanson 🎵'];
+        _markGenToday();
+        col.forEach(function(t){ _data.push({id:_uid2(),text:t,done:false}); });
         _save(); _card(); _sheet();
         return;
       }
@@ -5499,11 +5518,11 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
       })
       .then(function(r){return r.json();})
       .then(function(d){
-        var t=(d.text||'').trim().replace(/^["""«»\-–—]+|["""«»]+$/g,'').trim();
-        if(t&&t.length>3)col.push(t);
-        setTimeout(function(){_nx(i+1);},260);
+        var t=(d.text||'').trim().replace(/^["""«»\-–—\s]+|["""«»\s]+$/g,'').trim();
+        if(t&&t.length>2&&t.length<60) col.push(t);
+        setTimeout(function(){_nx(i+1);},280);
       })
-      .catch(function(){setTimeout(function(){_nx(i+1);},300);});
+      .catch(function(){setTimeout(function(){_nx(i+1);},320);});
     }
     _nx(0);
   }
@@ -5513,26 +5532,24 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
     var cid=_cid();
     if(!cid){
       _data=[
-        {id:'d1',text:'Appelez-vous, même 2 minutes 📞',done:false},
-        {id:'d2',text:'Envoyez-vous un message surprise 💌',done:false},
-        {id:'d3',text:'Partagez une chanson ce soir 🎵',done:false}
+        {id:'d1',text:'Faites-vous un bisou 😘',done:false},
+        {id:'d2',text:'Appelez-vous ce soir 📞',done:false},
+        {id:'d3',text:'Partagez une chanson 🎵',done:false}
       ];
       _card(); return;
     }
     _load(function(loaded){
       _data=loaded;
-      var allDone=_data.length>0&&_data.every(function(r){return r.done;});
-      if(_data.length===0||allDone) _genAI();
+      // IA seulement si liste vide ET pas encore générée aujourd'hui
+      if(_data.length===0 && _canGenToday()) _genAI();
       else _card();
     });
   }
 
   document.addEventListener('DOMContentLoaded',_init);
-  // Relancer après connexion
   var _prev=window.setProfile;
   window.setProfile=function(g){ if(_prev)_prev(g); if(g)setTimeout(_init,900); };
 })();
-
 
 /* ══ HOME TAB — Sync humeurs + online + avatars dans les nouvelles bulles ══ */
 (function(){
