@@ -1362,7 +1362,7 @@ body.nous-active #yamStickyAvatarSelf {
     </div>
     <div class="home-msg-bubble">
       <div class="home-msg-label-row">
-        <div class="home-msg-label" id="homeMsgLabel">✨ MESSAGE DU JOUR</div>
+        <div class="home-msg-label" id="homeMsgLabel">✨ MESSAGE DU YAM</div>
       </div>
       <div class="home-msg-text" id="homeMsgText">
         <span class="home-msg-loading" id="homeMsgLoading">
@@ -5661,22 +5661,14 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
     syncAvatar('homeMoodLuiAvatar', 'boy');
   }
 
-  // Sync spam count display
+  // Sync spam count display — barre journalière (reset chaque jour)
   function homeSyncSpam(){
-    var girl = document.getElementById('likeNumGirl');
-    var boy  = document.getElementById('likeNumBoy');
-    var profile = window.getProfile ? window.getProfile() : null;
-    var selfCount = 0;
-    if(girl && boy){
-      var gVal = parseInt(girl.textContent)||0;
-      var bVal = parseInt(boy.textContent)||0;
-      selfCount = (profile==='girl') ? gVal : bVal;
-    }
-    if(typeof _updateSpamBar==='function') _updateSpamBar(selfCount);
-    // Initialise le palier déjà atteint pour ne pas retrigger au chargement
+    var daily = (typeof _getDailyCount==='function') ? _getDailyCount() : 0;
+    if(typeof _updateSpamBar==='function') _updateSpamBar(daily);
+    // Init _lastMilestone au palier déjà atteint aujourd'hui (évite re-trigger)
     if(typeof _heartMilestones!=='undefined' && typeof _lastMilestone!=='undefined'){
       for(var i=_heartMilestones.length-1;i>=0;i--){
-        if(selfCount>=_heartMilestones[i]){ _lastMilestone=_heartMilestones[i]; break; }
+        if(daily>=_heartMilestones[i]){ _lastMilestone=_heartMilestones[i]; break; }
       }
     }
   }
