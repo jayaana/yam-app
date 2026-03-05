@@ -42,8 +42,8 @@ body.light {
 }
 
 /* Fix background html en thème clair */
-html.light { background: #e2d9cf !important; }
-body.light  { background: #e2d9cf !important; }
+html.light { background: var(--bg) !important; }
+body.light  { background: var(--bg) !important; }
 
 /* ══════════════════════════════════════════════════════════
    1. ONGLETS PRINCIPAUX — coins hauts arrondis façon iOS
