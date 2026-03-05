@@ -1660,7 +1660,31 @@ body.light #lockNavBtn.has-unread {
 }
 .lib-item:hover { background:var(--s3); color:var(--text); }
 
-.like-heart { position:fixed; font-size:90px; left:50%; top:50%; transform:translate(-50%,-50%) scale(0); animation:pop 0.55s ease forwards; pointer-events:none; z-index:3000; }
+.like-heart-btn {
+  position: fixed;
+  font-size: 26px;
+  pointer-events: none;
+  z-index: 3000;
+  transform: translate(-50%, -50%);
+  animation: heartRise 0.9s ease forwards;
+}
+@keyframes heartRise {
+  0%   { opacity: 1; transform: translate(calc(-50% + 0px), -50%) scale(0.6); }
+  30%  { opacity: 1; transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% - 60px)) scale(1.1); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% - 140px)) scale(0.8); }
+}
+@keyframes milestoneFlash {
+  0%   { opacity: 0; }
+  15%  { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes milestonePop {
+  0%   { transform: scale(0.5); opacity: 0; }
+  25%  { transform: scale(1.15); opacity: 1; }
+  60%  { transform: scale(1); }
+  100% { transform: scale(0.9); opacity: 0; }
+}
 @keyframes pop { 0%{transform:translate(-50%,-50%) scale(0)} 55%{transform:translate(-50%,-50%) scale(1.2)} 100%{transform:translate(-50%,-50%) scale(1);opacity:0} }
 .clown-pop { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%) scale(0); font-size:60px; pointer-events:none; z-index:3000; animation:clownPop 0.55s ease forwards; }
 @keyframes clownPop { 0%{transform:translate(-50%,-50%) scale(0);opacity:1} 55%{transform:translate(-50%,-50%) scale(1.2);opacity:1} 100%{transform:translate(-50%,-50%) scale(1);opacity:0} }
