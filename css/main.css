@@ -5013,14 +5013,15 @@ body.light .profile-popup-dot.boy  { background:#3b7dd8; box-shadow:0 0 5px rgba
   top: calc(var(--safe-top) + 14px); right: 64px;
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 12px;
+  border-radius: 16px;
+  padding: 14px;
   z-index: 2100;
   display: none;
   flex-direction: column;
-  gap: 10px;
-  min-width: 200px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+  gap: 0;
+  min-width: 240px;
+  max-width: 280px;
+  box-shadow: 0 6px 32px rgba(0,0,0,0.38);
   animation: profilePopIn 0.15s ease;
 }
 body.light #moodPicker { box-shadow: 0 4px 24px rgba(100,60,30,0.14); }
@@ -5028,14 +5029,16 @@ body.light #moodPicker { box-shadow: 0 4px 24px rgba(100,60,30,0.14); }
 .mood-picker-label { font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; }
 .mood-picker-grid { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
 .mood-emoji-btn {
-  width: 36px; height: 36px;
-  border-radius: 50%;
+  width: 40px; height: 48px;
+  border-radius: 10px;
   background: var(--s2);
   border: 1.5px solid transparent;
   display: flex; align-items: center; justify-content: center;
   font-size: 20px; cursor: pointer;
   transition: transform 0.15s, background 0.15s, border-color 0.15s;
   user-select: none;
+  flex-direction: column;
+  gap: 1px;
 }
 .mood-emoji-btn:hover { transform: scale(1.2); background: var(--s3); }
 .mood-emoji-btn.selected { border-color: var(--green); background: rgba(201,120,96,0.12); transform: scale(1.15); }
