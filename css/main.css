@@ -24,7 +24,7 @@
 body.light,
 html.light {
   /* Fonds */
-  --bg:      #f5f1ed;
+  --bg:      #e2d9cf;
   --s1:      #ffffff;
   --s2:      #ede6de;
   --s3:      #e4dbd1;
@@ -196,7 +196,7 @@ html {
      Cette couleur doit toujours correspondre au theme actif. */
   background: #121212; /* dark default - overridden by warm theme */
 }
-html[data-theme="warm"], html.light { background: #e2d9cf !important; }
+html[data-theme="warm"], html.light { background: var(--bg) !important; }
 body { overscroll-behavior: none !important; overscroll-behavior-y: none !important; -webkit-overflow-scrolling: touch; touch-action: manipulation; }
 /* touch-action:manipulation autorise tap/scroll sans bloquer la sélection de texte.
    pan-x pan-y bloquait le geste longpress + drag de sélection iOS → supprimé.
