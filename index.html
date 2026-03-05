@@ -1430,10 +1430,14 @@ body.nous-active #yamStickyAvatarSelf {
         </div>
         <button class="home-mood-edit-btn" id="homeMoodElleEditBtn" style="display:none;" onclick="openMoodPicker(event)" title="Modifier mon humeur">Éditer</button>
       </div>
-      <!-- bulle message qui pointe vers l'avatar (gauche) -->
-      <div class="home-mood-bubble mood-bubble-elle">
-        <div class="home-mood-quote" id="homeMoodElleQuote">—</div>
-      </div>
+      <div class="home-mood-bubble-wrap">
+          <svg class="home-mood-tip" viewBox="0 0 18 10" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="9,0 18,10 0,10" fill="rgba(255,210,225,0.75)" stroke="rgba(231,90,124,0.3)" stroke-width="1.5" stroke-linejoin="round"/>
+          </svg>
+          <div class="home-mood-bubble mood-bubble-elle">
+            <div class="home-mood-quote" id="homeMoodElleQuote">—</div>
+          </div>
+        </div>
       <!-- bandeau bas coloré rose -->
       <div class="home-mood-footer mood-footer-elle">
         <span class="home-mood-emoji" id="homeMoodElleEmoji">🌸</span>
@@ -1459,10 +1463,14 @@ body.nous-active #yamStickyAvatarSelf {
         </div>
         <button class="home-mood-edit-btn" id="homeMoodLuiEditBtn" style="display:none;" onclick="openMoodPicker(event)" title="Modifier mon humeur">Éditer</button>
       </div>
-      <!-- bulle message qui pointe vers l'avatar (gauche) -->
-      <div class="home-mood-bubble mood-bubble-lui">
-        <div class="home-mood-quote" id="homeMoodLuiQuote">—</div>
-      </div>
+      <div class="home-mood-bubble-wrap">
+          <svg class="home-mood-tip" viewBox="0 0 18 10" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="9,0 18,10 0,10" fill="rgba(205,225,255,0.75)" stroke="rgba(91,156,246,0.3)" stroke-width="1.5" stroke-linejoin="round"/>
+          </svg>
+          <div class="home-mood-bubble mood-bubble-lui">
+            <div class="home-mood-quote" id="homeMoodLuiQuote">—</div>
+          </div>
+        </div>
       <!-- bandeau bas coloré bleu -->
       <div class="home-mood-footer mood-footer-lui">
         <span class="home-mood-emoji" id="homeMoodLuiEmoji">🌊</span>
@@ -4692,47 +4700,32 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 }
 .home-mood-edit-btn:hover { background: var(--s3); }
 
-/* Bulle message — pointe à GAUCHE vers l'avatar */
-/* Vraie bulle — pointeur en HAUT, centré sous l'avatar */
-.home-mood-bubble {
-  position: relative;
+/* Bulle météo — SVG triangle fondu, bulle coins arrondis partout */
+.home-mood-bubble-wrap {
   margin: 0 8px 6px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.home-mood-tip {
+  width: 18px; height: 10px;
+  margin-left: 14px;
+  display: block;
+  flex-shrink: 0;
+}
+.home-mood-bubble {
+  width: 100%;
   padding: 8px 10px;
   border-radius: 14px;
   min-height: 32px;
 }
-/* Triangle pointeur vers le HAUT (sort du haut de la bulle, centré à gauche sous l'avatar) */
-.home-mood-bubble::before {
-  content: '';
-  position: absolute;
-  top: -9px; left: 14px;
-  width: 0; height: 0;
-  border-style: solid;
-  border-width: 0 8px 10px 8px;
-  border-color: transparent transparent var(--bubble-border) transparent;
-}
-.home-mood-bubble::after {
-  content: '';
-  position: absolute;
-  top: -7px; left: 15px;
-  width: 0; height: 0;
-  border-style: solid;
-  border-width: 0 7px 9px 7px;
-  border-color: transparent transparent var(--bubble-bg) transparent;
-}
-/* Elle = rose */
 .mood-bubble-elle {
-  --bubble-bg: rgba(255,220,230,0.55);
-  --bubble-border: rgba(231,90,124,0.3);
-  background: var(--bubble-bg);
-  border: 1px solid var(--bubble-border);
+  background: rgba(255,210,225,0.75);
+  border: 1.5px solid rgba(231,90,124,0.3);
 }
-/* Lui = bleu */
 .mood-bubble-lui {
-  --bubble-bg: rgba(210,228,255,0.55);
-  --bubble-border: rgba(91,156,246,0.3);
-  background: var(--bubble-bg);
-  border: 1px solid var(--bubble-border);
+  background: rgba(205,225,255,0.75);
+  border: 1.5px solid rgba(91,156,246,0.3);
 }
 .home-mood-quote {
   font-size: 10.5px; color: var(--text);
@@ -4899,7 +4892,8 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   display: flex;
   flex-direction: row;
   gap: 10px;
-  padding: 0 0 4px 16px;
+  padding: 0;
+  margin-left: 16px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
@@ -4909,10 +4903,10 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 
 .home-idea-card {
   flex-shrink: 0;
-  width: 100px;
+  width: 90px;
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: hidden;
   display: flex; flex-direction: column;
   cursor: default;
@@ -4920,14 +4914,14 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   scroll-snap-align: start;
 }
 .home-idea-icon {
-  width: 100px;
-  height: 100px;
+  width: 90px;
+  height: 52px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 32px;
+  font-size: 26px;
   flex-shrink: 0;
 }
 .home-idea-footer {
-  padding: 5px 7px 7px;
+  padding: 4px 7px 6px;
   background: var(--s1);
   border-top: 1px solid var(--border);
   display: flex; flex-direction: column;
