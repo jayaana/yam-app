@@ -114,56 +114,56 @@ html.light {
 [data-theme="dark"],
 body:not(.light),
 html:not(.light) {
-  --bg:      #121212;
-  --s1:      #181818;
-  --s2:      #242424;
-  --s3:      #2a2a2a;
-  --body-bg: #0a0a0a;
+  --bg:      #1a1614;
+  --s1:      #242020;
+  --s2:      #2e2928;
+  --s3:      #383230;
+  --body-bg: #120f0e;
 
-  --green:   #c97860;
-  --green2:  #e8b09a;
-  --accent:  #e75a7c;
-  --accent-s:rgba(231,90,124,0.12);
-  --sage:    #6e9484;
-  --sage-s:  #a8c4ba;
-  --violet:  #7c6af7;
-  --sand:    #b99970;
+  --green:   #d4896e;
+  --green2:  #eabda8;
+  --accent:  #f06688;
+  --accent-s:rgba(240,102,136,0.14);
+  --sage:    #7aa896;
+  --sage-s:  #b0cec6;
+  --violet:  #9088f8;
+  --sand:    #c8aa80;
 
-  --text:    #f0ede8;
-  --sub:     rgba(240,237,232,0.55);
-  --muted:   rgba(240,237,232,0.32);
+  --text:    #f5f0eb;
+  --sub:     rgba(245,240,235,0.72);
+  --muted:   rgba(245,240,235,0.45);
 
-  --border:  rgba(255,255,255,0.07);
-  --shadow:  0 8px 32px rgba(0,0,0,0.45);
-  --sh-sm:   0 1px 3px rgba(0,0,0,0.2);
-  --sh-md:   0 2px 10px rgba(0,0,0,0.3);
-  --sh-lg:   0 4px 20px rgba(0,0,0,0.4);
+  --border:  rgba(255,255,255,0.12);
+  --shadow:  0 8px 32px rgba(0,0,0,0.5);
+  --sh-sm:   0 1px 3px rgba(0,0,0,0.25);
+  --sh-md:   0 2px 10px rgba(0,0,0,0.35);
+  --sh-lg:   0 4px 20px rgba(0,0,0,0.45);
   --radius:  12px;
 
-  --tabbar-bg:    rgba(20,18,16,0.94);
+  --tabbar-bg:    rgba(28,24,22,0.96);
 
-  --avatar-girl-border: rgba(240,100,150,0.5);
-  --avatar-girl-glow:   rgba(240,100,150,0.25);
-  --avatar-boy-border:  rgba(70,140,220,0.5);
-  --avatar-boy-glow:    rgba(70,140,220,0.25);
+  --avatar-girl-border: rgba(240,100,150,0.55);
+  --avatar-girl-glow:   rgba(240,100,150,0.28);
+  --avatar-boy-border:  rgba(70,140,220,0.55);
+  --avatar-boy-glow:    rgba(70,140,220,0.28);
 
-  --chat-bubble-girl-bg:  rgba(231,90,124,0.12);
-  --chat-bubble-girl-b:   rgba(231,90,124,0.2);
-  --chat-bubble-boy-bg:   rgba(70,140,220,0.1);
-  --chat-bubble-boy-b:    rgba(70,140,220,0.2);
+  --chat-bubble-girl-bg:  rgba(240,102,136,0.15);
+  --chat-bubble-girl-b:   rgba(240,102,136,0.28);
+  --chat-bubble-boy-bg:   rgba(70,140,220,0.13);
+  --chat-bubble-boy-b:    rgba(70,140,220,0.25);
 
   --mood-txt-girl:  var(--green);
   --mood-txt-boy:   var(--sage);
 
   --hearts-label:   var(--accent);
-  --heart-glow1:    rgba(201,120,96,0.3);
-  --heart-glow2:    rgba(232,176,154,0.4);
+  --heart-glow1:    rgba(212,137,110,0.35);
+  --heart-glow2:    rgba(234,189,168,0.45);
 
-  --music-card-bg:  linear-gradient(145deg,#1e1a18,#2a2420);
+  --music-card-bg:  linear-gradient(145deg,#2a2420,#342e2a);
   --music-play-bg:  var(--green);
   --music-prog-fill:var(--green);
 
-  --beta-bg:        #7c6af7;
+  --beta-bg:        #9088f8;
   --beta-color:     white;
 
   --new-badge-bg:   linear-gradient(135deg,#ff6b6b,#ff8787);
@@ -173,12 +173,12 @@ html:not(.light) {
   --pochette-elle:  linear-gradient(135deg,#fa709a,#fee140);
   --pochette-lui:   linear-gradient(135deg,#30cfd0,#330867);
 
-  --idea-card-bg:   linear-gradient(145deg,rgba(231,90,124,0.1),rgba(201,120,96,0.08));
-  --idea-card-sh:   0 4px 16px rgba(0,0,0,0.3);
-  --idea-btn-bg:    linear-gradient(135deg,#e75a7c,#c97860);
+  --idea-card-bg:   linear-gradient(145deg,rgba(240,102,136,0.12),rgba(212,137,110,0.1));
+  --idea-card-sh:   0 4px 16px rgba(0,0,0,0.35);
+  --idea-btn-bg:    linear-gradient(135deg,#f06688,#d4896e);
   --idea-btn-color: white;
-  --check-circle-bg:#e75a7c;
-  --progress-bar-fill: linear-gradient(90deg,#e75a7c,#c97860);
+  --check-circle-bg:#f06688;
+  --progress-bar-fill: linear-gradient(90deg,#f06688,#d4896e);
 
   --flame-color:    #ff6b35;
   --flame-gradient: linear-gradient(90deg,#ff6b35,#ffa726);
@@ -194,7 +194,7 @@ html {
   overscroll-behavior-y: none !important;
   /* La safe zone iOS affiche le background de html avant tout autre rendu.
      Cette couleur doit toujours correspondre au theme actif. */
-  background: #121212; /* dark default - overridden by warm theme */
+  background: #1a1614; /* dark default - overridden by warm theme */
 }
 html[data-theme="warm"], html.light { background: var(--bg) !important; }
 body { overscroll-behavior: none !important; overscroll-behavior-y: none !important; -webkit-overflow-scrolling: touch; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
