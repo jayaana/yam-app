@@ -4734,14 +4734,14 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   position: relative;
 }
 .mood-bubble-elle {
-  background: #fdf2f5;
-  border: 1px solid rgba(220,170,185,0.3);
+  background: var(--mood-bubble-elle-bg, #fdf2f5);
+  border: 1px solid var(--mood-bubble-elle-border, rgba(220,170,185,0.3));
 }
 .mood-bubble-elle::before {
   content: '';
   position: absolute;
   top: -9px; left: 13px;
-  border-bottom: 8px solid rgba(220,170,185,0.3);
+  border-bottom: 8px solid var(--mood-bubble-elle-border, rgba(220,170,185,0.3));
   border-right: 8px solid transparent;
   width: 0; height: 0;
 }
@@ -4749,19 +4749,19 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   content: '';
   position: absolute;
   top: -7px; left: 14px;
-  border-bottom: 7px solid #fdf2f5;
+  border-bottom: 7px solid var(--mood-bubble-elle-bg, #fdf2f5);
   border-right: 7px solid transparent;
   width: 0; height: 0;
 }
 .mood-bubble-lui {
-  background: #f0f5fd;
-  border: 1px solid rgba(170,195,230,0.3);
+  background: var(--mood-bubble-lui-bg, #f0f5fd);
+  border: 1px solid var(--mood-bubble-lui-border, rgba(170,195,230,0.3));
 }
 .mood-bubble-lui::before {
   content: '';
   position: absolute;
   top: -9px; left: 13px;
-  border-bottom: 8px solid rgba(170,195,230,0.3);
+  border-bottom: 8px solid var(--mood-bubble-lui-border, rgba(170,195,230,0.3));
   border-right: 8px solid transparent;
   width: 0; height: 0;
 }
@@ -4769,7 +4769,7 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   content: '';
   position: absolute;
   top: -7px; left: 14px;
-  border-bottom: 7px solid #f0f5fd;
+  border-bottom: 7px solid var(--mood-bubble-lui-bg, #f0f5fd);
   border-right: 7px solid transparent;
   width: 0; height: 0;
 }
@@ -4786,12 +4786,12 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   margin-top: auto;
 }
 .mood-footer-elle {
-  background: #fdf0f3;
-  border-top: 1px solid rgba(220,170,185,0.25);
+  background: var(--mood-footer-elle-bg, #fdf0f3);
+  border-top: 1px solid var(--mood-bubble-elle-border, rgba(220,170,185,0.25));
 }
 .mood-footer-lui {
-  background: #eef3fb;
-  border-top: 1px solid rgba(170,195,230,0.25);
+  background: var(--mood-footer-lui-bg, #eef3fb);
+  border-top: 1px solid var(--mood-bubble-lui-border, rgba(170,195,230,0.25));
 }
 .home-mood-emoji { font-size: 14px; line-height: 1; }
 .home-mood-emoji-label {
@@ -4989,8 +4989,8 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 /* ── Refonte carte rappel du jour ── */
 .home-rappel-card {
   flex: 1; max-width: calc(100% - 98px);
-  background: #fce4eb !important;
-  border: 1px solid rgba(220,170,185,0.35) !important;
+  background: var(--rappel-card-bg, #fce4eb) !important;
+  border: 1px solid var(--rappel-card-border, rgba(220,170,185,0.35)) !important;
   border-radius: 18px !important; padding: 8px 10px 6px !important;
   display: flex; flex-direction: column; gap: 5px !important;
 }
@@ -5046,8 +5046,10 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 .home-rappel-counter { color: var(--green) !important; font-size: 9px !important; }
 
 /* ── Spam de cœurs ── */
-.home-spam-label { color: #e75a7c !important; }
-.home-spam-bar { background: linear-gradient(90deg,#e75a7c,#f0a0b8) !important; }
+.home-spam-label { color: var(--spam-label-color, #e75a7c) !important; }
+.home-spam-count { color: var(--spam-count-color, #e75a7c) !important; font-weight: 800; }
+.home-spam-bar { background: var(--spam-bar-gradient, linear-gradient(90deg,#e75a7c,#f0a0b8)) !important; }
+.home-spam-bar-wrap { background: var(--spam-bar-track, var(--s2)) !important; }
 </style>
 
 <script>
