@@ -5026,6 +5026,23 @@ body.light .profile-popup-dot.boy  { background:#3b7dd8; box-shadow:0 0 5px rgba
 }
 body.light #moodPicker { box-shadow: 0 4px 24px rgba(100,60,30,0.14); }
 #moodPicker.open { display: flex; }
+
+/* Overlay sombre derrière le mood picker */
+#moodPickerOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0);
+  z-index: 2099;
+  display: none;
+  transition: background 0.22s ease;
+  pointer-events: none;
+}
+#moodPickerOverlay.visible {
+  display: block;
+  background: rgba(0,0,0,0.38);
+  pointer-events: auto;
+}
+body.light #moodPickerOverlay.visible { background: rgba(0,0,0,0.22); }
 .mood-picker-label { font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; }
 .mood-picker-grid { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
 .mood-emoji-btn {
