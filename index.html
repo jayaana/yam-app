@@ -1500,6 +1500,7 @@ body.nous-active #yamStickyAvatarSelf {
         <button class="home-rappel-done" onclick="homeRappelDone()">C'est fait ✓</button>
         <button class="home-rappel-later" onclick="homeRappelNext()">Plus tard</button>
       </div>
+      <div class="home-rappel-sep"></div>
       <div class="home-rappel-nav">
         <button class="home-rappel-nav-btn" onclick="homeRappelPrev()">‹</button>
         <span class="home-rappel-counter" id="homeRappelCounter">1/3</span>
@@ -1528,28 +1529,28 @@ body.nous-active #yamStickyAvatarSelf {
   </div>
   <div class="home-ideas-grid fade-in">
     <div class="home-idea-card" title="Bientôt disponible">
-      <div class="home-idea-icon" style="background:linear-gradient(135deg,#ffb3c6,#e75a7c);">🎁</div>
+      <div class="home-idea-icon" style="background:#fde8ee;">🎁</div>
       <div class="home-idea-footer">
         <div class="home-idea-name">Idée cadeau</div>
         <div class="home-idea-sub">Personnalisée</div>
       </div>
     </div>
     <div class="home-idea-card" title="Bientôt disponible">
-      <div class="home-idea-icon" style="background:linear-gradient(135deg,#a8edea,#6e9484);">🕯️</div>
+      <div class="home-idea-icon" style="background:#ddf0ee;">🕯️</div>
       <div class="home-idea-footer">
         <div class="home-idea-name">Date night</div>
         <div class="home-idea-sub">Ce week-end</div>
       </div>
     </div>
     <div class="home-idea-card" title="Bientôt disponible">
-      <div class="home-idea-icon" style="background:linear-gradient(135deg,#ffd89b,#c97860);">💝</div>
+      <div class="home-idea-icon" style="background:#fef0da;">💝</div>
       <div class="home-idea-footer">
         <div class="home-idea-name">Capsule</div>
         <div class="home-idea-sub">Dans 1 an</div>
       </div>
     </div>
     <div class="home-idea-card" title="Bientôt disponible">
-      <div class="home-idea-icon" style="background:linear-gradient(135deg,#c9a8f5,#7c6af7);">🎵</div>
+      <div class="home-idea-icon" style="background:#ece8fd;">🎵</div>
       <div class="home-idea-footer">
         <div class="home-idea-name">Playlist</div>
         <div class="home-idea-sub">Du jour</div>
@@ -4714,14 +4715,14 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   position: relative;
 }
 .mood-bubble-elle {
-  background: rgba(255,210,225,0.85);
-  border: 1.5px solid rgba(231,90,124,0.3);
+  background: #fdf2f5;
+  border: 1px solid rgba(220,170,185,0.3);
 }
 .mood-bubble-elle::before {
   content: '';
   position: absolute;
   top: -9px; left: 13px;
-  border-bottom: 8px solid rgba(231,90,124,0.3);
+  border-bottom: 8px solid rgba(220,170,185,0.3);
   border-right: 8px solid transparent;
   width: 0; height: 0;
 }
@@ -4729,19 +4730,19 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   content: '';
   position: absolute;
   top: -7px; left: 14px;
-  border-bottom: 7px solid rgba(255,210,225,0.85);
+  border-bottom: 7px solid #fdf2f5;
   border-right: 7px solid transparent;
   width: 0; height: 0;
 }
 .mood-bubble-lui {
-  background: rgba(205,225,255,0.85);
-  border: 1.5px solid rgba(91,156,246,0.3);
+  background: #f0f5fd;
+  border: 1px solid rgba(170,195,230,0.3);
 }
 .mood-bubble-lui::before {
   content: '';
   position: absolute;
   top: -9px; left: 13px;
-  border-bottom: 8px solid rgba(91,156,246,0.3);
+  border-bottom: 8px solid rgba(170,195,230,0.3);
   border-right: 8px solid transparent;
   width: 0; height: 0;
 }
@@ -4749,7 +4750,7 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   content: '';
   position: absolute;
   top: -7px; left: 14px;
-  border-bottom: 7px solid rgba(205,225,255,0.85);
+  border-bottom: 7px solid #f0f5fd;
   border-right: 7px solid transparent;
   width: 0; height: 0;
 }
@@ -4766,12 +4767,12 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   margin-top: auto;
 }
 .mood-footer-elle {
-  background: rgba(231,90,124,0.10);
-  border-top: 1px solid rgba(231,90,124,0.18);
+  background: #fdf0f3;
+  border-top: 1px solid rgba(220,170,185,0.25);
 }
 .mood-footer-lui {
-  background: rgba(91,156,246,0.10);
-  border-top: 1px solid rgba(91,156,246,0.18);
+  background: #eef3fb;
+  border-top: 1px solid rgba(170,195,230,0.25);
 }
 .home-mood-emoji { font-size: 14px; line-height: 1; }
 .home-mood-emoji-label {
@@ -4961,6 +4962,51 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 }
 .home-idea-sub {
   font-size: 9px; color: var(--muted);
+}
+
+/* ── Supprime le tiret du supertitle header ── */
+.hdr-tag::before { display: none !important; }
+
+/* ── Refonte carte rappel du jour ── */
+.home-rappel-card {
+  flex: 1; max-width: calc(100% - 98px);
+  background: #fdeef2 !important;
+  border: 1px solid rgba(220,170,185,0.3) !important;
+  border-radius: 18px !important; padding: 9px 12px 8px !important;
+  display: flex; flex-direction: column; gap: 6px !important;
+}
+.home-rappel-badge {
+  font-size: 8px !important; color: #c0607a !important;
+  gap: 7px !important;
+}
+.home-rappel-badge-dot {
+  width: 26px !important; height: 26px !important;
+  background: #fff !important; border-radius: 8px !important;
+  box-shadow: 0 1px 4px rgba(180,100,120,0.12) !important;
+  font-size: 13px !important;
+}
+.home-rappel-text { font-size: 12px !important; font-weight: 700 !important; padding-left: 2px; }
+.home-rappel-actions { gap: 8px !important; align-items: center !important; }
+.home-rappel-done {
+  flex: unset !important; padding: 6px 14px !important;
+  background: var(--green) !important; border-radius: 10px !important;
+  font-size: 11px !important; white-space: nowrap;
+}
+.home-rappel-later {
+  flex: unset !important; background: none !important;
+  border: none !important; font-size: 11px !important;
+  padding: 4px 2px !important; color: var(--sub) !important;
+}
+.home-rappel-sep {
+  height: 1px !important; background: rgba(201,120,96,0.15) !important;
+  margin: 0 -12px !important;
+}
+.home-rappel-nav { gap: 8px !important; padding-top: 1px !important; }
+.home-rappel-nav-btn {
+  width: 22px !important; height: 22px !important;
+  background: rgba(255,255,255,0.7) !important;
+  border: 1px solid rgba(200,160,175,0.3) !important;
+  font-size: 13px !important;
 }
 </style>
 
