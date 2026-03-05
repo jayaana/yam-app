@@ -1495,7 +1495,7 @@ window.addEventListener('load', function(){
 
       var row = document.createElement('div');
       row.className = 'mood-cat-row';
-      row.style.cssText = 'display:' + (isOpen ? 'flex' : 'none') + ';flex-wrap:wrap;gap:6px;padding:10px;background:var(--s1);';
+      row.style.cssText = 'display:' + (isOpen ? 'grid' : 'none') + ';grid-template-columns:repeat(4,1fr);gap:6px;padding:10px;background:var(--s1);';
 
       cat.emojis.forEach(function(emoji){
         if(emoji === '👤' || emoji === '😶') return;
@@ -1526,7 +1526,7 @@ window.addEventListener('load', function(){
         allRows.forEach(function(r){ r.style.display = 'none'; });
         allArrows.forEach(function(a){ a.style.transform = 'rotate(-90deg)'; });
         if(!isCurrentlyOpen){
-          row.style.display = 'flex';
+          row.style.display = 'grid';
           arrow.style.transform = '';
         }
       };
@@ -1632,7 +1632,7 @@ window.addEventListener('load', function(){
 
     // Bouton Valider
     var confirmBtn = document.createElement('button');
-    confirmBtn.style.cssText = 'width:100%;padding:10px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;font-size:13px;border:none;cursor:pointer;transition:opacity 0.15s;';
+    confirmBtn.style.cssText = 'width:100%;padding:10px;border-radius:10px;background:var(--green);color:#fff;font-weight:700;font-size:13px;border:none;cursor:pointer;transition:opacity 0.15s;font-family:inherit;';
     confirmBtn.textContent = '✓ Enregistrer mon humeur';
     confirmBtn.onclick = function(){
       var profile = get();
@@ -1751,12 +1751,15 @@ window.addEventListener('load', function(){
   // ── Réinitialisation à minuit ──
   function resetMoodsUI(){
     window._myMood = null;
+    window._myMoodMessage = '';
+    window._otherMoodMessage = '';
     updateMoodBadge('self',  null);
     updateMoodBadge('other', null);
     var ppIcon  = document.getElementById('ppMoodIcon');
     if(ppIcon) ppIcon.textContent = '😶';
     var bandeau = document.getElementById('moodBandeau');
     if(bandeau){ clearTimeout(window._bandeauTimer); bandeau.classList.remove('open','visible','mood-highlight-girl','mood-highlight-boy'); }
+    if(window.yamSyncMood) window.yamSyncMood();
   }
 
   function scheduleMidnightReset(){
