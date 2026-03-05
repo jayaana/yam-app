@@ -4970,8 +4970,8 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 /* ── Refonte carte rappel du jour ── */
 .home-rappel-card {
   flex: 1; max-width: calc(100% - 98px);
-  background: #fdeef2 !important;
-  border: 1px solid rgba(220,170,185,0.3) !important;
+  background: #fce4eb !important;
+  border: 1px solid rgba(220,170,185,0.35) !important;
   border-radius: 18px !important; padding: 9px 12px 8px !important;
   display: flex; flex-direction: column; gap: 6px !important;
 }
@@ -4986,7 +4986,7 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   font-size: 13px !important;
 }
 .home-rappel-text { font-size: 12px !important; font-weight: 700 !important; padding-left: 2px; }
-.home-rappel-actions { gap: 8px !important; align-items: center !important; }
+.home-rappel-actions { gap: 8px !important; align-items: center !important; justify-content: center !important; }
 .home-rappel-done {
   flex: unset !important; padding: 6px 14px !important;
   background: var(--green) !important; border-radius: 10px !important;
@@ -4994,20 +4994,25 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 }
 .home-rappel-later {
   flex: unset !important; background: none !important;
-  border: none !important; font-size: 11px !important;
-  padding: 4px 2px !important; color: var(--sub) !important;
+  border: 1px solid rgba(180,130,145,0.35) !important; border-radius: 10px !important;
+  font-size: 11px !important; padding: 5px 12px !important; color: var(--sub) !important;
 }
 .home-rappel-sep {
-  height: 1px !important; background: rgba(201,120,96,0.15) !important;
-  margin: 0 -12px !important;
+  height: 1px !important; background: rgba(201,120,96,0.18) !important;
+  margin: 2px 4px !important;
 }
 .home-rappel-nav { gap: 8px !important; padding-top: 1px !important; }
 .home-rappel-nav-btn {
   width: 22px !important; height: 22px !important;
   background: rgba(255,255,255,0.7) !important;
-  border: 1px solid rgba(200,160,175,0.3) !important;
-  font-size: 13px !important;
+  border: 1px solid rgba(201,120,96,0.25) !important;
+  color: var(--green) !important; font-size: 13px !important;
 }
+.home-rappel-counter { color: var(--green) !important; }
+
+/* ── Spam de cœurs ── */
+.home-spam-label { color: #e75a7c !important; }
+.home-spam-bar { background: linear-gradient(90deg,#e75a7c,#f0a0b8) !important; }
 </style>
 
 <script>
