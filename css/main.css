@@ -315,7 +315,7 @@ body.light #uxToast.success { border-color: rgba(201,120,96,0.3); color: var(--g
 
   /* Hauteur : safe-area + barre compacte */
   height: calc(env(safe-area-inset-top, 0px) + 44px);
-  padding-top: calc(env(safe-area-inset-top, 0px) + 4px);
+  padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
 
   display: flex;
   align-items: center;
