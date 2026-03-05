@@ -318,7 +318,7 @@ body.light #uxToast.success { border-color: rgba(201,120,96,0.3); color: var(--g
   padding-top: env(safe-area-inset-top, 0px);
 
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   padding-bottom: 10px;
 
