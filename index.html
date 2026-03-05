@@ -1332,15 +1332,8 @@ body.nous-active #yamStickyAvatarSelf {
     </div>
   </div>
 
-  <!-- Picker humeur -->
-  <div id="moodPicker">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
-      <div class="mood-picker-label" style="margin-bottom:0;">Comment tu te sens ?</div>
-      <div class="mood-picker-close" onclick="closeMoodPicker()">✕</div>
-    </div>
-    <div class="mood-picker-grid" id="moodPickerGrid"></div>
-    <div id="moodPickerDesc"></div>
-  </div>
+  <!-- Picker humeur — contenu généré dynamiquement par app-account.js -->
+  <div id="moodPicker"></div>
 
   <div id="hdrSub" style="display:none;"></div>
 </header>
@@ -5088,21 +5081,36 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
       otherLabel = otherLabels[otherEmoji] || '';
     }
 
-    function setMoodCard(cardId, emojiId, labelId, quoteId, emoji, label){
+    // Messages persos depuis les globals app-account.js
+    var selfMessage  = window._myMoodMessage  || '';
+    var otherMessage = window._otherMoodMessage || '';
+
+    function setMoodCard(cardId, emojiId, labelId, quoteId, emoji, label, message){
       var emojiEl = document.getElementById(emojiId);
       var labelEl = document.getElementById(labelId);
       var quoteEl = document.getElementById(quoteId);
-      if(emojiEl) emojiEl.textContent = emoji;
-      if(labelEl) labelEl.textContent = label;
-      if(quoteEl) quoteEl.textContent = emoji ? (label || emoji) : '—';
+      if(emojiEl) emojiEl.textContent = emoji || (labelId.indexOf('Elle') !== -1 ? '🌸' : '🌊');
+      if(labelEl) labelEl.textContent = label || (emoji ? '' : 'Humeur');
+      if(quoteEl){
+        if(message && message.trim()){
+          quoteEl.textContent = message.trim();
+          quoteEl.style.fontStyle = 'italic';
+        } else if(emoji){
+          quoteEl.textContent = label || emoji;
+          quoteEl.style.fontStyle = 'normal';
+        } else {
+          quoteEl.textContent = '—';
+          quoteEl.style.fontStyle = 'normal';
+        }
+      }
     }
 
     if(profile === 'girl'){
-      setMoodCard('homeMoodElle','homeMoodElleEmoji','homeMoodElleLabel','homeMoodElleQuote', selfEmoji,  selfLabel);
-      setMoodCard('homeMoodLui', 'homeMoodLuiEmoji', 'homeMoodLuiLabel', 'homeMoodLuiQuote',  otherEmoji, otherLabel);
+      setMoodCard('homeMoodElle','homeMoodElleEmoji','homeMoodElleLabel','homeMoodElleQuote', selfEmoji,  selfLabel,  selfMessage);
+      setMoodCard('homeMoodLui', 'homeMoodLuiEmoji', 'homeMoodLuiLabel', 'homeMoodLuiQuote',  otherEmoji, otherLabel, otherMessage);
     } else {
-      setMoodCard('homeMoodLui', 'homeMoodLuiEmoji', 'homeMoodLuiLabel', 'homeMoodLuiQuote',  selfEmoji,  selfLabel);
-      setMoodCard('homeMoodElle','homeMoodElleEmoji','homeMoodElleLabel','homeMoodElleQuote', otherEmoji, otherLabel);
+      setMoodCard('homeMoodLui', 'homeMoodLuiEmoji', 'homeMoodLuiLabel', 'homeMoodLuiQuote',  selfEmoji,  selfLabel,  selfMessage);
+      setMoodCard('homeMoodElle','homeMoodElleEmoji','homeMoodElleLabel','homeMoodElleQuote', otherEmoji, otherLabel, otherMessage);
     }
 
     // Online status
