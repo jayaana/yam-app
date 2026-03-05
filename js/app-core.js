@@ -378,11 +378,13 @@ function applyThemeToggle() {
 // ── Restauration du thème au chargement ──
 (function(){
   var saved = localStorage.getItem('jayana_theme');
-  if(saved === 'light' && !document.body.classList.contains('light')){
+  // Thème clair par défaut — dark seulement si explicitement sauvegardé
+  var goLight = (saved !== 'dark');
+
+  if(goLight){
     document.body.classList.add('light');
     document.documentElement.classList.add('light');
     document.documentElement.setAttribute('data-theme', 'warm');
-    // Corrige la safe zone dès le chargement sans attendre le DOM
     var themeMeta = document.getElementById('themeColorMeta');
     if(themeMeta) themeMeta.setAttribute('content', '#e2d9cf');
     document.addEventListener('DOMContentLoaded', function(){
@@ -390,21 +392,19 @@ function applyThemeToggle() {
       if(btn) btn.textContent = '🌙';
       var fBtn = document.getElementById('floatingThemeBtn');
       if(fBtn) fBtn.textContent = '🌙';
-      // themeToggleHome utilise uniquement SVG, pas de textContent nécessaire
       ['qz','gv','dm','pm','home'].forEach(function(prefix){
         var moon = document.getElementById(prefix+'ThemeIconMoon');
         var sun  = document.getElementById(prefix+'ThemeIconSun');
         if(moon) moon.style.display = 'none';
         if(sun)  sun.style.display  = '';
       });
-      // Sync icône bouton thème login (thème clair au démarrage → soleil visible)
       var _v2Moon = document.getElementById('v2LoginIconMoon');
       var _v2Sun  = document.getElementById('v2LoginIconSun');
       if(_v2Moon) _v2Moon.style.display = 'none';
       if(_v2Sun)  _v2Sun.style.display  = '';
     });
   } else {
-    // Thème dark par défaut — s'assurer que data-theme est à jour
+    // Thème dark explicitement choisi
     document.documentElement.setAttribute('data-theme', 'dark');
   }
 })();
