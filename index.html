@@ -1361,8 +1361,20 @@ body.nous-active #yamStickyAvatarSelf {
         alt="YAM" />
     </div>
     <div class="home-msg-bubble">
-      <div class="home-msg-label">✨ MESSAGE DU JOUR</div>
-      <div class="home-msg-text" id="homeMsgText">Coucou mon amour ! N'oublie pas notre date ce soir 🌙 ✨</div>
+      <div class="home-msg-label-row">
+        <div class="home-msg-label" id="homeMsgLabel">✨ MESSAGE DU JOUR</div>
+        <div class="home-msg-nav" id="homeMsgNav" style="display:none;">
+          <button class="home-msg-nav-btn" id="homeMsgPrev" onclick="yamMascotPrev()">‹</button>
+          <span class="home-msg-counter" id="homeMsgCounter">1/15</span>
+          <button class="home-msg-nav-btn" id="homeMsgNext" onclick="yamMascotNext()">›</button>
+        </div>
+      </div>
+      <div class="home-msg-text" id="homeMsgText">
+        <span class="home-msg-loading" id="homeMsgLoading">
+          <span class="home-msg-dot"></span><span class="home-msg-dot"></span><span class="home-msg-dot"></span>
+        </span>
+        <span id="homeMsgInner" style="display:none;"></span>
+      </div>
     </div>
   </div>
 
@@ -4524,15 +4536,49 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   border-width: 7px 9px 7px 0;
   border-color: transparent var(--s1) transparent transparent;
 }
+.home-msg-label-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 5px;
+}
 .home-msg-label {
   font-size: 8px; font-weight: 800;
   color: var(--green);
   text-transform: uppercase; letter-spacing: 1.6px;
-  margin-bottom: 5px;
+}
+.home-msg-nav {
+  display: flex; align-items: center; gap: 4px;
+}
+.home-msg-nav-btn {
+  width: 18px; height: 18px;
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: 6px; cursor: pointer;
+  color: var(--sub); font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, color 0.15s; padding: 0; line-height: 1;
+}
+.home-msg-nav-btn:hover { background: var(--s3); color: var(--text); }
+.home-msg-counter {
+  font-size: 8px; font-weight: 700; color: var(--muted); min-width: 24px; text-align: center;
 }
 .home-msg-text {
   font-size: 13px; color: var(--text);
   line-height: 1.5; font-weight: 500;
+  min-height: 20px;
+}
+/* Points de chargement animés */
+.home-msg-loading {
+  display: inline-flex; gap: 4px; align-items: center; padding: 2px 0;
+}
+.home-msg-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--green); opacity: 0.4;
+  animation: mascotDotPulse 1.2s ease-in-out infinite;
+}
+.home-msg-dot:nth-child(2) { animation-delay: 0.2s; }
+.home-msg-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes mascotDotPulse {
+  0%, 80%, 100% { opacity: 0.25; transform: scale(0.85); }
+  40% { opacity: 1; transform: scale(1.1); }
 }
 
 /* ── 2. Compteur + Events/Boutique ── */
@@ -5004,6 +5050,260 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 </style>
 
 <script>
+/* ══ HOME TAB — Mascotte IA (phrases Groq, communes au couple, 15/jour) ══ */
+(function(){
+  var GROQ_EDGE    = SB2_URL + '/functions/v1/gemini-suggest';
+  var CACHE_CAT    = 'mascot';       // category dans v2_photo_descs
+  var BATCH_SIZE   = 15;
+  var _phrases     = [];
+  var _idx         = 0;
+  var _generating  = false;
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  function _getTodayKey(){
+    var d = new Date();
+    return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  }
+
+  function _getHourSlot(){
+    var h = new Date().getHours();
+    if(h >= 5  && h < 12) return 'matin';
+    if(h >= 12 && h < 18) return 'après-midi';
+    return 'soir';
+  }
+
+  function _getCoupleId(){
+    try{
+      var s = JSON.parse(localStorage.getItem('yam_v2_session')||'null');
+      return s && s.user ? s.user.couple_id : null;
+    }catch(e){ return null; }
+  }
+
+  function _getPartnerName(){
+    try{
+      var s = JSON.parse(localStorage.getItem('yam_v2_session')||'null');
+      return s && s.user && s.user.partner_pseudo ? s.user.partner_pseudo : 'ton amour';
+    }catch(e){ return 'ton amour'; }
+  }
+
+  function _localKey(coupleId){ return 'yam_mascot_batch_'+coupleId; }
+
+  // ── Cache localStorage ────────────────────────────────────────────────────
+  function _loadLocal(coupleId){
+    try{
+      var raw = localStorage.getItem(_localKey(coupleId));
+      if(!raw) return null;
+      var obj = JSON.parse(raw);
+      if(obj && obj.date === _getTodayKey() && Array.isArray(obj.phrases) && obj.phrases.length > 0)
+        return obj;
+    }catch(e){}
+    return null;
+  }
+
+  function _saveLocal(coupleId, phrases, idx){
+    try{
+      localStorage.setItem(_localKey(coupleId), JSON.stringify({
+        date: _getTodayKey(), phrases: phrases, idx: idx||0
+      }));
+    }catch(e){}
+  }
+
+  // ── Supabase (partagé entre les deux) ─────────────────────────────────────
+  function _loadFromSB(coupleId, cb){
+    var today = _getTodayKey();
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+coupleId
+      +'&category=eq.'+CACHE_CAT+'&slot=eq.'+encodeURIComponent(today)
+      +'&select=description&limit=1', { headers: sb2Headers() })
+    .then(function(r){ return r.ok ? r.json() : []; })
+    .then(function(rows){
+      if(rows && rows[0] && rows[0].description){
+        try{
+          var parsed = JSON.parse(rows[0].description);
+          if(Array.isArray(parsed) && parsed.length > 0){ cb(parsed); return; }
+        }catch(e){}
+      }
+      cb(null);
+    })
+    .catch(function(){ cb(null); });
+  }
+
+  function _saveToSB(coupleId, phrases){
+    var today = _getTodayKey();
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs', {
+      method: 'POST',
+      headers: sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),
+      body: JSON.stringify({ couple_id: coupleId, category: CACHE_CAT, slot: today, description: JSON.stringify(phrases) })
+    }).catch(function(){});
+  }
+
+  // ── Affichage ─────────────────────────────────────────────────────────────
+  function _setLoading(on){
+    var loading = document.getElementById('homeMsgLoading');
+    var inner   = document.getElementById('homeMsgInner');
+    var nav     = document.getElementById('homeMsgNav');
+    if(loading) loading.style.display = on ? 'inline-flex' : 'none';
+    if(inner)   inner.style.display   = on ? 'none' : '';
+    if(nav)     nav.style.display     = on ? 'none' : '';
+  }
+
+  function _display(idx){
+    var inner   = document.getElementById('homeMsgInner');
+    var counter = document.getElementById('homeMsgCounter');
+    if(!inner || !_phrases.length) return;
+    var phrase = _phrases[idx] || '';
+    // Transition douce
+    inner.style.opacity = '0';
+    setTimeout(function(){
+      inner.textContent = phrase;
+      inner.style.transition = 'opacity 0.3s ease';
+      inner.style.opacity = '1';
+    }, 150);
+    if(counter) counter.textContent = (idx+1)+'/'+_phrases.length;
+  }
+
+  // ── Navigation publique ───────────────────────────────────────────────────
+  window.yamMascotNext = function(){
+    if(!_phrases.length) return;
+    _idx = (_idx + 1) % _phrases.length;
+    _display(_idx);
+    var coupleId = _getCoupleId();
+    if(coupleId) _saveLocal(coupleId, _phrases, _idx);
+  };
+  window.yamMascotPrev = function(){
+    if(!_phrases.length) return;
+    _idx = (_idx - 1 + _phrases.length) % _phrases.length;
+    _display(_idx);
+    var coupleId = _getCoupleId();
+    if(coupleId) _saveLocal(coupleId, _phrases, _idx);
+  };
+
+  // ── Génération du batch ───────────────────────────────────────────────────
+  function _buildPrompt(i, partnerName, slot, daysTogether, saison){
+    // On varie le moment de la journée et le type de message selon l'index
+    var slotLabel = {
+      'matin':       'C\'est le matin',
+      'après-midi':  'C\'est l\'après-midi',
+      'soir':        'C\'est le soir'
+    }[slot] || 'C\'est le matin';
+
+    // Exemples de style par type — on cycle pour diversifier
+    var styles = [
+      'encourage à envoyer un message affectueux au partenaire (prénom : '+partnerName+')',
+      'propose une activité dans l\'appli (musique, jeux, bêtises, souvenirs, mots doux)',
+      'demande des nouvelles de l\'utilisateur avec bienveillance',
+      'rappelle de penser à son/sa partenaire de façon poétique',
+      'propose une petite attention concrète à faire aujourd\'hui pour '+partnerName,
+    ];
+    var style = styles[i % styles.length];
+
+    return 'Tu es YAM, la mascotte d\'une application privée pour un couple amoureux. '
+      + 'Tu es espiègle, chaleureux, un peu mignon, jamais cucul ni excessif. '
+      + slotLabel + '. Ils sont ensemble depuis '+daysTogether+' jours. Saison : '+saison+'. '
+      + 'Écris UNE seule phrase courte (15 à 25 mots max) qui '+style+'. '
+      + 'Ajoute 1 ou 2 emojis pertinents, naturellement intégrés dans la phrase. '
+      + 'RÈGLES STRICTES : pas de guillemets, pas d\'explication, juste la phrase. '
+      + 'Commence par une formule variée (jamais "Coucou" deux fois de suite). '
+      + 'Exemple de ton : "Tu as pensé à lui envoyer un petit message aujourd\'hui ? 💬" '
+      + 'ou "Une petite partie de Memory avec '+partnerName+', ça te tente ? 🃏"';
+  }
+
+  function _generateBatch(coupleId, onDone){
+    if(_generating) return;
+    _generating = true;
+    _setLoading(true);
+
+    var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+    var partnerName  = _getPartnerName();
+    var daysTogether = 0;
+    if(window.startDate) daysTogether = Math.floor((Date.now()-new Date(window.startDate))/(1000*60*60*24));
+    var saison   = ['hiver','hiver','printemps','printemps','printemps','été','été','été','automne','automne','automne','hiver'][new Date().getMonth()];
+    var slot     = _getHourSlot();
+    var collected = [];
+
+    function _fetchOne(i){
+      if(i >= BATCH_SIZE){
+        _generating = false;
+        _saveToSB(coupleId, collected);
+        _saveLocal(coupleId, collected, 0);
+        onDone(collected);
+        return;
+      }
+      var prompt = _buildPrompt(i, partnerName, slot, daysTogether, saison);
+      fetch(GROQ_EDGE, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'x-app-secret':SB2_APP_SECRET, 'apikey':SB2_KEY, 'Authorization':'Bearer '+SB2_KEY },
+        body: JSON.stringify({ prompt: prompt })
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        var text = (data.text||'').trim().replace(/^["«»]+|["«»]+$/g,'').trim();
+        if(text && text.length > 5) collected.push(text);
+        setTimeout(function(){ _fetchOne(i+1); }, 250);
+      })
+      .catch(function(){
+        setTimeout(function(){ _fetchOne(i+1); }, 300);
+      });
+    }
+
+    _fetchOne(0);
+  }
+
+  // ── Chargement principal ──────────────────────────────────────────────────
+  function _load(){
+    var coupleId = _getCoupleId();
+    if(!coupleId){
+      // Pas connecté — afficher un message de bienvenue statique
+      _setLoading(false);
+      var inner = document.getElementById('homeMsgInner');
+      if(inner) inner.textContent = 'Bienvenue sur YAM ! Connecte-toi pour découvrir les messages du jour 💕';
+      return;
+    }
+
+    // 1. Cache local d'abord (instantané)
+    var local = _loadLocal(coupleId);
+    if(local && local.phrases.length >= BATCH_SIZE){
+      _phrases = local.phrases;
+      _idx     = local.idx || 0;
+      _setLoading(false);
+      _display(_idx);
+      return;
+    }
+
+    // 2. Sinon vérifier Supabase (partagé avec le partenaire)
+    _loadFromSB(coupleId, function(sbPhrases){
+      if(sbPhrases && sbPhrases.length >= BATCH_SIZE){
+        _phrases = sbPhrases;
+        _idx     = 0;
+        _saveLocal(coupleId, _phrases, 0);
+        _setLoading(false);
+        _display(0);
+        return;
+      }
+      // 3. Générer un nouveau batch
+      _generateBatch(coupleId, function(phrases){
+        _phrases = phrases.length ? phrases : ['Bonne journée à vous deux 💕'];
+        _idx     = 0;
+        _setLoading(false);
+        _display(0);
+      });
+    });
+  }
+
+  // ── Lancement après connexion ─────────────────────────────────────────────
+  // Tenter immédiatement, puis repatcher setProfile pour relancer si besoin
+  window.addEventListener('load', function(){
+    setTimeout(function(){
+      _load();
+      // Patch setProfile pour (re)lancer après connexion
+      var _origSP = window.setProfile;
+      window.setProfile = function(g){
+        if(_origSP) _origSP(g);
+        if(g && !_phrases.length) setTimeout(_load, 600);
+      };
+    }, 500);
+  });
+})();
+
 /* ══ HOME TAB — Rappels du jour (hardcodé) ══ */
 (function(){
   var rappels = [
