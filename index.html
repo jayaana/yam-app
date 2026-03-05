@@ -1362,7 +1362,7 @@ body.nous-active #yamStickyAvatarSelf {
     </div>
     <div class="home-msg-bubble">
       <div class="home-msg-label-row">
-        <div class="home-msg-label" id="homeMsgLabel">✨ MESSAGE DE YAM</div>
+        <div class="home-msg-label" id="homeMsgLabel">✨ MESSAGE DU JOUR</div>
       </div>
       <div class="home-msg-text" id="homeMsgText">
         <span class="home-msg-loading" id="homeMsgLoading">
@@ -1489,12 +1489,17 @@ body.nous-active #yamStickyAvatarSelf {
   <div class="home-rappel-row fade-in">
 
     <!-- Carte rappel -->
-    <div class="home-rappel-card">
-      <div class="home-rappel-badge">
-        <span class="home-rappel-badge-dot">💝</span>
-        AUJOURD'HUI
+    <div class="home-rappel-card" id="homeRappelCard">
+      <div class="home-rappel-topbar">
+        <div class="home-rappel-badge">
+          <span class="home-rappel-badge-dot">💝</span>
+          AUJOURD'HUI
+        </div>
+        <button class="home-rappel-add-btn" onclick="openRappelSheet()" title="Gérer les rappels">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
       </div>
-      <div class="home-rappel-text" id="homeRappelText">Appelle-la juste pour dire bonsoir</div>
+      <div class="home-rappel-text" id="homeRappelText">Chargement…</div>
       <div class="home-rappel-actions">
         <button class="home-rappel-done" onclick="homeRappelDone()">C'est fait ✓</button>
         <button class="home-rappel-later" onclick="homeRappelNext()">Plus tard</button>
@@ -1502,7 +1507,7 @@ body.nous-active #yamStickyAvatarSelf {
       <div class="home-rappel-sep"></div>
       <div class="home-rappel-nav">
         <button class="home-rappel-nav-btn" onclick="homeRappelPrev()">‹</button>
-        <span class="home-rappel-counter" id="homeRappelCounter">1/3</span>
+        <span class="home-rappel-counter" id="homeRappelCounter">…</span>
         <button class="home-rappel-nav-btn" onclick="homeRappelNext()">›</button>
       </div>
     </div>
@@ -5283,39 +5288,233 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   });
 })();
 
-/* ══ HOME TAB — Rappels du jour (hardcodé) ══ */
+/* ══ HOME TAB — Rappels du jour (Supabase + Groq IA) ══ */
 (function(){
-  var rappels = [
-    'Appelle-la juste pour dire bonsoir',
-    'Envoie-lui un message doux sans raison',
-    'Demande-lui comment s\'est passée sa journée ☀️'
-  ];
-  var idx = 0;
-  var doneList = [];
+  var GROQ  = SB2_URL + '/functions/v1/gemini-suggest';
+  var CAT   = 'yam_rappels';
+  var SLOT  = 'v1';
+  var _data = [];        // [{id,text,done}]
+  var _idx  = 0;         // index actif dans les rappels non-faits
 
-  function renderRappel(){
-    var el = document.getElementById('homeRappelText');
-    var ctr = document.getElementById('homeRappelCounter');
-    if(el) el.textContent = rappels[idx];
-    if(ctr) ctr.textContent = (idx+1)+'/'+rappels.length;
+  /* ── session ── */
+  function _s(){ try{return JSON.parse(localStorage.getItem('yam_v2_session')||'null');}catch(e){return null;} }
+  function _cid(){ var s=_s(); return s&&s.user?s.user.couple_id:null; }
+  function _role(){ var s=_s(); return s&&s.user?s.user.role:null; }
+  function _pname(){ var s=_s(); return s&&s.user&&s.user.partner_pseudo?s.user.partner_pseudo:null; }
+  function _uid2(){ return Math.random().toString(36).slice(2,9)+Date.now().toString(36); }
+
+  /* ── Supabase : 1 ligne par couple, slot fixe ── */
+  function _load(cb){
+    var cid=_cid(); if(!cid){cb([]);return;}
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+cid+'&category=eq.'+CAT+'&slot=eq.'+SLOT+'&select=description&limit=1',{headers:sb2Headers()})
+    .then(function(r){return r.ok?r.json():[];})
+    .then(function(rows){
+      if(rows&&rows[0]&&rows[0].description){
+        try{var p=JSON.parse(rows[0].description);if(Array.isArray(p)){cb(p);return;}}catch(e){}
+      }
+      cb([]);
+    }).catch(function(){cb([]);});
+  }
+  function _save(){
+    var cid=_cid(); if(!cid)return;
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs',{
+      method:'POST',
+      headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),
+      body:JSON.stringify({couple_id:cid,category:CAT,slot:SLOT,description:JSON.stringify(_data)})
+    }).catch(function(){});
   }
 
+  /* ── Rappels actifs / faits ── */
+  function _active(){ return _data.filter(function(r){return !r.done;}); }
+  function _done(){   return _data.filter(function(r){return r.done;}); }
+
+  /* ── Rendu carte principale ── */
+  function _card(){
+    var act = _active();
+    var el  = document.getElementById('homeRappelText');
+    var ctr = document.getElementById('homeRappelCounter');
+    var actRow = document.querySelector('.home-rappel-actions');
+    var navRow = document.querySelector('.home-rappel-nav');
+    var sep    = document.querySelector('.home-rappel-sep');
+
+    if(!act.length){
+      if(el)  el.textContent = 'Tous vos rappels sont faits 🎉';
+      if(ctr) ctr.textContent = '';
+      [actRow,navRow,sep].forEach(function(e){if(e)e.style.display='none';});
+      return;
+    }
+    [actRow,navRow,sep].forEach(function(e){if(e)e.style.display='';});
+    if(_idx>=act.length) _idx=0;
+    if(el)  el.textContent = act[_idx].text;
+    if(ctr) ctr.textContent = (_idx+1)+'/'+act.length;
+  }
+
+  /* ── Actions carte ── */
   window.homeRappelNext = function(){
-    idx = (idx + 1) % rappels.length;
-    renderRappel();
+    var act=_active(); if(!act.length)return;
+    _idx=(_idx+1)%act.length; _card();
   };
   window.homeRappelPrev = function(){
-    idx = (idx - 1 + rappels.length) % rappels.length;
-    renderRappel();
+    var act=_active(); if(!act.length)return;
+    _idx=(_idx-1+act.length)%act.length; _card();
   };
   window.homeRappelDone = function(){
-    if(typeof showToast === 'function') showToast('Bravo ! 💕', 'success');
-    doneList.push(idx);
-    homeRappelNext();
+    var act=_active(); if(!act.length)return;
+    var item=act[_idx];
+    _data.forEach(function(r){if(r.id===item.id)r.done=true;});
+    _save();
+    if(typeof showToast==='function') showToast('Bravo ! 💕','success');
+    var newAct=_active();
+    if(!newAct.length && typeof _genAI==='function') setTimeout(_genAI,400);
+    else { if(_idx>=newAct.length)_idx=Math.max(0,newAct.length-1); _card(); _sheet(); }
   };
 
-  document.addEventListener('DOMContentLoaded', renderRappel);
+  /* ── Rendu sheet ── */
+  function _sheet(){
+    var list=document.getElementById('rshList'); if(!list)return;
+    list.innerHTML='';
+    // Actifs puis faits
+    var sorted=_active().concat(_done());
+    if(!sorted.length){
+      var d=document.createElement('div'); d.className='rsh-empty';
+      d.textContent='Aucun rappel — YAM va en proposer 💭';
+      list.appendChild(d); return;
+    }
+    sorted.forEach(function(item){
+      var row=document.createElement('div');
+      row.className='rsh-item'+(item.done?' rsh-done':'');
+
+      // Checkbox
+      var chk=document.createElement('div');
+      chk.className='rsh-check'+(item.done?' on':'');
+      chk.textContent=item.done?'✓':'';
+      chk.onclick=function(){
+        _data.forEach(function(r){if(r.id===item.id)r.done=!r.done;});
+        _save();
+        var newAct=_active();
+        if(_idx>=newAct.length)_idx=Math.max(0,newAct.length-1);
+        _card(); _sheet();
+        // Si tout est fait → regénérer
+        if(!newAct.length) setTimeout(_genAI,400);
+      };
+
+      // Texte éditable
+      var txt=document.createElement('div');
+      txt.className='rsh-item-txt';
+      txt.textContent=item.text;
+      txt.contentEditable='true';
+      txt.spellcheck=false;
+      txt.onblur=function(){
+        var v=txt.textContent.trim();
+        if(!v){txt.textContent=item.text;return;}
+        _data.forEach(function(r){if(r.id===item.id)r.text=v;});
+        _save(); _card();
+      };
+      txt.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();txt.blur();}};
+
+      // Supprimer
+      var del=document.createElement('button');
+      del.className='rsh-del'; del.innerHTML='&times;'; del.title='Supprimer';
+      del.onclick=function(){
+        _data=_data.filter(function(r){return r.id!==item.id;});
+        _save();
+        var newAct=_active();
+        if(_idx>=newAct.length)_idx=Math.max(0,newAct.length-1);
+        _card(); _sheet();
+      };
+
+      row.appendChild(chk); row.appendChild(txt); row.appendChild(del);
+      list.appendChild(row);
+    });
+  }
+
+  /* ── Ouvrir / fermer sheet ── */
+  window.openRappelSheet=function(){
+    _sheet();
+    document.getElementById('rappelSheet').classList.add('open');
+    document.getElementById('rappelOverlay').classList.add('open');
+    setTimeout(function(){var i=document.getElementById('rshInput');if(i)i.focus();},340);
+  };
+  window.closeRappelSheet=function(){
+    document.getElementById('rappelSheet').classList.remove('open');
+    document.getElementById('rappelOverlay').classList.remove('open');
+  };
+
+  /* ── Ajouter manuellement ── */
+  window.rappelAdd=function(){
+    var inp=document.getElementById('rshInput'); if(!inp)return;
+    var v=inp.value.trim(); if(!v)return;
+    _data.push({id:_uid2(),text:v,done:false});
+    _save(); inp.value=''; _card(); _sheet();
+  };
+
+  /* ── Génération IA (3 rappels courts, communs aux deux) ── */
+  function _genAI(){
+    var cid=_cid(); if(!cid)return;
+    var role=_role(); var pn=_pname();
+    var isBoy=(role==='boy');
+    var adj=isBoy?'ta copine':'ton copain';
+    var p=pn||adj;
+    var loader=document.getElementById('rshLoader');
+    if(loader)loader.style.display='flex';
+
+    // 3 rappels distincts : contact, attention, activité
+    var prompts=[
+      'Tu es YAM mascotte app couple. Génère UN rappel ultra-court (7 mots max) pour appeler ou envoyer un message vocal à '+p+'. Adressé aux deux membres du couple (pas de "elle" ou "lui"). Sans guillemets. Vivant, pas bateau.',
+      'Tu es YAM mascotte app couple. Génère UN rappel ultra-court (7 mots max) pour faire une petite attention surprise à '+p+' (message, note, dessin dans l\'app). Adressé aux deux. Sans guillemets. Pas bateau.',
+      'Tu es YAM mascotte app couple. Génère UN rappel ultra-court (7 mots max) pour faire une activité ensemble avec '+p+' (écouter musique, jouer, regarder film). Adressé aux deux. Sans guillemets. Concret, pas bateau.',
+    ];
+    var col=[];
+    function _nx(i){
+      if(i>=3){
+        if(loader)loader.style.display='none';
+        if(!col.length){
+          col=['Appelez-vous, même 2 minutes 📞','Envoyez-vous un message surprise 💌','Partagez une chanson ce soir 🎵'];
+        }
+        col.forEach(function(t){_data.push({id:_uid2(),text:t,done:false});});
+        _save(); _card(); _sheet();
+        return;
+      }
+      fetch(GROQ,{method:'POST',
+        headers:{'Content-Type':'application/json','x-app-secret':SB2_APP_SECRET,'apikey':SB2_KEY,'Authorization':'Bearer '+SB2_KEY},
+        body:JSON.stringify({prompt:prompts[i]})
+      })
+      .then(function(r){return r.json();})
+      .then(function(d){
+        var t=(d.text||'').trim().replace(/^["""«»\-–—]+|["""«»]+$/g,'').trim();
+        if(t&&t.length>3)col.push(t);
+        setTimeout(function(){_nx(i+1);},260);
+      })
+      .catch(function(){setTimeout(function(){_nx(i+1);},300);});
+    }
+    _nx(0);
+  }
+
+  /* ── Init ── */
+  function _init(){
+    var cid=_cid();
+    if(!cid){
+      _data=[
+        {id:'d1',text:'Appelez-vous, même 2 minutes 📞',done:false},
+        {id:'d2',text:'Envoyez-vous un message surprise 💌',done:false},
+        {id:'d3',text:'Partagez une chanson ce soir 🎵',done:false}
+      ];
+      _card(); return;
+    }
+    _load(function(loaded){
+      _data=loaded;
+      var allDone=_data.length>0&&_data.every(function(r){return r.done;});
+      if(_data.length===0||allDone) _genAI();
+      else _card();
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded',_init);
+  // Relancer après connexion
+  var _prev=window.setProfile;
+  window.setProfile=function(g){ if(_prev)_prev(g); if(g)setTimeout(_init,900); };
 })();
+
 
 /* ══ HOME TAB — Sync humeurs + online + avatars dans les nouvelles bulles ══ */
 (function(){
@@ -5553,6 +5752,28 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 
 <!-- Overlay sombre derrière le mood picker — doit être au niveau body pour couvrir toute la page -->
 <div id="moodPickerOverlay" onclick="closeMoodPicker()"></div>
+
+<!-- ══ RAPPELS — Bottom sheet ══ -->
+<div id="rappelOverlay" onclick="closeRappelSheet()"></div>
+<div id="rappelSheet">
+  <div class="rsh-handle"></div>
+  <div class="rsh-header">
+    <span class="rsh-title">💝 Rappels du jour</span>
+    <button class="rsh-close" onclick="closeRappelSheet()">✕</button>
+  </div>
+  <div id="rshList" class="rsh-list"></div>
+  <div class="rsh-add-row">
+    <input id="rshInput" class="rsh-input" type="text" placeholder="Ajouter un rappel…" maxlength="80"
+      onkeydown="if(event.key==='Enter')rappelAdd()"/>
+    <button class="rsh-submit" onclick="rappelAdd()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+  <div id="rshLoader" class="rsh-loader" style="display:none;">
+    <span class="home-msg-dot"></span><span class="home-msg-dot"></span><span class="home-msg-dot"></span>
+    <span class="rsh-loader-txt">YAM prépare des idées…</span>
+  </div>
+</div>
 
 </body>
 </html>
