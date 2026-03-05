@@ -1466,26 +1466,48 @@ window.addEventListener('load', function(){
       picker.appendChild(currentRow);
     }
 
-    // Catégories
-    MOOD_CATEGORIES.forEach(function(cat){
-      var catLbl = document.createElement('div');
-      catLbl.style.cssText = 'font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:6px;margin-bottom:4px;';
-      catLbl.textContent = cat.label;
-      picker.appendChild(catLbl);
+    // Catégories — accordéon replié par défaut, une seule ouverte à la fois
+    // Si humeur active, ouvrir la catégorie correspondante
+    var defaultOpenIdx = -1;
+    if(window._myMood){
+      MOOD_CATEGORIES.forEach(function(cat, idx){
+        if(cat.emojis.indexOf(window._myMood) !== -1) defaultOpenIdx = idx;
+      });
+    }
+
+    MOOD_CATEGORIES.forEach(function(cat, catIdx){
+      var isOpen = (catIdx === defaultOpenIdx);
+
+      var accordion = document.createElement('div');
+      accordion.style.cssText = 'border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-top:6px;';
+
+      var catHdr = document.createElement('div');
+      catHdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 11px;cursor:pointer;background:var(--s2);transition:background 0.15s;user-select:none;-webkit-user-select:none;';
+      var catLblSpan = document.createElement('span');
+      catLblSpan.style.cssText = 'font-size:11px;font-weight:700;color:var(--text);letter-spacing:0.3px;';
+      catLblSpan.textContent = cat.label;
+      var arrow = document.createElement('span');
+      arrow.className = 'mood-cat-arrow';
+      arrow.style.cssText = 'font-size:10px;color:var(--muted);transition:transform 0.2s;display:inline-block;flex-shrink:0;';
+      arrow.textContent = '▾';
+      if(!isOpen) arrow.style.transform = 'rotate(-90deg)';
+      catHdr.appendChild(catLblSpan); catHdr.appendChild(arrow);
 
       var row = document.createElement('div');
-      row.style.cssText = 'display:flex;flex-wrap:wrap;gap:5px;';
+      row.className = 'mood-cat-row';
+      row.style.cssText = 'display:' + (isOpen ? 'flex' : 'none') + ';flex-wrap:wrap;gap:6px;padding:10px;background:var(--s1);';
+
       cat.emojis.forEach(function(emoji){
-        if(emoji === '👤' || emoji === '😶') return; // sauter les placeholders
+        if(emoji === '👤' || emoji === '😶') return;
         var btn = document.createElement('div');
         btn.className = 'mood-emoji-btn' + (window._myMood === emoji ? ' selected' : '');
         btn.title = moodLabels[emoji] || emoji;
         var inner = document.createElement('div');
-        inner.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px;';
+        inner.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none;';
         var emojiSpan = document.createElement('span');
         emojiSpan.textContent = emoji;
         var lblSpan = document.createElement('span');
-        lblSpan.style.cssText = 'font-size:7px;color:var(--muted);font-weight:600;line-height:1;max-width:36px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        lblSpan.style.cssText = 'font-size:7px;color:var(--muted);font-weight:600;line-height:1;max-width:40px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;';
         lblSpan.textContent = (moodLabels[emoji] || '').split(' ')[0];
         inner.appendChild(emojiSpan); inner.appendChild(lblSpan);
         btn.appendChild(inner);
@@ -1496,8 +1518,24 @@ window.addEventListener('load', function(){
         };
         row.appendChild(btn);
       });
-      picker.appendChild(row);
+
+      catHdr.onclick = function(){
+        var allRows = picker.querySelectorAll('.mood-cat-row');
+        var allArrows = picker.querySelectorAll('.mood-cat-arrow');
+        var isCurrentlyOpen = row.style.display !== 'none';
+        allRows.forEach(function(r){ r.style.display = 'none'; });
+        allArrows.forEach(function(a){ a.style.transform = 'rotate(-90deg)'; });
+        if(!isCurrentlyOpen){
+          row.style.display = 'flex';
+          arrow.style.transform = '';
+        }
+      };
+
+      accordion.appendChild(catHdr);
+      accordion.appendChild(row);
+      picker.appendChild(accordion);
     });
+
 
     // Bouton effacer (si humeur active)
     if(window._myMood){
@@ -1627,14 +1665,17 @@ window.addEventListener('load', function(){
     _pickerTempEmoji = null;
     _renderPickerStep1();
     picker.classList.add('open');
-
-    // Pas de timer auto-fermeture sur le step 2 (l'utilisateur tape)
+    // Overlay sombre
+    var overlay = document.getElementById('moodPickerOverlay');
+    if(overlay) overlay.classList.add('visible');
     if(window._moodPickerTimer) clearTimeout(window._moodPickerTimer);
   };
 
   window.closeMoodPicker = function(){
     var picker = document.getElementById('moodPicker');
     if(picker) picker.classList.remove('open');
+    var overlay = document.getElementById('moodPickerOverlay');
+    if(overlay) overlay.classList.remove('visible');
     document.removeEventListener('click', window._moodPickerOutsideClick);
     if(window._moodPickerTimer){ clearTimeout(window._moodPickerTimer); window._moodPickerTimer = null; }
   };
