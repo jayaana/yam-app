@@ -19,9 +19,9 @@
   --group-radius:  16px;   /* cartes de section */
   --row-radius:    12px;   /* éléments internes */
 
-  /* Surfaces (dark par défaut) */
-  --page-bg:       #0e0e0e;          /* fond derrière les onglets */
-  --group-bg:      rgba(30,30,30,1); /* fond des groupes */
+  /* Surfaces (dark par défaut — alignées sur --bg de main.css : #1a1614) */
+  --page-bg:       #1a1614;          /* fond derrière les onglets */
+  --group-bg:      rgba(36,32,32,1); /* fond des groupes (= --s1 dark) */
   --group-sep:     rgba(255,255,255,0.07); /* séparateur de ligne */
   --group-label:   rgba(255,255,255,0.36); /* titre de groupe */
 
