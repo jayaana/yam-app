@@ -4994,21 +4994,6 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   border-radius: 18px !important; padding: 8px 10px 6px !important;
   display: flex; flex-direction: column; gap: 5px !important;
 }
-.home-rappel-topbar {
-  display: flex !important; align-items: center !important;
-  justify-content: space-between !important; margin-bottom: 2px !important;
-  width: 100% !important;
-}
-.home-rappel-add-btn {
-  width: 20px !important; height: 20px !important; flex-shrink: 0 !important;
-  border-radius: 7px !important;
-  background: rgba(255,255,255,0.65) !important;
-  border: 1.5px solid rgba(180,90,110,0.3) !important;
-  color: #b85a78 !important;
-  display: flex !important; align-items: center !important; justify-content: center !important;
-  cursor: pointer !important; padding: 0 !important;
-  box-shadow: 0 1px 4px rgba(180,90,110,0.12) !important;
-}
 .home-rappel-badge {
   font-size: 8px !important; color: #c0607a !important;
   gap: 6px !important;
@@ -5319,24 +5304,42 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   function _uid2(){ return Math.random().toString(36).slice(2,9)+Date.now().toString(36); }
 
   /* ── Supabase : 1 ligne par couple, slot fixe ── */
+  var _rowId = null; // id de la ligne Supabase une fois chargée
+
   function _load(cb){
     var cid=_cid(); if(!cid){cb([]);return;}
-    fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+cid+'&category=eq.'+CAT+'&slot=eq.'+SLOT+'&select=description&limit=1',{headers:sb2Headers()})
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+cid+'&category=eq.'+CAT+'&slot=eq.'+SLOT+'&select=id,description&limit=1',{headers:sb2Headers()})
     .then(function(r){return r.ok?r.json():[];})
     .then(function(rows){
-      if(rows&&rows[0]&&rows[0].description){
-        try{var p=JSON.parse(rows[0].description);if(Array.isArray(p)){cb(p);return;}}catch(e){}
+      if(rows&&rows[0]){
+        _rowId = rows[0].id || null;
+        try{var p=JSON.parse(rows[0].description||'');if(Array.isArray(p)){cb(p);return;}}catch(e){}
       }
       cb([]);
     }).catch(function(){cb([]);});
   }
+
   function _save(){
     var cid=_cid(); if(!cid)return;
-    fetch(SB2_URL+'/rest/v1/v2_photo_descs',{
-      method:'POST',
-      headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),
-      body:JSON.stringify({couple_id:cid,category:CAT,slot:SLOT,description:JSON.stringify(_data)})
-    }).catch(function(){});
+    var payload = {couple_id:cid,category:CAT,slot:SLOT,description:JSON.stringify(_data)};
+    if(_rowId){
+      // Ligne existante → PATCH sur l'id
+      fetch(SB2_URL+'/rest/v1/v2_photo_descs?id=eq.'+_rowId,{
+        method:'PATCH',
+        headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
+        body:JSON.stringify({description:JSON.stringify(_data)})
+      }).catch(function(){});
+    } else {
+      // Nouvelle ligne → POST, récupère l'id pour les prochains saves
+      fetch(SB2_URL+'/rest/v1/v2_photo_descs',{
+        method:'POST',
+        headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=representation'}),
+        body:JSON.stringify(payload)
+      })
+      .then(function(r){return r.ok?r.json():null;})
+      .then(function(rows){if(rows&&rows[0])_rowId=rows[0].id;})
+      .catch(function(){});
+    }
   }
 
   /* ── Rappels actifs / faits ── */
@@ -5380,8 +5383,8 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
     _save();
     if(typeof showToast==='function') showToast('Bravo ! 💕','success');
     var newAct=_active();
-    if(_idx>=newAct.length)_idx=Math.max(0,newAct.length-1);
-    _card(); _sheet();
+    if(!newAct.length && typeof _genAI==='function') setTimeout(_genAI,400);
+    else { if(_idx>=newAct.length)_idx=Math.max(0,newAct.length-1); _card(); _sheet(); }
   };
 
   /* ── Rendu sheet ── */
@@ -5409,6 +5412,8 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
         var newAct=_active();
         if(_idx>=newAct.length)_idx=Math.max(0,newAct.length-1);
         _card(); _sheet();
+        // Si tout est fait → regénérer
+        if(!newAct.length) setTimeout(_genAI,400);
       };
 
       // Texte éditable
@@ -5464,22 +5469,26 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   /* ── Génération IA (3 rappels courts, communs aux deux) ── */
   function _genAI(){
     var cid=_cid(); if(!cid)return;
-    // Génère SEULEMENT si la liste est complètement vide (aucun item du tout)
-    if(_data.length>0) return;
-
+    var role=_role(); var pn=_pname();
+    var isBoy=(role==='boy');
+    var adj=isBoy?'ta copine':'ton copain';
+    var p=pn||adj;
     var loader=document.getElementById('rshLoader');
     if(loader)loader.style.display='flex';
 
+    // 3 rappels distincts : contact, attention, activité
     var prompts=[
-      'Génère UN rappel de couple ultra-court (5 mots max). Un geste tendre concret : bisou, câlin, "je t\'aime". Impératif, s\'adresse aux deux. Exemples du ton : "Faites-vous un bisou 😘" "Dites-vous je t\'aime 💕" "Un câlin, maintenant ! 🤗". Invente quelque chose de différent. Juste la phrase, sans guillemets.',
-      'Génère UN rappel de couple ultra-court (5 mots max). Suggère de se parler ou s\'appeler. Impératif, s\'adresse aux deux. Exemples du ton : "Appelez-vous, juste 2 min 📞" "Envoyez-vous un vocal 🎙" "Écrivez-vous ce soir 💬". Invente quelque chose de différent. Juste la phrase, sans guillemets.',
-      'Génère UN rappel de couple ultra-court (5 mots max). Une petite attention mignonne à faire l\'un pour l\'autre. Impératif, s\'adresse aux deux. Exemples du ton : "Envoyez-vous une photo 📸" "Partagez une chanson 🎵" "Faites-vous une surprise ✨". Invente quelque chose de différent. Juste la phrase, sans guillemets.',
+      'Tu es YAM mascotte app couple. Génère UN rappel ultra-court (7 mots max) pour appeler ou envoyer un message vocal à '+p+'. Adressé aux deux membres du couple (pas de "elle" ou "lui"). Sans guillemets. Vivant, pas bateau.',
+      'Tu es YAM mascotte app couple. Génère UN rappel ultra-court (7 mots max) pour faire une petite attention surprise à '+p+' (message, note, dessin dans l\'app). Adressé aux deux. Sans guillemets. Pas bateau.',
+      'Tu es YAM mascotte app couple. Génère UN rappel ultra-court (7 mots max) pour faire une activité ensemble avec '+p+' (écouter musique, jouer, regarder film). Adressé aux deux. Sans guillemets. Concret, pas bateau.',
     ];
     var col=[];
     function _nx(i){
       if(i>=3){
         if(loader)loader.style.display='none';
-        if(!col.length) col=['Appelez-vous, juste 2 min 📞','Dites-vous je t\'aime 💕','Envoyez-vous une photo 📸'];
+        if(!col.length){
+          col=['Appelez-vous, même 2 minutes 📞','Envoyez-vous un message surprise 💌','Partagez une chanson ce soir 🎵'];
+        }
         col.forEach(function(t){_data.push({id:_uid2(),text:t,done:false});});
         _save(); _card(); _sheet();
         return;
@@ -5499,7 +5508,6 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
     _nx(0);
   }
 
-
   /* ── Init ── */
   function _init(){
     var cid=_cid();
@@ -5513,8 +5521,8 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
     }
     _load(function(loaded){
       _data=loaded;
-      // IA seulement si aucun rappel du tout (pas juste tous cochés)
-      if(_data.length===0) _genAI();
+      var allDone=_data.length>0&&_data.every(function(r){return r.done;});
+      if(_data.length===0||allDone) _genAI();
       else _card();
     });
   }
