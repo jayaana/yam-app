@@ -5666,22 +5666,18 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
     var girl = document.getElementById('likeNumGirl');
     var boy  = document.getElementById('likeNumBoy');
     var profile = window.getProfile ? window.getProfile() : null;
-
-    var selfCount  = 0;
-    var totalCount = 0;
+    var selfCount = 0;
     if(girl && boy){
-      var gVal = parseInt(girl.textContent) || 0;
-      var bVal = parseInt(boy.textContent)  || 0;
-      selfCount  = (profile === 'girl') ? gVal : bVal;
-      totalCount = gVal + bVal;
+      var gVal = parseInt(girl.textContent)||0;
+      var bVal = parseInt(boy.textContent)||0;
+      selfCount = (profile==='girl') ? gVal : bVal;
     }
-
-    var countEl = document.getElementById('homeSpamCount');
-    var barEl   = document.getElementById('homeSpamBar');
-    if(countEl) countEl.textContent = selfCount + '/10';
-    if(barEl){
-      var pct = Math.min((selfCount / 10) * 100, 100);
-      barEl.style.width = pct + '%';
+    if(typeof _updateSpamBar==='function') _updateSpamBar(selfCount);
+    // Initialise le palier déjà atteint pour ne pas retrigger au chargement
+    if(typeof _heartMilestones!=='undefined' && typeof _lastMilestone!=='undefined'){
+      for(var i=_heartMilestones.length-1;i>=0;i--){
+        if(selfCount>=_heartMilestones[i]){ _lastMilestone=_heartMilestones[i]; break; }
+      }
     }
   }
 
