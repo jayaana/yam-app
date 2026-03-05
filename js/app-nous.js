@@ -1176,13 +1176,83 @@ function _startLockBadgePolling(){
 // ════════════════════════════════════════════════════════════════════
 function fmtLikes(n){ if(!n||n<=0) return '0'; if(n>=1000000) return (n/1000000).toFixed(1).replace('.0','')+'M'; if(n>=1000) return (n/1000).toFixed(1).replace('.0','')+'k'; return String(n); }
 
+// Paliers cœurs
+var _heartMilestones = [10,50,100,500,1000,2000,5000,10000];
+var _lastMilestone   = 0;
+
+function _checkMilestone(total){
+  for(var i=_heartMilestones.length-1;i>=0;i--){
+    if(total >= _heartMilestones[i] && _heartMilestones[i] > _lastMilestone){
+      _lastMilestone = _heartMilestones[i];
+      _triggerMilestone(_heartMilestones[i]);
+      break;
+    }
+  }
+}
+function _triggerMilestone(n){
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;pointer-events:none;'
+    +'display:flex;align-items:center;justify-content:center;'
+    +'background:rgba(232,100,150,0.18);animation:milestoneFlash 1.5s ease forwards;';
+  overlay.innerHTML = '<div style="text-align:center;animation:milestonePop 1.5s ease forwards;">'
+    +'<div style="font-size:54px;line-height:1;">🩷</div>'
+    +'<div style="font-size:21px;font-weight:900;color:#fff;text-shadow:0 2px 14px rgba(220,80,130,0.9);margin-top:8px;">'
+    +n.toLocaleString()+' coeurs !</div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  setTimeout(function(){ overlay.remove(); },1600);
+  if(typeof showToast==='function') showToast('Palier '+n.toLocaleString()+' coeurs atteint ! 🩷','success');
+}
+
+function _updateSpamBar(selfCount){
+  var nextM=10, prevM=0;
+  for(var i=0;i<_heartMilestones.length;i++){
+    if(selfCount<_heartMilestones[i]){nextM=_heartMilestones[i];break;}
+    if(i===_heartMilestones.length-1){nextM=_heartMilestones[i]*2;}
+  }
+  for(var j=_heartMilestones.length-1;j>=0;j--){
+    if(selfCount>=_heartMilestones[j]){prevM=_heartMilestones[j];break;}
+  }
+  var pct = (nextM>prevM) ? Math.min(((selfCount-prevM)/(nextM-prevM))*100,100) : 100;
+  var countEl=document.getElementById('homeSpamCount');
+  var barEl=document.getElementById('homeSpamBar');
+  if(countEl) countEl.textContent=fmtLikes(selfCount)+'/'+fmtLikes(nextM);
+  if(barEl)   barEl.style.width=pct+'%';
+}
+
 function spawnHeart(){
-  var h=document.createElement('div'); h.className='like-heart'; h.textContent='🤍'; document.body.appendChild(h); setTimeout(function(){ h.remove(); },600);
   var profile=getProfile()||null; if(!profile) return;
   var coupleId=(typeof v2GetUser==='function'&&v2GetUser())?v2GetUser().couple_id:null;
   if(!coupleId) return;
+
+  // Spawn depuis le bouton vers le haut
+  var btn=document.getElementById('homeSpamHeart');
+  var sx=window.innerWidth/2, sy=window.innerHeight/2;
+  if(btn){ var r=btn.getBoundingClientRect(); sx=r.left+r.width/2; sy=r.top+r.height/2; }
+  var h=document.createElement('div');
+  h.className='like-heart-btn';
+  h.textContent='\uD83E\uDEF7'; // 🩷
+  var dx=(Math.random()-0.5)*70;
+  h.style.setProperty('--dx',dx+'px');
+  h.style.left=sx+'px';
+  h.style.top=sy+'px';
+  document.body.appendChild(h);
+  setTimeout(function(){ h.remove(); },900);
+
+  // Compteur instantané
   var numEl=document.getElementById(profile==='girl'?'likeNumGirl':'likeNumBoy');
-  if(numEl){ var txt=(numEl.textContent||'0').trim(); var cur=0; if(txt.endsWith('M')) cur=parseFloat(txt)*1000000; else if(txt.endsWith('k')) cur=parseFloat(txt)*1000; else cur=parseInt(txt)||0; numEl.textContent=fmtLikes(cur+1); }
+  var cur=0;
+  if(numEl){
+    var txt=(numEl.textContent||'0').trim();
+    if(txt.endsWith('M')) cur=parseFloat(txt)*1000000;
+    else if(txt.endsWith('k')) cur=parseFloat(txt)*1000;
+    else cur=parseInt(txt)||0;
+    cur++;
+    numEl.textContent=fmtLikes(cur);
+  }
+  _updateSpamBar(cur);
+  _checkMilestone(cur);
+
   fetch(SB2_URL+'/rest/v1/rpc/increment_like_counter',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},sb2Headers()),body:JSON.stringify({p_profile:profile,p_couple_id:coupleId})})
   .then(function(r){ if(!r.ok){ return r.text().then(function(){ loadLikeCounters(); }); } if(window.scheduleLikeSync) window.scheduleLikeSync(); })
   .catch(function(){ loadLikeCounters(); });
