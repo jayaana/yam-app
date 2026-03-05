@@ -148,7 +148,7 @@ html:not(.light) {
   --s1:      #242020;
   --s2:      #2e2928;
   --s3:      #383230;
-  --body-bg: #120f0e;
+  --body-bg: #1a1614; /* unifié avec --bg pour éviter les décalages safe-area / header / body */
 
   --green:   #d4896e;
   --green2:  #eabda8;
