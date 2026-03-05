@@ -108,7 +108,7 @@ html.light {
   --flame-gradient: linear-gradient(90deg,#ff6b35,#ffa726);
   --flame-glow:     rgba(255,107,53,0.4);
 
-  /* ── Home screen — bulles météo du cœur ── */
+  /* ── Home — bulles météo du cœur ── */
   --mood-bubble-elle-bg:     #fdf2f5;
   --mood-bubble-elle-border: rgba(220,170,185,0.3);
   --mood-footer-elle-bg:     #fdf0f3;
@@ -116,15 +116,27 @@ html.light {
   --mood-bubble-lui-border:  rgba(170,195,230,0.3);
   --mood-footer-lui-bg:      #eef3fb;
 
-  /* ── Home screen — carte rappel du jour ── */
-  --rappel-card-bg:          #fce4eb;
-  --rappel-card-border:      rgba(220,170,185,0.35);
+  /* ── Home — carte rappel du jour ── */
+  --rappel-card-bg:      #fce4eb;
+  --rappel-card-border:  rgba(220,170,185,0.35);
+  --rappel-btn-bg:       rgba(255,255,255,0.65);
+  --rappel-btn-border:   rgba(180,90,110,0.3);
+  --rappel-btn-color:    #b85a78;
+  --rappel-badge-color:  #c0607a;
+  --rappel-dot-bg:       #ffffff;
 
-  /* ── Home screen — spam de cœurs ── */
-  --spam-label-color:        #e75a7c;
-  --spam-count-color:        #e75a7c;
-  --spam-bar-gradient:       linear-gradient(90deg,#e75a7c,#f0a0b8);
-  --spam-bar-track:          var(--s2);
+  /* ── Home — spam de cœurs ── */
+  --spam-label-color:    #e75a7c;
+  --spam-count-color:    #e75a7c;
+  --spam-bar-gradient:   linear-gradient(90deg,#e75a7c,#f0a0b8);
+  --spam-bar-track:      var(--s2);
+  --spam-heart-filter:   none;
+
+  /* ── Home — idées & surprises ── */
+  --idea-icon-cadeau:    #fde8ee;
+  --idea-icon-date:      #ddf0ee;
+  --idea-icon-capsule:   #fef0da;
+  --idea-icon-playlist:  #ece8fd;
 }
 
 /* ══ THÈME DARK (sombre) ══ */
@@ -202,7 +214,7 @@ html:not(.light) {
   --flame-gradient: linear-gradient(90deg,#ff6b35,#ffa726);
   --flame-glow:     rgba(255,107,53,0.4);
 
-  /* ── Home screen — bulles météo du cœur ── */
+  /* ── Home — bulles météo du cœur ── */
   --mood-bubble-elle-bg:     rgba(240,102,136,0.10);
   --mood-bubble-elle-border: rgba(240,102,136,0.22);
   --mood-footer-elle-bg:     rgba(240,102,136,0.08);
@@ -210,15 +222,27 @@ html:not(.light) {
   --mood-bubble-lui-border:  rgba(70,140,220,0.22);
   --mood-footer-lui-bg:      rgba(70,140,220,0.08);
 
-  /* ── Home screen — carte rappel du jour ── */
-  --rappel-card-bg:          rgba(240,102,136,0.10);
-  --rappel-card-border:      rgba(240,102,136,0.20);
+  /* ── Home — carte rappel du jour ── */
+  --rappel-card-bg:      rgba(240,102,136,0.10);
+  --rappel-card-border:  rgba(240,102,136,0.20);
+  --rappel-btn-bg:       rgba(255,255,255,0.10);
+  --rappel-btn-border:   rgba(255,255,255,0.20);
+  --rappel-btn-color:    rgba(245,240,235,0.85);
+  --rappel-badge-color:  rgba(245,240,235,0.75);
+  --rappel-dot-bg:       rgba(255,255,255,0.10);
 
-  /* ── Home screen — spam de cœurs ── */
-  --spam-label-color:        rgba(245,240,235,0.80);
-  --spam-count-color:        #ffffff;
-  --spam-bar-gradient:       linear-gradient(90deg,rgba(255,255,255,0.9),rgba(245,240,235,0.55));
-  --spam-bar-track:          rgba(255,255,255,0.12);
+  /* ── Home — spam de cœurs ── */
+  --spam-label-color:    rgba(245,240,235,0.80);
+  --spam-count-color:    #ffffff;
+  --spam-bar-gradient:   linear-gradient(90deg,rgba(255,255,255,0.90),rgba(245,240,235,0.50));
+  --spam-bar-track:      rgba(255,255,255,0.12);
+  --spam-heart-filter:   brightness(0) invert(1) drop-shadow(0 4px 10px rgba(255,255,255,0.4));
+
+  /* ── Home — idées & surprises (tons sombres cohérents) ── */
+  --idea-icon-cadeau:    rgba(240,102,136,0.18);
+  --idea-icon-date:      rgba(122,168,150,0.20);
+  --idea-icon-capsule:   rgba(200,170,128,0.18);
+  --idea-icon-playlist:  rgba(144,136,248,0.20);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html {
@@ -1703,6 +1727,11 @@ body.light #lockNavBtn.has-unread {
   z-index: 3000;
   transform: translate(-50%, -50%);
   animation: heartRise 0.9s ease forwards;
+}
+/* Cœurs qui s'envolent — blanc en mode sombre */
+body:not(.light) .like-heart-btn,
+html:not(.light) .like-heart-btn {
+  filter: brightness(0) invert(1) drop-shadow(0 2px 8px rgba(255,255,255,0.5));
 }
 @keyframes heartRise {
   0%   { opacity: 1; transform: translate(calc(-50% + 0px), -50%) scale(0.6); }
