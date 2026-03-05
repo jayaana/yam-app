@@ -73,15 +73,13 @@
       if(tab === 'home' && window._applyStoryState) window._applyStoryState();
     }, 200);
 
-    // Particules et danse : actives seulement sur musique/nous, et si musique en cours
+    // Particules : actives seulement sur musique/nous, et si musique en cours
     var musicPlaying = window.currentAudio && !window.currentAudio.paused;
     var allowFx = (tab === 'musique' || tab === 'nous');
     if(allowFx && musicPlaying){
       window.particleActive = true;
-      if(window.showDance) window.showDance();
     } else {
       window.particleActive = false;
-      if(window.hideDance) window.hideDance();
     }
     
     // Vérifier le GIF de la mascotte quand on arrive sur l'onglet Accueil
@@ -482,22 +480,10 @@ document.getElementById('loveBox').addEventListener('click',function(e){
   }
 });
 
-// ── DANCE ──
-var dZ=document.getElementById('danceZone'),dG=document.getElementById('dancerGirl'),dB=document.getElementById('dancerBoy');
+
+
+
 var isQuizOpen=false;
-var _danceAutoStop=null;
-function showDance(){
-  if(isQuizOpen) return;
-  var tab = window._currentTab || '';
-  if(tab !== 'musique' && tab !== 'nous') return;
-  dZ.style.opacity='1';dG.classList.add('animate');dB.classList.add('animate');
-  if(_danceAutoStop) clearTimeout(_danceAutoStop);
-  _danceAutoStop=setTimeout(function(){ dG.classList.remove('animate'); dB.classList.remove('animate'); _danceAutoStop=null; },45000);
-}
-function hideDance(){
-  if(_danceAutoStop){ clearTimeout(_danceAutoStop); _danceAutoStop=null; }
-  dZ.style.opacity='0';dG.classList.remove('animate');dB.classList.remove('animate');
-}
 
 // ── TIMELINE ──
 var tlWrap=document.getElementById('tlWrap'),tlToggle=document.getElementById('tlToggle'),tlOpen=false;
@@ -607,7 +593,7 @@ function openHiddenPage(){
     return;
   }
   document.getElementById('hiddenPage').classList.add('active');
-  particleActive=false;hideDance();
+  particleActive=false;
   _dmUpdateHeaderAvatars();
   // ✅ FIX — re-propager les vraies photos à l'ouverture (les bulles vont être générées)
   setTimeout(function(){ if(window._acLoadPartnerAvatar) window._acLoadPartnerAvatar(); }, 400);
@@ -756,7 +742,7 @@ function _yamSlide(incoming, outgoing, dir){
 function openGames(){
   resetZoom();
   _yamSlide(document.getElementById('gamesView'), document.getElementById('yamJeuxTab'), 'forward');
-  particleActive=false;hideDance();
+  particleActive=false;
 }
 function closeGames(){
   _yamSlide(null, document.getElementById('gamesView'), 'backward');
@@ -766,7 +752,7 @@ function openMemoryGame(){
   _loadGames();
   resetZoom();
   _yamSlide(document.getElementById('memoryView'), document.getElementById('gamesView'), 'forward');
-  particleActive=false; hideDance();
+  particleActive=false;
   
   _lbLoad();
 }
@@ -1587,25 +1573,16 @@ setTimeout(function(){
     _reschedAll();
     document.body.classList.toggle('perf-hidden', document.hidden);
 
-    // ── Particules & Danse : stop immédiat si page cachée ──
+    // ── Particules : stop immédiat si page cachée ──
     if(document.hidden){
-      // Stoppe les particules sans modifier l'état particleActive
-      // (si musique toujours en cours, elles reprendront au retour)
       window._particlePausedByVisibility = !!window.particleActive;
       window.particleActive = false;
-      // Stoppe la danse visuellement sans toucher au timer audio
-      var dG2 = document.getElementById('dancerGirl');
-      var dB2 = document.getElementById('dancerBoy');
-      if(dG2) dG2.classList.remove('animate');
-      if(dB2) dB2.classList.remove('animate');
       // Stoppe toute bêtise active (timers, RAF, listeners)
       if(typeof abortActivePrank==='function') abortActivePrank();
     } else {
       // Page redevient visible — reprend si la musique était active
       if(window._particlePausedByVisibility && window.currentAudio && !window.currentAudio.paused){
         window.particleActive = true;
-        // La danse reprend aussi
-        if(window.showDance) window.showDance();
       }
       window._particlePausedByVisibility = false;
     }
@@ -1771,7 +1748,6 @@ setTimeout(function(){
       '  ✓ [v3.3] IntersectionObserver étendu: #loveBox + nlGlow\n' +
       '  ✓ [v3.3] prank-shake durée max 4s\n' +
       '  ✓ [v3.4] Particules: 70 → 20 max, paramètres allégés\n' +
-      '  ✓ [v3.4] danceGirl/Boy: 0.4s → 0.65s, auto-stop 45s\n' +
       '  ✓ [v3.4] visibilitychange: particules + danse stoppées si page cachée\n' +
       '  ✓ [v3.5] particules + danse stoppées à l\'ouverture de toutes les vues\n' +
       '  ✓ [v3.5] abortActivePrank: _kbHintInterval/_kbHintTimer/_shakeMaxTimer nettoyés\n' +
