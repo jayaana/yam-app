@@ -1249,23 +1249,26 @@ window.addEventListener('load', function(){
     return null;
   }
 
-  function saveMood(sender, emoji){
+  function saveMood(sender, emoji, message){
     var today = getTodayStr();
     var coupleId = getCoupleId();
     if (!coupleId) return;
+    var msg = (typeof message === 'string') ? message.trim().slice(0, 120) : '';
     fetch(SB2_URL + '/rest/v1/' + MOOD_TABLE + '?sender=eq.' + sender + '&date=eq.' + today, {
       method: 'DELETE', headers: sb2Headers()
     }).then(function(){
       fetch(SB2_URL + '/rest/v1/' + MOOD_TABLE, {
         method: 'POST',
         headers: sb2Headers({'Prefer':'return=minimal'}),
-        body: JSON.stringify({ sender: sender, emoji: emoji, date: today, couple_id: coupleId })
+        body: JSON.stringify({ sender: sender, emoji: emoji, date: today, couple_id: coupleId, message: msg })
       }).catch(function(){});
     }).catch(function(){});
   }
 
   var _lastOtherMood = null; // mémorise la dernière humeur connue de l'autre
   var _moodFirstLoad = true; // premier chargement → pas de notif
+  window._myMoodMessage = ''; // message perso associé à l'humeur
+  window._otherMoodMessage = ''; // message perso du partenaire
 
   function notifyMoodChange(emoji){
     // Scroll haut uniquement si on est sur la page principale (pas mode caché)
@@ -1300,10 +1303,12 @@ window.addEventListener('load', function(){
           selfFound = true;
           updateMoodBadge('self', row.emoji);
           window._myMood = row.emoji;
+          window._myMoodMessage = row.message || '';
           var ppIcon = document.getElementById('ppMoodIcon');
           if(ppIcon) ppIcon.textContent = row.emoji;
         } else if(otherProfile && row.sender === otherProfile){
           otherFound = true;
+          window._otherMoodMessage = row.message || '';
           updateMoodBadge('other', row.emoji);
           // Détecter le changement d'humeur de l'autre
           if(row.emoji !== _lastOtherMood){
@@ -1316,6 +1321,7 @@ window.addEventListener('load', function(){
       if(!otherFound){
         updateMoodBadge('other', null);
         _lastOtherMood = null;
+        window._otherMoodMessage = '';
       }
     })
     .catch(function(){});
@@ -1407,85 +1413,223 @@ window.addEventListener('load', function(){
     }).catch(function(){});
   }
 
+  // Catégories d'humeur — step 1 du picker
+  var MOOD_CATEGORIES = [
+    { label: '💖 Amour', emojis: ['😍','🥰','😊','🤗','😇','😏'] },
+    { label: '⚡ Énergie', emojis: ['🔥','💪','🤩','🥳','😎','😂'] },
+    { label: '🌧 Calme & Doux', emojis: ['😴','😔','🥺','😤','👤','😶'] }
+  ];
+
+  var _pickerStep = 1;          // 1 = choix emoji  |  2 = message
+  var _pickerTempEmoji = null;  // emoji sélectionné en step 1 avant confirmation
+
+  function _renderPickerStep1(){
+    var picker = document.getElementById('moodPicker');
+    if(!picker) return;
+    var profile = get();
+    var moodLabels = (profile === 'boy') ? MOOD_LABELS_BOY : MOOD_LABELS;
+
+    picker.innerHTML = '';
+
+    // Header
+    var hdr = document.createElement('div');
+    hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;';
+    var lbl = document.createElement('div');
+    lbl.className = 'mood-picker-label';
+    lbl.style.marginBottom = '0';
+    lbl.textContent = 'Comment tu te sens ?';
+    var closeX = document.createElement('div');
+    closeX.className = 'mood-picker-close';
+    closeX.textContent = '✕';
+    closeX.onclick = function(){ window.closeMoodPicker(); };
+    hdr.appendChild(lbl); hdr.appendChild(closeX);
+    picker.appendChild(hdr);
+
+    // Affichage humeur actuelle
+    if(window._myMood){
+      var currentRow = document.createElement('div');
+      currentRow.style.cssText = 'display:flex;align-items:center;gap:7px;background:var(--s2);border-radius:10px;padding:7px 10px;font-size:12px;color:var(--sub);';
+      var curLabel = document.createElement('span');
+      curLabel.textContent = 'Actuelle :';
+      curLabel.style.cssText = 'font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;';
+      var curEmoji = document.createElement('span');
+      curEmoji.style.fontSize = '18px';
+      curEmoji.textContent = window._myMood;
+      var curTxt = document.createElement('span');
+      curTxt.style.cssText = 'font-weight:600;color:var(--text);flex:1;';
+      curTxt.textContent = moodLabels[window._myMood] || '';
+      var curMsg = document.createElement('span');
+      curMsg.style.cssText = 'font-size:10px;color:var(--muted);font-style:italic;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+      if(window._myMoodMessage) curMsg.textContent = '"' + window._myMoodMessage + '"';
+      currentRow.appendChild(curLabel); currentRow.appendChild(curEmoji);
+      currentRow.appendChild(curTxt); currentRow.appendChild(curMsg);
+      picker.appendChild(currentRow);
+    }
+
+    // Catégories
+    MOOD_CATEGORIES.forEach(function(cat){
+      var catLbl = document.createElement('div');
+      catLbl.style.cssText = 'font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:6px;margin-bottom:4px;';
+      catLbl.textContent = cat.label;
+      picker.appendChild(catLbl);
+
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;flex-wrap:wrap;gap:5px;';
+      cat.emojis.forEach(function(emoji){
+        if(emoji === '👤' || emoji === '😶') return; // sauter les placeholders
+        var btn = document.createElement('div');
+        btn.className = 'mood-emoji-btn' + (window._myMood === emoji ? ' selected' : '');
+        btn.title = moodLabels[emoji] || emoji;
+        var inner = document.createElement('div');
+        inner.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px;';
+        var emojiSpan = document.createElement('span');
+        emojiSpan.textContent = emoji;
+        var lblSpan = document.createElement('span');
+        lblSpan.style.cssText = 'font-size:7px;color:var(--muted);font-weight:600;line-height:1;max-width:36px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        lblSpan.textContent = (moodLabels[emoji] || '').split(' ')[0];
+        inner.appendChild(emojiSpan); inner.appendChild(lblSpan);
+        btn.appendChild(inner);
+        btn.onclick = function(){
+          _pickerTempEmoji = emoji;
+          _pickerStep = 2;
+          _renderPickerStep2();
+        };
+        row.appendChild(btn);
+      });
+      picker.appendChild(row);
+    });
+
+    // Bouton effacer (si humeur active)
+    if(window._myMood){
+      var clearBtn = document.createElement('div');
+      clearBtn.className = 'mood-clear-btn';
+      clearBtn.textContent = '🗑 Effacer mon humeur';
+      clearBtn.style.display = 'flex';
+      clearBtn.onclick = function(ev){
+        ev.stopPropagation();
+        var profile = get();
+        if(!profile) return;
+        deleteMood(profile);
+        window._myMood = null;
+        window._myMoodMessage = '';
+        updateMoodBadge('self', null);
+        var ppIcon = document.getElementById('ppMoodIcon');
+        if(ppIcon) ppIcon.textContent = '😶';
+        var selfBadge = document.getElementById('profileMoodSelf');
+        if(selfBadge){ selfBadge.textContent = ''; selfBadge.classList.remove('visible'); }
+        if(window.yamSyncMood) window.yamSyncMood();
+        window.closeMoodPicker();
+      };
+      picker.appendChild(clearBtn);
+    }
+
+    picker.onclick = function(ev){ ev.stopPropagation(); };
+  }
+
+  function _renderPickerStep2(){
+    var picker = document.getElementById('moodPicker');
+    if(!picker) return;
+    var profile = get();
+    var moodLabels = (profile === 'boy') ? MOOD_LABELS_BOY : MOOD_LABELS;
+    var emoji = _pickerTempEmoji;
+    var label = moodLabels[emoji] || emoji;
+
+    picker.innerHTML = '';
+
+    // Header avec retour
+    var hdr = document.createElement('div');
+    hdr.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px;';
+    var backBtn = document.createElement('div');
+    backBtn.style.cssText = 'width:26px;height:26px;border-radius:8px;background:var(--s3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;flex-shrink:0;transition:background 0.15s;';
+    backBtn.textContent = '←';
+    backBtn.onclick = function(){ _pickerStep = 1; _renderPickerStep1(); };
+    var titleWrap = document.createElement('div');
+    titleWrap.style.cssText = 'display:flex;align-items:center;gap:6px;flex:1;';
+    var emojiDisp = document.createElement('span');
+    emojiDisp.style.fontSize = '22px';
+    emojiDisp.textContent = emoji;
+    var lblDisp = document.createElement('span');
+    lblDisp.style.cssText = 'font-size:13px;font-weight:700;color:var(--text);';
+    lblDisp.textContent = label;
+    titleWrap.appendChild(emojiDisp); titleWrap.appendChild(lblDisp);
+    var closeX = document.createElement('div');
+    closeX.className = 'mood-picker-close';
+    closeX.textContent = '✕';
+    closeX.onclick = function(){ window.closeMoodPicker(); };
+    hdr.appendChild(backBtn); hdr.appendChild(titleWrap); hdr.appendChild(closeX);
+    picker.appendChild(hdr);
+
+    // Séparateur
+    var sep = document.createElement('div');
+    sep.style.cssText = 'height:1px;background:var(--border);margin-bottom:8px;';
+    picker.appendChild(sep);
+
+    // Label message
+    var msgLbl = document.createElement('div');
+    msgLbl.style.cssText = 'font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;';
+    msgLbl.textContent = '💬 Ajouter un message (optionnel)';
+    picker.appendChild(msgLbl);
+
+    // Textarea message
+    var textarea = document.createElement('textarea');
+    textarea.id = 'moodMsgTextarea';
+    textarea.maxLength = 120;
+    textarea.placeholder = 'Un petit mot pour lui/elle… 💕';
+    textarea.value = (emoji === window._myMood) ? (window._myMoodMessage || '') : '';
+    textarea.style.cssText = 'width:100%;box-sizing:border-box;background:var(--s2);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;font-family:inherit;padding:9px 11px;resize:none;height:68px;outline:none;transition:border-color 0.18s;line-height:1.4;';
+    textarea.onfocus = function(){ this.style.borderColor = 'var(--accent)'; };
+    textarea.onblur  = function(){ this.style.borderColor = 'var(--border)'; };
+    textarea.oninput = function(){
+      var rem = document.getElementById('moodMsgCounter');
+      if(rem) rem.textContent = (120 - this.value.length) + ' car. restants';
+    };
+    picker.appendChild(textarea);
+
+    // Compteur de caractères
+    var counter = document.createElement('div');
+    counter.id = 'moodMsgCounter';
+    counter.style.cssText = 'font-size:9px;color:var(--muted);text-align:right;margin-top:3px;margin-bottom:8px;';
+    counter.textContent = '120 car. restants';
+    picker.appendChild(counter);
+
+    // Bouton Valider
+    var confirmBtn = document.createElement('button');
+    confirmBtn.style.cssText = 'width:100%;padding:10px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;font-size:13px;border:none;cursor:pointer;transition:opacity 0.15s;';
+    confirmBtn.textContent = '✓ Enregistrer mon humeur';
+    confirmBtn.onclick = function(){
+      var profile = get();
+      if(!profile) return;
+      var msg = textarea.value.trim().slice(0, 120);
+      window._myMood = emoji;
+      window._myMoodMessage = msg;
+      saveMood(profile, emoji, msg);
+      updateMoodBadge('self', emoji);
+      var ppIcon = document.getElementById('ppMoodIcon');
+      if(ppIcon) ppIcon.textContent = emoji;
+      if(window.yamSyncMood) window.yamSyncMood();
+      window.closeMoodPicker();
+    };
+    picker.appendChild(confirmBtn);
+
+    picker.onclick = function(ev){ ev.stopPropagation(); };
+
+    // Focus sur le textarea après un court délai
+    setTimeout(function(){ textarea.focus(); }, 80);
+  }
+
   window.openMoodPicker = function(e){
     if(e && e.stopPropagation) e.stopPropagation();
     var pp = document.getElementById('profilePopup');
     if(pp) pp.classList.remove('open');
     var picker = document.getElementById('moodPicker');
-    var grid   = document.getElementById('moodPickerGrid');
-    if(!picker || !grid) return;
-    var profile = get();
-    var moodLabels = (profile === 'boy') ? MOOD_LABELS_BOY : MOOD_LABELS;
-    var descEl = document.getElementById('moodPickerDesc');
-    if(descEl) descEl.textContent = window._myMood ? (moodLabels[window._myMood] || '') : '';
-
-    grid.innerHTML = '';
-    MOODS.forEach(function(emoji){
-      var btn = document.createElement('div');
-      btn.className = 'mood-emoji-btn' + (window._myMood === emoji ? ' selected' : '');
-      btn.textContent = emoji;
-      btn.onmouseenter = function(){
-        if(descEl) descEl.textContent = moodLabels[emoji] || '';
-      };
-      btn.onmouseleave = function(){
-        if(descEl) descEl.textContent = window._myMood ? (moodLabels[window._myMood] || '') : '';
-      };
-      btn.onclick = function(){
-        var profile = get();
-        if(!profile) return;
-        window._myMood = emoji;
-        saveMood(profile, emoji);
-        updateMoodBadge('self', emoji);
-        var ppIcon = document.getElementById('ppMoodIcon');
-        if(ppIcon) ppIcon.textContent = emoji;
-        // Mettre à jour la sélection visuelle
-        grid.querySelectorAll('.mood-emoji-btn').forEach(function(b){ b.classList.remove('selected'); });
-        btn.classList.add('selected');
-        // Mettre à jour la description
-        if(descEl) descEl.textContent = moodLabels[emoji] || '';
-        // Afficher le bouton effacer
-        var cb = picker.querySelector('.mood-clear-btn');
-        if(cb) cb.style.display = 'flex';
-        // Réinitialiser le timer de fermeture automatique
-        if(window._moodPickerTimer) clearTimeout(window._moodPickerTimer);
-        window._moodPickerTimer = setTimeout(function(){ window.closeMoodPicker(); }, 10000);
-      };
-      grid.appendChild(btn);
-    });
-    // Supprimer l'ancien bouton effacer s'il existe
-    var oldClear = picker.querySelector('.mood-clear-btn');
-    if(oldClear) oldClear.remove();
-    // Bouton supprimer — visible seulement si une humeur est définie
-    var selfBadgeEl = document.getElementById('profileMoodSelf');
-    var hasMood = !!(window._myMood) || !!(selfBadgeEl && selfBadgeEl.classList.contains('visible') && selfBadgeEl.textContent.trim().length > 0);
-    var clearBtn = document.createElement('div');
-    clearBtn.className = 'mood-clear-btn';
-    clearBtn.textContent = '🗑 Effacer mon humeur';
-    clearBtn.style.display = hasMood ? 'flex' : 'none';
-    clearBtn.onclick = function(ev){
-      ev.stopPropagation();
-      var profile = get();
-      if(!profile) return;
-      deleteMood(profile);
-      window._myMood = null;
-      updateMoodBadge('self', null);
-      var ppIcon = document.getElementById('ppMoodIcon');
-      if(ppIcon) ppIcon.textContent = '😶';
-      var selfBadge = document.getElementById('profileMoodSelf');
-      if(selfBadge){ selfBadge.textContent = ''; selfBadge.classList.remove('visible'); }
-      closeMoodPicker();
-    };
-    var descEl2 = document.getElementById('moodPickerDesc');
-    if(descEl2) descEl2.after(clearBtn);
-    else grid.after(clearBtn);
+    if(!picker) return;
+    _pickerStep = 1;
+    _pickerTempEmoji = null;
+    _renderPickerStep1();
     picker.classList.add('open');
-    picker.onclick = function(ev){ ev.stopPropagation(); };
 
-    // Auto-fermeture après 10 secondes
+    // Pas de timer auto-fermeture sur le step 2 (l'utilisateur tape)
     if(window._moodPickerTimer) clearTimeout(window._moodPickerTimer);
-    window._moodPickerTimer = setTimeout(function(){
-      window.closeMoodPicker();
-    }, 10000);
   };
 
   window.closeMoodPicker = function(){
