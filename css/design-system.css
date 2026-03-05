@@ -50,31 +50,16 @@ body.light  { background: #e2d9cf !important; }
    Chaque panneau devient une "feuille" qui glisse sur le fond
 ══════════════════════════════════════════════════════════ */
 .yam-tab-panel {
-  /* Fond du panneau légèrement distinct du header */
   background: var(--bg);
-  /* Coins hauts arrondis — signature Apple */
-  border-radius: var(--page-radius) var(--page-radius) 0 0;
-  /* Remonte légèrement pour chevaucher le header et créer la continuité */
-  margin-top: -20px;
   position: relative;
   z-index: 1;
-  /* Ombre subtile pour détacher la feuille */
-  box-shadow: var(--page-shadow);
-  /* Clip les enfants qui dépasseraient les coins */
-  overflow: visible;
-
-  /* Animation d'entrée lors du changement d'onglet */
   transition:
     opacity 0.22s var(--ease),
     transform 0.22s var(--ease);
 }
 
-/* La poignée iOS (pill) est gérée par règle spécifique en section 22 */
-
-/* Thème clair */
 body.light .yam-tab-panel {
   background: var(--bg);
-  box-shadow: var(--page-shadow);
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -475,7 +460,6 @@ body.light .counter-block {
 
 /* Onglet Messages — pas de carte (plein écran) */
 #yamMessagesTab {
-  border-radius: var(--page-radius) var(--page-radius) 0 0;
   background: var(--bg);
 }
 
@@ -483,21 +467,7 @@ body.light .counter-block {
    22. POIGNÉE GRISE (pill indicator) — visible uniquement
    sur les premiers onglets, pas sur les overlays
 ══════════════════════════════════════════════════════════ */
-#yamHomeTab::before,
-#yamNousTab::before,
-#yamMusiqueTab::before,
-#yamJeuxTab::before {
-  content: '';
-  display: block;
-  width: 36px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--group-sep);
-  margin: 10px auto 2px;
-}
 
-/* Pas de poignée sur Messages (plein écran) */
-#yamMessagesTab::before { display: none; }
 
 /* ══════════════════════════════════════════════════════════
    23. ACTIVITÉ IA CARD — intégration dans la carte de section
