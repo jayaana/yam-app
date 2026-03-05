@@ -1363,11 +1363,6 @@ body.nous-active #yamStickyAvatarSelf {
     <div class="home-msg-bubble">
       <div class="home-msg-label-row">
         <div class="home-msg-label" id="homeMsgLabel">✨ MESSAGE DU JOUR</div>
-        <div class="home-msg-nav" id="homeMsgNav" style="display:none;">
-          <button class="home-msg-nav-btn" id="homeMsgPrev" onclick="yamMascotPrev()">‹</button>
-          <span class="home-msg-counter" id="homeMsgCounter">1/15</span>
-          <button class="home-msg-nav-btn" id="homeMsgNext" onclick="yamMascotNext()">›</button>
-        </div>
       </div>
       <div class="home-msg-text" id="homeMsgText">
         <span class="home-msg-loading" id="homeMsgLoading">
@@ -4545,21 +4540,6 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   color: var(--green);
   text-transform: uppercase; letter-spacing: 1.6px;
 }
-.home-msg-nav {
-  display: flex; align-items: center; gap: 4px;
-}
-.home-msg-nav-btn {
-  width: 18px; height: 18px;
-  background: var(--s2); border: 1px solid var(--border);
-  border-radius: 6px; cursor: pointer;
-  color: var(--sub); font-size: 11px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-  transition: background 0.15s, color 0.15s; padding: 0; line-height: 1;
-}
-.home-msg-nav-btn:hover { background: var(--s3); color: var(--text); }
-.home-msg-counter {
-  font-size: 8px; font-weight: 700; color: var(--muted); min-width: 24px; text-align: center;
-}
 .home-msg-text {
   font-size: 13px; color: var(--text);
   line-height: 1.5; font-weight: 500;
@@ -5050,191 +5030,243 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 </style>
 
 <script>
-/* ══ HOME TAB — Mascotte IA (15 phrases/jour, individuelles, accord genre) ══ */
+/* ══ HOME TAB — Mascotte IA (15 phrases/jour, rotation horaire auto) ══ */
 (function(){
-  var GROQ_EDGE   = SB2_URL + '/functions/v1/gemini-suggest';
-  var BATCH_SIZE  = 15;
-  var _phrases    = [];
-  var _idx        = 0;
-  var _generating = false;
+  var GROQ_EDGE  = SB2_URL + '/functions/v1/gemini-suggest';
+  var PER_SLOT   = 5;   // 5 phrases par slot horaire  →  15 au total
+  var _phrases   = [];  // tableau[15] : [0-4]=matin  [5-9]=aprem  [10-14]=soir
+  var _lastIdx   = -1;
+  var _generating= false;
 
-  function _getSession(){
-    try{ return JSON.parse(localStorage.getItem('yam_v2_session')||'null'); }
-    catch(e){ return null; }
-  }
-  function _getUserId(){  var s=_getSession(); return s&&s.user?s.user.id:null; }
-  function _getCoupleId(){ var s=_getSession(); return s&&s.user?s.user.couple_id:null; }
-  function _getRole(){    var s=_getSession(); return s&&s.user?(s.user.role||null):null; }
-  function _getPartnerName(){ var s=_getSession(); return s&&s.user&&s.user.partner_pseudo?s.user.partner_pseudo:null; }
-  function _getTodayKey(){
+  // ── Session ────────────────────────────────────────────────────────────────
+  function _sess(){ try{ return JSON.parse(localStorage.getItem('yam_v2_session')||'null'); }catch(e){return null;} }
+  function _userId(){   var s=_sess(); return s&&s.user?s.user.id:null; }
+  function _coupleId(){ var s=_sess(); return s&&s.user?s.user.couple_id:null; }
+  function _role(){     var s=_sess(); return s&&s.user?(s.user.role||null):null; }
+  function _partner(){  var s=_sess(); return s&&s.user&&s.user.partner_pseudo?s.user.partner_pseudo:null; }
+
+  // ── Temps ──────────────────────────────────────────────────────────────────
+  function _today(){
     var d=new Date();
     return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
   }
-  function _getHourSlot(){
-    var h=new Date().getHours();
-    if(h>=5&&h<12)  return 'matin';
-    if(h>=12&&h<18) return 'après-midi';
-    return 'soir';
+
+  // Retourne { slot:'matin'|'après-midi'|'soir', phraseIdx:0-4 }
+  // Chaque slot dure ~6-7h, on y affiche 5 phrases successives
+  // Matin    05h→12h  = 420 min  → une phrase toutes que 84 min
+  // Aprem    12h→19h  = 420 min  → une phrase toutes que 84 min
+  // Soir     19h→05h  = 600 min  → une phrase toutes que 120 min
+  function _currentState(){
+    var now = new Date();
+    var h   = now.getHours();
+    var m   = now.getMinutes();
+    var totalMin = h*60 + m;
+
+    if(totalMin >= 300 && totalMin < 720){       // 05h00 → 12h00
+      var elapsed = totalMin - 300;              // 0…419
+      return { slot:'matin',       slotIdx: 0, phraseIdx: Math.min(4, Math.floor(elapsed/84)) };
+    }
+    if(totalMin >= 720 && totalMin < 1140){      // 12h00 → 19h00
+      var elapsed = totalMin - 720;              // 0…419
+      return { slot:'après-midi',  slotIdx: 1, phraseIdx: Math.min(4, Math.floor(elapsed/84)) };
+    }
+    // 19h00 → 05h00 (soir/nuit)
+    var elapsed = (totalMin >= 1140) ? totalMin - 1140 : totalMin + 300; // 0…599
+    return { slot:'soir',          slotIdx: 2, phraseIdx: Math.min(4, Math.floor(elapsed/120)) };
   }
 
-  function _localKey(userId){ return 'yam_mascot_'+userId; }
-  function _sbSlot(role){ return _getTodayKey()+'_'+role; }
+  function _globalIdx(state){
+    return state.slotIdx * PER_SLOT + state.phraseIdx;
+  }
 
-  function _loadLocal(userId){
+  // ── Cache ──────────────────────────────────────────────────────────────────
+  function _lkey(uid){ return 'yam_mascot_'+uid; }
+  function _sbSlot(role){ return _today()+'_'+role; }
+
+  function _loadLocal(uid){
     try{
-      var obj=JSON.parse(localStorage.getItem(_localKey(userId))||'null');
-      if(obj&&obj.date===_getTodayKey()&&Array.isArray(obj.phrases)&&obj.phrases.length>=BATCH_SIZE) return obj;
+      var o=JSON.parse(localStorage.getItem(_lkey(uid))||'null');
+      if(o&&o.date===_today()&&Array.isArray(o.phrases)&&o.phrases.length===15) return o.phrases;
     }catch(e){}
     return null;
   }
-  function _saveLocal(userId,phrases,idx){
-    try{ localStorage.setItem(_localKey(userId),JSON.stringify({date:_getTodayKey(),phrases:phrases,idx:idx||0})); }catch(e){}
+  function _saveLocal(uid,phrases){
+    try{ localStorage.setItem(_lkey(uid),JSON.stringify({date:_today(),phrases:phrases})); }catch(e){}
   }
-
-  function _loadFromSB(coupleId,role,cb){
-    var slot=_sbSlot(role);
-    fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+coupleId+'&category=eq.mascot&slot=eq.'+encodeURIComponent(slot)+'&select=description&limit=1',{headers:sb2Headers()})
+  function _loadSB(cid,role,cb){
+    fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+cid+'&category=eq.mascot&slot=eq.'+encodeURIComponent(_sbSlot(role))+'&select=description&limit=1',{headers:sb2Headers()})
     .then(function(r){return r.ok?r.json():[];})
     .then(function(rows){
       if(rows&&rows[0]&&rows[0].description){
-        try{ var p=JSON.parse(rows[0].description); if(Array.isArray(p)&&p.length>=BATCH_SIZE){cb(p);return;} }catch(e){}
+        try{var p=JSON.parse(rows[0].description);if(Array.isArray(p)&&p.length===15){cb(p);return;}}catch(e){}
       }
       cb(null);
     }).catch(function(){cb(null);});
   }
-  function _saveToSB(coupleId,role,phrases){
-    var slot=_sbSlot(role);
+  function _saveSB(cid,role,phrases){
     fetch(SB2_URL+'/rest/v1/v2_photo_descs',{
       method:'POST',
       headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),
-      body:JSON.stringify({couple_id:coupleId,category:'mascot',slot:slot,description:JSON.stringify(phrases)})
+      body:JSON.stringify({couple_id:cid,category:'mascot',slot:_sbSlot(role),description:JSON.stringify(phrases)})
     }).catch(function(){});
   }
 
+  // ── Affichage ──────────────────────────────────────────────────────────────
   function _setLoading(on){
-    var loading=document.getElementById('homeMsgLoading');
-    var inner=document.getElementById('homeMsgInner');
-    var nav=document.getElementById('homeMsgNav');
-    if(loading) loading.style.display=on?'inline-flex':'none';
-    if(inner)   inner.style.display=on?'none':'';
-    if(nav)     nav.style.display=(on||!_phrases.length)?'none':'';
+    var ld=document.getElementById('homeMsgLoading');
+    var tx=document.getElementById('homeMsgInner');
+    if(ld) ld.style.display=on?'inline-flex':'none';
+    if(tx) tx.style.display=on?'none':'';
   }
-  function _display(idx){
-    var inner=document.getElementById('homeMsgInner');
-    var counter=document.getElementById('homeMsgCounter');
-    if(!inner||!_phrases.length) return;
-    inner.style.opacity='0';
+  function _show(idx){
+    if(!_phrases.length||idx<0||idx>=_phrases.length) return;
+    var el=document.getElementById('homeMsgInner');
+    if(!el) return;
+    if(_lastIdx===idx){ return; } // déjà affiché
+    _lastIdx=idx;
+    el.style.opacity='0';
     setTimeout(function(){
-      inner.textContent=_phrases[idx]||'';
-      inner.style.transition='opacity 0.3s ease';
-      inner.style.opacity='1';
-    },140);
-    if(counter) counter.textContent=(idx+1)+'/'+_phrases.length;
+      el.textContent=_phrases[idx]||'';
+      el.style.transition='opacity 0.4s ease';
+      el.style.opacity='1';
+    },160);
   }
 
-  window.yamMascotNext=function(){
+  // ── Rotation automatique ────────────────────────────────────────────────────
+  function _refreshDisplay(){
     if(!_phrases.length) return;
-    _idx=(_idx+1)%_phrases.length;
-    _display(_idx);
-    var u=_getUserId(); if(u) _saveLocal(u,_phrases,_idx);
-  };
-  window.yamMascotPrev=function(){
-    if(!_phrases.length) return;
-    _idx=(_idx-1+_phrases.length)%_phrases.length;
-    _display(_idx);
-    var u=_getUserId(); if(u) _saveLocal(u,_phrases,_idx);
-  };
+    var state=_currentState();
+    var idx=_globalIdx(state);
+    _show(idx);
+  }
 
-  function _buildPrompt(i,role,partnerName,slot,daysTogether,saison){
-    var isBoy    = (role==='boy');
-    // Pronom pour parler DU partenaire (vu par l'utilisateur qui lit)
-    var proSuj   = isBoy ? 'elle'      : 'il';
-    var proCompl = isBoy ? 'la'        : 'le';
-    var proInd   = isBoy ? 'lui'       : 'lui';
-    var adjPart  = isBoy ? 'ta copine' : 'ton copain';
-    var pNom     = partnerName || adjPart;
-    var slotFr   = {'matin':'Ce matin','après-midi':'Cet après-midi','soir':'Ce soir'}[slot]||'Aujourd\'hui';
-    var moi      = isBoy ? 'un garçon' : 'une fille';
+  function _startAutoRotate(){
+    _refreshDisplay();
+    // Vérifier toutes les minutes si on doit changer de phrase
+    setInterval(function(){
+      _refreshDisplay();
+    }, 60*1000);
+  }
 
-    // 15 types bien distincts
-    var TYPES=[
-      {useP:false, instr:'Dis que son/sa partenaire lui manque sûrement. Utilise "'+proSuj+'" pour parler du/de la partenaire. Ex: "'+proSuj.charAt(0).toUpperCase()+proSuj.slice(1)+' te manque, non ? 🥺"'},
-      {useP:true,  instr:'Suggère d\'envoyer un message affectueux a '+pNom+'. Ex: "T\'as envoyé un message a '+pNom+' aujourd\'hui ? 💬"'},
-      {useP:true,  instr:'Propose une partie de jeu dans l\'app (Memory, Skyjo, Pendu) avec '+pNom+'. Ex: "Une partie de Skyjo avec '+pNom+', ca te tente ? 🃏"'},
-      {useP:false, instr:'Demande comment '+moi+' se sent aujourd\'hui, avec bienveillance. Ex: "Tu passes une bonne journée, toi ? ☀️"'},
-      {useP:true,  instr:'Suggère de partager une chanson ou écouter de la musique avec '+pNom+'. Ex: "Et si tu partageais une chanson avec '+pNom+' ce soir ? 🎵"'},
-      {useP:false, instr:'Encourage a écrire un petit mot doux dans l\'app. Ex: "Un petit mot doux, ca fait toujours du bien a recevoir 💌"'},
-      {useP:false, instr:'Rappelle qu\'il y a des souvenirs a ajouter ou revoir dans l\'app. Ex: "Il y a un souvenir que tu voudrais garder pour toujours ? 📸"'},
-      {useP:false, instr:'Rappelle de penser a son/sa partenaire. Utilise "'+proSuj+'" et "'+proCompl+'". Ex: "'+proSuj.charAt(0).toUpperCase()+proSuj.slice(1)+' pense a toi aussi, tu sais 💭"'},
-      {useP:true,  instr:'Suggère malicieusement d\'envoyer une bêtise a '+pNom+'. Ex: "'+pNom+' ne s\'y attend pas... envoie-'+proInd+' une bêtise 😈"'},
-      {useP:false, instr:''+slotFr+' — question rhétorique liée a la relation et a ce moment. Ex: "'+slotFr+', c\'est l\'heure idéale pour un message surprise 😏"'},
-      {useP:true,  instr:'Propose une activité mignonne a faire avec '+pNom+' aujourd\'hui. Ex: "Pourquoi ne pas regarder le même film ce soir avec '+pNom+' ? 🎬"'},
-      {useP:false, instr:'Suggère d\'appeler ou entendre la voix du/de la partenaire. Utilise "'+adjPart+'". Ex: "Tu lui as parlé aujourd\'hui ? Entendre sa voix, ca change tout 📞"'},
-      {useP:false, instr:'Rappelle de mettre ou consulter l\'humeur du jour dans l\'app. Ex: "T\'as mis ton humeur du jour ? '+proSuj.charAt(0).toUpperCase()+proSuj.slice(1)+' a peut-être quelque chose a dire 🌤"'},
-      {useP:false, instr:'Rappelle le nombre de jours ensemble ('+daysTogether+' jours) de façon attendrissante. Ex: "'+daysTogether+' jours ensemble... pas mal, non ? 🥰"'},
-      {useP:false, instr:'Souhaite une belle journée en lien avec la relation. Ex: "Belle journée a toi — et n\'oublie pas que tu es aimé·e 💛"'},
+  // ── Prompts par slot ────────────────────────────────────────────────────────
+  function _makePrompts(role,partnerName,daysTogether,saison){
+    var isBoy   = (role==='boy');
+    var proSuj  = isBoy?'elle':'il';
+    var proCompl= isBoy?'la':'le';
+    var proInd  = isBoy?'lui':'lui';
+    var adj     = isBoy?'ta copine':'ton copain';
+    var pNom    = partnerName||adj;
+    var moi     = isBoy?'un garçon':'une fille';
+    var ProSuj  = proSuj.charAt(0).toUpperCase()+proSuj.slice(1);
+
+    var base = 'Tu es YAM, mascotte d\'une app pour couples. '
+      +'Tu parles DIRECTEMENT a '+moi+'. Saison : '+saison+'. Ensemble depuis '+daysTogether+' jours. '
+      +'Écris UNE phrase (10 mots max). '
+      +'REGLES : pas de guillemets, pas d\'explication, juste la phrase. Direct, vivant. 1 emoji max.';
+
+    // ── MATIN [0-4] : réveil, début de journée, motivation matinale ──
+    var matin = [
+      // 0 — bonjour / bien dormi
+      base+' C\'est le matin, juste après le réveil. Demande si '+moi+' a bien dormi ou souhaite-lui un bon réveil. Ex: "Bien dormi ? La journée commence bien quand on pense à '+pNom+' 🌅"',
+      // 1 — envoyer un premier message du matin (avec prénom)
+      base+' C\'est le matin. Suggère d\'envoyer un premier message de la journée à '+pNom+'. Ex: "C\'est l\'heure d\'envoyer un \'bonjour\' à '+pNom+' 💬"',
+      // 2 — humeur du matin
+      base+' C\'est le matin. Rappelle de définir son humeur du jour dans l\'app. Bref et fun. Ex: "T\'as mis ton humeur du jour ? '+ProSuj+' attend peut-être de voir 🌤"',
+      // 3 — manque au réveil
+      base+' C\'est le matin. Glisse que son/sa partenaire lui manque peut-être au réveil. Utilise "'+proSuj+'". Ex: "'+ProSuj+' te manque dès le matin, non ? 🥺"',
+      // 4 — motivation journée
+      base+' C\'est le matin. Souhaite une belle journée liée à la relation, chaleureux. Ex: "Belle journée a toi — pense a '+proCompl+' dès que tu peux 💛"',
     ];
-    var t=TYPES[i%TYPES.length];
 
-    return 'Tu es YAM, mascotte d\'une app pour couples. '
-      +'Tu parles DIRECTEMENT a '+moi+'. '+slotFr+', saison '+saison+', ensemble depuis '+daysTogether+' jours. '
-      +'Écris UNE seule phrase (10 mots max, 1 ligne). '
-      +t.instr+' '
-      +'REGLES ABSOLUES : pas de guillemets, pas d\'explication, juste la phrase. '
-      +'Sois direct, vivant, jamais bateau. 1 seul emoji max.';
+    // ── APRÈS-MIDI [5-9] : milieu de journée, activités, pause ──
+    var aprem = [
+      // 5 — comment ça se passe (sans réveil ni bonsoir)
+      base+' C\'est l\'après-midi. Demande comment se passe la journée, sans évoquer le matin ni le soir. Ex: "Ta journée se passe bien ? Pense à souffler un peu ☀️"',
+      // 6 — jeu ensemble (avec prénom)
+      base+' C\'est l\'après-midi. Propose une partie de jeu dans l\'app avec '+pNom+' (Memory, Skyjo, Pendu). Ex: "Une partie de Skyjo avec '+pNom+' pendant ta pause ? 🃏"',
+      // 7 — petit mot doux
+      base+' C\'est l\'après-midi. Encourage à écrire un petit mot doux dans l\'app, pour faire une surprise. Ex: "Un petit mot doux posté maintenant, '+proSuj+' le verra ce soir 💌"',
+      // 8 — bêtise (avec prénom)
+      base+' C\'est l\'après-midi. Suggère malicieusement d\'envoyer une bêtise à '+pNom+'. Ex: "'+pNom+' s\'ennuie peut-être... envoie-'+proInd+' une bêtise 😈"',
+      // 9 — penser à l\'autre
+      base+' C\'est l\'après-midi. Rappelle de penser à son/sa partenaire au milieu de la journée. Utilise "'+proSuj+'". Ex: "'+ProSuj+' pense sûrement à toi en ce moment 💭"',
+    ];
+
+    // ── SOIR [10-14] : fin de journée, retrouvailles, tendresse ──
+    var soir = [
+      // 10 — rentrer/fin de journée
+      base+' C\'est le soir. Demande si la journée s\'est bien passée (sans évoquer le matin). Ex: "C\'était comment ta journée ? Raconte-'+proInd+' tout 🌙"',
+      // 11 — musique ensemble (avec prénom)
+      base+' C\'est le soir. Propose d\'écouter ou partager une chanson avec '+pNom+'. Ex: "Ce soir c\'est musique — partage un son à '+pNom+' 🎵"',
+      // 12 — appeler entendre la voix
+      base+' C\'est le soir. Suggère d\'appeler ou entendre la voix du/de la partenaire. Utilise "'+adj+'". Ex: "T\'as entendu la voix de '+adj+' aujourd\'hui ? Appelle-'+proInd+' 📞"',
+      // 13 — souvenir / nostalgie
+      base+' C\'est le soir. Parle des souvenirs dans l\'app ou propose d\'en ajouter un. Ex: "T\'as un souvenir de la journée a garder ? 📸"',
+      // 14 — durée relation / attendrissant
+      base+' C\'est le soir. Rappelle combien de jours ils sont ensemble ('+daysTogether+' jours) de façon tendre. Ex: "'+daysTogether+' jours déjà... bonne nuit à vous deux 🥰"',
+    ];
+
+    return matin.concat(aprem).concat(soir); // tableau[15]
   }
 
-  function _generateBatch(coupleId,role,onDone){
+  // ── Génération batch ────────────────────────────────────────────────────────
+  function _generate(cid,role,onDone){
     if(_generating) return;
     _generating=true;
     _setLoading(true);
-    var partnerName=_getPartnerName();
-    var daysTogether=0;
-    if(window.startDate) daysTogether=Math.floor((Date.now()-new Date(window.startDate))/(1000*60*60*24));
-    var saison=['hiver','hiver','printemps','printemps','printemps','été','été','été','automne','automne','automne','hiver'][new Date().getMonth()];
-    var slot=_getHourSlot();
-    var collected=[];
 
-    function _fetchOne(i){
-      if(i>=BATCH_SIZE){
+    var pName       = _partner();
+    var days        = window.startDate ? Math.floor((Date.now()-new Date(window.startDate))/(1000*60*60*24)) : 0;
+    var saison      = ['hiver','hiver','printemps','printemps','printemps','été','été','été','automne','automne','automne','hiver'][new Date().getMonth()];
+    var prompts     = _makePrompts(role,pName,days,saison);
+    var collected   = [];
+
+    function _next(i){
+      if(i>=15){
         _generating=false;
-        _saveToSB(coupleId,role,collected);
-        var uid=_getUserId(); if(uid) _saveLocal(uid,collected,0);
+        // Compléter si certains appels ont échoué
+        while(collected.length<15) collected.push('');
+        _saveSB(cid,role,collected);
+        var uid=_userId(); if(uid) _saveLocal(uid,collected);
         onDone(collected);
         return;
       }
-      var prompt=_buildPrompt(i,role,partnerName,slot,daysTogether,saison);
       fetch(GROQ_EDGE,{
         method:'POST',
         headers:{'Content-Type':'application/json','x-app-secret':SB2_APP_SECRET,'apikey':SB2_KEY,'Authorization':'Bearer '+SB2_KEY},
-        body:JSON.stringify({prompt:prompt})
+        body:JSON.stringify({prompt:prompts[i]})
       })
       .then(function(r){return r.json();})
-      .then(function(data){
-        var text=(data.text||'').trim().replace(/^["""«»\-–—]+|["""«»]+$/g,'').trim();
-        if(text&&text.length>4) collected.push(text);
-        setTimeout(function(){_fetchOne(i+1);},280);
+      .then(function(d){
+        var t=(d.text||'').trim().replace(/^["""«»\-–—]+|["""«»]+$/g,'').trim();
+        collected.push(t&&t.length>3?t:'');
+        setTimeout(function(){_next(i+1);},280);
       })
-      .catch(function(){setTimeout(function(){_fetchOne(i+1);},350);});
+      .catch(function(){collected.push(''); setTimeout(function(){_next(i+1);},350);});
     }
-    _fetchOne(0);
+    _next(0);
   }
 
+  // ── Chargement ──────────────────────────────────────────────────────────────
   function _load(){
-    var userId=_getUserId(), coupleId=_getCoupleId(), role=_getRole();
-    if(!userId||!coupleId||!role){
+    var uid=_userId(), cid=_coupleId(), role=_role();
+    if(!uid||!cid||!role){
       _setLoading(false);
-      var inner=document.getElementById('homeMsgInner');
-      if(inner) inner.textContent='Connecte-toi pour découvrir tes messages du jour 💕';
+      var el=document.getElementById('homeMsgInner');
+      if(el) el.textContent='Connecte-toi pour découvrir tes messages du jour 💕';
       return;
     }
-    var local=_loadLocal(userId);
-    if(local){ _phrases=local.phrases; _idx=local.idx||0; _setLoading(false); _display(_idx); return; }
-    _loadFromSB(coupleId,role,function(sbPhrases){
-      if(sbPhrases){ _phrases=sbPhrases; _idx=0; _saveLocal(userId,_phrases,0); _setLoading(false); _display(0); return; }
-      _generateBatch(coupleId,role,function(phrases){
-        _phrases=phrases.length?phrases:['Belle journée a vous deux 💕'];
-        _idx=0; _setLoading(false); _display(0);
+    // 1. localStorage
+    var local=_loadLocal(uid);
+    if(local){ _phrases=local; _setLoading(false); _startAutoRotate(); return; }
+    // 2. Supabase
+    _loadSB(cid,role,function(sb){
+      if(sb){ _phrases=sb; _saveLocal(uid,sb); _setLoading(false); _startAutoRotate(); return; }
+      // 3. Générer
+      _generate(cid,role,function(phrases){
+        _phrases=phrases;
+        _setLoading(false);
+        _startAutoRotate();
       });
     });
   }
