@@ -795,12 +795,12 @@ function filterSongs(q){
 
   function _startTicker(total){
     if(_sgTickerTimer) clearInterval(_sgTickerTimer);
-    if(total <= 2) return;
+    if(total <= 1) return;
     _sgTickerIdx = 0;
     _sgTickerTimer = setInterval(function(){
-      _sgTickerIdx = (_sgTickerIdx + 2) % (total % 2 === 0 ? total : total + 1);
+      _sgTickerIdx = (_sgTickerIdx + 1) % total;
       var ticker = document.querySelector('.mu-sugg-ticker');
-      if(ticker) ticker.style.transform = 'translateY(-' + (_sgTickerIdx * 78) + 'px)';
+      if(ticker) ticker.style.transform = 'translateY(-' + (_sgTickerIdx * 66) + 'px)';
     }, 4000);
   }
 
