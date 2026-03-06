@@ -1305,6 +1305,10 @@ body.light #loveBox .lb-label { color: rgba(201,120,96,0.65); }
   display: block;
   padding-bottom: var(--nav-height);
 }
+#yamJeuxTab.active {
+  display: flex;
+  padding-bottom: 0;
+}
 
 /* ══ MESSAGES TAB ══ */
 
@@ -1597,10 +1601,6 @@ body.light .mem-card-front { background: var(--s2); border-color: rgba(201,120,9
 body.light .mem-card-back { background: rgba(201,120,96,0.1); border-color: rgba(201,120,96,0.3); }
 body.light .mem-card.matched .mem-card-back { background: rgba(201,120,96,0.22); border-color: rgba(201,120,96,0.55); box-shadow: 0 0 20px rgba(201,120,96,0.22); }
 
-/* Wheel */
-body.light .wheel-center { border-color: var(--green); box-shadow: 0 0 12px rgba(201,120,96,0.25); }
-body.light #wheelResult { box-shadow: 0 2px 12px rgba(100,60,30,0.08); border-color: rgba(201,120,96,0.18); }
-body.light #wheelResult.has-result { border-color: rgba(201,120,96,0.42); box-shadow: 0 0 22px rgba(201,120,96,0.12); }
 
 /* Hidden page (page secrète) */
 body.light #hiddenPage {
@@ -1801,35 +1801,6 @@ html:not(.light) .like-heart-btn {
 .qz-retry-btn { width:100%; padding:11px; background:transparent; color:var(--green); font-weight:600; font-size:13px; font-family:'Bricolage Grotesque',sans-serif; border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:background 0.15s; margin-top:8px; }
 .qz-retry-btn:hover { background:var(--s2); }
 
-#wheelSection { padding: 26px 16px 0; }
-.wheel-container { display:flex; flex-direction:column; align-items:center; gap:18px; }
-.wheel-wrap { position:relative; width:min(240px,68vw); height:min(240px,68vw); }
-#wheelCanvas { width:100%; height:100%; border-radius:50%; display:block; }
-.wheel-needle { position:absolute; top:50%; right:-10px; transform:translateY(-50%); font-size:26px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5)); pointer-events:none; z-index:10; }
-.wheel-center { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:36px; height:36px; border-radius:50%; background:var(--bg); border:3px solid var(--green); z-index:10; }
-.wheel-spin-btn {
-  background: color-mix(in srgb, var(--green) 14%, transparent);
-  color: var(--green);
-  border: 1.5px solid color-mix(in srgb, var(--green) 40%, transparent);
-  border-radius: 50px; padding: 13px 34px;
-  font-size: 14px; font-weight: 700; cursor: pointer;
-  font-family: 'Bricolage Grotesque', sans-serif;
-  transition: background 0.15s, transform 0.12s, box-shadow 0.15s, border-color 0.15s;
-  letter-spacing: 0.5px;
-  box-shadow: 0 2px 12px color-mix(in srgb, var(--green) 20%, transparent);
-}
-.wheel-spin-btn:hover {
-  background: color-mix(in srgb, var(--green) 22%, transparent);
-  border-color: color-mix(in srgb, var(--green) 60%, transparent);
-  transform: scale(1.05);
-  box-shadow: 0 4px 20px color-mix(in srgb, var(--green) 30%, transparent);
-}
-.wheel-spin-btn:disabled { background:var(--s3); color:var(--muted); border-color:var(--border); cursor:not-allowed; transform:none; box-shadow:none; }
-#wheelResult { background:var(--s1); border:1px solid var(--border); border-radius:10px; padding:14px 20px; text-align:center; width:100%; min-height:52px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; transition:border-color 0.3s, box-shadow 0.3s; }
-#wheelResult.has-result { border-color:rgba(201,120,96,0.35); box-shadow:0 0 20px rgba(201,120,96,0.08); }
-.result-icon { font-size:28px; line-height:1; }
-.result-label { font-size:9px; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:2.5px; }
-.result-text { font-family:'Bricolage Grotesque',sans-serif; font-size:16px; font-weight:600; color:var(--text); margin-top:2px; letter-spacing:-0.2px; }
 
 /* ══════════════════════════════════════
    NOW LISTENING — Glow chanson dans la liste
