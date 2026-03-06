@@ -82,13 +82,12 @@ window.v2HideLogin = function(){
   var el = document.getElementById('v2LoginOverlay');
   if(el) el.style.display = 'none';
   document.body.classList.remove('v2-login-active');
-  // Restaurer la position de scroll mémorisée
   var scrollY = parseInt(document.body.dataset.scrollY || '0', 10);
   document.body.style.top = '';
   window.scrollTo(0, scrollY);
-  // Cacher le splash complet après connexion réussie
+  // Cacher le splash et retirer splash-active pour révéler l'app
   var sp = document.getElementById('yamSplashScreen');
-  if(sp){ sp.style.display = 'none'; }
+  if(sp) sp.style.display = 'none';
   document.body.classList.remove('splash-active');
 };
 
@@ -214,13 +213,14 @@ window.v2DoJoin = function(){
   v2Join(pseudo, password, _v2Role, code).then(function(res){ _v2AfterLogin(res, msgId); });
 };
 
-// Afficher l'écran login si pas de session au démarrage
+// Au démarrage : si session active on cache tout, sinon c'est yamSplashOpen qui ouvrira le login
 document.addEventListener('DOMContentLoaded', function(){
   if(!v2GetUser()){
-    window.v2ShowLogin();
-    // Sélectionner "girl" par défaut dans les formulaires
+    // Pas de session — le splash + bouton Connexion gèrent l'ouverture du login
+    window.v2HideLogin();
     window.v2SelectRole('girl');
   } else {
+    // Session active — cacher splash et login, laisser l'app s'afficher
     window.v2HideLogin();
   }
 });
