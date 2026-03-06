@@ -479,10 +479,28 @@ body.v2-login-active #themeToggleHome {
 #souvenirModal .nous-modal-header span[onclick*="close"],
 #histoireItemModal .nous-modal-header span[onclick*="close"],
 #activiteModal .nous-modal-header span[onclick*="close"],
-.sg-modal-inner .sg-modal-close,
 .search-popup .search-close-btn,
 .mood-picker-close {
   position: relative !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  background: var(--s2) !important;
+  border: 1.5px solid var(--border) !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  transition: background 0.18s, transform 0.15s !important;
+  flex-shrink: 0 !important;
+}
+/* sg-modal-close : position absolute pour rester en haut à droite */
+.sg-modal-inner .sg-modal-close {
+  position: absolute !important;
+  top: 14px !important; right: 14px !important; left: auto !important;
   width: 32px !important;
   height: 32px !important;
   border-radius: 50% !important;
@@ -2369,7 +2387,7 @@ body.nous-active #yamStickyAvatarSelf {
 </div>
 
 <!-- loveBox -->
-<div style="padding:16px 16px 0;" class="fade-in">
+<div style="padding:8px 16px 0;" class="fade-in">
   <div id="loveBox">
     <span class="lb-icon">💗</span>
     <span class="lb-text" id="loveBoxText">Tapote-moi 🤫</span>
