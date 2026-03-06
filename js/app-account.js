@@ -162,7 +162,6 @@ window.v2DoLogin = function(){
   var pseudo   = (document.getElementById('v2LoginPseudo').value   || '').trim();
   var password =  document.getElementById('v2LoginPassword').value  || '';
   var msgId    = 'v2LoginMsg';
-  console.log('[YAM DEBUG] v2DoLogin appelé - pseudo=', pseudo, '/ password=', password ? '(rempli)' : '(vide)');
   // Créer/assurer le message div
   var msgEl = document.getElementById(msgId);
   if(!msgEl){
@@ -173,17 +172,10 @@ window.v2DoLogin = function(){
     if(form) form.appendChild(msgEl);
   }
   if(!pseudo || !password){
-    console.log('[YAM DEBUG] v2DoLogin - champs vides, abandon');
     _v2SetMsg(msgId, '⚠️ Remplis tous les champs', true); return;
   }
   _v2SetMsg(msgId, '⏳ Connexion...', false);
-  console.log('[YAM DEBUG] v2DoLogin - appel v2Login...');
-  v2Login(pseudo, password).then(function(res){
-    console.log('[YAM DEBUG] v2Login retourné - ok=', res.ok, '/ error=', res.error||'aucune');
-    _v2AfterLogin(res, msgId);
-  }).catch(function(err){
-    console.log('[YAM DEBUG] v2Login ERREUR catch=', err);
-  });
+  v2Login(pseudo, password).then(function(res){ _v2AfterLogin(res, msgId); });
 };
 
 window.v2DoRegister = function(){
@@ -337,178 +329,489 @@ window.setProfile = function(g){
 
 
 /* ════════════════════════════════════════════
-   MON COMPTE — Modal HTML + CSS + Logique
+   PARAMÈTRES — Vue plein écran style iOS Settings
 ════════════════════════════════════════════ */
 (function(){
-  var modalHTML =
-  '<div id="accountModal" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.7);' +
-  'backdrop-filter:blur(6px);align-items:flex-end;justify-content:center;padding:0;">' +
-  '<div id="accountSheet" data-scrollable="1" style="width:100%;max-width:480px;background:var(--s1);border-radius:24px 24px 0 0;' +
-  'border-top:1px solid var(--border);' +
-  'padding-top:env(safe-area-inset-top,0px);' +
-  'padding-bottom:calc(env(safe-area-inset-bottom,0px) + 24px);' +
-  'max-height:calc(92dvh - env(safe-area-inset-top,0px));' +
-  'overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;' +
-  'font-family:\'DM Sans\',sans-serif;transition:transform 0.3s cubic-bezier(.4,0,.2,1);">' +
 
-    // Handle
-    '<div style="display:flex;justify-content:center;padding:12px 0 8px;">' +
-    '<div style="width:40px;height:4px;border-radius:2px;background:var(--border);"></div></div>' +
+  /* ── CSS dédié ── */
+  var settingsCSS = document.createElement('style');
+  settingsCSS.textContent = '\
+#settingsView{display:none;position:fixed;inset:0;z-index:3000;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;font-family:"Bricolage Grotesque",sans-serif;}\
+#settingsView.active{display:block;}\
+body.settings-open{overflow:hidden!important;}\
+body.settings-open header,body.settings-open #yamStickyHeader,body.settings-open .bottom-nav{display:none!important;}\
+.stg-safe-top{height:env(safe-area-inset-top,0px);}\
+.stg-header{position:sticky;top:0;z-index:10;display:flex;align-items:center;padding:12px 16px;background:var(--bg);border-bottom:1px solid var(--border);gap:12px;}\
+.stg-back{width:36px;height:36px;border-radius:50%;background:var(--s2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:transform .15s;-webkit-tap-highlight-color:transparent;}\
+.stg-back:active{transform:scale(.9);}\
+.stg-back svg{color:var(--text);}\
+.stg-title{font-size:18px;font-weight:700;color:var(--text);}\
+.stg-scroll{padding:0 16px 120px;}\
+\
+/* Carte profil */\
+.stg-profile-card{display:flex;align-items:center;gap:14px;background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:16px;margin:20px 0 24px;}\
+.stg-avatar-wrap{position:relative;flex-shrink:0;}\
+.stg-avatar{width:60px;height:60px;background:var(--s2);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--border);overflow:hidden;cursor:pointer;}\
+.stg-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}\
+.stg-avatar-cam{position:absolute;bottom:-2px;right:-2px;width:22px;height:22px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;border:2px solid var(--s1);cursor:pointer;}\
+.stg-avatar-del{display:none;position:absolute;top:-3px;left:-3px;width:18px;height:18px;background:#e05555;border-radius:50%;align-items:center;justify-content:center;font-size:9px;border:1.5px solid var(--s1);cursor:pointer;color:#fff;}\
+.stg-profile-info{flex:1;min-width:0;}\
+.stg-pseudo-row{display:flex;align-items:center;gap:6px;}\
+.stg-pseudo{font-size:17px;font-weight:700;color:var(--text);}\
+.stg-pseudo-edit-btn{background:none;border:none;cursor:pointer;padding:2px 4px;color:var(--muted);font-size:13px;}\
+.stg-role-badge{font-size:11px;font-weight:600;margin-top:3px;padding:3px 9px;border-radius:20px;display:inline-block;}\
+\
+/* Groupes iOS */\
+.stg-group-label{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;padding:0 4px 7px;margin-top:24px;}\
+.stg-group{background:var(--s1);border:1px solid var(--border);border-radius:14px;overflow:hidden;}\
+.stg-row{display:flex;align-items:center;padding:13px 16px;gap:12px;cursor:pointer;transition:background .12s;-webkit-tap-highlight-color:transparent;position:relative;}\
+.stg-row:not(:last-child){border-bottom:1px solid var(--border);}\
+.stg-row:active{background:var(--s2);}\
+.stg-row-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}\
+.stg-row-body{flex:1;min-width:0;}\
+.stg-row-title{font-size:14px;font-weight:600;color:var(--text);}\
+.stg-row-sub{font-size:11px;color:var(--muted);margin-top:1px;}\
+.stg-row-right{font-size:12px;color:var(--muted);flex-shrink:0;display:flex;align-items:center;gap:4px;}\
+.stg-row-chevron{width:7px;height:12px;stroke:var(--muted);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;}\
+.stg-row-value{font-size:13px;color:var(--sub);}\
+.stg-row.no-chevron{cursor:default;}\
+.stg-row.no-chevron:active{background:transparent;}\
+\
+/* Sous-pages */\
+.stg-subpage{display:none;position:fixed;inset:0;z-index:3001;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;}\
+.stg-subpage.active{display:block;}\
+\
+/* Champs dans sous-pages */\
+.stg-field{padding:14px 16px;}\
+.stg-field label{display:block;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;}\
+.stg-field input,.stg-field select{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;color:var(--text);font-size:15px;font-family:"Bricolage Grotesque",sans-serif;outline:none;box-sizing:border-box;}\
+.stg-field input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(201,120,96,.12);}\
+.stg-field-msg{font-size:11px;margin-top:5px;min-height:15px;}\
+.stg-btn{width:100%;padding:13px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:"Bricolage Grotesque",sans-serif;transition:transform .12s,opacity .12s;-webkit-tap-highlight-color:transparent;}\
+.stg-btn:active{transform:scale(.97);opacity:.85;}\
+.stg-btn-primary{background:var(--green);color:#fff;}\
+.stg-btn-danger{background:rgba(224,85,85,.1);border:1.5px solid rgba(224,85,85,.4);color:#e05555;}\
+.stg-confirm-box{margin:12px 16px;background:rgba(224,85,85,.06);border:1px solid rgba(224,85,85,.25);border-radius:12px;padding:14px;}\
+.stg-confirm-box p{font-size:13px;color:var(--text);margin:0 0 10px;font-weight:600;}\
+.stg-confirm-box span{font-size:12px;color:var(--muted);display:block;margin-bottom:12px;}\
+.stg-confirm-btns{display:flex;gap:8px;}\
+.stg-confirm-btns button{flex:1;padding:10px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:"Bricolage Grotesque",sans-serif;border:none;}\
+\
+/* Tags préférences */\
+.stg-tags{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;}\
+.stg-tag{padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;border:1.5px solid var(--border);background:var(--s2);color:var(--text);-webkit-tap-highlight-color:transparent;}\
+.stg-tag.on{background:var(--green);color:#fff;border-color:var(--green);}\
+.stg-tag:active{transform:scale(.95);}\
+\
+/* Thème toggle dans paramètres */\
+.stg-theme-pills{display:flex;gap:0;background:var(--s2);border-radius:10px;overflow:hidden;border:1px solid var(--border);}\
+.stg-theme-pill{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);transition:all .2s;}\
+.stg-theme-pill.active{background:var(--green);color:#fff;}\
+\
+/* Version */\
+.stg-version{text-align:center;padding:24px 0 16px;font-size:11px;color:var(--muted);}\
+.stg-empty-state{text-align:center;padding:32px 16px;}\
+.stg-empty-state .stg-empty-icon{font-size:40px;margin-bottom:8px;}\
+.stg-empty-state .stg-empty-text{font-size:13px;color:var(--muted);line-height:1.5;}\
+';
+  document.head.appendChild(settingsCSS);
 
-    // Header
-    '<div style="display:flex;align-items:center;justify-content:space-between;padding:0 20px 16px;">' +
-    '<div style="font-family:\'Playfair Display\',serif;font-size:20px;font-weight:700;color:var(--text);">Mon Compte</div>' +
-    '<button onclick="closeAccountModal()" class="yam-close-btn" style="flex-shrink:0;" aria-label="Fermer"></button>' +
+  /* ── HTML principal ── */
+  var mainHTML =
+  '<div id="settingsView">' +
+    '<div class="stg-safe-top"></div>' +
+    '<div class="stg-header">' +
+      '<div class="stg-back" onclick="closeAccountModal()" aria-label="Retour">' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>' +
+      '</div>' +
+      '<div class="stg-title">Paramètres</div>' +
     '</div>' +
 
-    '<div style="padding:0 20px 20px;">' +
+    '<div class="stg-scroll">' +
 
-      // Avatar + nom
-      '<div style="display:flex;align-items:center;gap:14px;background:var(--s2);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px;">' +
-        // Avatar cliquable pour upload photo
-        '<div style="position:relative;flex-shrink:0;">' +
-          '<div id="acAvatarWrap" onclick="acTriggerAvatarUpload()" style="font-size:38px;width:56px;height:56px;background:var(--s1);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--border);overflow:hidden;cursor:pointer;">' +
-            '<img id="acAvatarImg" src="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:none;" />' +
-            '<span id="acAvatarEmoji" style="font-size:38px;line-height:1;">👤</span>' +
+      /* ── Carte profil ── */
+      '<div class="stg-profile-card">' +
+        '<div class="stg-avatar-wrap">' +
+          '<div class="stg-avatar" id="acAvatarWrap" onclick="acTriggerAvatarUpload()">' +
+            '<img id="acAvatarImg" src="" style="display:none;" />' +
+            '<span id="acAvatarEmoji" style="font-size:34px;line-height:1;">👤</span>' +
           '</div>' +
-          '<div style="position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;border:1.5px solid var(--s2);cursor:pointer;" onclick="acTriggerAvatarUpload()">📷</div>' +
-          '<div id="acDeleteAvatarBtn" style="display:none;position:absolute;top:-4px;left:-4px;width:18px;height:18px;background:#e05555;border-radius:50%;align-items:center;justify-content:center;font-size:9px;border:1.5px solid var(--s2);cursor:pointer;" onclick="acDeleteAvatar()" title="Supprimer la photo">✕</div>' +
+          '<div class="stg-avatar-cam" onclick="acTriggerAvatarUpload()">📷</div>' +
+          '<div class="stg-avatar-del" id="acDeleteAvatarBtn" onclick="acDeleteAvatar()" title="Supprimer">✕</div>' +
         '</div>' +
         '<input type="file" id="acAvatarInput" accept="image/*" style="display:none;" onchange="acHandleAvatarUpload(this)" />' +
-        '<div style="flex:1;min-width:0;">' +
-          // Pseudo éditable inline
-          '<div style="display:flex;align-items:center;gap:6px;">' +
-            '<div id="acPseudo" style="font-size:17px;font-weight:700;color:var(--text);">—</div>' +
-            '<button onclick="acToggleEditPseudo()" id="acEditPseudoBtn" title="Modifier le pseudo" style="background:none;border:none;cursor:pointer;padding:2px 4px;color:var(--muted);font-size:13px;line-height:1;">✏️</button>' +
+        '<div class="stg-profile-info">' +
+          '<div class="stg-pseudo-row">' +
+            '<div class="stg-pseudo" id="acPseudo">—</div>' +
+            '<button class="stg-pseudo-edit-btn" onclick="acToggleEditPseudo()" id="acEditPseudoBtn" title="Modifier">✏️</button>' +
           '</div>' +
-          // Champ édition pseudo (masqué par défaut)
-          '<div id="acEditPseudoRow" style="display:none;margin-top:6px;gap:6px;flex-direction:column;">' +
-            '<input type="text" id="acNewPseudoInput" maxlength="20" placeholder="Nouveau pseudo" ' +
-            'style="background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:13px;font-family:\'DM Sans\',sans-serif;outline:none;flex:1;width:100%;" />' +
-            '<div style="display:flex;gap:4px;margin-top:4px;">' +
-              '<button onclick="acSavePseudo()" style="background:var(--green);color:#000;border:none;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif;">✓</button>' +
-              '<button onclick="acCancelEditPseudo()" style="background:var(--s2);color:var(--muted);border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:\'DM Sans\',sans-serif;">✕</button>' +
+          '<div id="acEditPseudoRow" style="display:none;margin-top:6px;">' +
+            '<input type="text" id="acNewPseudoInput" maxlength="20" placeholder="Nouveau pseudo" style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:13px;outline:none;width:100%;box-sizing:border-box;font-family:inherit;margin-bottom:4px;" />' +
+            '<div style="display:flex;gap:4px;">' +
+              '<button onclick="acSavePseudo()" style="background:var(--green);color:#fff;border:none;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;">✓</button>' +
+              '<button onclick="acCancelEditPseudo()" style="background:var(--s2);color:var(--muted);border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:12px;cursor:pointer;">✕</button>' +
             '</div>' +
-            '<div id="acPseudoMsg" style="font-size:11px;margin-top:3px;min-height:14px;color:var(--green);"></div>' +
+            '<div id="acPseudoMsg" class="stg-field-msg" style="color:var(--green);"></div>' +
           '</div>' +
-          '<div id="acRoleBadge" style="font-size:11px;font-weight:600;margin-top:3px;padding:3px 9px;border-radius:20px;display:inline-block;">—</div>' +
+          '<div class="stg-role-badge" id="acRoleBadge">—</div>' +
         '</div>' +
       '</div>' +
 
-      // Code couple
-      '<div style="margin-bottom:12px;">' +
-        '<div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Code couple</div>' +
-        '<div style="display:flex;align-items:center;gap:10px;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;">' +
-          '<span id="acCoupleCode" style="font-size:18px;font-weight:800;letter-spacing:3px;color:var(--text);flex:1;">—</span>' +
-          '<button onclick="acCopyCode()" id="acCopyBtn" style="background:var(--green);color:#000;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif;">Copier</button>' +
+      /* ── Groupe : Compte ── */
+      '<div class="stg-group-label">Compte</div>' +
+      '<div class="stg-group">' +
+        '<div class="stg-row" onclick="stgOpenSub(\'stgSubCouple\')">' +
+          '<div class="stg-row-icon" style="background:rgba(201,120,96,.12);">💑</div>' +
+          '<div class="stg-row-body"><div class="stg-row-title">Couple</div><div class="stg-row-sub">Code, partenaire, date anniversaire</div></div>' +
+          '<div class="stg-row-right"><svg class="stg-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg></div>' +
         '</div>' +
-        '<div style="font-size:11px;color:var(--muted);margin-top:5px;">Partage ce code à ton/ta partenaire pour lier vos comptes</div>' +
+        '<div class="stg-row" onclick="stgOpenSub(\'stgSubSecurity\')">' +
+          '<div class="stg-row-icon" style="background:rgba(124,106,247,.12);">🔒</div>' +
+          '<div class="stg-row-body"><div class="stg-row-title">Sécurité</div><div class="stg-row-sub">Mot de passe</div></div>' +
+          '<div class="stg-row-right"><svg class="stg-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg></div>' +
+        '</div>' +
+        '<div class="stg-row" onclick="stgOpenSub(\'stgSubAbonnement\')">' +
+          '<div class="stg-row-icon" style="background:rgba(231,90,124,.12);">✨</div>' +
+          '<div class="stg-row-body"><div class="stg-row-title">Abonnement</div><div class="stg-row-sub">Gérer ton offre YAM</div></div>' +
+          '<div class="stg-row-right"><span class="stg-row-value">Gratuit</span><svg class="stg-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg></div>' +
+        '</div>' +
       '</div>' +
 
-      // Partenaire
-      '<div style="margin-bottom:12px;">' +
-        '<div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Partenaire</div>' +
-        '<div style="background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;">' +
-          '<span id="acPartnerName" style="font-size:15px;font-weight:600;color:var(--text);">—</span>' +
-          '<button id="acUnlinkBtn" onclick="acConfirmUnlink()" title="Délier ce partenaire" style="display:none;background:rgba(224,85,85,0.1);border:1.5px solid rgba(224,85,85,0.35);border-radius:8px;padding:4px 10px;font-size:12px;color:#e05555;cursor:pointer;font-family:\'DM Sans\',sans-serif;font-weight:600;flex-shrink:0;">✕ Délier</button>' +
+      /* ── Groupe : Personnalisation ── */
+      '<div class="stg-group-label">Personnalisation</div>' +
+      '<div class="stg-group">' +
+        '<div class="stg-row" onclick="stgOpenSub(\'stgSubPrefs\')">' +
+          '<div class="stg-row-icon" style="background:rgba(110,148,132,.12);">🎯</div>' +
+          '<div class="stg-row-body"><div class="stg-row-title">Préférences</div><div class="stg-row-sub">Centres d\'intérêt, goûts, idées cadeaux</div></div>' +
+          '<div class="stg-row-right"><svg class="stg-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg></div>' +
         '</div>' +
-        '<div id="acUnlinkMsg" style="font-size:11px;margin-top:5px;min-height:14px;color:#e05555;"></div>' +
-        // Confirmation inline (masquée par défaut)
-        '<div id="acUnlinkConfirm" style="display:none;margin-top:8px;background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.3);border-radius:10px;padding:12px 14px;">' +
-          '<div style="font-size:13px;color:var(--text);margin-bottom:10px;font-weight:600;">⚠️ Délier ce partenaire ?</div>' +
-          '<div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Cette action ne supprime pas les données. Vous pourrez vous relire plus tard.</div>' +
-          '<div style="display:flex;gap:8px;">' +
-            '<button onclick="acDoUnlink()" style="flex:1;background:#e05555;color:#fff;border:none;border-radius:8px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif;">Oui, délier</button>' +
-            '<button onclick="acCancelUnlink()" style="flex:1;background:var(--s2);color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:9px;font-size:13px;cursor:pointer;font-family:\'DM Sans\',sans-serif;">Non, annuler</button>' +
+        '<div class="stg-row" onclick="stgOpenSub(\'stgSubAppearance\')">' +
+          '<div class="stg-row-icon" style="background:rgba(185,153,112,.12);">🎨</div>' +
+          '<div class="stg-row-body"><div class="stg-row-title">Apparence</div><div class="stg-row-sub">Thème sombre ou clair</div></div>' +
+          '<div class="stg-row-right"><span id="stgThemeLabel" class="stg-row-value">Sombre</span><svg class="stg-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg></div>' +
+        '</div>' +
+      '</div>' +
+
+      /* ── Groupe : Application ── */
+      '<div class="stg-group-label">Application</div>' +
+      '<div class="stg-group">' +
+        '<div class="stg-row" onclick="stgOpenSub(\'stgSubNotifs\')">' +
+          '<div class="stg-row-icon" style="background:rgba(240,102,136,.12);">🔔</div>' +
+          '<div class="stg-row-body"><div class="stg-row-title">Notifications</div><div class="stg-row-sub">Gérer les alertes</div></div>' +
+          '<div class="stg-row-right"><svg class="stg-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg></div>' +
+        '</div>' +
+        '<div class="stg-row no-chevron">' +
+          '<div class="stg-row-icon" style="background:rgba(124,106,247,.12);">🌐</div>' +
+          '<div class="stg-row-body"><div class="stg-row-title">Langue</div><div class="stg-row-sub">Seul le français est disponible</div></div>' +
+          '<div class="stg-row-right"><span class="stg-row-value">Français</span></div>' +
+        '</div>' +
+      '</div>' +
+
+      /* ── Déconnexion ── */
+      '<div style="margin-top:32px;padding:0 0 8px;">' +
+        '<button class="stg-btn stg-btn-danger" onclick="nativeLogout()">🔓 Se déconnecter</button>' +
+      '</div>' +
+
+      '<div class="stg-version">YAM v7.0 — You And Me 💕</div>' +
+
+    '</div>' + /* fin stg-scroll */
+  '</div>';   /* fin settingsView */
+
+  /* ── Sous-page COUPLE ── */
+  var subCouple =
+  '<div id="stgSubCouple" class="stg-subpage">' +
+    '<div class="stg-safe-top"></div>' +
+    '<div class="stg-header">' +
+      '<div class="stg-back" onclick="stgCloseSub(\'stgSubCouple\')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>' +
+      '<div class="stg-title">Couple</div>' +
+    '</div>' +
+    '<div style="padding:0 16px 80px;">' +
+
+      /* Code couple */
+      '<div class="stg-group-label" style="margin-top:20px;">Code couple</div>' +
+      '<div class="stg-group">' +
+        '<div class="stg-row no-chevron" style="cursor:default;">' +
+          '<div style="flex:1;"><span id="acCoupleCode" style="font-size:18px;font-weight:800;letter-spacing:3px;color:var(--text);">—</span></div>' +
+          '<button onclick="acCopyCode()" id="acCopyBtn" style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Copier</button>' +
+        '</div>' +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--muted);padding:5px 4px 0;">Partage ce code à ton/ta partenaire pour lier vos comptes</div>' +
+
+      /* Partenaire */
+      '<div class="stg-group-label">Partenaire</div>' +
+      '<div class="stg-group">' +
+        '<div class="stg-row no-chevron" style="cursor:default;">' +
+          '<div class="stg-row-body"><div class="stg-row-title" id="acPartnerName">—</div></div>' +
+          '<button id="acUnlinkBtn" onclick="acConfirmUnlink()" style="display:none;background:rgba(224,85,85,.1);border:1.5px solid rgba(224,85,85,.35);border-radius:8px;padding:5px 12px;font-size:12px;color:#e05555;cursor:pointer;font-weight:600;font-family:inherit;">✕ Délier</button>' +
+        '</div>' +
+      '</div>' +
+      '<div id="acUnlinkMsg" class="stg-field-msg" style="padding:4px;color:#e05555;"></div>' +
+      '<div id="acUnlinkConfirm" class="stg-confirm-box" style="display:none;">' +
+        '<p>⚠️ Délier ce partenaire ?</p>' +
+        '<span>Cette action ne supprime pas les données. Vous pourrez vous relier plus tard.</span>' +
+        '<div class="stg-confirm-btns">' +
+          '<button onclick="acDoUnlink()" style="background:#e05555;color:#fff;">Oui, délier</button>' +
+          '<button onclick="acCancelUnlink()" style="background:var(--s2);color:var(--muted);border:1px solid var(--border);">Non, annuler</button>' +
+        '</div>' +
+      '</div>' +
+
+      /* Lier partenaire */
+      '<div id="acLinkSection">' +
+        '<div class="stg-group-label">Lier un partenaire</div>' +
+        '<div class="stg-group">' +
+          '<div class="stg-field" style="border:none;">' +
+            '<div style="display:flex;gap:8px;align-items:center;">' +
+              '<input type="text" id="acLinkCode" placeholder="Code couple" maxlength="36" style="flex:1;text-transform:uppercase;letter-spacing:1px;" />' +
+              '<button onclick="acLinkPartner()" class="stg-btn stg-btn-primary" style="width:auto;padding:12px 18px;">Lier</button>' +
+            '</div>' +
+            '<div id="acLinkMsg" class="stg-field-msg" style="color:var(--green);"></div>' +
           '</div>' +
         '</div>' +
       '</div>' +
 
-      // Date de début du couple
-      '<div style="margin-bottom:16px;">' +
-        '<div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Date de début du couple</div>' +
-        '<div style="display:flex;gap:8px;align-items:center;">' +
-          '<input type="date" id="acStartDate" style="flex:1;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-size:14px;font-family:\'DM Sans\',sans-serif;outline:none;" />' +
-          '<button onclick="acSaveStartDate()" style="background:var(--green);color:#000;border:none;border-radius:10px;padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif;white-space:nowrap;">Enregistrer</button>' +
-        '</div>' +
-        '<div id="acStartDateMsg" style="font-size:11px;margin-top:5px;color:var(--green);min-height:16px;"></div>' +
-      '</div>' +
-
-      // Lier partenaire (visible seulement si pas encore lié)
-      '<div id="acLinkSection" style="margin-bottom:12px;">' +
-        '<div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Lier un partenaire</div>' +
-        '<div style="display:flex;gap:8px;align-items:center;">' +
-          '<input type="text" id="acLinkCode" placeholder="Code couple du partenaire" maxlength="36" ' +
-          'style="flex:1;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-size:13px;font-family:\'DM Sans\',sans-serif;outline:none;text-transform:uppercase;letter-spacing:1px;" />' +
-          '<button onclick="acLinkPartner()" style="background:var(--green);color:#000;border:none;border-radius:10px;padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif;white-space:nowrap;">Lier</button>' +
-        '</div>' +
-        '<div id="acLinkMsg" style="font-size:11px;margin-top:5px;min-height:16px;color:var(--green);"></div>' +
-      '</div>' +
-
-      '<div style="height:1px;background:var(--border);margin:0 -4px 16px;"></div>' +
-
-      // Changer mot de passe — dépliant
-      '<div style="margin-bottom:16px;">' +
-        '<div id="acPwdToggleRow" onclick="acTogglePwdSection()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:4px 0 10px;user-select:none;">' +
-          '<div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Changer de mot de passe</div>' +
-          '<svg id="acPwdToggleArrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);transition:transform 0.25s ease;flex-shrink:0;"><polyline points=\'6 9 12 15 18 9\'/></svg>' +
-        '</div>' +
-        '<div id="acPwdSection" style="overflow:hidden;max-height:0;opacity:0;transition:max-height 0.3s ease,opacity 0.3s ease;pointer-events:none;">' +
-          '<div style="display:flex;flex-direction:column;gap:8px;">' +
-            '<input type="password" id="acOldPwd" placeholder="Mot de passe actuel" autocomplete="current-password" ' +
-            'style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-size:14px;font-family:\'DM Sans\',sans-serif;outline:none;" />' +
-            '<input type="password" id="acNewPwd" placeholder="Nouveau mot de passe" autocomplete="new-password" ' +
-            'style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-size:14px;font-family:\'DM Sans\',sans-serif;outline:none;" />' +
-            '<input type="password" id="acConfirmPwd" placeholder="Confirmer le nouveau mot de passe" autocomplete="new-password" ' +
-            'style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-size:14px;font-family:\'DM Sans\',sans-serif;outline:none;" />' +
-            '<button onclick="acChangePwd()" style="background:var(--green);color:#000;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif;">Changer le mot de passe</button>' +
-            '<div id="acPwdMsg" style="font-size:12px;text-align:center;min-height:18px;color:var(--green);"></div>' +
+      /* Date anniversaire */
+      '<div class="stg-group-label">Date de début du couple</div>' +
+      '<div class="stg-group">' +
+        '<div class="stg-field" style="border:none;">' +
+          '<div style="display:flex;gap:8px;align-items:center;">' +
+            '<input type="date" id="acStartDate" style="flex:1;" />' +
+            '<button onclick="acSaveStartDate()" class="stg-btn stg-btn-primary" style="width:auto;padding:12px 18px;">Enregistrer</button>' +
           '</div>' +
+          '<div id="acStartDateMsg" class="stg-field-msg" style="color:var(--green);"></div>' +
         '</div>' +
       '</div>' +
-
-      '<div style="height:1px;background:var(--border);margin:0 -4px 16px;"></div>' +
-
-      // Déconnexion
-      '<button onclick="nativeLogout()" style="width:100%;padding:13px;background:rgba(224,85,85,0.1);border:1.5px solid rgba(224,85,85,0.4);border-radius:12px;color:#e05555;font-size:14px;font-weight:700;font-family:\'DM Sans\',sans-serif;cursor:pointer;">🔓 Se déconnecter</button>' +
 
     '</div>' +
-  '</div>' +
   '</div>';
 
-  document.body.insertAdjacentHTML('beforeend', modalHTML);
-  document.getElementById('accountModal').addEventListener('click', function(e){
-    if(e.target === this) closeAccountModal();
+  /* ── Sous-page SÉCURITÉ ── */
+  var subSecurity =
+  '<div id="stgSubSecurity" class="stg-subpage">' +
+    '<div class="stg-safe-top"></div>' +
+    '<div class="stg-header">' +
+      '<div class="stg-back" onclick="stgCloseSub(\'stgSubSecurity\')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>' +
+      '<div class="stg-title">Sécurité</div>' +
+    '</div>' +
+    '<div style="padding:0 16px 80px;">' +
+      '<div class="stg-group-label" style="margin-top:20px;">Changer le mot de passe</div>' +
+      '<div class="stg-group">' +
+        '<div class="stg-field"><label>Mot de passe actuel</label><input type="password" id="acOldPwd" placeholder="••••••" autocomplete="current-password" /></div>' +
+        '<div class="stg-field"><label>Nouveau mot de passe</label><input type="password" id="acNewPwd" placeholder="6 caractères min." autocomplete="new-password" /></div>' +
+        '<div class="stg-field"><label>Confirmer</label><input type="password" id="acConfirmPwd" placeholder="••••••" autocomplete="new-password" /></div>' +
+      '</div>' +
+      '<div style="padding:12px 0;"><button onclick="acChangePwd()" class="stg-btn stg-btn-primary">Changer le mot de passe</button></div>' +
+      '<div id="acPwdMsg" class="stg-field-msg" style="text-align:center;color:var(--green);padding:0 4px;"></div>' +
+    '</div>' +
+  '</div>';
+
+  /* ── Sous-page ABONNEMENT ── */
+  var subAbonnement =
+  '<div id="stgSubAbonnement" class="stg-subpage">' +
+    '<div class="stg-safe-top"></div>' +
+    '<div class="stg-header">' +
+      '<div class="stg-back" onclick="stgCloseSub(\'stgSubAbonnement\')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>' +
+      '<div class="stg-title">Abonnement</div>' +
+    '</div>' +
+    '<div style="padding:0 16px 80px;">' +
+      '<div class="stg-empty-state" style="margin-top:60px;">' +
+        '<div class="stg-empty-icon">✨</div>' +
+        '<div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px;">Plan Gratuit</div>' +
+        '<div class="stg-empty-text">Tu profites de toutes les fonctionnalités de YAM gratuitement.<br><br>Des offres premium arriveront bientôt avec des fonctionnalités exclusives 💕</div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+  /* ── Sous-page PRÉFÉRENCES ── */
+  var subPrefs =
+  '<div id="stgSubPrefs" class="stg-subpage">' +
+    '<div class="stg-safe-top"></div>' +
+    '<div class="stg-header">' +
+      '<div class="stg-back" onclick="stgCloseSub(\'stgSubPrefs\')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>' +
+      '<div class="stg-title">Préférences</div>' +
+    '</div>' +
+    '<div style="padding:0 16px 80px;">' +
+      '<div style="font-size:12px;color:var(--muted);padding:20px 4px 4px;">Sélectionne tes centres d\'intérêt pour que YAM puisse te suggérer des idées cadeaux et activités personnalisées.</div>' +
+
+      '<div class="stg-group-label">Loisirs & activités</div>' +
+      '<div class="stg-tags" id="stgPrefsLoisirs">' +
+        '<div class="stg-tag" data-pref="cuisine">🍳 Cuisine</div>' +
+        '<div class="stg-tag" data-pref="voyage">✈️ Voyage</div>' +
+        '<div class="stg-tag" data-pref="sport">🏃 Sport</div>' +
+        '<div class="stg-tag" data-pref="musique">🎵 Musique</div>' +
+        '<div class="stg-tag" data-pref="lecture">📚 Lecture</div>' +
+        '<div class="stg-tag" data-pref="cinema">🎬 Cinéma & séries</div>' +
+        '<div class="stg-tag" data-pref="jeux-video">🎮 Jeux vidéo</div>' +
+        '<div class="stg-tag" data-pref="nature">🌿 Nature</div>' +
+        '<div class="stg-tag" data-pref="photo">📷 Photo</div>' +
+        '<div class="stg-tag" data-pref="art">🎨 Art & créa</div>' +
+      '</div>' +
+
+      '<div class="stg-group-label">Style cadeaux</div>' +
+      '<div class="stg-tags" id="stgPrefsGifts">' +
+        '<div class="stg-tag" data-pref="fait-main">🎁 Fait main</div>' +
+        '<div class="stg-tag" data-pref="experiences">🎪 Expériences</div>' +
+        '<div class="stg-tag" data-pref="tech">💻 Tech & gadgets</div>' +
+        '<div class="stg-tag" data-pref="mode">👗 Mode & bijoux</div>' +
+        '<div class="stg-tag" data-pref="bien-etre">🧖 Bien-être</div>' +
+        '<div class="stg-tag" data-pref="gourmand">🍫 Gourmand</div>' +
+        '<div class="stg-tag" data-pref="deco">🏠 Déco maison</div>' +
+        '<div class="stg-tag" data-pref="livres">📖 Livres</div>' +
+      '</div>' +
+
+      '<div class="stg-group-label">Types de sorties</div>' +
+      '<div class="stg-tags" id="stgPrefsSorties">' +
+        '<div class="stg-tag" data-pref="restaurant">🍽️ Restaurant</div>' +
+        '<div class="stg-tag" data-pref="bar">🍸 Bar & cocktails</div>' +
+        '<div class="stg-tag" data-pref="musee">🖼️ Musées & expos</div>' +
+        '<div class="stg-tag" data-pref="concert">🎤 Concerts</div>' +
+        '<div class="stg-tag" data-pref="rando">🥾 Rando & plein air</div>' +
+        '<div class="stg-tag" data-pref="spa">♨️ Spa & détente</div>' +
+        '<div class="stg-tag" data-pref="parc">🎢 Parcs & attractions</div>' +
+        '<div class="stg-tag" data-pref="marche">🛍️ Marchés & brocantes</div>' +
+      '</div>' +
+
+      '<div id="stgPrefsSaveMsg" class="stg-field-msg" style="text-align:center;color:var(--green);padding:8px;"></div>' +
+
+    '</div>' +
+  '</div>';
+
+  /* ── Sous-page APPARENCE ── */
+  var subAppearance =
+  '<div id="stgSubAppearance" class="stg-subpage">' +
+    '<div class="stg-safe-top"></div>' +
+    '<div class="stg-header">' +
+      '<div class="stg-back" onclick="stgCloseSub(\'stgSubAppearance\')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>' +
+      '<div class="stg-title">Apparence</div>' +
+    '</div>' +
+    '<div style="padding:0 16px 80px;">' +
+      '<div class="stg-group-label" style="margin-top:20px;">Thème</div>' +
+      '<div class="stg-group">' +
+        '<div style="padding:14px 16px;">' +
+          '<div class="stg-theme-pills">' +
+            '<div class="stg-theme-pill" id="stgThemeDark" onclick="stgSetTheme(\'dark\')">🌙 Sombre</div>' +
+            '<div class="stg-theme-pill" id="stgThemeLight" onclick="stgSetTheme(\'light\')">☀️ Clair</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--muted);padding:6px 4px;">Le thème s\'applique immédiatement à toute l\'application.</div>' +
+    '</div>' +
+  '</div>';
+
+  /* ── Sous-page NOTIFICATIONS ── */
+  var subNotifs =
+  '<div id="stgSubNotifs" class="stg-subpage">' +
+    '<div class="stg-safe-top"></div>' +
+    '<div class="stg-header">' +
+      '<div class="stg-back" onclick="stgCloseSub(\'stgSubNotifs\')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>' +
+      '<div class="stg-title">Notifications</div>' +
+    '</div>' +
+    '<div style="padding:0 16px 80px;">' +
+      '<div class="stg-empty-state" style="margin-top:60px;">' +
+        '<div class="stg-empty-icon">🔔</div>' +
+        '<div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px;">Bientôt disponible</div>' +
+        '<div class="stg-empty-text">Les notifications push arriveront dans une prochaine mise à jour.<br><br>Tu pourras choisir de recevoir des alertes pour les messages, bêtises et rappels du jour.</div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+  /* ── Injection ── */
+  document.body.insertAdjacentHTML('beforeend', mainHTML + subCouple + subSecurity + subAbonnement + subPrefs + subAppearance + subNotifs);
+
+  /* ── Navigation sous-pages ── */
+  window.stgOpenSub = function(id){
+    var el = document.getElementById(id);
+    if(el) el.classList.add('active');
+    // Sync thème pills
+    if(id === 'stgSubAppearance') _stgSyncTheme();
+    // Sync préférences tags
+    if(id === 'stgSubPrefs') _stgLoadPrefs();
+  };
+  window.stgCloseSub = function(id){
+    var el = document.getElementById(id);
+    if(el) el.classList.remove('active');
+  };
+
+  /* ── Thème ── */
+  function _stgSyncTheme(){
+    var isLight = document.body.classList.contains('light') || document.documentElement.classList.contains('light');
+    var d = document.getElementById('stgThemeDark');
+    var l = document.getElementById('stgThemeLight');
+    if(d) d.classList.toggle('active', !isLight);
+    if(l) l.classList.toggle('active', isLight);
+    var lbl = document.getElementById('stgThemeLabel');
+    if(lbl) lbl.textContent = isLight ? 'Clair' : 'Sombre';
+  }
+  window.stgSetTheme = function(theme){
+    if(typeof applyThemeToggle === 'function'){
+      // applyThemeToggle bascule le thème — on vérifie si on doit toggler
+      var isLight = document.body.classList.contains('light') || document.documentElement.classList.contains('light');
+      if((theme === 'light' && !isLight) || (theme === 'dark' && isLight)){
+        applyThemeToggle();
+      }
+    }
+    setTimeout(_stgSyncTheme, 100);
+  };
+
+  /* ── Préférences (localStorage) ── */
+  var _PREFS_KEY = 'yam_user_prefs';
+  function _stgLoadPrefs(){
+    var saved = {};
+    try{ saved = JSON.parse(localStorage.getItem(_PREFS_KEY) || '{}'); }catch(e){}
+    document.querySelectorAll('.stg-tag[data-pref]').forEach(function(tag){
+      tag.classList.toggle('on', !!saved[tag.dataset.pref]);
+    });
+  }
+  function _stgSavePrefs(){
+    var prefs = {};
+    document.querySelectorAll('.stg-tag.on[data-pref]').forEach(function(tag){
+      prefs[tag.dataset.pref] = true;
+    });
+    localStorage.setItem(_PREFS_KEY, JSON.stringify(prefs));
+    // Aussi sauvegarder en Supabase pour le partenaire
+    var cid = null;
+    try{ var s = JSON.parse(localStorage.getItem('yam_v2_session')||'null'); cid = s && s.user ? s.user.couple_id : null; }catch(e){}
+    var role = null;
+    try{ var s2 = JSON.parse(localStorage.getItem('yam_v2_session')||'null'); role = s2 && s2.user ? s2.user.role : null; }catch(e){}
+    if(cid && role){
+      var key = 'prefs_' + role;
+      fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+cid+'&category=eq.yam_prefs&slot=eq.'+key+'&select=id',{headers:sb2Headers()})
+      .then(function(r){return r.ok?r.json():[];})
+      .then(function(rows){
+        if(rows && rows[0]){
+          fetch(SB2_URL+'/rest/v1/v2_photo_descs?id=eq.'+rows[0].id,{method:'PATCH',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify({description:JSON.stringify(prefs)})});
+        } else {
+          fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify({couple_id:cid,category:'yam_prefs',slot:key,description:JSON.stringify(prefs)})});
+        }
+      }).catch(function(){});
+    }
+    var msg = document.getElementById('stgPrefsSaveMsg');
+    if(msg){ msg.textContent = '✅ Préférences enregistrées'; setTimeout(function(){ msg.textContent = ''; }, 2000); }
+  }
+
+  /* Clic sur les tags */
+  document.addEventListener('click', function(e){
+    var tag = e.target.closest('.stg-tag[data-pref]');
+    if(!tag) return;
+    tag.classList.toggle('on');
+    _stgSavePrefs();
   });
+
 })();
 
 
 window.openAccountModal = function(){
-  var modal = document.getElementById('accountModal');
-  if(!modal) return;
-  var sheet = document.getElementById('accountSheet');
-  modal.style.display = 'flex';
-  sheet.style.transform = 'translateY(100%)';
-  // Bloquer le scroll de l'arrière-plan
-  document.body.classList.add('account-modal-open');
-  // Engrenage actif
-  var gear1 = document.getElementById('headerGearBtn');
-  var gear2 = document.getElementById('yamStickyGearBtn');
-  if(gear1) gear1.style.background = 'rgba(0,201,167,0.15)';
-  if(gear2) gear2.style.background = 'rgba(0,201,167,0.15)';
-  requestAnimationFrame(function(){
-    requestAnimationFrame(function(){
-      sheet.style.transform = 'translateY(0)';
-    });
-  });
-
+  var view = document.getElementById('settingsView');
+  if(!view) return;
+  view.classList.add('active');
+  document.body.classList.add('settings-open');
+  // Fermer le popup profil si ouvert
   var pp = document.getElementById('profilePopup');
   if(pp) pp.classList.remove('open');
 
-  // CORRECTION : Rafraîchir la session pour avoir les données les plus récentes
+  // Rafraîchir la session pour avoir les données les plus récentes
   if(window.v2RefreshSession){
     v2RefreshSession().then(function(u){
-      if(!u) u = v2GetUser(); // Fallback si refresh échoue
+      if(!u) u = v2GetUser();
       _populateAccountModal(u);
     });
   } else {
@@ -578,23 +881,14 @@ function _populateAccountModal(u){
 }
 
 window.closeAccountModal = function(){
-  var sheet = document.getElementById('accountSheet');
-  var modal = document.getElementById('accountModal');
-  if(!sheet || !modal) return;
-  sheet.style.transform = 'translateY(100%)';
-  // Refermer le dépliant mot de passe
-  var pwdSec = document.getElementById('acPwdSection');
-  var pwdArrow = document.getElementById('acPwdToggleArrow');
-  if(pwdSec){ pwdSec.style.maxHeight='0'; pwdSec.style.opacity='0'; pwdSec.style.pointerEvents='none'; }
-  if(pwdArrow) pwdArrow.style.transform = '';
-  // Remettre l'engrenage à son état normal
-  var gear1 = document.getElementById('headerGearBtn');
-  var gear2 = document.getElementById('yamStickyGearBtn');
-  if(gear1) gear1.style.background = 'rgba(255,255,255,0.08)';
-  if(gear2) gear2.style.background = 'var(--s2)';
-  // Débloquer le scroll
-  document.body.classList.remove('account-modal-open');
-  setTimeout(function(){ modal.style.display = 'none'; }, 300);
+  var view = document.getElementById('settingsView');
+  if(!view) return;
+  // Fermer toutes les sous-pages d'abord
+  document.querySelectorAll('.stg-subpage.active').forEach(function(sp){ sp.classList.remove('active'); });
+  view.classList.remove('active');
+  document.body.classList.remove('settings-open');
+  // Scroll reset
+  view.scrollTop = 0;
 };
 
 window.acCopyCode = function(){
@@ -1045,7 +1339,7 @@ window.acDeleteAvatar = function(){
     var btn = document.createElement('div');
     btn.id = 'ppBtnAccount';
     btn.className = 'profile-popup-btn';
-    btn.innerHTML = '<span style="margin-right:6px;">⚙️</span> Mon Compte';
+    btn.innerHTML = '<span style="margin-right:6px;">⚙️</span> Paramètres';
     btn.onclick = function(){ openAccountModal(); };
     var logoutBtn = document.getElementById('ppBtnLogout');
     if(logoutBtn) pp.insertBefore(btn, logoutBtn);
@@ -1130,8 +1424,8 @@ window.addEventListener('load', function(){
                     }
                     
                     // Mettre à jour l'UI si le modal Mon Compte est ouvert
-                    var modal = document.getElementById('accountModal');
-                    if(modal && modal.classList.contains('open')){
+                    var modal = document.getElementById('settingsView');
+                    if(modal && modal.classList.contains('active')){
                       var el = document.getElementById('acPartnerName');
                       if(el) el.textContent = '(pas encore lié)';
                       var unlinkBtn = document.getElementById('acUnlinkBtn');
@@ -1163,8 +1457,8 @@ window.addEventListener('load', function(){
               }
               
               // Mettre à jour l'UI si le modal Mon Compte est ouvert
-              var modal = document.getElementById('accountModal');
-              if(modal && modal.classList.contains('open')){
+              var modal = document.getElementById('settingsView');
+              if(modal && modal.classList.contains('active')){
                 var el = document.getElementById('acPartnerName');
                 if(el) el.textContent = escHtml(_lastPartnerPseudo);
               }
@@ -1188,8 +1482,8 @@ window.addEventListener('load', function(){
               }
               
               // Mettre à jour l'UI si le modal Mon Compte est ouvert
-              var modal = document.getElementById('accountModal');
-              if(modal && modal.classList.contains('open')){
+              var modal = document.getElementById('settingsView');
+              if(modal && modal.classList.contains('active')){
                 var el = document.getElementById('acPartnerName');
                 if(el) el.textContent = '(pas encore lié)';
                 var unlinkBtn = document.getElementById('acUnlinkBtn');
