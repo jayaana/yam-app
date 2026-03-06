@@ -2514,29 +2514,23 @@ body.nous-active #yamStickyAvatarSelf {
 
   <!-- TOPBAR — style header du site -->
   <div class="dm-topbar" id="dmTopbar" style="height:auto;min-height:60px;padding:10px 14px;padding-top:calc(var(--safe-top) + 10px);display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--border);">
-    <!-- Bouton retour (caché au départ, visible en sous-écrans) -->
-    <div class="gv-back" id="dmTopbarBack" onclick="dmHandleBack()" style="flex-shrink:0;">
+    <!-- Bouton retour — caché en conv, visible en chat -->
+    <div class="gv-back" id="dmTopbarBack" onclick="dmHandleBack()" style="flex-shrink:0;visibility:hidden;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       <span id="dmBackLabel">Retour</span>
     </div>
-    <!-- Titre centre (dynamique) -->
+    <!-- Centre dynamique : logo en conv / avatars+noms en chat -->
     <div class="dm-topbar-center" id="dmTopbarCenter" style="flex:1;min-width:0;overflow:hidden;">
-      <!-- Contenu logo style site -->
-      <div style="display:flex;flex-direction:column;line-height:1.2;">
-        <span style="font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--green);">You And Me</span>
-        <span style="font-family:'Bricolage Grotesque',sans-serif;font-size:17px;font-weight:700;color:var(--text);line-height:1.1;">YAM</span>
-      </div>
+      <img src="assets/images/yam_new_logo.png" alt="YAM" id="dmTopbarLogo" style="height:44px;width:auto;display:block;">
     </div>
-    <!-- Droite : avatars + thème -->
+    <!-- Droite -->
     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-      <!-- Avatars profil avec état de connexion -->
-      <div id="dmHeaderAvatars" style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
-        <!-- Avatar de l'autre -->
+      <!-- Avatars présence — masqués en conv, affichés en chat -->
+      <div id="dmHeaderAvatars" style="display:none;align-items:center;gap:10px;flex-shrink:0;">
         <div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;">
           <div id="dmHeaderAvatarOther" style="width:30px;height:30px;border-radius:50%;background:var(--s2);border:2px solid var(--border);overflow:hidden;opacity:0.38;"><img class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;"></div>
           <div id="dmHeaderDotOther" style="width:7px;height:7px;border-radius:50%;background:#555;position:absolute;bottom:0;right:0;border:1.5px solid var(--bg);"></div>
         </div>
-        <!-- Avatar de soi -->
         <div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;">
           <div id="dmHeaderAvatarSelf" style="width:34px;height:34px;border-radius:50%;background:var(--s2);border:2px solid var(--border);overflow:hidden;"><img class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;"></div>
           <div id="dmHeaderDotSelf" style="width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 4px rgba(34,197,94,0.8);position:absolute;bottom:0;right:0;border:1.5px solid var(--bg);"></div>
@@ -2547,6 +2541,10 @@ body.nous-active #yamStickyAvatarSelf {
         <svg id="dmThemeIconMoon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
         <svg id="dmThemeIconSun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
       </button>
+      <!-- Avatar profil (cliquable) — visible en conv, masqué en chat -->
+      <div id="dmConvProfileBtn" onclick="toggleProfilePopup()" style="cursor:pointer;flex-shrink:0;width:34px;height:34px;border-radius:50%;overflow:hidden;border:1.5px solid var(--border);">
+        <img id="dmConvAvatarEmoji" class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;">
+      </div>
     </div>
   </div>
 
@@ -2563,36 +2561,6 @@ body.nous-active #yamStickyAvatarSelf {
 
     <!-- Écran conv : header style YAM + carte Nous -->
     <div class="dm-home-inner dm-home-conv-screen" id="dmHomeConv" style="display:flex;">
-
-      <!-- Header style application — logo gauche, thème + profil droite -->
-      <div class="dm-yam-header" style="display:flex;align-items:center;justify-content:space-between;padding:0 0 4px 0;">
-
-        <!-- Gauche : Logo YAM -->
-        <div>
-          <img src="assets/images/yam_new_logo.png" alt="YAM — You And Me" style="height:48px;width:auto;display:block;">
-        </div>
-
-        <!-- Droite : toggle thème + avatar profil -->
-        <div style="display:flex;align-items:center;gap:8px;padding-top:4px;">
-
-          <!-- Toggle thème -->
-          <button onclick="applyThemeToggle()" title="Thème" style="
-            width:34px;height:34px;border-radius:50%;
-            background:var(--s2);border:1px solid var(--border);
-            color:var(--sub);display:flex;align-items:center;justify-content:center;
-            cursor:pointer;padding:0;flex-shrink:0;
-            transition:background 0.2s,color 0.2s;
-          ">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
-          </button>
-
-          <!-- Avatar profil (même que header principal) -->
-          <div onclick="toggleProfilePopup()" style="cursor:pointer;flex-shrink:0;width:34px;height:34px;border-radius:50%;overflow:hidden;border:1.5px solid var(--border);">
-            <img id="dmConvAvatarEmoji" class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;">
-          </div>
-
-        </div>
-      </div>
 
       <!-- Label section -->
       <div style="padding:0 16px 10px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:2px;">Conversations</div>
