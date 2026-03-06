@@ -1097,3 +1097,150 @@ function renderLb(elId, rows, detailFn){
     return '<div class="lb-row"><div class="lb-rank '+rc+'">'+(i<3?icons[i]:i+1)+'</div><div class="lb-dot '+(r.player==='girl'?'girl':'boy')+'"></div><div class="lb-name">'+(typeof v2GetDisplayName==="function"?v2GetDisplayName(r.player):(r.player==="girl"?"Elle":"Lui"))+'</div><div class="lb-score">'+detailFn(r)+'</div></div>';
   }).join('');
 }
+
+
+// ═══════════════════════════════════════════════════════════
+// ROUE DES ACTIVITÉS
+// ═══════════════════════════════════════════════════════════
+
+(function(){
+
+  // ── Injecter le CSS ──
+  var style = document.createElement('style');
+  style.textContent = [
+    '#wheelSection{padding:26px 16px 0}',
+    '.wheel-container{display:flex;flex-direction:column;align-items:center;gap:18px}',
+    '.wheel-wrap{position:relative;width:min(240px,68vw);height:min(240px,68vw)}',
+    '#wheelCanvas{width:100%;height:100%;border-radius:50%;display:block}',
+    '.wheel-needle{position:absolute;top:50%;right:-10px;transform:translateY(-50%);font-size:26px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));pointer-events:none;z-index:10}',
+    '.wheel-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;border-radius:50%;background:var(--bg);border:3px solid var(--green);z-index:10}',
+    '.wheel-spin-btn{background:color-mix(in srgb,var(--green) 14%,transparent);color:var(--green);border:1.5px solid color-mix(in srgb,var(--green) 40%,transparent);border-radius:50px;padding:13px 34px;font-size:14px;font-weight:700;cursor:pointer;font-family:"Bricolage Grotesque",sans-serif;transition:background 0.15s,transform 0.12s,box-shadow 0.15s,border-color 0.15s;letter-spacing:0.5px;box-shadow:0 2px 12px color-mix(in srgb,var(--green) 20%,transparent)}',
+    '.wheel-spin-btn:hover{background:color-mix(in srgb,var(--green) 22%,transparent);border-color:color-mix(in srgb,var(--green) 60%,transparent);transform:scale(1.05);box-shadow:0 4px 20px color-mix(in srgb,var(--green) 30%,transparent)}',
+    '.wheel-spin-btn:disabled{background:var(--s3);color:var(--muted);border-color:var(--border);cursor:not-allowed;transform:none;box-shadow:none}',
+    '#wheelResult{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:14px 20px;text-align:center;width:100%;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;transition:border-color 0.3s,box-shadow 0.3s}',
+    '#wheelResult.has-result{border-color:rgba(201,120,96,0.35);box-shadow:0 0 20px rgba(201,120,96,0.08)}',
+    '.result-icon{font-size:28px;line-height:1}',
+    '.result-label{font-size:9px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:2.5px}',
+    '.result-text{font-family:"Bricolage Grotesque",sans-serif;font-size:16px;font-weight:600;color:var(--text);margin-top:2px;letter-spacing:-0.2px}',
+    '.jx-wheel-bar{flex-shrink:0;padding:6px 16px;padding-bottom:calc(4px + env(safe-area-inset-bottom,0px))}',
+    '.jx-wheel-btn{display:flex;align-items:center;gap:14px;width:100%;padding:11px 18px;background:linear-gradient(135deg,var(--green),var(--accent));border:none;border-radius:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .12s,box-shadow .12s;box-shadow:0 4px 16px rgba(201,120,96,.25)}',
+    '.jx-wheel-btn:active{transform:scale(.97);box-shadow:0 2px 8px rgba(201,120,96,.2)}',
+    '.jx-wheel-btn-text{flex:1;text-align:left}',
+    '.jx-wheel-btn-title{font-family:"Bricolage Grotesque",sans-serif;font-size:13px;font-weight:700;color:#fff}',
+    '.jx-wheel-btn-sub{font-size:10px;color:rgba(255,255,255,.7);margin-top:1px}',
+    '.jx-wheel-btn-arrow{font-size:18px;color:rgba(255,255,255,.8);flex-shrink:0}',
+    'body.light .wheel-center{border-color:var(--green);box-shadow:0 0 12px rgba(201,120,96,0.25)}',
+    'body.light #wheelResult{box-shadow:0 2px 12px rgba(100,60,30,0.08);border-color:rgba(201,120,96,0.18)}',
+    'body.light #wheelResult.has-result{border-color:rgba(201,120,96,0.42);box-shadow:0 0 22px rgba(201,120,96,0.12)}'
+  ].join('\n');
+  document.head.appendChild(style);
+
+  // ── Injecter le HTML de l'overlay ──
+  var overlayHTML = '<div id="wheelOverlay" style="display:none;position:fixed;inset:0;z-index:2500;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;">'
+    + '<div style="height:env(safe-area-inset-top,0px);"></div>'
+    + '<div style="display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);gap:12px;">'
+    + '<div onclick="closeWheelModal()" style="width:36px;height:36px;border-radius:50%;background:var(--s2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>'
+    + '<div style="font-size:18px;font-weight:700;color:var(--text);font-family:\'Bricolage Grotesque\',sans-serif;">Roue des activités</div>'
+    + '</div>'
+    + '<div id="wheelSection" style="padding:20px 16px 80px;display:flex;flex-direction:column;align-items:center;">'
+    + '<div style="width:100%;max-width:340px;">'
+    + '<div class="wheel-container">'
+    + '<div class="wheel-wrap">'
+    + '<canvas id="wheelCanvas"></canvas>'
+    + '<div class="wheel-needle">◀</div>'
+    + '<div class="wheel-center"></div>'
+    + '</div>'
+    + '<button class="wheel-spin-btn" id="spinBtn">Tourner la roue ✨</button>'
+    + '<div id="wheelResult"><span class="result-label">En attente...</span><span class="result-text">Lance la roue pour décider 🎲</span></div>'
+    + '</div></div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', overlayHTML);
+
+  // ── Données ──
+  var activities = [
+    {label:'Regarder une série',    icon:'📺'},
+    {label:'Apprendre à cuisiner',  icon:'🍳'},
+    {label:'Appel surprise',        icon:'📞'},
+    {label:'Film au hasard',        icon:'🎬'},
+    {label:'Envoyer des vocaux',    icon:'🎤'},
+    {label:'Jouer en ligne',        icon:'🎮'},
+    {label:'Écouter notre playlist',icon:'🎵'},
+    {label:'Se raconter un souvenir',icon:'💭'},
+    {label:'Regarder les étoiles',  icon:'🌙'},
+    {label:"S'écrire une lettre",   icon:'💌'}
+  ];
+
+  // ── Canvas ──
+  var wheelCanvas = document.getElementById('wheelCanvas');
+  var wCtx = wheelCanvas.getContext('2d');
+  var SIZE = wheelCanvas.parentElement.offsetWidth || 240;
+  wheelCanvas.width = SIZE; wheelCanvas.height = SIZE;
+  var R = SIZE / 2, currentAngle = 0, isSpinning = false;
+  var sliceColors = ['#1a2a1a','#1a1a2a','#2a1a1a','#1a2a2a','#2a2a1a','#1a1a1a','#242424','#1e2a1e','#2a1e1e','#1e1e2a'];
+
+  function drawWheel(angle) {
+    var n = activities.length, slice = (2 * Math.PI) / n;
+    wCtx.clearRect(0, 0, SIZE, SIZE);
+    for (var i = 0; i < n; i++) {
+      var start = angle + i * slice, end = start + slice;
+      wCtx.beginPath(); wCtx.moveTo(R, R); wCtx.arc(R, R, R - 2, start, end); wCtx.closePath();
+      wCtx.fillStyle = sliceColors[i % sliceColors.length]; wCtx.fill();
+      wCtx.strokeStyle = 'rgba(255,255,255,0.08)'; wCtx.lineWidth = 1; wCtx.stroke();
+      wCtx.save(); wCtx.translate(R, R); wCtx.rotate(start + slice / 2); wCtx.textAlign = 'center'; wCtx.textBaseline = 'middle';
+      wCtx.font = Math.round(R * 0.18) + 'px serif';
+      wCtx.fillText(activities[i].icon, R * 0.58, 0); wCtx.restore();
+    }
+    wCtx.beginPath(); wCtx.arc(R, R, R - 2, 0, 2 * Math.PI);
+    wCtx.strokeStyle = 'rgba(0,201,167,0.3)'; wCtx.lineWidth = 2; wCtx.stroke();
+  }
+  drawWheel(currentAngle);
+
+  document.getElementById('spinBtn').addEventListener('click', function() {
+    if (isSpinning) return; isSpinning = true; this.disabled = true;
+    var wr = document.getElementById('wheelResult');
+    wr.className = ''; wr.innerHTML = '<span class="result-label">En train de tourner...</span>';
+    var extraSpins = (5 + Math.floor(Math.random() * 5)) * 2 * Math.PI;
+    var targetSlice = Math.floor(Math.random() * activities.length);
+    var sliceAngle = (2 * Math.PI) / activities.length;
+    var targetAngle = extraSpins + (-(targetSlice + 0.5) * sliceAngle);
+    var startAngle = currentAngle, duration = 3500 + Math.random() * 1000, startTime = null;
+    var spinBtn = this;
+    function easeOut(t) { return 1 - Math.pow(1 - t, 4); }
+    function animate(ts) {
+      if (!startTime) startTime = ts;
+      var elapsed = ts - startTime, progress = Math.min(elapsed / duration, 1);
+      currentAngle = startAngle + (targetAngle - startAngle) * easeOut(progress);
+      drawWheel(currentAngle);
+      if (progress < 1) { requestAnimationFrame(animate); }
+      else {
+        isSpinning = false; spinBtn.disabled = false;
+        var act = activities[targetSlice];
+        wr.className = 'wheelResult has-result';
+        wr.innerHTML = '<span class="result-icon">' + act.icon + '</span>'
+          + '<span class="result-label">Ce soir c\'est décidé !</span>'
+          + '<span class="result-text">' + (typeof escHtml === 'function' ? escHtml(act.label) : act.label) + '</span>';
+      }
+    }
+    requestAnimationFrame(animate);
+  });
+
+  // ── API publique ──
+  window.openWheelModal = function() {
+    var ov = document.getElementById('wheelOverlay');
+    if (!ov) return;
+    ov.style.display = 'block';
+    document.body.classList.add('subview-active');
+    var c = document.getElementById('wheelCanvas');
+    if (c) {
+      var sz = c.parentElement.offsetWidth || 240;
+      if (c.width !== sz) { c.width = sz; c.height = sz; drawWheel(currentAngle); }
+    }
+  };
+
+  window.closeWheelModal = function() {
+    var ov = document.getElementById('wheelOverlay');
+    if (!ov) return;
+    ov.style.display = 'none';
+    document.body.classList.remove('subview-active');
+  };
+
+})();
