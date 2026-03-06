@@ -2394,11 +2394,11 @@ body.nous-active #yamStickyAvatarSelf {
 <!-- ═══════════════════════════════════════════
      YAM — ONGLET JEUX
 ═══════════════════════════════════════════ -->
-<div id="yamJeuxTab" class="yam-tab-panel" style="flex-direction:column;overflow:hidden;">
+<div id="yamJeuxTab" class="yam-tab-panel" style="overflow-y:auto;-webkit-overflow-scrolling:touch;">
 
 <style>
 /* ── Onglet Jeux — layout compact sans scroll ── */
-.jx-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px;padding-top:calc(var(--safe-top, 0px) + 10px);}
+.jx-scroll{padding:0 16px;padding-top:calc(var(--safe-top, 0px) + 10px);padding-bottom:8px;}
 .jx-cat-label{padding:16px 0 0;}
 .jx-cat-label:first-child{padding-top:10px;}
 .jx-cat-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
@@ -2499,8 +2499,8 @@ body.nous-active #yamStickyAvatarSelf {
     </div>
   </div><!-- /jx-scroll -->
 
-  <!-- ── Roue des activités — fixée en bas ── -->
-  <div class="jx-wheel-bar">
+  <!-- ── Roue des activités — sticky en bas ── -->
+  <div class="jx-wheel-bar" style="position:sticky;bottom:0;background:var(--bg);padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));">
     <button class="jx-wheel-btn" onclick="openWheelModal()">
       <div class="jx-wheel-btn-text">
         <div class="jx-wheel-btn-title">🎡 Lancer la roue des activités</div>
