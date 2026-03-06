@@ -2317,22 +2317,23 @@ body.nous-active #yamStickyAvatarSelf {
         <svg id="modeIconOrder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><polyline points="16 9 20 6 16 3"/></svg>
         <svg id="modeIconShuffle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
         <svg id="modeIconRepeatAll" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-        <svg id="modeIconRepeatOne" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/><text x="10.5" y="14.5" font-size="6.5" fill="currentColor" stroke="none" font-weight="800" font-family="sans-serif" text-anchor="middle">1</text></svg>
+        <svg id="modeIconRepeatOne" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4"/><text x="10.5" y="14.5" font-size="6.5" fill="currentColor" stroke="none" font-weight="800" font-family="sans-serif" text-anchor="middle">1</text></svg>
       </button>
       <button class="mu-play-btn" id="top50PlayAll" title="Tout lire">
         <svg id="top50IconPlay" viewBox="0 0 24 24" fill="currentColor" style="width:20px;height:20px;margin-left:2px"><path d="M8 5v14l11-7z"/></svg>
         <svg id="top50IconPause" viewBox="0 0 24 24" fill="currentColor" style="width:20px;height:20px;display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
       </button>
     </div>
+    <!-- ══ Indicateur écoute partenaire / ensemble ══ -->
+    <div id="nlOtherIndicator" style="display:none;align-items:center;gap:6px;position:absolute;bottom:10px;left:18px;">
+      <span id="nlOtherDot" style="width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0;animation:nlIndPulse 1.6s ease-in-out infinite;"></span>
+      <span id="nlOtherLabel" style="font-size:10px;font-weight:600;letter-spacing:0.2px;"></span>
+      <span style="font-size:10px;">🎵</span>
+    </div>
   </div>
 
   <!-- ══ CARD 2 : LISTE DES TITRES ══ -->
   <div class="mu-card-tracks">
-    <div id="nlOtherIndicator" style="display:none;align-items:center;gap:6px;padding:10px 16px 0;">
-      <span id="nlOtherDot" style="width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0;animation:nlIndPulse 1.6s ease-in-out infinite;"></span>
-      <span id="nlOtherLabel" style="font-size:11px;font-weight:600;letter-spacing:0.2px;"></span>
-      <span style="font-size:11px;">🎵</span>
-    </div>
     <div class="mu-col-header">
       <div class="mu-col-num">#&nbsp;&nbsp;&nbsp;TITRE</div>
       <div class="mu-col-plays">ÉCOUTES</div>
