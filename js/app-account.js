@@ -162,6 +162,7 @@ window.v2DoLogin = function(){
   var pseudo   = (document.getElementById('v2LoginPseudo').value   || '').trim();
   var password =  document.getElementById('v2LoginPassword').value  || '';
   var msgId    = 'v2LoginMsg';
+  console.log('[YAM DEBUG] v2DoLogin appelé - pseudo=', pseudo, '/ password=', password ? '(rempli)' : '(vide)');
   // Créer/assurer le message div
   var msgEl = document.getElementById(msgId);
   if(!msgEl){
@@ -172,10 +173,17 @@ window.v2DoLogin = function(){
     if(form) form.appendChild(msgEl);
   }
   if(!pseudo || !password){
+    console.log('[YAM DEBUG] v2DoLogin - champs vides, abandon');
     _v2SetMsg(msgId, '⚠️ Remplis tous les champs', true); return;
   }
   _v2SetMsg(msgId, '⏳ Connexion...', false);
-  v2Login(pseudo, password).then(function(res){ _v2AfterLogin(res, msgId); });
+  console.log('[YAM DEBUG] v2DoLogin - appel v2Login...');
+  v2Login(pseudo, password).then(function(res){
+    console.log('[YAM DEBUG] v2Login retourné - ok=', res.ok, '/ error=', res.error||'aucune');
+    _v2AfterLogin(res, msgId);
+  }).catch(function(err){
+    console.log('[YAM DEBUG] v2Login ERREUR catch=', err);
+  });
 };
 
 window.v2DoRegister = function(){
