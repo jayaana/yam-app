@@ -852,7 +852,39 @@ body.nous-active #yamStickyAvatarSelf {
         document.body.classList.add('splash-active');
         console.log('[YAM DEBUG] unlock() - splash affiché');
       } else {
-        console.log('[YAM DEBUG] unlock() - session valide, app directe');
+        // ✅ SESSION VALIDE : masquer splash + login, charger l'app
+        console.log('[YAM DEBUG] unlock() - session valide, masquage splash + login');
+        
+        // 1️⃣ Masquer le splash complètement
+        var sp = document.getElementById('yamSplashScreen');
+        if(sp) {
+          sp.style.display = 'none';
+          sp.style.visibility = 'hidden';
+        }
+        document.body.classList.remove('splash-active');
+        
+        // 2️⃣ Fermer le modal login s'il est ouvert
+        if(typeof window.v2HideLogin === 'function') {
+          window.v2HideLogin();
+        }
+        var loginOverlay = document.getElementById('v2LoginOverlay');
+        if(loginOverlay) {
+          loginOverlay.classList.remove('active');
+        }
+        document.body.classList.remove('v2-login-active');
+        
+        // 3️⃣ Charger le profil utilisateur et les données
+        setTimeout(function() {
+          var session = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
+          if(session && session.user && session.user.role) {
+            if(typeof window.setProfile === 'function') {
+              window.setProfile(session.user.role);
+            }
+            if(typeof window.loadCoupleConfig === 'function') {
+              window.loadCoupleConfig();
+            }
+          }
+        }, 100);
       }
     }, 600);
   }
