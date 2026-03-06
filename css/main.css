@@ -2351,12 +2351,13 @@ body:has(#snakeView.active) #themeToggleHome { opacity: 0 !important; pointer-ev
 .mu-card-header {
   display: flex; align-items: flex-start; justify-content: space-between;
   gap: 12px;
-  margin: calc(var(--safe-top) + 14px) 16px 10px;
+  margin: calc(var(--safe-top) + 14px) 16px 0;
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 18px 18px 16px;
+  border-radius: 18px 18px 0 0;
+  padding: 16px 18px 14px;
   position: relative; overflow: hidden;
+  border-bottom: none;
 }
 .mu-card-header::before {
   content: ''; position: absolute; inset: 0;
@@ -2379,7 +2380,7 @@ body:has(#snakeView.active) #themeToggleHome { opacity: 0 !important; pointer-ev
 .mu-mode-btn.active { color: var(--green); border-color: rgba(201,120,96,0.4); }
 
 /* ══ CARD TITRES ══ */
-.mu-card-tracks { margin: 0 16px; background: var(--s1); border: 1px solid var(--border); border-radius: 18px; overflow: hidden; }
+.mu-card-tracks { margin: 0 16px; background: var(--s1); border: 1px solid var(--border); border-radius: 0 0 18px 18px; overflow: hidden; border-top: 1px solid var(--border); }
 .mu-col-header { display: flex; align-items: center; padding: 10px 14px 8px 16px; border-bottom: 1px solid var(--border); }
 .mu-col-num { flex: 1; font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
 .mu-col-plays { font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; text-align: right; }
@@ -2391,30 +2392,32 @@ body.light .mu-card-header, body.light .mu-card-tracks { background: rgba(201,12
 body.light .mu-play-btn { box-shadow: 0 4px 18px rgba(201,120,96,0.35); }
 
 /* ══ SUGGESTIONS — ticker vertical 2 lignes ══ */
-.mu-sugg-wrap { padding: 18px 0 0; }
-.mu-sugg-header { display: flex; align-items: center; justify-content: space-between; padding: 0 16px 12px; }
-.mu-sugg-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 17px; font-weight: 800; color: var(--text); }
+.mu-sugg-wrap { padding: 10px 0 0; }
+.mu-sugg-header { display: flex; align-items: center; justify-content: space-between; padding: 0 16px 10px; }
+.mu-sugg-title { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 2.5px; display: flex; align-items: center; gap: 8px; flex: 1; }
+.mu-sugg-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 .mu-sugg-add-btn { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: var(--green); background: rgba(201,120,96,0.10); border: 1px solid rgba(201,120,96,0.25); border-radius: 20px; padding: 6px 12px; cursor: pointer; transition: background 0.15s; -webkit-tap-highlight-color: transparent; }
 .mu-sugg-add-btn:active { background: rgba(201,120,96,0.18); }
 .mu-sugg-bubble { margin: 0 16px; background: var(--s1); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
-.mu-sugg-ticker-wrap { height: calc(2 * 62px); overflow: hidden; position: relative; }
+.mu-sugg-ticker-wrap { height: calc(2 * 68px); overflow: hidden; position: relative; }
 .mu-sugg-ticker { display: flex; flex-direction: column; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
 
 /* ── Ligne suggestion ── */
-.sg-song { display: flex; align-items: center; gap: 12px; padding: 10px 14px; min-height: 62px; border-bottom: 1px solid var(--border); transition: background 0.12s; flex-shrink: 0; }
+.sg-song { display: flex; align-items: center; gap: 10px; padding: 10px 12px; min-height: 68px; border-bottom: 1px solid var(--border); transition: background 0.12s; flex-shrink: 0; }
 .sg-song:last-child { border-bottom: none; }
 .sg-song:hover { background: rgba(255,255,255,0.05); }
 body.light .sg-song:hover { background: rgba(201,120,96,0.04); }
-.sg-icon { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 17px; background: linear-gradient(135deg, rgba(201,120,96,0.22), rgba(201,120,96,0.08)); }
+.sg-icon { width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 15px; background: linear-gradient(135deg, rgba(201,120,96,0.22), rgba(201,120,96,0.08)); }
 .sg-icon.boy  { background: linear-gradient(135deg, rgba(91,156,246,0.22), rgba(91,156,246,0.08)); }
 .sg-icon.girl { background: linear-gradient(135deg, rgba(231,90,124,0.22), rgba(231,90,124,0.08)); }
 .sg-info { flex: 1; min-width: 0; }
-.sg-title { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sg-artist { font-size: 11px; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sg-note-pill { font-size: 10px; color: var(--muted); font-style: italic; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sg-avatar { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; background: var(--s2); }
-.sg-avatar.boy  { background: rgba(91,156,246,0.15); }
-.sg-avatar.girl { background: rgba(231,90,124,0.15); }
+.sg-title { font-size: 12px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sg-artist { font-size: 10px; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sg-note-pill { font-size: 9px; color: var(--muted); font-style: italic; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sg-avatar { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--s2); border: 1.5px solid var(--border); }
+.sg-avatar.boy  { border-color: rgba(91,156,246,0.35); }
+.sg-avatar.girl { border-color: rgba(231,90,124,0.35); }
+.sg-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
 .sg-del, .sg-edit { width: 24px; height: 24px; border-radius: 50%; border: none; background: transparent; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 11px; transition: color 0.15s, background 0.15s; opacity: 0; }
 .sg-song:hover .sg-del, .sg-song:hover .sg-edit { opacity: 1; }
 .sg-del:hover  { color: #e05555; background: rgba(220,50,50,0.1); }
