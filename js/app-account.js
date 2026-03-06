@@ -70,11 +70,13 @@ window.sbHeaders = function(extra){ return sb2Headers(extra); };
 var _v2Role = 'girl'; // rôle sélectionné dans le formulaire inscription/rejoindre
 
 window.v2ShowLogin = function(){
+  console.log('[YAM DEBUG] v2ShowLogin appelé', new Error().stack);
   var el = document.getElementById('v2LoginOverlay');
   if(el){ el.style.display = ''; el.classList.add('active'); }
   document.body.classList.add('v2-login-active');
 };
 window.v2HideLogin = function(){
+  console.log('[YAM DEBUG] v2HideLogin appelé', new Error().stack);
   var el = document.getElementById('v2LoginOverlay');
   if(el){ el.classList.remove('active'); el.style.display = ''; }
   document.body.classList.remove('v2-login-active');
@@ -82,8 +84,10 @@ window.v2HideLogin = function(){
   document.body.style.position = '';
   // Cacher le splash définitivement et révéler l'app
   var sp = document.getElementById('yamSplashScreen');
+  console.log('[YAM DEBUG] v2HideLogin - splash display avant:', sp ? sp.style.display : 'null');
   if(sp){ sp.style.display = 'none'; sp.style.visibility = 'hidden'; }
   document.body.classList.remove('splash-active');
+  console.log('[YAM DEBUG] v2HideLogin - splash caché, splash-active retiré');
 };
 
 window.v2SwitchTab = function(tab){
@@ -112,32 +116,39 @@ function _v2SetMsg(id, text, isError){
 }
 
 function _v2AfterLogin(result, msgId){
+  console.log('[YAM DEBUG] _v2AfterLogin appelé, ok=', result.ok, result.error||'');
   if(!result.ok){
     _v2SetMsg(msgId, '❌ ' + (result.error || 'Erreur'), true);
     return;
   }
+  console.log('[YAM DEBUG] connexion OK - appel v2HideLogin');
   window.v2HideLogin();
 
-  // Bloquer v2ShowLogin pendant 2s pour éviter que setProfile/app-core la rappelle
-  // pendant la phase d'init (timing entre saveSession et loadSession)
+  // Bloquer v2ShowLogin pendant 2s
   var _realV2ShowLogin = window.v2ShowLogin;
-  window.v2ShowLogin = function(){ /* bloqué pendant init */ };
-  setTimeout(function(){ window.v2ShowLogin = _realV2ShowLogin; }, 2000);
+  window.v2ShowLogin = function(){
+    console.log('[YAM DEBUG] v2ShowLogin BLOQUÉ (init post-login)', new Error().stack);
+  };
+  setTimeout(function(){
+    console.log('[YAM DEBUG] v2ShowLogin restauré');
+    window.v2ShowLogin = _realV2ShowLogin;
+  }, 2000);
 
-  // Init app immédiatement
   var u = v2GetUser();
+  console.log('[YAM DEBUG] v2GetUser=', u ? u.pseudo+'/'+u.role : 'NULL');
   if(u){
     localStorage.setItem('jayana_profile', u.role);
+    console.log('[YAM DEBUG] appel setProfile avec', u.role);
     if(window.setProfile) window.setProfile(u.role);
     if(window.loadCoupleConfig) window.loadCoupleConfig();
   }
 
-  // Bloquer les pointer-events brièvement pour éviter les ghost touches
   document.body.style.pointerEvents = 'none';
   window.scrollTo({ top: 0, behavior: 'instant' });
 
   setTimeout(function(){
     document.body.style.pointerEvents = '';
+    console.log('[YAM DEBUG] yamSwitchTab home');
     if(window.yamSwitchTab){
       window.yamSwitchTab('home');
     } else {
@@ -215,11 +226,13 @@ window.v2DoJoin = function(){
 // Au démarrage : si session active on s'assure que le login est fermé
 // Si pas de session : ne rien faire — c'est le splash + yamSplashOpen qui gèrent tout
 document.addEventListener('DOMContentLoaded', function(){
-  if(v2GetUser()){
-    // Session active — cacher splash et login, laisser l'app s'afficher
+  var u = v2GetUser();
+  console.log('[YAM DEBUG] DOMContentLoaded app-account - v2GetUser=', u ? u.pseudo+'/'+u.role : 'NULL');
+  if(u){
+    console.log('[YAM DEBUG] DOMContentLoaded - session active, appel v2HideLogin');
     window.v2HideLogin();
   } else {
-    // Pas de session — juste préparer le formulaire, ne pas toucher au splash
+    console.log('[YAM DEBUG] DOMContentLoaded - pas de session, on attend le splash');
     window.v2SelectRole('girl');
   }
 });
