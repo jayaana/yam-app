@@ -332,6 +332,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     document.body.style.right = '0';
     document.body.style.overflow = 'hidden';
     document.body.dataset.prankScrollY = scrollY;
+    document.body.classList.add('prank-active');
     switch(p.type){
       case 'shake':    startShake(p); break;
       case 'curtain':  startCurtain(p); break;
@@ -357,6 +358,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     document.body.style.right = '';
     document.body.style.overflow = '';
     document.body.dataset.prankScrollY = '';
+    document.body.classList.remove('prank-active');
     window.scrollTo(0, scrollY);
   }
 
