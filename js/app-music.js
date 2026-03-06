@@ -800,7 +800,7 @@ function filterSongs(q){
     _sgTickerTimer = setInterval(function(){
       _sgTickerIdx = (_sgTickerIdx + 2) % (total % 2 === 0 ? total : total + 1);
       var ticker = document.querySelector('.mu-sugg-ticker');
-      if(ticker) ticker.style.transform = 'translateY(-' + (_sgTickerIdx * 62) + 'px)';
+      if(ticker) ticker.style.transform = 'translateY(-' + (_sgTickerIdx * 78) + 'px)';
     }, 4000);
   }
 
