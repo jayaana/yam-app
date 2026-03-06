@@ -325,7 +325,8 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   function triggerPrank(p){
     if(!p) return;
     // Bloquer scroll et interactions du fond pendant la bêtise
-    var scrollY = window.scrollY;
+    // (réappliqué même si une bêtise précédente était active)
+    var scrollY = window.scrollY || parseInt(document.body.dataset.prankScrollY || '0');
     document.body.style.position = 'fixed';
     document.body.style.top = '-' + scrollY + 'px';
     document.body.style.left = '0';
@@ -919,7 +920,8 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   }
   window.closeGotcha = function(){
     document.getElementById('prankGotcha').classList.remove('show');
-    _prankUnlockScroll();
+    // Ne pas délocker si une nouvelle bêtise est déjà en cours
+    if(!_activePrank) _prankUnlockScroll();
   };
 
   /* ════ BÊTISE 1 : TREMBLEMENT ════ */
