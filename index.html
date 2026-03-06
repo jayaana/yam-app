@@ -2303,87 +2303,73 @@ body.nous-active #yamStickyAvatarSelf {
 
 <div id="yamMusiqueTab" class="yam-tab-panel">
 
+<!-- ══ PLAYLIST CARD ══ -->
 <div id="loveSection" class="fade-in">
-  <div class="top50-header">
-    <div class="top50-meta">Playlist</div>
-    <div class="top50-title">Top 50 : Love 💕</div>
-    <div class="top50-desc">Les sons de notre univers, classés par écoutes.</div>
-    <div class="top50-controls">
-      <button class="top50-play-all" id="top50PlayAll" title="Tout lire">
-        <svg id="top50IconPlay" viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px;margin-left:2px"><path d="M8 5v14l11-7z"/></svg>
-        <svg id="top50IconPause" viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px;display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-      </button>
-      <button class="top50-mode-btn" id="top50ModeBtn" title="Répéter tout">
-        <!-- Ordre -->
-        <svg id="modeIconOrder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
-          <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
-          <polyline points="16 9 20 6 16 3"/>
-        </svg>
-        <!-- Aléatoire -->
-        <svg id="modeIconShuffle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
-          <polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/>
-          <polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/>
-        </svg>
-        <!-- Répéter tout -->
-        <svg id="modeIconRepeatAll" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
-          <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
-        </svg>
-        <!-- Répéter une -->
-        <svg id="modeIconRepeatOne" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
-          <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
-          <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
-          <text x="10.5" y="14.5" font-size="6.5" fill="currentColor" stroke="none" font-weight="800" font-family="sans-serif" text-anchor="middle">1</text>
-        </svg>
-      </button>
-      <div class="top50-stats"><span id="top50Count">13</span> titres</div>
-      <div id="nlOtherIndicator" style="display:none;margin-left:auto;align-items:center;gap:6px;">
-        <span id="nlOtherDot" style="width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0;animation:nlIndPulse 1.6s ease-in-out infinite;"></span>
-        <span id="nlOtherLabel" style="font-size:11px;font-weight:600;letter-spacing:0.2px;"></span>
-        <span style="font-size:11px;">🎵</span>
+  <div class="mu-card">
+    <div class="mu-card-inner">
+      <div class="mu-card-text">
+        <div class="mu-card-label">PLAYLIST</div>
+        <div class="mu-card-title">Top 50 : Love 💕</div>
+        <div class="mu-card-desc">Les sons de notre univers, classés par écoutes.</div>
+        <div class="mu-card-count"><span id="top50Count">0</span> titres</div>
+      </div>
+      <div class="mu-card-btns">
+        <button class="mu-mode-btn" id="top50ModeBtn" title="Mode lecture">
+          <svg id="modeIconOrder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><polyline points="16 9 20 6 16 3"/></svg>
+          <svg id="modeIconShuffle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
+          <svg id="modeIconRepeatAll" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          <svg id="modeIconRepeatOne" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/><text x="10.5" y="14.5" font-size="6.5" fill="currentColor" stroke="none" font-weight="800" font-family="sans-serif" text-anchor="middle">1</text></svg>
+        </button>
+        <button class="mu-play-btn" id="top50PlayAll" title="Tout lire">
+          <svg id="top50IconPlay" viewBox="0 0 24 24" fill="currentColor" style="width:20px;height:20px;margin-left:2px"><path d="M8 5v14l11-7z"/></svg>
+          <svg id="top50IconPause" viewBox="0 0 24 24" fill="currentColor" style="width:20px;height:20px;display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+        </button>
       </div>
     </div>
+    <div id="nlOtherIndicator" style="display:none;align-items:center;gap:6px;padding-top:8px;">
+      <span id="nlOtherDot" style="width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0;animation:nlIndPulse 1.6s ease-in-out infinite;"></span>
+      <span id="nlOtherLabel" style="font-size:11px;font-weight:600;letter-spacing:0.2px;"></span>
+      <span style="font-size:11px;">🎵</span>
+    </div>
   </div>
-  <div class="top50-col-header">
-    <div class="col-h-num">#</div>
-    <div class="col-h-title">Titre</div>
-    <div class="col-h-plays">Écoutes</div>
-    <div class="col-h-actions"></div>
+
+  <!-- En-tête colonnes -->
+  <div class="mu-col-header">
+    <div class="mu-col-num">#&nbsp;&nbsp;&nbsp;TITRE</div>
+    <div class="mu-col-plays">ÉCOUTES</div>
   </div>
+
   <div id="Love"></div>
+
   <div class="top50-expand" id="top50Expand">
     <span>Voir tout</span>
     <span class="top50-expand-icon">▾</span>
   </div>
 </div>
 
-<div style="padding: 22px 0 0;" class="fade-in">
+<!-- loveBox -->
+<div style="padding:16px 16px 0;" class="fade-in">
   <div id="loveBox">
     <span class="lb-icon">💗</span>
     <span class="lb-text" id="loveBoxText">Tapote-moi 🤫</span>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════
-     SECTION AUTRE — SUGGESTIONS
-══════════════════════════════════════════ -->
-<div class="fade-in" id="suggestionSection">
-  <div class="suggestion-header-row">
-    <div class="section-label" style="margin-bottom:0;padding:0;flex:1">Suggestions 🎵</div>
+<!-- ══ SUGGESTIONS ══ -->
+<div class="fade-in mu-sugg-wrap" id="suggestionSection">
+  <div class="mu-sugg-header">
+    <div class="mu-sugg-title">Suggestions</div>
     <div class="suggestion-lock-badge" id="sgLockBadge" onclick="sgToggleLock()">
       <span class="sg-badge-dot"></span>
       <span id="sgLockTxt">Proposer une musique 🎵</span>
     </div>
   </div>
-  <div>
-    <div class="suggestion-col-header">
-      <div style="flex:1;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px">Titre</div>
-      <div style="width:110px;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;text-align:right;flex-shrink:0;padding-right:4px">Note</div>
-      <div style="width:30px;flex-shrink:0"></div>
-    </div>
-    <div id="sgList"></div>
+
+  <!-- Bulle carousel 2 lignes -->
+  <div class="mu-sugg-bubble">
+    <div class="mu-sugg-scroll" id="sgList"></div>
     <div class="sg-add-btn" id="sgAddBtn" onclick="openSgModal()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 11h-6V5h-2v6H5v2h6v6h2v-6h6z"/></svg>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19 11h-6V5h-2v6H5v2h6v6h2v-6h6z"/></svg>
       Proposer une musique
     </div>
   </div>
