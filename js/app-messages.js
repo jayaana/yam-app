@@ -85,6 +85,8 @@
     // — Mode CONV : logo à gauche, profil à droite, avatars présence masqués —
     var _logo = document.getElementById('dmTopbarLogo');
     if(_logo) _logo.style.display = 'block';
+    var _ccb = document.getElementById('dmChatCenterBlock');
+    if(_ccb) _ccb.style.display = 'none';
     var _haConv = document.getElementById('dmHeaderAvatars');
     if(_haConv) _haConv.style.display = 'none';
     var _cpb = document.getElementById('dmConvProfileBtn');
@@ -121,16 +123,15 @@
       var _cpbC = document.getElementById('dmConvProfileBtn');
       if(_cpbC) _cpbC.style.display = 'none';
       var dmHA = document.getElementById('dmHeaderAvatars');
-      if(dmHA) dmHA.style.display = 'flex';
-      if(center) center.innerHTML =
-        '<div class="dm-topbar-avatars">' +
-          '<div class="dm-avatar dm-avatar-girl" style="background:none;overflow:hidden;"><img src="' + (window.yamAvatarSrc ? window.yamAvatarSrc('girl') : 'assets/images/profil_girl.png') + '" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;"></div>' +
-          '<div class="dm-avatar dm-avatar-boy" style="background:none;overflow:hidden;"><img src="' + (window.yamAvatarSrc ? window.yamAvatarSrc('boy') : 'assets/images/profil_boy.png') + '" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;"></div>' +
-        '</div>' +
-        '<div class="dm-topbar-names">' +
-          '<span class="dm-topbar-title">Nous \u2764\ufe0f</span>' +
-          '<span class="dm-topbar-sub" id="dmStatus">\u2022 En ligne</span>' +
-        '</div>';
+      if(dmHA) dmHA.style.display = 'none';
+      var _logoC = document.getElementById('dmTopbarLogo');
+      if(_logoC) _logoC.style.display = 'none';
+      var _ccbC = document.getElementById('dmChatCenterBlock');
+      if(_ccbC) _ccbC.style.display = 'flex';
+      if(window.yamAvatarSrc){
+        var _ag = document.getElementById('dmChatAvGirl'); if(_ag) _ag.src = window.yamAvatarSrc('girl');
+        var _ab = document.getElementById('dmChatAvBoy');  if(_ab) _ab.src = window.yamAvatarSrc('boy');
+      }
       if(backBtn){ backBtn.dataset.dest = 'home'; backBtn.style.visibility = 'visible'; }
       var lbl2 = $('dmBackLabel'); if(lbl2) lbl2.textContent = 'Retour';
       var lockBadge = document.getElementById('lockUnreadBadge');
