@@ -1312,19 +1312,22 @@
    Runs without needing to open hiddenPage first
 ══════════════════════════════════════════ */
 (function(){
+  var _bgSeenPillIds = {};
+
   function _pollDmBadge(){
     var s = null;
     try{ s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null'); }catch(e){}
     var coupleId = s && s.user ? s.user.couple_id : null;
     if(!coupleId || typeof SB2_URL === 'undefined') return;
-    fetch(SB2_URL + '/rest/v1/v2_dm_messages?couple_id=eq.' + coupleId + '&seen=eq.false&select=id,sender', {
+    var myProfile = (typeof getProfile === 'function') ? getProfile() : null;
+    fetch(SB2_URL + '/rest/v1/v2_dm_messages?couple_id=eq.' + coupleId + '&seen=eq.false&select=id,sender,text&order=created_at.desc&limit=20', {
       headers: (typeof sb2Headers === 'function') ? sb2Headers() : {'apikey': SB2_KEY, 'Authorization': 'Bearer ' + SB2_KEY}
     })
     .then(function(r){ return r.json(); })
     .then(function(rows){
       if(!Array.isArray(rows)) return;
-      // Compter uniquement les messages de l'autre (pas les miens)
-      var myProfile = (typeof getProfile === 'function') ? getProfile() : null;
+
+      // — Badge non-lus —
       var unread = rows.filter(function(m){ return myProfile ? m.sender !== myProfile : true; }).length;
       var lockBtn   = document.getElementById('lockNavBtn');
       var lockBadge = document.getElementById('lockUnreadBadge');
@@ -1336,6 +1339,18 @@
         if(unread > 0){ lockBadge.textContent = unread > 99 ? '99+' : unread; lockBadge.classList.add('visible'); }
         else           { lockBadge.classList.remove('visible'); }
       }
+
+      // — Pilule notification (seulement hors onglet messages et hors chat actif) —
+      if(window._currentTab === 'messages') return;
+      if(window._chatPollId) return;
+      rows.forEach(function(msg){
+        if(!myProfile || msg.sender === myProfile) return;
+        if(_bgSeenPillIds[msg.id]) return;
+        _bgSeenPillIds[msg.id] = true;
+        var senderName = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName(msg.sender) : (msg.sender === 'girl' ? 'Elle' : 'Lui');
+        var senderSrc = window.yamAvatarSrc ? window.yamAvatarSrc(msg.sender) : ('assets/images/profil_' + msg.sender + '.png');
+        if(window.showMsgHeaderPill) window.showMsgHeaderPill(senderSrc, senderName, msg.text || '💬', true);
+      });
     })
     .catch(function(){});
   }
@@ -1347,7 +1362,7 @@
       return;
     }
     _pollDmBadge();
-    setInterval(_pollDmBadge, 20000); // toutes les 20s
+    setInterval(_pollDmBadge, 8000); // toutes les 8s
   }
 
   window._dmPollUnread = _pollDmBadge;
