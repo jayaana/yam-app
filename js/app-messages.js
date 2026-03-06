@@ -82,16 +82,16 @@
     var el = $('dmHomeScreen');
     var outgoing = dir ? _dmGetVisible() : null;
     _dmSlide(el, outgoing !== el ? outgoing : null, dir);
-    // Mode conv : logo dans le centre, avatar profil visible, avatars présence masqués
-    var logo2 = document.getElementById('dmTopbarLogo');
-    if(logo2) logo2.style.display = 'block';
-    var dmHA = document.getElementById('dmHeaderAvatars');
-    if(dmHA) dmHA.style.display = 'none';
-    var convBtn = document.getElementById('dmConvProfileBtn');
-    if(convBtn) convBtn.style.display = 'flex';
-    // Sync avatar profil
-    var convAv = document.getElementById('dmConvAvatarEmoji');
-    if(convAv && window.yamAvatarSrc) { var p=getProfile(); if(p) convAv.src = window.yamAvatarSrc(p); }
+    // — Mode CONV : logo à gauche, profil à droite, avatars présence masqués —
+    var _logo = document.getElementById('dmTopbarLogo');
+    if(_logo) _logo.style.display = 'block';
+    var _haConv = document.getElementById('dmHeaderAvatars');
+    if(_haConv) _haConv.style.display = 'none';
+    var _cpb = document.getElementById('dmConvProfileBtn');
+    if(_cpb) _cpb.style.display = 'flex';
+    // Sync avatar profil avec celui connecté
+    var _cav = document.getElementById('dmConvAvatarEmoji');
+    if(_cav && window.yamAvatarSrc){ var _p=getProfile(); if(_p) _cav.src=window.yamAvatarSrc(_p); }
     var backBtn = $('dmTopbarBack');
     if(backBtn){ backBtn.dataset.dest = 'close'; backBtn.style.visibility = 'hidden'; }
     var lbl = $('dmBackLabel'); if(lbl) lbl.textContent = 'Retour';
@@ -115,11 +115,11 @@
       document.body.classList.add('dm-chat-active');
       var el = $('dmChatScreen');
       _dmSlide(el, outgoing !== el ? outgoing : null, dir);
-      // Mode chat : masquer logo + profil conv, afficher avatars présence dans le centre
-      var logo3 = document.getElementById('dmTopbarLogo');
-      if(logo3) logo3.style.display = 'none';
-      var convBtn2 = document.getElementById('dmConvProfileBtn');
-      if(convBtn2) convBtn2.style.display = 'none';
+      // — Mode CHAT : logo masqué, avatars présence visibles, profil conv masqué —
+      var _logoC = document.getElementById('dmTopbarLogo');
+      if(_logoC) _logoC.style.display = 'none';
+      var _cpbC = document.getElementById('dmConvProfileBtn');
+      if(_cpbC) _cpbC.style.display = 'none';
       var dmHA = document.getElementById('dmHeaderAvatars');
       if(dmHA) dmHA.style.display = 'flex';
       if(center) center.innerHTML =
@@ -547,8 +547,8 @@
             // Pilule notif dans le header (seulement si pas sur onglet messages)
             if(window._currentTab !== 'messages'){
               var senderName = (typeof v2GetDisplayName==="function"?v2GetDisplayName(msg.sender):(msg.sender==="girl"?"Elle":"Lui"));
-              var senderEmoji = msg.sender === 'girl' ? 'Elle' : 'Lui';
-              showMsgHeaderPill(senderEmoji, senderName, msg.text || '💬');
+              var senderAvatarSrc = window.yamAvatarSrc ? window.yamAvatarSrc(msg.sender) : ('assets/images/profil_'+msg.sender+'.png');
+              showMsgHeaderPill(senderAvatarSrc, senderName, msg.text || '💬', true);
             }
           }
         }
@@ -1287,13 +1287,66 @@
 
 })();
 
+
+/* ══════════════════════════════════════════
+   BADGE NON-LUS — poll indépendant au démarrage
+   Runs without needing to open hiddenPage first
+══════════════════════════════════════════ */
+(function(){
+  function _pollDmBadge(){
+    var s = null;
+    try{ s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null'); }catch(e){}
+    var coupleId = s && s.user ? s.user.couple_id : null;
+    if(!coupleId || typeof SB2_URL === 'undefined') return;
+    fetch(SB2_URL + '/rest/v1/v2_dm_messages?couple_id=eq.' + coupleId + '&seen=eq.false&select=id,sender', {
+      headers: (typeof sb2Headers === 'function') ? sb2Headers() : {'apikey': SB2_KEY, 'Authorization': 'Bearer ' + SB2_KEY}
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(rows){
+      if(!Array.isArray(rows)) return;
+      // Compter uniquement les messages de l'autre (pas les miens)
+      var myProfile = (typeof getProfile === 'function') ? getProfile() : null;
+      var unread = rows.filter(function(m){ return myProfile ? m.sender !== myProfile : true; }).length;
+      var lockBtn   = document.getElementById('lockNavBtn');
+      var lockBadge = document.getElementById('lockUnreadBadge');
+      if(lockBtn){
+        if(unread > 0){ lockBtn.classList.add('has-unread'); }
+        else           { lockBtn.classList.remove('has-unread'); }
+      }
+      if(lockBadge){
+        if(unread > 0){ lockBadge.textContent = unread > 99 ? '99+' : unread; lockBadge.classList.add('visible'); }
+        else           { lockBadge.classList.remove('visible'); }
+      }
+    })
+    .catch(function(){});
+  }
+
+  // Démarrer après que les autres modules sont prêts
+  function _startBadgePoll(){
+    if(typeof SB2_URL === 'undefined' || typeof sb2Headers === 'undefined'){
+      setTimeout(_startBadgePoll, 500);
+      return;
+    }
+    _pollDmBadge();
+    setInterval(_pollDmBadge, 20000); // toutes les 20s
+  }
+
+  window._dmPollUnread = _pollDmBadge;
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(_startBadgePoll, 1500); });
+  } else {
+    setTimeout(_startBadgePoll, 1500);
+  }
+})();
+
 /* ══════════════════════════════════════════
    NOTIF PILULE HEADER — nouveau message
 ══════════════════════════════════════════ */
 (function(){
   var _pillTimer = null;
 
-  window.showMsgHeaderPill = function(emoji, name, text){
+  window.showMsgHeaderPill = function(emoji, name, text, isImgSrc){
     var pill = document.getElementById('msgHeaderPill');
     var av   = document.getElementById('mhpAvatar');
     var nm   = document.getElementById('mhpName');
@@ -1302,7 +1355,22 @@
 
     if(_pillTimer){ clearTimeout(_pillTimer); _pillTimer = null; }
 
-    if(av) av.textContent = emoji || '💬';
+    if(av){
+      var _img = av.querySelector('img');
+      if(isImgSrc){
+        // emoji param est une URL d'avatar
+        if(_img){ _img.src = emoji; _img.style.display='block'; }
+        av.style.fontSize='';
+      } else {
+        // emoji param est un emoji/texte
+        if(_img) _img.style.display='none';
+        av.style.fontSize='18px';
+        // Utiliser un span texte pour ne pas écraser l'img
+        var _span = av.querySelector('span.mhp-em');
+        if(!_span){ _span=document.createElement('span'); _span.className='mhp-em'; av.appendChild(_span); }
+        _span.textContent = emoji || '💬';
+      }
+    }
     if(nm) nm.textContent = name  || 'Nouveau message';
     var display = (text || '…').toString();
     if(display.length > 40) display = display.slice(0, 40) + '…';
