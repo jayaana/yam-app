@@ -72,21 +72,17 @@ var _v2Role = 'girl'; // rôle sélectionné dans le formulaire inscription/rejo
 window.v2ShowLogin = function(){
   var el = document.getElementById('v2LoginOverlay');
   if(el){ el.style.display = ''; el.classList.add('active'); }
-  var scrollY = window.scrollY || window.pageYOffset || 0;
-  document.body.dataset.scrollY = scrollY;
-  document.body.style.top = '-' + scrollY + 'px';
   document.body.classList.add('v2-login-active');
 };
 window.v2HideLogin = function(){
   var el = document.getElementById('v2LoginOverlay');
   if(el){ el.classList.remove('active'); el.style.display = ''; }
   document.body.classList.remove('v2-login-active');
-  var scrollY = parseInt(document.body.dataset.scrollY || '0', 10);
   document.body.style.top = '';
-  window.scrollTo(0, scrollY);
-  // Cacher le splash et retirer splash-active pour révéler l'app
+  document.body.style.position = '';
+  // Cacher le splash définitivement et révéler l'app
   var sp = document.getElementById('yamSplashScreen');
-  if(sp) sp.style.display = 'none';
+  if(sp){ sp.style.display = 'none'; sp.style.visibility = 'hidden'; }
   document.body.classList.remove('splash-active');
 };
 
