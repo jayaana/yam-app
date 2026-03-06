@@ -180,11 +180,11 @@ body.light .yam-tab-panel {
 #wheelSection,
 #luiSection,
 #loveSection {
-  margin: 0 14px 18px;
-  background: var(--group-bg);
-  border-radius: var(--group-radius);
-  border: 1px solid var(--border);
-  overflow: hidden;
+  margin: 0 0 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
   padding: 0 !important;
 }
 
@@ -391,8 +391,7 @@ body.light #souvenirsSection,
 body.light #activitesSection,
 body.light #Books,
 body.light #wheelSection,
-body.light #luiSection,
-body.light #loveSection {
+body.light #luiSection {
   background: rgba(255,255,255,1) !important;
   border-color: rgba(160,120,90,0.12) !important;
   box-shadow: 0 2px 12px rgba(100,60,30,0.06);
@@ -448,7 +447,6 @@ body.light .counter-block {
 ══════════════════════════════════════════════════════════ */
 
 /* Onglet Musique — sections */
-#loveSection,
 #yamMusiqueTab > div:not(#loveSection):not([id*="Overlay"]):not([id*="Modal"]):not([id*="Picker"]) {
   margin: 0 14px 14px;
 }
