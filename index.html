@@ -2504,7 +2504,7 @@ body.nous-active #yamStickyAvatarSelf {
 <div id="lockPopup">
   <div style="padding:12px 14px 6px;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:2px">Mode caché 🔐</div>
   <div style="padding:0 10px 10px;display:flex;gap:7px;align-items:center">
-    <input type="password" id="lockInput" placeholder="Tape le code..." autocomplete="off">
+    <input type="password" id="lockInput" placeholder="Tape le code..." autocomplete="off" tabindex="-1">
     <button id="lockSubmit" onclick="checkCode()">OK</button>
   </div>
   <div id="lockError" style="display:none;padding:0 13px 10px;font-size:11px;color:#ff6b6b"></div>
@@ -2564,13 +2564,33 @@ body.nous-active #yamStickyAvatarSelf {
     <!-- Écran conv : header style YAM + carte Nous -->
     <div class="dm-home-inner dm-home-conv-screen" id="dmHomeConv" style="display:flex;">
 
-      <!-- Header grand style YAM -->
-      <div class="dm-yam-header">
-        <div class="hdr-tag">You And Me</div>
-        <div class="hdr-name">Messages</div>
-        <div class="hdr-sub">
-          <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="var(--green)"/></svg>
-          InstaLove ✨
+      <!-- Header style application — logo gauche, thème + profil droite -->
+      <div class="dm-yam-header" style="display:flex;align-items:center;justify-content:space-between;padding:0 0 4px 0;">
+
+        <!-- Gauche : Logo YAM -->
+        <div>
+          <img src="assets/images/yam_new_logo.png" alt="YAM — You And Me" style="height:48px;width:auto;display:block;">
+        </div>
+
+        <!-- Droite : toggle thème + avatar profil -->
+        <div style="display:flex;align-items:center;gap:8px;padding-top:4px;">
+
+          <!-- Toggle thème -->
+          <button onclick="applyThemeToggle()" title="Thème" style="
+            width:34px;height:34px;border-radius:50%;
+            background:var(--s2);border:1px solid var(--border);
+            color:var(--sub);display:flex;align-items:center;justify-content:center;
+            cursor:pointer;padding:0;flex-shrink:0;
+            transition:background 0.2s,color 0.2s;
+          ">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
+          </button>
+
+          <!-- Avatar profil (même que header principal) -->
+          <div onclick="toggleProfilePopup()" style="cursor:pointer;flex-shrink:0;width:34px;height:34px;border-radius:50%;overflow:hidden;border:1.5px solid var(--border);">
+            <img id="dmConvAvatarEmoji" class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;">
+          </div>
+
         </div>
       </div>
 
