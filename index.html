@@ -913,8 +913,8 @@ body.nous-active #yamStickyAvatarSelf {
 
 <div id="v2LoginOverlay">
 
-  <!-- Fond semi-transparent — clique pour fermer (seulement si pas splash actif) -->
-  <div class="v2-backdrop" onclick="if(!document.body.classList.contains('splash-active')) v2HideLogin()"></div>
+  <!-- Fond semi-transparent — non cliquable, on ne peut pas quitter sans se connecter -->
+  <div class="v2-backdrop"></div>
 
   <div id="v2LoginBox">
 
@@ -3797,14 +3797,7 @@ function v2ApplyDynamicNames(){
   // Si maintenance pas débloquée : elle s'affiche par-dessus, on ne touche pas au splash
 
   window.yamSplashOpen = function(){
-    var sp = document.getElementById('yamSplashScreen');
-    if(sp){
-      sp.classList.add('hiding');
-      setTimeout(function(){
-        sp.style.display = 'none';
-        document.body.classList.remove('splash-active');
-      }, 500);
-    }
+    // Ne pas cacher le splash — il reste visible en fond derrière le modal
     v2ShowLogin();
   };
 })();
