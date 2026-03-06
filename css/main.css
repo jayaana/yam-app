@@ -1308,6 +1308,7 @@ body.light #loveBox .lb-label { color: rgba(201,120,96,0.65); }
 #yamJeuxTab.active {
   display: flex;
   padding-bottom: 0;
+  height: calc(100dvh - var(--nav-height) - env(safe-area-inset-top, 0px));
 }
 
 /* ══ MESSAGES TAB ══ */
