@@ -79,6 +79,7 @@ body, .bottom-nav, header, .yam-tab-panel, .section, .card, .tl-card, .counter-b
   z-index: 99990;
   margin: 0;
   padding: 0;
+  display: none;
 }
 #yamSplashScreen.hiding {
   opacity: 0;
@@ -845,6 +846,8 @@ body.nous-active #yamStickyAvatarSelf {
       el.style.display = 'none';
       // Après maintenance : montrer le splash si pas de session
       if (!hasValidSession()) {
+        var sp = document.getElementById('yamSplashScreen');
+        if(sp) sp.style.display = 'block';
         document.body.classList.add('splash-active');
       }
     }, 600);
@@ -3782,16 +3785,16 @@ function v2ApplyDynamicNames(){
   var maintUnlocked = localStorage.getItem('yam_maint_unlocked') === '1';
   if(maintUnlocked){
     if(!checkV2Session()){
-      // Maintenance débloquée, pas de session — montrer le splash
+      // Maintenance débloquée, pas de session — afficher le splash
+      var _sp = document.getElementById('yamSplashScreen');
+      if(_sp) _sp.style.display = 'block';
       document.body.classList.add('splash-active');
     } else {
-      // Session active : masquer le splash immédiatement
-      var _sp = document.getElementById('yamSplashScreen');
-      if(_sp) _sp.style.display = 'none';
+      // Session active : splash déjà caché par défaut, rien à faire
       window.addEventListener('load', function(){ setTimeout(v2ApplyDynamicNames, 200); });
     }
   }
-  // Si maintenance pas débloquée : elle s'affiche par-dessus, on ne touche pas au splash
+  // Si maintenance pas débloquée : elle s'affiche par-dessus, splash reste caché
 
   window.yamSplashOpen = function(){
     // Ne pas cacher le splash — il reste visible en fond derrière le modal
