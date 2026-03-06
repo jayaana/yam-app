@@ -63,7 +63,7 @@ function savePlays(file){
 
 var allSongs = songsLove;
 var currentAudio = null, currentBtn = null, currentRow = null;
-var TOP_VISIBLE = 10, top50Expanded = false;
+var TOP_VISIBLE = 4, top50Expanded = false;
 
 function stopCurrent(){
   if(currentAudio){currentAudio.pause();if(currentBtn){currentBtn.innerHTML='&#9654;';currentBtn.classList.remove('active');}if(currentRow)currentRow.classList.remove('playing');particleActive=false;hideDance();currentAudio=null;currentBtn=null;currentRow=null;}
@@ -793,7 +793,6 @@ function filterSongs(q){
   function renderSuggestions(){
     var list = document.getElementById('sgList');
     list.innerHTML = '<div class="sg-empty"><span class="spinner"></span></div>';
-    // ✅ FIX : table V2 + filtre couple_id
     var _rsg = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
     var _rsgId = _rsg && _rsg.user ? _rsg.user.couple_id : null;
     if(!_rsgId){ list.innerHTML = '<div class="sg-empty">Session expirée.</div>'; return; }
@@ -806,14 +805,22 @@ function filterSongs(q){
         list.appendChild(em);
         return;
       }
-      items.forEach(function(item, index){
+      items.forEach(function(item){
+        var g = item.gender || '';
         var row = document.createElement('div');
         row.className = 'sg-song';
+        var noteHtml = item.note ? '<div class="sg-note-pill">«\u00a0' + escSg(item.note) + '\u00a0»</div>' : '';
+        var avatarEmoji = g === 'girl' ? '👧' : g === 'boy' ? '👦' : '🎵';
+        var avatarClass = 'sg-avatar' + (g ? ' ' + g : '');
+        var iconClass = 'sg-icon' + (g ? ' ' + g : '');
         row.innerHTML =
-          '<div class="sg-num">' + (index + 1) + '</div>' +
-          '<div class="sg-dot' + (item.gender === 'girl' ? ' sg-dot-girl' : item.gender === 'boy' ? ' sg-dot-boy' : '') + '"></div>' +
-          '<div class="sg-info"><div class="sg-title">' + escSg(item.title) + '</div><div class="sg-artist">' + escSg(item.artist) + '</div></div>' +
-          (item.note ? '<div class="sg-note">' + escSg(item.note) + '</div>' : '<div style="width:110px;flex-shrink:0"></div>') +
+          '<div class="' + iconClass + '">🎵</div>' +
+          '<div class="sg-info">' +
+            '<div class="sg-title">' + escSg(item.title) + '</div>' +
+            '<div class="sg-artist">' + escSg(item.artist) + '</div>' +
+            noteHtml +
+          '</div>' +
+          '<div class="' + avatarClass + '">' + avatarEmoji + '</div>' +
           (sgUnlocked ? '<button class="sg-edit" title="Modifier">✏️</button>' : '') +
           (sgUnlocked ? '<button class="sg-del" title="Supprimer">✕</button>' : '');
         if(sgUnlocked){
