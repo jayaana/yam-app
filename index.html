@@ -5197,7 +5197,13 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   function _loadLocal(uid){
     try{
       var o=JSON.parse(localStorage.getItem(_lkey(uid))||'null');
-      if(o&&o.date===_today()&&Array.isArray(o.phrases)&&o.phrases.length===15) return o.phrases;
+      if(o&&o.date===_today()&&Array.isArray(o.phrases)&&o.phrases.length===15){
+        // Rejeter si plus de 5 phrases vides (génération ratée)
+        var empty=o.phrases.filter(function(p){return !p||p.length<4;}).length;
+        if(empty<=5) return o.phrases;
+        // Trop de vides : supprimer le cache corrompu
+        localStorage.removeItem(_lkey(uid));
+      }
     }catch(e){}
     return null;
   }
@@ -5209,7 +5215,14 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
     .then(function(r){return r.ok?r.json():[];})
     .then(function(rows){
       if(rows&&rows[0]&&rows[0].description){
-        try{var p=JSON.parse(rows[0].description);if(Array.isArray(p)&&p.length===15){cb(p);return;}}catch(e){}
+        try{
+          var p=JSON.parse(rows[0].description);
+          if(Array.isArray(p)&&p.length===15){
+            // Rejeter si trop de phrases vides
+            var empty=p.filter(function(t){return !t||t.length<4;}).length;
+            if(empty<=5){cb(p);return;}
+          }
+        }catch(e){}
       }
       cb(null);
     }).catch(function(){cb(null);});
@@ -5233,11 +5246,21 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
     if(!_phrases.length||idx<0||idx>=_phrases.length) return;
     var el=document.getElementById('homeMsgInner');
     if(!el) return;
-    if(_lastIdx===idx){ return; } // déjà affiché
+    // Trouver la phrase la plus proche non vide si celle du slot est vide
+    var text=_phrases[idx];
+    if(!text||text.length<4){
+      for(var d=1;d<15;d++){
+        var a=_phrases[(idx+d)%15], b=_phrases[(idx-d+15)%15];
+        if(a&&a.length>=4){text=a;break;}
+        if(b&&b.length>=4){text=b;break;}
+      }
+    }
+    if(!text||text.length<4) return; // toutes vides, rien à afficher
+    if(_lastIdx===idx&&el.textContent===text){ return; }
     _lastIdx=idx;
     el.style.opacity='0';
     setTimeout(function(){
-      el.textContent=_phrases[idx]||'';
+      el.textContent=text;
       el.style.transition='opacity 0.4s ease';
       el.style.opacity='1';
     },160);
