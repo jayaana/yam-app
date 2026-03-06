@@ -821,11 +821,14 @@ function filterSongs(q){
         return;
       }
       items.forEach(function(item){
-        var g = item.gender || '';
+        var g = item.gender || item.sender || '';
+        // Normaliser : si g n'est pas 'girl' ou 'boy', ignorer
+        if(g !== 'girl' && g !== 'boy') g = '';
         var row = document.createElement('div');
         row.className = 'sg-song';
         var noteHtml = item.note ? '<div class="sg-note-pill">«\u00a0' + escSg(item.note) + '\u00a0»</div>' : '';
-        var avatarSrc = (window.yamAvatarSrc && g) ? window.yamAvatarSrc(g) : (g ? 'assets/images/profil_' + g + '.png' : '');
+        // Toujours utiliser la photo profil (réelle ou défaut)
+        var avatarSrc = g ? ((window._yamRealAvatars && window._yamRealAvatars[g]) || 'assets/images/profil_' + g + '.png') : '';
         var avatarContent = avatarSrc ? '<img src="' + avatarSrc + '" alt="">' : '🎵';
         var avatarClass = 'sg-avatar' + (g ? ' ' + g : '');
         var iconClass = 'sg-icon' + (g ? ' ' + g : '');
@@ -865,6 +868,24 @@ function filterSongs(q){
 
   // ✅ FIX : exposer window.sgLoad pour yamSwitchTab
   window.sgLoad = function(){ renderSuggestions(); loadFavorites(); };
+
+  // ── Sync avatars suggestion quand la vraie photo se charge ──
+  (function(){
+    var _origSync = window._yamSyncAllAvatarsForRole;
+    function patchSync(){
+      if(typeof window._yamSyncAllAvatarsForRole !== 'function'){ setTimeout(patchSync, 300); return; }
+      if(window._sgAvatarSyncPatched) return;
+      window._sgAvatarSyncPatched = true;
+      var orig = window._yamSyncAllAvatarsForRole;
+      window._yamSyncAllAvatarsForRole = function(role, url){
+        orig.apply(this, arguments);
+        // Mettre à jour les avatars dans les cards suggestion déjà affichées
+        var avatars = document.querySelectorAll('#sgList .sg-avatar.' + role + ' img');
+        avatars.forEach(function(img){ img.src = url; });
+      };
+    }
+    setTimeout(patchSync, 200);
+  })();
 
   // ── Édition d'une suggestion ──
   var _sgEditId = null;
