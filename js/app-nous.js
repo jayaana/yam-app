@@ -1155,10 +1155,11 @@ function _startLockBadgePolling(){
       if(unread>0){
         lockBadge.textContent=unread>99?'99+':unread; lockBadge.classList.add('visible'); lockBtn.classList.add('has-unread');
         if(_prevUnreadCount>=0&&unread>_prevUnreadCount&&window._currentTab!=='messages'){
-          var last=rows[0]; var emoji=other==='girl'?'👧':'👦';
-          var name=(typeof v2GetDisplayName==='function'?v2GetDisplayName(other):(other==='girl'?'👧':'👦'));
+          var last=rows[0];
+          var avatarSrc=window.yamAvatarSrc?window.yamAvatarSrc(other):('assets/images/profil_'+other+'.png');
+          var name=(typeof v2GetDisplayName==='function'?v2GetDisplayName(other):(other==='girl'?'Elle':'Lui'));
           var txt=(last&&last.text)?last.text:'Nouveau message';
-          if(window.showMsgHeaderPill) window.showMsgHeaderPill(emoji,name,txt);
+          if(window.showMsgHeaderPill) window.showMsgHeaderPill(avatarSrc,name,txt,true);
         }
       } else { lockBadge.classList.remove('visible'); lockBtn.classList.remove('has-unread'); }
       _prevUnreadCount=unread;
