@@ -83,17 +83,18 @@
     var outgoing = dir ? _dmGetVisible() : null;
     _dmSlide(el, outgoing !== el ? outgoing : null, dir);
     var center = $('dmTopbarCenter');
-    if(center) center.innerHTML =
-      '<div style="display:flex;flex-direction:column;line-height:1.2;">' +
-      '<span style="font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--green);">You And Me</span>' +
-      "<span style=\"font-family:\'Playfair Display\',serif;font-size:17px;font-weight:700;color:var(--text);line-height:1.1;\">YAM</span>" +
-      '</div>';
+    if(center) center.innerHTML = '';
+    // Sync avatar in conversation header
+    var convAv = document.getElementById('dmConvAvatarEmoji');
+    if(convAv && window.yamAvatarSrc) { var p=getProfile(); if(p) convAv.src = window.yamAvatarSrc(p); }
     var backBtn = $('dmTopbarBack');
     if(backBtn){ backBtn.dataset.dest = 'close'; backBtn.style.visibility = 'hidden'; }
     var lbl = $('dmBackLabel'); if(lbl) lbl.textContent = 'Retour';
     var logo = $('dmHomeLogo'), conv = $('dmHomeConv');
     if(logo) logo.style.display = 'none';
     if(conv) conv.style.display = 'flex';
+    // Masquer la topbar en mode conv (le header est maintenant dans le contenu)
+    var topbar = $('dmTopbar'); if(topbar) topbar.style.display = 'none';
     loadHomePreview();
     updateProfilePill('conv');
   }
@@ -109,6 +110,8 @@
     if(name === 'chat'){
       // CHAT : hiddenPage descend à bottom:0 via body.dm-chat-active → clavier couvre la nav
       document.body.classList.add('dm-chat-active');
+      // Réafficher la topbar (masquée en mode conv)
+      var topbar2 = $('dmTopbar'); if(topbar2) topbar2.style.display = '';
       var el = $('dmChatScreen');
       _dmSlide(el, outgoing !== el ? outgoing : null, dir);
       // Masquer le bloc avatars de droite (doublon — avatars déjà dans le centre)
