@@ -3829,7 +3829,7 @@ body.skyjo-bg-paused #skyjoDiscardCard.sj-selectable {
 #msgHeaderPill {
   display: none;
   position: fixed;
-  top: calc(var(--safe-top) + 0px);
+  top: calc(var(--safe-top) + 10px);
   left: 50%;
   transform: translateX(-50%);
   z-index: 5501;
