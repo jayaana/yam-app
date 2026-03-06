@@ -3997,8 +3997,8 @@ function v2ApplyDynamicNames(){
     } else {
       document.body.classList.remove('nous-active');
       // Si on quitte Nous et que le modal est ouvert, le fermer
-      var modal = document.getElementById('accountModal');
-      if (modal && modal.style.display === 'flex') {
+      var modal = document.getElementById('settingsView');
+      if (modal && modal.classList.contains('active')) {
         if (typeof window.closeAccountModal === 'function') window.closeAccountModal();
       }
     }
@@ -4106,9 +4106,9 @@ function v2ApplyDynamicNames(){
 
 /* ── Toggle AccountModal (ouvre ou ferme selon état) ── */
 window.yamToggleAccountModal = function() {
-  var modal = document.getElementById('accountModal');
-  if (!modal) return;
-  if (modal.style.display === 'flex') {
+  var view = document.getElementById('settingsView');
+  if (!view) return;
+  if (view.classList.contains('active')) {
     if (typeof window.closeAccountModal === 'function') window.closeAccountModal();
   } else {
     if (typeof window.openAccountModal === 'function') window.openAccountModal();
