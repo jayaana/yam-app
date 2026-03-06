@@ -1392,14 +1392,15 @@
     if(av){
       var _img = av.querySelector('img');
       if(isImgSrc){
-        // emoji param est une URL d'avatar
+        // URL d'avatar — afficher l'img, supprimer tout span texte résiduel
         if(_img){ _img.src = emoji; _img.style.display='block'; }
+        var _spanOld = av.querySelector('span.mhp-em');
+        if(_spanOld) _spanOld.parentNode.removeChild(_spanOld);
         av.style.fontSize='';
       } else {
-        // emoji param est un emoji/texte
+        // Emoji/texte — cacher l'img, afficher un span
         if(_img) _img.style.display='none';
         av.style.fontSize='18px';
-        // Utiliser un span texte pour ne pas écraser l'img
         var _span = av.querySelector('span.mhp-em');
         if(!_span){ _span=document.createElement('span'); _span.className='mhp-em'; av.appendChild(_span); }
         _span.textContent = emoji || '💬';
