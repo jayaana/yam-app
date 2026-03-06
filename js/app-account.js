@@ -86,10 +86,10 @@ window.v2HideLogin = function(){
   var scrollY = parseInt(document.body.dataset.scrollY || '0', 10);
   document.body.style.top = '';
   window.scrollTo(0, scrollY);
-  // Réafficher le bouton splash si le splash est encore visible
+  // Cacher le splash complet après connexion réussie
   var sp = document.getElementById('yamSplashScreen');
-  var btn = document.getElementById('yamSplashBtn');
-  if(sp && sp.style.display !== 'none' && btn) btn.style.opacity = '1';
+  if(sp){ sp.style.display = 'none'; }
+  document.body.classList.remove('splash-active');
 };
 
 window.v2SwitchTab = function(tab){
