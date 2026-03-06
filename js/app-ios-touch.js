@@ -149,8 +149,8 @@
       var bar = container.querySelector('.dm-input-bar');
       if (bar) {
         bar.style.transition    = 'padding-bottom 0.25s ease';
-        // Ajuste pour ne pas remonter trop haut - garde un padding minimal
-        bar.style.paddingBottom = Math.max(8, kbH - 60) + 'px';
+        // Remonte la barre exactement de la hauteur du clavier (supprime l'espace vide)
+        bar.style.paddingBottom = kbH + 'px';
         var msgs = document.getElementById('dmMessages');
         if (msgs) {
           setTimeout(function () { msgs.scrollTop = msgs.scrollHeight; }, 80);
