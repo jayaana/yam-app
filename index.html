@@ -77,11 +77,6 @@ body, .bottom-nav, header, .yam-tab-panel, .section, .card, .tl-card, .counter-b
   position: fixed;
   inset: 0;
   z-index: 99999;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  padding-bottom: max(env(safe-area-inset-bottom, 0px) + 48px, 60px);
   background: #1a0a0a;
   overflow: hidden;
   opacity: 1;
@@ -106,8 +101,11 @@ body, .bottom-nav, header, .yam-tab-panel, .section, .card, .tl-card, .counter-b
   pointer-events: none;
 }
 #yamSplashBtn {
-  position: relative;
-  z-index: 2;
+  position: absolute;
+  bottom: max(env(safe-area-inset-bottom, 0px) + 48px, 56px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
   padding: 16px 56px;
   background: #fff;
   color: #1a0a0a;
@@ -118,12 +116,13 @@ body, .bottom-nav, header, .yam-tab-panel, .section, .card, .tl-card, .counter-b
   font-weight: 700;
   letter-spacing: 0.3px;
   cursor: pointer;
+  white-space: nowrap;
   box-shadow: 0 4px 24px rgba(0,0,0,0.35);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
 #yamSplashBtn:active {
-  transform: scale(0.96);
+  transform: translateX(-50%) scale(0.96);
   box-shadow: 0 2px 12px rgba(0,0,0,0.25);
 }
 </style>
