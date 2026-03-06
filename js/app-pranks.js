@@ -324,6 +324,14 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   /* ── Déclenchement bêtise ── */
   function triggerPrank(p){
     if(!p) return;
+    // Bloquer scroll et interactions du fond pendant la bêtise
+    var scrollY = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top = '-' + scrollY + 'px';
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.overflow = 'hidden';
+    document.body.dataset.prankScrollY = scrollY;
     switch(p.type){
       case 'shake':    startShake(p); break;
       case 'curtain':  startCurtain(p); break;
@@ -339,6 +347,17 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
       case 'eyes':     startEyes(p); break;
       case 'notif':    startNotif(p); break;
     }
+  }
+
+  function _prankUnlockScroll(){
+    var scrollY = parseInt(document.body.dataset.prankScrollY || '0');
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    document.body.style.overflow = '';
+    document.body.dataset.prankScrollY = '';
+    window.scrollTo(0, scrollY);
   }
 
   /* ════ BÊTISE 7 : BROUILLARD ════ */
@@ -858,6 +877,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     document.body.style.position = '';
     document.body.style.width = '';
     document.body.style.top = '';
+    _prankUnlockScroll();
 
     if(_intrusTimer){ clearInterval(_intrusTimer); _intrusTimer = null; }
     if(_targetMoveTimer){ clearInterval(_targetMoveTimer); _targetMoveTimer = null; }
@@ -884,6 +904,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     }).catch(function(){});
     showGotcha(_activePrank);
     _activePrank = null;
+    _prankUnlockScroll();
     // Déclencher la suivante en attente après le gotcha
     setTimeout(function(){ dequeueNextPrank(); }, 2000);
   }
@@ -896,6 +917,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   }
   window.closeGotcha = function(){
     document.getElementById('prankGotcha').classList.remove('show');
+    _prankUnlockScroll();
   };
 
   /* ════ BÊTISE 1 : TREMBLEMENT ════ */
