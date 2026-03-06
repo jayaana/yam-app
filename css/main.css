@@ -2352,15 +2352,15 @@ body:has(#snakeView.active) #themeToggleHome { opacity: 0 !important; pointer-ev
   display: flex; align-items: flex-start; justify-content: space-between;
   gap: 12px;
   margin: calc(var(--safe-top) + 14px) 16px 10px;
-  background: var(--s1);
+  background: var(--s2);
   border: 1px solid var(--border);
   border-radius: 18px;
-  padding: 18px 18px 16px;
+  padding: 18px 18px 28px;
   position: relative; overflow: hidden;
 }
 .mu-card-header::before {
   content: ''; position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 80% 20%, rgba(201,120,96,0.10) 0%, transparent 65%);
+  background: radial-gradient(ellipse at 80% 20%, rgba(201,120,96,0.13) 0%, transparent 65%);
   pointer-events: none;
 }
 .mu-card-text { flex: 1; min-width: 0; }
@@ -2374,7 +2374,7 @@ body:has(#snakeView.active) #themeToggleHome { opacity: 0 !important; pointer-ev
 .mu-play-btn:active { transform: scale(0.93); }
 .mu-play-btn.playing { animation: playAllPulse 2.5s ease-in-out infinite; }
 @keyframes playAllPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
-.mu-mode-btn { width: 34px; height: 34px; border-radius: 50%; background: var(--s2); border: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--muted); transition: color 0.15s, background 0.15s; }
+.mu-mode-btn { width: 34px; height: 34px; border-radius: 50%; background: var(--s3); border: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--muted); transition: color 0.15s, background 0.15s; }
 .mu-mode-btn svg { width: 16px; height: 16px; }
 .mu-mode-btn.active { color: var(--green); border-color: rgba(201,120,96,0.4); }
 
@@ -2387,7 +2387,8 @@ body:has(#snakeView.active) #themeToggleHome { opacity: 0 !important; pointer-ev
 .top50-expand:hover { background: var(--s2); }
 .top50-expand-icon { font-size: 12px; transition: transform 0.3s; }
 .top50-expand.open .top50-expand-icon { transform: rotate(180deg); }
-body.light .mu-card-header, body.light .mu-card-tracks { background: rgba(201,120,96,0.04); border-color: rgba(201,120,96,0.15); }
+body.light .mu-card-header { background: var(--s2); border-color: rgba(201,120,96,0.18); }
+body.light .mu-card-tracks { background: #ffffff; border-color: rgba(201,120,96,0.15); }
 body.light .mu-play-btn { box-shadow: 0 4px 18px rgba(201,120,96,0.35); }
 
 /* ══ SUGGESTIONS — ticker vertical 2 lignes ══ */
@@ -2395,17 +2396,18 @@ body.light .mu-play-btn { box-shadow: 0 4px 18px rgba(201,120,96,0.35); }
 .mu-sugg-header { display: flex; align-items: center; justify-content: space-between; padding: 0 16px 10px; }
 .mu-sugg-title { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 2.5px; display: flex; align-items: center; gap: 8px; flex: 1; }
 .mu-sugg-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-.mu-sugg-add-btn { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: var(--green); background: rgba(201,120,96,0.10); border: 1px solid rgba(201,120,96,0.25); border-radius: 20px; padding: 6px 12px; cursor: pointer; transition: background 0.15s; -webkit-tap-highlight-color: transparent; }
+.mu-sugg-add-btn { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: var(--green); background: rgba(201,120,96,0.10); border: 1px solid rgba(201,120,96,0.25); border-radius: 20px; padding: 6px 12px; cursor: pointer; transition: background 0.15s; -webkit-tap-highlight-color: transparent; flex-shrink: 0; margin-left: 12px; }
 .mu-sugg-add-btn:active { background: rgba(201,120,96,0.18); }
-.mu-sugg-bubble { margin: 0 16px; background: var(--s1); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
-.mu-sugg-ticker-wrap { height: calc(2 * 66px); overflow: hidden; position: relative; }
-.mu-sugg-ticker { display: flex; flex-direction: column; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+/* Grosse card suggestion supprimée — chaque sg-song est indépendante */
+.mu-sugg-bubble { margin: 0 16px; background: transparent; border: none; border-radius: 0; overflow: visible; display: flex; flex-direction: column; gap: 8px; }
+.mu-sugg-ticker-wrap { height: 148px; overflow: hidden; position: relative; }
+.mu-sugg-ticker { display: flex; flex-direction: column; gap: 8px; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
 
-/* ── Ligne suggestion ── */
-.sg-song { display: flex; align-items: center; gap: 10px; padding: 10px 12px; min-height: 66px; border-bottom: 1px solid var(--border); transition: background 0.12s; flex-shrink: 0; }
-.sg-song:last-child { border-bottom: none; }
-.sg-song:hover { background: rgba(255,255,255,0.05); }
-body.light .sg-song:hover { background: rgba(201,120,96,0.04); }
+/* ── Ligne suggestion (card indépendante) ── */
+.sg-song { display: flex; align-items: center; gap: 10px; padding: 10px 14px; min-height: 62px; border: 1px solid var(--border); border-radius: 14px; background: var(--s1); transition: background 0.12s; flex-shrink: 0; }
+.sg-song:hover { background: var(--s2); }
+body.light .sg-song { background: #ffffff; border-color: rgba(201,120,96,0.15); }
+body.light .sg-song:hover { background: var(--s2); }
 .sg-icon { width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 15px; background: linear-gradient(135deg, rgba(201,120,96,0.22), rgba(201,120,96,0.08)); }
 .sg-icon.boy  { background: linear-gradient(135deg, rgba(91,156,246,0.22), rgba(91,156,246,0.08)); }
 .sg-icon.girl { background: linear-gradient(135deg, rgba(231,90,124,0.22), rgba(231,90,124,0.08)); }
