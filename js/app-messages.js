@@ -82,9 +82,14 @@
     var el = $('dmHomeScreen');
     var outgoing = dir ? _dmGetVisible() : null;
     _dmSlide(el, outgoing !== el ? outgoing : null, dir);
-    var center = $('dmTopbarCenter');
-    if(center) center.innerHTML = '';
-    // Sync avatar in conversation header
+    // Mode conv : logo dans le centre, avatar profil visible, avatars présence masqués
+    var logo2 = document.getElementById('dmTopbarLogo');
+    if(logo2) logo2.style.display = 'block';
+    var dmHA = document.getElementById('dmHeaderAvatars');
+    if(dmHA) dmHA.style.display = 'none';
+    var convBtn = document.getElementById('dmConvProfileBtn');
+    if(convBtn) convBtn.style.display = 'flex';
+    // Sync avatar profil
     var convAv = document.getElementById('dmConvAvatarEmoji');
     if(convAv && window.yamAvatarSrc) { var p=getProfile(); if(p) convAv.src = window.yamAvatarSrc(p); }
     var backBtn = $('dmTopbarBack');
@@ -93,8 +98,6 @@
     var logo = $('dmHomeLogo'), conv = $('dmHomeConv');
     if(logo) logo.style.display = 'none';
     if(conv) conv.style.display = 'flex';
-    // Masquer la topbar en mode conv (le header est maintenant dans le contenu)
-    var topbar = $('dmTopbar'); if(topbar) topbar.style.display = 'none';
     loadHomePreview();
     updateProfilePill('conv');
   }
@@ -110,13 +113,15 @@
     if(name === 'chat'){
       // CHAT : hiddenPage descend à bottom:0 via body.dm-chat-active → clavier couvre la nav
       document.body.classList.add('dm-chat-active');
-      // Réafficher la topbar (masquée en mode conv)
-      var topbar2 = $('dmTopbar'); if(topbar2) topbar2.style.display = '';
       var el = $('dmChatScreen');
       _dmSlide(el, outgoing !== el ? outgoing : null, dir);
-      // Masquer le bloc avatars de droite (doublon — avatars déjà dans le centre)
+      // Mode chat : masquer logo + profil conv, afficher avatars présence dans le centre
+      var logo3 = document.getElementById('dmTopbarLogo');
+      if(logo3) logo3.style.display = 'none';
+      var convBtn2 = document.getElementById('dmConvProfileBtn');
+      if(convBtn2) convBtn2.style.display = 'none';
       var dmHA = document.getElementById('dmHeaderAvatars');
-      if(dmHA) dmHA.style.display = 'none';
+      if(dmHA) dmHA.style.display = 'flex';
       if(center) center.innerHTML =
         '<div class="dm-topbar-avatars">' +
           '<div class="dm-avatar dm-avatar-girl" style="background:none;overflow:hidden;"><img src="' + (window.yamAvatarSrc ? window.yamAvatarSrc('girl') : 'assets/images/profil_girl.png') + '" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;"></div>' +
