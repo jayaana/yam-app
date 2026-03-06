@@ -2520,8 +2520,18 @@ body.nous-active #yamStickyAvatarSelf {
       <span id="dmBackLabel">Retour</span>
     </div>
     <!-- Centre : logo centré en conv / avatars+noms en chat -->
-    <div class="dm-topbar-center" id="dmTopbarCenter" style="flex:1;min-width:0;display:flex;justify-content:flex-start;align-items:center;">
+    <div class="dm-topbar-center" id="dmTopbarCenter" style="flex:1;min-width:0;display:flex;align-items:center;">
       <img src="assets/images/yam_new_logo.png" alt="YAM" id="dmTopbarLogo" style="height:44px;width:auto;display:block;">
+      <div id="dmChatCenterBlock" style="display:none;align-items:center;gap:8px;">
+        <div style="display:flex;gap:4px;">
+          <div style="width:32px;height:32px;border-radius:50%;overflow:hidden;"><img id="dmChatAvGirl" class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;"></div>
+          <div style="width:32px;height:32px;border-radius:50%;overflow:hidden;"><img id="dmChatAvBoy" class="yam-av-img" src="assets/images/profil_boy.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;line-height:1.2;">
+          <span style="font-size:14px;font-weight:700;color:var(--text);">Nous ❤️</span>
+          <span id="dmStatus" style="font-size:11px;color:var(--green);">• En ligne</span>
+        </div>
+      </div>
     </div>
     <!-- Droite : thème + avatar profil (conv) / avatars présence + thème (chat) -->
     <div id="dmTopbarRight" style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
@@ -2546,7 +2556,9 @@ body.nous-active #yamStickyAvatarSelf {
         <img id="dmConvAvatarEmoji" class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;">
       </div>
     </div>
-  </div>WRAPPER DE TRANSITION — clip pour animations slide -->
+  </div>
+
+  <!-- WRAPPER DE TRANSITION — clip pour animations slide -->
   <div id="dmTransitionWrap" style="flex:1;position:relative;overflow:hidden;width:100%;min-height:0;">
 
   <!-- ÉCRAN 1 : ACCUEIL -->
