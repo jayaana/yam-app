@@ -1960,6 +1960,9 @@ body.prank-active::before {
   inset: 0;
   z-index: 10090;
   pointer-events: all;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 /* Masquer header et nav pendant une bêtise */
 body.prank-active #yamStickyHeader,
