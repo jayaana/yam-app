@@ -5365,6 +5365,7 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   }
   function _save(){
     var cid=_cid(); if(!cid)return;
+    _lastHash=_hash(_data); // marquer nos propres changements comme "vus"
     if(_rowId){
       fetch(SB2_URL+'/rest/v1/v2_photo_descs?id=eq.'+_rowId,{
         method:'PATCH',
@@ -5557,6 +5558,14 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   }
 
   /* ── Init ── */
+  var _pollTimer = null;
+  var _lastHash  = '';   // pour détecter si les données ont changé
+
+  function _hash(arr){
+    // Hash léger : concatène id+done+text pour détecter les changements
+    return arr.map(function(r){return r.id+':'+(r.done?'1':'0')+':'+r.text;}).join('|');
+  }
+
   function _init(){
     var cid=_cid();
     if(!cid){
@@ -5569,11 +5578,58 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
     }
     _load(function(loaded){
       _data=loaded;
+      _lastHash=_hash(_data);
       // IA seulement si liste vide ET pas encore générée aujourd'hui
       if(_data.length===0 && _canGenToday()) _genAI();
       else _card();
     });
+    // Démarrer le polling pour synchro partenaire
+    _startPoll();
   }
+
+  /* ── Polling — recharge depuis Supabase toutes les 8s ── */
+  function _startPoll(){
+    if(_pollTimer) clearInterval(_pollTimer);
+    _pollTimer = setInterval(function(){
+      // Ne pas poll si page cachée (multitâche iOS)
+      if(document.hidden) return;
+      var cid=_cid(); if(!cid) return;
+      _load(function(fresh){
+        var h = _hash(fresh);
+        if(h !== _lastHash){
+          _data = fresh;
+          _lastHash = h;
+          // Recaler l'index si nécessaire
+          var act = _active();
+          if(_idx >= act.length) _idx = Math.max(0, act.length - 1);
+          _card();
+          // Si la sheet est ouverte, la rafraîchir aussi
+          var sheet = document.getElementById('rappelSheet');
+          if(sheet && sheet.classList.contains('open')) _sheet();
+        }
+      });
+    }, 8000);
+  }
+
+  // Pause/reprise polling quand la page devient visible/cachée
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden){
+      // Rafraîchir immédiatement au retour
+      var cid=_cid(); if(!cid) return;
+      _load(function(fresh){
+        var h = _hash(fresh);
+        if(h !== _lastHash){
+          _data = fresh;
+          _lastHash = h;
+          var act = _active();
+          if(_idx >= act.length) _idx = Math.max(0, act.length - 1);
+          _card();
+          var sheet = document.getElementById('rappelSheet');
+          if(sheet && sheet.classList.contains('open')) _sheet();
+        }
+      });
+    }
+  });
 
   document.addEventListener('DOMContentLoaded',_init);
   var _prev=window.setProfile;
