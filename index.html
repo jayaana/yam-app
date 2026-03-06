@@ -71,6 +71,62 @@ html { transition: background 0.4s ease; }
 body, .bottom-nav, header, .yam-tab-panel, .section, .card, .tl-card, .counter-block, .postit .p-body {
   transition: background 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
 }
+
+/* ══ SPLASH SCREEN ══ */
+#yamSplashScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: max(env(safe-area-inset-bottom, 0px) + 48px, 60px);
+  background: #1a0a0a;
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+#yamSplashScreen.hiding {
+  opacity: 0;
+  pointer-events: none;
+}
+#yamSplashBg {
+  position: absolute;
+  inset: 0;
+  background: url('assets/images/home-screen.jpg') center center / cover no-repeat;
+  transform: scale(1.04);
+}
+/* Dégradé bas pour que le bouton reste lisible */
+#yamSplashScreen::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 38%;
+  background: linear-gradient(to top, rgba(10,4,4,0.82) 0%, transparent 100%);
+  pointer-events: none;
+}
+#yamSplashBtn {
+  position: relative;
+  z-index: 2;
+  padding: 16px 56px;
+  background: #fff;
+  color: #1a0a0a;
+  border: none;
+  border-radius: 50px;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+#yamSplashBtn:active {
+  transform: scale(0.96);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+}
 </style>
 
 <script>
@@ -829,6 +885,14 @@ body.nous-active #yamStickyAvatarSelf {
 <!-- ═══════════════════════════════════════════════════════════
      ÉCRAN LOGIN V2
 ════════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════
+     SPLASH SCREEN — écran d'accueil
+════════════════════════════════════════════ -->
+<div id="yamSplashScreen">
+  <div id="yamSplashBg"></div>
+  <button id="yamSplashBtn" onclick="yamSplashOpen()">Connexion</button>
+</div>
+
 <div id="v2LoginOverlay">
 
   <!-- ══ Bouton thème — remplace le profil partenaire, top-right sur login ══ -->
@@ -3741,11 +3805,24 @@ function v2ApplyDynamicNames(){
     return false;
   }
   if(!checkV2Session()){
-    v2ShowLogin();
+    // Pas de session — montrer le splash screen, pas directement le login
+    // Le splash est déjà visible par défaut (z-index 99999)
+    // yamSplashOpen() masque le splash et ouvre le login
   } else {
-    // Session active : appliquer les noms après chargement des scripts
+    // Session active : masquer le splash immédiatement
+    var _sp = document.getElementById('yamSplashScreen');
+    if(_sp) _sp.style.display = 'none';
     window.addEventListener('load', function(){ setTimeout(v2ApplyDynamicNames, 200); });
   }
+
+  window.yamSplashOpen = function(){
+    var sp = document.getElementById('yamSplashScreen');
+    if(sp){
+      sp.classList.add('hiding');
+      setTimeout(function(){ sp.style.display = 'none'; }, 500);
+    }
+    v2ShowLogin();
+  };
 })();
 </script>
 
