@@ -450,6 +450,10 @@ body.light .counter-block {
 #yamMusiqueTab > div:not(#loveSection):not([id*="Overlay"]):not([id*="Modal"]):not([id*="Picker"]) {
   margin: 0 14px 14px;
 }
+/* suggestionSection gère son propre alignement via .mu-sugg-bubble margin:0 16px */
+#suggestionSection {
+  margin: 0 !important;
+}
 
 /* Onglet Jeux — sections */
 #yamJeuxTab > div:not([id*="Overlay"]):not([id*="Modal"]):not([id*="View"]) {
