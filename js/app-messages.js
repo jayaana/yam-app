@@ -95,7 +95,9 @@
     var _cav = document.getElementById('dmConvAvatarEmoji');
     if(_cav && window.yamAvatarSrc){ var _p=getProfile(); if(_p) _cav.src=window.yamAvatarSrc(_p); }
     var backBtn = $('dmTopbarBack');
-    if(backBtn){ backBtn.dataset.dest = 'close'; backBtn.style.visibility = 'hidden'; }
+    // Supprimer le bouton retour en conv
+    var _oldBack = document.getElementById('dmTopbarBack');
+    if(_oldBack) _oldBack.parentNode.removeChild(_oldBack);
     var lbl = $('dmBackLabel'); if(lbl) lbl.textContent = 'Retour';
     var logo = $('dmHomeLogo'), conv = $('dmHomeConv');
     if(logo) logo.style.display = 'none';
@@ -132,7 +134,23 @@
         var _ag = document.getElementById('dmChatAvGirl'); if(_ag) _ag.src = window.yamAvatarSrc('girl');
         var _ab = document.getElementById('dmChatAvBoy');  if(_ab) _ab.src = window.yamAvatarSrc('boy');
       }
-      if(backBtn){ backBtn.dataset.dest = 'home'; backBtn.style.visibility = 'visible'; }
+      // Injecter le bouton retour en chat
+    if(!document.getElementById('dmTopbarBack')){
+      var _topbar = document.getElementById('dmTopbar');
+      var _center = document.getElementById('dmTopbarCenter');
+      if(_topbar && _center){
+        var _btn = document.createElement('div');
+        _btn.className = 'gv-back'; _btn.id = 'dmTopbarBack';
+        _btn.onclick = dmHandleBack;
+        _btn.style.flexShrink = '0';
+        _btn.dataset.dest = 'home';
+        _btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg><span id="dmBackLabel">Retour</span>';
+        _topbar.insertBefore(_btn, _center);
+      }
+    } else {
+      var _b = document.getElementById('dmTopbarBack');
+      _b.dataset.dest = 'home'; _b.style.display = 'flex';
+    }
       var lbl2 = $('dmBackLabel'); if(lbl2) lbl2.textContent = 'Retour';
       var lockBadge = document.getElementById('lockUnreadBadge');
       var lockBtn   = document.getElementById('lockNavBtn');
