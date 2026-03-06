@@ -2514,18 +2514,18 @@ body.nous-active #yamStickyAvatarSelf {
 
   <!-- TOPBAR — style header du site -->
   <div class="dm-topbar" id="dmTopbar" style="height:auto;min-height:60px;padding:10px 14px;padding-top:calc(var(--safe-top) + 10px);display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--border);">
-    <!-- Bouton retour — caché en conv, visible en chat -->
+    <!-- Bouton retour — visibility:hidden en conv (garde la place), visible en chat -->
     <div class="gv-back" id="dmTopbarBack" onclick="dmHandleBack()" style="flex-shrink:0;visibility:hidden;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       <span id="dmBackLabel">Retour</span>
     </div>
-    <!-- Centre dynamique : logo en conv / avatars+noms en chat -->
-    <div class="dm-topbar-center" id="dmTopbarCenter" style="flex:1;min-width:0;overflow:hidden;">
+    <!-- Centre : logo centré en conv / avatars+noms en chat -->
+    <div class="dm-topbar-center" id="dmTopbarCenter" style="flex:1;min-width:0;display:flex;justify-content:flex-start;align-items:center;">
       <img src="assets/images/yam_new_logo.png" alt="YAM" id="dmTopbarLogo" style="height:44px;width:auto;display:block;">
     </div>
-    <!-- Droite -->
-    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-      <!-- Avatars présence — masqués en conv, affichés en chat -->
+    <!-- Droite : thème + avatar profil (conv) / avatars présence + thème (chat) -->
+    <div id="dmTopbarRight" style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+      <!-- Avatars présence — masqués en conv, flex en chat -->
       <div id="dmHeaderAvatars" style="display:none;align-items:center;gap:10px;flex-shrink:0;">
         <div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;">
           <div id="dmHeaderAvatarOther" style="width:30px;height:30px;border-radius:50%;background:var(--s2);border:2px solid var(--border);overflow:hidden;opacity:0.38;"><img class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;"></div>
@@ -2541,14 +2541,12 @@ body.nous-active #yamStickyAvatarSelf {
         <svg id="dmThemeIconMoon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
         <svg id="dmThemeIconSun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
       </button>
-      <!-- Avatar profil (cliquable) — visible en conv, masqué en chat -->
-      <div id="dmConvProfileBtn" onclick="toggleProfilePopup()" style="cursor:pointer;flex-shrink:0;width:34px;height:34px;border-radius:50%;overflow:hidden;border:1.5px solid var(--border);">
+      <!-- Avatar profil (conv uniquement) — ouvre openAccountModal -->
+      <div id="dmConvProfileBtn" onclick="if(window.openAccountModal)openAccountModal();else if(window.toggleProfilePopup)toggleProfilePopup();" style="cursor:pointer;flex-shrink:0;width:34px;height:34px;border-radius:50%;overflow:hidden;border:1.5px solid var(--border);">
         <img id="dmConvAvatarEmoji" class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;">
       </div>
     </div>
-  </div>
-
-  <!-- WRAPPER DE TRANSITION — clip pour animations slide -->
+  </div>WRAPPER DE TRANSITION — clip pour animations slide -->
   <div id="dmTransitionWrap" style="flex:1;position:relative;overflow:hidden;width:100%;min-height:0;">
 
   <!-- ÉCRAN 1 : ACCUEIL -->
