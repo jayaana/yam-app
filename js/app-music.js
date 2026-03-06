@@ -825,7 +825,8 @@ function filterSongs(q){
         var row = document.createElement('div');
         row.className = 'sg-song';
         var noteHtml = item.note ? '<div class="sg-note-pill">«\u00a0' + escSg(item.note) + '\u00a0»</div>' : '';
-        var avatarEmoji = g === 'girl' ? '👧' : g === 'boy' ? '👦' : '🎵';
+        var avatarSrc = (window.yamAvatarSrc && g) ? window.yamAvatarSrc(g) : (g === 'girl' ? 'assets/images/profil_girl.png' : g === 'boy' ? 'assets/images/profil_boy.png' : '');
+        var avatarContent = avatarSrc ? '<img src="' + avatarSrc + '" alt="">' : '🎵';
         var avatarClass = 'sg-avatar' + (g ? ' ' + g : '');
         var iconClass = 'sg-icon' + (g ? ' ' + g : '');
         row.innerHTML =
@@ -835,7 +836,7 @@ function filterSongs(q){
             '<div class="sg-artist">' + escSg(item.artist) + '</div>' +
             noteHtml +
           '</div>' +
-          '<div class="' + avatarClass + '">' + avatarEmoji + '</div>' +
+          '<div class="' + avatarClass + '">' + avatarContent + '</div>' +
           (sgUnlocked ? '<button class="sg-edit" title="Modifier">✏️</button>' : '') +
           (sgUnlocked ? '<button class="sg-del" title="Supprimer">✕</button>' : '');
         if(sgUnlocked){
