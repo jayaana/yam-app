@@ -118,6 +118,12 @@ function _v2AfterLogin(result, msgId){
   }
   window.v2HideLogin();
 
+  // Bloquer v2ShowLogin pendant 2s pour éviter que setProfile/app-core la rappelle
+  // pendant la phase d'init (timing entre saveSession et loadSession)
+  var _realV2ShowLogin = window.v2ShowLogin;
+  window.v2ShowLogin = function(){ /* bloqué pendant init */ };
+  setTimeout(function(){ window.v2ShowLogin = _realV2ShowLogin; }, 2000);
+
   // Init app immédiatement
   var u = v2GetUser();
   if(u){
@@ -127,13 +133,11 @@ function _v2AfterLogin(result, msgId){
   }
 
   // Bloquer les pointer-events brièvement pour éviter les ghost touches
-  // (le doigt qui relâche "Se connecter" peut déclencher un clic sur la nav)
   document.body.style.pointerEvents = 'none';
   window.scrollTo({ top: 0, behavior: 'instant' });
 
   setTimeout(function(){
     document.body.style.pointerEvents = '';
-    // Appel direct yamSwitchTab — plus fiable que .click()
     if(window.yamSwitchTab){
       window.yamSwitchTab('home');
     } else {
