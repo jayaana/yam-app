@@ -124,7 +124,7 @@ body.splash-active {
   cursor: pointer;
   white-space: nowrap;
   box-shadow: 0 4px 24px rgba(0,0,0,0.3);
-  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
 #yamSplashBtn:active {
@@ -899,30 +899,27 @@ body.nous-active #yamStickyAvatarSelf {
 
 <div id="v2LoginOverlay">
 
-  <!-- Fond flouté — clique pour fermer -->
-  <div class="v2-backdrop" onclick="v2HideLogin()"></div>
+  <!-- Fond semi-transparent — clique pour fermer (seulement si pas splash actif) -->
+  <div class="v2-backdrop" onclick="if(!document.body.classList.contains('splash-active')) v2HideLogin()"></div>
 
   <div id="v2LoginBox">
 
-    <!-- Ligne top : titre à gauche, thème + fermer à droite -->
+    <!-- Barre supérieure : logo + actions -->
     <div class="v2-topbar">
       <span class="v2-logo">♥ YAM</span>
       <div class="v2-topbar-actions">
         <button class="v2-icon-btn" onclick="applyThemeToggle()" title="Thème">
-          <svg id="v2LoginIconMoon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
-          <svg id="v2LoginIconSun"  width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        </button>
-        <button class="v2-icon-btn" onclick="v2HideLogin()" title="Fermer">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg id="v2LoginIconMoon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
+          <svg id="v2LoginIconSun"  width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
         </button>
       </div>
     </div>
 
-    <!-- Onglets pill — Connexion / Inscription uniquement -->
+    <!-- Onglets pill : Connexion / Inscription -->
     <div id="v2LoginTabs">
       <button class="v2-tab active" id="v2TabLogin"    onclick="v2SwitchTab('login')">Connexion</button>
       <button class="v2-tab"        id="v2TabRegister" onclick="v2SwitchTab('register')">Inscription</button>
-      <!-- v2TabJoin conservé masqué pour compatibilité JS -->
+      <!-- Rejoindre conservé masqué pour compatibilité JS -->
       <button class="v2-tab" id="v2TabJoin" onclick="v2SwitchTab('join')" style="display:none;">Rejoindre</button>
     </div>
 
@@ -1008,103 +1005,95 @@ body.nous-active #yamStickyAvatarSelf {
 /* ══════════════════════════════════════════════
    ÉCRAN DE CONNEXION — Design v2 (duo-theme)
 ══════════════════════════════════════════════ */
+/* ── Overlay login : transparent, laisse voir le fond derrière ── */
 #v2LoginOverlay {
   display: none;
-  position: fixed; inset: 0; z-index: 100000;
+  position: fixed; inset: 0; z-index: 99998;
   align-items: flex-end;
   justify-content: center;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 #v2LoginOverlay.active { display: flex; }
 
 /* Fond flouté cliquable */
 .v2-backdrop {
   position: absolute; inset: 0;
-  background: rgba(0,0,0,0.35);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   animation: v2FadeIn 0.22s ease;
 }
-@keyframes v2FadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes v2FadeIn { from { opacity:0; } to { opacity:1; } }
 
-/* Card modale — slide up depuis le bas */
+/* Carte bottom sheet */
 #v2LoginBox {
   position: relative; z-index: 1;
-  width: 100%;
-  max-width: 480px;
-  padding: 20px 20px 32px;
+  width: 100%; max-width: 480px;
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom, 0px));
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 24px 24px 0 0;
-  box-shadow: 0 -4px 40px rgba(0,0,0,0.15);
-  text-align: left;
-  animation: v2SlideUp 0.3s cubic-bezier(0.34,1.2,0.64,1);
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -6px 40px rgba(0,0,0,0.18);
+  animation: v2SlideUp 0.32s cubic-bezier(0.34,1.1,0.64,1);
 }
 @keyframes v2SlideUp {
-  from { transform: translateY(100%); opacity: 0.6; }
-  to   { transform: translateY(0);    opacity: 1; }
+  from { transform: translateY(110%); }
+  to   { transform: translateY(0); }
 }
 
-/* Barre de titre */
+/* Barre supérieure */
 .v2-topbar {
   display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 .v2-logo {
   font-family: 'Bricolage Grotesque', sans-serif;
-  font-size: 15px; font-weight: 800;
-  color: var(--green);
-  letter-spacing: 0.5px;
+  font-size: 14px; font-weight: 800;
+  color: var(--green); letter-spacing: 0.5px;
 }
 .v2-topbar-actions { display: flex; gap: 6px; }
 .v2-icon-btn {
-  width: 30px; height: 30px;
-  border-radius: 50%;
-  background: var(--s2);
-  border: 1px solid var(--border);
-  color: var(--sub);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--s2); border: 1px solid var(--border);
+  color: var(--sub); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; padding: 0;
   transition: background 0.15s, transform 0.12s;
-  padding: 0;
-  flex-shrink: 0;
 }
-.v2-icon-btn:active { transform: scale(0.9); }
+.v2-icon-btn:active { transform: scale(0.88); }
 
 /* Onglets pill */
 #v2LoginTabs {
-  display: flex; gap: 3px; margin-bottom: 18px;
-  background: var(--s2); border-radius: 12px; padding: 3px;
+  display: flex; gap: 3px; margin-bottom: 16px;
+  background: var(--s2); border-radius: 11px; padding: 3px;
 }
 .v2-tab {
-  flex: 1; padding: 8px 4px; font-size: 12px; font-weight: 600;
-  font-family: 'Bricolage Grotesque', sans-serif; background: transparent; border: none;
-  border-radius: 9px; color: var(--muted); cursor: pointer; transition: all 0.2s;
+  flex: 1; padding: 8px 4px;
+  font-size: 12px; font-weight: 600;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  background: transparent; border: none;
+  border-radius: 8px; color: var(--muted); cursor: pointer;
+  transition: all 0.2s;
 }
 .v2-tab.active {
-  background: var(--s1);
-  color: var(--text);
+  background: var(--s1); color: var(--text);
   box-shadow: var(--sh-sm);
 }
 
 /* Formulaires */
-.v2-form { display: flex; flex-direction: column; gap: 9px; }
+.v2-form { display: flex; flex-direction: column; gap: 8px; }
 
-/* Inputs avec icône SVG */
-.v2-input-wrap {
-  position: relative; display: flex; align-items: center;
-}
+/* Inputs */
+.v2-input-wrap { position: relative; display: flex; align-items: center; }
 .v2-input-ico {
-  position: absolute; left: 13px;
-  color: var(--muted);
-  pointer-events: none; z-index: 1; flex-shrink: 0;
+  position: absolute; left: 12px;
+  color: var(--muted); pointer-events: none; z-index: 1;
 }
 .v2-input {
   width: 100%; padding: 11px 13px 11px 36px;
   font-size: 14px; font-family: 'Bricolage Grotesque', sans-serif;
   background: var(--s2); border: 1px solid var(--border);
-  border-radius: 12px; color: var(--text); outline: none;
-  box-sizing: border-box; transition: border-color 0.2s, background 0.2s;
+  border-radius: 11px; color: var(--text); outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s, background 0.2s;
 }
 .v2-input::placeholder { color: var(--muted); }
 .v2-input:focus {
@@ -1113,41 +1102,42 @@ body.nous-active #yamStickyAvatarSelf {
   box-shadow: 0 0 0 3px rgba(201,120,96,0.1);
 }
 
-/* Bouton principal — couleur thème, pas de violet/rose flashy */
+/* Bouton principal — couleur thème uniquement */
 .v2-btn {
-  width: 100%; padding: 12px; margin-top: 3px;
-  background: var(--green);
-  color: #fff; font-weight: 700; font-size: 14px;
-  font-family: 'Bricolage Grotesque', sans-serif; border: none;
-  border-radius: 12px; cursor: pointer;
+  width: 100%; padding: 12px; margin-top: 2px;
+  background: var(--green); color: #fff;
+  font-weight: 700; font-size: 14px;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  border: none; border-radius: 11px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 14px rgba(201,120,96,0.3);
   transition: opacity 0.2s, transform 0.15s;
-  box-shadow: 0 3px 14px rgba(201,120,96,0.28);
 }
 .v2-btn:active { transform: scale(0.98); opacity: 0.88; }
 
-/* Boutons rôle Elle/Lui */
+/* Boutons Elle / Lui */
 #v2RoleSelect, #v2JoinRoleSelect { display: flex; gap: 8px; }
 .v2-role-btn {
-  flex: 1; padding: 10px 8px;
+  flex: 1; padding: 9px 8px;
   background: var(--s2); border: 1.5px solid var(--border);
-  border-radius: 12px; color: var(--sub); font-size: 13px; font-weight: 600;
-  font-family: 'Bricolage Grotesque', sans-serif; cursor: pointer; transition: all 0.2s;
+  border-radius: 11px; color: var(--sub);
+  font-size: 13px; font-weight: 600;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  cursor: pointer; transition: all 0.18s;
   display: flex; align-items: center; justify-content: center; gap: 6px;
 }
-.v2-role-emoji { font-size: 16px; }
+.v2-role-emoji { font-size: 15px; }
 .v2-role-btn.selected {
   border-color: var(--green);
   background: rgba(201,120,96,0.1);
   color: var(--text);
-  box-shadow: 0 2px 10px rgba(201,120,96,0.18);
 }
 
 /* Messages */
-.v2-error { font-size: 11px; color: #e05a5a; margin-top: 6px; min-height: 16px; }
-.v2-info  { font-size: 12px; color: var(--sage); margin-top: 6px; line-height: 1.5; }
+.v2-error { font-size: 11px; color: #d95f5f; margin-top: 4px; min-height: 16px; }
+.v2-info  { font-size: 12px; color: var(--sage); margin-top: 4px; line-height: 1.5; }
 
-/* Loader spinner */
+/* Loader */
 .v2-loader { display: flex; justify-content: center; margin-top: 10px; }
 .v2-spinner {
   width: 20px; height: 20px; border-radius: 50%;
@@ -3789,9 +3779,9 @@ function v2ApplyDynamicNames(){
   }
 
   window.yamSplashOpen = function(){
-    // Cacher uniquement le bouton — le fond splash reste visible derrière le modal
+    // Cacher le bouton mais garder le fond splash visible derrière le modal
     var btn = document.getElementById('yamSplashBtn');
-    if(btn) btn.style.opacity = '0';
+    if(btn){ btn.style.transition='opacity 0.18s'; btn.style.opacity='0'; btn.style.pointerEvents='none'; }
     v2ShowLogin();
   };
 })();
@@ -4611,55 +4601,63 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
 /* ── 2. Compteur + Events/Boutique ── */
 .home-counter-row {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: stretch;
+  gap: 8px;
   padding: 14px 16px 0;
 }
 .home-counter-block {
   flex: 1;
-  background: transparent;
-  border: none; padding: 0; box-shadow: none;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 9px 12px 8px;
+  box-shadow: var(--sh-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
 }
 .home-counter-label {
-  font-size: 9px; font-weight: 700;
-  color: #fff;
-  background: var(--green);
-  text-transform: none; letter-spacing: 0.4px;
-  margin-bottom: 8px;
-  padding: 3px 9px;
-  border-radius: 20px;
-  display: inline-block;
-  opacity: 1;
+  font-size: 8.5px; font-weight: 700;
+  color: var(--green);
+  text-transform: none; letter-spacing: 0.3px;
+  margin-bottom: 6px;
+  display: block;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .home-counter-nums {
-  display: flex; align-items: baseline; gap: 3px;
+  display: flex; align-items: baseline; gap: 2px;
 }
 .home-c-unit {
   display: flex; flex-direction: column; align-items: center;
-  min-width: 28px;
+  min-width: 22px;
 }
 .home-c-num {
-  font-size: 22px; font-weight: 700;
+  font-size: 17px; font-weight: 700;
   color: var(--text);
   font-variant-numeric: tabular-nums; line-height: 1;
   letter-spacing: -0.5px;
   opacity: 0.88;
 }
 .home-c-lbl {
-  font-size: 7.5px; color: var(--muted);
+  font-size: 7px; color: var(--muted);
   text-transform: uppercase; letter-spacing: 0.8px;
-  margin-top: 4px; font-weight: 600;
+  margin-top: 3px; font-weight: 600;
 }
 .home-c-sep {
-  font-size: 16px; font-weight: 400;
-  color: var(--green); opacity: 0.25;
+  font-size: 13px; font-weight: 400;
+  color: var(--green); opacity: 0.3;
   line-height: 1; align-self: flex-start;
-  margin: 0 1px 14px;
+  margin: 0 1px 10px;
   flex-shrink: 0;
 }
 .home-feature-btns {
   display: flex; flex-direction: row; gap: 6px;
   flex-shrink: 0;
+  align-items: stretch;
 }
 .home-feat-btn {
   width: 62px;
@@ -4668,6 +4666,7 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
   border-radius: 13px;
   padding: 8px 4px 7px;
   display: flex; flex-direction: column;
+  justify-content: center;
   align-items: center; gap: 4px;
   cursor: default;
   box-shadow: var(--sh-sm);
