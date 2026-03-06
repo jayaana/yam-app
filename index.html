@@ -2394,11 +2394,11 @@ body.nous-active #yamStickyAvatarSelf {
 <!-- ═══════════════════════════════════════════
      YAM — ONGLET JEUX
 ═══════════════════════════════════════════ -->
-<div id="yamJeuxTab" class="yam-tab-panel" style="flex-direction:column;height:calc(100dvh - var(--nav-height) - env(safe-area-inset-top,0px) - 56px);overflow:hidden;">
+<div id="yamJeuxTab" class="yam-tab-panel" style="flex-direction:column;height:calc(100dvh - var(--nav-height) - env(safe-area-inset-top,0px));overflow:hidden;">
 
 <style>
 /* ── Onglet Jeux — layout compact sans scroll ── */
-.jx-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px;}
+.jx-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px;padding-top:calc(var(--safe-top, 0px) + 10px);}
 .jx-cat-label{padding:16px 0 0;}
 .jx-cat-label:first-child{padding-top:10px;}
 .jx-cat-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
