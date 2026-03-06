@@ -497,58 +497,6 @@ var obs=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isInters
 window._tlObserve=function(){ document.querySelectorAll('.tl-item:not(.visible)').forEach(function(el){obs.observe(el);}); };
 window._tlObserve();
 
-// ── ROUE ──
-
-var activities=[
-  {label:"Regarder une série",icon:"📺"},{label:"Apprendre à cuisiner",icon:"🍳"},
-  {label:"Appel surprise",icon:"📞"},{label:"Film au hasard",icon:"🎬"},
-  {label:"Envoyer des vocaux",icon:"🎤"},{label:"Jouer en ligne",icon:"🎮"},
-  {label:"Écouter notre playlist",icon:"🎵"},{label:"Se raconter un souvenir",icon:"💭"},
-  {label:"Regarder les étoiles",icon:"🌙"},{label:"S'écrire une lettre",icon:"💌"}
-];
-var wheelCanvas=document.getElementById('wheelCanvas');
-var wCtx=wheelCanvas.getContext('2d');
-var SIZE=wheelCanvas.parentElement.offsetWidth||240;
-wheelCanvas.width=SIZE; wheelCanvas.height=SIZE;
-var R=SIZE/2,currentAngle=0,isSpinning=false;
-var sliceColors=['#1a2a1a','#1a1a2a','#2a1a1a','#1a2a2a','#2a2a1a','#1a1a1a','#242424','#1e2a1e','#2a1e1e','#1e1e2a'];
-function drawWheel(angle){
-  var n=activities.length,slice=(2*Math.PI)/n;
-  wCtx.clearRect(0,0,SIZE,SIZE);
-  for(var i=0;i<n;i++){
-    var start=angle+i*slice,end=start+slice;
-    wCtx.beginPath();wCtx.moveTo(R,R);wCtx.arc(R,R,R-2,start,end);wCtx.closePath();
-    wCtx.fillStyle=sliceColors[i%sliceColors.length];wCtx.fill();
-    wCtx.strokeStyle='rgba(255,255,255,0.08)';wCtx.lineWidth=1;wCtx.stroke();
-    wCtx.save();wCtx.translate(R,R);wCtx.rotate(start+slice/2);wCtx.textAlign='center';wCtx.textBaseline='middle';
-    wCtx.font=Math.round(R*0.18)+'px serif';
-    wCtx.fillText(activities[i].icon,R*0.58,0);wCtx.restore();
-  }
-  wCtx.beginPath();wCtx.arc(R,R,R-2,0,2*Math.PI);
-  wCtx.strokeStyle='rgba(0,201,167,0.3)';wCtx.lineWidth=2;wCtx.stroke();
-}
-drawWheel(currentAngle);
-document.getElementById('spinBtn').addEventListener('click',function(){
-  if(isSpinning)return;isSpinning=true;this.disabled=true;
-  var wr=document.getElementById('wheelResult');wr.className='';wr.innerHTML='<span class="result-label">En train de tourner...</span>';
-  var extraSpins=(5+Math.floor(Math.random()*5))*2*Math.PI;
-  var targetSlice=Math.floor(Math.random()*activities.length);
-  var sliceAngle=(2*Math.PI)/activities.length;
-  var targetAngle=extraSpins+(-(targetSlice+0.5)*sliceAngle);
-  var startAngle=currentAngle,duration=3500+Math.random()*1000,startTime=null;
-  var spinBtn=this;
-  function easeOut(t){return 1-Math.pow(1-t,4);}
-  function animate(ts){
-    if(!startTime)startTime=ts;
-    var elapsed=ts-startTime,progress=Math.min(elapsed/duration,1);
-    currentAngle=startAngle+(targetAngle-startAngle)*easeOut(progress);
-    drawWheel(currentAngle);
-    if(progress<1){requestAnimationFrame(animate);}
-    else{isSpinning=false;spinBtn.disabled=false;var act=activities[targetSlice];wr.className='wheelResult has-result';wr.innerHTML='<span class="result-icon">'+act.icon+'</span><span class="result-label">Ce soir c\'est décidé !</span><span class="result-text">'+escHtml(act.label)+'</span>';}
-  }
-  requestAnimationFrame(animate);
-});
-
 // ── LOCK ──
 var lockPopup=document.getElementById('lockPopup'),lockInput=document.getElementById('lockInput'),lockError=document.getElementById('lockError');
 
@@ -1185,7 +1133,7 @@ document.querySelectorAll('.album-image').forEach(function(el){
 /* ── 12. SWIPE HORIZONTAL sur la bottom nav (smooth scroll sections) ── */
 (function(){
   var SECTIONS = ['counterSection', 'motsDoux', 'elleSection', 'luiSection',
-                  'memoCoupleSection', 'suggestionSection', 'wheelSection', 'Love'];
+                  'memoCoupleSection', 'suggestionSection', 'Love'];
   var swipeStartX = 0, swipeStartY = 0, swipeLocked = false;
   var subviews = ['gamesView','memoryView','penduView','puzzleView','snakeView','skyjoView','quizView','hiddenPage'];
 
