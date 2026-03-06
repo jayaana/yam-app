@@ -2349,33 +2349,37 @@ body:has(#snakeView.active) #themeToggleHome { opacity: 0 !important; pointer-ev
 ════════════════════════════════════════════ */
 /* ══ MUSIQUE — CARD HEADER PLAYLIST ══ */
 .mu-card-header {
-  display: flex; align-items: flex-start; justify-content: space-between;
-  gap: 12px;
+  display: flex; flex-direction: column;
+  gap: 4px;
   margin: calc(var(--safe-top) + 14px) 16px 10px;
-  background: var(--s2);
+  background: var(--s3);
   border: 1px solid var(--border);
   border-radius: 18px;
-  padding: 18px 18px 28px;
+  padding: 14px 16px 12px;
   position: relative; overflow: hidden;
 }
+body.dark .mu-card-header { background: #2a2524; }
 .mu-card-header::before {
   content: ''; position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 80% 20%, rgba(201,120,96,0.13) 0%, transparent 65%);
+  background: radial-gradient(ellipse at 80% 20%, rgba(201,120,96,0.14) 0%, transparent 65%);
   pointer-events: none;
 }
-.mu-card-text { flex: 1; min-width: 0; }
-.mu-card-label { font-size: 9px; font-weight: 800; letter-spacing: 2.5px; color: var(--green); text-transform: uppercase; margin-bottom: 5px; }
-.mu-card-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px; font-weight: 800; color: var(--text); line-height: 1.1; margin-bottom: 5px; letter-spacing: -0.3px; }
-.mu-card-desc { font-size: 11px; color: var(--muted); line-height: 1.5; margin-bottom: 8px; }
+.mu-card-label { font-size: 9px; font-weight: 800; letter-spacing: 2.5px; color: var(--green); text-transform: uppercase; margin-bottom: 2px; }
+/* Ligne titre + boutons */
+.mu-card-top-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.mu-card-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 20px; font-weight: 800; color: var(--text); line-height: 1.1; letter-spacing: -0.3px; flex: 1; min-width: 0; }
+.mu-card-btns { display: flex; flex-direction: row; align-items: center; gap: 8px; flex-shrink: 0; }
+.mu-card-desc { font-size: 11px; color: var(--muted); line-height: 1.4; margin-top: 2px; }
+/* Ligne count + indicateur */
+.mu-card-bottom-row { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
 .mu-card-count { font-size: 11px; color: var(--muted); font-weight: 500; }
 .mu-card-count span { color: var(--sub); font-weight: 700; }
-.mu-card-btns { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; flex-shrink: 0; }
-.mu-play-btn { width: 46px; height: 46px; border-radius: 50%; background: var(--green); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #fff; box-shadow: 0 4px 16px rgba(201,120,96,0.35); transition: transform 0.12s; flex-shrink: 0; }
+.mu-play-btn { width: 38px; height: 38px; border-radius: 50%; background: var(--green); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #fff; box-shadow: 0 4px 16px rgba(201,120,96,0.35); transition: transform 0.12s; flex-shrink: 0; }
 .mu-play-btn:active { transform: scale(0.93); }
 .mu-play-btn.playing { animation: playAllPulse 2.5s ease-in-out infinite; }
 @keyframes playAllPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
-.mu-mode-btn { width: 34px; height: 34px; border-radius: 50%; background: var(--s3); border: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--muted); transition: color 0.15s, background 0.15s; }
-.mu-mode-btn svg { width: 16px; height: 16px; }
+.mu-mode-btn { width: 30px; height: 30px; border-radius: 50%; background: var(--s2); border: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--muted); transition: color 0.15s, background 0.15s; }
+.mu-mode-btn svg { width: 14px; height: 14px; }
 .mu-mode-btn.active { color: var(--green); border-color: rgba(201,120,96,0.4); }
 
 /* ══ CARD TITRES ══ */
@@ -2387,26 +2391,27 @@ body:has(#snakeView.active) #themeToggleHome { opacity: 0 !important; pointer-ev
 .top50-expand:hover { background: var(--s2); }
 .top50-expand-icon { font-size: 12px; transition: transform 0.3s; }
 .top50-expand.open .top50-expand-icon { transform: rotate(180deg); }
-body.light .mu-card-header { background: var(--s2); border-color: rgba(201,120,96,0.18); }
+body.light .mu-card-header { background: var(--s3); border-color: rgba(201,120,96,0.2); }
 body.light .mu-card-tracks { background: #ffffff; border-color: rgba(201,120,96,0.15); }
 body.light .mu-play-btn { box-shadow: 0 4px 18px rgba(201,120,96,0.35); }
 
-/* ══ SUGGESTIONS — ticker vertical 2 lignes ══ */
+/* ══ SUGGESTIONS — une seule card défilante ══ */
 .mu-sugg-wrap { padding: 8px 0 0; }
 .mu-sugg-header { display: flex; align-items: center; justify-content: space-between; padding: 0 16px 10px; }
 .mu-sugg-title { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 2.5px; display: flex; align-items: center; gap: 8px; flex: 1; }
 .mu-sugg-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 .mu-sugg-add-btn { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: var(--green); background: rgba(201,120,96,0.10); border: 1px solid rgba(201,120,96,0.25); border-radius: 20px; padding: 6px 12px; cursor: pointer; transition: background 0.15s; -webkit-tap-highlight-color: transparent; flex-shrink: 0; margin-left: 12px; }
 .mu-sugg-add-btn:active { background: rgba(201,120,96,0.18); }
-/* Grosse card suggestion supprimée — chaque sg-song est indépendante */
-.mu-sugg-bubble { margin: 0 16px; background: transparent; border: none; border-radius: 0; overflow: visible; display: flex; flex-direction: column; gap: 8px; }
-.mu-sugg-ticker-wrap { height: 148px; overflow: hidden; position: relative; }
-.mu-sugg-ticker { display: flex; flex-direction: column; gap: 8px; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+/* Une seule card visible qui défile */
+.mu-sugg-bubble { margin: 0 16px; background: var(--s1); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+body.light .mu-sugg-bubble { background: #ffffff; border-color: rgba(201,120,96,0.15); }
+.mu-sugg-ticker-wrap { height: 66px; overflow: hidden; position: relative; }
+.mu-sugg-ticker { display: flex; flex-direction: column; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
 
-/* ── Ligne suggestion (card indépendante) ── */
-.sg-song { display: flex; align-items: center; gap: 10px; padding: 10px 14px; min-height: 62px; border: 1px solid var(--border); border-radius: 14px; background: var(--s1); transition: background 0.12s; flex-shrink: 0; }
+/* ── Ligne suggestion ── */
+.sg-song { display: flex; align-items: center; gap: 10px; padding: 10px 14px; min-height: 66px; border-bottom: 1px solid var(--border); transition: background 0.12s; flex-shrink: 0; }
+.sg-song:last-child { border-bottom: none; }
 .sg-song:hover { background: var(--s2); }
-body.light .sg-song { background: #ffffff; border-color: rgba(201,120,96,0.15); }
 body.light .sg-song:hover { background: var(--s2); }
 .sg-icon { width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 15px; background: linear-gradient(135deg, rgba(201,120,96,0.22), rgba(201,120,96,0.08)); }
 .sg-icon.boy  { background: linear-gradient(135deg, rgba(91,156,246,0.22), rgba(91,156,246,0.08)); }
@@ -2497,8 +2502,8 @@ body.light .suggestion-lock-badge.unlocked { background: rgba(201,120,96,0.07); 
   animation: slideUp 0.22s ease;
 }
 .sg-modal-close {
-  position: absolute;
-  top: 14px; right: 14px;
+  position: absolute !important;
+  top: 14px !important; right: 14px !important; left: auto !important;
   font-size: 18px;
   color: var(--muted);
   cursor: pointer;
