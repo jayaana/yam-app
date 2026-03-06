@@ -844,11 +844,15 @@ body.nous-active #yamStickyAvatarSelf {
     el.classList.add('unlocking');
     setTimeout(function() {
       el.style.display = 'none';
-      // Après maintenance : montrer le splash si pas de session
-      if (!hasValidSession()) {
+      var valid = hasValidSession();
+      console.log('[YAM DEBUG] unlock() - hasValidSession=', valid);
+      if (!valid) {
         var sp = document.getElementById('yamSplashScreen');
         if(sp) sp.style.display = 'block';
         document.body.classList.add('splash-active');
+        console.log('[YAM DEBUG] unlock() - splash affiché');
+      } else {
+        console.log('[YAM DEBUG] unlock() - session valide, app directe');
       }
     }, 600);
   }
@@ -3783,21 +3787,23 @@ function v2ApplyDynamicNames(){
     return false;
   }
   var maintUnlocked = localStorage.getItem('yam_maint_unlocked') === '1';
+  console.log('[YAM DEBUG] init - maintUnlocked=', maintUnlocked, '/ checkV2Session=', checkV2Session());
   if(maintUnlocked){
     if(!checkV2Session()){
-      // Maintenance débloquée, pas de session — afficher le splash
+      console.log('[YAM DEBUG] init - pas de session, affichage splash');
       var _sp = document.getElementById('yamSplashScreen');
       if(_sp) _sp.style.display = 'block';
       document.body.classList.add('splash-active');
     } else {
-      // Session active : splash déjà caché par défaut, rien à faire
+      console.log('[YAM DEBUG] init - session valide, app directe');
       window.addEventListener('load', function(){ setTimeout(v2ApplyDynamicNames, 200); });
     }
+  } else {
+    console.log('[YAM DEBUG] init - maintenance pas débloquée');
   }
-  // Si maintenance pas débloquée : elle s'affiche par-dessus, splash reste caché
 
   window.yamSplashOpen = function(){
-    // Ne pas cacher le splash — il reste visible en fond derrière le modal
+    console.log('[YAM DEBUG] yamSplashOpen - ouverture modal login');
     v2ShowLogin();
   };
 })();
