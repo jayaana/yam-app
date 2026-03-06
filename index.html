@@ -3779,11 +3779,14 @@ function v2ApplyDynamicNames(){
   }
 
   window.yamSplashOpen = function(){
-    var sp  = document.getElementById('yamSplashScreen');
-    var btn = document.getElementById('yamSplashBtn');
-    // Cacher le bouton immédiatement
-    if(btn){ btn.style.transition='opacity 0.18s'; btn.style.opacity='0'; btn.style.pointerEvents='none'; }
-    // Laisser le fond visible puis ouvrir le login par-dessus
+    var sp = document.getElementById('yamSplashScreen');
+    if(sp){
+      sp.classList.add('hiding');
+      setTimeout(function(){
+        sp.style.display = 'none';
+        document.body.classList.remove('splash-active');
+      }, 500);
+    }
     v2ShowLogin();
   };
 })();
