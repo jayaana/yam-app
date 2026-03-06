@@ -790,9 +790,24 @@ function filterSongs(q){
     }
   });
 
+  var _sgTickerTimer = null;
+  var _sgTickerIdx   = 0;
+
+  function _startTicker(total){
+    if(_sgTickerTimer) clearInterval(_sgTickerTimer);
+    if(total <= 2) return;
+    _sgTickerIdx = 0;
+    _sgTickerTimer = setInterval(function(){
+      _sgTickerIdx = (_sgTickerIdx + 2) % (total % 2 === 0 ? total : total + 1);
+      var ticker = document.querySelector('.mu-sugg-ticker');
+      if(ticker) ticker.style.transform = 'translateY(-' + (_sgTickerIdx * 62) + 'px)';
+    }, 4000);
+  }
+
   function renderSuggestions(){
     var list = document.getElementById('sgList');
     list.innerHTML = '<div class="sg-empty"><span class="spinner"></span></div>';
+    if(_sgTickerTimer){ clearInterval(_sgTickerTimer); _sgTickerTimer = null; }
     var _rsg = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
     var _rsgId = _rsg && _rsg.user ? _rsg.user.couple_id : null;
     if(!_rsgId){ list.innerHTML = '<div class="sg-empty">Session expirée.</div>'; return; }
@@ -839,6 +854,7 @@ function filterSongs(q){
         }
         list.appendChild(row);
       });
+      _startTicker(items.length);
     }).catch(function(){
       list.innerHTML = '<div class="sg-empty">❌ Erreur de connexion.</div>';
     });
