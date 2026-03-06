@@ -71,8 +71,7 @@ var _v2Role = 'girl'; // rôle sélectionné dans le formulaire inscription/rejo
 
 window.v2ShowLogin = function(){
   var el = document.getElementById('v2LoginOverlay');
-  if(el) el.style.display = 'flex';
-  // Mémoriser et verrouiller la position de scroll (technique iOS)
+  if(el){ el.style.display = ''; el.classList.add('active'); }
   var scrollY = window.scrollY || window.pageYOffset || 0;
   document.body.dataset.scrollY = scrollY;
   document.body.style.top = '-' + scrollY + 'px';
@@ -80,7 +79,7 @@ window.v2ShowLogin = function(){
 };
 window.v2HideLogin = function(){
   var el = document.getElementById('v2LoginOverlay');
-  if(el) el.style.display = 'none';
+  if(el){ el.classList.remove('active'); el.style.display = ''; }
   document.body.classList.remove('v2-login-active');
   var scrollY = parseInt(document.body.dataset.scrollY || '0', 10);
   document.body.style.top = '';
@@ -213,15 +212,15 @@ window.v2DoJoin = function(){
   v2Join(pseudo, password, _v2Role, code).then(function(res){ _v2AfterLogin(res, msgId); });
 };
 
-// Au démarrage : si session active on cache tout, sinon c'est yamSplashOpen qui ouvrira le login
+// Au démarrage : si session active on s'assure que le login est fermé
+// Si pas de session : ne rien faire — c'est le splash + yamSplashOpen qui gèrent tout
 document.addEventListener('DOMContentLoaded', function(){
-  if(!v2GetUser()){
-    // Pas de session — le splash + bouton Connexion gèrent l'ouverture du login
-    window.v2HideLogin();
-    window.v2SelectRole('girl');
-  } else {
+  if(v2GetUser()){
     // Session active — cacher splash et login, laisser l'app s'afficher
     window.v2HideLogin();
+  } else {
+    // Pas de session — juste préparer le formulaire, ne pas toucher au splash
+    window.v2SelectRole('girl');
   }
 });
 
