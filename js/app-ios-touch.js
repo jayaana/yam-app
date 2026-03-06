@@ -107,7 +107,9 @@
 
   function _getKbHeight() {
     if (window.visualViewport) {
-      var kb = window.innerHeight - window.visualViewport.height;
+      // Formule précise : exclut le safe-area bottom (home bar iOS)
+      var vp = window.visualViewport;
+      var kb = window.innerHeight - vp.offsetTop - vp.height;
       return kb > 80 ? kb : 0;
     }
     var kb = window.innerHeight - document.documentElement.clientHeight;
@@ -149,8 +151,8 @@
       var bar = container.querySelector('.dm-input-bar');
       if (bar) {
         bar.style.transition    = 'padding-bottom 0.25s ease';
-        // Remonte la barre exactement de la hauteur du clavier (supprime l'espace vide)
-        bar.style.paddingBottom = kbH + 'px';
+        // Ajuste pour ne pas remonter trop haut - garde un padding minimal
+        bar.style.paddingBottom = Math.max(8, kbH - 60) + 'px';
         var msgs = document.getElementById('dmMessages');
         if (msgs) {
           setTimeout(function () { msgs.scrollTop = msgs.scrollHeight; }, 80);
