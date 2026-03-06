@@ -85,11 +85,51 @@ body, .bottom-nav, header, .yam-tab-panel, .section, .card, .tl-card, .counter-b
   pointer-events: none;
 }
 #yamSplashBg {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: url('assets/images/home-screen.jpg') center center / cover no-repeat;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  bottom: -50px;
+  background: url('assets/images/home-screen.jpg') center bottom / cover no-repeat;
   margin: 0;
   padding: 0;
+}
+/* Couleur safe zone bas = couleur du bas de l'image */
+#yamSplashScreen::after {
+  content: '';
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  height: 60px;
+  background: linear-gradient(to bottom, transparent 0%, #dcc9b0 100%);
+  z-index: 2;
+  pointer-events: none;
+}
+/* La safe zone iOS prend la couleur du body — on la force pendant le splash */
+body.splash-active {
+  background-color: #dcc9b0 !important;
+}
+#yamSplashBtn {
+  position: fixed;
+  bottom: max(env(safe-area-inset-bottom, 0px) + 32px, 48px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  padding: 16px 56px;
+  background: #fff;
+  color: #1a0a0a;
+  border: none;
+  border-radius: 50px;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+#yamSplashBtn:active {
+  transform: translateX(-50%) scale(0.96);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
 }
 </style>
 
@@ -854,6 +894,7 @@ body.nous-active #yamStickyAvatarSelf {
 ════════════════════════════════════════════ -->
 <div id="yamSplashScreen">
   <div id="yamSplashBg"></div>
+  <button id="yamSplashBtn" onclick="yamSplashOpen()">Connexion</button>
 </div>
 
 <div id="v2LoginOverlay">
@@ -3768,9 +3809,8 @@ function v2ApplyDynamicNames(){
     return false;
   }
   if(!checkV2Session()){
-    // Pas de session — montrer le splash screen, pas directement le login
-    // Le splash est déjà visible par défaut (z-index 99999)
-    // yamSplashOpen() masque le splash et ouvre le login
+    // Pas de session — montrer le splash
+    document.body.classList.add('splash-active');
   } else {
     // Session active : masquer le splash immédiatement
     var _sp = document.getElementById('yamSplashScreen');
@@ -3782,7 +3822,10 @@ function v2ApplyDynamicNames(){
     var sp = document.getElementById('yamSplashScreen');
     if(sp){
       sp.classList.add('hiding');
-      setTimeout(function(){ sp.style.display = 'none'; }, 500);
+      setTimeout(function(){
+        sp.style.display = 'none';
+        document.body.classList.remove('splash-active');
+      }, 500);
     }
     v2ShowLogin();
   };
