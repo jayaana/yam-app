@@ -76,7 +76,7 @@ body, .bottom-nav, header, .yam-tab-panel, .section, .card, .tl-card, .counter-b
 #yamSplashScreen {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  z-index: 99999;
+  z-index: 99990;
   margin: 0;
   padding: 0;
 }
@@ -1008,7 +1008,7 @@ body.nous-active #yamStickyAvatarSelf {
 /* ── Overlay login : transparent, laisse voir le fond derrière ── */
 #v2LoginOverlay {
   display: none;
-  position: fixed; inset: 0; z-index: 99998;
+  position: fixed; inset: 0; z-index: 99995;
   align-items: flex-end;
   justify-content: center;
 }
@@ -3779,9 +3779,11 @@ function v2ApplyDynamicNames(){
   }
 
   window.yamSplashOpen = function(){
-    // Cacher le bouton mais garder le fond splash visible derrière le modal
+    var sp  = document.getElementById('yamSplashScreen');
     var btn = document.getElementById('yamSplashBtn');
+    // Cacher le bouton immédiatement
     if(btn){ btn.style.transition='opacity 0.18s'; btn.style.opacity='0'; btn.style.pointerEvents='none'; }
+    // Laisser le fond visible puis ouvrir le login par-dessus
     v2ShowLogin();
   };
 })();
