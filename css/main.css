@@ -2364,14 +2364,14 @@ body.dark .mu-card-header { background: #2a2524; }
   background: radial-gradient(ellipse at 80% 20%, rgba(201,120,96,0.14) 0%, transparent 65%);
   pointer-events: none;
 }
-.mu-card-label { font-size: 9px; font-weight: 800; letter-spacing: 2.5px; color: var(--green); text-transform: uppercase; margin-bottom: 2px; }
+.mu-card-label { font-size: 9px; font-weight: 800; letter-spacing: 2.5px; color: var(--green); text-transform: uppercase; margin-bottom: 2px; padding: 0 2px; }
 /* Ligne titre + boutons */
-.mu-card-top-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.mu-card-top-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 2px; }
 .mu-card-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 20px; font-weight: 800; color: var(--text); line-height: 1.1; letter-spacing: -0.3px; flex: 1; min-width: 0; }
 .mu-card-btns { display: flex; flex-direction: row; align-items: center; gap: 8px; flex-shrink: 0; }
-.mu-card-desc { font-size: 11px; color: var(--muted); line-height: 1.4; margin-top: 2px; }
+.mu-card-desc { font-size: 11px; color: var(--muted); line-height: 1.4; margin-top: 2px; padding: 0 2px; }
 /* Ligne count + indicateur */
-.mu-card-bottom-row { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
+.mu-card-bottom-row { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; padding: 0 2px; }
 .mu-card-count { font-size: 11px; color: var(--muted); font-weight: 500; }
 .mu-card-count span { color: var(--sub); font-weight: 700; }
 .mu-play-btn { width: 38px; height: 38px; border-radius: 50%; background: var(--green); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #fff; box-shadow: 0 4px 16px rgba(201,120,96,0.35); transition: transform 0.12s; flex-shrink: 0; }
@@ -2396,7 +2396,7 @@ body.light .mu-card-tracks { background: #ffffff; border-color: rgba(201,120,96,
 body.light .mu-play-btn { box-shadow: 0 4px 18px rgba(201,120,96,0.35); }
 
 /* ══ SUGGESTIONS — une seule card défilante ══ */
-.mu-sugg-wrap { padding: 8px 0 0; }
+.mu-sugg-wrap { padding: 8px 0 6px; }
 .mu-sugg-header { display: flex; align-items: center; justify-content: space-between; padding: 0 16px 10px; }
 .mu-sugg-title { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 2.5px; display: flex; align-items: center; gap: 8px; flex: 1; }
 .mu-sugg-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
