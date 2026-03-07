@@ -971,14 +971,7 @@ function _startReasonAuto(){
     if(stackCtr) stackCtr.textContent=(_stackIndex+1)+' / '+n;
     var top=stackWrap.lastElementChild; if(top) _attachPostitEvents(top);
   }
-  window.buildStack = function(){
-    _buildPostitStack.apply(this, arguments);
-    var icon=document.getElementById('pmEmptyIcon'), txt=document.getElementById('pmEmptyText');
-    var stack=document.getElementById('postitStack');
-    var hasCards=stack&&stack.querySelector('.postit');
-    if(icon) icon.style.display=hasCards?'none':'';
-    if(txt)  txt.style.display=hasCards?'none':'';
-  };
+  window.buildStack = _buildPostitStack;
 
   function _dismissTop(dirX){
     var top=document.getElementById('postitStack').lastElementChild; if(!top||top._dismissing||top.className==='postit-empty') return;
@@ -1994,7 +1987,7 @@ loadLikeCounters();
 
     // 2 cartes max — tri : étoilées non-terminées en tête, terminées en bas
     var sorted=_sortForHome(_activiteAllRows);
-    var toShow=sorted.slice(0,1);
+    var toShow=sorted.slice(0,2);
     toShow.forEach(function(act){ container.appendChild(_buildActiviteCard(act)); });
 
     // Bouton créer
@@ -2627,61 +2620,173 @@ loadLikeCounters();
 // ════════════════════════════════════════════════════════════════════
 // 15. NOTRE HISTOIRE — éditable, stockée dans v2_histoire
 // Table : v2_histoire (id, couple_id, emoji, date_label, title, text, sort_order, created_at)
+// UI v8 : carte compacte + strip horizontal + bouton œil → modale lecture
 // ════════════════════════════════════════════════════════════════════
 (function(){
 
   function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
-  var _histoireAllRows = [];
+  var _histoireAllRows    = [];
   var _histoireFromGestion = false;
-  var _histoireEditingId = null;
+  var _histoireEditingId   = null;
 
-  // ── Rendu timeline principale ──
-  window.histoireRenderTimeline = function(items){
-    var container = document.getElementById('tlItemsContainer');
-    if(!container) return;
-    container.innerHTML = '';
-    if(!items || !items.length){
-      container.innerHTML = '<div class="tl-item visible"><div class="tl-dot"></div><div class="tl-date">En construction</div><div class="tl-card"><h3>Notre histoire commence... 🌟</h3><p>Clique sur le crayon pour ajouter vos premiers chapitres.</p></div></div>';
-      return;
-    }
-    // Tri par sort_order puis created_at
-    var sorted = items.slice().sort(function(a,b){
-      if((a.sort_order||0)!=(b.sort_order||0)) return (a.sort_order||0)-(b.sort_order||0);
+  // ── État du strip ──
+  var _histRows = [];   // chapitres triés, utilisés par le strip + la modale vue
+  var _histIdx  = 0;    // index du chapitre sélectionné
+
+  // ── Tri standard (sort_order puis created_at) ──
+  function _sortItems(arr){
+    return (Array.isArray(arr) ? arr : []).slice().sort(function(a,b){
+      if((a.sort_order||0) !== (b.sort_order||0)) return (a.sort_order||0) - (b.sort_order||0);
       return (a.created_at||'').localeCompare(b.created_at||'');
     });
-    sorted.forEach(function(item){
+  }
+
+  // ── Met à jour la zone principale (emoji, date, titre, extrait) ──
+  function _histUpdateMain(idx){
+    var item = _histRows[idx] || null;
+    var eEl = document.getElementById('histEmoji');
+    var dEl = document.getElementById('histDate');
+    var tEl = document.getElementById('histTitle');
+    var xEl = document.getElementById('histExcerpt');
+    if(!eEl) return;
+    if(!item){
+      eEl.textContent = '💫';
+      if(dEl) dEl.textContent = '';
+      if(tEl) tEl.textContent = 'Notre histoire commence…';
+      if(xEl) xEl.textContent = 'Clique sur ✏️ Éditer pour ajouter vos premiers chapitres.';
+      return;
+    }
+    eEl.textContent = item.emoji || '💫';
+    if(dEl) dEl.textContent = item.date_label || '';
+    if(tEl) tEl.textContent = item.title || '';
+    if(xEl){
+      var t = item.text || '';
+      xEl.textContent = t.length > 90 ? t.substring(0,90) + '…' : t;
+    }
+  }
+
+  // ── Reconstruit le strip horizontal ──
+  function _histUpdateStrip(){
+    var strip = document.getElementById('histStrip');
+    if(!strip) return;
+    strip.innerHTML = '';
+    if(!_histRows.length){
+      var def = document.createElement('div');
+      def.className = 'hist-strip-item active';
+      def.innerHTML = '<div class="hist-strip-num">Chap. 1</div><div class="hist-strip-title">À écrire…</div>';
+      strip.appendChild(def);
+      return;
+    }
+    _histRows.forEach(function(item, i){
       var el = document.createElement('div');
-      el.className = 'tl-item';
+      el.className = 'hist-strip-item' + (i === _histIdx ? ' active' : '');
       el.innerHTML =
-        '<div class="tl-dot"></div>'+
-        '<div class="tl-date">'+(item.emoji?escHtml(item.emoji)+' ':'')+escHtml(item.date_label||'')+'</div>'+
-        '<div class="tl-card"><h3>'+escHtml(item.title||'')+'</h3><p>'+escHtml(item.text||'')+'</p></div>';
-      container.appendChild(el);
+        '<div class="hist-strip-num">Chap.'+(i+1)+'</div>'+
+        '<div class="hist-strip-title">'+escHtml(item.title||'')+'</div>';
+      (function(ii){
+        el.addEventListener('click', function(){
+          _histIdx = ii;
+          _histUpdateMain(ii);
+          strip.querySelectorAll('.hist-strip-item').forEach(function(e, j){
+            e.classList.toggle('active', j === ii);
+          });
+        });
+      })(i);
+      strip.appendChild(el);
     });
-    if(typeof window._tlObserve === 'function') window._tlObserve();
+  }
+
+  // ── API externe : sélectionner un chapitre par index ──
+  window.histSelectItem = function(i){
+    _histIdx = i;
+    _histUpdateMain(i);
+    var s = document.getElementById('histStrip');
+    if(s) s.querySelectorAll('.hist-strip-item').forEach(function(e,j){ e.classList.toggle('active', j===i); });
+  };
+  window.histSelect = function(el, i){ window.histSelectItem(i); };
+
+  // ── Rendu complet après chaque chargement Supabase ──
+  window.histoireRenderTimeline = function(items){
+    // 1) Alimenter tlItemsContainer (caché, pour la modale gestion)
+    var container = document.getElementById('tlItemsContainer');
+    if(container){
+      container.innerHTML = '';
+      var sorted = _sortItems(items);
+      if(!sorted.length){
+        container.innerHTML = '<div class="tl-item visible"><div class="tl-dot"></div>'+
+          '<div class="tl-date">En construction</div>'+
+          '<div class="tl-card"><h3>Notre histoire commence... 🌟</h3>'+
+          '<p>Clique sur le crayon pour ajouter vos premiers chapitres.</p></div></div>';
+      } else {
+        sorted.forEach(function(item){
+          var el = document.createElement('div');
+          el.className = 'tl-item';
+          el.innerHTML =
+            '<div class="tl-dot"></div>'+
+            '<div class="tl-date">'+(item.emoji ? escHtml(item.emoji)+' ' : '')+escHtml(item.date_label||'')+'</div>'+
+            '<div class="tl-card"><h3>'+escHtml(item.title||'')+'</h3><p>'+escHtml(item.text||'')+'</p></div>';
+          container.appendChild(el);
+        });
+      }
+    }
+    // 2) Alimenter le strip + zone principale
+    _histRows = _sortItems(items);
+    _histIdx  = 0;
+    _histUpdateMain(0);
+    _histUpdateStrip();
   };
 
   // ── Chargement depuis Supabase ──
   window.histoireLoad = function(){
     var coupleId = _getCoupleId(); if(!coupleId) return;
-    fetch(SB2_URL+'/rest/v1/v2_histoire?couple_id=eq.'+coupleId+'&order=sort_order.asc,created_at.asc&select=*',{headers:sb2Headers()})
-    .then(function(r){ return r.ok?r.json():[]; })
+    fetch(SB2_URL+'/rest/v1/v2_histoire?couple_id=eq.'+coupleId+'&order=sort_order.asc,created_at.asc&select=*', {headers: sb2Headers()})
+    .then(function(r){ return r.ok ? r.json() : []; })
     .then(function(rows){
-      _histoireAllRows = Array.isArray(rows)?rows:[];
+      _histoireAllRows = Array.isArray(rows) ? rows : [];
       window.histoireRenderTimeline(_histoireAllRows);
       var overlay = document.getElementById('histoireGestionOverlay');
       if(overlay && overlay.classList.contains('open')) _histoireRenderGestionList();
     }).catch(function(){});
   };
 
-  // ── Overlay gestion ──
+  // ── Modale lecture : affiche le chapitre sélectionné en plein écran ──
+  window.histoireOpenView = function(){
+    var overlay = document.getElementById('histoireViewOverlay'); if(!overlay) return;
+    var item = _histRows[_histIdx] || null;
+    if(!item){
+      document.getElementById('histViewEmoji').textContent  = '💫';
+      document.getElementById('histViewDate').textContent   = '';
+      document.getElementById('histViewTitle').textContent  = 'Notre histoire commence…';
+      document.getElementById('histViewText').textContent   = 'Clique sur ✏️ Éditer pour ajouter vos premiers chapitres.';
+      document.getElementById('histViewChapNum').textContent = '';
+    } else {
+      document.getElementById('histViewEmoji').textContent  = item.emoji || '💫';
+      document.getElementById('histViewDate').textContent   = item.date_label || '';
+      document.getElementById('histViewTitle').textContent  = item.title || '';
+      document.getElementById('histViewText').textContent   = item.text || '';
+      document.getElementById('histViewChapNum').textContent = 'Chapitre '+(_histIdx+1)+' / '+_histRows.length;
+    }
+    overlay.classList.add('open');
+    _blockBackgroundScroll();
+  };
+
+  window.histoireCloseView = function(){
+    var overlay = document.getElementById('histoireViewOverlay');
+    if(overlay) overlay.classList.remove('open');
+    _unblockBackgroundScroll();
+  };
+
+  // ── Overlay gestion (liste de tous les chapitres) ──
   window.histoireOpenGestion = function(){
     if(!_histoireAllRows.length) window.histoireLoad();
     _saveScrollPosition();
     _blockBackgroundScroll();
     _histoireRenderGestionList();
     var overlay = document.getElementById('histoireGestionOverlay');
-    if(overlay){ overlay.classList.add('open'); setTimeout(function(){ var list=document.getElementById('histoireGestionList'); if(list)list.scrollTop=0; },50); }
+    if(overlay){
+      overlay.classList.add('open');
+      setTimeout(function(){ var l=document.getElementById('histoireGestionList'); if(l) l.scrollTop=0; }, 50);
+    }
   };
 
   window.histoireCloseGestion = function(){
@@ -2694,18 +2799,11 @@ loadLikeCounters();
   function _histoireRenderGestionList(){
     var list = document.getElementById('histoireGestionList'); if(!list) return;
     list.innerHTML = ''; list.scrollTop = 0;
-
     if(!_histoireAllRows.length){
       list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:32px 16px;">Aucun chapitre pour l\'instant.<br>Ajoutez votre premier souvenir !</div>';
       return;
     }
-
-    var sorted = _histoireAllRows.slice().sort(function(a,b){
-      if((a.sort_order||0)!=(b.sort_order||0)) return (a.sort_order||0)-(b.sort_order||0);
-      return (a.created_at||'').localeCompare(b.created_at||'');
-    });
-
-    sorted.forEach(function(item){
+    _sortItems(_histoireAllRows).forEach(function(item){
       var row = document.createElement('div');
       row.className = 'histoire-gestion-row';
       row.innerHTML =
@@ -2713,7 +2811,7 @@ loadLikeCounters();
         '<div class="histoire-gestion-info">'+
           '<div class="histoire-gestion-date">'+escHtml(item.date_label||'')+'</div>'+
           '<div class="histoire-gestion-title">'+escHtml(item.title||'')+'</div>'+
-          (item.text?'<div class="histoire-gestion-text">'+escHtml(item.text)+'</div>':'')+
+          (item.text ? '<div class="histoire-gestion-text">'+escHtml(item.text)+'</div>' : '')+
         '</div>';
       (function(it){
         row.addEventListener('click', function(){
@@ -2725,7 +2823,7 @@ loadLikeCounters();
     });
   }
 
-  // ── Modal item ──
+  // ── Modal item (création / édition) ──
   window.histoireOpenItemModal = function(item){
     var modal = document.getElementById('histoireItemModal'); if(!modal) return;
     if(!_histoireFromGestion){ _saveScrollPosition(); _blockBackgroundScroll(); }
@@ -2733,9 +2831,9 @@ loadLikeCounters();
     _histoireEditingId = isNew ? null : item.id;
     document.getElementById('histoireItemModalTitle').textContent = isNew ? 'Nouveau chapitre' : 'Modifier ce chapitre';
     document.getElementById('histoireItemEmoji').value = isNew ? '💘' : (item.emoji||'💘');
-    document.getElementById('histoireItemDate').value = isNew ? '' : (item.date_label||'');
+    document.getElementById('histoireItemDate').value  = isNew ? '' : (item.date_label||'');
     document.getElementById('histoireItemTitle').value = isNew ? '' : (item.title||'');
-    document.getElementById('histoireItemText').value = isNew ? '' : (item.text||'');
+    document.getElementById('histoireItemText').value  = isNew ? '' : (item.text||'');
     var delBtn = document.getElementById('histoireItemDeleteBtn');
     if(delBtn) delBtn.style.display = isNew ? 'none' : 'block';
     modal.classList.add('open');
@@ -2758,19 +2856,26 @@ loadLikeCounters();
 
   window.histoireSaveItem = function(){
     var coupleId = _getCoupleId(); if(!coupleId) return;
-    var emoji = document.getElementById('histoireItemEmoji').value.trim()||'💘';
+    var emoji     = document.getElementById('histoireItemEmoji').value.trim() || '💘';
     var dateLabel = document.getElementById('histoireItemDate').value.trim();
-    var title = document.getElementById('histoireItemTitle').value.trim();
-    var text = document.getElementById('histoireItemText').value.trim();
+    var title     = document.getElementById('histoireItemTitle').value.trim();
+    var text      = document.getElementById('histoireItemText').value.trim();
     if(!title){ alert('Le titre est obligatoire.'); return; }
     var data = { couple_id: coupleId, emoji: emoji, date_label: dateLabel, title: title, text: text };
-    var btn = document.getElementById('histoireItemSaveBtn');
+    var btn  = document.getElementById('histoireItemSaveBtn');
     if(btn){ btn.textContent='...'; btn.disabled=true; }
-    var done = function(){ if(btn){btn.textContent='Sauvegarder';btn.disabled=false;} window.histoireCloseItemModal(); window.histoireLoad(); };
+    var done = function(){
+      if(btn){ btn.textContent='Sauvegarder'; btn.disabled=false; }
+      window.histoireCloseItemModal();
+      window.histoireLoad();
+    };
     if(_histoireEditingId){
-      fetch(SB2_URL+'/rest/v1/v2_histoire?id=eq.'+_histoireEditingId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done).catch(done);
+      fetch(SB2_URL+'/rest/v1/v2_histoire?id=eq.'+_histoireEditingId,
+        {method:'PATCH', headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}), body:JSON.stringify(data)})
+      .then(done).catch(done);
     } else {
-      fetch(SB2_URL+'/rest/v1/v2_histoire',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
+      fetch(SB2_URL+'/rest/v1/v2_histoire',
+        {method:'POST', headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}), body:JSON.stringify(data)})
       .then(function(){
         if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('histoire_new');
         done();
@@ -2782,15 +2887,17 @@ loadLikeCounters();
     if(!_histoireEditingId) return;
     if(!confirm('Supprimer ce chapitre ?')) return;
     var coupleId = _getCoupleId();
-    fetch(SB2_URL+'/rest/v1/v2_histoire?id=eq.'+_histoireEditingId+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()})
-    .then(function(){ window.histoireCloseItemModal(); window.histoireLoad(); }).catch(function(){});
+    fetch(SB2_URL+'/rest/v1/v2_histoire?id=eq.'+_histoireEditingId+'&couple_id=eq.'+coupleId,
+      {method:'DELETE', headers:sb2Headers()})
+    .then(function(){ window.histoireCloseItemModal(); window.histoireLoad(); })
+    .catch(function(){});
   };
 
-  // Listener click-dehors modal item
+  // Clic fond = fermeture modale item
   var _hModal = document.getElementById('histoireItemModal');
-  if(_hModal) _hModal.addEventListener('click',function(e){ if(e.target===_hModal) window.histoireCloseItemModal(); });
+  if(_hModal) _hModal.addEventListener('click', function(e){ if(e.target===_hModal) window.histoireCloseItemModal(); });
 
-  // Init au chargement
+  // Init
   document.addEventListener('nousContentReady', function(){ window.histoireLoad(); });
   setTimeout(function(){ if(!_histoireAllRows.length) window.histoireLoad(); }, 2000);
 
@@ -4110,219 +4217,4 @@ window.nousLoad = function(){
 
 // ════════════════════════════════════════════════════════════════════
 // FIN DU MODULE FLAMME
-// ════════════════════════════════════════════════════════════════════
-
-
-
-
-
-
-// ═══════════════════════════════════════════════════════════════════
-// NOUVEAU UI v8 — Maquette v5
-// ═══════════════════════════════════════════════════════════════════
-
-// ── HISTOIRE — remplacement COMPLET de histoireRenderTimeline ──
-// On remplit à la fois tlItemsContainer (requis par la modale gestion)
-// ET notre strip horizontal n-strip-item (UI principale)
-window.histoireRenderTimeline = function(items){
-  // 1) Remplir tlItemsContainer pour la modale gestion (ne jamais rendre visible)
-  var container = document.getElementById('tlItemsContainer');
-  if(container){
-    container.innerHTML='';
-    if(!items || !items.length){
-      container.innerHTML='<div class="tl-item visible"><div class="tl-dot"></div><div class="tl-date">En construction</div><div class="tl-card"><h3>Notre histoire commence... 🌟</h3><p>Clique sur le crayon pour ajouter vos premiers chapitres.</p></div></div>';
-    } else {
-      var sorted=items.slice().sort(function(a,b){ return ((a.sort_order||0)-(b.sort_order||0))||(a.created_at||'').localeCompare(b.created_at||''); });
-      sorted.forEach(function(item){
-        var el=document.createElement('div'); el.className='tl-item visible';
-        el.innerHTML='<div class="tl-dot"></div><div class="tl-date">'+(item.emoji?escHtml(item.emoji)+' ':'')+escHtml(item.date_label||'')+'</div><div class="tl-card"><h3>'+escHtml(item.title||'')+'</h3><p>'+escHtml(item.text||'')+'</p></div>';
-        container.appendChild(el);
-      });
-    }
-  }
-
-  // 2) Notre UI strip + main
-  var rows=Array.isArray(items)?items.slice().sort(function(a,b){ return ((a.sort_order||0)-(b.sort_order||0))||(a.created_at||'').localeCompare(b.created_at||''); }):[];
-  _histIdx=0; _histRows=rows;
-  _histUpdateMain(0); _histUpdateStrip();
-};
-
-var _histRows=[], _histIdx=0;
-
-function _histUpdateMain(idx){
-  var item=_histRows[idx]||null;
-  var ej=document.getElementById('histEmoji'), dt=document.getElementById('histDate');
-  var ti=document.getElementById('histTitle'),  ex=document.getElementById('histExcerpt');
-  if(!ej) return;
-  if(!item){ ej.textContent='💫'; if(dt)dt.textContent=''; if(ti)ti.textContent='Notre histoire commence…'; if(ex)ex.textContent='Clique sur le crayon pour ajouter vos premiers chapitres.'; return; }
-  ej.textContent=item.emoji||'💫'; if(dt)dt.textContent=item.date_label||'';
-  if(ti)ti.textContent=item.title||'';
-  if(ex)ex.textContent=(item.text||'').substring(0,80)+((item.text||'').length>80?'…':'');
-}
-
-function _histUpdateStrip(){
-  var strip=document.getElementById('histStrip'); if(!strip) return;
-  strip.innerHTML='';
-  if(!_histRows.length){
-    var def=document.createElement('div'); def.className='n-strip-item active';
-    def.innerHTML='<div class="n-strip-num">Chap. 1</div><div class="n-strip-title">À écrire…</div>';
-    strip.appendChild(def); return;
-  }
-  _histRows.forEach(function(item,i){
-    var el=document.createElement('div'); el.className='n-strip-item'+(i===0?' active':'');
-    el.innerHTML='<div class="n-strip-num">Chap.'+(i+1)+'</div><div class="n-strip-title">'+escHtml(item.title||'')+'</div>';
-    (function(ii){ el.addEventListener('click',function(){
-      _histIdx=ii; _histUpdateMain(ii);
-      strip.querySelectorAll('.n-strip-item').forEach(function(e,j){ e.classList.toggle('active',j===ii); });
-    }); })(i);
-    strip.appendChild(el);
-  });
-}
-
-window.histSelectItem=function(i){ _histIdx=i; _histUpdateMain(i); var s=document.getElementById('histStrip'); if(s) s.querySelectorAll('.n-strip-item').forEach(function(e,j){ e.classList.toggle('active',j===i); }); };
-window.histSelect=function(el,i){ window.histSelectItem(i); };
-
-// ── OUVRE LA MODALE DE LECTURE DU CHAPITRE SÉLECTIONNÉ ──
-window.histoireOpenView=function(){
-  var item=_histRows[_histIdx]||null;
-  var overlay=document.getElementById('histoireViewOverlay');
-  if(!overlay) return;
-  if(!item){
-    // Pas de chapitre : invite à en créer un
-    document.getElementById('histViewEmoji').textContent='💫';
-    document.getElementById('histViewDate').textContent='';
-    document.getElementById('histViewTitle').textContent='Notre histoire commence…';
-    document.getElementById('histViewText').textContent='Clique sur le crayon ✏️ pour ajouter vos premiers chapitres.';
-    document.getElementById('histViewChapNum').textContent='';
-  } else {
-    document.getElementById('histViewEmoji').textContent=item.emoji||'💫';
-    document.getElementById('histViewDate').textContent=item.date_label||'';
-    document.getElementById('histViewTitle').textContent=item.title||'';
-    document.getElementById('histViewText').textContent=item.text||'';
-    document.getElementById('histViewChapNum').textContent='Chapitre '+(_histIdx+1)+' / '+_histRows.length;
-  }
-  overlay.style.display='flex';
-  _blockBackgroundScroll();
-};
-
-window.histoireCloseView=function(){
-  var overlay=document.getElementById('histoireViewOverlay');
-  if(overlay) overlay.style.display='none';
-  _unblockBackgroundScroll();
-};
-window._histoireAllRows=[];
-var _histOrigLoad=window.histoireLoad;
-window.histoireLoad=function(){ if(typeof _histOrigLoad==='function') _histOrigLoad(); };
-
-
-// ── ELLE & LUI EXPANDED ──
-(function(){
-  var SLOTS=['animal','fleurs','personnage','saison','repas'];
-  var EMOJIS={animal:'🐾',fleurs:'🌸',personnage:'🧑',saison:'🍂',repas:'🍽️'};
-  var _cur='elle';
-
-  window.openElleLuiExpanded=function(section){
-    _cur=section||'elle';
-    var g=document.getElementById('elleLuiGridNew'), e=document.getElementById('elleLuiExpandedNew');
-    if(g) g.style.display='none'; if(e) e.style.display='block';
-    _renderSlots(_cur); _tabs(_cur); _notice(_cur);
-  };
-  window.closeElleLuiExpanded=function(){
-    var g=document.getElementById('elleLuiGridNew'), e=document.getElementById('elleLuiExpandedNew');
-    if(g) g.style.display=''; if(e) e.style.display='none';
-  };
-  window.switchElleLuiTab=function(s){ _cur=s; _renderSlots(s); _tabs(s); _notice(s); var sc=document.getElementById('expandedScrollNew'); if(sc) sc.scrollLeft=0; _dots(0); };
-  window.updateElleLuiDots=function(){ var sc=document.getElementById('expandedScrollNew'); if(!sc) return; _dots(Math.round(sc.scrollLeft/(sc.offsetWidth||300))); };
-
-  function _tabs(s){ var te=document.getElementById('tabElleNew'),tl=document.getElementById('tabLuiNew'); if(te)te.classList.toggle('active',s==='elle'); if(tl)tl.classList.toggle('active',s==='lui'); }
-  function _notice(s){ var n=document.getElementById('expandedNoticeNew'); if(!n) return; var p=(typeof getProfile==='function')?getProfile():'girl'; var ok=(s==='elle'&&p==='boy')||(s==='lui'&&p==='girl'); n.textContent=ok?'Tu peux modifier les pochettes en appuyant sur "Éditer"':'Seul(e) ton partenaire peut modifier ces pochettes'; }
-  function _dots(i){ var dc=document.getElementById('expandedDotsNew'); if(!dc) return; dc.querySelectorAll('.n-expanded-dot').forEach(function(d,j){ d.classList.toggle('active',j===i); }); }
-  function _renderSlots(section){
-    var sc=document.getElementById('expandedScrollNew'); if(!sc) return; sc.innerHTML='';
-    var p=(typeof getProfile==='function')?getProfile():'girl';
-    var canEdit=(section==='elle'&&p==='boy')||(section==='lui'&&p==='girl');
-    SLOTS.forEach(function(slot){
-      var el=document.createElement('div'); el.className='n-expanded-slot';
-      var imgArea=document.createElement('div'); imgArea.className='n-expanded-slot-img';
-      var srcImg=document.getElementById(section+'-img-'+slot);
-      var hasPhoto=srcImg&&srcImg.classList.contains('loaded');
-      if(hasPhoto){ var img=document.createElement('img'); img.src=srcImg.src; imgArea.appendChild(img); }
-      else { imgArea.classList.add('empty'); imgArea.textContent=EMOJIS[slot]||'📷'; }
-      el.appendChild(imgArea);
-      var footer=document.createElement('div'); footer.className='n-expanded-slot-footer';
-      var info=document.createElement('div'); info.className='n-expanded-slot-info';
-      var nameDiv=document.createElement('div'); nameDiv.className='n-expanded-slot-name';
-      var bannerEl=document.getElementById(section+'-banner-'+slot);
-      nameDiv.textContent=(bannerEl&&bannerEl.textContent.trim())||(slot.charAt(0).toUpperCase()+slot.slice(1));
-      info.appendChild(nameDiv); footer.appendChild(info);
-      var btn=document.createElement('button'); btn.className='n-expanded-slot-edit'+(canEdit?'':' disabled');
-      btn.textContent=canEdit?'Éditer':'Lecture';
-      if(canEdit)(function(s,sl){ btn.addEventListener('click',function(){ window.slotOpenEdit(s,sl); }); })(section,slot);
-      footer.appendChild(btn); el.appendChild(footer); sc.appendChild(el);
-    }); _dots(0);
-  }
-})();
-
-
-// ── SOUVENIRS — intercepter _buildSouvenirCard via MutationObserver ──
-(function(){
-  function _toThumb(card){
-    var photoEl=card.querySelector('.souvenir-photo');
-    var nameEl=card.querySelector('.souvenir-name');
-    var dateEl=card.querySelector('.souvenir-date');
-    var photoUrl='';
-    if(photoEl){ var bg=photoEl.style.backgroundImage; var m=bg.match(/url\(["']?([^"')]+)/); if(m) photoUrl=m[1]; }
-    var title=nameEl?nameEl.textContent.trim():'';
-    var dateTxt=dateEl?dateEl.textContent.trim():'';
-
-    var thumb=document.createElement('div'); thumb.className='souvenir-thumb';
-    var imgDiv=document.createElement('div'); imgDiv.className='sov-img';
-    if(photoUrl) imgDiv.style.cssText='background-image:url('+photoUrl+');background-size:cover;background-position:center;';
-    else imgDiv.textContent='📷';
-    thumb.appendChild(imgDiv);
-    var band=document.createElement('div'); band.className='sov-band';
-    var bt=document.createElement('div'); bt.className='sov-band-title'; bt.textContent=title; band.appendChild(bt);
-    if(dateTxt){ var bs=document.createElement('div'); bs.className='sov-band-sub'; bs.textContent=dateTxt; band.appendChild(bs); }
-    thumb.appendChild(band);
-    // Propager le click → ouvre modal souvenir
-    (function(c){ thumb.addEventListener('click',function(){
-      var ed=c.querySelector('.souvenir-edit-icon'); if(ed) ed.click(); else c.click();
-    }); })(card);
-    // Badge NEW
-    if(typeof window.yamIsNew==='function'||typeof window.yamShowNewBadge==='function'){
-      var newBadge=card.querySelector('[class*="new-badge"],[class*="yamNew"]');
-      if(newBadge) thumb.appendChild(newBadge.cloneNode(true));
-    }
-    return thumb;
-  }
-
-  function _watchScroll(scrollId){
-    var el=document.getElementById(scrollId); if(!el||el._v8obs) return;
-    el._v8obs=true;
-    // Convertir les cartes déjà présentes
-    Array.from(el.children).forEach(function(child){
-      if(child.classList.contains('souvenir-card')){ var thumb=_toThumb(child); el.replaceChild(thumb,child); }
-    });
-    // Observer les nouvelles
-    new MutationObserver(function(mutations){
-      mutations.forEach(function(mu){
-        mu.addedNodes.forEach(function(node){
-          if(node.nodeType!==1) return;
-          if(node.classList.contains('souvenir-card')){
-            var thumb=_toThumb(node); el.replaceChild(thumb,node);
-          }
-        });
-      });
-    }).observe(el,{childList:true});
-  }
-
-  function _init(){
-    _watchScroll('souvenirsRecentScroll');
-    _watchScroll('souvenirsFavScroll');
-  }
-  _init();
-  setTimeout(_init,300);
-  setTimeout(_init,1000);
-  document.addEventListener('nousContentReady',function(){ setTimeout(_init,50); });
-})();
 // ════════════════════════════════════════════════════════════════════
