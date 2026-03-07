@@ -1866,332 +1866,302 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 <!-- ════════════════════════════════════════
      ① NOTRE HISTOIRE
 ════════════════════════════════════════ -->
-<div class="nous-slab">Notre histoire</div>
 
-<div class="nous-card histoire-new-card fade-in" id="timelineSection">
-  <!-- Main chapitre -->
-  <div class="histoire-main-row">
-    <div class="histoire-meta">
-      <div class="histoire-line1">
-        <span class="histoire-emoji" id="histEmoji">💫</span>
-        <span class="histoire-date" id="histDate"></span>
+<!-- ① NOTRE HISTOIRE -->
+<div class="n-section-block">
+  <div class="n-slab">Notre histoire</div>
+  <div class="n-histoire-card" id="timelineSection">
+    <div class="n-histoire-main">
+      <button class="n-histoire-edit-btn" onclick="histoireOpenGestion()">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        Éditer
+      </button>
+      <div class="n-histoire-line1">
+        <span class="n-histoire-emoji" id="histEmoji">💫</span>
+        <span class="n-histoire-date"  id="histDate"></span>
       </div>
-      <div class="histoire-title" id="histTitle">Notre histoire commence…</div>
-      <div class="histoire-excerpt" id="histExcerpt">Clique sur le crayon pour ajouter vos premiers chapitres.</div>
+      <div class="n-histoire-title"   id="histTitle">Notre histoire commence…</div>
+      <div class="n-histoire-excerpt" id="histExcerpt">Clique sur le crayon pour ajouter vos premiers chapitres.</div>
     </div>
-    <button class="histoire-edit-btn-new" onclick="histoireOpenGestion()" aria-label="Éditer notre histoire">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-      Éditer
+    <div class="n-histoire-sep"></div>
+    <div class="n-histoire-strip" id="histStrip">
+      <div class="n-strip-item active" onclick="histSelectItem(0)">
+        <div class="n-strip-num">Chap. 1</div>
+        <div class="n-strip-title">À écrire…</div>
+      </div>
+    </div>
+    <!-- story video caché — JS le rend visible si besoin -->
+    <div id="storyVideoWrap" style="display:none;overflow:hidden;border-radius:0 0 16px 16px;text-align:center;background:#d4b896;">
+      <video id="storyVideo" src="assets/videos/video-1.mp4" playsinline webkit-playsinline loop muted style="height:220px;width:auto;display:inline-block;" preload="none"></video>
+      <div id="storyHeart">❤️</div>
+      <div id="storyCountdown" style="position:absolute;bottom:10px;left:12px;z-index:3;display:flex;align-items:center;gap:5px;background:rgba(0,0,0,0.45);backdrop-filter:blur(6px);border-radius:20px;padding:3px 9px;border:1px solid rgba(255,255,255,0.10);">
+        <div style="width:5px;height:5px;border-radius:50%;background:var(--green);animation:blink 2s ease-in-out infinite;flex-shrink:0;"></div>
+        <span id="storyCountdownTxt" style="font-size:10px;font-weight:700;color:var(--green);font-family:'Bricolage Grotesque',sans-serif;letter-spacing:1px;"></span>
+      </div>
+    </div>
+    <!-- tlItemsContainer caché — histoireRenderTimeline() le remplit, notre strip override le lit -->
+    <div id="tlContent" style="display:none;"><div id="tlWrap"><div id="tlItemsContainer"></div></div><div id="tlToggle"></div></div>
+  </div>
+</div>
+
+<!-- ② ELLE & LUI -->
+<div class="n-section-block" id="elleLuiSection">
+  <div class="n-slab">Elle &amp; Lui</div>
+  <div class="n-elle-lui-grid" id="elleLuiGridNew">
+    <!-- Elle -->
+    <div class="n-universe-card" onclick="openElleLuiExpanded('elle')" id="elleLuiCardElle">
+      <div class="n-slots-grid">
+        <div class="n-slot" id="preview-elle-animal">
+          <img id="elle-img-animal" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" onload="this.classList.add('loaded')">
+          <div id="elle-empty-animal" class="n-slot-empty">🐾</div>
+          <button id="elle-btn-animal" onclick="event.stopPropagation();slotOpenEdit('elle','animal')" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0);border:none;cursor:pointer;width:100%;height:100%;"></button>
+          <div id="elle-loading-animal" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;"><div style="width:60%;height:3px;background:rgba(255,255,255,.3);border-radius:2px;overflow:hidden;"><div id="elle-bar-animal" style="height:100%;background:#fff;width:0%;border-radius:2px;transition:width .3s;"></div></div></div>
+        </div>
+        <div class="n-slot" id="preview-elle-fleurs">
+          <img id="elle-img-fleurs" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" onload="this.classList.add('loaded')">
+          <div id="elle-empty-fleurs" class="n-slot-empty">🌸</div>
+          <button id="elle-btn-fleurs" onclick="event.stopPropagation();slotOpenEdit('elle','fleurs')" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0);border:none;cursor:pointer;width:100%;height:100%;"></button>
+          <div id="elle-loading-fleurs" style="display:none;"><div id="elle-bar-fleurs"></div></div>
+        </div>
+        <div class="n-slot" id="preview-elle-personnage">
+          <img id="elle-img-personnage" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" onload="this.classList.add('loaded')">
+          <div id="elle-empty-personnage" class="n-slot-empty">🧑</div>
+          <button id="elle-btn-personnage" onclick="event.stopPropagation();slotOpenEdit('elle','personnage')" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0);border:none;cursor:pointer;width:100%;height:100%;"></button>
+          <div id="elle-loading-personnage" style="display:none;"><div id="elle-bar-personnage"></div></div>
+        </div>
+        <div class="n-slot" id="preview-elle-saison">
+          <img id="elle-img-saison" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" onload="this.classList.add('loaded')">
+          <div id="elle-empty-saison" class="n-slot-empty">🍂</div>
+          <button id="elle-btn-saison" onclick="event.stopPropagation();slotOpenEdit('elle','saison')" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0);border:none;cursor:pointer;width:100%;height:100%;"></button>
+          <div id="elle-loading-saison" style="display:none;"><div id="elle-bar-saison"></div></div>
+        </div>
+        <div class="n-slot" id="preview-elle-repas">
+          <img id="elle-img-repas" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" onload="this.classList.add('loaded')">
+          <div id="elle-empty-repas" class="n-slot-empty">🍽️</div>
+          <button id="elle-btn-repas" onclick="event.stopPropagation();slotOpenEdit('elle','repas')" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0);border:none;cursor:pointer;width:100%;height:100%;"></button>
+          <div id="elle-loading-repas" style="display:none;"><div id="elle-bar-repas"></div></div>
+        </div>
+        <div class="n-slot n-slot-add" onclick="openElleLuiExpanded('elle')">+</div>
+      </div>
+      <div class="n-universe-footer">
+        <div>
+          <div class="n-universe-name" id="elleSectionTitle">Elle</div>
+          <div class="n-universe-sub">Son univers</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);">›</div>
+      </div>
+    </div>
+    <!-- Lui -->
+    <div class="n-universe-card" onclick="openElleLuiExpanded('lui')" id="elleLuiCardLui">
+      <div class="n-slots-grid">
+        <div class="n-slot" id="preview-lui-animal">
+          <img id="lui-img-animal" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" onload="this.classList.add('loaded')">
+          <div id="lui-empty-animal" class="n-slot-empty">🐾</div>
+          <button id="lui-btn-animal" onclick="event.stopPropagation();slotOpenEdit('lui','animal')" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0);border:none;cursor:pointer;width:100%;height:100%;"></button>
+          <div id="lui-loading-animal" style="display:none;"><div id="lui-bar-animal"></div></div>
+        </div>
+        <div class="n-slot" id="preview-lui-fleurs">
+          <img id="lui-img-fleurs" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" onload="this.classList.add('loaded')">
+          <div id="lui-empty-fleurs" class="n-slot-empty">🌸</div>
+          <button id="lui-btn-fleurs" onclick="event.stopPropagation();slotOpenEdit('lui','fleurs')" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0);border:none;cursor:pointer;width:100%;height:100%;"></button>
+          <div id="lui-loading-fleurs" style="display:none;"><div id="lui-bar-fleurs"></div></div>
+        </div>
+        <div class="n-slot" id="preview-lui-personnage">
+          <img id="lui-img-personnage" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" onload="this.classList.add('loaded')">
+          <div id="lui-empty-personnage" class="n-slot-empty">🧑</div>
+          <button id="lui-btn-personnage" onclick="event.stopPropagation();slotOpenEdit('lui','personnage')" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0);border:none;cursor:pointer;width:100%;height:100%;"></button>
+          <div id="lui-loading-personnage" style="display:none;"><div id="lui-bar-personnage"></div></div>
+        </div>
+        <div class="n-slot" id="preview-lui-saison">
+          <img id="lui-img-saison" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" onload="this.classList.add('loaded')">
+          <div id="lui-empty-saison" class="n-slot-empty">🍂</div>
+          <button id="lui-btn-saison" onclick="event.stopPropagation();slotOpenEdit('lui','saison')" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0);border:none;cursor:pointer;width:100%;height:100%;"></button>
+          <div id="lui-loading-saison" style="display:none;"><div id="lui-bar-saison"></div></div>
+        </div>
+        <div class="n-slot" id="preview-lui-repas">
+          <img id="lui-img-repas" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" onload="this.classList.add('loaded')">
+          <div id="lui-empty-repas" class="n-slot-empty">🍽️</div>
+          <button id="lui-btn-repas" onclick="event.stopPropagation();slotOpenEdit('lui','repas')" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0);border:none;cursor:pointer;width:100%;height:100%;"></button>
+          <div id="lui-loading-repas" style="display:none;"><div id="lui-bar-repas"></div></div>
+        </div>
+        <div class="n-slot n-slot-add" onclick="openElleLuiExpanded('lui')">+</div>
+      </div>
+      <div class="n-universe-footer">
+        <div>
+          <div class="n-universe-name" id="luiSectionTitle">Lui</div>
+          <div class="n-universe-sub">Son univers</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);">›</div>
+      </div>
+    </div>
+  </div>
+  <!-- Vue expanded (cachée par défaut) -->
+  <div class="n-elle-lui-expanded" id="elleLuiExpandedNew">
+    <div class="n-expanded-header">
+      <div class="n-expanded-tabs">
+        <button class="n-expanded-tab active" id="tabElleNew" onclick="switchElleLuiTab('elle')">Elle</button>
+        <button class="n-expanded-tab"        id="tabLuiNew"  onclick="switchElleLuiTab('lui')">Lui</button>
+      </div>
+      <span style="font-size:10px;color:var(--muted);">← swipe →</span>
+      <button class="n-expanded-close" onclick="closeElleLuiExpanded()">✕</button>
+    </div>
+    <div class="n-expanded-notice" id="expandedNoticeNew"></div>
+    <div class="n-expanded-scroll" id="expandedScrollNew" onscroll="updateElleLuiDots()"></div>
+    <div class="n-expanded-dots" id="expandedDotsNew">
+      <div class="n-expanded-dot active"></div><div class="n-expanded-dot"></div><div class="n-expanded-dot"></div>
+      <div class="n-expanded-dot"></div><div class="n-expanded-dot"></div>
+    </div>
+  </div>
+  <!-- Boutons cachés requis par elleSyncSections() -->
+  <button id="elleTitleEditBtn" style="display:none;" onclick="elleEditSectionTitle()"></button>
+  <button id="elleGearBtn"      style="display:none;" onclick="elleOpenGestion()"></button>
+  <button id="luiTitleEditBtn"  style="display:none;" onclick="luiEditSectionTitle()"></button>
+  <button id="luiGearBtn"       style="display:none;" onclick="luiOpenGestion()"></button>
+  <input type="file" id="elleFileInput" accept="image/jpeg,image/png,image/webp" style="display:none;">
+  <input type="file" id="luiFileInput"  accept="image/jpeg,image/png,image/webp" style="display:none;">
+  <!-- IDs cachés requis par JS (elle-banner-*, elle-desc-* pour la vue expanded) -->
+  <div style="display:none;" aria-hidden="true">
+    <div id="elle-banner-animal">Animal</div><div id="elle-desc-animal"></div>
+    <div id="elle-banner-fleurs">Fleurs</div><div id="elle-desc-fleurs"></div>
+    <div id="elle-banner-personnage">Personnage</div><div id="elle-desc-personnage"></div>
+    <div id="elle-banner-saison">Saison</div><div id="elle-desc-saison"></div>
+    <div id="elle-banner-repas">Repas</div><div id="elle-desc-repas"></div>
+    <div id="lui-banner-animal">Animal</div><div id="lui-desc-animal"></div>
+    <div id="lui-banner-fleurs">Fleurs</div><div id="lui-desc-fleurs"></div>
+    <div id="lui-banner-personnage">Personnage</div><div id="lui-desc-personnage"></div>
+    <div id="lui-banner-saison">Saison</div><div id="lui-desc-saison"></div>
+    <div id="lui-banner-repas">Repas</div><div id="lui-desc-repas"></div>
+    <!-- Sliders cachés pour compat JS -->
+    <div class="slider" id="elleSlider"></div>
+    <div class="slider" id="luiSlider"></div>
+  </div>
+</div>
+
+<!-- ③ MÉMO COUPLE -->
+<div class="n-section-block">
+  <div class="n-slab" id="memoCoupleSection">Mémo couple</div>
+  <div class="n-card">
+    <div class="n-memo-grid">
+      <div class="n-memo-cell" onclick="openMemoNoteView()">
+        <div class="n-memo-badge">Note</div>
+        <div class="n-memo-preview" id="memoNotePreview">Aucune note — appuie pour écrire</div>
+        <div class="n-memo-date" id="memoNoteDate"></div>
+        <div class="n-memo-edit-icon" onclick="event.stopPropagation();openMemoNoteEdit()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </div>
+      </div>
+      <div class="n-memo-cell" onclick="openMemoTodoView()">
+        <div class="n-memo-badge">To-do</div>
+        <div class="n-memo-preview" id="memoTodoPreview">Liste vide — appuie pour ajouter</div>
+        <div class="n-memo-edit-icon" onclick="event.stopPropagation();openMemoTodoEdit()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ④ PETITS MOTS -->
+<div class="n-section-block" id="postitsSection">
+  <div class="n-slab">
+    Petits mots
+    <span class="n-new-badge" id="postitNewBadge" style="display:none;">NEW</span>
+  </div>
+  <div class="n-pm-card" onclick="openPetitsMotsGestion()">
+    <button class="n-pm-ecrire" onclick="event.stopPropagation();openPetitsMotsGestion()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      Écrire
     </button>
-  </div>
-
-  <!-- Strip chapitres scrollable — rempli par histoireRenderTimeline() -->
-  <div class="histoire-sep-line"></div>
-  <div class="histoire-strip-new" id="histStrip">
-    <div class="histoire-strip-item-new active">
-      <div class="strip-num-new">Chap. 1</div>
-      <div class="strip-title-new">À écrire…</div>
-    </div>
-  </div>
-
-  <!-- Story vidéo cachée — JS la rend visible si besoin -->
-  <div id="storyVideoWrap" style="display:none;position:relative;overflow:hidden;border-radius:0 0 16px 16px;text-align:center;background:#d4b896;">
-    <video id="storyVideo" src="assets/videos/video-1.mp4" playsinline webkit-playsinline loop muted style="height:220px;width:auto;display:inline-block;vertical-align:top;" preload="none"></video>
-    <div id="storyHeart">❤️</div>
-    <div id="storyCountdown" style="position:absolute;bottom:10px;left:12px;z-index:3;display:flex;align-items:center;gap:5px;background:rgba(0,0,0,0.45);backdrop-filter:blur(6px);border-radius:20px;padding:3px 9px;border:1px solid rgba(255,255,255,0.10);">
-      <div style="width:5px;height:5px;border-radius:50%;background:var(--green);animation:blink 2s ease-in-out infinite;flex-shrink:0;"></div>
-      <span id="storyCountdownTxt" style="font-size:10px;font-weight:700;color:var(--green);font-family:'Bricolage Grotesque',sans-serif;letter-spacing:1px;"></span>
-    </div>
-  </div>
-
-  <!-- tlItemsContainer caché — histoireRenderTimeline() le remplit, notre strip s'en charge -->
-  <div id="tlContent" style="display:none;">
-    <div id="tlWrap"><div id="tlItemsContainer"></div></div>
-    <div id="tlToggle"></div>
+    <div class="pm-empty-icon" id="pmEmptyIcon">💌</div>
+    <div class="pm-empty-text" id="pmEmptyText">Aucun mot pour toi pour l'instant…</div>
+    <div class="postit-wrap" id="postitStack"></div>
+    <div class="stack-hint">Tape ou swipe pour passer au suivant</div>
+    <div class="stack-ctr" id="stackCounter"></div>
   </div>
 </div>
 
-<!-- ════════════════════════════════════════
-     ② ELLE & LUI
-════════════════════════════════════════ -->
-<div class="nous-slab">Elle &amp; Lui</div>
-
-<!-- Grille compacte 2 colonnes -->
-<div class="elle-lui-grid-new fade-in" id="elleLuiGridNew">
-
-  <!-- Carte Elle -->
-  <div class="universe-card-new" onclick="openElleLuiExpanded('elle')" id="elleLuiCardElle">
-    <div class="slots-grid-new">
-      <div class="slot-cell-new">
-        <img id="elle-img-animal" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" decoding="async" onload="this.classList.add('loaded')">
-        <div id="elle-empty-animal" class="slot-emoji-fallback" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">🐾</div>
-        <div id="elle-loading-animal" class="lui-uploading" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;"><div class="lui-upload-progress" style="width:60%;"><div class="lui-upload-bar" id="elle-bar-animal"></div></div></div>
-        <button id="elle-btn-animal" onclick="slotOpenEdit('elle','animal')" style="display:none;position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;padding:3px 6px;color:#fff;font-size:9px;font-weight:700;cursor:pointer;">✏️</button>
-      </div>
-      <div class="slot-cell-new">
-        <img id="elle-img-fleurs" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" decoding="async" onload="this.classList.add('loaded')">
-        <div id="elle-empty-fleurs" class="slot-emoji-fallback" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">🌸</div>
-        <div id="elle-loading-fleurs" class="lui-uploading" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;"><div class="lui-upload-progress" style="width:60%;"><div class="lui-upload-bar" id="elle-bar-fleurs"></div></div></div>
-        <button id="elle-btn-fleurs" onclick="slotOpenEdit('elle','fleurs')" style="display:none;position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;padding:3px 6px;color:#fff;font-size:9px;font-weight:700;cursor:pointer;">✏️</button>
-      </div>
-      <div class="slot-cell-new">
-        <img id="elle-img-personnage" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" decoding="async" onload="this.classList.add('loaded')">
-        <div id="elle-empty-personnage" class="slot-emoji-fallback" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">🧑</div>
-        <div id="elle-loading-personnage" class="lui-uploading" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;"><div class="lui-upload-progress" style="width:60%;"><div class="lui-upload-bar" id="elle-bar-personnage"></div></div></div>
-        <button id="elle-btn-personnage" onclick="slotOpenEdit('elle','personnage')" style="display:none;position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;padding:3px 6px;color:#fff;font-size:9px;font-weight:700;cursor:pointer;">✏️</button>
-      </div>
-      <div class="slot-cell-new">
-        <img id="elle-img-saison" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" decoding="async" onload="this.classList.add('loaded')">
-        <div id="elle-empty-saison" class="slot-emoji-fallback" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">🍂</div>
-        <div id="elle-loading-saison" class="lui-uploading" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;"><div class="lui-upload-progress" style="width:60%;"><div class="lui-upload-bar" id="elle-bar-saison"></div></div></div>
-        <button id="elle-btn-saison" onclick="slotOpenEdit('elle','saison')" style="display:none;position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;padding:3px 6px;color:#fff;font-size:9px;font-weight:700;cursor:pointer;">✏️</button>
-      </div>
-      <div class="slot-cell-new">
-        <img id="elle-img-repas" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" decoding="async" onload="this.classList.add('loaded')">
-        <div id="elle-empty-repas" class="slot-emoji-fallback" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">🍽️</div>
-        <div id="elle-loading-repas" class="lui-uploading" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;"><div class="lui-upload-progress" style="width:60%;"><div class="lui-upload-bar" id="elle-bar-repas"></div></div></div>
-        <button id="elle-btn-repas" onclick="slotOpenEdit('elle','repas')" style="display:none;position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;padding:3px 6px;color:#fff;font-size:9px;font-weight:700;cursor:pointer;">✏️</button>
-      </div>
-      <div class="slot-cell-new slot-cell-empty-add" onclick="event.stopPropagation();openElleLuiExpanded('elle')">+</div>
-    </div>
-    <div class="universe-card-footer-new">
-      <div class="universe-card-name-new" id="elleSectionTitle">Elle</div>
-      <div class="universe-card-sub-new">Ses univers</div>
-    </div>
+<!-- ⑤ SOUVENIRS -->
+<div class="n-section-block">
+  <div class="n-slab">
+    Nos souvenirs
+    <span class="n-new-badge" id="souvenirNewBadge" style="display:none;">NEW</span>
   </div>
-
-  <!-- Carte Lui -->
-  <div class="universe-card-new" onclick="openElleLuiExpanded('lui')" id="elleLuiCardLui">
-    <div class="slots-grid-new">
-      <div class="slot-cell-new">
-        <img id="lui-img-animal" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" decoding="async" onload="this.classList.add('loaded')">
-        <div id="lui-empty-animal" class="slot-emoji-fallback" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">🐾</div>
-        <div id="lui-loading-animal" class="lui-uploading" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;"><div class="lui-upload-progress" style="width:60%;"><div class="lui-upload-bar" id="lui-bar-animal"></div></div></div>
-        <button id="lui-btn-animal" onclick="slotOpenEdit('lui','animal')" style="display:none;position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;padding:3px 6px;color:#fff;font-size:9px;font-weight:700;cursor:pointer;">✏️</button>
-      </div>
-      <div class="slot-cell-new">
-        <img id="lui-img-fleurs" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" decoding="async" onload="this.classList.add('loaded')">
-        <div id="lui-empty-fleurs" class="slot-emoji-fallback" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">🌸</div>
-        <div id="lui-loading-fleurs" class="lui-uploading" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;"><div class="lui-upload-progress" style="width:60%;"><div class="lui-upload-bar" id="lui-bar-fleurs"></div></div></div>
-        <button id="lui-btn-fleurs" onclick="slotOpenEdit('lui','fleurs')" style="display:none;position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;padding:3px 6px;color:#fff;font-size:9px;font-weight:700;cursor:pointer;">✏️</button>
-      </div>
-      <div class="slot-cell-new">
-        <img id="lui-img-personnage" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" decoding="async" onload="this.classList.add('loaded')">
-        <div id="lui-empty-personnage" class="slot-emoji-fallback" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">🧑</div>
-        <div id="lui-loading-personnage" class="lui-uploading" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;"><div class="lui-upload-progress" style="width:60%;"><div class="lui-upload-bar" id="lui-bar-personnage"></div></div></div>
-        <button id="lui-btn-personnage" onclick="slotOpenEdit('lui','personnage')" style="display:none;position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;padding:3px 6px;color:#fff;font-size:9px;font-weight:700;cursor:pointer;">✏️</button>
-      </div>
-      <div class="slot-cell-new">
-        <img id="lui-img-saison" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" decoding="async" onload="this.classList.add('loaded')">
-        <div id="lui-empty-saison" class="slot-emoji-fallback" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">🍂</div>
-        <div id="lui-loading-saison" class="lui-uploading" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;"><div class="lui-upload-progress" style="width:60%;"><div class="lui-upload-bar" id="lui-bar-saison"></div></div></div>
-        <button id="lui-btn-saison" onclick="slotOpenEdit('lui','saison')" style="display:none;position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;padding:3px 6px;color:#fff;font-size:9px;font-weight:700;cursor:pointer;">✏️</button>
-      </div>
-      <div class="slot-cell-new">
-        <img id="lui-img-repas" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" decoding="async" onload="this.classList.add('loaded')">
-        <div id="lui-empty-repas" class="slot-emoji-fallback" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">🍽️</div>
-        <div id="lui-loading-repas" class="lui-uploading" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;"><div class="lui-upload-progress" style="width:60%;"><div class="lui-upload-bar" id="lui-bar-repas"></div></div></div>
-        <button id="lui-btn-repas" onclick="slotOpenEdit('lui','repas')" style="display:none;position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.55);border:none;border-radius:6px;padding:3px 6px;color:#fff;font-size:9px;font-weight:700;cursor:pointer;">✏️</button>
-      </div>
-      <div class="slot-cell-new slot-cell-empty-add" onclick="event.stopPropagation();openElleLuiExpanded('lui')">+</div>
-    </div>
-    <div class="universe-card-footer-new">
-      <div class="universe-card-name-new" id="luiSectionTitle">Lui</div>
-      <div class="universe-card-sub-new">Ses univers</div>
-    </div>
-  </div>
-</div>
-
-<!-- Vue expanded Elle/Lui — cachée par défaut -->
-<div class="elle-lui-expanded-new fade-in" id="elleLuiExpandedNew" style="display:none;">
-  <div class="expanded-header-new">
-    <div class="expanded-tabs-new">
-      <button class="expanded-tab-new active" id="tabElleNew" onclick="switchElleLuiTab('elle')">Elle</button>
-      <button class="expanded-tab-new" id="tabLuiNew" onclick="switchElleLuiTab('lui')">Lui</button>
-    </div>
-    <button class="expanded-close-new" onclick="closeElleLuiExpanded()" aria-label="Fermer">✕</button>
-  </div>
-  <div class="expanded-scroll-new" id="expandedScrollNew" onscroll="updateElleLuiDots()"></div>
-  <div class="expanded-dots-new" id="expandedDotsNew">
-    <div class="expanded-dot-new active"></div>
-    <div class="expanded-dot-new"></div>
-    <div class="expanded-dot-new"></div>
-    <div class="expanded-dot-new"></div>
-    <div class="expanded-dot-new"></div>
-  </div>
-  <div class="expanded-notice-new" id="expandedNoticeNew"></div>
-</div>
-
-<!-- IDs cachés pour elleSyncSections() — elleSectionContent/luiSectionContent contrôlent la visibilité -->
-<!-- Le JS masque la section selon le profil → on les garde mais invisibles -->
-
-<!-- Semaine + Mots doux cachés — JS les peuple mais on ne les affiche pas dans la nouvelle UI -->
-
-<!-- ════════════════════════════════════════
-     ③ MÉMO COUPLE
-════════════════════════════════════════ -->
-<div class="nous-slab">Mémo couple</div>
-
-<div class="memo-grid-new" id="memoCoupleSection">
-  <div class="memo-cell-new" onclick="openMemoNoteView()">
-    <div class="memo-cell-top">
-      <span class="memo-badge-new">Note</span>
-      <button class="memo-edit-btn-new" onclick="event.stopPropagation();openMemoNoteEdit()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-      </button>
-    </div>
-    <div class="memo-preview-new" id="memoNotePreview">Appuie pour écrire…</div>
-    <div class="memo-date-new" id="memoNoteDate"></div>
-  </div>
-  <div class="memo-cell-new" onclick="openMemoTodoView()">
-    <div class="memo-cell-top">
-      <span class="memo-badge-new">To-do</span>
-      <button class="memo-edit-btn-new" onclick="event.stopPropagation();openMemoTodoEdit()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-      </button>
-    </div>
-    <div class="memo-preview-new" id="memoTodoPreview">Appuie pour ajouter…</div>
-  </div>
-</div>
-
-<!-- ════════════════════════════════════════
-     ④ PETITS MOTS
-════════════════════════════════════════ -->
-<div class="nous-slab">Petits mots <span class="pm-new-badge" id="postitNewBadge" style="display:none;">NEW</span></div>
-
-<div class="pm-new-card fade-in" id="postitsSection">
-  <button class="pm-ecrire-new" onclick="openPetitsMotsGestion()">
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-    Écrire
-  </button>
-  <div class="postit-wrap" id="postitStack"></div>
-  <div class="pm-hint-new">Tape ou swipe pour passer au suivant</div>
-  <div class="pm-counter-new" id="stackCounter"></div>
-</div>
-
-<!-- ════════════════════════════════════════
-     ⑤ SOUVENIRS
-════════════════════════════════════════ -->
-<div class="nous-slab-row fade-in">
-  <div class="nous-slab" style="margin:0;">Souvenirs</div>
-  <button onclick="nousOpenSouvenirGestion()" class="slab-voir-btn" aria-label="Voir tous les souvenirs">
-    Tout voir
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-  </button>
-  <span class="slab-new-badge" id="souvenirNewBadge" style="display:none;">NEW</span>
-</div>
-
-<div id="souvenirsSection">
-  <div class="sov-sub-row">
-    <span class="sov-sub-lbl">Récents</span>
-  </div>
-  <div class="souvenirs-scroll-new" id="souvenirsRecentScroll"></div>
+  <div class="n-sov-sub">Récents <span onclick="nousOpenSouvenirGestion()" style="font-size:11px;font-weight:700;color:var(--accent);cursor:pointer;text-transform:none;letter-spacing:0;">Tout voir ›</span></div>
+  <div class="n-sov-scroll" id="souvenirsRecentScroll"></div>
   <div id="souvenirsRecentRow" style="display:none;"></div>
 
-  <div class="sov-sub-row">
-    <span class="sov-sub-lbl">Nos favoris 📌</span>
-  </div>
-  <div class="souvenirs-scroll-new" id="souvenirsFavScroll"></div>
+  <div class="n-sov-sub" style="margin-top:2px;">Nos favoris 📌</div>
+  <div class="n-sov-scroll" id="souvenirsFavScroll"></div>
   <div id="souvenirsFavRow" style="display:none;"></div>
 
   <div id="souvenirsEmpty" style="display:none;text-align:center;color:var(--muted);font-size:13px;padding:20px 0;">Aucun souvenir pour l'instant 🌸</div>
-
-  <button onclick="nousOpenSouvenirModal(null)" class="souvenir-add-inline-btn">+</button>
+  <div id="souvenirsSection" style="display:none;"></div>
 </div>
 
-<!-- ════════════════════════════════════════
-     ⑥ ACTIVITÉSCTIVITÉS
-════════════════════════════════════════ -->
-<div class="nous-slab-row fade-in">
-  <div class="nous-slab" style="margin:0;">Cahier d'activités</div>
-  <button onclick="nousOpenActiviteGestion()" class="slab-voir-btn" aria-label="Voir toutes les activités">
-    Tout voir
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-  </button>
-</div>
-
-<!-- Bulle idée du jour IA -->
-<div class="activite-idea-bubble-new nous-card fade-in" id="activiteIaWrap">
-  <div class="activite-idea-left-new">
-    <span class="activite-idea-badge-new">Idée du jour</span>
-    <div id="activiteIaSuggText" class="activite-idea-title-new">Découvrez une nouvelle idée</div>
-    <div id="activiteIaSuggMeta" class="activite-idea-sub-new">Générez votre première idée d'activité</div>
-    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-      <button id="activiteIaBtn" onclick="activiteIaSuggest()" class="activite-add-btn-new">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        Générer
-      </button>
-      <button id="activiteIaAddBtn" onclick="activiteIaAdd()" class="activite-add-btn-new" style="display:none;">
-        + Ajouter
-      </button>
+<!-- ⑥ CAHIER D'ACTIVITÉS -->
+<div class="n-section-block">
+  <div class="n-slab">Cahier d'activités <span class="n-slab-right" onclick="nousOpenActiviteGestion()">Tout voir ›</span></div>
+  <!-- Bulle idée du jour -->
+  <div class="n-activite-bubble" id="activiteIaWrap">
+    <div class="n-activite-left">
+      <div class="n-activite-badge">
+        <span style="font-size:14px;">⭐</span> Idée du jour
+      </div>
+      <div class="n-activite-title" id="activiteIaSuggText">Découvrez une nouvelle idée</div>
+      <div class="n-activite-sub"   id="activiteIaSuggMeta">Générez votre première idée d'activité</div>
+      <div id="activiteIaSuggCard" style="display:none;"></div>
+      <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
+        <button id="activiteIaBtn" onclick="activiteIaSuggest()" class="n-activite-add-btn">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Générer
+        </button>
+        <button id="activiteIaAddBtn" onclick="activiteIaAdd()" class="n-activite-add-btn" style="display:none;">+ Ajouter</button>
+      </div>
     </div>
-    <div id="activiteIaSuggCard" style="display:none;"></div>
+    <div class="n-activite-inspire">
+      <div class="inspire-icon">✨</div>
+      <div class="inspire-label">Inspirez-<br>nous</div>
+      <div class="inspire-soon">Bientôt</div>
+    </div>
   </div>
-  <button class="activite-inspire-btn-new" disabled>
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-    Inspirez-nous
-    <span style="font-size:9px;display:block;opacity:0.6;">Bientôt</span>
-  </button>
+  <!-- Carte activité en cours (injectée par JS) -->
+  <div id="activitesContainer"></div>
+  <div id="activitesBtnWrap"></div>
 </div>
 
-<!-- Cartes activités (remplies par _renderActivitesHome) -->
-<div id="activitesContainer" class="fade-in"></div>
-<div id="activitesBtnWrap" class="fade-in"></div>
-
-<!-- ════════════════════════════════════════
-     ⑦ BIBLIOTHÈQUE
-════════════════════════════════════════ -->
-<div class="nous-slab-row fade-in">
-  <div class="nous-slab" style="margin:0;">
-    Notre bibliothèque
-    <span class="slab-new-badge" id="livresNewBadge" style="display:none;">NEW</span>
+<!-- ⑦ NOTRE BIBLIOTHÈQUE -->
+<div class="n-section-block">
+  <div class="n-slab">Notre bibliothèque <span class="n-slab-right" onclick="livresOpenGestion()">Tout voir ›<span class="n-new-badge" id="livresNewBadge" style="display:none;margin-left:4px;">NEW</span></span></div>
+  <div class="n-livres-scroll" id="livresSlider"></div>
+  <div class="n-livres-btns" id="Books">
+    <button id="livreIdeaBtn" onclick="livresIdeeDuJour()" class="n-livre-btn-ia">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Idée du jour
+    </button>
+    <button onclick="livresOpenNew()" class="n-livre-btn-add">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nouvelle pochette
+    </button>
   </div>
-  <button onclick="livresOpenGestion()" class="slab-voir-btn" aria-label="Voir tous les livres">
-    Tout voir
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-  </button>
-</div>
-
-<!-- Slider livres (rempli par JS) -->
-<div class="livres-scroll-new fade-in" id="livresSlider"></div>
-
-<!-- Boutons bas bibliothèque -->
-<div class="livres-btns-row fade-in" id="Books">
-  <button id="livreIdeaBtn" onclick="livresIdeeDuJour()" class="livre-btn-ia">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-    Idée du jour
-  </button>
-  <button onclick="livresOpenNew()" class="livre-btn-add">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    Nouvelle pochette
-  </button>
-</div>
-
-<div id="livreIdeaCard" style="display:none;background:var(--s2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-top:4px;margin-bottom:2px;">
-  <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:10px;">💡</div>
-  <div id="livreIdeaText" style="font-size:14px;color:var(--text);line-height:1.5;">Chargement...</div>
-  <div id="livreIdeaMeta" style="font-size:10px;color:var(--muted);margin-top:6px;"></div>
-  <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
-    <div style="display:flex;gap:8px;">
-      <button onclick="livresIdeeDuJour()" id="livreIdeaNextBtn" style="flex:1;padding:13px 10px;background:var(--s3,rgba(255,255,255,0.06));border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;font-weight:600;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;">Suivant →</button>
+  <div id="livreIdeaCard" style="display:none;background:var(--s2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-top:4px;">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:10px;">💡</div>
+    <div id="livreIdeaText" style="font-size:14px;color:var(--text);line-height:1.5;">Chargement...</div>
+    <div id="livreIdeaMeta" style="font-size:10px;color:var(--muted);margin-top:6px;"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button onclick="livresIdeeDuJour()" id="livreIdeaNextBtn" style="flex:1;padding:13px 10px;background:var(--s3);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;font-weight:600;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;">Suivant →</button>
       <button onclick="livresAddFromIdea()" style="flex:1;padding:13px 10px;background:linear-gradient(135deg,#e75a7c,#7c6af7);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;">+ Ajouter</button>
     </div>
-    <button onclick="document.getElementById('livreIdeaCard').style.display='none'" style="width:100%;padding:11px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:13px;font-weight:600;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;">Fermer</button>
+    <button onclick="document.getElementById('livreIdeaCard').style.display='none'" style="width:100%;padding:11px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:13px;font-weight:600;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;margin-top:8px;">Fermer</button>
   </div>
 </div>
 
-
-<!-- IDs fonctionnels cachés — requis par app-nous.js -->
+<!-- IDs cachés — semaineCard/motsDoux requis par JS -->
 <div style="display:none;" aria-hidden="true">
-  <input type="file" id="elleFileInput" accept="image/jpeg,image/png,image/webp">
-  <input type="file" id="luiFileInput"  accept="image/jpeg,image/png,image/webp">
-  <button id="elleGearBtn"      onclick="elleOpenGestion()"></button>
-  <button id="luiGearBtn"       onclick="luiOpenGestion()"></button>
-  <button id="elleTitleEditBtn" onclick="elleEditSectionTitle()"></button>
-  <button id="luiTitleEditBtn"  onclick="luiEditSectionTitle()"></button>
   <div id="semaineCard"><div id="semaineContent" data-open="0"><div id="semaineMeta"></div><div id="semainePills"></div><button id="semaineGenBtn" onclick="semaineGenerate()"></button></div><div id="semaineSlotModal"><span id="semaineSlotWord"></span><div id="semaineSlotList"></div></div><button id="semaineToggleBtn" onclick="semaineToggle()"><span id="semaineEyeIcon">👁️</span></button></div>
   <div id="motsDoux"><div id="motsDoux_card"><div id="motsDoux_spinner"></div><div id="motsDoux_text"></div><div id="motsDoux_meta"></div></div><button id="motsDoux_refreshBtn" onclick="motsDoux_refresh(true)"></button></div>
 </div>
+
+
 </div><!-- /nousContentWrapper -->
 
 </div><!-- /yamNousTab -->
