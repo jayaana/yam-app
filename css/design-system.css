@@ -34,11 +34,11 @@
 
 /* LIGHT */
 body.light {
-  --page-bg:       #f0ebe5;
+  --page-bg:       #f2f2f7;
   --group-bg:      rgba(255,255,255,1);
-  --group-sep:     rgba(201,120,96,0.09);
-  --group-label:   #7a5a48;
-  --page-shadow:   0 -2px 16px rgba(100,60,30,0.08);
+  --group-sep:     rgba(231,90,124,0.09);
+  --group-label:   #6e6e73;
+  --page-shadow:   0 -2px 16px rgba(0,0,0,0.08);
 }
 
 /* Fix background html en thème clair */
@@ -324,7 +324,7 @@ body.light .yam-tab-panel {
 
 body.light .bottom-nav {
   background: rgba(245,241,237,0.97) !important;
-  box-shadow: 0 -4px 20px rgba(100,60,30,0.1);
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -393,24 +393,24 @@ body.light #Books,
 body.light #wheelSection,
 body.light #luiSection {
   background: rgba(255,255,255,1) !important;
-  border-color: rgba(160,120,90,0.12) !important;
-  box-shadow: 0 2px 12px rgba(100,60,30,0.06);
+  border-color: rgba(60,60,67,0.12) !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
 }
 
 body.light .yam-mood-strip {
   background: rgba(255,255,255,1) !important;
-  border-color: rgba(160,120,90,0.12) !important;
+  border-color: rgba(60,60,67,0.12) !important;
 }
 
 body.light .section-label,
 body.light .ios-group-title {
-  color: var(--green) !important;
+  color: var(--accent) !important;
 }
 
 /* Compteur en light */
 body.light .counter-block {
   background: rgba(255,255,255,1) !important;
-  border-color: rgba(160,120,90,0.15) !important;
+  border-color: rgba(60,60,67,0.15) !important;
 }
 
 /* ══════════════════════════════════════════════════════════
