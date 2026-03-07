@@ -5846,15 +5846,20 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
     }
   }
 
-  // Mascotte sync avec musique
+  // Mascotte sync avec musique — double signal fiable
   function homeSyncMascot(){
     var img = document.getElementById('homeMascotImg');
     if(!img) return;
-    var audio = document.querySelector('audio');
-    var isPlaying = audio && !audio.paused;
-    img.src = isPlaying
+    // Signal 1 : icône nav dansante (quand on n'est pas sur l'onglet musique)
+    var navMus = document.getElementById('navMusique');
+    var navPlaying = navMus && navMus.classList.contains('music-playing');
+    // Signal 2 : audio réellement en cours (couvre le cas où on vient de l'onglet musique)
+    var audioPlaying = window._yamCurrentAudio && !window._yamCurrentAudio.paused;
+    var isPlaying = navPlaying || audioPlaying;
+    var newSrc = isPlaying
       ? 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_dance.gif'
       : 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_start.gif';
+    if(img.src !== newSrc) img.src = newSrc;
   }
 
   // Init et polling
@@ -5863,7 +5868,7 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
     setTimeout(homeSyncSpam, 800);
     setInterval(homeSyncMood, 8000);
     setInterval(homeSyncSpam, 5000);
-    setInterval(homeSyncMascot, 3000);
+    setInterval(homeSyncMascot, 1000);
   });
 
   window._homeSyncMood  = homeSyncMood;
