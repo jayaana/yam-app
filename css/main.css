@@ -5444,3 +5444,605 @@ body.light #rappelOverlay.open { background: rgba(0,0,0,0.22); }
   padding: 8px 2px; flex-shrink: 0;
 }
 .rsh-loader-txt { font-size: 11px; color: var(--muted); margin-left: 4px; }
+
+/* ═══════════════════════════════════════════════════════════
+   NOUS♥ — REFONTE v8 (2025-03)
+   Sections individuelles, Notre Histoire, Elle&Lui, Souvenirs,
+   Bibliothèque, Activités nouvelle organisation
+═══════════════════════════════════════════════════════════ */
+
+/* ── Bloc section générique ── */
+.nous-section-block {
+  display: flex;
+  flex-direction: column;
+  padding: 0 14px;
+  margin-top: 16px;
+}
+
+.nous-section-label {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding: 0 2px;
+}
+
+.nous-section-label-btn {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  padding: 0;
+  opacity: 0.85;
+}
+
+/* ── NOTRE HISTOIRE ── */
+.nous-histoire-card {
+  background: var(--card, var(--s1));
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.nous-histoire-main {
+  padding: 13px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+}
+
+.nous-histoire-edit-btn {
+  position: absolute;
+  top: 12px; right: 12px;
+  font-size: 11px; font-weight: 700; color: var(--accent);
+  cursor: pointer;
+  display: flex; align-items: center; gap: 4px;
+  background: rgba(231,90,124,0.13);
+  border-radius: 8px; padding: 4px 10px;
+  border: none;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nous-histoire-line1 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.nous-histoire-emoji {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.nous-histoire-date {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nous-histoire-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 72px; /* espace bouton Éditer */
+}
+
+.nous-histoire-excerpt {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nous-histoire-sep {
+  height: 1px;
+  background: var(--group-sep);
+}
+
+/* Bandeau bas : flex uniforme sur toute la largeur */
+.nous-histoire-strip {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: var(--s2);
+}
+.nous-histoire-strip::-webkit-scrollbar { display: none; }
+
+.nous-histoire-strip-item {
+  flex: 1 1 0;          /* répartition uniforme */
+  min-width: 80px;
+  padding: 9px 10px;
+  cursor: pointer;
+  border-right: 1px solid var(--group-sep);
+  transition: background 0.15s;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+.nous-histoire-strip-item:last-child { border-right: none; }
+.nous-histoire-strip-item:hover { background: var(--s3, var(--s2)); }
+.nous-histoire-strip-item.active { background: var(--card, var(--s1)); }
+.nous-histoire-strip-item.active::after {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px; background: var(--accent);
+}
+
+.strip-num {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.strip-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90px;
+}
+
+.nous-histoire-strip-empty {
+  width: 100%;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+  padding: 12px 16px;
+  font-style: italic;
+}
+
+/* ── ELLE & LUI ── */
+.nous-elle-lui-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.nous-universe-card {
+  background: var(--card, var(--s1));
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.nous-universe-card:hover { border-color: var(--accent); }
+
+/* Grille 2×3 = 6 slots, images bords droits */
+.nous-slots-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+  height: 108px;
+  background: var(--s3, var(--s2));
+}
+
+.nous-slot-cell {
+  background: var(--s2);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Image sans border-radius, remplit tout */
+.nous-slot-cell img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 0;
+}
+
+.nous-slot-empty {
+  font-size: 18px;
+  opacity: 0.5;
+}
+
+.nous-slot-cell.has-image .nous-slot-empty { display: none; }
+
+.nous-universe-footer {
+  padding: 8px 10px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted);
+}
+
+.nous-universe-name {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.nous-universe-sub {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* Vue expanded inline */
+.nous-elle-lui-expanded {
+  background: var(--card, var(--s1));
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.nous-expanded-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--group-sep);
+}
+
+.nous-expanded-tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.nous-expanded-tab {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-family: 'Bricolage Grotesque', sans-serif;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.nous-expanded-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.nous-expanded-hint {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.nous-expanded-close {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--s2);
+  border: none;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: var(--muted);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nous-expanded-notice {
+  padding: 7px 14px 0;
+  font-size: 10px;
+  color: var(--muted);
+  font-style: italic;
+  font-weight: 600;
+  min-height: 22px;
+}
+
+.nous-expanded-scroll {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.nous-expanded-scroll::-webkit-scrollbar { display: none; }
+
+.nous-expanded-slot {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+}
+
+.nous-expanded-slot-img {
+  height: 180px;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 64px;
+  background: var(--s2);
+  border-radius: 0; /* bords droits */
+}
+.nous-expanded-slot-img img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 0;
+}
+.nous-expanded-slot-img.empty { opacity: 0.35; }
+
+.nous-expanded-slot-footer {
+  padding: 12px 14px 14px;
+  display: flex; align-items: flex-start; justify-content: space-between;
+}
+
+.nous-expanded-slot-info { flex: 1; }
+.nous-expanded-slot-name { font-size: 13px; font-weight: 800; }
+.nous-expanded-slot-desc { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+
+.nous-expanded-slot-edit {
+  padding: 6px 12px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 11px; font-weight: 700;
+  cursor: pointer;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 10px;
+}
+.nous-expanded-slot-edit.readonly {
+  background: var(--s3, var(--s2));
+  color: var(--muted);
+  cursor: default;
+}
+
+.nous-expanded-dots {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 0 10px;
+  border-top: 1px solid var(--group-sep);
+}
+.nous-expanded-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: background 0.2s, width 0.2s;
+}
+.nous-expanded-dot.active {
+  background: var(--accent);
+  width: 14px;
+  border-radius: 3px;
+}
+
+/* ── SOUVENIRS — thumbs avec bandeau opaque ── */
+/* Surcharge le style existant des scroll rows */
+#souvenirsRecentScroll .nous-sov-thumb,
+#souvenirsFavScroll .nous-sov-thumb,
+.nous-sov-thumb {
+  flex: 0 0 88px;
+  height: 106px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.15s;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  background: var(--s2);
+}
+.nous-sov-thumb:hover { transform: scale(1.04); }
+
+.nous-sov-img {
+  flex: 1;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+}
+.nous-sov-img img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block; border-radius: 0;
+}
+
+/* Bandeau opaque — var(--band-bg) définie ci-dessous */
+.nous-sov-band {
+  background: var(--s1);
+  border-top: 1px solid var(--border);
+  padding: 4px 6px;
+  flex-shrink: 0;
+}
+body.dark .nous-sov-band { background: #1a1614; }
+
+.nous-sov-band-title {
+  font-size: 9px; font-weight: 800;
+  color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.nous-sov-band-sub {
+  font-size: 8px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ── BIBLIOTHÈQUE — slider horizontal avec nouvelles pochettes ── */
+.nous-livres-scroll {
+  display: flex;
+  overflow-x: auto;
+  gap: 10px;
+  padding: 2px 0 4px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.nous-livres-scroll::-webkit-scrollbar { display: none; }
+
+.nous-livre-card {
+  flex: 0 0 78px;
+  height: 110px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: transform 0.15s;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.nous-livre-card:hover { transform: scale(1.04); }
+
+.nous-livre-img {
+  flex: 1;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 0;
+}
+.nous-livre-img img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block; border-radius: 0;
+}
+.nous-livre-img .livre-emoji-placeholder { font-size: 30px; }
+
+/* Bandeau bas opaque */
+.nous-livre-band {
+  background: var(--s1);
+  border-top: 1px solid var(--border);
+  padding: 4px 5px;
+  flex-shrink: 0;
+}
+body.dark .nous-livre-band { background: #1a1614; }
+
+.nous-livre-band-title {
+  font-size: 9px; font-weight: 800;
+  color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.nous-livre-band-author {
+  font-size: 8px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ── ACTIVITÉS — nouvelle organisation ── */
+.nous-activite-idea-bubble {
+  background: var(--card, var(--s1));
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  align-items: stretch;
+  margin-bottom: 10px;
+}
+
+.nous-activite-idea-left {
+  flex: 1;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nous-activite-idea-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+}
+
+.nous-activite-idea-star { font-size: 14px; }
+
+.nous-activite-idea-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.nous-activite-idea-sub {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+  min-height: 14px;
+}
+
+.nous-activite-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 7px 13px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  width: fit-content;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Bouton Inspirez-nous — colonne droite, inactif */
+.nous-activite-inspire-btn {
+  width: 80px;
+  flex-shrink: 0;
+  background: linear-gradient(160deg, rgba(231,90,124,0.07), rgba(124,106,247,0.09));
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 14px 8px;
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.nous-inspire-icon { font-size: 22px; }
+
+.nous-inspire-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--accent);
+  text-align: center;
+  line-height: 1.3;
+}
+
+.nous-inspire-soon {
+  font-size: 8px;
+  color: var(--muted);
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+
+/* Activité en cours — carte standalone */
+.nous-activite-current-card {
+  background: var(--card, var(--s1));
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  padding: 14px;
+}
+
+/* ═══ FIN REFONTE NOUS♥ v8 ═══ */
