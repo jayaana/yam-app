@@ -971,7 +971,14 @@ function _startReasonAuto(){
     if(stackCtr) stackCtr.textContent=(_stackIndex+1)+' / '+n;
     var top=stackWrap.lastElementChild; if(top) _attachPostitEvents(top);
   }
-  window.buildStack = _buildPostitStack;
+  window.buildStack = function(){
+    _buildPostitStack.apply(this, arguments);
+    var icon=document.getElementById('pmEmptyIcon'), txt=document.getElementById('pmEmptyText');
+    var stack=document.getElementById('postitStack');
+    var hasCards=stack&&stack.querySelector('.postit');
+    if(icon) icon.style.display=hasCards?'none':'';
+    if(txt)  txt.style.display=hasCards?'none':'';
+  };
 
   function _dismissTop(dirX){
     var top=document.getElementById('postitStack').lastElementChild; if(!top||top._dismissing||top.className==='postit-empty') return;
@@ -4108,44 +4115,76 @@ window.nousLoad = function(){
 
 
 
+
+
 // ═══════════════════════════════════════════════════════════════════
 // NOUVEAU UI v8 — Maquette v5
 // ═══════════════════════════════════════════════════════════════════
 
-// ── HISTOIRE STRIP ──
-(function(){
-  var _rows = [], _idx = 0;
-  var _orig = window.histoireRenderTimeline;
-  window.histoireRenderTimeline = function(items){
-    if(typeof _orig === 'function') _orig(items);
-    _rows = Array.isArray(items) ? items.slice().sort(function(a,b){
-      return ((a.sort_order||0)-(b.sort_order||0)) || (a.created_at||'').localeCompare(b.created_at||'');
-    }) : [];
-    _idx = 0; _updateMain(); _updateStrip();
-  };
-  function _updateMain(){
-    var item = _rows[_idx] || null;
-    var ej=document.getElementById('histEmoji'), dt=document.getElementById('histDate');
-    var ti=document.getElementById('histTitle'), ex=document.getElementById('histExcerpt');
-    if(!ej) return;
-    if(!item){ ej.textContent='💫'; dt.textContent=''; ti.textContent='Notre histoire commence…'; ex.textContent='Clique sur le crayon pour ajouter vos premiers chapitres.'; return; }
-    ej.textContent=item.emoji||'💫'; dt.textContent=item.date_label||'';
-    ti.textContent=item.title||''; ex.textContent=(item.text||'').substring(0,80)+((item.text||'').length>80?'…':'');
+// ── HISTOIRE — remplacement COMPLET de histoireRenderTimeline ──
+// On remplit à la fois tlItemsContainer (requis par la modale gestion)
+// ET notre strip horizontal n-strip-item (UI principale)
+window.histoireRenderTimeline = function(items){
+  // 1) Remplir tlItemsContainer pour la modale gestion (ne jamais rendre visible)
+  var container = document.getElementById('tlItemsContainer');
+  if(container){
+    container.innerHTML='';
+    if(!items || !items.length){
+      container.innerHTML='<div class="tl-item visible"><div class="tl-dot"></div><div class="tl-date">En construction</div><div class="tl-card"><h3>Notre histoire commence... 🌟</h3><p>Clique sur le crayon pour ajouter vos premiers chapitres.</p></div></div>';
+    } else {
+      var sorted=items.slice().sort(function(a,b){ return ((a.sort_order||0)-(b.sort_order||0))||(a.created_at||'').localeCompare(b.created_at||''); });
+      sorted.forEach(function(item){
+        var el=document.createElement('div'); el.className='tl-item visible';
+        el.innerHTML='<div class="tl-dot"></div><div class="tl-date">'+(item.emoji?escHtml(item.emoji)+' ':'')+escHtml(item.date_label||'')+'</div><div class="tl-card"><h3>'+escHtml(item.title||'')+'</h3><p>'+escHtml(item.text||'')+'</p></div>';
+        container.appendChild(el);
+      });
+    }
   }
-  function _updateStrip(){
-    var strip=document.getElementById('histStrip'); if(!strip) return;
-    strip.innerHTML='';
-    if(!_rows.length){ strip.innerHTML='<div class="histoire-strip-item-new active"><div class="strip-num-new">Chap. 1</div><div class="strip-title-new">À écrire…</div></div>'; return; }
-    _rows.forEach(function(item,i){
-      var el=document.createElement('div'); el.className='histoire-strip-item-new'+(i===_idx?' active':'');
-      el.innerHTML='<div class="strip-num-new">Chap.'+(i+1)+'</div><div class="strip-title-new">'+escHtml(item.title||'')+'</div>';
-      (function(ii){ el.addEventListener('click',function(){ _idx=ii; _updateMain(); strip.querySelectorAll('.histoire-strip-item-new').forEach(function(e,j){ e.classList.toggle('active',j===ii); }); }); })(i);
-      strip.appendChild(el);
-    });
+
+  // 2) Notre UI strip + main
+  var rows=Array.isArray(items)?items.slice().sort(function(a,b){ return ((a.sort_order||0)-(b.sort_order||0))||(a.created_at||'').localeCompare(b.created_at||''); }):[];
+  _histIdx=0; _histRows=rows;
+  _histUpdateMain(0); _histUpdateStrip();
+};
+
+var _histRows=[], _histIdx=0;
+
+function _histUpdateMain(idx){
+  var item=_histRows[idx]||null;
+  var ej=document.getElementById('histEmoji'), dt=document.getElementById('histDate');
+  var ti=document.getElementById('histTitle'),  ex=document.getElementById('histExcerpt');
+  if(!ej) return;
+  if(!item){ ej.textContent='💫'; if(dt)dt.textContent=''; if(ti)ti.textContent='Notre histoire commence…'; if(ex)ex.textContent='Clique sur le crayon pour ajouter vos premiers chapitres.'; return; }
+  ej.textContent=item.emoji||'💫'; if(dt)dt.textContent=item.date_label||'';
+  if(ti)ti.textContent=item.title||'';
+  if(ex)ex.textContent=(item.text||'').substring(0,80)+((item.text||'').length>80?'…':'');
+}
+
+function _histUpdateStrip(){
+  var strip=document.getElementById('histStrip'); if(!strip) return;
+  strip.innerHTML='';
+  if(!_histRows.length){
+    var def=document.createElement('div'); def.className='n-strip-item active';
+    def.innerHTML='<div class="n-strip-num">Chap. 1</div><div class="n-strip-title">À écrire…</div>';
+    strip.appendChild(def); return;
   }
-  window.histSelectItem=function(i){ _idx=i; _updateMain(); var s=document.getElementById('histStrip'); if(s) s.querySelectorAll('.histoire-strip-item-new').forEach(function(e,j){ e.classList.toggle('active',j===i); }); };
-  window.histSelect=function(el,i){ window.histSelectItem(i); };
-})();
+  _histRows.forEach(function(item,i){
+    var el=document.createElement('div'); el.className='n-strip-item'+(i===0?' active':'');
+    el.innerHTML='<div class="n-strip-num">Chap.'+(i+1)+'</div><div class="n-strip-title">'+escHtml(item.title||'')+'</div>';
+    (function(ii){ el.addEventListener('click',function(){
+      _histIdx=ii; _histUpdateMain(ii);
+      strip.querySelectorAll('.n-strip-item').forEach(function(e,j){ e.classList.toggle('active',j===ii); });
+    }); })(i);
+    strip.appendChild(el);
+  });
+}
+
+window.histSelectItem=function(i){ _histIdx=i; _histUpdateMain(i); var s=document.getElementById('histStrip'); if(s) s.querySelectorAll('.n-strip-item').forEach(function(e,j){ e.classList.toggle('active',j===i); }); };
+window.histSelect=function(el,i){ window.histSelectItem(i); };
+// Compat modale gestion qui peut appeler histoireRenderTimeline après modif
+window._histoireAllRows=[];
+var _histOrigLoad=window.histoireLoad;
+window.histoireLoad=function(){ if(typeof _histOrigLoad==='function') _histOrigLoad(); };
 
 
 // ── ELLE & LUI EXPANDED ──
@@ -4167,27 +4206,29 @@ window.nousLoad = function(){
   window.switchElleLuiTab=function(s){ _cur=s; _renderSlots(s); _tabs(s); _notice(s); var sc=document.getElementById('expandedScrollNew'); if(sc) sc.scrollLeft=0; _dots(0); };
   window.updateElleLuiDots=function(){ var sc=document.getElementById('expandedScrollNew'); if(!sc) return; _dots(Math.round(sc.scrollLeft/(sc.offsetWidth||300))); };
 
-  function _tabs(s){ var te=document.getElementById('tabElleNew'), tl=document.getElementById('tabLuiNew'); if(te) te.classList.toggle('active',s==='elle'); if(tl) tl.classList.toggle('active',s==='lui'); }
+  function _tabs(s){ var te=document.getElementById('tabElleNew'),tl=document.getElementById('tabLuiNew'); if(te)te.classList.toggle('active',s==='elle'); if(tl)tl.classList.toggle('active',s==='lui'); }
   function _notice(s){ var n=document.getElementById('expandedNoticeNew'); if(!n) return; var p=(typeof getProfile==='function')?getProfile():'girl'; var ok=(s==='elle'&&p==='boy')||(s==='lui'&&p==='girl'); n.textContent=ok?'Tu peux modifier les pochettes en appuyant sur "Éditer"':'Seul(e) ton partenaire peut modifier ces pochettes'; }
-  function _dots(i){ var dc=document.getElementById('expandedDotsNew'); if(!dc) return; dc.querySelectorAll('.expanded-dot-new').forEach(function(d,j){ d.classList.toggle('active',j===i); }); }
+  function _dots(i){ var dc=document.getElementById('expandedDotsNew'); if(!dc) return; dc.querySelectorAll('.n-expanded-dot').forEach(function(d,j){ d.classList.toggle('active',j===i); }); }
   function _renderSlots(section){
     var sc=document.getElementById('expandedScrollNew'); if(!sc) return; sc.innerHTML='';
     var p=(typeof getProfile==='function')?getProfile():'girl';
     var canEdit=(section==='elle'&&p==='boy')||(section==='lui'&&p==='girl');
     SLOTS.forEach(function(slot){
-      var el=document.createElement('div'); el.className='expanded-slot-new';
-      var imgArea=document.createElement('div'); imgArea.className='expanded-slot-img-new';
+      var el=document.createElement('div'); el.className='n-expanded-slot';
+      var imgArea=document.createElement('div'); imgArea.className='n-expanded-slot-img';
       var srcImg=document.getElementById(section+'-img-'+slot);
-      var hasPhoto=srcImg&&srcImg.classList.contains('loaded')&&srcImg.style.display!=='none';
-      if(hasPhoto){ var img=document.createElement('img'); img.src=srcImg.src; imgArea.appendChild(img); } else { imgArea.classList.add('empty'); imgArea.textContent=EMOJIS[slot]||'📷'; }
+      var hasPhoto=srcImg&&srcImg.classList.contains('loaded');
+      if(hasPhoto){ var img=document.createElement('img'); img.src=srcImg.src; imgArea.appendChild(img); }
+      else { imgArea.classList.add('empty'); imgArea.textContent=EMOJIS[slot]||'📷'; }
       el.appendChild(imgArea);
-      var footer=document.createElement('div'); footer.className='expanded-slot-footer-new';
-      var info=document.createElement('div'); info.className='expanded-slot-info-new';
-      var nameDiv=document.createElement('div'); nameDiv.className='expanded-slot-name-new';
-      var bannerEl=document.getElementById(section+'-banner-'+slot); nameDiv.textContent=(bannerEl&&bannerEl.textContent.trim())||(slot.charAt(0).toUpperCase()+slot.slice(1)); info.appendChild(nameDiv);
-      var descEl=document.getElementById(section+'-desc-'+slot); if(descEl&&descEl.textContent.trim()){ var dd=document.createElement('div'); dd.className='expanded-slot-desc-new'; dd.textContent=descEl.textContent.trim(); info.appendChild(dd); }
-      footer.appendChild(info);
-      var btn=document.createElement('button'); btn.className='expanded-slot-edit-new'+(canEdit?'':' disabled'); btn.textContent=canEdit?'Éditer':'Lecture';
+      var footer=document.createElement('div'); footer.className='n-expanded-slot-footer';
+      var info=document.createElement('div'); info.className='n-expanded-slot-info';
+      var nameDiv=document.createElement('div'); nameDiv.className='n-expanded-slot-name';
+      var bannerEl=document.getElementById(section+'-banner-'+slot);
+      nameDiv.textContent=(bannerEl&&bannerEl.textContent.trim())||(slot.charAt(0).toUpperCase()+slot.slice(1));
+      info.appendChild(nameDiv); footer.appendChild(info);
+      var btn=document.createElement('button'); btn.className='n-expanded-slot-edit'+(canEdit?'':' disabled');
+      btn.textContent=canEdit?'Éditer':'Lecture';
       if(canEdit)(function(s,sl){ btn.addEventListener('click',function(){ window.slotOpenEdit(s,sl); }); })(section,slot);
       footer.appendChild(btn); el.appendChild(footer); sc.appendChild(el);
     }); _dots(0);
@@ -4195,86 +4236,65 @@ window.nousLoad = function(){
 })();
 
 
-// ── SOUVENIRS — override _buildSouvenirCard pour style thumb ──
+// ── SOUVENIRS — intercepter _buildSouvenirCard via MutationObserver ──
 (function(){
-  // Attendre que app-nous.js soit chargé puis remplacer _buildSouvenirCard
-  // En ciblant _renderSouvenirRows via MutationObserver sur les scrolls
-  function _makeThumb(s){
-    var card=document.createElement('div'); card.className='sov-thumb';
-    var photoUrl=s.photo_url||'';
-    var dateStr=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'';
-    var imgDiv=document.createElement('div'); imgDiv.className='sov-thumb-img';
-    if(photoUrl) imgDiv.style.backgroundImage='url('+escHtml(photoUrl)+')';
+  function _toThumb(card){
+    var photoEl=card.querySelector('.souvenir-photo');
+    var nameEl=card.querySelector('.souvenir-name');
+    var dateEl=card.querySelector('.souvenir-date');
+    var photoUrl='';
+    if(photoEl){ var bg=photoEl.style.backgroundImage; var m=bg.match(/url\(["']?([^"')]+)/); if(m) photoUrl=m[1]; }
+    var title=nameEl?nameEl.textContent.trim():'';
+    var dateTxt=dateEl?dateEl.textContent.trim():'';
+
+    var thumb=document.createElement('div'); thumb.className='souvenir-thumb';
+    var imgDiv=document.createElement('div'); imgDiv.className='sov-img';
+    if(photoUrl) imgDiv.style.cssText='background-image:url('+photoUrl+');background-size:cover;background-position:center;';
     else imgDiv.textContent='📷';
-    card.appendChild(imgDiv);
+    thumb.appendChild(imgDiv);
     var band=document.createElement('div'); band.className='sov-band';
-    if(s.title){ var bt=document.createElement('div'); bt.className='sov-band-title'; bt.textContent=s.title; band.appendChild(bt); }
-    if(dateStr){ var bs=document.createElement('div'); bs.className='sov-band-sub'; bs.textContent=dateStr; band.appendChild(bs); }
-    card.appendChild(band);
-    card.addEventListener('click',function(){ nousOpenSouvenirModal(s); });
-    if(s.id&&typeof window.yamIsNew==='function'&&window.yamIsNew('souvenir_'+s.id)){ if(typeof window.yamShowNewBadge==='function') window.yamShowNewBadge(card,true); }
-    return card;
+    var bt=document.createElement('div'); bt.className='sov-band-title'; bt.textContent=title; band.appendChild(bt);
+    if(dateTxt){ var bs=document.createElement('div'); bs.className='sov-band-sub'; bs.textContent=dateTxt; band.appendChild(bs); }
+    thumb.appendChild(band);
+    // Propager le click → ouvre modal souvenir
+    (function(c){ thumb.addEventListener('click',function(){
+      var ed=c.querySelector('.souvenir-edit-icon'); if(ed) ed.click(); else c.click();
+    }); })(card);
+    // Badge NEW
+    if(typeof window.yamIsNew==='function'||typeof window.yamShowNewBadge==='function'){
+      var newBadge=card.querySelector('[class*="new-badge"],[class*="yamNew"]');
+      if(newBadge) thumb.appendChild(newBadge.cloneNode(true));
+    }
+    return thumb;
   }
 
-  // Intercepter _renderSouvenirRows en patchant après chargement
-  function _patchRenderer(){
-    if(typeof window.nousLoadSouvenirs !== 'function') return;
-    var _origLoad = window.nousLoadSouvenirs;
-    window.nousLoadSouvenirs = function(){
-      var coupleId = (typeof _getCoupleId==='function') ? _getCoupleId() : null; if(!coupleId) return;
-      fetch(SB2_URL+'/rest/v1/v2_memories?couple_id=eq.'+coupleId+'&order=created_at.desc&select=*',{headers:sb2Headers()})
-      .then(function(r){ return r.ok?r.json():[]; })
-      .then(function(rows){
-        rows = Array.isArray(rows)?rows:[];
-        var recentScroll=document.getElementById('souvenirsRecentScroll');
-        var favScroll=document.getElementById('souvenirsFavScroll');
-        var emptyEl=document.getElementById('souvenirsEmpty');
-        if(!recentScroll||!favScroll) return;
-        recentScroll.innerHTML=''; favScroll.innerHTML='';
-        if(!rows.length){ if(emptyEl) emptyEl.style.display='block'; return; }
-        if(emptyEl) emptyEl.style.display='none';
-        var favs=rows.filter(function(r){ return r.is_fav; });
-        var recent=rows.filter(function(r){ return !r.is_fav; }).slice(0,6);
-        recent.forEach(function(s){ recentScroll.appendChild(_makeThumb(s)); });
-        favs.forEach(function(s){ favScroll.appendChild(_makeThumb(s)); });
-        // Met à jour aussi la modale gestion si ouverte
-        var overlay=document.getElementById('souvenirGestionOverlay');
-        if(overlay&&overlay.classList.contains('open')&&typeof window._renderGestionList==='function') window._renderGestionList();
-      }).catch(function(e){ console.warn('souvenirs',e); });
-    };
+  function _watchScroll(scrollId){
+    var el=document.getElementById(scrollId); if(!el||el._v8obs) return;
+    el._v8obs=true;
+    // Convertir les cartes déjà présentes
+    Array.from(el.children).forEach(function(child){
+      if(child.classList.contains('souvenir-card')){ var thumb=_toThumb(child); el.replaceChild(thumb,child); }
+    });
+    // Observer les nouvelles
+    new MutationObserver(function(mutations){
+      mutations.forEach(function(mu){
+        mu.addedNodes.forEach(function(node){
+          if(node.nodeType!==1) return;
+          if(node.classList.contains('souvenir-card')){
+            var thumb=_toThumb(node); el.replaceChild(thumb,node);
+          }
+        });
+      });
+    }).observe(el,{childList:true});
   }
-  // Patch dès que possible
-  if(typeof window.nousLoadSouvenirs==='function') _patchRenderer();
-  else document.addEventListener('DOMContentLoaded', _patchRenderer);
-  setTimeout(_patchRenderer, 100);
+
+  function _init(){
+    _watchScroll('souvenirsRecentScroll');
+    _watchScroll('souvenirsFavScroll');
+  }
+  _init();
+  setTimeout(_init,300);
+  setTimeout(_init,1000);
+  document.addEventListener('nousContentReady',function(){ setTimeout(_init,50); });
 })();
-
-
-// ── LIVRES — patch style bande ──
-(function(){
-  function _patchCard(card){
-    if(card.classList.contains('livre-v8')) return; card.classList.add('livre-v8');
-    var bannerEl=card.querySelector('.album-banner'); var imgEl=card.querySelector('img'); var descEl=card.querySelector('.album-desc');
-    var title=bannerEl?bannerEl.textContent.trim():'Livre'; var imgSrc=imgEl?imgEl.src:''; var desc=descEl?descEl.textContent.trim():'';
-    card.innerHTML=''; card.style.cssText='flex:0 0 78px;height:110px;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;border:1.5px solid var(--border);flex-shrink:0;background:var(--s2);';
-    var imgArea=document.createElement('div'); imgArea.style.cssText='flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--muted);';
-    if(imgSrc&&!imgSrc.endsWith('null')&&!imgSrc.endsWith('undefined')){ var img=document.createElement('img'); img.src=imgSrc; img.style.cssText='width:100%;height:100%;object-fit:cover;'; imgArea.appendChild(img); } else imgArea.textContent='📚';
-    card.appendChild(imgArea);
-    var band=document.createElement('div'); band.className='livre-band';
-    var bt=document.createElement('div'); bt.className='livre-band-title'; bt.textContent=title; band.appendChild(bt);
-    if(desc){ var bs=document.createElement('div'); bs.className='livre-band-author'; bs.textContent=desc; band.appendChild(bs); }
-    card.appendChild(band);
-  }
-  function _watch(){
-    var el=document.getElementById('livresSlider'); if(!el||el._livreObs) return;
-    el._livreObs=true;
-    new MutationObserver(function(m){ m.forEach(function(mu){ mu.addedNodes.forEach(function(n){ if(n.nodeType===1&&(n.classList.contains('album-card')||n.classList.contains('lui-card-wrap'))) _patchCard(n); }); }); }).observe(el,{childList:true});
-    el.querySelectorAll('.album-card,.lui-card-wrap').forEach(_patchCard);
-  }
-  setTimeout(_watch,500);
-  document.addEventListener('nousContentReady',function(){ setTimeout(_watch,100); });
-})();
-
-// ════════════════════════════════════════════════════════════════════
-// FIN — NOUVEAU UI v8
 // ════════════════════════════════════════════════════════════════════
