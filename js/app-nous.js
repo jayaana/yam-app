@@ -2428,17 +2428,25 @@ loadLikeCounters();
           _histoireSelectedIndex = i;
           _renderBulle(it);
           _renderBandeau();
-          // Scroll vers le tab sélectionné
-          tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          // Scroll dans le bandeau uniquement — jamais sur la page
+          var b = document.getElementById('histoireBandeau');
+          if (b) {
+            var tabWidth = b.scrollWidth / b.children.length;
+            var target = tabWidth * i - (b.clientWidth / 2) + (tabWidth / 2);
+            b.scrollLeft = Math.max(0, target);
+          }
         });
       })(idx, item);
       bandeau.appendChild(tab);
     });
 
-    // Scroll automatique vers le tab actif
+    // Scroll automatique vers le tab actif — dans le bandeau uniquement
     setTimeout(function(){
-      var activeTab = bandeau.querySelector('.histoire-bandeau-tab.active');
-      if (activeTab) activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      var b = document.getElementById('histoireBandeau');
+      if (!b || !b.children.length) return;
+      var tabWidth = b.scrollWidth / b.children.length;
+      var target = tabWidth * _histoireSelectedIndex - (b.clientWidth / 2) + (tabWidth / 2);
+      b.scrollLeft = Math.max(0, target);
     }, 50);
   }
 
