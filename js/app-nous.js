@@ -2362,297 +2362,85 @@ loadLikeCounters();
 })();
 
 
-// ════════════════════════════════════════════════════════════════════
-// 14. MOTS DOUX IA — 15 générés en batch chaque jour, rotation aléatoire
-// Logique :
-//   • Au premier accès du jour → génère 15 mots doux en une fois (appels séquentiels)
-//   • Les 15 mots sont stockés en localStorage + base
-//   • Toute la journée, le bouton "refresh" fait tourner aléatoirement dans ce pool
-//   • Le lendemain → nouveau batch de 15 (l'ancien est remplacé)
-// Table : v2_mots_doux (id, couple_id, text, generated_at)
-// ════════════════════════════════════════════════════════════════════
-(function(){
-
-  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
-  var SB2_EDGE = SB2_URL + '/functions/v1/gemini-suggest';
-  var _MD_BATCH_SIZE = 10;  // nombre de mots doux générés par jour
-
-  // ── Clés localStorage ──
-  function _cacheKey(coupleId){ return 'yam_motdoux_batch_' + coupleId; }
-
-  // Charger le batch du jour depuis localStorage
-  // Retourne { date, mots: [...], deckPos } ou null si absent/périmé
-  function _loadCache(coupleId){
-    try {
-      var data = JSON.parse(localStorage.getItem(_cacheKey(coupleId)) || 'null');
-      var today = new Date().toISOString().slice(0,10);
-      if(data && data.date === today && Array.isArray(data.mots) && data.mots.length > 0) return data;
-    } catch(e){}
-    return null;
-  }
-
-  // Sauvegarder le batch en localStorage
-  function _saveCache(coupleId, mots, deckPos){
-    try {
-      localStorage.setItem(_cacheKey(coupleId), JSON.stringify({
-        date: new Date().toISOString().slice(0,10),
-        mots: mots,
-        deckPos: deckPos || 0
-      }));
-    } catch(e){}
-  }
-
-  // Mélange Fisher-Yates
-  function _shuffle(arr){
-    var a = arr.slice();
-    for(var i = a.length-1; i > 0; i--){
-      var j = Math.floor(Math.random()*(i+1));
-      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
-    }
-    return a;
-  }
-
-  // ── Affichage ──
-  function _setLoading(on){
-    var sp  = document.getElementById('motsDoux_spinner');
-    var btn = document.getElementById('motsDoux_refreshBtn');
-    if(sp)  sp.style.display    = on ? 'block' : 'none';
-    if(btn){ btn.disabled       = on; btn.style.opacity = on ? '0.4' : ''; }
-  }
-
-  function _displayMot(text, meta){
-    var el     = document.getElementById('motsDoux_text');
-    var metaEl = document.getElementById('motsDoux_meta');
-    if(!el) return;
-    el.style.transition = 'opacity 0.2s';
-    el.style.opacity = '0';
-    setTimeout(function(){
-      el.textContent = text;
-      if(metaEl) metaEl.textContent = meta || '';
-      el.style.opacity = '1';
-    }, 200);
-  }
-
-  // Affiche un mot du deck en cours et avance la position
-  function _showNextFromDeck(coupleId){
-    var cache = _loadCache(coupleId);
-    if(!cache || !cache.mots.length) return false;
-    var pos  = (cache.deckPos || 0) % cache.mots.length;
-    var text = cache.mots[pos];
-    // Avancer la position pour le prochain appel
-    _saveCache(coupleId, cache.mots, pos + 1);
-    var dateLabel = new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
-    _displayMot(text, 'Mots du jour · ' + dateLabel + ' · ' + (pos+1) + '/' + cache.mots.length);
-    return true;
-  }
-
-  // ── Génération batch séquentielle ──
-  // Génère _MD_BATCH_SIZE mots un par un (appels séquentiels pour éviter le rate-limit)
-  function _generateBatch(coupleId, onDone){
-    var u = (typeof v2GetUser==='function') ? v2GetUser() : null;
-    var partnerName  = u ? (u.partner_pseudo || 'mon amour') : 'mon amour';
-    var daysTogether = 0;
-    if(window.startDate){ daysTogether = Math.floor((Date.now()-new Date(window.startDate))/(1000*60*60*24)); }
-    var saison  = ['hiver','hiver','printemps','printemps','printemps','été','été','été','automne','automne','automne','hiver'][new Date().getMonth()];
-    var moments = ['matin','après-midi','soir'];
-    var collected = [];
-
-    _setLoading(true);
-    // Afficher un message de génération pendant le chargement
-    var el = document.getElementById('motsDoux_text');
-    if(el){ el.style.opacity='0'; setTimeout(function(){ el.textContent='Génération de tes mots doux du jour... ✨'; el.style.opacity='1'; },200); }
-
-    function _fetchOne(index){
-      if(index >= _MD_BATCH_SIZE){
-        // Tous les mots sont collectés
-        var shuffled = _shuffle(collected);
-        _saveCache(coupleId, shuffled, 0);
-        // Sauvegarder aussi en base (batch insert)
-        var now = new Date().toISOString();
-        var rows = shuffled.map(function(t){ return { couple_id: coupleId, text: t, generated_at: now }; });
-        fetch(SB2_URL+'/rest/v1/v2_mots_doux', {
-          method: 'POST',
-          headers: sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
-          body: JSON.stringify(rows)
-        }).catch(function(){});
-        _setLoading(false);
-        if(onDone) onDone(shuffled);
-        return;
-      }
-      // Varier le moment de la journée pour diversifier les messages
-      var moment = moments[index % moments.length];
-      var exemples = [
-        'J\'adore quand tu souris sans raison, ça illumine n\'importe quelle pièce.',
-        'Ce soir j\'aurais juste envie de te tenir la main et de ne rien dire.',
-        'Il y a des jours où je réalise à quel point j\'ai de la chance que tu existes.',
-        'Tu es le genre de personne qui rend les matins difficiles supportables.',
-        'Même les silences avec toi ont quelque chose de doux.'
-      ];
-      var prompt = 'Tu es dans un couple amoureux. Écris UN seul petit mot doux pour ton partenaire. ' +
-        'Règles STRICTES : ' +
-        '1) 1 à 2 phrases maximum, jamais plus. ' +
-        '2) NE commence JAMAIS par un prénom ou un surnom. ' +
-        '3) Le message doit être concret et touchant, pas une généralité vide. ' +
-        '4) Pas un seul mot suivi d\'un point. ' +
-        '5) Aucun guillemet. Aucune explication. Seulement le message. ' +
-        'On est en ' + saison + ', ' + moment + '. Ensemble depuis ' + daysTogether + ' jours. ' +
-        'Voici un exemple du ton attendu (ne le copie pas, invente quelque chose de différent) : ' +
-        exemples[index % exemples.length];
-
-      fetch(SB2_EDGE, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-app-secret': SB2_APP_SECRET, 'apikey': SB2_KEY, 'Authorization': 'Bearer ' + SB2_KEY },
-        body: JSON.stringify({ prompt: prompt })
-      })
-      .then(function(r){ return r.json(); })
-      .then(function(data){
-        var text = (data.text || '').trim().replace(/^"+|"+$/g,'').trim();
-        if(text) collected.push(text);
-        // Petit délai entre chaque appel pour éviter le rate-limit
-        setTimeout(function(){ _fetchOne(index + 1); }, 300);
-      })
-      .catch(function(){
-        // En cas d'erreur sur un mot, on continue quand même
-        setTimeout(function(){ _fetchOne(index + 1); }, 300);
-      });
-    }
-
-    _fetchOne(0);
-  }
-
-  var _motsDoux_loading    = false;
-  var _motsDoux_init_done  = false;
-  var _motsDoux_generating = false; // verrou génération batch
-
-  // ── Point d'entrée principal ──
-  // forced=false → init auto (affiche depuis cache ou génère si nouveau jour)
-  // forced=true  → bouton refresh : pioche le mot suivant dans le deck du jour
-  window.motsDoux_refresh = function(forced){
-    var coupleId = _getCoupleId();
-    if(!coupleId){ _displayMot('Connecte-toi pour recevoir des mots doux ✨',''); return; }
-
-    // Bouton refresh → pioche dans le deck du jour (rotation aléatoire)
-    if(forced){
-      if(_motsDoux_generating){ if(typeof showToast==='function') showToast('Génération en cours... ✨','info',2000); return; }
-      var shown = _showNextFromDeck(coupleId);
-      if(!shown){
-        // Pas de cache valide → lancer la génération
-        if(!_motsDoux_generating){ _motsDoux_generating=true; _generateBatch(coupleId, function(mots){ _motsDoux_generating=false; _showNextFromDeck(coupleId); }); }
-      }
-      return;
-    }
-
-    // Init auto
-    if(_motsDoux_loading && !forced) return;
-    _motsDoux_loading = true;
-
-    // Cache du jour dispo ?
-    var cache = _loadCache(coupleId);
-    if(cache && cache.mots.length){
-      _motsDoux_loading = false;
-      _showNextFromDeck(coupleId);
-      return;
-    }
-
-    // Pas de cache → vérifier en base si un batch existe déjà aujourd'hui
-    var today = new Date().toISOString().slice(0,10);
-    fetch(SB2_URL+'/rest/v1/v2_mots_doux?couple_id=eq.'+coupleId+'&order=generated_at.desc&limit='+_MD_BATCH_SIZE+'&select=text,generated_at',{headers:sb2Headers()})
-    .then(function(r){ return r.ok?r.json():[]; })
-    .then(function(rows){
-      // Filtrer uniquement les mots générés aujourd'hui
-      var todayMots = (rows||[]).filter(function(r){
-        return r.generated_at && r.generated_at.slice(0,10) === today;
-      }).map(function(r){ return r.text; });
-
-      if(todayMots.length >= _MD_BATCH_SIZE){
-        // Batch du jour déjà en base → le charger en cache et afficher
-        var shuffled = _shuffle(todayMots);
-        _saveCache(coupleId, shuffled, 0);
-        _motsDoux_loading = false;
-        _showNextFromDeck(coupleId);
-      } else {
-        // Nouveau jour → générer le batch complet
-        _motsDoux_loading = false;
-        if(!_motsDoux_generating){
-          _motsDoux_generating = true;
-          _generateBatch(coupleId, function(mots){
-            _motsDoux_generating = false;
-            _showNextFromDeck(coupleId);
-          });
-        }
-      }
-    })
-    .catch(function(){
-      // Erreur réseau → fallbacks offline
-      _motsDoux_loading = false;
-      var fallbacks = [
-        'Pense à toi et ça me suffit pour sourire, même à distance. ❤️',
-        'Je suis tellement reconnaissant(e) de t\'avoir dans ma vie. Tu es mon endroit préféré.',
-        'Ce soir, sache que tu occupes mes pensées, et c\'est la meilleure place qui soit. 💕',
-        'Avec toi, même les moments simples deviennent des souvenirs que je chéris.',
-        'Tu es la meilleure chose qui me soit arrivée. 🌸'
-      ];
-      var shuffledFallbacks = _shuffle(fallbacks);
-      _saveCache(coupleId, shuffledFallbacks, 0);
-      _showNextFromDeck(coupleId);
-    });
-  };
-
-  // Init au chargement de la section Nous — déclenchement unique
-  document.addEventListener('nousContentReady', function(){
-    if(_motsDoux_init_done) return;
-    _motsDoux_init_done = true;
-    window.motsDoux_refresh(false);
-  });
-  // Fallback unique : si event raté
-  setTimeout(function(){
-    if(_motsDoux_init_done) return;
-    var el = document.getElementById('motsDoux_text');
-    if(el && el.textContent === 'Chargement...'){
-      _motsDoux_init_done = true;
-      window.motsDoux_refresh(false);
-    }
-  }, 2500);
-
-})();
-
 
 // ════════════════════════════════════════════════════════════════════
-// 15. NOTRE HISTOIRE — éditable, stockée dans v2_histoire
+// 15. NOTRE HISTOIRE v2 — Bulle + Bandeau scroll horizontal
 // Table : v2_histoire (id, couple_id, emoji, date_label, title, text, sort_order, created_at)
 // ════════════════════════════════════════════════════════════════════
 (function(){
 
   function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
-  var _histoireAllRows = [];
-  var _histoireFromGestion = false;
-  var _histoireEditingId = null;
 
-  // ── Rendu timeline principale ──
-  window.histoireRenderTimeline = function(items){
-    var container = document.getElementById('tlItemsContainer');
-    if(!container) return;
-    container.innerHTML = '';
-    if(!items || !items.length){
-      container.innerHTML = '<div class="tl-item visible"><div class="tl-dot"></div><div class="tl-date">En construction</div><div class="tl-card"><h3>Notre histoire commence... 🌟</h3><p>Clique sur le crayon pour ajouter vos premiers chapitres.</p></div></div>';
+  var _histoireAllRows = [];
+  var _histoireSelectedIndex = 0; // index du chapitre affiché dans la bulle
+  var _histoireEditingId = null;
+  var _histoireFromGestion = false;
+
+  // ── Rendu bulle principale ──
+  function _renderBulle(item) {
+    var metaEl   = document.getElementById('histoireBulleMeta');
+    var titreEl  = document.getElementById('histoireBulleTitre');
+    var texteEl  = document.getElementById('histoireBulleTexte');
+    if (!metaEl || !titreEl || !texteEl) return;
+
+    if (!item) {
+      metaEl.textContent  = '';
+      titreEl.textContent = 'Notre histoire commence... 🌟';
+      texteEl.textContent = 'Clique sur Éditer pour ajouter vos premiers chapitres.';
       return;
     }
-    // Tri par sort_order puis created_at
-    var sorted = items.slice().sort(function(a,b){
-      if((a.sort_order||0)!=(b.sort_order||0)) return (a.sort_order||0)-(b.sort_order||0);
+
+    var metaStr = '';
+    if (item.emoji)      metaStr += item.emoji + ' · ';
+    if (item.date_label) metaStr += item.date_label.toUpperCase();
+    metaEl.textContent = metaStr;
+    titreEl.textContent = item.title || '';
+
+    // 1ère ligne du texte seulement
+    var fullText = item.text || '';
+    var firstLine = fullText.split('\n')[0];
+    // Tronquer à ~80 caractères
+    if (firstLine.length > 80) firstLine = firstLine.slice(0, 80) + '…';
+    texteEl.textContent = firstLine || '…';
+  }
+
+  // ── Rendu bandeau scroll horizontal ──
+  function _renderBandeau() {
+    var bandeau = document.getElementById('histoireBandeau');
+    if (!bandeau) return;
+    bandeau.innerHTML = '';
+
+    if (!_histoireAllRows.length) return;
+
+    var sorted = _histoireAllRows.slice().sort(function(a,b){
+      if((a.sort_order||0) !== (b.sort_order||0)) return (a.sort_order||0)-(b.sort_order||0);
       return (a.created_at||'').localeCompare(b.created_at||'');
     });
-    sorted.forEach(function(item){
-      var el = document.createElement('div');
-      el.className = 'tl-item';
-      el.innerHTML =
-        '<div class="tl-dot"></div>'+
-        '<div class="tl-date">'+(item.emoji?escHtml(item.emoji)+' ':'')+escHtml(item.date_label||'')+'</div>'+
-        '<div class="tl-card"><h3>'+escHtml(item.title||'')+'</h3><p>'+escHtml(item.text||'')+'</p></div>';
-      container.appendChild(el);
+
+    sorted.forEach(function(item, idx) {
+      var tab = document.createElement('div');
+      tab.className = 'histoire-bandeau-tab' + (idx === _histoireSelectedIndex ? ' active' : '');
+      tab.innerHTML =
+        '<div class="histoire-bandeau-num">CHAP. ' + (idx + 1) + '</div>' +
+        '<div class="histoire-bandeau-titre">' + escHtml(item.title || 'À écrire...') + '</div>';
+      (function(i, it){
+        tab.addEventListener('click', function(){
+          _histoireSelectedIndex = i;
+          _renderBulle(it);
+          _renderBandeau();
+          // Scroll vers le tab sélectionné
+          tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        });
+      })(idx, item);
+      bandeau.appendChild(tab);
     });
-    if(typeof window._tlObserve === 'function') window._tlObserve();
-  };
+
+    // Scroll automatique vers le tab actif
+    setTimeout(function(){
+      var activeTab = bandeau.querySelector('.histoire-bandeau-tab.active');
+      if (activeTab) activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }, 50);
+  }
 
   // ── Chargement depuis Supabase ──
   window.histoireLoad = function(){
@@ -2660,14 +2448,69 @@ loadLikeCounters();
     fetch(SB2_URL+'/rest/v1/v2_histoire?couple_id=eq.'+coupleId+'&order=sort_order.asc,created_at.asc&select=*',{headers:sb2Headers()})
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(rows){
-      _histoireAllRows = Array.isArray(rows)?rows:[];
-      window.histoireRenderTimeline(_histoireAllRows);
+      _histoireAllRows = Array.isArray(rows) ? rows : [];
+      // Garder l'index sélectionné dans les bornes
+      if (_histoireSelectedIndex >= _histoireAllRows.length) _histoireSelectedIndex = 0;
+      var sorted = _histoireAllRows.slice().sort(function(a,b){
+        if((a.sort_order||0)!=(b.sort_order||0)) return (a.sort_order||0)-(b.sort_order||0);
+        return (a.created_at||'').localeCompare(b.created_at||'');
+      });
+      _renderBulle(sorted[_histoireSelectedIndex] || null);
+      _renderBandeau();
+      // Compatibilité : si overlay gestion ouvert, rafraîchir
       var overlay = document.getElementById('histoireGestionOverlay');
       if(overlay && overlay.classList.contains('open')) _histoireRenderGestionList();
     }).catch(function(){});
   };
 
-  // ── Overlay gestion ──
+  // Maintenu pour compatibilité (appelé depuis app-account.js / YAM_COUPLE)
+  window.histoireRenderTimeline = function(items){
+    _histoireAllRows = Array.isArray(items) ? items : [];
+    if (_histoireSelectedIndex >= _histoireAllRows.length) _histoireSelectedIndex = 0;
+    var sorted = _histoireAllRows.slice().sort(function(a,b){
+      if((a.sort_order||0)!=(b.sort_order||0)) return (a.sort_order||0)-(b.sort_order||0);
+      return (a.created_at||'').localeCompare(b.created_at||'');
+    });
+    _renderBulle(sorted[_histoireSelectedIndex] || null);
+    _renderBandeau();
+  };
+
+  // ── Modale chapitre complet ──
+  window.histoireOpenChapterModal = function(){
+    var sorted = _histoireAllRows.slice().sort(function(a,b){
+      if((a.sort_order||0)!=(b.sort_order||0)) return (a.sort_order||0)-(b.sort_order||0);
+      return (a.created_at||'').localeCompare(b.created_at||'');
+    });
+    var item = sorted[_histoireSelectedIndex];
+    if (!item) return;
+
+    var modal = document.getElementById('histoireChapterModal');
+    if (!modal) return;
+
+    var metaStr = '';
+    if (item.emoji)      metaStr += item.emoji + ' · ';
+    if (item.date_label) metaStr += item.date_label.toUpperCase();
+    document.getElementById('histoireChapterModalMeta').textContent  = metaStr;
+    document.getElementById('histoireChapterModalTitre').textContent = item.title || '';
+    document.getElementById('histoireChapterModalTexte').textContent = item.text || '';
+
+    modal.style.display = 'flex';
+    _saveScrollPosition();
+    _blockBackgroundScroll();
+  };
+
+  window.histoireCloseChapterModal = function(){
+    var modal = document.getElementById('histoireChapterModal');
+    if (modal) modal.style.display = 'none';
+    _unblockBackgroundScroll();
+    _restoreScrollPosition();
+  };
+
+  // Click en dehors pour fermer
+  var _cModal = document.getElementById('histoireChapterModal');
+  if (_cModal) _cModal.addEventListener('click', function(e){ if(e.target===_cModal) window.histoireCloseChapterModal(); });
+
+  // ── Overlay gestion (inchangé) ──
   window.histoireOpenGestion = function(){
     if(!_histoireAllRows.length) window.histoireLoad();
     _saveScrollPosition();
@@ -2687,17 +2530,14 @@ loadLikeCounters();
   function _histoireRenderGestionList(){
     var list = document.getElementById('histoireGestionList'); if(!list) return;
     list.innerHTML = ''; list.scrollTop = 0;
-
     if(!_histoireAllRows.length){
       list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:32px 16px;">Aucun chapitre pour l\'instant.<br>Ajoutez votre premier souvenir !</div>';
       return;
     }
-
     var sorted = _histoireAllRows.slice().sort(function(a,b){
       if((a.sort_order||0)!=(b.sort_order||0)) return (a.sort_order||0)-(b.sort_order||0);
       return (a.created_at||'').localeCompare(b.created_at||'');
     });
-
     sorted.forEach(function(item){
       var row = document.createElement('div');
       row.className = 'histoire-gestion-row';
@@ -2718,7 +2558,7 @@ loadLikeCounters();
     });
   }
 
-  // ── Modal item ──
+  // ── Modal item édition (inchangé) ──
   window.histoireOpenItemModal = function(item){
     var modal = document.getElementById('histoireItemModal'); if(!modal) return;
     if(!_histoireFromGestion){ _saveScrollPosition(); _blockBackgroundScroll(); }
@@ -2751,10 +2591,10 @@ loadLikeCounters();
 
   window.histoireSaveItem = function(){
     var coupleId = _getCoupleId(); if(!coupleId) return;
-    var emoji = document.getElementById('histoireItemEmoji').value.trim()||'💘';
+    var emoji     = document.getElementById('histoireItemEmoji').value.trim()||'💘';
     var dateLabel = document.getElementById('histoireItemDate').value.trim();
-    var title = document.getElementById('histoireItemTitle').value.trim();
-    var text = document.getElementById('histoireItemText').value.trim();
+    var title     = document.getElementById('histoireItemTitle').value.trim();
+    var text      = document.getElementById('histoireItemText').value.trim();
     if(!title){ alert('Le titre est obligatoire.'); return; }
     var data = { couple_id: coupleId, emoji: emoji, date_label: dateLabel, title: title, text: text };
     var btn = document.getElementById('histoireItemSaveBtn');
@@ -2764,10 +2604,7 @@ loadLikeCounters();
       fetch(SB2_URL+'/rest/v1/v2_histoire?id=eq.'+_histoireEditingId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done).catch(done);
     } else {
       fetch(SB2_URL+'/rest/v1/v2_histoire',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
-      .then(function(){
-        if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('histoire_new');
-        done();
-      }).catch(done);
+      .then(function(){ if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('histoire_new'); done(); }).catch(done);
     }
   };
 
@@ -2779,13 +2616,15 @@ loadLikeCounters();
     .then(function(){ window.histoireCloseItemModal(); window.histoireLoad(); }).catch(function(){});
   };
 
-  // Listener click-dehors modal item
+  // Click-dehors modal item
   var _hModal = document.getElementById('histoireItemModal');
   if(_hModal) _hModal.addEventListener('click',function(e){ if(e.target===_hModal) window.histoireCloseItemModal(); });
 
-  // Init au chargement
+  // Init
   document.addEventListener('nousContentReady', function(){ window.histoireLoad(); });
   setTimeout(function(){ if(!_histoireAllRows.length) window.histoireLoad(); }, 2000);
+
+})();
 
 })();
 
@@ -4104,3 +3943,113 @@ window.nousLoad = function(){
 // ════════════════════════════════════════════════════════════════════
 // FIN DU MODULE FLAMME
 // ════════════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════════
+// BULLE VIDÉO ÉVÉNEMENT — 10 dernières minutes de chaque heure
+// Gérée ici car appartient à la section Nous ♥
+// ════════════════════════════════════════════════════════════════════
+(function(){
+  var WINDOW_BEFORE = 10; // minutes avant l'heure pile
+  var WINDOW_AFTER  = 0;
+  var TRIGGER_HOURS = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23];
+
+  function isInVideoWindow() {
+    var now = new Date();
+    var totalMin = now.getHours() * 60 + now.getMinutes();
+    for (var i = 0; i < TRIGGER_HOURS.length; i++) {
+      var centerMin = TRIGGER_HOURS[i] * 60;
+      if (totalMin >= centerMin - WINDOW_BEFORE && totalMin < centerMin + WINDOW_AFTER) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function applyState() {
+    var videoWrap    = document.getElementById('storyVideoWrap');
+    var video        = document.getElementById('storyVideo');
+    var storyHeart   = document.getElementById('storyHeart');
+    var navNous      = document.getElementById('navNous');
+    var counterBlock = document.getElementById('counterBlock');
+    if (!videoWrap || !video) return;
+
+    if (isInVideoWindow()) {
+      videoWrap.style.display = 'block';
+      if (video.paused) video.play().catch(function(){});
+      if (storyHeart)   storyHeart.style.display = 'block';
+      if (navNous)      navNous.classList.add('event-active');
+      if (counterBlock) counterBlock.classList.add('glowing');
+    } else {
+      videoWrap.style.display = 'none';
+      video.pause();
+      if (storyHeart)   storyHeart.style.display = 'none';
+      if (navNous)      navNous.classList.remove('event-active');
+      if (counterBlock) counterBlock.classList.remove('glowing');
+    }
+  }
+
+  applyState();
+  window.isInVideoWindow  = isInVideoWindow;
+  window._applyStoryState = applyState;
+
+  document.addEventListener('visibilitychange', function(){
+    if (!document.hidden) applyState();
+  });
+
+  // ── Countdown ──
+  var countdownEl = document.getElementById('storyCountdownTxt');
+  var _cdIv = null, _cdTmo = null;
+
+  function _stopCountdown(){
+    if (_cdIv)  { clearInterval(_cdIv);  _cdIv  = null; }
+    if (_cdTmo) { clearTimeout(_cdTmo);  _cdTmo = null; }
+  }
+
+  function updateCountdown(){
+    var now = new Date();
+    var totalSec = now.getHours()*3600 + now.getMinutes()*60 + now.getSeconds();
+    var secsLeft = null;
+    for (var i = 0; i < TRIGGER_HOURS.length; i++) {
+      var endSec   = (TRIGGER_HOURS[i]*60 + WINDOW_AFTER)  * 60;
+      var startSec = (TRIGGER_HOURS[i]*60 - WINDOW_BEFORE) * 60;
+      if (totalSec >= startSec && totalSec < endSec) { secsLeft = endSec - totalSec; break; }
+    }
+    if (secsLeft !== null && secsLeft > 0 && countdownEl) {
+      var m = Math.floor(secsLeft / 60), s = secsLeft % 60;
+      countdownEl.textContent = (m > 0 ? m + 'min ' : '') + (s < 10 ? '0' : '') + s + 's';
+    } else if (countdownEl) {
+      countdownEl.textContent = '';
+    }
+  }
+
+  function _scheduleCountdown(){
+    _stopCountdown();
+    if (document.hidden) return;
+    var now = new Date();
+    var totalSec = now.getHours()*3600 + now.getMinutes()*60 + now.getSeconds();
+    var inWindow = false;
+    for (var i = 0; i < TRIGGER_HOURS.length; i++) {
+      var endSec   = (TRIGGER_HOURS[i]*60 + WINDOW_AFTER)  * 60;
+      var startSec = (TRIGGER_HOURS[i]*60 - WINDOW_BEFORE) * 60;
+      if (totalSec >= startSec && totalSec < endSec) { inWindow = true; break; }
+    }
+    if (inWindow) {
+      updateCountdown();
+      _cdIv = setInterval(updateCountdown, 1000);
+      var curH = Math.floor(totalSec / 3600);
+      var wEnd = (curH * 60 + WINDOW_AFTER) * 60;
+      _cdTmo = setTimeout(function(){ _stopCountdown(); _scheduleCountdown(); applyState(); }, Math.max(0, (wEnd - totalSec) * 1000) + 500);
+    } else {
+      var secsInDay = 24 * 3600, minWait = secsInDay;
+      for (var j = 0; j < TRIGGER_HOURS.length; j++) {
+        var ns = (TRIGGER_HOURS[j]*60 - WINDOW_BEFORE) * 60;
+        var w  = ns - totalSec; if (w < 0) w += secsInDay;
+        if (w < minWait) minWait = w;
+      }
+      _cdTmo = setTimeout(function(){ updateCountdown(); _scheduleCountdown(); applyState(); }, Math.max(1000, minWait * 1000 - 500));
+    }
+  }
+
+  document.addEventListener('visibilitychange', function(){ if (document.hidden) { _stopCountdown(); } else { _scheduleCountdown(); } });
+  _scheduleCountdown();
+})();
