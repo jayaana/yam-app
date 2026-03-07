@@ -171,7 +171,12 @@ body.light .yam-tab-panel {
    (ex: #memoCoupleSection, #wheelSection, etc.)
 ══════════════════════════════════════════════════════════ */
 
-/* Sections hors .section — seules les sections non-refondues gardent ce reset */
+/* Sections qui ne portent PAS la classe .section */
+#memoCoupleSection,
+#postitsSection,
+#souvenirsSection,
+#activitesSection,
+#Books,
 #wheelSection,
 #luiSection,
 #loveSection {
@@ -285,12 +290,15 @@ body.light .yam-tab-panel {
 /* ══════════════════════════════════════════════════════════
    11. POST-IT SECTION — poignée arrondie + padding
 ══════════════════════════════════════════════════════════ */
-/* postitsSection padding géré par nous-pm-card */
+#postitsSection .postit-wrap { padding: 12px 14px 4px; }
+#postitsSection .stack-hint  { padding: 0 14px; }
+#postitsSection .stack-ctr   { padding: 0 14px 14px; }
 
 /* ══════════════════════════════════════════════════════════
    12. SOUVENIRS — grille interne sans débordement
 ══════════════════════════════════════════════════════════ */
-/* souvenirsSection scroll géré par nous-souvenirs-scroll */
+#souvenirsSection > div { overflow: visible; }
+#souvenirsSection [style*="overflow-x:auto"] { padding: 0 14px 4px !important; }
 
 /* ══════════════════════════════════════════════════════════
    13. ROUE — section sans overflow clip (canvas)
@@ -377,6 +385,11 @@ body.light .yam-tab-panel {
 }
 
 body.light .section,
+body.light #memoCoupleSection,
+body.light #postitsSection,
+body.light #souvenirsSection,
+body.light #activitesSection,
+body.light #Books,
 body.light #wheelSection,
 body.light #luiSection {
   background: rgba(255,255,255,1) !important;
@@ -406,6 +419,11 @@ body.light .counter-block {
 ══════════════════════════════════════════════════════════ */
 @media (min-width: 430px) {
   .section,
+  #memoCoupleSection,
+  #postitsSection,
+  #souvenirsSection,
+  #activitesSection,
+  #Books,
   #wheelSection,
   .yam-mood-strip,
   .ios-group {
