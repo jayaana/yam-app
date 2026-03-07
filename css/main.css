@@ -1766,12 +1766,25 @@ html:not(.light) .like-heart-btn {
 #nlOtherIndicator.nl-ind-together { --ind-color: #f5c518; }
 #nlOtherDot { background: var(--ind-color, #fff); box-shadow: 0 0 6px var(--ind-color, #fff); }
 #nlOtherLabel { color: var(--ind-color, var(--sub)); }
-/* Ombre sur le texte doré en thème clair pour le rendre lisible sur fond beige */
-body.light #nlOtherIndicator.nl-ind-together #nlOtherLabel {
-  text-shadow: 0 1px 3px rgba(0,0,0,0.28), 0 0 6px rgba(0,0,0,0.10);
+
+/* Pilule qui pulse pour "on écoute ensemble" — lisible en dark et light */
+#nlOtherIndicator.nl-ind-together {
+  background: #f5c518;
+  border-radius: 20px;
+  padding: 2px 8px 2px 6px;
+  animation: togetherPulse 2.5s ease-in-out infinite;
 }
-body.light #nlOtherIndicator.nl-ind-together #nlOtherDot {
-  box-shadow: 0 0 6px #f5c518, 0 1px 4px rgba(0,0,0,0.22);
+#nlOtherIndicator.nl-ind-together #nlOtherLabel {
+  color: #5a3e00 !important;
+  font-weight: 700;
+}
+#nlOtherIndicator.nl-ind-together #nlOtherDot {
+  background: #5a3e00;
+  box-shadow: none;
+}
+@keyframes togetherPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(245,197,24,0.45); }
+  50%      { box-shadow: 0 0 0 5px rgba(245,197,24,0); }
 }
 
 /* ── Glow sur la ligne de chanson ── */
