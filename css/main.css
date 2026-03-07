@@ -1148,7 +1148,7 @@ audio { display: none; }
   cursor: pointer; user-select: none;
   padding: 18px 16px;
   min-height: 72px;
-  display: flex; align-items: center; justify-content: center; flex-direction: column;
+  display: flex; align-items: center; justify-content: center; flex-direction: row; gap: 8px;
   background: linear-gradient(135deg, var(--s1) 0%, rgba(201,120,96,0.06) 100%);
   border-radius: 16px;
   border: 1px solid rgba(201,120,96,0.25);
@@ -1766,6 +1766,13 @@ html:not(.light) .like-heart-btn {
 #nlOtherIndicator.nl-ind-together { --ind-color: #f5c518; }
 #nlOtherDot { background: var(--ind-color, #fff); box-shadow: 0 0 6px var(--ind-color, #fff); }
 #nlOtherLabel { color: var(--ind-color, var(--sub)); }
+/* Ombre sur le texte doré en thème clair pour le rendre lisible sur fond beige */
+body.light #nlOtherIndicator.nl-ind-together #nlOtherLabel {
+  text-shadow: 0 1px 3px rgba(0,0,0,0.28), 0 0 6px rgba(0,0,0,0.10);
+}
+body.light #nlOtherIndicator.nl-ind-together #nlOtherDot {
+  box-shadow: 0 0 6px #f5c518, 0 1px 4px rgba(0,0,0,0.22);
+}
 
 /* ── Glow sur la ligne de chanson ── */
 .sp-song.nl-other-playing {
