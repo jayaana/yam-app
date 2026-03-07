@@ -447,11 +447,15 @@ body.light .counter-block {
 ══════════════════════════════════════════════════════════ */
 
 /* Onglet Musique — sections */
-#yamMusiqueTab > div:not(#loveSection):not([id*="Overlay"]):not([id*="Modal"]):not([id*="Picker"]) {
+#yamMusiqueTab > div:not(#loveSection):not([id*="Overlay"]):not([id*="Modal"]):not([id*="Picker"]):not(.mu-lovebox-wrap) {
   margin: 0 14px 14px;
 }
 /* suggestionSection gère son propre alignement via .mu-sugg-bubble margin:0 16px */
 #suggestionSection {
+  margin: 0 !important;
+}
+/* loveBox wrapper : pas de margin générique, #loveBox gère margin:0 16px */
+.mu-lovebox-wrap {
   margin: 0 !important;
 }
 
