@@ -532,9 +532,30 @@ window.nousSignalNew = function() {
   // SYNC VISIBILITÉ SECTIONS
   // ─────────────────────────────
   window.elleSyncSections = function(){
-    // Dans la nouvelle structure, tout est dans elleLuiSection — pas besoin de toggle show/hide
-    // On adapte juste les boutons d'édition selon le profil
     var profile = getProfile();
+    var elleSection  = document.getElementById('elleSectionContent');
+    var luiSection   = document.getElementById('luiSectionContent');
+    var elleGear     = document.getElementById('elleGearBtn');
+    var luiGear      = document.getElementById('luiGearBtn');
+    var elleTitleBtn = document.getElementById('elleTitleEditBtn');
+    var luiTitleBtn  = document.getElementById('luiTitleEditBtn');
+    if(!elleSection || !luiSection) return;
+    if(profile === 'boy'){
+      luiSection.style.display  = 'block';
+      if(!elleSection.dataset.forceOpen) elleSection.style.display = 'none';
+      if(elleGear)     elleGear.style.display     = '';
+      if(luiGear)      luiGear.style.display      = 'none';
+      if(elleTitleBtn) elleTitleBtn.style.display  = 'flex';
+      if(luiTitleBtn)  luiTitleBtn.style.display   = 'none';
+    } else {
+      elleSection.style.display = 'block';
+      if(!luiSection.dataset.forceOpen) luiSection.style.display = 'none';
+      if(elleGear)     elleGear.style.display     = 'none';
+      if(luiGear)      luiGear.style.display      = '';
+      if(elleTitleBtn) elleTitleBtn.style.display  = 'none';
+      if(luiTitleBtn)  luiTitleBtn.style.display   = 'flex';
+    }
+    // Boutons edit : boy → elle, girl → lui
     SLOTS.forEach(function(slot){
       var eBtn = document.getElementById('elle-btn-'+slot);
       var lBtn = document.getElementById('lui-btn-'+slot);
@@ -573,8 +594,6 @@ window.nousSignalNew = function() {
         img.src=url; img.style.display=''; img.classList.add('loaded');
         if(empty) empty.style.display='none';
         if(btn) btn.classList.remove('empty');
-        // Mettre à jour la vignette dans la grille slots-grid
-        if(typeof window.elleLuiUpdateSlot==='function') window.elleLuiUpdateSlot(section, slot, url);
       };
       t.onerror = function(){
         img.style.display='none';
@@ -586,122 +605,6 @@ window.nousSignalNew = function() {
   }
   window.elleLoadImages = function(){ _loadImages('elle'); };
   window.luiLoadImages  = function(){ _loadImages('lui');  };
-
-  // ── Mettre à jour un slot-cell dans la grille après chargement photo ──
-  window.elleLuiUpdateSlot = function(section, slot, src){
-    var cell = document.getElementById(section+'-slot-'+slot);
-    if(!cell) return;
-    cell.innerHTML = '<img src="'+src+'" style="width:100%;height:100%;object-fit:cover;">';
-    cell.classList.add('filled');
-  };
-
-  // ── Ouvrir la vue expanded ──
-  var _expandedCurrentSection = 'elle';
-  var _expandedCurrentIdx = 0;
-
-  window.elleLuiOpenExpanded = function(section){
-    _expandedCurrentSection = section;
-    _expandedCurrentIdx = 0;
-    var grid     = document.getElementById('elleLuiGrid');
-    var expanded = document.getElementById('elleLuiExpanded');
-    if(!grid || !expanded) return;
-    grid.style.display = 'none';
-    expanded.classList.add('open');
-    document.getElementById('tabElle').classList.toggle('active', section==='elle');
-    document.getElementById('tabLui').classList.toggle('active',  section==='lui');
-    _elleLuiRenderSlots(section);
-  };
-
-  window.elleLuiSwitchTab = function(section){
-    _expandedCurrentSection = section;
-    _expandedCurrentIdx = 0;
-    document.getElementById('tabElle').classList.toggle('active', section==='elle');
-    document.getElementById('tabLui').classList.toggle('active',  section==='lui');
-    _elleLuiRenderSlots(section);
-  };
-
-  window.elleLuiCloseExpanded = function(){
-    var grid     = document.getElementById('elleLuiGrid');
-    var expanded = document.getElementById('elleLuiExpanded');
-    if(grid)     grid.style.display = '';
-    if(expanded) expanded.classList.remove('open');
-  };
-
-  function _elleLuiRenderSlots(section){
-    var scroll  = document.getElementById('expandedScroll');
-    var dots    = document.getElementById('expandedDots');
-    var notice  = document.getElementById('expandedNotice');
-    if(!scroll) return;
-    scroll.innerHTML = '';
-    if(dots) dots.innerHTML = '';
-
-    var profile  = getProfile();
-    var editable = (section==='elle' && profile==='boy') || (section==='lui' && profile==='girl');
-    var banners  = section==='elle' ? _elleBanners : _luiBanners;
-    var descs    = section==='elle' ? _elleDescs   : _luiDescs;
-
-    if(notice){
-      notice.textContent = editable ? '✏️ Tu peux modifier cette pochette' : '🔒 Tu ne peux modifier que la pochette de '+(profile==='girl'?'Lui':'Elle');
-      notice.style.color = editable ? 'var(--accent)' : 'var(--muted)';
-    }
-
-    var coupleId = _getCoupleId();
-
-    SLOTS.forEach(function(slot, idx){
-      var imgEl  = document.getElementById(section+'-img-'+slot);
-      var hasImg = imgEl && imgEl.src && imgEl.src !== window.location.href;
-      var banner = banners[slot] || slot.charAt(0).toUpperCase()+slot.slice(1);
-      var desc   = descs[slot]   || '';
-
-      var slotDiv = document.createElement('div');
-      slotDiv.className = 'expanded-slot';
-
-      var imgDiv = document.createElement('div');
-      imgDiv.className = 'expanded-slot-img' + (hasImg ? '' : ' empty');
-      if(hasImg){
-        var img = document.createElement('img');
-        img.src = imgEl.src;
-        imgDiv.appendChild(img);
-      } else {
-        imgDiv.textContent = ['🐾','🌸','🧑','🍂','🍽️'][idx] || '📷';
-      }
-
-      var footer = document.createElement('div');
-      footer.className = 'expanded-slot-footer';
-      footer.innerHTML =
-        '<div class="expanded-slot-info">'+
-          '<div class="expanded-slot-name">'+escHtml(banner)+'</div>'+
-          '<div class="expanded-slot-desc">'+escHtml(desc)+'</div>'+
-        '</div>'+
-        '<button class="expanded-slot-edit'+(editable?'':' disabled')+'"'+(editable?'':'disabled')+'>'+
-          (editable ? (hasImg?'Modifier':'Ajouter') : '🔒 Lecture seule')+
-        '</button>';
-
-      if(editable){
-        footer.querySelector('.expanded-slot-edit').addEventListener('click', function(){
-          window.slotOpenEdit(section, slot);
-        });
-      }
-
-      slotDiv.appendChild(imgDiv);
-      slotDiv.appendChild(footer);
-      scroll.appendChild(slotDiv);
-
-      // Dot
-      if(dots){
-        var dot = document.createElement('div');
-        dot.className = 'expanded-dot' + (idx===0?' active':'');
-        dots.appendChild(dot);
-      }
-    });
-
-    // Sync dots au scroll
-    scroll.onscroll = function(){
-      var idx = Math.round(scroll.scrollLeft / scroll.clientWidth);
-      if(dots) dots.querySelectorAll('.expanded-dot').forEach(function(d,i){ d.classList.toggle('active', i===idx); });
-    };
-    scroll.scrollLeft = 0;
-  }
 
   // ─────────────────────────────
   // CHARGEMENT DONNÉES SUPABASE
@@ -1734,24 +1637,21 @@ loadLikeCounters();
     var favScroll    = document.getElementById('souvenirsFavScroll');
     if(!recentRow||!favRow||!recentScroll||!favScroll||!emptyEl) return;
     recentScroll.innerHTML=''; favScroll.innerHTML='';
-    // Carte "+" pour ajouter
-    function _addCard(){ var a=document.createElement('div'); a.className='souvenir-add-card'; a.textContent='+'; a.addEventListener('click',function(){ nousOpenSouvenirModal(null); }); return a; }
     if(!rows.length){
       recentRow.style.display='none'; favRow.style.display='none';
       emptyEl.style.display='block'; return;
     }
     emptyEl.style.display='none';
+    // Favoris en tête de liste
     var favs   = rows.filter(function(s){ return s.is_fav; });
     var recent = rows.filter(function(s){ return !s.is_fav; }).slice(0,5);
     if(favs.length){
       favRow.style.display='block';
       favs.forEach(function(s){ favScroll.appendChild(_buildSouvenirCard(s)); });
-      favScroll.appendChild(_addCard());
     } else { favRow.style.display='none'; }
     if(recent.length){
       recentRow.style.display='block';
       recent.forEach(function(s){ recentScroll.appendChild(_buildSouvenirCard(s)); });
-      recentScroll.appendChild(_addCard());
     } else { recentRow.style.display='none'; }
   }
 
@@ -1759,17 +1659,23 @@ loadLikeCounters();
     var card=document.createElement('div'); card.className='souvenir-card';
     var photoUrl=s.photo_url||'';
     var dateStr=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'';
-    var photoStyle=photoUrl?'background-image:url('+escHtml(photoUrl)+');background-size:cover;background-position:center;':'';
+    var photoStyle=photoUrl?'background-image:url('+escHtml(photoUrl)+');':'';
+    var pencilSVG='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
     card.innerHTML=
       '<div class="souvenir-photo" style="'+photoStyle+'">'
       +(photoUrl?'':'<span style="font-size:28px;opacity:0.3;">&#128247;</span>')
       +(s.lieu?'<div class="souvenir-lieu">&#128205; '+escHtml(s.lieu)+'</div>':'')
       +'</div>'
-      +'<div class="sov-band">'
-      +'<div class="sov-band-title">'+escHtml(s.title||'Souvenir')+'</div>'
-      +(dateStr?'<div class="sov-band-sub">'+escHtml(dateStr)+'</div>':'<div class="sov-band-sub">Souvenir</div>')
+      +'<div class="souvenir-info">'
+      +'<div class="souvenir-info-text">'
+      +'<div class="souvenir-name">'+escHtml(s.title||'Souvenir')+'</div>'
+      +(dateStr?'<div class="souvenir-date">'+escHtml(dateStr)+'</div>':'')
+      +'</div>'
+      +'<div class="souvenir-edit-icon">'+pencilSVG+'</div>'
       +'</div>';
-    card.addEventListener('click', function(){ nousOpenSouvenirModal(s); });
+    card.querySelector('.souvenir-edit-icon').addEventListener('click',function(e){ e.stopPropagation(); nousOpenSouvenirModal(s); });
+    // Badge NEW — posé sur la card racine (position:relative, sans overflow:hidden)
+    // .souvenir-photo a overflow:hidden pour rogner la photo → badge invisible si posé dessus
     if(s.id && typeof window.yamIsNew==='function' && window.yamIsNew('souvenir_'+s.id)){
       if(typeof window.yamShowNewBadge==='function') window.yamShowNewBadge(card, true);
     }
@@ -2063,28 +1969,23 @@ loadLikeCounters();
     var container=document.getElementById('activitesContainer'); if(!container) return;
     container.innerHTML='';
 
-    // Alimenter la bulle "Idée du jour" avec l'idée statique du jour
+    // Idée du jour
+    var coupleId=_getCoupleId();
     var dayOfYear=Math.floor((Date.now()-new Date(new Date().getFullYear(),0,0))/(1000*60*60*24));
     var todaySuggested=ACTIVITES_SUGGEREES[dayOfYear%ACTIVITES_SUGGEREES.length];
     var alreadyAdded=_activiteAllRows.some(function(r){ return r.title===todaySuggested.titre; });
-    var titleEl=document.getElementById('activiteIaTitle');
-    var subEl=document.getElementById('activiteIaSub');
-    var addBtn=document.getElementById('activiteIaAddBtn');
-    var trigBtn=document.getElementById('activiteIaTriggerBtn');
-    if(titleEl) titleEl.textContent=(todaySuggested.emoji||'⭐')+' '+escHtml(todaySuggested.titre);
-    if(subEl)   subEl.textContent=escHtml(todaySuggested.desc||'');
     if(!alreadyAdded){
-      // Stocker dans le cache pour que activiteIaAdd() puisse l'ajouter
-      _iaSuggCache={emoji:todaySuggested.emoji||'✨',title:todaySuggested.titre,description:todaySuggested.desc||'',steps:todaySuggested.steps||[]};
-      if(addBtn) addBtn.style.display='inline-flex';
-      if(trigBtn) trigBtn.style.display='none';
-    } else {
-      _iaSuggCache=null;
-      if(addBtn) addBtn.style.display='none';
-      if(trigBtn) { trigBtn.style.display='inline-flex'; trigBtn.disabled=false; }
+      var suggCard=document.createElement('div'); suggCard.className='activite-sugg-card';
+      suggCard.innerHTML='<div class="activite-sugg-badge">Idée du jour</div>'+
+        '<div class="activite-header"><span class="activite-emoji">'+todaySuggested.emoji+'</span>'+
+        '<div class="activite-info"><div class="activite-titre">'+escHtml(todaySuggested.titre)+'</div>'+
+        '<div class="activite-desc">'+escHtml(todaySuggested.desc)+'</div></div></div>'+
+        '<button class="activite-add-btn" onclick="nousAddSuggestedActivite()">Ajouter à nos activités</button>';
+      suggCard.dataset.sugg=JSON.stringify(todaySuggested);
+      container.appendChild(suggCard);
     }
 
-    // Cartes activités en cours — 2 max
+    // 2 cartes max — tri : étoilées non-terminées en tête, terminées en bas
     var sorted=_sortForHome(_activiteAllRows);
     var toShow=sorted.slice(0,2);
     toShow.forEach(function(act){ container.appendChild(_buildActiviteCard(act)); });
@@ -2099,7 +2000,7 @@ loadLikeCounters();
     }
   }
 
-  // ── Build une carte activité pour la page principale — maquette v5 ──
+  // ── Build une carte activité pour la page principale ──
   function _buildActiviteCard(act){
     var steps=_actSteps(act);
     var total=steps.length; var doneCount=steps.filter(function(s){return s.done;}).length;
@@ -2110,26 +2011,25 @@ loadLikeCounters();
     var stepsHtml='';
     steps.forEach(function(s,i){
       stepsHtml+='<div class="activite-step'+(s.done?' done':'')+'" data-idx="'+i+'">'+
-        '<div class="step-circle'+(s.done?' done':'')+'">'+(s.done?'✓':'')+'</div>'+
-        '<span class="activite-step-text">'+escHtml(s.text)+'</span>'+
+        '<div class="activite-step-check">'+(s.done?'✓':'')+'</div>'+
+        '<div class="activite-step-text">'+escHtml(s.text)+'</div>'+
         '</div>';
     });
-    var editSVG='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
     card.innerHTML=
-      '<div class="activite-body-header">'+
-        '<div class="activite-body-title"><span style="font-size:18px;">'+(act.emoji||'✨')+'</span> '+escHtml(act.title||'Activité')+(isStarred?' ⭐':'')+' </div>'+
-        '<div style="display:flex;align-items:center;gap:8px;">'+
-          (total?'<div class="activite-counter">'+doneCount+' / '+total+'</div>':'')+
-          '<button class="activite-edit-btn">'+editSVG+'</button>'+
+      '<div class="activite-card-header">'+
+        '<span class="activite-emoji">'+(act.emoji||'✨')+'</span>'+
+        '<div class="activite-info">'+
+          '<div class="activite-titre">'+escHtml(act.title||'Activité')+(isStarred?' <span style="font-size:11px;vertical-align:middle;opacity:0.85;">⭐</span>':'')+'</div>'+
+          (act.description?'<div class="activite-desc">'+escHtml(act.description)+'</div>':'')+
         '</div>'+
+        '<button class="activite-edit-btn">'+_gearSVG()+'</button>'+
       '</div>'+
-      (act.description?'<div class="activite-body-sub">'+escHtml(act.description)+'</div>':'')+
-      (total?'<div class="activite-progress-bar"><div class="activite-progress-fill" style="width:'+pct+'%"></div></div>':'')+
+      (total?'<div class="activite-progress-wrap"><div class="activite-progress-bar"><div class="activite-progress-fill" style="width:'+pct+'%"></div></div><div class="activite-progress-txt">'+doneCount+'/'+total+'</div></div>':'')+
       (stepsHtml?'<div class="activite-steps">'+stepsHtml+'</div>':'')+
-      (isCompleted?'<div class="activite-completed">Activité complétée ! 🎉</div>':'');
+      (isCompleted?'<div class="activite-completed">Activité complétée !</div>':'');
     card.querySelector('.activite-edit-btn').addEventListener('click',function(){ window.nousOpenActiviteModal(act); });
     card.querySelectorAll('.activite-step').forEach(function(el){
-      el.querySelector('.step-circle').addEventListener('click',function(){
+      el.querySelector('.activite-step-check').addEventListener('click',function(){
         window.nousToggleStep(act.id,parseInt(el.dataset.idx));
       });
     });
@@ -2368,37 +2268,40 @@ loadLikeCounters();
   }
 
   window.activiteIaSuggest = function(){
-    var titleEl  = document.getElementById('activiteIaTitle');
-    var subEl    = document.getElementById('activiteIaSub');
-    var addBtn   = document.getElementById('activiteIaAddBtn');
-    var trigBtn  = document.getElementById('activiteIaTriggerBtn');
-    if(!titleEl) return;
+    var btn = document.getElementById('activiteIaBtn');
+    var card = document.getElementById('activiteIaSuggCard');
+    var textEl = document.getElementById('activiteIaSuggText');
+    var metaEl = document.getElementById('activiteIaSuggMeta');
+    if(!btn || !textEl) return;
 
     // Limite journalière : 3 suggestions par jour
     if(_iaSuggGetCount() >= _IA_SUGG_MAX_PER_DAY){
-      titleEl.textContent = 'Le petit robot est épuisé 😴';
-      if(subEl) subEl.textContent = 'Reviens demain pour de nouvelles idées !';
-      if(addBtn) addBtn.style.display = 'none';
-      if(trigBtn) { trigBtn.style.display = 'inline-flex'; trigBtn.textContent = 'Limite atteinte'; trigBtn.disabled = true; }
+      if(card) card.style.display = 'flex';
+      textEl.innerHTML = '🤖 Le petit robot est épuisé... Revenez demain pour de nouvelles idées ! 😴';
+      if(metaEl) metaEl.textContent = 'Limite journalière atteinte';
+      btn.disabled = true;
+      btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Reviens demain 😴';
       return;
     }
 
-    // Cooldown anti-spam : 30s
+    // Cooldown anti-spam : 30s minimum entre chaque appel Gemini
     var now = Date.now();
     var remaining = Math.ceil((_iaSuggLastCall + _IA_SUGG_COOLDOWN - now) / 1000);
     if(remaining > 0){
-      if(typeof showToast === 'function') showToast('Patiente encore ' + remaining + 's 😊', 'info');
+      if(typeof showToast === 'function') showToast('Patiente encore ' + remaining + 's avant une nouvelle idée 😊', 'info');
       return;
     }
     _iaSuggLastCall = now;
 
-    titleEl.textContent = 'Génération en cours…';
-    if(subEl) subEl.textContent = '';
-    if(addBtn) addBtn.style.display = 'none';
-    if(trigBtn) trigBtn.style.display = 'none';
+    btn.disabled = true;
+    btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="spin-anim"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Génération...';
 
+    var coupleId = _getCoupleId();
+    var u = (typeof v2GetUser==='function') ? v2GetUser() : null;
+    var partnerName = u ? (u.partner_pseudo || 'ton partenaire') : 'ton partenaire';
     var daysTogether = 0;
     if(window.startDate){ daysTogether = Math.floor((Date.now()-new Date(window.startDate))/(1000*60*60*24)); }
+
     var saison = ['hiver','hiver','printemps','printemps','printemps','été','été','été','automne','automne','automne','hiver'][new Date().getMonth()];
     var doneActivites = _activiteAllRows.filter(function(a){ return _actDone(a); }).map(function(a){ return a.title; }).slice(0,5);
 
@@ -2415,21 +2318,30 @@ loadLikeCounters();
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(data.error) throw new Error(data.error);
-      var raw = (data.text || '').replace(/```json|```/g,'').trim();
+      var raw = data.text || '';
+      // Nettoyer les éventuels backticks markdown
+      raw = raw.replace(/```json|```/g,'').trim();
       var parsed = JSON.parse(raw);
       _iaSuggCache = parsed;
-      titleEl.textContent = (parsed.emoji||'✨') + ' ' + (parsed.title||'');
-      if(subEl) subEl.textContent = parsed.description || '';
-      if(addBtn) addBtn.style.display = 'inline-flex';
-      if(trigBtn) trigBtn.style.display = 'none';
-      _iaSuggIncrCount();
+      if(card) card.style.display = 'flex';
+      textEl.innerHTML = '<strong>'+(parsed.emoji||'✨')+' '+escHtml(parsed.title||'')+'</strong><br><span style="font-weight:400;">'+escHtml(parsed.description||'')+'</span>';
+      if(parsed.steps && parsed.steps.length){
+        textEl.innerHTML += '<ul style="margin:8px 0 0 0;padding-left:16px;font-size:12px;color:var(--muted);line-height:1.6;">';
+        parsed.steps.forEach(function(s){ textEl.innerHTML += '<li>'+escHtml(s)+'</li>'; });
+        textEl.innerHTML += '</ul>';
+      }
+      if(metaEl) metaEl.textContent = 'Suggestion IA · '+saison.charAt(0).toUpperCase()+saison.slice(1);
+      _iaSuggIncrCount(); // comptabiliser l'appel réussi
     })
-    .catch(function(){
+    .catch(function(err){
+      if(card) card.style.display = 'flex';
+      textEl.textContent = 'Une idée : planifiez une soirée jeux de société thématique avec vos jeux préférés ! 🎲';
+      if(metaEl) metaEl.textContent = 'Suggestion hors-ligne';
       _iaSuggCache = {emoji:'🎲',title:'Soirée jeux thématique',description:'Planifiez une soirée jeux ensemble',steps:['Choisir les jeux','Préparer les snacks','Jouer !']};
-      titleEl.textContent = '🎲 Soirée jeux thématique';
-      if(subEl) subEl.textContent = 'Planifiez une soirée jeux ensemble';
-      if(addBtn) addBtn.style.display = 'inline-flex';
-      if(trigBtn) trigBtn.style.display = 'none';
+    })
+    .finally(function(){
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Nouvelle idée pour nous';
     });
   };
 
@@ -2441,14 +2353,8 @@ loadLikeCounters();
     fetch(SB2_URL+'/rest/v1/v2_activites',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
     .then(function(){
       _iaSuggCache = null;
-      var addBtn = document.getElementById('activiteIaAddBtn');
-      var trigBtn = document.getElementById('activiteIaTriggerBtn');
-      var titleEl = document.getElementById('activiteIaTitle');
-      if(addBtn) addBtn.style.display = 'none';
-      if(trigBtn) { trigBtn.style.display = 'inline-flex'; trigBtn.disabled = false; }
-      if(titleEl) titleEl.textContent = '✅ Ajouté à vos activités !';
-      var subEl = document.getElementById('activiteIaSub');
-      if(subEl) subEl.textContent = 'Clique sur Inspirez-nous pour une nouvelle idée';
+      var card = document.getElementById('activiteIaSuggCard');
+      if(card) card.style.display = 'none';
       window.nousLoadActivites();
     }).catch(function(){});
   };
@@ -2722,66 +2628,30 @@ loadLikeCounters();
   var _histoireFromGestion = false;
   var _histoireEditingId = null;
 
-  // ── Rendu histoire — maquette v5 ──
+  // ── Rendu timeline principale ──
   window.histoireRenderTimeline = function(items){
     var container = document.getElementById('tlItemsContainer');
     if(!container) return;
     container.innerHTML = '';
-
+    if(!items || !items.length){
+      container.innerHTML = '<div class="tl-item visible"><div class="tl-dot"></div><div class="tl-date">En construction</div><div class="tl-card"><h3>Notre histoire commence... 🌟</h3><p>Clique sur le crayon pour ajouter vos premiers chapitres.</p></div></div>';
+      return;
+    }
     // Tri par sort_order puis created_at
-    var sorted = (items||[]).slice().sort(function(a,b){
+    var sorted = items.slice().sort(function(a,b){
       if((a.sort_order||0)!=(b.sort_order||0)) return (a.sort_order||0)-(b.sort_order||0);
       return (a.created_at||'').localeCompare(b.created_at||'');
     });
-
-    // Fallback si vide
-    if(!sorted.length){
-      sorted = [{emoji:'💫', date_label:'Premier rendez-vous', title:'Notre histoire commence...', text:'Clique sur le crayon pour ajouter vos premiers chapitres.', _placeholder:true}];
-    }
-
-    var current = sorted[0];
-
-    var card = document.createElement('div');
-    card.className = 'histoire-card';
-    card.innerHTML =
-      '<div class="histoire-main">'+
-        '<button class="histoire-edit-btn" onclick="histoireOpenGestion()">'+
-          '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Éditer'+
-        '</button>'+
-        '<div class="histoire-line1">'+
-          '<span class="histoire-emoji" id="histEmoji">'+(current.emoji||'💫')+'</span>'+
-          '<span class="histoire-date"  id="histDate">'+escHtml(current.date_label||'')+'</span>'+
-        '</div>'+
-        '<div class="histoire-title"   id="histTitle">'+escHtml(current.title||'')+'</div>'+
-        '<div class="histoire-excerpt" id="histExcerpt">'+escHtml(current.text||'')+'</div>'+
-      '</div>'+
-      '<div class="histoire-sep"></div>'+
-      '<div class="histoire-strip" id="histStrip"></div>';
-
-    container.appendChild(card);
-
-    // Remplir la strip
-    var strip = card.querySelector('#histStrip');
-    sorted.forEach(function(item, idx){
-      var tab = document.createElement('div');
-      tab.className = 'histoire-strip-item' + (idx===0?' active':'');
-      tab.innerHTML =
-        '<div class="strip-num">Chap. '+(item.sort_order||idx+1)+'</div>'+
-        '<div class="strip-title">'+escHtml(item.title||'À écrire…')+'</div>';
-      tab.addEventListener('click', function(){
-        // Mise à jour preview
-        document.getElementById('histEmoji').textContent  = item.emoji||'💫';
-        document.getElementById('histDate').textContent   = item.date_label||'';
-        document.getElementById('histTitle').textContent  = item.title||'';
-        document.getElementById('histExcerpt').textContent= item.text||'';
-        // Tab actif
-        strip.querySelectorAll('.histoire-strip-item').forEach(function(t){ t.classList.remove('active'); });
-        tab.classList.add('active');
-        // Ouvrir modal édition si placeholder
-        if(item._placeholder) histoireOpenGestion();
-      });
-      strip.appendChild(tab);
+    sorted.forEach(function(item){
+      var el = document.createElement('div');
+      el.className = 'tl-item';
+      el.innerHTML =
+        '<div class="tl-dot"></div>'+
+        '<div class="tl-date">'+(item.emoji?escHtml(item.emoji)+' ':'')+escHtml(item.date_label||'')+'</div>'+
+        '<div class="tl-card"><h3>'+escHtml(item.title||'')+'</h3><p>'+escHtml(item.text||'')+'</p></div>';
+      container.appendChild(el);
     });
+    if(typeof window._tlObserve === 'function') window._tlObserve();
   };
 
   // ── Chargement depuis Supabase ──
@@ -2981,48 +2851,40 @@ loadLikeCounters();
   function _renderLivresSlider(){
     var slider = document.getElementById('livresSlider'); if(!slider) return;
     slider.innerHTML = '';
+    if(!_livresAllRows.length){
+      var empty = document.createElement('div');
+      empty.style.cssText = 'color:var(--muted);font-size:13px;padding:16px 4px;';
+      empty.textContent = 'Ajoutez votre première pochette ! 📚';
+      slider.appendChild(empty);
+      return;
+    }
     var toShow = _livresAllRows.slice(0,MAX_VISIBLE);
     toShow.forEach(function(book){ slider.appendChild(_buildLivreCard(book)); });
-    // Carte "+" pour ajouter
-    var addCard = document.createElement('div');
-    addCard.className = 'livre-card add-livre';
-    addCard.textContent = '+';
-    addCard.addEventListener('click', function(){ window.livresOpenNew(); });
-    slider.appendChild(addCard);
   }
 
-  // ── Build une carte livre pour le slider (maquette v5) ──
+  // ── Build une carte livre pour le slider ──
   function _buildLivreCard(book){
     var card = document.createElement('div');
-    card.className = 'livre-card';
+    card.className = 'album-card lui-card-wrap';
+    card.style.position = 'relative';
     var photoUrl = book.has_image ? (SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/books/'+book.couple_id+'/'+book.id+'.jpg?t='+Math.floor(Date.now()/60000)) : '';
-    // Fond coloré gradient selon position (comme la maquette)
-    var gradients = [
-      'linear-gradient(135deg,#e75a7c,#ff8fab)',
-      'linear-gradient(135deg,#34c759,#7fff00)',
-      'linear-gradient(135deg,#FFD700,#FFA500)',
-      'linear-gradient(135deg,#7c6af7,#4fc3f7)',
-      'linear-gradient(135deg,#e75a7c,#7c6af7)'
-    ];
-    var idx = _livresAllRows.indexOf(book);
-    var grad = gradients[idx % gradients.length];
-    card.style.background = grad;
+    var editSVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
     // Badge NEW
     var isNew = window.yamIsNew ? window.yamIsNew('livre_'+book.id) : false;
     var newBadge = isNew ? '<span style="position:absolute;top:4px;right:4px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-size:8px;font-weight:800;letter-spacing:0.5px;padding:2px 5px;border-radius:6px;text-transform:uppercase;z-index:10;pointer-events:none;">NEW</span>' : '';
-    card.style.position = 'relative';
     card.innerHTML =
-      '<div class="livre-img" style="position:relative;">'+newBadge+
+      '<div class="album-image" style="position:relative;">'+newBadge+
         (photoUrl ?
-          '<img src="'+escHtml(photoUrl)+'" style="width:100%;height:100%;object-fit:cover;" loading="lazy">' :
-          '<span style="font-size:30px;">📚</span>'
+          '<img src="'+escHtml(photoUrl)+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px 10px 0 0;" loading="lazy">' :
+          '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;color:var(--muted);">📚</div>'
         )+
+        '<div class="album-banner">'+escHtml(book.title||'Sans titre')+'</div>'+
+        '<div class="lui-upload-btn"><div class="lui-upload-icon">'+editSVG+'</div><div class="lui-upload-lbl">Modifier</div></div>'+
       '</div>'+
-      '<div class="livre-band">'+
-        '<div class="livre-band-title">'+escHtml(book.title||'Sans titre')+'</div>'+
-        '<div class="livre-band-author">'+escHtml(book.description||'')+'</div>'+
-      '</div>';
-    card.addEventListener('click', function(){ _livreFromGestion=false; window.livresOpenEdit(book); });
+      '<div class="album-desc" style="cursor:default;">'+escHtml(book.description||'Ajouter une légende...')+'</div>';
+    // Clic bouton edit (la photo / bouton modifier)
+    card.querySelector('.lui-upload-btn').addEventListener('click',function(e){ e.stopPropagation(); _livreFromGestion=false; window.livresOpenEdit(book); });
+    // (pas de click sur la légende — double-clic photo suffit pour éditer)
     return card;
   }
 
@@ -4241,4 +4103,504 @@ window.nousLoad = function(){
 
 // ════════════════════════════════════════════════════════════════════
 // FIN DU MODULE FLAMME
+// ════════════════════════════════════════════════════════════════════
+
+
+// ═══════════════════════════════════════════════════════════════════
+// NOUVEAU UI v8 — Maquette v5
+// Fonctions qui pilotent les nouveaux composants HTML
+// ═══════════════════════════════════════════════════════════════════
+
+// ────────────────────────────────────────────────
+// HISTOIRE STRIP v5 — remplace l'ancienne timeline
+// Appelé après histoireLoad (override de histoireRenderTimeline)
+// ────────────────────────────────────────────────
+(function(){
+  var _histRows = [];
+  var _histActiveIdx = 0;
+
+  // Override de histoireRenderTimeline pour alimenter aussi la new UI
+  var _origRender = window.histoireRenderTimeline;
+  window.histoireRenderTimeline = function(items){
+    // Appel original (maintient compat JS scroll/observers)
+    if(typeof _origRender === 'function') _origRender(items);
+    // Nouvelle UI
+    _histRows = Array.isArray(items) ? items.slice().sort(function(a,b){
+      if((a.sort_order||0)!=(b.sort_order||0)) return (a.sort_order||0)-(b.sort_order||0);
+      return (a.created_at||'').localeCompare(b.created_at||'');
+    }) : [];
+    _histActiveIdx = 0;
+    _renderHistMain();
+    _renderHistStrip();
+  };
+
+  function _renderHistMain(){
+    var rows = _histRows;
+    var idx  = _histActiveIdx;
+    var item = rows[idx] || null;
+    var emojiEl  = document.getElementById('histEmoji');
+    var dateEl   = document.getElementById('histDate');
+    var titleEl  = document.getElementById('histTitle');
+    var excerptEl= document.getElementById('histExcerpt');
+    if(!emojiEl) return;
+    if(!item){
+      emojiEl.textContent   = '💫';
+      dateEl.textContent    = '';
+      titleEl.textContent   = 'Notre histoire commence…';
+      excerptEl.textContent = 'Clique sur le crayon pour ajouter vos premiers chapitres.';
+      return;
+    }
+    emojiEl.textContent   = item.emoji || '💫';
+    dateEl.textContent    = item.date_label || '';
+    titleEl.textContent   = item.title || '';
+    excerptEl.textContent = (item.text || '').substring(0, 80) + (item.text && item.text.length > 80 ? '…' : '');
+  }
+
+  function _renderHistStrip(){
+    var strip = document.getElementById('histStrip'); if(!strip) return;
+    strip.innerHTML = '';
+    var rows = _histRows;
+    if(!rows.length){
+      var ph = document.createElement('div');
+      ph.className = 'histoire-strip-item-new active';
+      ph.innerHTML = '<div class="strip-num-new">Chap. 1</div><div class="strip-title-new">À écrire…</div>';
+      strip.appendChild(ph);
+      return;
+    }
+    rows.forEach(function(item, i){
+      var el = document.createElement('div');
+      el.className = 'histoire-strip-item-new' + (i === _histActiveIdx ? ' active' : '');
+      el.innerHTML = '<div class="strip-num-new">Chap. '+(i+1)+'</div><div class="strip-title-new">'+escHtml(item.title||'')+'</div>';
+      (function(idx){ el.addEventListener('click', function(){ histSelectItem(idx); }); })(i);
+      strip.appendChild(el);
+    });
+  }
+
+  // Exposé globalement pour les onclick HTML
+  window.histSelectItem = function(idxOrEl, legacyIdx){
+    // Support dual signature: histSelectItem(element, idx) ancien ou histSelectItem(idx) nouveau
+    var idx = (typeof idxOrEl === 'number') ? idxOrEl : legacyIdx;
+    if(typeof idx !== 'number') return;
+    _histActiveIdx = idx;
+    _renderHistMain();
+    // Update classes strip
+    var strip = document.getElementById('histStrip'); if(!strip) return;
+    Array.from(strip.querySelectorAll('.histoire-strip-item-new')).forEach(function(el, i){
+      el.classList.toggle('active', i === idx);
+    });
+  };
+
+  // Alias pour ancien onclick histSelect
+  window.histSelect = function(el, idx){ window.histSelectItem(idx); };
+})();
+
+
+// ────────────────────────────────────────────────
+// ELLE & LUI — EXPANDED VIEW v5
+// ────────────────────────────────────────────────
+(function(){
+  var SLOTS = ['animal','fleurs','personnage','saison','repas'];
+  var SLOT_EMOJIS = {animal:'🐾', fleurs:'🌸', personnage:'🧑', saison:'🍂', repas:'🍽️'};
+
+  var _currentSection = 'elle';
+
+  // Mise à jour des images dans la grille 2×3 compacte
+  // Quand elleLoadImages / luiLoadImages sont appelées, elles mettent à jour les #elle-img-* etc.
+  // On observe ces images pour refléter l'état dans la grille compacte
+  function _syncPreviewGrid(section){
+    var slots = SLOTS;
+    slots.forEach(function(slot){
+      var srcImg = document.getElementById(section+'-img-'+slot);
+      var previewCell = document.getElementById('preview-'+section+'-'+slot);
+      if(!srcImg || !previewCell) return;
+      var previewImg = previewCell.querySelector('img');
+      var previewFallback = previewCell.querySelector('.slot-emoji-fallback');
+      if(!previewImg){
+        previewImg = document.createElement('img');
+        previewImg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
+        previewCell.style.position = 'relative';
+        previewCell.insertBefore(previewImg, previewCell.firstChild);
+      }
+      function _applyState(){
+        var hasPhoto = srcImg.src && srcImg.style.display !== 'none' && srcImg.classList.contains('loaded');
+        if(hasPhoto){
+          previewImg.src = srcImg.src;
+          previewImg.style.display = 'block';
+          if(previewFallback) previewFallback.style.display = 'none';
+        } else {
+          previewImg.style.display = 'none';
+          if(previewFallback) previewFallback.style.display = '';
+        }
+      }
+      _applyState();
+      // Observer les changements
+      var obs = new MutationObserver(_applyState);
+      obs.observe(srcImg, {attributes:true, attributeFilter:['src','style','class']});
+    });
+  }
+
+  // Appelé après elleLoadImages / luiLoadImages
+  var _origElleLoad = window.elleLoadImages;
+  window.elleLoadImages = function(){
+    if(_origElleLoad) _origElleLoad();
+    setTimeout(function(){ _syncPreviewGrid('elle'); }, 500);
+  };
+  var _origLuiLoad = window.luiLoadImages;
+  window.luiLoadImages = function(){
+    if(_origLuiLoad) _origLuiLoad();
+    setTimeout(function(){ _syncPreviewGrid('lui'); }, 500);
+  };
+
+  // Ouvrir la vue expanded
+  window.openElleLuiExpanded = function(section){
+    _currentSection = section || 'elle';
+    var grid     = document.getElementById('elleLuiGridNew');
+    var expanded = document.getElementById('elleLuiExpandedNew');
+    if(!grid || !expanded) return;
+    grid.style.display = 'none';
+    expanded.style.display = 'block';
+    _renderExpandedSlots(_currentSection);
+    _updateExpandedTabs(_currentSection);
+    _updateExpandedNotice(_currentSection);
+  };
+
+  window.closeElleLuiExpanded = function(){
+    var grid     = document.getElementById('elleLuiGridNew');
+    var expanded = document.getElementById('elleLuiExpandedNew');
+    if(grid)     grid.style.display = '';
+    if(expanded) expanded.style.display = 'none';
+  };
+
+  window.switchElleLuiTab = function(section){
+    _currentSection = section;
+    _renderExpandedSlots(section);
+    _updateExpandedTabs(section);
+    _updateExpandedNotice(section);
+    // Scroll back to first slot
+    var scroll = document.getElementById('expandedScrollNew');
+    if(scroll) scroll.scrollLeft = 0;
+    _updateDots(0);
+  };
+
+  function _updateExpandedTabs(section){
+    var tabElle = document.getElementById('tabElleNew');
+    var tabLui  = document.getElementById('tabLuiNew');
+    if(tabElle) tabElle.classList.toggle('active', section === 'elle');
+    if(tabLui)  tabLui.classList.toggle('active',  section === 'lui');
+  }
+
+  function _updateExpandedNotice(section){
+    var notice = document.getElementById('expandedNoticeNew'); if(!notice) return;
+    var profile = (typeof getProfile === 'function') ? getProfile() : 'girl';
+    var canEdit = (section === 'elle' && profile === 'boy') || (section === 'lui' && profile === 'girl');
+    notice.textContent = canEdit
+      ? 'Tu peux modifier les pochettes en appuyant sur "Éditer"'
+      : 'Seul(e) ton partenaire peut modifier ces pochettes';
+  }
+
+  function _renderExpandedSlots(section){
+    var scroll = document.getElementById('expandedScrollNew'); if(!scroll) return;
+    scroll.innerHTML = '';
+    var profile = (typeof getProfile === 'function') ? getProfile() : 'girl';
+    var canEdit = (section === 'elle' && profile === 'boy') || (section === 'lui' && profile === 'girl');
+
+    SLOTS.forEach(function(slot){
+      var slotEl = document.createElement('div');
+      slotEl.className = 'expanded-slot-new';
+
+      // Image
+      var imgArea = document.createElement('div');
+      imgArea.className = 'expanded-slot-img-new';
+      var srcImg = document.getElementById(section+'-img-'+slot);
+      var hasPhoto = srcImg && srcImg.src && srcImg.style.display !== 'none' && srcImg.classList.contains('loaded');
+      if(hasPhoto){
+        var img = document.createElement('img');
+        img.src = srcImg.src;
+        img.alt = slot;
+        imgArea.appendChild(img);
+      } else {
+        imgArea.classList.add('empty');
+        imgArea.textContent = SLOT_EMOJIS[slot] || '📷';
+      }
+      slotEl.appendChild(imgArea);
+
+      // Footer
+      var footer = document.createElement('div');
+      footer.className = 'expanded-slot-footer-new';
+
+      var info = document.createElement('div');
+      info.className = 'expanded-slot-info-new';
+
+      var bannerEl = document.getElementById(section+'-banner-'+slot);
+      var descEl   = document.getElementById(section+'-desc-'+slot);
+
+      var nameDiv = document.createElement('div');
+      nameDiv.className = 'expanded-slot-name-new';
+      nameDiv.textContent = (bannerEl && bannerEl.textContent) || slot.charAt(0).toUpperCase()+slot.slice(1);
+      info.appendChild(nameDiv);
+
+      var descDiv = document.createElement('div');
+      descDiv.className = 'expanded-slot-desc-new';
+      descDiv.textContent = (descEl && descEl.textContent) || '';
+      info.appendChild(descDiv);
+
+      footer.appendChild(info);
+
+      var editBtn = document.createElement('button');
+      editBtn.className = 'expanded-slot-edit-new' + (canEdit ? '' : ' disabled');
+      editBtn.textContent = canEdit ? 'Éditer' : 'Lecture';
+      if(canEdit){
+        (function(s, sl){ editBtn.addEventListener('click', function(){ window.slotOpenEdit(s, sl); }); })(section, slot);
+      }
+      footer.appendChild(editBtn);
+
+      slotEl.appendChild(footer);
+      scroll.appendChild(slotEl);
+    });
+
+    // Init dots
+    _updateDots(0);
+  }
+
+  // Dots de pagination
+  function _updateDots(activeIdx){
+    var dotsContainer = document.getElementById('expandedDotsNew'); if(!dotsContainer) return;
+    var dots = dotsContainer.querySelectorAll('.expanded-dot-new');
+    dots.forEach(function(d, i){ d.classList.toggle('active', i === activeIdx); });
+  }
+
+  window.updateElleLuiDots = function(){
+    var scroll = document.getElementById('expandedScrollNew'); if(!scroll) return;
+    var slotWidth = scroll.offsetWidth || 300;
+    var idx = Math.round(scroll.scrollLeft / slotWidth);
+    _updateDots(idx);
+  };
+
+  // Sync nousLoad/elleSyncSections — masquer les sections invisibles
+  var _origElleSyncSections = window.elleSyncSections;
+  window.elleSyncSections = function(){
+    if(typeof _origElleSyncSections === 'function') _origElleSyncSections();
+    // Dans la nouvelle UI, la grille est toujours visible, les boutons d'édition sont
+    // gérés dans _updateExpandedNotice au moment de l'ouverture
+  };
+
+})();
+
+
+// ────────────────────────────────────────────────
+// SOUVENIRS — Nouveau rendu pour scroll horizontal
+// Override de _renderSouvenirRows pour nouvelles classes
+// ────────────────────────────────────────────────
+(function(){
+  // Patch _buildSouvenirCard pour utiliser les nouvelles classes
+  // On wrap nousLoadSouvenirs pour déclencher la sync UI après le rendu
+  var _origNousLoadSouvenirs = window.nousLoadSouvenirs;
+  window.nousLoadSouvenirs = function(){
+    if(typeof _origNousLoadSouvenirs === 'function') _origNousLoadSouvenirs();
+    // Le rendu est déjà géré par _renderSouvenirRows existant via les IDs
+    // On laisse le JS original gérer les conteneurs (ids sont conservés)
+    // Il suffit de s'assurer que les scrolls sont visibles
+  };
+})();
+
+
+// ────────────────────────────────────────────────
+// ACTIVITÉS — Cartes style nouveau
+// Override de _buildActiviteCard appelé par _renderActivitesHome
+// ────────────────────────────────────────────────
+(function(){
+  // Patch CSS class sur les cartes d'activité pour adapter le style
+  // Les cartes sont générées par _buildActiviteCard dans la closure existante
+  // On patche le DOM après le rendu pour appliquer les classes nouvelles
+
+  var _origNousLoadActivites = window.nousLoadActivites;
+  window.nousLoadActivites = function(){
+    if(typeof _origNousLoadActivites === 'function') _origNousLoadActivites();
+    // Après le rendu, on applique les classes visuelles nouvelles
+    setTimeout(_patchActiviteCards, 200);
+  };
+
+  function _patchActiviteCards(){
+    var cards = document.querySelectorAll('#activitesContainer .activite-card, #activitesContainer .activite-sugg-card');
+    cards.forEach(function(card){
+      if(card.classList.contains('patched-v8')) return;
+      card.classList.add('patched-v8');
+      // Style de base carte
+      card.style.borderRadius = '16px';
+      card.style.border = '1px solid var(--border)';
+      card.style.background = 'var(--s1)';
+      card.style.overflow = 'hidden';
+    });
+  }
+
+  // Idée du jour IA — sync texte dans le nouveau composant
+  var _origActiviteIaSuggest = window.activiteIaSuggest;
+  // Le bouton "Ajouter" IA est géré : s'il existe dans la nouvelle UI, on le rend visible
+  // après suggestion. Le textEl et metaEl sont retrouvés via ID.
+  // Les IDs activiteIaSuggText, activiteIaSuggMeta, activiteIaAddBtn, activiteIaBtn
+  // sont déjà dans le nouveau HTML — le JS original fonctionne sans modification.
+})();
+
+
+// ────────────────────────────────────────────────
+// RENDERMECOUPLE — patch pour nouveaux IDs si nécessaire
+// (les IDs memoNotePreview, memoTodoPreview sont conservés)
+// ────────────────────────────────────────────────
+// Rien à faire — les IDs sont identiques, renderMemoCouple fonctionne tel quel.
+
+
+// ────────────────────────────────────────────────
+// SOUVENIRS — build thumb style maquette
+// Override de _buildSouvenirCard (dans la closure souvenirs)
+// On remplace le comportement global via un Observer sur les scrolls
+// ────────────────────────────────────────────────
+(function(){
+  // Quand un souvenir-card est ajouté dans souvenirs-scroll-new,
+  // on s'assure que l'image de fond est posée dans un thumb correct
+  // avec bande opaque sov-band
+
+  function _patchSouvenirCard(card){
+    if(card.classList.contains('sov-patched')) return;
+    card.classList.add('sov-patched');
+    // Lire l'inline backgroundImage déjà posé par _buildSouvenirCard
+    var photoDiv = card.querySelector('.souvenir-photo');
+    var nameDiv  = card.querySelector('.souvenir-name');
+    var dateDiv  = card.querySelector('.souvenir-date');
+    if(!photoDiv) return;
+
+    var bgImg = photoDiv.style.backgroundImage;
+    var title = nameDiv ? nameDiv.textContent : '';
+    var date  = dateDiv ? dateDiv.textContent : '';
+
+    // Reconstruire la card avec style thumb + bande
+    card.innerHTML = '';
+    card.style.cssText = 'flex:0 0 88px;height:106px;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;border:1px solid var(--border);flex-shrink:0;';
+
+    var thumbImg = document.createElement('div');
+    thumbImg.style.cssText = 'flex:1;background-size:cover;background-position:center;background-color:var(--s3);display:flex;align-items:center;justify-content:center;font-size:24px;';
+    if(bgImg && bgImg !== 'none') {
+      thumbImg.style.backgroundImage = bgImg;
+    } else {
+      thumbImg.textContent = '📷';
+    }
+    card.appendChild(thumbImg);
+
+    var band = document.createElement('div');
+    band.className = 'sov-band';
+    if(title){
+      var bt = document.createElement('div');
+      bt.className = 'sov-band-title';
+      bt.textContent = title;
+      band.appendChild(bt);
+    }
+    if(date){
+      var bs = document.createElement('div');
+      bs.className = 'sov-band-sub';
+      bs.textContent = date;
+      band.appendChild(bs);
+    }
+    card.appendChild(band);
+  }
+
+  // Observer les mutations dans les scrolls souvenirs
+  function _watchSouvenirScrolls(){
+    ['souvenirsRecentScroll','souvenirsFavScroll'].forEach(function(id){
+      var el = document.getElementById(id); if(!el) return;
+      var obs = new MutationObserver(function(mutations){
+        mutations.forEach(function(m){
+          m.addedNodes.forEach(function(node){
+            if(node.nodeType===1 && node.classList.contains('souvenir-card')){
+              _patchSouvenirCard(node);
+            }
+          });
+        });
+        // Rendre visibles si des cards existent
+        if(el.children.length > 0) el.style.display = 'flex';
+      });
+      obs.observe(el, {childList:true});
+    });
+  }
+
+  // Init quand DOM prêt
+  setTimeout(_watchSouvenirScrolls, 500);
+  document.addEventListener('nousContentReady', function(){
+    setTimeout(_watchSouvenirScrolls, 300);
+  });
+})();
+
+
+// ────────────────────────────────────────────────
+// LIVRES — Patch slider pour style maquette (bande opaque)
+// Override de _buildLivreCard via observer sur livresSlider
+// ────────────────────────────────────────────────
+(function(){
+  function _patchLivreCard(card){
+    if(card.classList.contains('livre-v8-patched')) return;
+    card.classList.add('livre-v8-patched');
+
+    // Lire les infos du card actuel
+    var bannerEl = card.querySelector('.album-banner');
+    var descEl   = card.querySelector('.album-desc');
+    var imgEl    = card.querySelector('img');
+
+    var title = bannerEl ? bannerEl.textContent.trim() : 'Livre';
+    var desc  = descEl   ? descEl.textContent.trim()   : '';
+    var imgSrc = imgEl   ? imgEl.src                   : '';
+
+    // Reconstruire en style maquette
+    card.innerHTML = '';
+    card.style.cssText = 'flex:0 0 78px;height:110px;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;border:1.5px solid var(--border);flex-shrink:0;background:var(--s2);';
+
+    var imgArea = document.createElement('div');
+    imgArea.style.cssText = 'flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--muted);';
+    if(imgSrc && !imgSrc.endsWith('null')){
+      var img = document.createElement('img');
+      img.src = imgSrc;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+      imgArea.appendChild(img);
+    } else {
+      imgArea.textContent = '📚';
+    }
+    card.appendChild(imgArea);
+
+    var band = document.createElement('div');
+    band.className = 'livre-band';
+    var bt = document.createElement('div');
+    bt.className = 'livre-band-title';
+    bt.textContent = title;
+    band.appendChild(bt);
+    if(desc){
+      var bs = document.createElement('div');
+      bs.className = 'livre-band-author';
+      bs.textContent = desc;
+      band.appendChild(bs);
+    }
+    card.appendChild(band);
+  }
+
+  function _watchLivresSlider(){
+    var el = document.getElementById('livresSlider'); if(!el) return;
+    var obs = new MutationObserver(function(mutations){
+      mutations.forEach(function(m){
+        m.addedNodes.forEach(function(node){
+          if(node.nodeType===1 && (node.classList.contains('album-card')||node.classList.contains('lui-card-wrap'))){
+            _patchLivreCard(node);
+          }
+        });
+      });
+    });
+    obs.observe(el, {childList:true});
+    // Patch les cartes déjà présentes
+    el.querySelectorAll('.album-card').forEach(_patchLivreCard);
+  }
+
+  setTimeout(_watchLivresSlider, 500);
+  document.addEventListener('nousContentReady', function(){
+    setTimeout(_watchLivresSlider, 300);
+  });
+})();
+
+
+// ════════════════════════════════════════════════════════════════════
+// FIN — NOUVEAU UI v8
 // ════════════════════════════════════════════════════════════════════
