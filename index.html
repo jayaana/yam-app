@@ -679,6 +679,425 @@ body.nous-active #yamStickyAvatarSelf {
 #nousGearBtn svg { color: var(--muted); }
 
 </style>
+
+<style id="yam-flamme-styles">
+/* ══════════════════════════════════════════════════════════════
+   YAM — FLAMME DE COUPLE — Nouvelle en-tête Nous ♥
+   À ajouter dans css/main.css (ou design-system.css)
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Conteneur principal ────────────────────────────────────── */
+.nous-header-v2 {
+  padding: 24px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg);
+}
+
+/* ── Zone haute : avatars + flamme ──────────────────────────── */
+.nous-hdr-top {
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 4px;
+  position: relative;
+}
+
+/* ── Avatars ─────────────────────────────────────────────────── */
+.nous-hdr-avatar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.nous-hdr-avatar-ring {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  padding: 3px;
+}
+
+.girl-ring {
+  background: linear-gradient(135deg, rgba(240,100,150,0.6), rgba(200,80,140,0.4));
+  box-shadow: 0 4px 20px rgba(240,100,150,0.3);
+}
+.boy-ring {
+  background: linear-gradient(135deg, rgba(80,150,240,0.6), rgba(60,120,220,0.4));
+  box-shadow: 0 4px 20px rgba(80,150,240,0.25);
+}
+
+/* Anneau animé quand flamme active */
+.flamme-high .girl-ring,
+.flamme-max  .girl-ring {
+  box-shadow: 0 0 0 2px rgba(255,107,53,0.4), 0 4px 24px rgba(240,100,150,0.35);
+}
+
+.nous-hdr-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--s2);
+}
+
+.nous-hdr-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
+.nous-hdr-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  font-family: 'Bricolage Grotesque', sans-serif;
+  letter-spacing: 0.2px;
+}
+
+/* Point de présence */
+.nous-presence-dot {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #4ade80;
+  border: 2.5px solid var(--bg);
+  display: none; /* affiché par JS si online */
+}
+.nous-presence-dot.online { display: block; }
+
+/* ── Flamme centrale ─────────────────────────────────────────── */
+.nous-hdr-flamme-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 0 auto;
+  /* légèrement au-dessus grâce au margin-bottom des avatars */
+  margin-bottom: 22px;
+  position: relative;
+  z-index: 2;
+}
+
+.flamme-gauge-wrap {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* SVG gauge */
+.flamme-gauge-svg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+}
+
+.flamme-gauge-bg {
+  stroke: var(--s2);
+}
+
+.flamme-gauge-fill {
+  stroke: #f97316;
+  transition: stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1),
+              stroke 0.8s ease;
+  will-change: stroke-dashoffset;
+}
+
+/* Icône flamme */
+.flamme-icon {
+  position: relative;
+  z-index: 1;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* remonter légèrement pour être dans le cercle */
+  margin-top: -4px;
+}
+
+.flamme-svg {
+  width: 28px;
+  height: 35px;
+}
+
+/* États visuels de la flamme */
+
+/* Éteinte */
+.flamme-dead .flamme-body  { fill: #aaaaaa; opacity: 0.5; }
+.flamme-dead .flamme-inner { fill: #888888; opacity: 0.4; }
+
+/* Faible */
+.flamme-low .flamme-body  {
+  fill: url(#flammeGradLow);
+  animation: flammeFlicker 3s ease-in-out infinite;
+}
+.flamme-low .flamme-inner { fill: #fde68a; }
+
+/* Moyen */
+.flamme-mid .flamme-body  {
+  fill: url(#flammeGradMid);
+  animation: flammeFlicker 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 4px rgba(249,115,22,0.5));
+}
+.flamme-mid .flamme-inner { fill: #fef3c7; }
+
+/* Haut */
+.flamme-high .flamme-body  {
+  fill: url(#flammeGradHigh);
+  animation: flammeFlickerFast 1.4s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px rgba(239,68,68,0.6));
+}
+.flamme-high .flamme-inner { fill: #ffffff; opacity: 0.9; }
+
+/* Maximum */
+.flamme-max .flamme-body  {
+  fill: url(#flammeGradMax);
+  animation: flammeFlickerFast 0.9s ease-in-out infinite;
+  filter: drop-shadow(0 0 12px rgba(255,107,53,0.85));
+}
+.flamme-max .flamme-inner {
+  fill: #ffffff;
+  animation: flammeInnerPulse 0.9s ease-in-out infinite;
+}
+
+/* Animations flamme */
+@keyframes flammeFlicker {
+  0%, 100% { transform: scaleX(1)    scaleY(1)    rotate(0deg); }
+  25%       { transform: scaleX(0.96) scaleY(1.03) rotate(-1deg); }
+  50%       { transform: scaleX(1.03) scaleY(0.97) rotate(1deg); }
+  75%       { transform: scaleX(0.97) scaleY(1.02) rotate(-0.5deg); }
+}
+
+@keyframes flammeFlickerFast {
+  0%, 100% { transform: scaleX(1)    scaleY(1)    rotate(0deg); }
+  20%       { transform: scaleX(0.94) scaleY(1.05) rotate(-2deg); }
+  40%       { transform: scaleX(1.05) scaleY(0.95) rotate(2deg); }
+  60%       { transform: scaleX(0.96) scaleY(1.03) rotate(-1.5deg); }
+  80%       { transform: scaleX(1.03) scaleY(0.97) rotate(1deg); }
+}
+
+@keyframes flammeInnerPulse {
+  0%, 100% { opacity: 0.9; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.1); }
+}
+
+/* Dégradés flamme (définis via SVG defs dans le HTML) */
+/* Fallback couleurs solides si les defs SVG ne se chargent pas */
+.flamme-low  .flamme-body { fill: #fb923c; }
+.flamme-mid  .flamme-body { fill: #f97316; }
+.flamme-high .flamme-body { fill: #ef4444; }
+.flamme-max  .flamme-body { fill: #ff6b35; }
+
+/* Temps restant sous la flamme */
+.flamme-pts-label {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 800;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  color: var(--muted);
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+/* ── Barre de streak ─────────────────────────────────────────── */
+.nous-hdr-streak-wrap {
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nous-hdr-streak-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2px;
+}
+
+.streak-label-left {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text);
+  font-family: 'Bricolage Grotesque', sans-serif;
+}
+
+.streak-label-right {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  font-family: 'Bricolage Grotesque', sans-serif;
+}
+
+.nous-hdr-streak-bar-bg {
+  position: relative;
+  height: 6px;
+  background: var(--s2);
+  border-radius: 99px;
+  overflow: visible;
+}
+
+.nous-hdr-streak-bar {
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #f97316, #ef4444);
+  border-radius: 99px;
+  transition: width 1s cubic-bezier(.4,0,.2,1);
+  min-width: 0;
+}
+
+/* Marqueurs de paliers sur la barre */
+.streak-milestone {
+  position: absolute;
+  top: -4px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.streak-milestone::before {
+  content: '';
+  display: block;
+  width: 2px;
+  height: 14px;
+  background: var(--border);
+  border-radius: 1px;
+}
+
+.streak-milestone span {
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--muted);
+  font-family: 'Bricolage Grotesque', sans-serif;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+
+/* Cacher les milestones qui débordent */
+.streak-milestone:first-child { transform: translateX(0); }
+.streak-milestone:last-child  { transform: translateX(-100%); }
+
+/* ── Trophées + Cœur ─────────────────────────────────────────── */
+.nous-hdr-trophees {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 4px 0;
+}
+
+.nous-hdr-trophee {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.trophee-svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.girl-trophee .trophee-svg { color: rgba(220,100,140,0.8); }
+.boy-trophee  .trophee-svg { color: rgba(70,130,210,0.8); }
+
+.trophee-score {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+  font-family: 'Bricolage Grotesque', sans-serif;
+  min-width: 24px;
+  text-align: center;
+}
+
+/* Trophée Lui : score avant le trophée (ordre inversé) */
+.boy-trophee {
+  flex-direction: row-reverse;
+}
+.boy-trophee .trophee-score {
+  text-align: center;
+}
+
+/* Cœur central */
+.nous-hdr-heart-center {
+  flex-shrink: 0;
+}
+
+.heart-center-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--s1);
+  border: 1.5px solid var(--border);
+  box-shadow: var(--sh-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.heart-center-svg {
+  width: 18px;
+  height: 18px;
+  color: #e75a7c;
+  animation: heartBeat 1.4s ease-in-out infinite;
+}
+
+/* ── Date de couple ──────────────────────────────────────────── */
+.nous-hdr-since {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  font-family: 'Bricolage Grotesque', sans-serif;
+  text-align: center;
+  letter-spacing: 0.2px;
+  padding-bottom: 4px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   THÈME CLAIR — overrides
+   ══════════════════════════════════════════════════════════════ */
+body.light .flamme-gauge-bg {
+  stroke: rgba(0,0,0,0.07);
+}
+
+body.light .heart-center-circle {
+  background: #ffffff;
+  border-color: rgba(160,120,90,0.15);
+}
+
+body.light .streak-milestone::before {
+  background: rgba(160,120,90,0.2);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE — petits écrans (< 360px)
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 359px) {
+  .nous-hdr-avatar-ring { width: 76px; height: 76px; }
+  .flamme-gauge-wrap    { width: 64px; height: 64px; }
+  .flamme-svg           { width: 24px; height: 30px; }
+  .nous-hdr-streak-wrap { max-width: 280px; }
+}
+
+</style>
 </head>
 <body>
 
@@ -1430,23 +1849,103 @@ body.nous-active #yamStickyAvatarSelf {
 <!-- ── CONTENU NOUS ── -->
 <div id="nousContentWrapper" style="display:none;">
 
-<!-- PROFIL COUPLE PAIRED — compteur jours -->
-<div id="nousProfilSection" style="padding:20px 16px 8px;">
-  <div style="display:flex;align-items:center;justify-content:center;gap:20px;">
-    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
-      <div id="nousProfilGirlAvatar" style="width:72px;height:72px;border-radius:50%;border:2.5px solid rgba(232,121,160,0.6);overflow:hidden;box-shadow:0 4px 20px rgba(232,121,160,0.25);"><img src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div>
-      <div id="nousProfilGirlName" style="font-size:13px;font-weight:700;color:var(--text);">Elle</div>
+<!-- PROFIL COUPLE + FLAMME DE COUPLE -->
+<div id="nousProfilSection" class="nous-header-v2">
+  <div class="nous-hdr-grid">
+
+    <!-- Elle -->
+    <div class="nous-hdr-avatar-col">
+      <div class="nous-hdr-avatar-ring girl-ring">
+        <div id="nousProfilGirlAvatar" class="nous-hdr-avatar">
+          <img src="assets/images/profil_girl.png" alt="" draggable="false">
+        </div>
+        <div id="flammePresenceDot" class="nous-presence-dot"></div>
+      </div>
+      <div id="nousProfilGirlName" class="nous-hdr-name">Elle</div>
     </div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-      <div style="font-size:32px;animation:heartBeat 1.4s ease-in-out infinite;">💝</div>
-      <div id="nousProfilDays" style="font-size:11px;color:var(--muted);font-weight:600;text-align:center;max-width:90px;line-height:1.3;"></div>
+
+    <!-- Centre : flamme + streak + trophées + date -->
+    <div class="nous-hdr-center">
+
+      <!-- Flamme + gauge -->
+      <div class="flamme-wrap">
+        <div class="flamme-gauge-wrap">
+          <svg class="flamme-gauge-svg" viewBox="0 0 50 50" fill="none">
+            <circle class="flamme-gauge-bg" cx="25" cy="25" r="19" stroke-width="3.5"/>
+            <circle id="flammeGaugeCircle" class="flamme-gauge-fill"
+              cx="25" cy="25" r="19" stroke-width="3.5"
+              stroke-linecap="round"
+              transform="rotate(-90 25 25)"
+              stroke-dasharray="119.38"
+              stroke-dashoffset="119.38"/>
+          </svg>
+          <div id="flammeIcon" class="flamme-icon flamme-dead">
+            <svg class="flamme-svg" viewBox="0 0 32 40" fill="none">
+              <path class="flamme-body" d="M16 2C16 2 22 9 22 16C22 19.5 20.5 21.5 19 23C20 20 18.5 17 16 17C13.5 17 12 19 12 21C12 23 13.5 25 16 26C11 25 7 21 7 16C7 9 12 4 16 2Z"/>
+              <path class="flamme-inner" d="M16 18C16 18 19 21 19 24C19 26.5 17.5 28 16 28C14.5 28 13 26.5 13 24C13 21 16 18 16 18Z"/>
+            </svg>
+          </div>
+        </div>
+        <div id="flammePts" class="flamme-pts-label">—</div>
+      </div>
+
+      <!-- Streak -->
+      <div class="streak-block">
+        <div class="streak-header">
+          <span id="flammeStreakLabel" class="streak-day">Jour 0</span>
+          <span id="flammeStreakNext"  class="streak-next">→ 7 jours</span>
+        </div>
+        <div class="streak-bar-bg">
+          <div class="streak-tick" style="left:0%">  <span>0</span></div>
+          <div class="streak-tick" style="left:7%">  <span>7</span></div>
+          <div class="streak-tick" style="left:30%"> <span>30</span></div>
+          <div class="streak-tick" style="left:100%"><span>100</span></div>
+          <div id="flammeStreakBar" class="streak-bar-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Trophées + coeur -->
+      <div class="trophees-row">
+        <div class="trophee-item girl-trophee">
+          <svg class="trophee-svg" viewBox="0 0 24 24" fill="none">
+            <path d="M8 21h8M12 17v4M17 3H7L8.5 11C9 14 10.5 17 12 17C13.5 17 15 14 15.5 11L17 3Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 3H4C4 7 6 9 8.5 10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M17 3H20C20 7 18 9 15.5 10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          <span id="flammeScoreGirl" class="trophee-score">0</span>
+        </div>
+        <div class="heart-center-circle">
+          <svg viewBox="0 0 24 24" fill="currentColor" style="width:15px;height:15px;color:#e75a7c;animation:heartBeat 1.4s ease-in-out infinite;">
+            <path d="M12 21C12 21 3 14.5 3 8.5C3 5.42 5.42 3 8.5 3C10.24 3 11.91 3.81 13 5.08C14.09 3.81 15.76 3 17.5 3C20.58 3 23 5.42 23 8.5C23 14.5 12 21 12 21Z" transform="translate(-1 0)"/>
+          </svg>
+        </div>
+        <div class="trophee-item boy-trophee">
+          <svg class="trophee-svg" viewBox="0 0 24 24" fill="none">
+            <path d="M8 21h8M12 17v4M17 3H7L8.5 11C9 14 10.5 17 12 17C13.5 17 15 14 15.5 11L17 3Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 3H4C4 7 6 9 8.5 10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M17 3H20C20 7 18 9 15.5 10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          <span id="flammeScoreBoy" class="trophee-score">0</span>
+        </div>
+      </div>
+
+      <!-- Date couple -->
+      <div id="flammeCoupleSince" class="nous-hdr-since">Ensemble depuis le…</div>
+
+    </div><!-- /.nous-hdr-center -->
+
+    <!-- Lui -->
+    <div class="nous-hdr-avatar-col">
+      <div class="nous-hdr-avatar-ring boy-ring">
+        <div id="nousProfilBoyAvatar" class="nous-hdr-avatar">
+          <img src="assets/images/profil_boy.png" alt="" draggable="false">
+        </div>
+      </div>
+      <div id="nousProfilBoyName" class="nous-hdr-name">Lui</div>
     </div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
-      <div id="nousProfilBoyAvatar" style="width:72px;height:72px;border-radius:50%;border:2.5px solid rgba(91,156,246,0.6);overflow:hidden;box-shadow:0 4px 20px rgba(91,156,246,0.2);"><img src="assets/images/profil_boy.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div>
-      <div id="nousProfilBoyName" style="font-size:13px;font-weight:700;color:var(--text);">Lui</div>
-    </div>
-  </div>
-</div>
+
+  </div><!-- /.nous-hdr-grid -->
+</div><!-- /#nousProfilSection -->
 
 <!-- ─── GROUPE : Mots doux + Notre Histoire ─── -->
 <div class="ios-group fade-in" style="margin-top:4px;">
@@ -5262,6 +5761,8 @@ body.light .mots-doux-card { background: linear-gradient(135deg,rgba(200,24,94,0
     _data.forEach(function(r){if(r.id===item.id)r.done=true;});
     _save();
     if(typeof showToast==='function') showToast('Bravo ! 💕','success');
+    // Flamme — rappel complété
+    if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('rappel_done');
     var newAct=_active();
     if(_idx>=newAct.length)_idx=Math.max(0,newAct.length-1);
     _card(); _sheet();
