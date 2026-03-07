@@ -1964,25 +1964,32 @@ loadLikeCounters();
     }).catch(function(){ container.innerHTML='<div style="color:var(--muted);font-size:13px;padding:16px;">Erreur de chargement</div>'; });
   };
 
-  // ── Rendu page principale : 2 cartes max, idée du jour, bouton créer ──
+  // ── Rendu page principale : 2 cartes max, bouton créer ──
   function _renderActivitesHome(){
     var container=document.getElementById('activitesContainer'); if(!container) return;
     container.innerHTML='';
 
-    // Idée du jour
-    var coupleId=_getCoupleId();
-    var dayOfYear=Math.floor((Date.now()-new Date(new Date().getFullYear(),0,0))/(1000*60*60*24));
-    var todaySuggested=ACTIVITES_SUGGEREES[dayOfYear%ACTIVITES_SUGGEREES.length];
-    var alreadyAdded=_activiteAllRows.some(function(r){ return r.title===todaySuggested.titre; });
-    if(!alreadyAdded){
-      var suggCard=document.createElement('div'); suggCard.className='activite-sugg-card';
-      suggCard.innerHTML='<div class="activite-sugg-badge">Idée du jour</div>'+
-        '<div class="activite-header"><span class="activite-emoji">'+todaySuggested.emoji+'</span>'+
-        '<div class="activite-info"><div class="activite-titre">'+escHtml(todaySuggested.titre)+'</div>'+
-        '<div class="activite-desc">'+escHtml(todaySuggested.desc)+'</div></div></div>'+
-        '<button class="activite-add-btn" onclick="nousAddSuggestedActivite()">Ajouter à nos activités</button>';
-      suggCard.dataset.sugg=JSON.stringify(todaySuggested);
-      container.appendChild(suggCard);
+    // Initialiser la bulle idée du jour avec une suggestion statique si aucun cache IA
+    var titleEl = document.getElementById('activiteIaTitle');
+    var subEl   = document.getElementById('activiteIaSub');
+    var addBtn  = document.getElementById('activiteIaAddBtn');
+    var trigBtn = document.getElementById('activiteIaTriggerBtn');
+    if(titleEl && !_iaSuggCache){
+      var dayOfYear=Math.floor((Date.now()-new Date(new Date().getFullYear(),0,0))/(1000*60*60*24));
+      var todaySuggested=ACTIVITES_SUGGEREES[dayOfYear%ACTIVITES_SUGGEREES.length];
+      var alreadyAdded=_activiteAllRows.some(function(r){ return r.title===todaySuggested.titre; });
+      if(!alreadyAdded){
+        titleEl.textContent = (todaySuggested.emoji||'⭐') + ' ' + escHtml(todaySuggested.titre||'');
+        if(subEl) subEl.textContent = todaySuggested.desc||'';
+        _iaSuggCache = {emoji:todaySuggested.emoji,title:todaySuggested.titre,description:todaySuggested.desc,steps:todaySuggested.steps||[]};
+        if(addBtn) addBtn.style.display = 'inline-flex';
+        if(trigBtn) trigBtn.style.display = 'inline-flex';
+      } else {
+        titleEl.textContent = 'Lance une nouvelle idée ✨';
+        if(subEl) subEl.textContent = '';
+        if(addBtn) addBtn.style.display = 'none';
+        if(trigBtn) trigBtn.style.display = 'inline-flex';
+      }
     }
 
     // 2 cartes max — tri : étoilées non-terminées en tête, terminées en bas
@@ -2268,19 +2275,18 @@ loadLikeCounters();
   }
 
   window.activiteIaSuggest = function(){
-    var btn = document.getElementById('activiteIaBtn');
-    var card = document.getElementById('activiteIaSuggCard');
-    var textEl = document.getElementById('activiteIaSuggText');
-    var metaEl = document.getElementById('activiteIaSuggMeta');
-    if(!btn || !textEl) return;
+    var titleEl = document.getElementById('activiteIaTitle');
+    var subEl   = document.getElementById('activiteIaSub');
+    var addBtn  = document.getElementById('activiteIaAddBtn');
+    var trigBtn = document.getElementById('activiteIaTriggerBtn');
+    if(!titleEl) return;
 
     // Limite journalière : 3 suggestions par jour
     if(_iaSuggGetCount() >= _IA_SUGG_MAX_PER_DAY){
-      if(card) card.style.display = 'flex';
-      textEl.innerHTML = '🤖 Le petit robot est épuisé... Revenez demain pour de nouvelles idées ! 😴';
-      if(metaEl) metaEl.textContent = 'Limite journalière atteinte';
-      btn.disabled = true;
-      btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Reviens demain 😴';
+      titleEl.textContent = '🤖 Le robot est épuisé…';
+      if(subEl) subEl.textContent = 'Revenez demain pour de nouvelles idées';
+      if(addBtn) addBtn.style.display = 'none';
+      if(trigBtn) trigBtn.style.display = 'none';
       return;
     }
 
@@ -2293,12 +2299,13 @@ loadLikeCounters();
     }
     _iaSuggLastCall = now;
 
-    btn.disabled = true;
-    btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="spin-anim"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Génération...';
+    titleEl.textContent = 'Génération en cours…';
+    if(subEl) subEl.textContent = '';
+    if(addBtn) addBtn.style.display = 'none';
+    if(trigBtn) trigBtn.style.display = 'none';
 
     var coupleId = _getCoupleId();
     var u = (typeof v2GetUser==='function') ? v2GetUser() : null;
-    var partnerName = u ? (u.partner_pseudo || 'ton partenaire') : 'ton partenaire';
     var daysTogether = 0;
     if(window.startDate){ daysTogether = Math.floor((Date.now()-new Date(window.startDate))/(1000*60*60*24)); }
 
@@ -2319,29 +2326,22 @@ loadLikeCounters();
     .then(function(data){
       if(data.error) throw new Error(data.error);
       var raw = data.text || '';
-      // Nettoyer les éventuels backticks markdown
       raw = raw.replace(/```json|```/g,'').trim();
       var parsed = JSON.parse(raw);
       _iaSuggCache = parsed;
-      if(card) card.style.display = 'flex';
-      textEl.innerHTML = '<strong>'+(parsed.emoji||'✨')+' '+escHtml(parsed.title||'')+'</strong><br><span style="font-weight:400;">'+escHtml(parsed.description||'')+'</span>';
-      if(parsed.steps && parsed.steps.length){
-        textEl.innerHTML += '<ul style="margin:8px 0 0 0;padding-left:16px;font-size:12px;color:var(--muted);line-height:1.6;">';
-        parsed.steps.forEach(function(s){ textEl.innerHTML += '<li>'+escHtml(s)+'</li>'; });
-        textEl.innerHTML += '</ul>';
-      }
-      if(metaEl) metaEl.textContent = 'Suggestion IA · '+saison.charAt(0).toUpperCase()+saison.slice(1);
-      _iaSuggIncrCount(); // comptabiliser l'appel réussi
+      titleEl.textContent = (parsed.emoji||'✨') + ' ' + (parsed.title||'');
+      if(subEl) subEl.textContent = parsed.description||'';
+      if(addBtn) addBtn.style.display = 'inline-flex';
+      _iaSuggIncrCount();
     })
-    .catch(function(err){
-      if(card) card.style.display = 'flex';
-      textEl.textContent = 'Une idée : planifiez une soirée jeux de société thématique avec vos jeux préférés ! 🎲';
-      if(metaEl) metaEl.textContent = 'Suggestion hors-ligne';
+    .catch(function(){
+      titleEl.textContent = '🎲 Soirée jeux thématique';
+      if(subEl) subEl.textContent = 'Planifiez une soirée jeux ensemble';
       _iaSuggCache = {emoji:'🎲',title:'Soirée jeux thématique',description:'Planifiez une soirée jeux ensemble',steps:['Choisir les jeux','Préparer les snacks','Jouer !']};
+      if(addBtn) addBtn.style.display = 'inline-flex';
     })
     .finally(function(){
-      btn.disabled = false;
-      btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Nouvelle idée pour nous';
+      if(trigBtn) trigBtn.style.display = 'inline-flex';
     });
   };
 
@@ -2353,8 +2353,12 @@ loadLikeCounters();
     fetch(SB2_URL+'/rest/v1/v2_activites',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
     .then(function(){
       _iaSuggCache = null;
-      var card = document.getElementById('activiteIaSuggCard');
-      if(card) card.style.display = 'none';
+      var addBtn = document.getElementById('activiteIaAddBtn');
+      var titleEl = document.getElementById('activiteIaTitle');
+      var subEl   = document.getElementById('activiteIaSub');
+      if(addBtn) addBtn.style.display = 'none';
+      if(titleEl) titleEl.textContent = '✅ Ajouté ! Lance une nouvelle idée ✨';
+      if(subEl) subEl.textContent = '';
       window.nousLoadActivites();
     }).catch(function(){});
   };
@@ -2875,16 +2879,15 @@ loadLikeCounters();
     card.innerHTML =
       '<div class="album-image" style="position:relative;">'+newBadge+
         (photoUrl ?
-          '<img src="'+escHtml(photoUrl)+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px 10px 0 0;" loading="lazy">' :
+          '<img src="'+escHtml(photoUrl)+'" style="width:100%;height:100%;object-fit:cover;" loading="lazy">' :
           '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;color:var(--muted);">📚</div>'
         )+
-        '<div class="album-banner">'+escHtml(book.title||'Sans titre')+'</div>'+
         '<div class="lui-upload-btn"><div class="lui-upload-icon">'+editSVG+'</div><div class="lui-upload-lbl">Modifier</div></div>'+
       '</div>'+
-      '<div class="album-desc" style="cursor:default;">'+escHtml(book.description||'Ajouter une légende...')+'</div>';
-    // Clic bouton edit (la photo / bouton modifier)
+      '<div class="album-banner">'+escHtml(book.title||'Sans titre')+
+        (book.description ? '<div class="album-banner-sub">'+escHtml(book.description)+'</div>' : '')+
+      '</div>';
     card.querySelector('.lui-upload-btn').addEventListener('click',function(e){ e.stopPropagation(); _livreFromGestion=false; window.livresOpenEdit(book); });
-    // (pas de click sur la légende — double-clic photo suffit pour éditer)
     return card;
   }
 
@@ -4103,452 +4106,4 @@ window.nousLoad = function(){
 
 // ════════════════════════════════════════════════════════════════════
 // FIN DU MODULE FLAMME
-// ════════════════════════════════════════════════════════════════════
-
-
-// ════════════════════════════════════════════════════════════════════
-// NOUS♥ REFONTE v8 — Notre Histoire (bandeau strip) + Elle&Lui (expanded inline)
-// + Souvenirs/Livres (bandeaux opaques) + Activités (bulle idée séparée)
-// ════════════════════════════════════════════════════════════════════
-
-(function(){
-
-  /* ─────────────────────────────────────────────────────────────────
-     NOTRE HISTOIRE — strip bandeau bas
-     Relies sur les données déjà chargées par histoireOpenGestion / tlRender.
-     On expose window.histoireRenderStrip(chapitres) appelé après chargement.
-  ───────────────────────────────────────────────────────────────── */
-
-  // Données locales (remplies par histoireStripLoad)
-  var _histStrip_chaps = [];
-  var _histStrip_activeIdx = 0;
-
-  // Appelé par le code existant après chargement des chapitres depuis Supabase
-  // (hook posé sur histoireOpenGestion pour récupérer les données)
-  window.histoireStripLoad = function(chapitres){
-    if(!Array.isArray(chapitres)) return;
-    // Trier par ordre de création (id ou created_at) et prendre les 3 derniers
-    var sorted = chapitres.slice().sort(function(a,b){
-      return (a.order_idx||0) - (b.order_idx||0);
-    });
-    var last3 = sorted.length > 3 ? sorted.slice(sorted.length - 3) : sorted;
-    _histStrip_chaps = last3;
-    _histStrip_activeIdx = last3.length - 1; // dernier = plus récent
-    _histoireStripRender();
-  };
-
-  function _histoireStripRender(){
-    var strip = document.getElementById('histoireStrip');
-    if(!strip) return;
-    strip.innerHTML = '';
-
-    if(!_histStrip_chaps.length){
-      var empty = document.createElement('div');
-      empty.className = 'nous-histoire-strip-empty';
-      empty.textContent = 'Aucun chapitre — ajoutez-en via Éditer';
-      strip.appendChild(empty);
-      _histoireMainUpdate(null);
-      return;
-    }
-
-    _histStrip_chaps.forEach(function(chap, i){
-      var item = document.createElement('div');
-      item.className = 'nous-histoire-strip-item' + (i === _histStrip_activeIdx ? ' active' : '');
-      item.innerHTML =
-        '<div class="strip-num">Chap. ' + (chap.order_idx||chap.num||'?') + '</div>' +
-        '<div class="strip-title">' + _esc(chap.title || 'À écrire…') + '</div>';
-      (function(idx){ item.addEventListener('click', function(){ _histoireStripSelect(idx); }); })(i);
-      strip.appendChild(item);
-    });
-
-    _histoireMainUpdate(_histStrip_chaps[_histStrip_activeIdx]);
-  }
-
-  function _histoireStripSelect(idx){
-    _histStrip_activeIdx = idx;
-    // Update active class
-    var items = document.querySelectorAll('.nous-histoire-strip-item');
-    items.forEach(function(el, i){ el.classList.toggle('active', i === idx); });
-    _histoireMainUpdate(_histStrip_chaps[idx]);
-  }
-
-  function _histoireMainUpdate(chap){
-    var elEmoji   = document.getElementById('histoireActiveEmoji');
-    var elDate    = document.getElementById('histoireActiveDate');
-    var elTitle   = document.getElementById('histoireActiveTitle');
-    var elExcerpt = document.getElementById('histoireActiveExcerpt');
-    if(!elEmoji) return;
-
-    if(!chap){
-      elEmoji.textContent   = '📖';
-      elDate.textContent    = 'Notre histoire';
-      elTitle.textContent   = 'Notre histoire commence ici…';
-      elExcerpt.textContent = 'Clique sur Éditer pour ajouter vos premiers chapitres.';
-      return;
-    }
-    elEmoji.textContent   = chap.emoji || '📖';
-    // Date : formatted si disponible
-    var dateStr = '';
-    if(chap.event_date || chap.date){
-      try {
-        var d = new Date((chap.event_date || chap.date) + 'T12:00:00');
-        dateStr = d.toLocaleDateString('fr-FR', {month:'long', year:'numeric'});
-      } catch(e){ dateStr = chap.event_date || chap.date || ''; }
-    }
-    elDate.textContent    = (chap.title ? (chap.title.toUpperCase()) : 'CHAPITRE') + (dateStr ? ' · ' + dateStr : '');
-    elTitle.textContent   = chap.title || 'À écrire…';
-    elExcerpt.textContent = chap.content ? chap.content.replace(/<[^>]+>/g,'').slice(0,80) + (chap.content.length>80?'…':'') : 'Appuie sur Éditer pour raconter ce moment.';
-  }
-
-  // Hook sur histoireOpenGestion existant : on intercepte le chargement
-  // La fonction originale est déjà définie — on patch _tlRender ou on écoute l'event custom
-  // Patch sûr : on wrappe histoireOpenGestion pour capturer les data
-  var _origHistoireOpen = window.histoireOpenGestion;
-  window.histoireOpenGestion = function(){
-    if(_origHistoireOpen) _origHistoireOpen.apply(this, arguments);
-  };
-
-  // Patch tlRender (appelé après chargement des items depuis Supabase dans app-nous.js)
-  // On observe #tlItemsContainer pour détecter les changements
-  (function _hookTimeline(){
-    var container = document.getElementById('tlItemsContainer');
-    if(!container){
-      // retry une fois DOM prêt
-      window.addEventListener('DOMContentLoaded', _hookTimeline);
-      return;
-    }
-    var mo = new MutationObserver(function(){
-      // Récupère les chapitres via la variable globale si exposée
-      if(window._histoireChapitres && window._histoireChapitres.length){
-        window.histoireStripLoad(window._histoireChapitres);
-      }
-    });
-    mo.observe(container, {childList: true, subtree: false});
-  })();
-
-  /* ─────────────────────────────────────────────────────────────────
-     ELLE & LUI — grille miniature + vue expanded inline
-  ───────────────────────────────────────────────────────────────── */
-
-  var SLOTS = ['animal','fleurs','personnage','saison','repas','extra'];
-  var SLOT_EMOJI = {animal:'🐾', fleurs:'🌸', personnage:'🧑', saison:'🍂', repas:'🍽️', extra:'✨'};
-
-  // Met à jour la grille miniature d'une personne (elle/lui) avec les images existantes
-  window.nousElleLuiUpdateGrid = function(who){
-    SLOTS.forEach(function(slot){
-      var cell = document.getElementById(who + 'SlotCell-' + slot);
-      if(!cell) return;
-      var imgId = (who === 'elle' ? 'elle' : 'lui') + '-img-' + slot;
-      var srcImg = document.getElementById(imgId);
-      // Si l'image originale a une source et est visible → copier dans la grille
-      if(srcImg && srcImg.src && srcImg.src !== window.location.href && !srcImg.style.display.includes('none')){
-        cell.classList.add('has-image');
-        cell.innerHTML = '<img src="' + srcImg.src + '" alt="' + slot + '">';
-      } else {
-        cell.classList.remove('has-image');
-        cell.innerHTML = '<div class="nous-slot-empty">' + (SLOT_EMOJI[slot]||'✨') + '</div>';
-      }
-    });
-  };
-
-  // Ouvre la vue expanded pour elle ou lui
-  window.nousElleLuiOpen = function(who){
-    var grid     = document.getElementById('elleLuiGrid');
-    var expanded = document.getElementById('elleLuiExpanded');
-    if(!grid || !expanded) return;
-    grid.style.display     = 'none';
-    expanded.style.display = 'block';
-    // Onglets
-    var tabElle = document.getElementById('elleLuiTabElle');
-    var tabLui  = document.getElementById('elleLuiTabLui');
-    if(tabElle) tabElle.classList.toggle('active', who === 'elle');
-    if(tabLui)  tabLui.classList.toggle('active',  who === 'lui');
-    _nousElleLuiRenderSlots(who);
-  };
-
-  window.nousElleLuiSwitchTab = function(who){
-    var tabElle = document.getElementById('elleLuiTabElle');
-    var tabLui  = document.getElementById('elleLuiTabLui');
-    if(tabElle) tabElle.classList.toggle('active', who === 'elle');
-    if(tabLui)  tabLui.classList.toggle('active',  who === 'lui');
-    _nousElleLuiRenderSlots(who);
-  };
-
-  window.nousElleLuiClose = function(){
-    var grid     = document.getElementById('elleLuiGrid');
-    var expanded = document.getElementById('elleLuiExpanded');
-    if(grid)     grid.style.display     = 'grid';
-    if(expanded) expanded.style.display = 'none';
-  };
-
-  window.nousElleLuiUpdateDots = function(){
-    var scroll = document.getElementById('elleLuiScroll');
-    var dots   = document.querySelectorAll('.nous-expanded-dot');
-    if(!scroll || !dots.length) return;
-    var idx = Math.round(scroll.scrollLeft / scroll.clientWidth);
-    dots.forEach(function(d, i){ d.classList.toggle('active', i === idx); });
-  };
-
-  function _nousElleLuiRenderSlots(who){
-    var scroll  = document.getElementById('elleLuiScroll');
-    var notice  = document.getElementById('elleLuiNotice');
-    if(!scroll) return;
-    scroll.innerHTML = '';
-
-    // Détermine qui est connecté (girl/boy) via la variable globale yamRole ou profil
-    var myRole = (window.yamUserRole || window.currentUserRole || 'girl');
-    // girl peut modifier lui, boy peut modifier elle
-    var canEdit = (myRole === 'girl' && who === 'lui') || (myRole === 'boy' && who === 'elle');
-
-    if(notice){
-      var partnerName = who === 'elle'
-        ? (document.getElementById('elleSectionTitle') || {}).textContent || 'Elle'
-        : (document.getElementById('luiSectionTitle')  || {}).textContent || 'Lui';
-      if(canEdit){
-        notice.textContent = '✏️ Tu peux modifier cette pochette';
-        notice.style.color = 'var(--accent)';
-      } else {
-        var partnerEditable = who === 'elle' ? 'Lui' : 'Elle';
-        notice.textContent = '🔒 Tu ne peux modifier que la pochette de ' + partnerEditable;
-        notice.style.color = 'var(--muted)';
-      }
-    }
-
-    // Mise à jour des noms dans les onglets
-    var elleTitle = (document.getElementById('elleSectionTitle')||{}).textContent || 'Elle';
-    var luiTitle  = (document.getElementById('luiSectionTitle') ||{}).textContent || 'Lui';
-    var elleLabel = document.getElementById('elleLuiTabElleLabel');
-    var luiLabel  = document.getElementById('elleLuiTabLuiLabel');
-    if(elleLabel) elleLabel.textContent = elleTitle;
-    if(luiLabel)  luiLabel.textContent  = luiTitle;
-
-    // Construit les 6 slots en grand (scroll horizontal)
-    var prefix = who === 'elle' ? 'elle' : 'lui';
-    SLOTS.forEach(function(slot){
-      var imgEl   = document.getElementById(prefix + '-img-' + slot);
-      var descEl  = document.getElementById(prefix + '-desc-' + slot);
-      var bannerEl= document.getElementById(prefix + '-banner-' + slot);
-      var hasImg  = imgEl && imgEl.src && imgEl.src !== window.location.href && !imgEl.style.display.includes('none');
-      var desc    = (descEl && descEl.textContent) || '';
-      var label   = (bannerEl && bannerEl.textContent) || (slot.charAt(0).toUpperCase()+slot.slice(1));
-
-      var slotEl = document.createElement('div');
-      slotEl.className = 'nous-expanded-slot';
-
-      var imgZone = document.createElement('div');
-      imgZone.className = 'nous-expanded-slot-img' + (hasImg ? '' : ' empty');
-      if(hasImg){
-        var img = document.createElement('img');
-        img.src = imgEl.src;
-        img.alt = label;
-        imgZone.appendChild(img);
-      } else {
-        imgZone.textContent = SLOT_EMOJI[slot] || '✨';
-      }
-
-      var footer = document.createElement('div');
-      footer.className = 'nous-expanded-slot-footer';
-      footer.innerHTML =
-        '<div class="nous-expanded-slot-info">' +
-          '<div class="nous-expanded-slot-name">' + _esc(label) + '</div>' +
-          '<div class="nous-expanded-slot-desc">' + _esc(desc) + '</div>' +
-        '</div>';
-
-      var editBtn = document.createElement('button');
-      editBtn.className = 'nous-expanded-slot-edit' + (canEdit ? '' : ' readonly');
-      if(canEdit){
-        editBtn.textContent = hasImg ? 'Modifier' : 'Ajouter';
-        (function(s, w){ editBtn.addEventListener('click', function(){ slotOpenEdit(w, s); }); })(slot, prefix);
-      } else {
-        editBtn.textContent = '🔒';
-        editBtn.disabled = true;
-      }
-      footer.appendChild(editBtn);
-
-      slotEl.appendChild(imgZone);
-      slotEl.appendChild(footer);
-      scroll.appendChild(slotEl);
-    });
-
-    // Reset scroll et dots
-    scroll.scrollLeft = 0;
-    window.nousElleLuiUpdateDots();
-  }
-
-  /* ─────────────────────────────────────────────────────────────────
-     SOUVENIRS — remplace _buildSouvenirCard pour ajouter bandeau opaque
-     On patch la fonction après chargement
-  ───────────────────────────────────────────────────────────────── */
-
-  // On intercepte le rendu des scrolls de souvenirs après coup
-  function _patchSouvenirScrolls(){
-    ['souvenirsRecentScroll','souvenirsFavScroll'].forEach(function(scrollId){
-      var scroll = document.getElementById(scrollId);
-      if(!scroll) return;
-      var mo = new MutationObserver(function(){
-        // Transforme chaque .souvenir-card en notre nouveau format avec bandeau opaque
-        scroll.querySelectorAll('.souvenir-card:not([data-banded])').forEach(function(card){
-          card.setAttribute('data-banded','1');
-          _applyBandToSouvenirCard(card);
-        });
-      });
-      mo.observe(scroll, {childList:true, subtree:false});
-    });
-  }
-
-  function _applyBandToSouvenirCard(card){
-    // Restructure la carte pour avoir un layout flex-column avec bandeau
-    var photo = card.querySelector('.souvenir-photo');
-    var info  = card.querySelector('.souvenir-info');
-    if(!photo || !info) return;
-
-    // Nouvelle structure : photo occupe toute la hauteur sauf le bandeau
-    card.style.cssText = [
-      'display:flex', 'flex-direction:column',
-      'height:106px', 'border-radius:12px', 'overflow:hidden',
-      'border:1px solid var(--border)', 'cursor:pointer',
-      'transition:transform 0.15s', 'flex-shrink:0'
-    ].join(';');
-
-    // Zone image
-    photo.style.cssText = 'flex:1;border-radius:0;min-height:0;';
-
-    // Bandeau opaque en bas
-    var nameEl = card.querySelector('.souvenir-name');
-    var dateEl = card.querySelector('.souvenir-date');
-    var titleTxt  = (nameEl && nameEl.textContent) || 'Souvenir';
-    var dateTxt   = (dateEl && dateEl.textContent)  || '';
-
-    // Remplace .souvenir-info par un bandeau
-    info.className = '';
-    info.style.cssText = [
-      'background:var(--s1)', 'border-top:1px solid var(--border)',
-      'padding:4px 6px', 'flex-shrink:0'
-    ].join(';');
-    info.innerHTML =
-      '<div style="font-size:9px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;">' + _esc(titleTxt) + '</div>' +
-      (dateTxt ? '<div style="font-size:8px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _esc(dateTxt) + '</div>' : '');
-  }
-
-  /* ─────────────────────────────────────────────────────────────────
-     BIBLIOTHÈQUE — remplace _buildLivreCard pour bandeau opaque
-  ───────────────────────────────────────────────────────────────── */
-
-  // On patch le slider livresSlider après rendu
-  function _patchLivresSlider(){
-    var slider = document.getElementById('livresSlider');
-    if(!slider) return;
-    var mo = new MutationObserver(function(){
-      slider.querySelectorAll('.album-card:not([data-banded])').forEach(function(card){
-        card.setAttribute('data-banded','1');
-        _applyBandToLivreCard(card);
-      });
-    });
-    mo.observe(slider, {childList:true, subtree:false});
-  }
-
-  function _applyBandToLivreCard(card){
-    // Remplace la classe album-card par notre nouveau format
-    card.className = 'nous-livre-card';
-    card.style.cssText = '';
-
-    // Récupère le contenu existant
-    var albumImg = card.querySelector('.album-image');
-    var albumDesc = card.querySelector('.album-desc');
-    var albumBanner = card.querySelector('.album-banner');
-    var uploadBtn = card.querySelector('.lui-upload-btn');
-
-    var titleTxt = (albumBanner && albumBanner.textContent) || 'Livre';
-    var descTxt  = (albumDesc  && albumDesc.textContent)   || '';
-    var imgEl    = albumImg && albumImg.querySelector('img');
-    var imgSrc   = imgEl ? imgEl.src : '';
-    var emoji    = albumImg && !imgSrc ? (albumImg.textContent || '📚').trim() : '';
-
-    card.innerHTML =
-      '<div class="nous-livre-img">' +
-        (imgSrc
-          ? '<img src="' + _esc(imgSrc) + '" loading="lazy" alt="' + _esc(titleTxt) + '">'
-          : '<div class="livre-emoji-placeholder">' + (emoji || '📚') + '</div>'
-        ) +
-      '</div>' +
-      '<div class="nous-livre-band">' +
-        '<div class="nous-livre-band-title">' + _esc(titleTxt) + '</div>' +
-        (descTxt ? '<div class="nous-livre-band-author">' + _esc(descTxt.slice(0,30)) + '</div>' : '') +
-      '</div>';
-  }
-
-  /* ─────────────────────────────────────────────────────────────────
-     ACTIVITÉS — bulle idée : montre/cache les boutons selon état IA
-     Patch léger sur activiteIaSuggest pour gérer le nouvel UI
-  ───────────────────────────────────────────────────────────────── */
-
-  var _origActiviteIaSuggest = window.activiteIaSuggest;
-  window.activiteIaSuggest = function(){
-    // Lance la génération originale
-    if(_origActiviteIaSuggest) _origActiviteIaSuggest.apply(this, arguments);
-    // Après quelques ms, affiche le bouton Ajouter si un texte est apparu
-    setTimeout(function(){
-      var textEl  = document.getElementById('activiteIaSuggText');
-      var addBtn  = document.getElementById('activiteIaAddBtn');
-      var genBtn  = document.getElementById('activiteIaBtn');
-      if(!textEl || !addBtn || !genBtn) return;
-      var hasContent = textEl.textContent && textEl.textContent.trim().length > 10
-        && !textEl.textContent.includes('Générer');
-      addBtn.style.display = hasContent ? 'inline-flex' : 'none';
-      genBtn.textContent = hasContent ? 'Autre idée' : 'Générer';
-    }, 2500);
-  };
-
-  /* ─────────────────────────────────────────────────────────────────
-     INIT — lancé quand la section Nous est affichée
-  ───────────────────────────────────────────────────────────────── */
-
-  function _initNousRefonte(){
-    // Met à jour les grilles miniatures Elle & Lui
-    setTimeout(function(){
-      window.nousElleLuiUpdateGrid && window.nousElleLuiUpdateGrid('elle');
-      window.nousElleLuiUpdateGrid && window.nousElleLuiUpdateGrid('lui');
-    }, 800);
-
-    // Démarre les patches MutationObserver
-    _patchSouvenirScrolls();
-    _patchLivresSlider();
-
-    // Charge les noms dans les onglets
-    setTimeout(function(){
-      var elleT = document.getElementById('elleSectionTitle');
-      var luiT  = document.getElementById('luiSectionTitle');
-      var el = document.getElementById('elleLuiTabElleLabel');
-      var ll = document.getElementById('elleLuiTabLuiLabel');
-      if(el && elleT) el.textContent = elleT.textContent || 'Elle';
-      if(ll && luiT)  ll.textContent = luiT.textContent  || 'Lui';
-    }, 600);
-  }
-
-  // Hook sur l'affichage de l'onglet Nous
-  var _origNousTabShow = window.nousTabShow || window.nousRefresh;
-  if(_origNousTabShow){
-    var __origNTS = _origNousTabShow;
-    window.nousTabShow = function(){ __origNTS.apply(this,arguments); _initNousRefonte(); };
-  }
-  // Aussi sur DOMContentLoaded
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', function(){
-      setTimeout(_initNousRefonte, 1200);
-    });
-  } else {
-    setTimeout(_initNousRefonte, 1200);
-  }
-
-  /* ─────────────────────────────────────────────────────────────────
-     UTILITAIRES
-  ───────────────────────────────────────────────────────────────── */
-
-  function _esc(s){
-    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-})();
-// ════════════════════════════════════════════════════════════════════
-// FIN NOUS♥ REFONTE v8
 // ════════════════════════════════════════════════════════════════════
