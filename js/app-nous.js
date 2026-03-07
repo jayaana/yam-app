@@ -4181,7 +4181,35 @@ function _histUpdateStrip(){
 
 window.histSelectItem=function(i){ _histIdx=i; _histUpdateMain(i); var s=document.getElementById('histStrip'); if(s) s.querySelectorAll('.n-strip-item').forEach(function(e,j){ e.classList.toggle('active',j===i); }); };
 window.histSelect=function(el,i){ window.histSelectItem(i); };
-// Compat modale gestion qui peut appeler histoireRenderTimeline après modif
+
+// ── OUVRE LA MODALE DE LECTURE DU CHAPITRE SÉLECTIONNÉ ──
+window.histoireOpenView=function(){
+  var item=_histRows[_histIdx]||null;
+  var overlay=document.getElementById('histoireViewOverlay');
+  if(!overlay) return;
+  if(!item){
+    // Pas de chapitre : invite à en créer un
+    document.getElementById('histViewEmoji').textContent='💫';
+    document.getElementById('histViewDate').textContent='';
+    document.getElementById('histViewTitle').textContent='Notre histoire commence…';
+    document.getElementById('histViewText').textContent='Clique sur le crayon ✏️ pour ajouter vos premiers chapitres.';
+    document.getElementById('histViewChapNum').textContent='';
+  } else {
+    document.getElementById('histViewEmoji').textContent=item.emoji||'💫';
+    document.getElementById('histViewDate').textContent=item.date_label||'';
+    document.getElementById('histViewTitle').textContent=item.title||'';
+    document.getElementById('histViewText').textContent=item.text||'';
+    document.getElementById('histViewChapNum').textContent='Chapitre '+(_histIdx+1)+' / '+_histRows.length;
+  }
+  overlay.style.display='flex';
+  _blockBackgroundScroll();
+};
+
+window.histoireCloseView=function(){
+  var overlay=document.getElementById('histoireViewOverlay');
+  if(overlay) overlay.style.display='none';
+  _unblockBackgroundScroll();
+};
 window._histoireAllRows=[];
 var _histOrigLoad=window.histoireLoad;
 window.histoireLoad=function(){ if(typeof _histOrigLoad==='function') _histOrigLoad(); };
