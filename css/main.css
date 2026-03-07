@@ -5473,15 +5473,19 @@ body.dark  { --n-group-bg:#242020; --n-group-sep:rgba(255,255,255,0.07); --n-gro
 
 /* ─── HISTOIRE ─── */
 .n-histoire-card { background:var(--n-group-bg); border-radius:var(--n-group-r); border:1px solid var(--border); overflow:hidden; }
+.n-histoire-actions { display:flex; align-items:center; gap:8px; position:absolute; top:12px; right:12px; }
+.n-histoire-edit-btn { font-size:11px; font-weight:700; color:var(--accent); cursor:pointer; display:flex; align-items:center; gap:4px; background:rgba(231,90,124,.10); border-radius:8px; padding:4px 10px; border:none; font-family:'Bricolage Grotesque',sans-serif; }
+.n-histoire-eye-btn { width:28px; height:28px; border-radius:8px; background:rgba(124,106,247,.12); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--accent); transition:background .15s,transform .15s; }
+.n-histoire-eye-btn:active { background:rgba(124,106,247,.25); transform:scale(.92); }
 .n-histoire-main { padding:13px 14px 12px; display:flex; flex-direction:column; gap:4px; position:relative; }
-.n-histoire-edit-btn { position:absolute; top:12px; right:12px; font-size:11px; font-weight:700; color:var(--accent); cursor:pointer; display:flex; align-items:center; gap:4px; background:rgba(231,90,124,.10); border-radius:8px; padding:4px 10px; border:none; font-family:'Bricolage Grotesque',sans-serif; }
+/* .n-histoire-edit-btn moved to .n-histoire-actions */
 .n-histoire-line1 { display:flex; align-items:center; gap:7px; }
 .n-histoire-emoji { font-size:18px; line-height:1; }
 .n-histoire-date  { font-size:10px; font-weight:800; color:var(--accent); text-transform:uppercase; letter-spacing:.5px; }
 .n-histoire-title   { font-size:13px; font-weight:800; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:70px; }
 .n-histoire-excerpt { font-size:11px; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.n-histoire-sep { height:1px; background:var(--n-group-sep); }
-.n-histoire-strip { display:flex; overflow-x:auto; scrollbar-width:none; }
+.n-histoire-sep { display:none; }
+.n-histoire-strip { display:none; }
 .n-histoire-strip::-webkit-scrollbar { display:none; }
 .n-strip-item { flex:1 1 0; min-width:80px; padding:9px 10px; cursor:pointer; border-right:1px solid var(--n-group-sep); background:var(--s2); transition:background .15s; text-align:center; display:flex; flex-direction:column; gap:2px; align-items:center; position:relative; }
 .n-strip-item:last-child { border-right:none; }
