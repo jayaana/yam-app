@@ -83,7 +83,7 @@
       var toRun = fns[tab] || [];
       toRun.forEach(function(fn){ if(typeof fn === 'function'){ try{ fn(); }catch(e){} } });
       // ✅ OPT v3.8 : réévaluer l'état story quand on revient sur home
-      if(tab === 'home' && window._applyStoryState) window._applyStoryState();
+      if((tab === 'home' || tab === 'nous') && window._applyStoryState) window._applyStoryState();
     }, 200);
 
     // Particules : actives seulement sur musique/nous, et si musique en cours
@@ -238,169 +238,9 @@
 
 })();
 
-(function(){
-  // ── Heures déclenchantes (format 24h) ──────────────────────────────────────
-  var TRIGGER_HOURS = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23];
-  var WINDOW_BEFORE = 10; // minutes avant l'heure pile (les 10 dernières minutes de l'heure)
-  var WINDOW_AFTER  = 0;  // plus de fenêtre après l'heure pile
 
-  var tlContent = document.getElementById('tlContent');
-  var videoWrap = document.getElementById('storyVideoWrap');
-  var video     = document.getElementById('storyVideo');
+// (bulle vidéo événement — gérée dans app-nous.js)
 
-  // Restaurer le toggle de la timeline (compatibilité JS existant)
-  var tlWrap   = document.getElementById('tlWrap');
-  var tlToggle = document.getElementById('tlToggle');
-  if(tlToggle && tlWrap){
-    var tlOpen = false;
-    tlToggle.addEventListener('click', function(){
-      tlOpen = !tlOpen;
-      tlWrap.classList.toggle('collapsed', !tlOpen);
-      tlWrap.classList.toggle('expanded',  tlOpen);
-      tlToggle.textContent = tlOpen ? '▴ Réduire' : '▾ Voir la suite';
-    });
-  }
-
-  // ── Vérification de la fenêtre temporelle ──────────────────────────────────
-  function isInVideoWindow() {
-    var now     = new Date();
-    var totalMin = now.getHours() * 60 + now.getMinutes();
-
-    for (var i = 0; i < TRIGGER_HOURS.length; i++) {
-      var centerMin = TRIGGER_HOURS[i] * 60;
-      if (totalMin >= centerMin - WINDOW_BEFORE && totalMin < centerMin + WINDOW_AFTER) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // ── Bascule affichage ──────────────────────────────────────────────────────
-  var counterBlock  = document.getElementById('counterBlock');
-  var storyHeart   = document.getElementById('storyHeart');
-
-  function applyState() {
-    var navNous = document.getElementById('navNous');
-    if (isInVideoWindow()) {
-      // Cacher la timeline, montrer la vidéo en boucle
-      tlContent.style.display  = 'none';
-      videoWrap.style.display  = 'block';
-      if (video.paused) {
-        video.play().catch(function(){});
-      }
-      // Illuminer le compteur (bloc unique)
-      if (counterBlock) counterBlock.classList.add('glowing');
-      // Afficher le coeur battant
-      if (storyHeart) storyHeart.style.display = 'block';
-      // Cœur doré pulsant sur l'icône Nous
-      if (navNous) navNous.classList.add('event-active');
-    } else {
-      // Montrer la timeline, cacher la vidéo
-      videoWrap.style.display = 'none';
-      video.pause();
-      tlContent.style.display = 'block';
-      // Éteindre le compteur
-      if (counterBlock) counterBlock.classList.remove('glowing');
-      // Cacher le coeur
-      if (storyHeart) storyHeart.style.display = 'none';
-      // Retirer le cœur doré
-      if (navNous) navNous.classList.remove('event-active');
-    }
-  }
-
-  // Appliquer immédiatement au chargement
-  applyState();
-  window.isInVideoWindow = isInVideoWindow;
-
-  // ✅ OPT v3.8 : applyState event-driven au lieu de setInterval 30s
-  // On l'appelle : au chargement, au retour de visibilitychange, et depuis yamSwitchTab
-  window._applyStoryState = applyState;
-  document.addEventListener('visibilitychange', function(){
-    if(!document.hidden) applyState();
-  });
-
-  // ✅ OPT v3.8 : updateCountdown smart — setInterval 1s SEULEMENT pendant la fenêtre active
-  // Hors fenêtre (83% du temps) : un seul setTimeout qui se réveille au bon moment
-  var countdownEl = document.getElementById('storyCountdownTxt');
-  var _cdIv  = null;
-  var _cdTmo = null;
-
-  function _stopCountdown(){
-    if(_cdIv) { clearInterval(_cdIv); _cdIv = null; }
-    if(_cdTmo){ clearTimeout(_cdTmo);  _cdTmo = null; }
-  }
-
-  function updateCountdown() {
-    var now      = new Date();
-    var totalMin = now.getHours() * 60 + now.getMinutes();
-    var totalSec = totalMin * 60 + now.getSeconds();
-
-    var secsLeft = null;
-    for (var i = 0; i < TRIGGER_HOURS.length; i++) {
-      var endSec   = (TRIGGER_HOURS[i] * 60 + WINDOW_AFTER)  * 60;
-      var startSec = (TRIGGER_HOURS[i] * 60 - WINDOW_BEFORE) * 60;
-      if (totalSec >= startSec && totalSec < endSec) {
-        secsLeft = endSec - totalSec;
-        break;
-      }
-    }
-
-    if (secsLeft !== null && secsLeft > 0 && countdownEl) {
-      var m = Math.floor(secsLeft / 60);
-      var s = secsLeft % 60;
-      countdownEl.textContent = (m > 0 ? m + 'min ' : '') + (s < 10 ? '0' : '') + s + 's';
-    } else if (countdownEl) {
-      countdownEl.textContent = '';
-    }
-  }
-
-  function _scheduleCountdown(){
-    _stopCountdown();
-    if(document.hidden) return; // inutile si page cachée
-
-    var now      = new Date();
-    var totalSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-
-    // Sommes-nous dans une fenêtre active ?
-    var inWindow = false;
-    for(var i = 0; i < TRIGGER_HOURS.length; i++){
-      var endSec   = (TRIGGER_HOURS[i] * 60 + WINDOW_AFTER)  * 60;
-      var startSec = (TRIGGER_HOURS[i] * 60 - WINDOW_BEFORE) * 60;
-      if(totalSec >= startSec && totalSec < endSec){ inWindow = true; break; }
-    }
-
-    if(inWindow){
-      // Pendant la fenêtre : setInterval 1s (10 minutes max)
-      updateCountdown();
-      _cdIv = setInterval(updateCountdown, 1000);
-      // Se rescheduler à la fin de la fenêtre pour s'arrêter proprement
-      var currentHour = Math.floor(totalSec / 3600);
-      var windowEndSec = (currentHour * 60 + WINDOW_AFTER) * 60;
-      var msToEnd = Math.max(0, (windowEndSec - totalSec) * 1000) + 500;
-      _cdTmo = setTimeout(function(){ _stopCountdown(); _scheduleCountdown(); }, msToEnd);
-    } else {
-      // Hors fenêtre : calculer le temps jusqu'à la prochaine fenêtre
-      var secsInDay = 24 * 3600;
-      var minWait = secsInDay; // max 24h
-      for(var j = 0; j < TRIGGER_HOURS.length; j++){
-        var nextStart = (TRIGGER_HOURS[j] * 60 - WINDOW_BEFORE) * 60;
-        var wait = nextStart - totalSec;
-        if(wait < 0) wait += secsInDay;
-        if(wait < minWait) minWait = wait;
-      }
-      // Se réveiller juste avant la prochaine fenêtre (1s de marge)
-      var msToNext = Math.max(1000, minWait * 1000 - 500);
-      _cdTmo = setTimeout(function(){ updateCountdown(); _scheduleCountdown(); }, msToNext);
-    }
-  }
-
-  // Reprendre le scheduling au retour de visibilitychange
-  document.addEventListener('visibilitychange', function(){
-    if(document.hidden){ _stopCountdown(); } else { _scheduleCountdown(); }
-  });
-
-  _scheduleCountdown();
-})();
 
 var canvas=document.getElementById('particleCanvas'),ctx=canvas.getContext('2d');
 canvas.width=window.innerWidth; canvas.height=window.innerHeight;
@@ -487,15 +327,7 @@ document.getElementById('loveBox').addEventListener('click',function(e){
 
 var isQuizOpen=false;
 
-// ── TIMELINE ──
-var tlWrap=document.getElementById('tlWrap'),tlToggle=document.getElementById('tlToggle'),tlOpen=false;
-if(tlToggle&&tlWrap){
-  tlToggle.addEventListener('click',function(){tlOpen=!tlOpen;tlWrap.classList.toggle('collapsed',!tlOpen);tlWrap.classList.toggle('expanded',tlOpen);tlToggle.textContent=tlOpen?'▴ Réduire':'▾ Voir la suite';});
-}
-var obs=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting)x.target.classList.add('visible');});},{threshold:0.15});
-// Observer les .tl-item existants ET futurs (appelé aussi depuis histoireRenderTimeline)
-window._tlObserve=function(){ document.querySelectorAll('.tl-item:not(.visible)').forEach(function(el){obs.observe(el);}); };
-window._tlObserve();
+// (timeline supprimée — gérée dans app-nous.js v2)
 
 // ── LOCK ──
 var lockPopup=document.getElementById('lockPopup'),lockInput=document.getElementById('lockInput'),lockError=document.getElementById('lockError');
@@ -1132,7 +964,7 @@ document.querySelectorAll('.album-image').forEach(function(el){
 
 /* ── 12. SWIPE HORIZONTAL sur la bottom nav (smooth scroll sections) ── */
 (function(){
-  var SECTIONS = ['counterSection', 'motsDoux', 'elleSection', 'luiSection',
+  var SECTIONS = ['counterSection', 'elleSection', 'luiSection',
                   'memoCoupleSection', 'suggestionSection', 'Love'];
   var swipeStartX = 0, swipeStartY = 0, swipeLocked = false;
   var subviews = ['gamesView','memoryView','penduView','puzzleView','snakeView','skyjoView','quizView','hiddenPage'];
