@@ -1866,7 +1866,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 <!-- ════════════════════════════════════════
      ① NOTRE HISTOIRE
 ════════════════════════════════════════ -->
-<div class="nous-section-slab">Notre histoire</div>
+<div class="nous-slab">Notre histoire</div>
 
 <div class="nous-card histoire-new-card fade-in" id="timelineSection">
   <!-- Main chapitre -->
@@ -1914,7 +1914,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 <!-- ════════════════════════════════════════
      ② ELLE & LUI
 ════════════════════════════════════════ -->
-<div class="nous-section-slab">Elle &amp; Lui</div>
+<div class="nous-slab">Elle &amp; Lui</div>
 
 <!-- Grille compacte 2 colonnes -->
 <div class="elle-lui-grid-new fade-in" id="elleLuiGridNew">
@@ -2030,57 +2030,50 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 <!-- ════════════════════════════════════════
      ③ MÉMO COUPLE
 ════════════════════════════════════════ -->
-<div class="nous-section-slab" id="memoCoupleSection">Mémo couple</div>
+<div class="nous-slab">Mémo couple</div>
 
-<div class="nous-card fade-in">
-  <div class="memo-grid-new">
-    <div class="memo-cell-new" onclick="openMemoNoteView()" style="cursor:pointer;">
-      <div class="memo-cell-header-new">
-        <span class="memo-badge-new">Note</span>
-        <div class="memo-edit-icon-new" onclick="event.stopPropagation();openMemoNoteEdit()">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-        </div>
-      </div>
-      <div class="memo-preview-new" id="memoNotePreview">Appuie pour ajouter une note…</div>
-      <div class="memo-date-new" id="memoNoteDate"></div>
+<div class="memo-grid-new" id="memoCoupleSection">
+  <div class="memo-cell-new" onclick="openMemoNoteView()">
+    <div class="memo-cell-top">
+      <span class="memo-badge-new">Note</span>
+      <button class="memo-edit-btn-new" onclick="event.stopPropagation();openMemoNoteEdit()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      </button>
     </div>
-    <div class="memo-divider-new"></div>
-    <div class="memo-cell-new" onclick="openMemoTodoView()" style="cursor:pointer;">
-      <div class="memo-cell-header-new">
-        <span class="memo-badge-new">To-do</span>
-        <div class="memo-edit-icon-new" onclick="event.stopPropagation();openMemoTodoEdit()">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-        </div>
-      </div>
-      <div class="memo-preview-new" id="memoTodoPreview">Appuie pour ajouter des tâches…</div>
+    <div class="memo-preview-new" id="memoNotePreview">Appuie pour écrire…</div>
+    <div class="memo-date-new" id="memoNoteDate"></div>
+  </div>
+  <div class="memo-cell-new" onclick="openMemoTodoView()">
+    <div class="memo-cell-top">
+      <span class="memo-badge-new">To-do</span>
+      <button class="memo-edit-btn-new" onclick="event.stopPropagation();openMemoTodoEdit()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      </button>
     </div>
+    <div class="memo-preview-new" id="memoTodoPreview">Appuie pour ajouter…</div>
   </div>
 </div>
 
 <!-- ════════════════════════════════════════
      ④ PETITS MOTS
 ════════════════════════════════════════ -->
-<div class="nous-section-slab" id="postitsSection">Petits mots</div>
+<div class="nous-slab">Petits mots <span class="pm-new-badge" id="postitNewBadge" style="display:none;">NEW</span></div>
 
-<div class="nous-card pm-new-card fade-in">
-  <button class="pm-ecrire-new" onclick="openPetitsMotsGestion()" aria-label="Écrire un mot">
+<div class="pm-new-card fade-in" id="postitsSection">
+  <button class="pm-ecrire-new" onclick="openPetitsMotsGestion()">
     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
     Écrire
-    <span class="pm-new-badge" id="postitNewBadge" style="display:none;">NEW</span>
   </button>
-  <div class="pm-stack-wrap">
-    <div class="pm-icon-new">💌</div>
-    <div class="pm-stack-inner" id="postitStack"></div>
-    <div class="pm-hint-new">Tape ou swipe pour passer au suivant</div>
-  </div>
+  <div class="postit-wrap" id="postitStack"></div>
+  <div class="pm-hint-new">Tape ou swipe pour passer au suivant</div>
   <div class="pm-counter-new" id="stackCounter"></div>
 </div>
 
 <!-- ════════════════════════════════════════
      ⑤ SOUVENIRS
 ════════════════════════════════════════ -->
-<div class="nous-section-slab-row fade-in">
-  <div class="nous-section-slab" style="margin:0;">Souvenirs</div>
+<div class="nous-slab-row fade-in">
+  <div class="nous-slab" style="margin:0;">Souvenirs</div>
   <button onclick="nousOpenSouvenirGestion()" class="slab-voir-btn" aria-label="Voir tous les souvenirs">
     Tout voir
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -2088,33 +2081,29 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
   <span class="slab-new-badge" id="souvenirNewBadge" style="display:none;">NEW</span>
 </div>
 
-<div class="souvenirs-block fade-in" id="souvenirsSection">
-  <!-- Récents -->
-  <div class="souvenirs-sub-label">Récents</div>
-  <div class="souvenirs-scroll-new" id="souvenirsRecentScroll">
-    <!-- Rempli par nousLoadSouvenirs() via souvenirsRecentRow -->
+<div id="souvenirsSection">
+  <div class="sov-sub-row">
+    <span class="sov-sub-lbl">Récents</span>
   </div>
-  <!-- Div fantôme pour compat JS qui injecte dans souvenirsRecentRow -->
+  <div class="souvenirs-scroll-new" id="souvenirsRecentScroll"></div>
   <div id="souvenirsRecentRow" style="display:none;"></div>
 
-  <!-- Favoris -->
-  <div class="souvenirs-sub-label">Nos favoris 📌</div>
-  <div class="souvenirs-scroll-new" id="souvenirsFavScroll">
-    <!-- Rempli par nousLoadSouvenirs() via souvenirsFavRow -->
+  <div class="sov-sub-row">
+    <span class="sov-sub-lbl">Nos favoris 📌</span>
   </div>
-  <!-- Div fantôme pour compat JS qui injecte dans souvenirsFavRow -->
+  <div class="souvenirs-scroll-new" id="souvenirsFavScroll"></div>
   <div id="souvenirsFavRow" style="display:none;"></div>
 
   <div id="souvenirsEmpty" style="display:none;text-align:center;color:var(--muted);font-size:13px;padding:20px 0;">Aucun souvenir pour l'instant 🌸</div>
 
-  <button onclick="nousOpenSouvenirModal(null)" class="souvenir-add-inline-btn" aria-label="Ajouter un souvenir">+</button>
+  <button onclick="nousOpenSouvenirModal(null)" class="souvenir-add-inline-btn">+</button>
 </div>
 
 <!-- ════════════════════════════════════════
-     ⑥ ACTIVITÉS
+     ⑥ ACTIVITÉSCTIVITÉS
 ════════════════════════════════════════ -->
-<div class="nous-section-slab-row fade-in">
-  <div class="nous-section-slab" style="margin:0;">Activités</div>
+<div class="nous-slab-row fade-in">
+  <div class="nous-slab" style="margin:0;">Cahier d'activités</div>
   <button onclick="nousOpenActiviteGestion()" class="slab-voir-btn" aria-label="Voir toutes les activités">
     Tout voir
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -2152,8 +2141,8 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 <!-- ════════════════════════════════════════
      ⑦ BIBLIOTHÈQUE
 ════════════════════════════════════════ -->
-<div class="nous-section-slab-row fade-in">
-  <div class="nous-section-slab" style="margin:0;">
+<div class="nous-slab-row fade-in">
+  <div class="nous-slab" style="margin:0;">
     Notre bibliothèque
     <span class="slab-new-badge" id="livresNewBadge" style="display:none;">NEW</span>
   </div>
