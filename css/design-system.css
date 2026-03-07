@@ -37,7 +37,7 @@ body.light {
   --page-bg:       #f0ebe5;
   --group-bg:      rgba(255,255,255,1);
   --group-sep:     rgba(201,120,96,0.09);
-  --group-label:   rgba(38,26,18,0.45);
+  --group-label:   #7a5a48;
   --page-shadow:   0 -2px 16px rgba(100,60,30,0.08);
 }
 
@@ -404,7 +404,7 @@ body.light .yam-mood-strip {
 
 body.light .section-label,
 body.light .ios-group-title {
-  color: rgba(38,26,18,0.45) !important;
+  color: var(--green) !important;
 }
 
 /* Compteur en light */
