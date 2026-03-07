@@ -3666,14 +3666,13 @@ window.nousLoad = function(){
   }
 
   // ════════════════════════════════════════════════════════════════
-  // SUPABASE — Sauvegarde flame
+  // SUPABASE — Sauvegarde flame (valeur absolue, sync périodique)
   // ════════════════════════════════════════════════════════════════
 
   function _saveFlame (pts) {
     var cid = _getCoupleId();
     if (!cid) return;
     var now = new Date().toISOString();
-    var body = { couple_id: cid, points: pts, last_updated: now };
 
     if (_flame.rowId) {
       fetch(SB2_URL + '/rest/v1/v2_flame?id=eq.' + _flame.rowId, {
@@ -3685,12 +3684,56 @@ window.nousLoad = function(){
       fetch(SB2_URL + '/rest/v1/v2_flame', {
         method: 'POST',
         headers: sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=representation' }),
-        body: JSON.stringify(body)
+        body: JSON.stringify({ couple_id: cid, points: pts, last_updated: now })
       })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (rows) { if (rows && rows[0]) _flame.rowId = rows[0].id; })
       .catch(function () {});
     }
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // SUPABASE — Incrément atomique via RPC (évite la race condition)
+  // Quand les deux partenaires déclenchent une activité en même temps,
+  // on utilise une RPC SQL pour incrémenter côté serveur de façon sûre.
+  // ════════════════════════════════════════════════════════════════
+
+  function _incrementFlameAtomic (cid, delta, onDone) {
+    var now = new Date().toISOString();
+    // Upsert avec incrément SQL via RPC Supabase
+    // Fallback : si la RPC n'existe pas, on utilise le PATCH classique
+    fetch(SB2_URL + '/rest/v1/rpc/yam_flame_increment', {
+      method: 'POST',
+      headers: sb2Headers({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        p_couple_id   : cid,
+        p_delta       : delta,
+        p_max         : FLAME_MAX,
+        p_last_updated: now
+      })
+    })
+    .then(function (r) {
+      if (r.ok) {
+        return r.json().then(function (result) {
+          // La RPC retourne le nouveau score
+          if (result && typeof result.new_points === 'number') {
+            _flame.points       = result.new_points;
+            _flame.last_updated = new Date(now);
+            if (result.id) _flame.rowId = result.id;
+            _renderFlame();
+          }
+          if (onDone) onDone();
+        });
+      } else {
+        // RPC absente ou erreur → fallback PATCH valeur absolue
+        _saveFlame(_flame.points);
+        if (onDone) onDone();
+      }
+    })
+    .catch(function () {
+      // Réseau KO → on garde la valeur locale, sync au prochain tick
+      if (onDone) onDone();
+    });
   }
 
   // ════════════════════════════════════════════════════════════════
@@ -3702,17 +3745,16 @@ window.nousLoad = function(){
     var profile = _getProfile();
     if (!cid || !profile) return;
 
-    // Déjà fait aujourd'hui ?
+    // Déjà fait aujourd'hui ? (garde locale — 1x/jour par type)
     if (_activitiesToday[activityType]) return;
     _activitiesToday[activityType] = true;
 
-    // Calcul nouveau score
+    // Mise à jour optimiste locale (affichage immédiat)
     var current = _currentPoints();
     var newPts  = Math.min(FLAME_MAX, current + ACTIVITY_POINTS);
-
-    // Mise à jour mémoire
     _flame.points       = newPts;
     _flame.last_updated = new Date();
+    _renderFlame();
 
     // Log activité en base
     fetch(SB2_URL + '/rest/v1/v2_flame_activities', {
@@ -3726,11 +3768,9 @@ window.nousLoad = function(){
       })
     }).catch(function () {});
 
-    // Sauvegarder la flamme
-    _saveFlame(newPts);
-
-    // Mise à jour UI immédiate
-    _renderFlame();
+    // Incrément atomique côté serveur (évite race condition si les deux
+    // partenaires déclenchent une activité en même temps)
+    _incrementFlameAtomic(cid, ACTIVITY_POINTS, null);
 
     // Feedback toast
     var labels = {
@@ -3854,22 +3894,22 @@ window.nousLoad = function(){
   function _renderFlame () {
     var pts         = _currentPoints();
     var ratio       = pts / FLAME_MAX;           // 0→1
-    var pct         = Math.round(ratio * 100);
 
     // Gauge SVG (cercle de progression)
-    var radius      = 28;
-    var circumf     = 2 * Math.PI * radius;
+    // r=19 dans le SVG → circumférence = 2π×19 = 119.38
+    var radius      = 19;
+    var circumf     = 2 * Math.PI * radius;      // 119.38
     var dashOffset  = circumf * (1 - ratio);
 
     var circle = document.getElementById('flammeGaugeCircle');
     if (circle) {
       circle.style.strokeDashoffset = dashOffset;
-      circle.style.strokeDasharray  = circumf;
+      // strokeDasharray est posé en HTML, on ne le réécrit pas
     }
 
     // Couleur de la gauge selon niveau
     var gaugeColor;
-    if      (ratio <= 0)    gaugeColor = '#aaaaaa';
+    if      (ratio <= 0)    gaugeColor = '#cccccc';
     else if (ratio < 0.25)  gaugeColor = '#f97316';
     else if (ratio < 0.5)   gaugeColor = '#ef4444';
     else if (ratio < 0.75)  gaugeColor = '#dc2626';
@@ -3888,7 +3928,7 @@ window.nousLoad = function(){
       );
     }
 
-    // Texte point / heure restante
+    // Texte heure restante avant extinction
     var ptsEl = document.getElementById('flammePts');
     if (ptsEl) {
       if (pts <= 0) {
