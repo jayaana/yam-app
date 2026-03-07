@@ -681,61 +681,49 @@ body.nous-active #yamStickyAvatarSelf {
 </style>
 
 <style id="yam-flamme-styles">
-/* ══════════════════════════════════════════════════════════════
-   YAM — FLAMME DE COUPLE — Nouvelle en-tête Nous ♥
-   À ajouter dans css/main.css (ou design-system.css)
-   ══════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   YAM — FLAMME DE COUPLE — CSS header Nous
+   ══════════════════════════════════════════ */
 
-/* ── Conteneur principal ────────────────────────────────────── */
+/* ── Conteneur principal ── */
 .nous-header-v2 {
-  padding: 24px 16px 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
+  padding: 20px 12px 12px;
   background: var(--bg);
 }
 
-/* ── Zone haute : avatars + flamme ──────────────────────────── */
-.nous-hdr-top {
+/* ── Grille 3 colonnes : Elle | Centre | Lui ── */
+.nous-hdr-grid {
+  display: grid;
+  grid-template-columns: 92px 1fr 92px;
+  align-items: start;
+  gap: 0;
   width: 100%;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  padding: 0 4px;
-  position: relative;
 }
 
-/* ── Avatars ─────────────────────────────────────────────────── */
-.nous-hdr-avatar-wrap {
+/* ── Colonne avatar (Elle & Lui) ── */
+.nous-hdr-avatar-col {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  flex: 0 0 auto;
+  gap: 7px;
 }
 
 .nous-hdr-avatar-ring {
   position: relative;
-  width: 88px;
-  height: 88px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   padding: 3px;
+  box-sizing: border-box;
 }
 
 .girl-ring {
-  background: linear-gradient(135deg, rgba(240,100,150,0.6), rgba(200,80,140,0.4));
-  box-shadow: 0 4px 20px rgba(240,100,150,0.3);
+  background: linear-gradient(135deg, rgba(240,100,150,0.7), rgba(200,80,140,0.45));
+  box-shadow: 0 3px 16px rgba(240,100,150,0.28);
 }
 .boy-ring {
-  background: linear-gradient(135deg, rgba(80,150,240,0.6), rgba(60,120,220,0.4));
-  box-shadow: 0 4px 20px rgba(80,150,240,0.25);
-}
-
-/* Anneau animé quand flamme active */
-.flamme-high .girl-ring,
-.flamme-max  .girl-ring {
-  box-shadow: 0 0 0 2px rgba(255,107,53,0.4), 0 4px 24px rgba(240,100,150,0.35);
+  background: linear-gradient(135deg, rgba(80,150,240,0.7), rgba(60,120,220,0.45));
+  box-shadow: 0 3px 16px rgba(80,150,240,0.22);
 }
 
 .nous-hdr-avatar {
@@ -745,7 +733,6 @@ body.nous-active #yamStickyAvatarSelf {
   overflow: hidden;
   background: var(--s2);
 }
-
 .nous-hdr-avatar img {
   width: 100%;
   height: 100%;
@@ -755,49 +742,54 @@ body.nous-active #yamStickyAvatarSelf {
 }
 
 .nous-hdr-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--text);
   font-family: 'Bricolage Grotesque', sans-serif;
-  letter-spacing: 0.2px;
+  text-align: center;
 }
 
-/* Point de présence */
+/* Point présence */
 .nous-presence-dot {
   position: absolute;
-  bottom: 4px;
-  left: 4px;
-  width: 14px;
-  height: 14px;
+  bottom: 3px;
+  left: 3px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
   background: #4ade80;
-  border: 2.5px solid var(--bg);
-  display: none; /* affiché par JS si online */
+  border: 2px solid var(--bg);
+  display: none;
 }
 .nous-presence-dot.online { display: block; }
 
-/* ── Flamme centrale ─────────────────────────────────────────── */
-.nous-hdr-flamme-zone {
+/* ── Colonne centrale ── */
+.nous-hdr-center {
   display: flex;
   flex-direction: column;
   align-items: center;
-  flex: 0 0 auto;
-  /* légèrement au-dessus grâce au margin-bottom des avatars */
-  margin-bottom: 22px;
+  gap: 10px;
+  padding: 0 4px;
+  padding-top: 2px;
+}
+
+/* ── Flamme + gauge ── */
+.flamme-wrap {
   position: relative;
-  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .flamme-gauge-wrap {
   position: relative;
-  width: 72px;
-  height: 72px;
+  width: 68px;
+  height: 68px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* SVG gauge */
 .flamme-gauge-svg {
   position: absolute;
   top: 0; left: 0;
@@ -812,140 +804,100 @@ body.nous-active #yamStickyAvatarSelf {
   stroke: #f97316;
   transition: stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1),
               stroke 0.8s ease;
-  will-change: stroke-dashoffset;
 }
 
-/* Icône flamme */
 .flamme-icon {
   position: relative;
   z-index: 1;
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  /* remonter légèrement pour être dans le cercle */
-  margin-top: -4px;
 }
 
 .flamme-svg {
-  width: 28px;
-  height: 35px;
+  width: 26px;
+  height: 33px;
 }
 
-/* États visuels de la flamme */
+/* États flamme */
+.flamme-dead  .flamme-body  { fill: #aaaaaa; opacity: 0.45; }
+.flamme-dead  .flamme-inner { fill: #888; opacity: 0.35; }
 
-/* Éteinte */
-.flamme-dead .flamme-body  { fill: #aaaaaa; opacity: 0.5; }
-.flamme-dead .flamme-inner { fill: #888888; opacity: 0.4; }
+.flamme-low   .flamme-body  { fill: #fb923c; animation: flammeFlicker 3s ease-in-out infinite; }
+.flamme-low   .flamme-inner { fill: #fde68a; }
 
-/* Faible */
-.flamme-low .flamme-body  {
-  fill: url(#flammeGradLow);
-  animation: flammeFlicker 3s ease-in-out infinite;
-}
-.flamme-low .flamme-inner { fill: #fde68a; }
+.flamme-mid   .flamme-body  { fill: #f97316; animation: flammeFlicker 2s ease-in-out infinite;
+                               filter: drop-shadow(0 0 4px rgba(249,115,22,0.5)); }
+.flamme-mid   .flamme-inner { fill: #fef3c7; }
 
-/* Moyen */
-.flamme-mid .flamme-body  {
-  fill: url(#flammeGradMid);
-  animation: flammeFlicker 2s ease-in-out infinite;
-  filter: drop-shadow(0 0 4px rgba(249,115,22,0.5));
-}
-.flamme-mid .flamme-inner { fill: #fef3c7; }
+.flamme-high  .flamme-body  { fill: #ef4444; animation: flammeFlickerFast 1.4s ease-in-out infinite;
+                               filter: drop-shadow(0 0 8px rgba(239,68,68,0.6)); }
+.flamme-high  .flamme-inner { fill: #fff; opacity: 0.9; }
 
-/* Haut */
-.flamme-high .flamme-body  {
-  fill: url(#flammeGradHigh);
-  animation: flammeFlickerFast 1.4s ease-in-out infinite;
-  filter: drop-shadow(0 0 8px rgba(239,68,68,0.6));
-}
-.flamme-high .flamme-inner { fill: #ffffff; opacity: 0.9; }
+.flamme-max   .flamme-body  { fill: #ff6b35; animation: flammeFlickerFast 0.9s ease-in-out infinite;
+                               filter: drop-shadow(0 0 12px rgba(255,107,53,0.85)); }
+.flamme-max   .flamme-inner { fill: #fff; animation: flammeInnerPulse 0.9s ease-in-out infinite; }
 
-/* Maximum */
-.flamme-max .flamme-body  {
-  fill: url(#flammeGradMax);
-  animation: flammeFlickerFast 0.9s ease-in-out infinite;
-  filter: drop-shadow(0 0 12px rgba(255,107,53,0.85));
-}
-.flamme-max .flamme-inner {
-  fill: #ffffff;
-  animation: flammeInnerPulse 0.9s ease-in-out infinite;
-}
-
-/* Animations flamme */
 @keyframes flammeFlicker {
-  0%, 100% { transform: scaleX(1)    scaleY(1)    rotate(0deg); }
-  25%       { transform: scaleX(0.96) scaleY(1.03) rotate(-1deg); }
-  50%       { transform: scaleX(1.03) scaleY(0.97) rotate(1deg); }
-  75%       { transform: scaleX(0.97) scaleY(1.02) rotate(-0.5deg); }
+  0%,100% { transform: scaleX(1) scaleY(1) rotate(0deg); }
+  25%     { transform: scaleX(.96) scaleY(1.03) rotate(-1deg); }
+  50%     { transform: scaleX(1.03) scaleY(.97) rotate(1deg); }
+  75%     { transform: scaleX(.97) scaleY(1.02) rotate(-.5deg); }
 }
-
 @keyframes flammeFlickerFast {
-  0%, 100% { transform: scaleX(1)    scaleY(1)    rotate(0deg); }
-  20%       { transform: scaleX(0.94) scaleY(1.05) rotate(-2deg); }
-  40%       { transform: scaleX(1.05) scaleY(0.95) rotate(2deg); }
-  60%       { transform: scaleX(0.96) scaleY(1.03) rotate(-1.5deg); }
-  80%       { transform: scaleX(1.03) scaleY(0.97) rotate(1deg); }
+  0%,100% { transform: scaleX(1) scaleY(1) rotate(0deg); }
+  20%     { transform: scaleX(.94) scaleY(1.05) rotate(-2deg); }
+  40%     { transform: scaleX(1.05) scaleY(.95) rotate(2deg); }
+  60%     { transform: scaleX(.96) scaleY(1.03) rotate(-1.5deg); }
+  80%     { transform: scaleX(1.03) scaleY(.97) rotate(1deg); }
 }
-
 @keyframes flammeInnerPulse {
-  0%, 100% { opacity: 0.9; transform: scale(1); }
-  50%       { opacity: 1;   transform: scale(1.1); }
+  0%,100% { opacity:.9; transform:scale(1); }
+  50%     { opacity:1;  transform:scale(1.1); }
 }
 
-/* Dégradés flamme (définis via SVG defs dans le HTML) */
-/* Fallback couleurs solides si les defs SVG ne se chargent pas */
-.flamme-low  .flamme-body { fill: #fb923c; }
-.flamme-mid  .flamme-body { fill: #f97316; }
-.flamme-high .flamme-body { fill: #ef4444; }
-.flamme-max  .flamme-body { fill: #ff6b35; }
-
-/* Temps restant sous la flamme */
+/* Temps restant */
 .flamme-pts-label {
-  position: absolute;
-  bottom: -18px;
-  left: 50%;
-  transform: translateX(-50%);
+  margin-top: 4px;
   font-size: 10px;
   font-weight: 800;
   font-family: 'Bricolage Grotesque', sans-serif;
   color: var(--muted);
   white-space: nowrap;
-  letter-spacing: 0.3px;
+  text-align: center;
 }
 
-/* ── Barre de streak ─────────────────────────────────────────── */
-.nous-hdr-streak-wrap {
+/* ── Barre de streak ── */
+.streak-block {
   width: 100%;
-  max-width: 320px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
-.nous-hdr-streak-header {
+.streak-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 2px;
 }
 
-.streak-label-left {
+.streak-day {
   font-size: 11px;
   font-weight: 800;
   color: var(--text);
   font-family: 'Bricolage Grotesque', sans-serif;
 }
 
-.streak-label-right {
+.streak-next {
   font-size: 10px;
   font-weight: 600;
   color: var(--muted);
   font-family: 'Bricolage Grotesque', sans-serif;
 }
 
-.nous-hdr-streak-bar-bg {
+.streak-bar-bg {
   position: relative;
   height: 6px;
   background: var(--s2);
@@ -953,7 +905,7 @@ body.nous-active #yamStickyAvatarSelf {
   overflow: visible;
 }
 
-.nous-hdr-streak-bar {
+.streak-bar-fill {
   position: absolute;
   top: 0; left: 0;
   height: 100%;
@@ -961,28 +913,28 @@ body.nous-active #yamStickyAvatarSelf {
   border-radius: 99px;
   transition: width 1s cubic-bezier(.4,0,.2,1);
   min-width: 0;
+  max-width: 100%;
 }
 
-/* Marqueurs de paliers sur la barre */
-.streak-milestone {
+/* Ticks paliers sur la barre */
+.streak-tick {
   position: absolute;
   top: -4px;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
+  pointer-events: none;
 }
-
-.streak-milestone::before {
+.streak-tick::before {
   content: '';
   display: block;
-  width: 2px;
+  width: 1.5px;
   height: 14px;
   background: var(--border);
   border-radius: 1px;
 }
-
-.streak-milestone span {
+.streak-tick span {
   font-size: 8px;
   font-weight: 700;
   color: var(--muted);
@@ -990,60 +942,52 @@ body.nous-active #yamStickyAvatarSelf {
   margin-top: 2px;
   white-space: nowrap;
 }
+/* Tick à 0% : pas de décalage à gauche */
+.streak-tick:first-child { transform: translateX(0); }
+/* Tick à 100% : collé au bord droit */
+.streak-tick:last-child  { transform: translateX(-100%); }
 
-/* Cacher les milestones qui débordent */
-.streak-milestone:first-child { transform: translateX(0); }
-.streak-milestone:last-child  { transform: translateX(-100%); }
-
-/* ── Trophées + Cœur ─────────────────────────────────────────── */
-.nous-hdr-trophees {
+/* ── Trophées + cœur ── */
+.trophees-row {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 20px;
-  padding: 4px 0;
+  gap: 12px;
 }
 
-.nous-hdr-trophee {
+.trophee-item {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .trophee-svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
 }
 
-.girl-trophee .trophee-svg { color: rgba(220,100,140,0.8); }
-.boy-trophee  .trophee-svg { color: rgba(70,130,210,0.8); }
+.girl-trophee .trophee-svg { color: rgba(220,100,140,0.85); }
+.boy-trophee  .trophee-svg { color: rgba(70,130,210,0.85); }
+
+/* Score du trophée Lui : avant le trophée */
+.boy-trophee { flex-direction: row-reverse; }
 
 .trophee-score {
   font-size: 13px;
   font-weight: 800;
   color: var(--text);
   font-family: 'Bricolage Grotesque', sans-serif;
-  min-width: 24px;
+  min-width: 20px;
   text-align: center;
 }
 
-/* Trophée Lui : score avant le trophée (ordre inversé) */
-.boy-trophee {
-  flex-direction: row-reverse;
-}
-.boy-trophee .trophee-score {
-  text-align: center;
-}
-
-/* Cœur central */
-.nous-hdr-heart-center {
-  flex-shrink: 0;
-}
-
+/* Cœur central entre les trophées */
 .heart-center-circle {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: var(--s1);
   border: 1.5px solid var(--border);
@@ -1051,52 +995,30 @@ body.nous-active #yamStickyAvatarSelf {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
-.heart-center-svg {
-  width: 18px;
-  height: 18px;
-  color: #e75a7c;
-  animation: heartBeat 1.4s ease-in-out infinite;
-}
-
-/* ── Date de couple ──────────────────────────────────────────── */
+/* ── Date couple ── */
 .nous-hdr-since {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--muted);
   font-family: 'Bricolage Grotesque', sans-serif;
   text-align: center;
   letter-spacing: 0.2px;
-  padding-bottom: 4px;
 }
 
-/* ══════════════════════════════════════════════════════════════
-   THÈME CLAIR — overrides
-   ══════════════════════════════════════════════════════════════ */
-body.light .flamme-gauge-bg {
-  stroke: rgba(0,0,0,0.07);
-}
+/* ── Thème clair ── */
+body.light .flamme-gauge-bg   { stroke: rgba(0,0,0,0.07); }
+body.light .heart-center-circle { background:#fff; border-color:rgba(160,120,90,0.15); }
+body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 
-body.light .heart-center-circle {
-  background: #ffffff;
-  border-color: rgba(160,120,90,0.15);
-}
-
-body.light .streak-milestone::before {
-  background: rgba(160,120,90,0.2);
-}
-
-/* ══════════════════════════════════════════════════════════════
-   RESPONSIVE — petits écrans (< 360px)
-   ══════════════════════════════════════════════════════════════ */
+/* ── Petits écrans < 360px ── */
 @media (max-width: 359px) {
-  .nous-hdr-avatar-ring { width: 76px; height: 76px; }
-  .flamme-gauge-wrap    { width: 64px; height: 64px; }
-  .flamme-svg           { width: 24px; height: 30px; }
-  .nous-hdr-streak-wrap { max-width: 280px; }
+  .nous-hdr-grid           { grid-template-columns: 78px 1fr 78px; }
+  .nous-hdr-avatar-ring    { width: 68px; height: 68px; }
+  .flamme-gauge-wrap       { width: 58px; height: 58px; }
 }
-
 </style>
 </head>
 <body>
