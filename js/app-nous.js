@@ -2475,7 +2475,7 @@ loadLikeCounters();
     _renderBandeau();
   };
 
-  // ── Modale chapitre complet ──
+  // ── Modale chapitre complet — positionnée absolue sur la bulle ──
   window.histoireOpenChapterModal = function(){
     var sorted = _histoireAllRows.slice().sort(function(a,b){
       if((a.sort_order||0)!=(b.sort_order||0)) return (a.sort_order||0)-(b.sort_order||0);
@@ -2494,24 +2494,26 @@ loadLikeCounters();
     document.getElementById('histoireChapterModalTitre').textContent = item.title || '';
     document.getElementById('histoireChapterModalTexte').textContent = item.text || '';
 
-    modal.style.display = 'flex';
-    _saveScrollPosition();
-    _blockBackgroundScroll();
+    modal.style.display = 'block';
   };
 
   window.histoireCloseChapterModal = function(){
     var modal = document.getElementById('histoireChapterModal');
     if (modal) modal.style.display = 'none';
-    _unblockBackgroundScroll();
-    _restoreScrollPosition();
   };
 
-  // Click en dehors pour fermer
-  var _cModal = document.getElementById('histoireChapterModal');
-  if (_cModal) _cModal.addEventListener('click', function(e){ if(e.target===_cModal) window.histoireCloseChapterModal(); });
+  // Click en dehors ferme la modale
+  document.addEventListener('click', function(e){
+    var modal = document.getElementById('histoireChapterModal');
+    if (!modal || modal.style.display === 'none') return;
+    var bulle = document.getElementById('histoireBulle');
+    if (bulle && bulle.contains(e.target)) return; // clic sur la bulle = toggle géré par onclick
+    if (!modal.contains(e.target)) window.histoireCloseChapterModal();
+  });
 
   // ── Overlay gestion (inchangé) ──
   window.histoireOpenGestion = function(){
+
     if(!_histoireAllRows.length) window.histoireLoad();
     _saveScrollPosition();
     _blockBackgroundScroll();
