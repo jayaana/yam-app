@@ -36,7 +36,7 @@
 body.light {
   --page-bg:       #f2f2f7;
   --group-bg:      rgba(255,255,255,1);
-  --group-sep:     rgba(231,90,124,0.09);
+  --group-sep:     rgba(60,60,67,0.09);
   --group-label:   #6e6e73;
   --page-shadow:   0 -2px 16px rgba(0,0,0,0.08);
 }
@@ -323,8 +323,9 @@ body.light .yam-tab-panel {
 }
 
 body.light .bottom-nav {
-  background: rgba(245,241,237,0.97) !important;
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+  background: rgba(242,242,247,0.97) !important;
+  box-shadow: none;
+  border-top: 1px solid rgba(60,60,67,0.1) !important;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -404,7 +405,7 @@ body.light .yam-mood-strip {
 
 body.light .section-label,
 body.light .ios-group-title {
-  color: var(--accent) !important;
+  color: var(--muted) !important;
 }
 
 /* Compteur en light */
