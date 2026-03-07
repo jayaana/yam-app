@@ -1171,6 +1171,7 @@ audio { display: none; }
   display: block;
   font-size: 15px; font-weight: 600; font-family: 'Bricolage Grotesque', sans-serif;
   color: var(--text); line-height: 1.4;
+  white-space: nowrap;
   transition: opacity 0.2s;
 }
 #loveBox .lb-icon {
