@@ -532,30 +532,9 @@ window.nousSignalNew = function() {
   // SYNC VISIBILITÉ SECTIONS
   // ─────────────────────────────
   window.elleSyncSections = function(){
+    // Dans la nouvelle structure, tout est dans elleLuiSection — pas besoin de toggle show/hide
+    // On adapte juste les boutons d'édition selon le profil
     var profile = getProfile();
-    var elleSection  = document.getElementById('elleSectionContent');
-    var luiSection   = document.getElementById('luiSectionContent');
-    var elleGear     = document.getElementById('elleGearBtn');
-    var luiGear      = document.getElementById('luiGearBtn');
-    var elleTitleBtn = document.getElementById('elleTitleEditBtn');
-    var luiTitleBtn  = document.getElementById('luiTitleEditBtn');
-    if(!elleSection || !luiSection) return;
-    if(profile === 'boy'){
-      luiSection.style.display  = 'block';
-      if(!elleSection.dataset.forceOpen) elleSection.style.display = 'none';
-      if(elleGear)     elleGear.style.display     = '';
-      if(luiGear)      luiGear.style.display      = 'none';
-      if(elleTitleBtn) elleTitleBtn.style.display  = 'flex';
-      if(luiTitleBtn)  luiTitleBtn.style.display   = 'none';
-    } else {
-      elleSection.style.display = 'block';
-      if(!luiSection.dataset.forceOpen) luiSection.style.display = 'none';
-      if(elleGear)     elleGear.style.display     = 'none';
-      if(luiGear)      luiGear.style.display      = '';
-      if(elleTitleBtn) elleTitleBtn.style.display  = 'none';
-      if(luiTitleBtn)  luiTitleBtn.style.display   = 'flex';
-    }
-    // Boutons edit : boy → elle, girl → lui
     SLOTS.forEach(function(slot){
       var eBtn = document.getElementById('elle-btn-'+slot);
       var lBtn = document.getElementById('lui-btn-'+slot);
@@ -594,6 +573,8 @@ window.nousSignalNew = function() {
         img.src=url; img.style.display=''; img.classList.add('loaded');
         if(empty) empty.style.display='none';
         if(btn) btn.classList.remove('empty');
+        // Mettre à jour la vignette dans la grille slots-grid
+        if(typeof window.elleLuiUpdateSlot==='function') window.elleLuiUpdateSlot(section, slot, url);
       };
       t.onerror = function(){
         img.style.display='none';
@@ -605,6 +586,122 @@ window.nousSignalNew = function() {
   }
   window.elleLoadImages = function(){ _loadImages('elle'); };
   window.luiLoadImages  = function(){ _loadImages('lui');  };
+
+  // ── Mettre à jour un slot-cell dans la grille après chargement photo ──
+  window.elleLuiUpdateSlot = function(section, slot, src){
+    var cell = document.getElementById(section+'-slot-'+slot);
+    if(!cell) return;
+    cell.innerHTML = '<img src="'+src+'" style="width:100%;height:100%;object-fit:cover;">';
+    cell.classList.add('filled');
+  };
+
+  // ── Ouvrir la vue expanded ──
+  var _expandedCurrentSection = 'elle';
+  var _expandedCurrentIdx = 0;
+
+  window.elleLuiOpenExpanded = function(section){
+    _expandedCurrentSection = section;
+    _expandedCurrentIdx = 0;
+    var grid     = document.getElementById('elleLuiGrid');
+    var expanded = document.getElementById('elleLuiExpanded');
+    if(!grid || !expanded) return;
+    grid.style.display = 'none';
+    expanded.classList.add('open');
+    document.getElementById('tabElle').classList.toggle('active', section==='elle');
+    document.getElementById('tabLui').classList.toggle('active',  section==='lui');
+    _elleLuiRenderSlots(section);
+  };
+
+  window.elleLuiSwitchTab = function(section){
+    _expandedCurrentSection = section;
+    _expandedCurrentIdx = 0;
+    document.getElementById('tabElle').classList.toggle('active', section==='elle');
+    document.getElementById('tabLui').classList.toggle('active',  section==='lui');
+    _elleLuiRenderSlots(section);
+  };
+
+  window.elleLuiCloseExpanded = function(){
+    var grid     = document.getElementById('elleLuiGrid');
+    var expanded = document.getElementById('elleLuiExpanded');
+    if(grid)     grid.style.display = '';
+    if(expanded) expanded.classList.remove('open');
+  };
+
+  function _elleLuiRenderSlots(section){
+    var scroll  = document.getElementById('expandedScroll');
+    var dots    = document.getElementById('expandedDots');
+    var notice  = document.getElementById('expandedNotice');
+    if(!scroll) return;
+    scroll.innerHTML = '';
+    if(dots) dots.innerHTML = '';
+
+    var profile  = getProfile();
+    var editable = (section==='elle' && profile==='boy') || (section==='lui' && profile==='girl');
+    var banners  = section==='elle' ? _elleBanners : _luiBanners;
+    var descs    = section==='elle' ? _elleDescs   : _luiDescs;
+
+    if(notice){
+      notice.textContent = editable ? '✏️ Tu peux modifier cette pochette' : '🔒 Tu ne peux modifier que la pochette de '+(profile==='girl'?'Lui':'Elle');
+      notice.style.color = editable ? 'var(--accent)' : 'var(--muted)';
+    }
+
+    var coupleId = _getCoupleId();
+
+    SLOTS.forEach(function(slot, idx){
+      var imgEl  = document.getElementById(section+'-img-'+slot);
+      var hasImg = imgEl && imgEl.src && imgEl.src !== window.location.href;
+      var banner = banners[slot] || slot.charAt(0).toUpperCase()+slot.slice(1);
+      var desc   = descs[slot]   || '';
+
+      var slotDiv = document.createElement('div');
+      slotDiv.className = 'expanded-slot';
+
+      var imgDiv = document.createElement('div');
+      imgDiv.className = 'expanded-slot-img' + (hasImg ? '' : ' empty');
+      if(hasImg){
+        var img = document.createElement('img');
+        img.src = imgEl.src;
+        imgDiv.appendChild(img);
+      } else {
+        imgDiv.textContent = ['🐾','🌸','🧑','🍂','🍽️'][idx] || '📷';
+      }
+
+      var footer = document.createElement('div');
+      footer.className = 'expanded-slot-footer';
+      footer.innerHTML =
+        '<div class="expanded-slot-info">'+
+          '<div class="expanded-slot-name">'+escHtml(banner)+'</div>'+
+          '<div class="expanded-slot-desc">'+escHtml(desc)+'</div>'+
+        '</div>'+
+        '<button class="expanded-slot-edit'+(editable?'':' disabled')+'"'+(editable?'':'disabled')+'>'+
+          (editable ? (hasImg?'Modifier':'Ajouter') : '🔒 Lecture seule')+
+        '</button>';
+
+      if(editable){
+        footer.querySelector('.expanded-slot-edit').addEventListener('click', function(){
+          window.slotOpenEdit(section, slot);
+        });
+      }
+
+      slotDiv.appendChild(imgDiv);
+      slotDiv.appendChild(footer);
+      scroll.appendChild(slotDiv);
+
+      // Dot
+      if(dots){
+        var dot = document.createElement('div');
+        dot.className = 'expanded-dot' + (idx===0?' active':'');
+        dots.appendChild(dot);
+      }
+    });
+
+    // Sync dots au scroll
+    scroll.onscroll = function(){
+      var idx = Math.round(scroll.scrollLeft / scroll.clientWidth);
+      if(dots) dots.querySelectorAll('.expanded-dot').forEach(function(d,i){ d.classList.toggle('active', i===idx); });
+    };
+    scroll.scrollLeft = 0;
+  }
 
   // ─────────────────────────────
   // CHARGEMENT DONNÉES SUPABASE
@@ -1637,21 +1734,24 @@ loadLikeCounters();
     var favScroll    = document.getElementById('souvenirsFavScroll');
     if(!recentRow||!favRow||!recentScroll||!favScroll||!emptyEl) return;
     recentScroll.innerHTML=''; favScroll.innerHTML='';
+    // Carte "+" pour ajouter
+    function _addCard(){ var a=document.createElement('div'); a.className='souvenir-add-card'; a.textContent='+'; a.addEventListener('click',function(){ nousOpenSouvenirModal(null); }); return a; }
     if(!rows.length){
       recentRow.style.display='none'; favRow.style.display='none';
       emptyEl.style.display='block'; return;
     }
     emptyEl.style.display='none';
-    // Favoris en tête de liste
     var favs   = rows.filter(function(s){ return s.is_fav; });
     var recent = rows.filter(function(s){ return !s.is_fav; }).slice(0,5);
     if(favs.length){
       favRow.style.display='block';
       favs.forEach(function(s){ favScroll.appendChild(_buildSouvenirCard(s)); });
+      favScroll.appendChild(_addCard());
     } else { favRow.style.display='none'; }
     if(recent.length){
       recentRow.style.display='block';
       recent.forEach(function(s){ recentScroll.appendChild(_buildSouvenirCard(s)); });
+      recentScroll.appendChild(_addCard());
     } else { recentRow.style.display='none'; }
   }
 
@@ -1659,23 +1759,17 @@ loadLikeCounters();
     var card=document.createElement('div'); card.className='souvenir-card';
     var photoUrl=s.photo_url||'';
     var dateStr=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'';
-    var photoStyle=photoUrl?'background-image:url('+escHtml(photoUrl)+');':'';
-    var pencilSVG='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+    var photoStyle=photoUrl?'background-image:url('+escHtml(photoUrl)+');background-size:cover;background-position:center;':'';
     card.innerHTML=
       '<div class="souvenir-photo" style="'+photoStyle+'">'
       +(photoUrl?'':'<span style="font-size:28px;opacity:0.3;">&#128247;</span>')
       +(s.lieu?'<div class="souvenir-lieu">&#128205; '+escHtml(s.lieu)+'</div>':'')
       +'</div>'
-      +'<div class="souvenir-info">'
-      +'<div class="souvenir-info-text">'
-      +'<div class="souvenir-name">'+escHtml(s.title||'Souvenir')+'</div>'
-      +(dateStr?'<div class="souvenir-date">'+escHtml(dateStr)+'</div>':'')
-      +'</div>'
-      +'<div class="souvenir-edit-icon">'+pencilSVG+'</div>'
+      +'<div class="sov-band">'
+      +'<div class="sov-band-title">'+escHtml(s.title||'Souvenir')+'</div>'
+      +(dateStr?'<div class="sov-band-sub">'+escHtml(dateStr)+'</div>':'<div class="sov-band-sub">Souvenir</div>')
       +'</div>';
-    card.querySelector('.souvenir-edit-icon').addEventListener('click',function(e){ e.stopPropagation(); nousOpenSouvenirModal(s); });
-    // Badge NEW — posé sur la card racine (position:relative, sans overflow:hidden)
-    // .souvenir-photo a overflow:hidden pour rogner la photo → badge invisible si posé dessus
+    card.addEventListener('click', function(){ nousOpenSouvenirModal(s); });
     if(s.id && typeof window.yamIsNew==='function' && window.yamIsNew('souvenir_'+s.id)){
       if(typeof window.yamShowNewBadge==='function') window.yamShowNewBadge(card, true);
     }
@@ -1964,35 +2058,33 @@ loadLikeCounters();
     }).catch(function(){ container.innerHTML='<div style="color:var(--muted);font-size:13px;padding:16px;">Erreur de chargement</div>'; });
   };
 
-  // ── Rendu page principale : 2 cartes max, bouton créer ──
+  // ── Rendu page principale : 2 cartes max, idée du jour, bouton créer ──
   function _renderActivitesHome(){
     var container=document.getElementById('activitesContainer'); if(!container) return;
     container.innerHTML='';
 
-    // Initialiser la bulle idée du jour avec une suggestion statique si aucun cache IA
-    var titleEl = document.getElementById('activiteIaTitle');
-    var subEl   = document.getElementById('activiteIaSub');
-    var addBtn  = document.getElementById('activiteIaAddBtn');
-    var trigBtn = document.getElementById('activiteIaTriggerBtn');
-    if(titleEl && !_iaSuggCache){
-      var dayOfYear=Math.floor((Date.now()-new Date(new Date().getFullYear(),0,0))/(1000*60*60*24));
-      var todaySuggested=ACTIVITES_SUGGEREES[dayOfYear%ACTIVITES_SUGGEREES.length];
-      var alreadyAdded=_activiteAllRows.some(function(r){ return r.title===todaySuggested.titre; });
-      if(!alreadyAdded){
-        titleEl.textContent = (todaySuggested.emoji||'⭐') + ' ' + escHtml(todaySuggested.titre||'');
-        if(subEl) subEl.textContent = todaySuggested.desc||'';
-        _iaSuggCache = {emoji:todaySuggested.emoji,title:todaySuggested.titre,description:todaySuggested.desc,steps:todaySuggested.steps||[]};
-        if(addBtn) addBtn.style.display = 'inline-flex';
-        if(trigBtn) trigBtn.style.display = 'inline-flex';
-      } else {
-        titleEl.textContent = 'Lance une nouvelle idée ✨';
-        if(subEl) subEl.textContent = '';
-        if(addBtn) addBtn.style.display = 'none';
-        if(trigBtn) trigBtn.style.display = 'inline-flex';
-      }
+    // Alimenter la bulle "Idée du jour" avec l'idée statique du jour
+    var dayOfYear=Math.floor((Date.now()-new Date(new Date().getFullYear(),0,0))/(1000*60*60*24));
+    var todaySuggested=ACTIVITES_SUGGEREES[dayOfYear%ACTIVITES_SUGGEREES.length];
+    var alreadyAdded=_activiteAllRows.some(function(r){ return r.title===todaySuggested.titre; });
+    var titleEl=document.getElementById('activiteIaTitle');
+    var subEl=document.getElementById('activiteIaSub');
+    var addBtn=document.getElementById('activiteIaAddBtn');
+    var trigBtn=document.getElementById('activiteIaTriggerBtn');
+    if(titleEl) titleEl.textContent=(todaySuggested.emoji||'⭐')+' '+escHtml(todaySuggested.titre);
+    if(subEl)   subEl.textContent=escHtml(todaySuggested.desc||'');
+    if(!alreadyAdded){
+      // Stocker dans le cache pour que activiteIaAdd() puisse l'ajouter
+      _iaSuggCache={emoji:todaySuggested.emoji||'✨',title:todaySuggested.titre,description:todaySuggested.desc||'',steps:todaySuggested.steps||[]};
+      if(addBtn) addBtn.style.display='inline-flex';
+      if(trigBtn) trigBtn.style.display='none';
+    } else {
+      _iaSuggCache=null;
+      if(addBtn) addBtn.style.display='none';
+      if(trigBtn) { trigBtn.style.display='inline-flex'; trigBtn.disabled=false; }
     }
 
-    // 2 cartes max — tri : étoilées non-terminées en tête, terminées en bas
+    // Cartes activités en cours — 2 max
     var sorted=_sortForHome(_activiteAllRows);
     var toShow=sorted.slice(0,2);
     toShow.forEach(function(act){ container.appendChild(_buildActiviteCard(act)); });
@@ -2007,7 +2099,7 @@ loadLikeCounters();
     }
   }
 
-  // ── Build une carte activité pour la page principale ──
+  // ── Build une carte activité pour la page principale — maquette v5 ──
   function _buildActiviteCard(act){
     var steps=_actSteps(act);
     var total=steps.length; var doneCount=steps.filter(function(s){return s.done;}).length;
@@ -2018,25 +2110,26 @@ loadLikeCounters();
     var stepsHtml='';
     steps.forEach(function(s,i){
       stepsHtml+='<div class="activite-step'+(s.done?' done':'')+'" data-idx="'+i+'">'+
-        '<div class="activite-step-check">'+(s.done?'✓':'')+'</div>'+
-        '<div class="activite-step-text">'+escHtml(s.text)+'</div>'+
+        '<div class="step-circle'+(s.done?' done':'')+'">'+(s.done?'✓':'')+'</div>'+
+        '<span class="activite-step-text">'+escHtml(s.text)+'</span>'+
         '</div>';
     });
+    var editSVG='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
     card.innerHTML=
-      '<div class="activite-card-header">'+
-        '<span class="activite-emoji">'+(act.emoji||'✨')+'</span>'+
-        '<div class="activite-info">'+
-          '<div class="activite-titre">'+escHtml(act.title||'Activité')+(isStarred?' <span style="font-size:11px;vertical-align:middle;opacity:0.85;">⭐</span>':'')+'</div>'+
-          (act.description?'<div class="activite-desc">'+escHtml(act.description)+'</div>':'')+
+      '<div class="activite-body-header">'+
+        '<div class="activite-body-title"><span style="font-size:18px;">'+(act.emoji||'✨')+'</span> '+escHtml(act.title||'Activité')+(isStarred?' ⭐':'')+' </div>'+
+        '<div style="display:flex;align-items:center;gap:8px;">'+
+          (total?'<div class="activite-counter">'+doneCount+' / '+total+'</div>':'')+
+          '<button class="activite-edit-btn">'+editSVG+'</button>'+
         '</div>'+
-        '<button class="activite-edit-btn">'+_gearSVG()+'</button>'+
       '</div>'+
-      (total?'<div class="activite-progress-wrap"><div class="activite-progress-bar"><div class="activite-progress-fill" style="width:'+pct+'%"></div></div><div class="activite-progress-txt">'+doneCount+'/'+total+'</div></div>':'')+
+      (act.description?'<div class="activite-body-sub">'+escHtml(act.description)+'</div>':'')+
+      (total?'<div class="activite-progress-bar"><div class="activite-progress-fill" style="width:'+pct+'%"></div></div>':'')+
       (stepsHtml?'<div class="activite-steps">'+stepsHtml+'</div>':'')+
-      (isCompleted?'<div class="activite-completed">Activité complétée !</div>':'');
+      (isCompleted?'<div class="activite-completed">Activité complétée ! 🎉</div>':'');
     card.querySelector('.activite-edit-btn').addEventListener('click',function(){ window.nousOpenActiviteModal(act); });
     card.querySelectorAll('.activite-step').forEach(function(el){
-      el.querySelector('.activite-step-check').addEventListener('click',function(){
+      el.querySelector('.step-circle').addEventListener('click',function(){
         window.nousToggleStep(act.id,parseInt(el.dataset.idx));
       });
     });
@@ -2275,26 +2368,26 @@ loadLikeCounters();
   }
 
   window.activiteIaSuggest = function(){
-    var titleEl = document.getElementById('activiteIaTitle');
-    var subEl   = document.getElementById('activiteIaSub');
-    var addBtn  = document.getElementById('activiteIaAddBtn');
-    var trigBtn = document.getElementById('activiteIaTriggerBtn');
+    var titleEl  = document.getElementById('activiteIaTitle');
+    var subEl    = document.getElementById('activiteIaSub');
+    var addBtn   = document.getElementById('activiteIaAddBtn');
+    var trigBtn  = document.getElementById('activiteIaTriggerBtn');
     if(!titleEl) return;
 
     // Limite journalière : 3 suggestions par jour
     if(_iaSuggGetCount() >= _IA_SUGG_MAX_PER_DAY){
-      titleEl.textContent = '🤖 Le robot est épuisé…';
-      if(subEl) subEl.textContent = 'Revenez demain pour de nouvelles idées';
+      titleEl.textContent = 'Le petit robot est épuisé 😴';
+      if(subEl) subEl.textContent = 'Reviens demain pour de nouvelles idées !';
       if(addBtn) addBtn.style.display = 'none';
-      if(trigBtn) trigBtn.style.display = 'none';
+      if(trigBtn) { trigBtn.style.display = 'inline-flex'; trigBtn.textContent = 'Limite atteinte'; trigBtn.disabled = true; }
       return;
     }
 
-    // Cooldown anti-spam : 30s minimum entre chaque appel Gemini
+    // Cooldown anti-spam : 30s
     var now = Date.now();
     var remaining = Math.ceil((_iaSuggLastCall + _IA_SUGG_COOLDOWN - now) / 1000);
     if(remaining > 0){
-      if(typeof showToast === 'function') showToast('Patiente encore ' + remaining + 's avant une nouvelle idée 😊', 'info');
+      if(typeof showToast === 'function') showToast('Patiente encore ' + remaining + 's 😊', 'info');
       return;
     }
     _iaSuggLastCall = now;
@@ -2304,11 +2397,8 @@ loadLikeCounters();
     if(addBtn) addBtn.style.display = 'none';
     if(trigBtn) trigBtn.style.display = 'none';
 
-    var coupleId = _getCoupleId();
-    var u = (typeof v2GetUser==='function') ? v2GetUser() : null;
     var daysTogether = 0;
     if(window.startDate){ daysTogether = Math.floor((Date.now()-new Date(window.startDate))/(1000*60*60*24)); }
-
     var saison = ['hiver','hiver','printemps','printemps','printemps','été','été','été','automne','automne','automne','hiver'][new Date().getMonth()];
     var doneActivites = _activiteAllRows.filter(function(a){ return _actDone(a); }).map(function(a){ return a.title; }).slice(0,5);
 
@@ -2325,23 +2415,21 @@ loadLikeCounters();
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(data.error) throw new Error(data.error);
-      var raw = data.text || '';
-      raw = raw.replace(/```json|```/g,'').trim();
+      var raw = (data.text || '').replace(/```json|```/g,'').trim();
       var parsed = JSON.parse(raw);
       _iaSuggCache = parsed;
       titleEl.textContent = (parsed.emoji||'✨') + ' ' + (parsed.title||'');
-      if(subEl) subEl.textContent = parsed.description||'';
+      if(subEl) subEl.textContent = parsed.description || '';
       if(addBtn) addBtn.style.display = 'inline-flex';
+      if(trigBtn) trigBtn.style.display = 'none';
       _iaSuggIncrCount();
     })
     .catch(function(){
+      _iaSuggCache = {emoji:'🎲',title:'Soirée jeux thématique',description:'Planifiez une soirée jeux ensemble',steps:['Choisir les jeux','Préparer les snacks','Jouer !']};
       titleEl.textContent = '🎲 Soirée jeux thématique';
       if(subEl) subEl.textContent = 'Planifiez une soirée jeux ensemble';
-      _iaSuggCache = {emoji:'🎲',title:'Soirée jeux thématique',description:'Planifiez une soirée jeux ensemble',steps:['Choisir les jeux','Préparer les snacks','Jouer !']};
       if(addBtn) addBtn.style.display = 'inline-flex';
-    })
-    .finally(function(){
-      if(trigBtn) trigBtn.style.display = 'inline-flex';
+      if(trigBtn) trigBtn.style.display = 'none';
     });
   };
 
@@ -2354,11 +2442,13 @@ loadLikeCounters();
     .then(function(){
       _iaSuggCache = null;
       var addBtn = document.getElementById('activiteIaAddBtn');
+      var trigBtn = document.getElementById('activiteIaTriggerBtn');
       var titleEl = document.getElementById('activiteIaTitle');
-      var subEl   = document.getElementById('activiteIaSub');
       if(addBtn) addBtn.style.display = 'none';
-      if(titleEl) titleEl.textContent = '✅ Ajouté ! Lance une nouvelle idée ✨';
-      if(subEl) subEl.textContent = '';
+      if(trigBtn) { trigBtn.style.display = 'inline-flex'; trigBtn.disabled = false; }
+      if(titleEl) titleEl.textContent = '✅ Ajouté à vos activités !';
+      var subEl = document.getElementById('activiteIaSub');
+      if(subEl) subEl.textContent = 'Clique sur Inspirez-nous pour une nouvelle idée';
       window.nousLoadActivites();
     }).catch(function(){});
   };
@@ -2632,30 +2722,66 @@ loadLikeCounters();
   var _histoireFromGestion = false;
   var _histoireEditingId = null;
 
-  // ── Rendu timeline principale ──
+  // ── Rendu histoire — maquette v5 ──
   window.histoireRenderTimeline = function(items){
     var container = document.getElementById('tlItemsContainer');
     if(!container) return;
     container.innerHTML = '';
-    if(!items || !items.length){
-      container.innerHTML = '<div class="tl-item visible"><div class="tl-dot"></div><div class="tl-date">En construction</div><div class="tl-card"><h3>Notre histoire commence... 🌟</h3><p>Clique sur le crayon pour ajouter vos premiers chapitres.</p></div></div>';
-      return;
-    }
+
     // Tri par sort_order puis created_at
-    var sorted = items.slice().sort(function(a,b){
+    var sorted = (items||[]).slice().sort(function(a,b){
       if((a.sort_order||0)!=(b.sort_order||0)) return (a.sort_order||0)-(b.sort_order||0);
       return (a.created_at||'').localeCompare(b.created_at||'');
     });
-    sorted.forEach(function(item){
-      var el = document.createElement('div');
-      el.className = 'tl-item';
-      el.innerHTML =
-        '<div class="tl-dot"></div>'+
-        '<div class="tl-date">'+(item.emoji?escHtml(item.emoji)+' ':'')+escHtml(item.date_label||'')+'</div>'+
-        '<div class="tl-card"><h3>'+escHtml(item.title||'')+'</h3><p>'+escHtml(item.text||'')+'</p></div>';
-      container.appendChild(el);
+
+    // Fallback si vide
+    if(!sorted.length){
+      sorted = [{emoji:'💫', date_label:'Premier rendez-vous', title:'Notre histoire commence...', text:'Clique sur le crayon pour ajouter vos premiers chapitres.', _placeholder:true}];
+    }
+
+    var current = sorted[0];
+
+    var card = document.createElement('div');
+    card.className = 'histoire-card';
+    card.innerHTML =
+      '<div class="histoire-main">'+
+        '<button class="histoire-edit-btn" onclick="histoireOpenGestion()">'+
+          '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Éditer'+
+        '</button>'+
+        '<div class="histoire-line1">'+
+          '<span class="histoire-emoji" id="histEmoji">'+(current.emoji||'💫')+'</span>'+
+          '<span class="histoire-date"  id="histDate">'+escHtml(current.date_label||'')+'</span>'+
+        '</div>'+
+        '<div class="histoire-title"   id="histTitle">'+escHtml(current.title||'')+'</div>'+
+        '<div class="histoire-excerpt" id="histExcerpt">'+escHtml(current.text||'')+'</div>'+
+      '</div>'+
+      '<div class="histoire-sep"></div>'+
+      '<div class="histoire-strip" id="histStrip"></div>';
+
+    container.appendChild(card);
+
+    // Remplir la strip
+    var strip = card.querySelector('#histStrip');
+    sorted.forEach(function(item, idx){
+      var tab = document.createElement('div');
+      tab.className = 'histoire-strip-item' + (idx===0?' active':'');
+      tab.innerHTML =
+        '<div class="strip-num">Chap. '+(item.sort_order||idx+1)+'</div>'+
+        '<div class="strip-title">'+escHtml(item.title||'À écrire…')+'</div>';
+      tab.addEventListener('click', function(){
+        // Mise à jour preview
+        document.getElementById('histEmoji').textContent  = item.emoji||'💫';
+        document.getElementById('histDate').textContent   = item.date_label||'';
+        document.getElementById('histTitle').textContent  = item.title||'';
+        document.getElementById('histExcerpt').textContent= item.text||'';
+        // Tab actif
+        strip.querySelectorAll('.histoire-strip-item').forEach(function(t){ t.classList.remove('active'); });
+        tab.classList.add('active');
+        // Ouvrir modal édition si placeholder
+        if(item._placeholder) histoireOpenGestion();
+      });
+      strip.appendChild(tab);
     });
-    if(typeof window._tlObserve === 'function') window._tlObserve();
   };
 
   // ── Chargement depuis Supabase ──
@@ -2855,39 +2981,48 @@ loadLikeCounters();
   function _renderLivresSlider(){
     var slider = document.getElementById('livresSlider'); if(!slider) return;
     slider.innerHTML = '';
-    if(!_livresAllRows.length){
-      var empty = document.createElement('div');
-      empty.style.cssText = 'color:var(--muted);font-size:13px;padding:16px 4px;';
-      empty.textContent = 'Ajoutez votre première pochette ! 📚';
-      slider.appendChild(empty);
-      return;
-    }
     var toShow = _livresAllRows.slice(0,MAX_VISIBLE);
     toShow.forEach(function(book){ slider.appendChild(_buildLivreCard(book)); });
+    // Carte "+" pour ajouter
+    var addCard = document.createElement('div');
+    addCard.className = 'livre-card add-livre';
+    addCard.textContent = '+';
+    addCard.addEventListener('click', function(){ window.livresOpenNew(); });
+    slider.appendChild(addCard);
   }
 
-  // ── Build une carte livre pour le slider ──
+  // ── Build une carte livre pour le slider (maquette v5) ──
   function _buildLivreCard(book){
     var card = document.createElement('div');
-    card.className = 'album-card lui-card-wrap';
-    card.style.position = 'relative';
+    card.className = 'livre-card';
     var photoUrl = book.has_image ? (SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/books/'+book.couple_id+'/'+book.id+'.jpg?t='+Math.floor(Date.now()/60000)) : '';
-    var editSVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+    // Fond coloré gradient selon position (comme la maquette)
+    var gradients = [
+      'linear-gradient(135deg,#e75a7c,#ff8fab)',
+      'linear-gradient(135deg,#34c759,#7fff00)',
+      'linear-gradient(135deg,#FFD700,#FFA500)',
+      'linear-gradient(135deg,#7c6af7,#4fc3f7)',
+      'linear-gradient(135deg,#e75a7c,#7c6af7)'
+    ];
+    var idx = _livresAllRows.indexOf(book);
+    var grad = gradients[idx % gradients.length];
+    card.style.background = grad;
     // Badge NEW
     var isNew = window.yamIsNew ? window.yamIsNew('livre_'+book.id) : false;
     var newBadge = isNew ? '<span style="position:absolute;top:4px;right:4px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-size:8px;font-weight:800;letter-spacing:0.5px;padding:2px 5px;border-radius:6px;text-transform:uppercase;z-index:10;pointer-events:none;">NEW</span>' : '';
+    card.style.position = 'relative';
     card.innerHTML =
-      '<div class="album-image" style="position:relative;">'+newBadge+
+      '<div class="livre-img" style="position:relative;">'+newBadge+
         (photoUrl ?
           '<img src="'+escHtml(photoUrl)+'" style="width:100%;height:100%;object-fit:cover;" loading="lazy">' :
-          '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;color:var(--muted);">📚</div>'
+          '<span style="font-size:30px;">📚</span>'
         )+
-        '<div class="lui-upload-btn"><div class="lui-upload-icon">'+editSVG+'</div><div class="lui-upload-lbl">Modifier</div></div>'+
       '</div>'+
-      '<div class="album-banner">'+escHtml(book.title||'Sans titre')+
-        (book.description ? '<div class="album-banner-sub">'+escHtml(book.description)+'</div>' : '')+
+      '<div class="livre-band">'+
+        '<div class="livre-band-title">'+escHtml(book.title||'Sans titre')+'</div>'+
+        '<div class="livre-band-author">'+escHtml(book.description||'')+'</div>'+
       '</div>';
-    card.querySelector('.lui-upload-btn').addEventListener('click',function(e){ e.stopPropagation(); _livreFromGestion=false; window.livresOpenEdit(book); });
+    card.addEventListener('click', function(){ _livreFromGestion=false; window.livresOpenEdit(book); });
     return card;
   }
 
