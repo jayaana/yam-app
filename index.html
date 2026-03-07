@@ -1894,172 +1894,113 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 <div class="section fade-in" id="timelineSection" style="margin:0 !important;border:none !important;border-radius:0 !important;">
   <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
     <span>Notre histoire</span>
-    <button onclick="histoireOpenGestion()" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--muted);display:flex;align-items:center;gap:5px;opacity:0.75;" aria-label="Modifier notre histoire">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-    </button>
   </div>
   <div id="tlContent">
-    <div class="tl-wrap collapsed" id="tlWrap">
-      <div class="tl-line"></div>
-      <div id="tlItemsContainer"></div>
-    </div>
-    <div class="tl-toggle" id="tlToggle">▾ Voir la suite</div>
-  </div>
-  <div id="storyVideoWrap" style="display:none;position:relative;overflow:hidden;border-radius:14px;text-align:center;background:#d4b896;">
-    <video id="storyVideo" src="assets/videos/video-1.mp4" playsinline webkit-playsinline loop muted style="height:220px;width:auto;display:inline-block;vertical-align:top;" preload="none"></video>
-    <div style="position:absolute;top:0;left:0;width:14%;height:100%;pointer-events:none;z-index:2;background:linear-gradient(to right,#d4b896 0%,transparent 100%);"></div>
-    <div style="position:absolute;top:0;right:0;width:14%;height:100%;pointer-events:none;z-index:2;background:linear-gradient(to left,#d4b896 0%,transparent 100%);"></div>
-    <div style="position:absolute;top:0;left:0;right:0;height:14%;pointer-events:none;z-index:2;background:linear-gradient(to bottom,#d4b896 0%,transparent 100%);"></div>
-    <div style="position:absolute;bottom:0;left:0;right:0;height:14%;pointer-events:none;z-index:2;background:linear-gradient(to top,#d4b896 0%,transparent 100%);"></div>
-    <div id="storyHeart">❤️</div>
-    <div id="storyCountdown" style="position:absolute;bottom:10px;left:12px;z-index:3;display:flex;align-items:center;gap:5px;background:rgba(0,0,0,0.45);backdrop-filter:blur(6px);border-radius:20px;padding:3px 9px;border:1px solid rgba(255,255,255,0.10);">
-      <div style="width:5px;height:5px;border-radius:50%;background:var(--green);animation:blink 2s ease-in-out infinite;flex-shrink:0;"></div>
-      <span id="storyCountdownTxt" style="font-size:10px;font-weight:700;color:var(--green);font-family:'Bricolage Grotesque',sans-serif;letter-spacing:1px;"></span>
-    </div>
+    <div id="tlItemsContainer"></div>
   </div>
 </div>
 
 </div><!-- /ios-group mots doux + histoire -->
 
-<!-- ─── GROUPE : Photos Elle + Lui ─── -->
-<div class="ios-group fade-in">
+<!-- ─── ELLE & LUI — maquette v5 ─── -->
+<div class="section fade-in" id="elleLuiSection">
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <span>Elle &amp; Lui</span>
+  </div>
 
-<!-- PHOTOS ELLE (masquée par défaut pour girl) -->
-<div class="section" style="margin:0 !important;border:none !important;border-radius:0 !important;border-bottom:1px solid var(--group-sep) !important;">
-  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
-    <div style="display:flex;align-items:center;gap:6px;">
-      <span id="elleSectionTitle">Elle</span>
-      <button id="elleTitleEditBtn" onclick="elleEditSectionTitle()" style="background:none;border:none;cursor:pointer;padding:2px 4px;color:var(--muted);display:none;align-items:center;opacity:0.6;" aria-label="Modifier le titre">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-      </button>
-    </div>
-    <button id="elleGearBtn" onclick="elleToggleSection()" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--muted);display:flex;align-items:center;opacity:0.7;" aria-label="Voir/éditer la section Elle">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-    </button>
-  </div>
-  <div id="elleSectionContent">
-  <div class="slider" id="elleSlider">
-    <div class="album-card lui-card-wrap" data-slot="elle-animal"><div class="album-image"><span class="album-heart">🤍</span><div class="lui-img-empty" id="elle-empty-animal"><div class="lui-img-empty-icon">🐾</div><div class="lui-img-empty-lbl">Animal</div></div><img id="elle-img-animal" loading="lazy" decoding="async" src="" style="display:none" onload="this.classList.add('loaded')"><div class="album-banner editable" id="elle-banner-animal" onclick="slotOpenEdit('elle','animal')">Animal</div><div class="lui-upload-btn" id="elle-btn-animal" onclick="slotOpenEdit('elle','animal')"><div class="lui-upload-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div><div class="lui-upload-lbl">Modifier</div></div><div class="lui-uploading" id="elle-loading-animal"><div class="lui-upload-progress"><div class="lui-upload-bar" id="elle-bar-animal"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc" id="elle-desc-animal">Un regard doux 💫</div></div>
-    <div class="album-card lui-card-wrap" data-slot="elle-fleurs"><div class="album-image"><span class="album-heart">🤍</span><div class="lui-img-empty" id="elle-empty-fleurs"><div class="lui-img-empty-icon">🌸</div><div class="lui-img-empty-lbl">Fleurs</div></div><img id="elle-img-fleurs" loading="lazy" decoding="async" src="" style="display:none" onload="this.classList.add('loaded')"><div class="album-banner editable" id="elle-banner-fleurs" onclick="slotOpenEdit('elle','fleurs')">Fleurs</div><div class="lui-upload-btn" id="elle-btn-fleurs" onclick="slotOpenEdit('elle','fleurs')"><div class="lui-upload-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div><div class="lui-upload-lbl">Modifier</div></div><div class="lui-uploading" id="elle-loading-fleurs"><div class="lui-upload-progress"><div class="lui-upload-bar" id="elle-bar-fleurs"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc" id="elle-desc-fleurs">Pleine de couleurs 💕</div></div>
-    <div class="album-card lui-card-wrap" data-slot="elle-personnage"><div class="album-image"><span class="album-heart">🤍</span><div class="lui-img-empty" id="elle-empty-personnage"><div class="lui-img-empty-icon">🧑</div><div class="lui-img-empty-lbl">Personnage</div></div><img id="elle-img-personnage" loading="lazy" decoding="async" src="" style="display:none" onload="this.classList.add('loaded')"><div class="album-banner editable" id="elle-banner-personnage" onclick="slotOpenEdit('elle','personnage')">Personnage</div><div class="lui-upload-btn" id="elle-btn-personnage" onclick="slotOpenEdit('elle','personnage')"><div class="lui-upload-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div><div class="lui-upload-lbl">Modifier</div></div><div class="lui-uploading" id="elle-loading-personnage"><div class="lui-upload-progress"><div class="lui-upload-bar" id="elle-bar-personnage"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc" id="elle-desc-personnage">Attachante 💍</div></div>
-    <div class="album-card lui-card-wrap" data-slot="elle-saison"><div class="album-image"><span class="album-heart">🤍</span><div class="lui-img-empty" id="elle-empty-saison"><div class="lui-img-empty-icon">🍂</div><div class="lui-img-empty-lbl">Saison</div></div><img id="elle-img-saison" loading="lazy" decoding="async" src="" style="display:none" onload="this.classList.add('loaded')"><div class="album-banner editable" id="elle-banner-saison" onclick="slotOpenEdit('elle','saison')">Saison</div><div class="lui-upload-btn" id="elle-btn-saison" onclick="slotOpenEdit('elle','saison')"><div class="lui-upload-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div><div class="lui-upload-lbl">Modifier</div></div><div class="lui-uploading" id="elle-loading-saison"><div class="lui-upload-progress"><div class="lui-upload-bar" id="elle-bar-saison"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc" id="elle-desc-saison">Un rayon de soleil ☀️</div></div>
-    <div class="album-card lui-card-wrap" data-slot="elle-repas"><div class="album-image"><span class="album-heart">🤍</span><div class="lui-img-empty" id="elle-empty-repas"><div class="lui-img-empty-icon">🍽️</div><div class="lui-img-empty-lbl">Repas</div></div><img id="elle-img-repas" loading="lazy" decoding="async" src="" style="display:none" onload="this.classList.add('loaded')"><div class="album-banner editable" id="elle-banner-repas" onclick="slotOpenEdit('elle','repas')">Repas</div><div class="lui-upload-btn" id="elle-btn-repas" onclick="slotOpenEdit('elle','repas')"><div class="lui-upload-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div><div class="lui-upload-lbl">Modifier</div></div><div class="lui-uploading" id="elle-loading-repas"><div class="lui-upload-progress"><div class="lui-upload-bar" id="elle-bar-repas"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc" id="elle-desc-repas">N'aime que les pattes 🤝</div></div>
-  </div>
-  <input type="file" id="elleFileInput" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="elleHandleFile(this)">
-  </div>
-</div>
-
-<!-- PHOTOS LUI (masquée par défaut pour boy) -->
-<div class="section fade-in" style="margin:0 !important;border:none !important;border-radius:0 !important;">
-  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
-    <div style="display:flex;align-items:center;gap:6px;">
-      <span id="luiSectionTitle">Lui</span>
-      <button id="luiTitleEditBtn" onclick="luiEditSectionTitle()" style="background:none;border:none;cursor:pointer;padding:2px 4px;color:var(--muted);display:none;align-items:center;opacity:0.6;" aria-label="Modifier le titre">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-      </button>
-    </div>
-    <button id="luiGearBtn" onclick="luiToggleSection()" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--muted);display:flex;align-items:center;opacity:0.7;" aria-label="Voir/éditer la section Lui">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-    </button>
-  </div>
-  <div id="luiSectionContent">
-  <div class="slider" id="luiSlider">
-    <div class="album-card lui-card-wrap" data-slot="animal"><div class="album-image"><span class="album-heart">🤍</span><div class="lui-img-empty" id="lui-empty-animal"><div class="lui-img-empty-icon">🐾</div><div class="lui-img-empty-lbl">Animal</div></div><img id="lui-img-animal" src="" style="display:none"><div class="album-banner editable" id="lui-banner-animal" onclick="slotOpenEdit('lui','animal')">Animal</div><div class="lui-upload-btn empty" id="lui-btn-animal" onclick="slotOpenEdit('lui','animal')"><div class="lui-upload-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div><div class="lui-upload-lbl">Ajouter</div></div><div class="lui-uploading" id="lui-loading-animal"><div class="lui-upload-progress"><div class="lui-upload-bar" id="lui-bar-animal"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc" id="lui-desc-animal">Son animal 🐾</div></div>
-    <div class="album-card lui-card-wrap" data-slot="fleurs"><div class="album-image"><span class="album-heart">🤍</span><div class="lui-img-empty" id="lui-empty-fleurs"><div class="lui-img-empty-icon">🌸</div><div class="lui-img-empty-lbl">Fleurs</div></div><img id="lui-img-fleurs" src="" style="display:none"><div class="album-banner editable" id="lui-banner-fleurs" onclick="slotOpenEdit('lui','fleurs')">Fleurs</div><div class="lui-upload-btn empty" id="lui-btn-fleurs" onclick="slotOpenEdit('lui','fleurs')"><div class="lui-upload-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div><div class="lui-upload-lbl">Ajouter</div></div><div class="lui-uploading" id="lui-loading-fleurs"><div class="lui-upload-progress"><div class="lui-upload-bar" id="lui-bar-fleurs"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc" id="lui-desc-fleurs">Ses fleurs 🌸</div></div>
-    <div class="album-card lui-card-wrap" data-slot="personnage"><div class="album-image"><span class="album-heart">🤍</span><div class="lui-img-empty" id="lui-empty-personnage"><div class="lui-img-empty-icon">🧑</div><div class="lui-img-empty-lbl">Personnage</div></div><img id="lui-img-personnage" src="" style="display:none"><div class="album-banner editable" id="lui-banner-personnage" onclick="slotOpenEdit('lui','personnage')">Personnage</div><div class="lui-upload-btn empty" id="lui-btn-personnage" onclick="slotOpenEdit('lui','personnage')"><div class="lui-upload-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div><div class="lui-upload-lbl">Ajouter</div></div><div class="lui-uploading" id="lui-loading-personnage"><div class="lui-upload-progress"><div class="lui-upload-bar" id="lui-bar-personnage"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc" id="lui-desc-personnage">Son personnage 💙</div></div>
-    <div class="album-card lui-card-wrap" data-slot="saison"><div class="album-image"><span class="album-heart">🤍</span><div class="lui-img-empty" id="lui-empty-saison"><div class="lui-img-empty-icon">🍂</div><div class="lui-img-empty-lbl">Saison</div></div><img id="lui-img-saison" src="" style="display:none"><div class="album-banner editable" id="lui-banner-saison" onclick="slotOpenEdit('lui','saison')">Saison</div><div class="lui-upload-btn empty" id="lui-btn-saison" onclick="slotOpenEdit('lui','saison')"><div class="lui-upload-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div><div class="lui-upload-lbl">Modifier</div></div><div class="lui-uploading" id="lui-loading-saison"><div class="lui-upload-progress"><div class="lui-upload-bar" id="lui-bar-saison"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc" id="lui-desc-saison">Sa saison 🍂</div></div>
-    <div class="album-card lui-card-wrap" data-slot="repas"><div class="album-image"><span class="album-heart">🤍</span><div class="lui-img-empty" id="lui-empty-repas"><div class="lui-img-empty-icon">🍽️</div><div class="lui-img-empty-lbl">Repas</div></div><img id="lui-img-repas" src="" style="display:none"><div class="album-banner editable" id="lui-banner-repas" onclick="slotOpenEdit('lui','repas')">Repas</div><div class="lui-upload-btn empty" id="lui-btn-repas" onclick="slotOpenEdit('lui','repas')"><div class="lui-upload-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div><div class="lui-upload-lbl">Ajouter</div></div><div class="lui-uploading" id="lui-loading-repas"><div class="lui-upload-progress"><div class="lui-upload-bar" id="lui-bar-repas"></div></div><div class="lui-upload-status">Envoi...</div></div></div><div class="album-desc" id="lui-desc-repas">Son repas préféré 🍽️</div></div>
-  </div>
-  <input type="file" id="luiFileInput" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="luiHandleFile(this)">
-
-  <!-- SUGGESTIONS IA — repliées par défaut, toggle avec œil -->
-  <div id="semaineCard" style="margin:14px 16px 4px;">
-    <button id="semaineToggleBtn" onclick="semaineToggle()" style="
-      width:100%;display:flex;align-items:center;justify-content:space-between;
-      background:linear-gradient(135deg,rgba(232,121,160,0.13),rgba(155,89,182,0.13));
-      border:1.5px solid rgba(232,121,160,0.32);
-      border-radius:14px;padding:11px 14px;cursor:pointer;
-      font-family:'Bricolage Grotesque',sans-serif;transition:border-radius 0.25s,background 0.2s;
-      -webkit-tap-highlight-color:transparent;
-      animation:semaineGlow 3s ease-in-out infinite;
-    ">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:16px;">✨</span>
-        <span style="font-size:13px;font-weight:700;color:var(--text);">Suggestion de la semaine</span>
+  <!-- Grille 2 colonnes -->
+  <div class="elle-lui-grid" id="elleLuiGrid">
+    <!-- Carte Elle -->
+    <div class="universe-card" id="elleUniverseCard" onclick="elleLuiOpenExpanded('elle')">
+      <div class="slots-grid" id="elleSlotGrid">
+        <div class="slot-cell" id="elle-slot-animal"><div class="slot-empty-icon">🐾</div></div>
+        <div class="slot-cell" id="elle-slot-fleurs"><div class="slot-empty-icon">🌸</div></div>
+        <div class="slot-cell" id="elle-slot-personnage"><div class="slot-empty-icon">🧑</div></div>
+        <div class="slot-cell" id="elle-slot-saison"><div class="slot-empty-icon">🍂</div></div>
+        <div class="slot-cell" id="elle-slot-repas"><div class="slot-empty-icon">🍽️</div></div>
+        <div class="slot-cell slot-cell-empty"></div>
       </div>
-      <span id="semaineEyeIcon" style="font-size:17px;transition:transform 0.2s;">👁️</span>
-    </button>
-    <div id="semaineContent" style="
-      background:rgba(255,255,255,0.04);
-      border:1.5px solid rgba(232,121,160,0.2);border-top:none;
-      border-radius:0 0 14px 14px;
-      max-height:0;overflow:hidden;opacity:0;
-      transition:max-height 0.35s cubic-bezier(0.4,0,0.2,1),opacity 0.25s;
-    ">
-      <div style="padding:12px 14px 14px;">
-        <div id="semaineMeta" style="font-size:10px;color:var(--muted);margin-bottom:8px;min-height:14px;"></div>
-        <div id="semainePills" style="display:flex;flex-wrap:wrap;gap:7px;min-height:28px;"></div>
-        <div style="display:flex;justify-content:flex-end;margin-top:10px;">
-          <button id="semaineGenBtn" onclick="semaineGenerate()" style="background:linear-gradient(135deg,#e75a7c,#7c6af7);border:none;border-radius:10px;color:#fff;font-size:11px;font-weight:700;padding:6px 13px;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;display:flex;align-items:center;gap:5px;">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-            Générer
-          </button>
+      <div class="universe-footer">
+        <div>
+          <div class="universe-name" id="elleSectionTitle">Elle</div>
+          <div class="universe-sub">Son univers</div>
         </div>
+        <div style="font-size:12px;color:var(--muted);">›</div>
+      </div>
+    </div>
+
+    <!-- Carte Lui -->
+    <div class="universe-card" id="luiUniverseCard" onclick="elleLuiOpenExpanded('lui')">
+      <div class="slots-grid" id="luiSlotGrid">
+        <div class="slot-cell" id="lui-slot-animal"><div class="slot-empty-icon">🐾</div></div>
+        <div class="slot-cell" id="lui-slot-fleurs"><div class="slot-empty-icon">🌸</div></div>
+        <div class="slot-cell" id="lui-slot-personnage"><div class="slot-empty-icon">🧑</div></div>
+        <div class="slot-cell" id="lui-slot-saison"><div class="slot-empty-icon">🍂</div></div>
+        <div class="slot-cell" id="lui-slot-repas"><div class="slot-empty-icon">🍽️</div></div>
+        <div class="slot-cell slot-cell-empty"></div>
+      </div>
+      <div class="universe-footer">
+        <div>
+          <div class="universe-name" id="luiSectionTitle">Lui</div>
+          <div class="universe-sub">Son univers</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);">›</div>
       </div>
     </div>
   </div>
-  <style>
-    @keyframes semaineGlow {
-      0%,100% { box-shadow:0 0 0 0 rgba(232,121,160,0); }
-      50%      { box-shadow:0 0 8px 2px rgba(232,121,160,0.22); }
-    }
-  </style>
 
-  <!-- MODALE choix slot après clic pill -->
-  <div id="semaineSlotModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);align-items:flex-end;justify-content:center;">
-    <div style="background:var(--card);border-radius:20px 20px 0 0;padding:20px 20px 36px;width:100%;max-width:480px;box-sizing:border-box;">
-      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">Utiliser "<span id="semaineSlotWord"></span>"</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Pour quel slot veux-tu utiliser ce mot comme titre ?</div>
-      <div id="semaineSlotList" style="display:flex;flex-direction:column;gap:8px;"></div>
-      <button onclick="semaineCloseSlotModal()" style="margin-top:14px;width:100%;padding:12px;border-radius:12px;border:none;background:rgba(255,255,255,0.07);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;">Annuler</button>
+  <!-- Vue expanded — remplace la grille au clic -->
+  <div class="elle-lui-expanded" id="elleLuiExpanded">
+    <div class="expanded-header">
+      <div class="expanded-tabs">
+        <button class="expanded-tab active" id="tabElle" onclick="elleLuiSwitchTab('elle')">Elle</button>
+        <button class="expanded-tab"        id="tabLui"  onclick="elleLuiSwitchTab('lui')">Lui</button>
+      </div>
+      <div style="font-size:10px;color:var(--muted);">← swipe →</div>
+      <button class="expanded-close" onclick="elleLuiCloseExpanded()">✕</button>
     </div>
+    <div class="expanded-notice" id="expandedNotice"></div>
+    <div class="expanded-scroll" id="expandedScroll"></div>
+    <div class="expanded-dots" id="expandedDots"></div>
   </div>
 
+  <!-- IDs conservés pour le JS de chargement — cachés, alimentent les slot-cell -->
+  <div style="display:none;">
+    <img id="elle-img-animal"      src="" onload="elleLuiUpdateSlot('elle','animal',this.src)">
+    <img id="elle-img-fleurs"      src="" onload="elleLuiUpdateSlot('elle','fleurs',this.src)">
+    <img id="elle-img-personnage"  src="" onload="elleLuiUpdateSlot('elle','personnage',this.src)">
+    <img id="elle-img-saison"      src="" onload="elleLuiUpdateSlot('elle','saison',this.src)">
+    <img id="elle-img-repas"       src="" onload="elleLuiUpdateSlot('elle','repas',this.src)">
+    <img id="lui-img-animal"       src="" onload="elleLuiUpdateSlot('lui','animal',this.src)">
+    <img id="lui-img-fleurs"       src="" onload="elleLuiUpdateSlot('lui','fleurs',this.src)">
+    <img id="lui-img-personnage"   src="" onload="elleLuiUpdateSlot('lui','personnage',this.src)">
+    <img id="lui-img-saison"       src="" onload="elleLuiUpdateSlot('lui','saison',this.src)">
+    <img id="lui-img-repas"        src="" onload="elleLuiUpdateSlot('lui','repas',this.src)">
+    <!-- Banners et descs — IDs conservés pour _loadData() -->
+    <span id="elle-banner-animal"></span><span id="elle-banner-fleurs"></span>
+    <span id="elle-banner-personnage"></span><span id="elle-banner-saison"></span>
+    <span id="elle-banner-repas"></span>
+    <span id="elle-desc-animal"></span><span id="elle-desc-fleurs"></span>
+    <span id="elle-desc-personnage"></span><span id="elle-desc-saison"></span>
+    <span id="elle-desc-repas"></span>
+    <span id="lui-banner-animal"></span><span id="lui-banner-fleurs"></span>
+    <span id="lui-banner-personnage"></span><span id="lui-banner-saison"></span>
+    <span id="lui-banner-repas"></span>
+    <span id="lui-desc-animal"></span><span id="lui-desc-fleurs"></span>
+    <span id="lui-desc-personnage"></span><span id="lui-desc-saison"></span>
+    <span id="lui-desc-repas"></span>
+    <!-- Empty/loading placeholders conservés -->
+    <div id="elle-empty-animal"></div><div id="elle-empty-fleurs"></div>
+    <div id="elle-empty-personnage"></div><div id="elle-empty-saison"></div>
+    <div id="elle-empty-repas"></div>
+    <div id="lui-empty-animal"></div><div id="lui-empty-fleurs"></div>
+    <div id="lui-empty-personnage"></div><div id="lui-empty-saison"></div>
+    <div id="lui-empty-repas"></div>
+    <input type="file" id="elleFileInput" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="elleHandleFile(this)">
+    <input type="file" id="luiFileInput"  accept="image/jpeg,image/png,image/webp" style="display:none" onchange="luiHandleFile(this)">
   </div>
 </div>
 
-</div><!-- /ios-group photos Elle + Lui -->
-
-<!-- MÉMO COUPLE — Note + Todo côte à côte, sans PIN -->
-<div id="memoCoupleSection" class="fade-in">
-  <div class="memo-header-row">
-    <div class="section-label" style="margin-bottom:0">Mémo couple</div>
-  </div>
-  <!-- Note + Todo côte à côte — clics séparés -->
-  <div class="memo-duo-wrap">
-    <!-- Note → ouvre vue lecture note -->
-    <div class="memo-duo-card" onclick="openMemoNoteView()" style="cursor:pointer;">
-      <div class="memo-duo-title">Note</div>
-      <div class="memo-duo-content" id="memoNotePreview"><span style="color:var(--muted);font-size:12px;">Aucune note</span></div>
-      <div class="memo-duo-date" id="memoNoteDate"></div>
-      <div style="margin-top:8px;display:flex;justify-content:flex-end;" onclick="event.stopPropagation()">
-        <button onclick="openMemoNoteEdit()" style="background:none;border:none;cursor:pointer;padding:3px 5px;color:var(--muted);display:flex;align-items:center;opacity:0.7;" aria-label="Modifier la note">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        </button>
-      </div>
-    </div>
-    <!-- Todo → ouvre vue lecture todo -->
-    <div class="memo-duo-card" onclick="openMemoTodoView()" style="cursor:pointer;">
-      <div class="memo-duo-title">To-do</div>
-      <div class="memo-duo-content" id="memoTodoPreview"><span style="color:var(--muted);font-size:12px;">Liste vide</span></div>
-      <div style="margin-top:8px;display:flex;justify-content:flex-end;" onclick="event.stopPropagation()">
-        <button onclick="openMemoTodoEdit()" style="background:none;border:none;cursor:pointer;padding:3px 5px;color:var(--muted);display:flex;align-items:center;opacity:0.7;" aria-label="Modifier le to-do">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- POST-ITS / PETITS MOTS -->
 <!-- POST-ITS / PETITS MOTS -->
