@@ -2118,7 +2118,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 
 <!-- ACTIVITÉS -->
 <div class="section fade-in" id="activitesSection">
-  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
     <span>Cahier d'activités</span>
     <button onclick="nousOpenActiviteGestion()" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--muted);display:flex;align-items:center;gap:5px;opacity:0.75;font-size:11px;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;letter-spacing:0.3px;" aria-label="Voir toutes les activités">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -2126,29 +2126,28 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     </button>
   </div>
 
-  <!-- Bulle idée du jour + Inspirez-nous (nouvelle structure v5) -->
+  <!-- Bulle idée du jour + Inspirez-nous -->
   <div class="activite-idea-bubble" id="activiteIaWrap">
     <div class="activite-idea-left">
       <div class="activite-idea-badge"><span style="font-size:14px;">⭐</span> Idée du jour</div>
       <div class="activite-idea-title" id="activiteIaTitle">Chargement…</div>
       <div class="activite-idea-sub" id="activiteIaSub"></div>
-      <button class="activite-idea-add-btn" id="activiteIaAddBtn" onclick="activiteIaAdd()" style="display:none;">
+      <button id="activiteIaAddBtn" onclick="activiteIaAdd()" class="activite-add-btn" style="display:none;">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Ajouter
       </button>
-      <!-- Bouton pour déclencher l'IA si pas encore chargé -->
-      <button class="activite-idea-add-btn" id="activiteIaTriggerBtn" onclick="activiteIaSuggest()" style="background:var(--s2);color:var(--accent);display:none;">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-        Nouvelle idée
+      <button id="activiteIaTriggerBtn" onclick="activiteIaSuggest()" class="activite-add-btn" style="display:none;background:var(--s2);color:var(--text);border:1px solid var(--border);">
+        ✨ Nouvelle idée
       </button>
     </div>
-    <div class="activite-inspire-col" onclick="activiteIaSuggest()">
-      <div class="activite-inspire-icon">✨</div>
-      <div class="activite-inspire-label">Inspirez-<br>nous</div>
+    <div class="activite-inspire-btn" onclick="activiteIaSuggest()" title="Inspirez-nous">
+      <div class="inspire-icon">✨</div>
+      <div class="inspire-label">Inspirez-<br>nous</div>
+      <div class="inspire-soon">Bientôt</div>
     </div>
   </div>
 
-  <!-- Activités en cours — cartes séparées (max 2) -->
+  <!-- Activités en cours — rendues par JS -->
   <div id="activitesContainer" style="display:flex;flex-direction:column;gap:12px;"></div>
   <div id="activitesBtnWrap" style="padding-top:12px;padding-bottom:8px;"></div>
 </div>
@@ -2165,17 +2164,13 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       </button>
     </div>
   </div>
-  <!-- Slider dynamique — rempli par JS -->
-  <div class="slider" id="livresSlider" style="gap:12px;"></div>
-  <!-- Boutons bas côte à côte -->
-  <div style="display:flex;gap:10px;padding:12px 0 4px;">
-    <button id="livreIdeaBtn" onclick="livresIdeeDuJour()" class="activite-ia-btn" style="flex:1;width:0;min-width:0;">
+  <!-- Slider dynamique — rempli par JS — livres-scroll comme la maquette -->
+  <div id="livresSlider" style="display:flex;overflow-x:auto;gap:10px;padding:2px 0 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch;"></div>
+  <!-- Bouton idée du jour -->
+  <div style="padding:10px 0 4px;">
+    <button id="livreIdeaBtn" onclick="livresIdeeDuJour()" class="activite-ia-btn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       Idée du jour
-    </button>
-    <button onclick="livresOpenNew()" class="activite-new-btn" style="flex:1;width:0;min-width:0;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Nouvelle pochette
     </button>
   </div>
   <!-- Zone idée du jour Groq -->
@@ -4451,75 +4446,65 @@ document.addEventListener('DOMContentLoaded', function(){
   0%,100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(1.4); }
 }
-/* Souvenir cards — scroll horizontal */
+/* Souvenir cards — scroll horizontal — structure maquette v5 */
 .souvenir-card {
-  flex-shrink: 0;
-  width: 130px;
-  background: var(--s1);
+  flex: 0 0 88px; height: 106px;
+  border-radius: 12px;
   border: 1px solid var(--border);
-  border-radius: 14px;
-  /* PAS de overflow:hidden ici — ça rognait le badge NEW */
-  /* Les coins arrondis sont gérés sur les enfants directs */
   cursor: pointer;
   transition: transform 0.15s;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  flex-shrink: 0;
   position: relative;
 }
 .souvenir-card:active { transform: scale(0.96); }
-/* Coins arrondis en haut sur la photo */
+/* Zone photo — prend tout l'espace restant */
 .souvenir-photo {
-  width: 100%; height: 100px;
+  flex: 1;
   background: var(--s2);
-  position: relative;
   background-size: cover;
   background-position: center;
   display: flex; align-items: center; justify-content: center;
-  border-radius: 14px 14px 0 0;
-  overflow: hidden; /* overflow:hidden ici pour rogner la photo, pas le badge */
+  position: relative;
+  overflow: hidden;
 }
-/* Badge NEW sorti du overflow:hidden de .souvenir-photo — posé sur .souvenir-card */
+/* Bandeau opaque en bas — blanc en clair, #1a1614 en dark */
+.sov-band {
+  background: var(--s1);
+  padding: 4px 6px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+}
+body.dark .sov-band { background: #1a1614; }
+.sov-band-title { font-size: 9px; font-weight: 800; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
+.sov-band-sub   { font-size: 8px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Badge NEW — posé sur .souvenir-card (overflow:hidden géré par la photo) */
 .souvenir-card .yam-new-badge {
   position: absolute !important;
-  top: 6px !important;
-  right: 6px !important;
+  top: 5px !important; right: 5px !important;
   background: linear-gradient(135deg, #e75a7c, #7c6af7) !important;
-  color: #fff !important;
-  font-size: 8px !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.6px !important;
-  padding: 2px 6px !important;
-  border-radius: 6px !important;
-  text-transform: uppercase !important;
-  z-index: 10 !important;
-  pointer-events: none !important;
-  line-height: 1.4 !important;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.35) !important;
+  color: #fff !important; font-size: 8px !important; font-weight: 800 !important;
+  letter-spacing: 0.6px !important; padding: 2px 5px !important;
+  border-radius: 6px !important; text-transform: uppercase !important;
+  z-index: 10 !important; pointer-events: none !important;
+  line-height: 1.4 !important; box-shadow: 0 2px 6px rgba(0,0,0,0.35) !important;
 }
-.souvenir-edit-icon {
-  width: 22px; height: 22px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-}
-.souvenir-edit-icon:active { opacity: 0.6; }
-.souvenir-edit-icon svg { stroke: var(--muted); }
 .souvenir-lieu {
-  position: absolute; bottom: 6px; left: 6px;
+  position: absolute; bottom: 4px; left: 5px;
   background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
-  border-radius: 20px; padding: 2px 7px;
-  font-size: 10px; color: #fff; font-weight: 600;
+  border-radius: 20px; padding: 2px 6px;
+  font-size: 9px; color: #fff; font-weight: 600;
 }
-/* Bandeau opaque en bas de la carte souvenir */
-.souvenir-info {
-  padding: 5px 7px;
-  background: var(--s1);
-  border-top: 1px solid var(--border);
-  border-radius: 0 0 14px 14px;
-  display: flex; align-items: center; justify-content: space-between; gap: 4px;
-  flex-shrink: 0;
+/* Carte "ajouter" — pointillés */
+.souvenir-add-card {
+  flex: 0 0 88px; height: 106px; border-radius: 12px;
+  border: 1.5px dashed var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; color: var(--muted);
+  cursor: pointer; flex-shrink: 0; transition: border-color 0.15s;
 }
-body.dark .souvenir-info { background: #1a1614; }
-.souvenir-info-text { flex: 1; min-width: 0; }
-.souvenir-name { font-size: 10px; font-weight: 800; color: var(--text); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.souvenir-date { font-size: 9px; color: var(--muted); }
+.souvenir-add-card:active { border-color: var(--accent); }
 /* Gestion list */
 .souvenir-gestion-row {
   display: flex; align-items: center; gap: 12px;
@@ -4598,72 +4583,76 @@ body.dark .souvenir-info { background: #1a1614; }
 }
 .activite-new-btn:hover { background: var(--s1); }
 .activite-new-btn:active { background: var(--s1); }
-.activite-add-btn {
-  width: 100%; padding: 12px; background: linear-gradient(135deg,#e75a7c,#7c6af7);
-  border: none; border-radius: 12px; color: #fff; font-size: 13px; font-weight: 700;
-  font-family: 'Bricolage Grotesque', sans-serif; cursor: pointer; margin-top: 10px;
-}
 
-/* Bulle idée du jour — nouvelle structure v5 */
+/* Bulle idée du jour — maquette v5 */
 .activite-idea-bubble {
-  background: var(--s1); border-radius: 16px; border: 1px solid var(--border);
-  overflow: hidden; display: flex; align-items: stretch; margin-bottom: 10px;
+  background: var(--s1);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex; align-items: stretch;
+  margin-bottom: 10px;
 }
 .activite-idea-left {
-  flex: 1; padding: 14px; display: flex; flex-direction: column; gap: 6px;
+  flex: 1; padding: 14px;
+  display: flex; flex-direction: column; gap: 6px;
 }
 .activite-idea-badge {
   display: flex; align-items: center; gap: 5px;
   font-size: 9px; font-weight: 800; text-transform: uppercase;
-  letter-spacing: 0.6px; color: var(--muted);
+  letter-spacing: .6px; color: var(--muted);
 }
 .activite-idea-title { font-size: 14px; font-weight: 800; color: var(--text); line-height: 1.3; }
 .activite-idea-sub   { font-size: 11px; color: var(--sub); line-height: 1.4; }
-.activite-idea-add-btn {
+.activite-add-btn {
   display: inline-flex; align-items: center; gap: 5px;
   background: var(--accent); color: #fff; border: none; border-radius: 10px;
   padding: 7px 13px; font-size: 12px; font-weight: 700; cursor: pointer;
   font-family: 'Bricolage Grotesque', sans-serif; width: fit-content; margin-top: 2px;
 }
-.activite-inspire-col {
-  width: 76px; flex-shrink: 0;
-  background: linear-gradient(160deg,rgba(231,90,124,.06),rgba(124,106,247,.09));
+/* Colonne droite Inspirez-nous */
+.activite-inspire-btn {
+  width: 82px; flex-shrink: 0;
+  background: linear-gradient(160deg, rgba(231,90,124,.08), rgba(124,106,247,.10));
   border-left: 1px solid var(--border);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 5px; cursor: pointer; padding: 14px 8px; transition: opacity 0.15s;
+  gap: 5px; cursor: pointer; padding: 14px 8px; opacity: .8;
 }
-.activite-inspire-col:active { opacity: 0.7; }
-.activite-inspire-icon  { font-size: 22px; }
-.activite-inspire-label { font-size: 10px; font-weight: 800; color: var(--accent); text-align: center; line-height: 1.3; }
-.activite-inspire-soon  { font-size: 8px; color: var(--muted); font-weight: 600; text-align: center; }
+.inspire-icon  { font-size: 22px; }
+.inspire-label { font-size: 10px; font-weight: 800; color: var(--accent); text-align: center; line-height: 1.3; }
+.inspire-soon  { font-size: 8px; color: var(--muted); font-weight: 600; text-align: center; }
+
+/* Carte activité en cours — maquette v5 */
 .activite-card {
-  background: var(--s1); border: 1px solid var(--border); border-radius: 16px; padding: 16px;
+  background: var(--s1); border: 1px solid var(--border); border-radius: 16px; padding: 14px;
 }
 .activite-card-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
-.activite-emoji { font-size: 24px; flex-shrink: 0; }
-.activite-info { flex: 1; }
-.activite-titre { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
-.activite-desc { font-size: 12px; color: var(--muted); line-height: 1.4; }
-.activite-edit-btn {
-  background: transparent; border: none; color: var(--muted); font-size: 16px;
-  cursor: pointer; padding: 4px; flex-shrink: 0;
-}
-.activite-header { display: flex; align-items: flex-start; gap: 10px; }
+.activite-body-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.activite-body-title  { font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+.activite-body-sub    { font-size: 11px; color: var(--sub); margin-bottom: 10px; line-height: 1.4; }
+.activite-counter { font-size: 10px; color: var(--muted); font-weight: 700; }
 .activite-progress-wrap { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-.activite-progress-bar { flex: 1; height: 5px; background: var(--s2); border-radius: 3px; overflow: hidden; }
-.activite-progress-fill { height: 100%; background: linear-gradient(90deg,#e75a7c,#7c6af7); border-radius: 3px; transition: width 0.4s; }
+.activite-progress-bar { height: 3px; background: var(--s3, var(--s2)); border-radius: 2px; overflow: hidden; margin-bottom: 12px; }
+.activite-progress-fill { height: 100%; border-radius: 2px; background: var(--accent); transition: width 0.4s; }
 .activite-progress-txt { font-size: 11px; color: var(--muted); font-weight: 600; flex-shrink: 0; }
-.activite-steps { display: flex; flex-direction: column; gap: 6px; }
-.activite-step { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: var(--s2); border-radius: 10px; }
-.activite-step.done { opacity: 0.5; }
-.activite-step-check {
-  width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border);
-  display: flex; align-items: center; justify-content: center; cursor: pointer;
-  font-size: 11px; font-weight: 700; flex-shrink: 0; color: #fff;
-  background: transparent; transition: background 0.2s, border-color 0.2s;
+.activite-steps { display: flex; flex-direction: column; gap: 0; }
+.activite-step { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 12px; font-weight: 600; color: var(--text); }
+.activite-step.done { color: var(--muted); text-decoration: line-through; }
+.step-circle {
+  width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border);
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; cursor: pointer;
 }
-.activite-step.done .activite-step-check { background: #e75a7c; border-color: #e75a7c; }
-.activite-step-text { font-size: 13px; color: var(--text); line-height: 1.3; }
+.step-circle.done { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* Alias pour le JS existant */
+.activite-step-check { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 10px; font-weight: 700; color: #fff; background: transparent; transition: background 0.2s, border-color 0.2s; }
+.activite-step.done .activite-step-check { background: var(--accent); border-color: var(--accent); }
+.activite-emoji { font-size: 18px; flex-shrink: 0; }
+.activite-info { flex: 1; }
+.activite-titre { font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 2px; }
+.activite-desc { font-size: 11px; color: var(--sub); line-height: 1.4; }
+.activite-edit-btn { background: transparent; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px; flex-shrink: 0; }
+.activite-step-text { font-size: 12px; color: var(--text); line-height: 1.3; }
 .activite-step.done .activite-step-text { text-decoration: line-through; color: var(--muted); }
 .activite-completed { text-align: center; font-size: 13px; color: var(--green); font-weight: 700; padding: 10px 0 0; }
 .activite-modal-step-row { display: flex; gap: 8px; align-items: center; }
