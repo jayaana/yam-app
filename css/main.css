@@ -795,79 +795,99 @@ header::before {
   display: flex; align-items: center; gap: 5px;
 }
 
-.tl-wrap {
+/* ── Notre Histoire — maquette v5 ── */
+.histoire-card {
+  background: var(--s1); border-radius: 16px;
+  border: 1px solid var(--border); overflow: hidden;
+}
+.histoire-main {
+  padding: 13px 14px 12px;
+  display: flex; flex-direction: column; gap: 4px; position: relative;
+}
+.histoire-edit-btn {
+  position: absolute; top: 12px; right: 12px;
+  font-size: 11px; font-weight: 700; color: var(--accent);
+  cursor: pointer; display: flex; align-items: center; gap: 4px;
+  background: var(--accent-s); border-radius: 8px; padding: 4px 10px;
+  border: none; font-family: 'Bricolage Grotesque', sans-serif;
+}
+.histoire-line1 { display: flex; align-items: center; gap: 7px; }
+.histoire-emoji { font-size: 18px; line-height: 1; }
+.histoire-date  { font-size: 10px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: .5px; }
+.histoire-title { font-size: 13px; font-weight: 800; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 70px; }
+.histoire-excerpt { font-size: 11px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.histoire-sep { height: 1px; background: var(--border); }
+.histoire-strip { display: flex; overflow-x: auto; scrollbar-width: none; }
+.histoire-strip::-webkit-scrollbar { display: none; }
+.histoire-strip-item {
+  flex: 1 1 0; min-width: 80px; padding: 9px 10px;
+  cursor: pointer; border-right: 1px solid var(--border);
+  background: var(--s2); transition: background .15s;
+  text-align: center; display: flex; flex-direction: column; gap: 2px; align-items: center;
   position: relative;
-  padding-left: 22px;
 }
-.tl-line {
-  position: absolute;
-  left: 3px; top: 6px; bottom: 0;
-  width: 2px;
-  background: linear-gradient(to bottom, var(--green), transparent);
-  border-radius: 1px;
+.histoire-strip-item:last-child { border-right: none; }
+.histoire-strip-item:active { background: var(--s3); }
+.histoire-strip-item.active { background: var(--s1); }
+.histoire-strip-item.active::after { content:''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent); }
+.strip-num   { font-size: 9px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: .5px; }
+.strip-title { font-size: 10px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 85px; }
+
+/* ── Elle & Lui — maquette v5 ── */
+.elle-lui-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.universe-card {
+  background: var(--s1); border-radius: 16px;
+  border: 1px solid var(--border); overflow: hidden;
+  cursor: pointer; transition: transform .15s, border-color .2s;
 }
-.tl-wrap.collapsed {
-  max-height: 120px;
-  overflow: hidden;
-  -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
-  mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+.universe-card:active { border-color: var(--accent); transform: scale(0.98); }
+.slots-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr; gap: 2px; height: 108px;
+  background: var(--s3, var(--s2));
 }
-.tl-wrap.expanded {
-  max-height: 2000px;
-  overflow: visible;
-  -webkit-mask-image: none;
-  mask-image: none;
-  transition: max-height 0.4s ease;
+.slot-cell {
+  background: var(--s2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; overflow: hidden; position: relative;
 }
-.tl-item {
-  position: relative;
-  margin-bottom: 16px;
-  opacity: 0;
-  transform: translateX(-12px);
-  transition: opacity 0.45s, transform 0.45s;
+.slot-cell img { width: 100%; height: 100%; object-fit: cover; }
+.slot-cell.filled { background: linear-gradient(135deg,rgba(231,90,124,.12),rgba(124,106,247,.08)); }
+.slot-cell-empty { background: var(--s2); opacity: .35; }
+.slot-empty-icon { font-size: 18px; opacity: .45; }
+.universe-footer {
+  padding: 8px 10px 10px;
+  display: flex; align-items: center; justify-content: space-between;
 }
-.tl-item.visible { opacity: 1; transform: none; }
-.tl-dot {
-  position: absolute;
-  left: -20px; top: 6px;
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 0 3px rgba(201,120,96,0.2);
-}
-.tl-date {
-  font-size: 9px; font-weight: 700;
-  color: var(--green);
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  margin-bottom: 4px;
-}
-.tl-card {
-  background: var(--s1);
-  border-radius: var(--radius);
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-.tl-card:hover { border-color: rgba(201,120,96,0.2); box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
-.tl-card h3 { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
-.tl-card p  { font-size: 11px; color: var(--sub); line-height: 1.6; }
-.tl-toggle {
-  font-size: 10px;
-  color: var(--green);
-  font-weight: 600;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  cursor: pointer;
-  margin-top: 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  user-select: none;
-  transition: opacity 0.15s;
-  padding: 4px 0;
-}
-.tl-toggle:hover { opacity: 0.75; }
+.universe-name { font-size: 12px; font-weight: 800; color: var(--text); }
+.universe-sub  { font-size: 10px; color: var(--muted); }
+
+/* Vue expanded */
+.elle-lui-expanded { display: none; background: var(--s1); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; margin-top: 10px; }
+.elle-lui-expanded.open { display: block; }
+.expanded-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 10px; border-bottom: 1px solid var(--border); }
+.expanded-tabs { display: flex; gap: 6px; }
+.expanded-tab { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; cursor: pointer; border: 1.5px solid var(--border); background: transparent; color: var(--muted); font-family: 'Bricolage Grotesque', sans-serif; transition: all .15s; }
+.expanded-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.expanded-close { width: 26px; height: 26px; border-radius: 50%; background: var(--s2); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--muted); font-family: 'Bricolage Grotesque', sans-serif; }
+.expanded-notice { padding: 7px 14px 0; font-size: 10px; color: var(--muted); font-style: italic; font-weight: 600; }
+.expanded-scroll { display: flex; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x mandatory; }
+.expanded-scroll::-webkit-scrollbar { display: none; }
+.expanded-slot { flex: 0 0 100%; scroll-snap-align: start; display: flex; flex-direction: column; }
+.expanded-slot-img { height: 180px; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 64px; background: var(--s2); }
+.expanded-slot-img img { width: 100%; height: 100%; object-fit: cover; }
+.expanded-slot-img.empty { opacity: .35; }
+.expanded-slot-footer { padding: 12px 14px 14px; display: flex; align-items: flex-start; justify-content: space-between; }
+.expanded-slot-info { flex: 1; }
+.expanded-slot-name { font-size: 13px; font-weight: 800; color: var(--text); }
+.expanded-slot-desc { font-size: 11px; color: var(--sub); margin-top: 3px; line-height: 1.4; }
+.expanded-slot-edit { padding: 6px 12px; background: var(--accent); color: #fff; border: none; border-radius: 10px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: 'Bricolage Grotesque', sans-serif; white-space: nowrap; flex-shrink: 0; margin-left: 10px; }
+.expanded-slot-edit.disabled { background: var(--s3, var(--s2)); color: var(--muted); cursor: not-allowed; }
+.expanded-dots { display: flex; justify-content: center; gap: 5px; padding: 8px 0 10px; border-top: 1px solid var(--border); }
+.expanded-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); transition: background .2s, width .2s; }
+.expanded-dot.active { background: var(--accent); width: 14px; border-radius: 3px; }
+
+
 
 #reasonBox {
   background: var(--s1);
