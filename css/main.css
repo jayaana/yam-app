@@ -42,8 +42,8 @@ html.light {
 
   /* Texte */
   --text:    #261a12;
-  --sub:     rgba(38,26,18,0.6);
-  --muted:   rgba(38,26,18,0.38);
+  --sub:     #5a3e2e;
+  --muted:   #8a6a58;
 
   /* Bords & ombres */
   --border:  rgba(160,120,90,0.15);
