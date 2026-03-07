@@ -2626,8 +2626,6 @@ loadLikeCounters();
 
 })();
 
-})();
-
 
 // ════════════════════════════════════════════════════════════════════
 // SECTION LIVRES — Pochettes dynamiques couple, badge NEW, Idée du jour Groq
