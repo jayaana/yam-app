@@ -4106,498 +4106,261 @@ window.nousLoad = function(){
 // ════════════════════════════════════════════════════════════════════
 
 
+
 // ═══════════════════════════════════════════════════════════════════
 // NOUVEAU UI v8 — Maquette v5
-// Fonctions qui pilotent les nouveaux composants HTML
 // ═══════════════════════════════════════════════════════════════════
 
+
 // ────────────────────────────────────────────────
-// HISTOIRE STRIP v5 — remplace l'ancienne timeline
-// Appelé après histoireLoad (override de histoireRenderTimeline)
+// HISTOIRE STRIP — Override histoireRenderTimeline
+// Remplit histStrip + met à jour histEmoji/histDate/histTitle/histExcerpt
 // ────────────────────────────────────────────────
 (function(){
   var _histRows = [];
   var _histActiveIdx = 0;
 
-  // Override de histoireRenderTimeline pour alimenter aussi la new UI
   var _origRender = window.histoireRenderTimeline;
   window.histoireRenderTimeline = function(items){
-    // Appel original (maintient compat JS scroll/observers)
     if(typeof _origRender === 'function') _origRender(items);
-    // Nouvelle UI
     _histRows = Array.isArray(items) ? items.slice().sort(function(a,b){
       if((a.sort_order||0)!=(b.sort_order||0)) return (a.sort_order||0)-(b.sort_order||0);
       return (a.created_at||'').localeCompare(b.created_at||'');
     }) : [];
     _histActiveIdx = 0;
-    _renderHistMain();
-    _renderHistStrip();
+    _updateMain();
+    _updateStrip();
   };
 
-  function _renderHistMain(){
-    var rows = _histRows;
-    var idx  = _histActiveIdx;
-    var item = rows[idx] || null;
-    var emojiEl  = document.getElementById('histEmoji');
-    var dateEl   = document.getElementById('histDate');
-    var titleEl  = document.getElementById('histTitle');
-    var excerptEl= document.getElementById('histExcerpt');
-    if(!emojiEl) return;
+  function _updateMain(){
+    var item = _histRows[_histActiveIdx] || null;
+    var ej = document.getElementById('histEmoji');
+    var dt = document.getElementById('histDate');
+    var ti = document.getElementById('histTitle');
+    var ex = document.getElementById('histExcerpt');
+    if(!ej) return;
     if(!item){
-      emojiEl.textContent   = '💫';
-      dateEl.textContent    = '';
-      titleEl.textContent   = 'Notre histoire commence…';
-      excerptEl.textContent = 'Clique sur le crayon pour ajouter vos premiers chapitres.';
+      ej.textContent='💫'; dt.textContent='';
+      ti.textContent='Notre histoire commence…';
+      ex.textContent='Clique sur le crayon pour ajouter vos premiers chapitres.';
       return;
     }
-    emojiEl.textContent   = item.emoji || '💫';
-    dateEl.textContent    = item.date_label || '';
-    titleEl.textContent   = item.title || '';
-    excerptEl.textContent = (item.text || '').substring(0, 80) + (item.text && item.text.length > 80 ? '…' : '');
+    ej.textContent = item.emoji||'💫';
+    dt.textContent = item.date_label||'';
+    ti.textContent = item.title||'';
+    ex.textContent = (item.text||'').substring(0,80)+((item.text||'').length>80?'…':'');
   }
 
-  function _renderHistStrip(){
+  function _updateStrip(){
     var strip = document.getElementById('histStrip'); if(!strip) return;
     strip.innerHTML = '';
-    var rows = _histRows;
-    if(!rows.length){
-      var ph = document.createElement('div');
-      ph.className = 'histoire-strip-item-new active';
-      ph.innerHTML = '<div class="strip-num-new">Chap. 1</div><div class="strip-title-new">À écrire…</div>';
-      strip.appendChild(ph);
+    if(!_histRows.length){
+      strip.innerHTML = '<div class="histoire-strip-item-new active"><div class="strip-num-new">Chap. 1</div><div class="strip-title-new">À écrire…</div></div>';
       return;
     }
-    rows.forEach(function(item, i){
+    _histRows.forEach(function(item, i){
       var el = document.createElement('div');
-      el.className = 'histoire-strip-item-new' + (i === _histActiveIdx ? ' active' : '');
-      el.innerHTML = '<div class="strip-num-new">Chap. '+(i+1)+'</div><div class="strip-title-new">'+escHtml(item.title||'')+'</div>';
-      (function(idx){ el.addEventListener('click', function(){ histSelectItem(idx); }); })(i);
+      el.className = 'histoire-strip-item-new'+(i===_histActiveIdx?' active':'');
+      el.innerHTML = '<div class="strip-num-new">Chap.'+(i+1)+'</div><div class="strip-title-new">'+escHtml(item.title||'')+'</div>';
+      (function(idx){ el.addEventListener('click', function(){ window.histSelectItem(idx); }); })(i);
       strip.appendChild(el);
     });
   }
 
-  // Exposé globalement pour les onclick HTML
-  window.histSelectItem = function(idxOrEl, legacyIdx){
-    // Support dual signature: histSelectItem(element, idx) ancien ou histSelectItem(idx) nouveau
-    var idx = (typeof idxOrEl === 'number') ? idxOrEl : legacyIdx;
+  window.histSelectItem = function(idx){
     if(typeof idx !== 'number') return;
     _histActiveIdx = idx;
-    _renderHistMain();
-    // Update classes strip
+    _updateMain();
     var strip = document.getElementById('histStrip'); if(!strip) return;
-    Array.from(strip.querySelectorAll('.histoire-strip-item-new')).forEach(function(el, i){
-      el.classList.toggle('active', i === idx);
+    strip.querySelectorAll('.histoire-strip-item-new').forEach(function(el,i){
+      el.classList.toggle('active', i===idx);
     });
   };
-
-  // Alias pour ancien onclick histSelect
   window.histSelect = function(el, idx){ window.histSelectItem(idx); };
 })();
 
 
 // ────────────────────────────────────────────────
-// ELLE & LUI — EXPANDED VIEW v5
+// ELLE & LUI — Vue expanded
+// Les img IDs (elle-img-*, lui-img-*) sont dans la grille visible
+// _loadImages() les remplit directement — pas besoin de sync
 // ────────────────────────────────────────────────
 (function(){
   var SLOTS = ['animal','fleurs','personnage','saison','repas'];
-  var SLOT_EMOJIS = {animal:'🐾', fleurs:'🌸', personnage:'🧑', saison:'🍂', repas:'🍽️'};
+  var SLOT_EMOJIS = {animal:'🐾',fleurs:'🌸',personnage:'🧑',saison:'🍂',repas:'🍽️'};
+  var _cur = 'elle';
 
-  var _currentSection = 'elle';
-
-  // Mise à jour des images dans la grille 2×3 compacte
-  // Quand elleLoadImages / luiLoadImages sont appelées, elles mettent à jour les #elle-img-* etc.
-  // On observe ces images pour refléter l'état dans la grille compacte
-  function _syncPreviewGrid(section){
-    var slots = SLOTS;
-    slots.forEach(function(slot){
-      var srcImg = document.getElementById(section+'-img-'+slot);
-      var previewCell = document.getElementById('preview-'+section+'-'+slot);
-      if(!srcImg || !previewCell) return;
-      var previewImg = previewCell.querySelector('img');
-      var previewFallback = previewCell.querySelector('.slot-emoji-fallback');
-      if(!previewImg){
-        previewImg = document.createElement('img');
-        previewImg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
-        previewCell.style.position = 'relative';
-        previewCell.insertBefore(previewImg, previewCell.firstChild);
-      }
-      function _applyState(){
-        var hasPhoto = srcImg.src && srcImg.style.display !== 'none' && srcImg.classList.contains('loaded');
-        if(hasPhoto){
-          previewImg.src = srcImg.src;
-          previewImg.style.display = 'block';
-          if(previewFallback) previewFallback.style.display = 'none';
-        } else {
-          previewImg.style.display = 'none';
-          if(previewFallback) previewFallback.style.display = '';
-        }
-      }
-      _applyState();
-      // Observer les changements
-      var obs = new MutationObserver(_applyState);
-      obs.observe(srcImg, {attributes:true, attributeFilter:['src','style','class']});
-    });
-  }
-
-  // Appelé après elleLoadImages / luiLoadImages
-  var _origElleLoad = window.elleLoadImages;
-  window.elleLoadImages = function(){
-    if(_origElleLoad) _origElleLoad();
-    setTimeout(function(){ _syncPreviewGrid('elle'); }, 500);
-  };
-  var _origLuiLoad = window.luiLoadImages;
-  window.luiLoadImages = function(){
-    if(_origLuiLoad) _origLuiLoad();
-    setTimeout(function(){ _syncPreviewGrid('lui'); }, 500);
-  };
-
-  // Ouvrir la vue expanded
   window.openElleLuiExpanded = function(section){
-    _currentSection = section || 'elle';
-    var grid     = document.getElementById('elleLuiGridNew');
-    var expanded = document.getElementById('elleLuiExpandedNew');
-    if(!grid || !expanded) return;
-    grid.style.display = 'none';
-    expanded.style.display = 'block';
-    _renderExpandedSlots(_currentSection);
-    _updateExpandedTabs(_currentSection);
-    _updateExpandedNotice(_currentSection);
+    _cur = section||'elle';
+    var grid = document.getElementById('elleLuiGridNew');
+    var exp  = document.getElementById('elleLuiExpandedNew');
+    if(grid) grid.style.display = 'none';
+    if(exp)  exp.style.display  = 'block';
+    _renderSlots(_cur);
+    _updateTabs(_cur);
+    _updateNotice(_cur);
   };
 
   window.closeElleLuiExpanded = function(){
-    var grid     = document.getElementById('elleLuiGridNew');
-    var expanded = document.getElementById('elleLuiExpandedNew');
-    if(grid)     grid.style.display = '';
-    if(expanded) expanded.style.display = 'none';
+    var grid = document.getElementById('elleLuiGridNew');
+    var exp  = document.getElementById('elleLuiExpandedNew');
+    if(grid) grid.style.display = '';
+    if(exp)  exp.style.display  = 'none';
   };
 
   window.switchElleLuiTab = function(section){
-    _currentSection = section;
-    _renderExpandedSlots(section);
-    _updateExpandedTabs(section);
-    _updateExpandedNotice(section);
-    // Scroll back to first slot
-    var scroll = document.getElementById('expandedScrollNew');
-    if(scroll) scroll.scrollLeft = 0;
+    _cur = section;
+    _renderSlots(section);
+    _updateTabs(section);
+    _updateNotice(section);
+    var sc = document.getElementById('expandedScrollNew');
+    if(sc) sc.scrollLeft = 0;
     _updateDots(0);
   };
 
-  function _updateExpandedTabs(section){
-    var tabElle = document.getElementById('tabElleNew');
-    var tabLui  = document.getElementById('tabLuiNew');
-    if(tabElle) tabElle.classList.toggle('active', section === 'elle');
-    if(tabLui)  tabLui.classList.toggle('active',  section === 'lui');
+  window.updateElleLuiDots = function(){
+    var sc = document.getElementById('expandedScrollNew'); if(!sc) return;
+    _updateDots(Math.round(sc.scrollLeft/(sc.offsetWidth||300)));
+  };
+
+  function _updateTabs(s){
+    var te = document.getElementById('tabElleNew');
+    var tl = document.getElementById('tabLuiNew');
+    if(te) te.classList.toggle('active', s==='elle');
+    if(tl) tl.classList.toggle('active', s==='lui');
   }
 
-  function _updateExpandedNotice(section){
-    var notice = document.getElementById('expandedNoticeNew'); if(!notice) return;
-    var profile = (typeof getProfile === 'function') ? getProfile() : 'girl';
-    var canEdit = (section === 'elle' && profile === 'boy') || (section === 'lui' && profile === 'girl');
-    notice.textContent = canEdit
+  function _updateNotice(s){
+    var n = document.getElementById('expandedNoticeNew'); if(!n) return;
+    var p = (typeof getProfile==='function') ? getProfile() : 'girl';
+    var canEdit = (s==='elle'&&p==='boy')||(s==='lui'&&p==='girl');
+    n.textContent = canEdit
       ? 'Tu peux modifier les pochettes en appuyant sur "Éditer"'
       : 'Seul(e) ton partenaire peut modifier ces pochettes';
   }
 
-  function _renderExpandedSlots(section){
-    var scroll = document.getElementById('expandedScrollNew'); if(!scroll) return;
-    scroll.innerHTML = '';
-    var profile = (typeof getProfile === 'function') ? getProfile() : 'girl';
-    var canEdit = (section === 'elle' && profile === 'boy') || (section === 'lui' && profile === 'girl');
+  function _updateDots(idx){
+    var dc = document.getElementById('expandedDotsNew'); if(!dc) return;
+    dc.querySelectorAll('.expanded-dot-new').forEach(function(d,i){
+      d.classList.toggle('active', i===idx);
+    });
+  }
+
+  function _renderSlots(section){
+    var sc = document.getElementById('expandedScrollNew'); if(!sc) return;
+    sc.innerHTML = '';
+    var p = (typeof getProfile==='function') ? getProfile() : 'girl';
+    var canEdit = (section==='elle'&&p==='boy')||(section==='lui'&&p==='girl');
 
     SLOTS.forEach(function(slot){
-      var slotEl = document.createElement('div');
-      slotEl.className = 'expanded-slot-new';
+      var el = document.createElement('div');
+      el.className = 'expanded-slot-new';
 
-      // Image
+      // Image — directement depuis les img visibles dans la grille
       var imgArea = document.createElement('div');
       imgArea.className = 'expanded-slot-img-new';
       var srcImg = document.getElementById(section+'-img-'+slot);
-      var hasPhoto = srcImg && srcImg.src && srcImg.style.display !== 'none' && srcImg.classList.contains('loaded');
+      var hasPhoto = srcImg && srcImg.classList.contains('loaded') && srcImg.style.display!=='none';
       if(hasPhoto){
         var img = document.createElement('img');
         img.src = srcImg.src;
-        img.alt = slot;
         imgArea.appendChild(img);
       } else {
         imgArea.classList.add('empty');
-        imgArea.textContent = SLOT_EMOJIS[slot] || '📷';
+        imgArea.textContent = SLOT_EMOJIS[slot]||'📷';
       }
-      slotEl.appendChild(imgArea);
+      el.appendChild(imgArea);
 
       // Footer
-      var footer = document.createElement('div');
-      footer.className = 'expanded-slot-footer-new';
-
-      var info = document.createElement('div');
-      info.className = 'expanded-slot-info-new';
-
+      var footer = document.createElement('div'); footer.className = 'expanded-slot-footer-new';
+      var info   = document.createElement('div'); info.className   = 'expanded-slot-info-new';
+      var nameDiv = document.createElement('div'); nameDiv.className = 'expanded-slot-name-new';
       var bannerEl = document.getElementById(section+'-banner-'+slot);
-      var descEl   = document.getElementById(section+'-desc-'+slot);
-
-      var nameDiv = document.createElement('div');
-      nameDiv.className = 'expanded-slot-name-new';
-      nameDiv.textContent = (bannerEl && bannerEl.textContent) || slot.charAt(0).toUpperCase()+slot.slice(1);
+      nameDiv.textContent = (bannerEl&&bannerEl.textContent.trim()) || (slot.charAt(0).toUpperCase()+slot.slice(1));
       info.appendChild(nameDiv);
-
-      var descDiv = document.createElement('div');
-      descDiv.className = 'expanded-slot-desc-new';
-      descDiv.textContent = (descEl && descEl.textContent) || '';
-      info.appendChild(descDiv);
-
+      var descEl = document.getElementById(section+'-desc-'+slot);
+      if(descEl && descEl.textContent.trim()){
+        var descDiv = document.createElement('div'); descDiv.className = 'expanded-slot-desc-new';
+        descDiv.textContent = descEl.textContent.trim();
+        info.appendChild(descDiv);
+      }
       footer.appendChild(info);
-
       var editBtn = document.createElement('button');
-      editBtn.className = 'expanded-slot-edit-new' + (canEdit ? '' : ' disabled');
-      editBtn.textContent = canEdit ? 'Éditer' : 'Lecture';
+      editBtn.className = 'expanded-slot-edit-new'+(canEdit?'':' disabled');
+      editBtn.textContent = canEdit?'Éditer':'Lecture';
       if(canEdit){
-        (function(s, sl){ editBtn.addEventListener('click', function(){ window.slotOpenEdit(s, sl); }); })(section, slot);
+        (function(s,sl){ editBtn.addEventListener('click',function(){ window.slotOpenEdit(s,sl); }); })(section,slot);
       }
       footer.appendChild(editBtn);
-
-      slotEl.appendChild(footer);
-      scroll.appendChild(slotEl);
+      el.appendChild(footer);
+      sc.appendChild(el);
     });
-
-    // Init dots
     _updateDots(0);
   }
-
-  // Dots de pagination
-  function _updateDots(activeIdx){
-    var dotsContainer = document.getElementById('expandedDotsNew'); if(!dotsContainer) return;
-    var dots = dotsContainer.querySelectorAll('.expanded-dot-new');
-    dots.forEach(function(d, i){ d.classList.toggle('active', i === activeIdx); });
-  }
-
-  window.updateElleLuiDots = function(){
-    var scroll = document.getElementById('expandedScrollNew'); if(!scroll) return;
-    var slotWidth = scroll.offsetWidth || 300;
-    var idx = Math.round(scroll.scrollLeft / slotWidth);
-    _updateDots(idx);
-  };
-
-  // Sync nousLoad/elleSyncSections — masquer les sections invisibles
-  var _origElleSyncSections = window.elleSyncSections;
-  window.elleSyncSections = function(){
-    if(typeof _origElleSyncSections === 'function') _origElleSyncSections();
-    // Dans la nouvelle UI, la grille est toujours visible, les boutons d'édition sont
-    // gérés dans _updateExpandedNotice au moment de l'ouverture
-  };
-
 })();
 
 
 // ────────────────────────────────────────────────
-// SOUVENIRS — Nouveau rendu pour scroll horizontal
-// Override de _renderSouvenirRows pour nouvelles classes
+// SOUVENIRS — Style thumb maquette
+// _buildSouvenirCard génère des souvenir-card avec .souvenir-photo (bg-image)
+// On patche pour le style thumb + bande opaque
 // ────────────────────────────────────────────────
 (function(){
-  // Patch _buildSouvenirCard pour utiliser les nouvelles classes
-  // On wrap nousLoadSouvenirs pour déclencher la sync UI après le rendu
-  var _origNousLoadSouvenirs = window.nousLoadSouvenirs;
-  window.nousLoadSouvenirs = function(){
-    if(typeof _origNousLoadSouvenirs === 'function') _origNousLoadSouvenirs();
-    // Le rendu est déjà géré par _renderSouvenirRows existant via les IDs
-    // On laisse le JS original gérer les conteneurs (ids sont conservés)
-    // Il suffit de s'assurer que les scrolls sont visibles
-  };
-})();
-
-
-// ────────────────────────────────────────────────
-// ACTIVITÉS — Cartes style nouveau
-// Override de _buildActiviteCard appelé par _renderActivitesHome
-// ────────────────────────────────────────────────
-(function(){
-  // Patch CSS class sur les cartes d'activité pour adapter le style
-  // Les cartes sont générées par _buildActiviteCard dans la closure existante
-  // On patche le DOM après le rendu pour appliquer les classes nouvelles
-
-  var _origNousLoadActivites = window.nousLoadActivites;
-  window.nousLoadActivites = function(){
-    if(typeof _origNousLoadActivites === 'function') _origNousLoadActivites();
-    // Après le rendu, on applique les classes visuelles nouvelles
-    setTimeout(_patchActiviteCards, 200);
-  };
-
-  function _patchActiviteCards(){
-    var cards = document.querySelectorAll('#activitesContainer .activite-card, #activitesContainer .activite-sugg-card');
-    cards.forEach(function(card){
-      if(card.classList.contains('patched-v8')) return;
-      card.classList.add('patched-v8');
-      // Style de base carte
-      card.style.borderRadius = '16px';
-      card.style.border = '1px solid var(--border)';
-      card.style.background = 'var(--s1)';
-      card.style.overflow = 'hidden';
-    });
-  }
-
-  // Idée du jour IA — sync texte dans le nouveau composant
-  var _origActiviteIaSuggest = window.activiteIaSuggest;
-  // Le bouton "Ajouter" IA est géré : s'il existe dans la nouvelle UI, on le rend visible
-  // après suggestion. Le textEl et metaEl sont retrouvés via ID.
-  // Les IDs activiteIaSuggText, activiteIaSuggMeta, activiteIaAddBtn, activiteIaBtn
-  // sont déjà dans le nouveau HTML — le JS original fonctionne sans modification.
-})();
-
-
-// ────────────────────────────────────────────────
-// RENDERMECOUPLE — patch pour nouveaux IDs si nécessaire
-// (les IDs memoNotePreview, memoTodoPreview sont conservés)
-// ────────────────────────────────────────────────
-// Rien à faire — les IDs sont identiques, renderMemoCouple fonctionne tel quel.
-
-
-// ────────────────────────────────────────────────
-// SOUVENIRS — build thumb style maquette
-// Override de _buildSouvenirCard (dans la closure souvenirs)
-// On remplace le comportement global via un Observer sur les scrolls
-// ────────────────────────────────────────────────
-(function(){
-  // Quand un souvenir-card est ajouté dans souvenirs-scroll-new,
-  // on s'assure que l'image de fond est posée dans un thumb correct
-  // avec bande opaque sov-band
-
-  function _patchSouvenirCard(card){
-    if(card.classList.contains('sov-patched')) return;
-    card.classList.add('sov-patched');
-    // Lire l'inline backgroundImage déjà posé par _buildSouvenirCard
+  // Observer sur les scrolls souvenirs pour patcher chaque card ajoutée
+  function _patchCard(card){
+    if(card.classList.contains('sov-v8')) return;
+    card.classList.add('sov-v8');
     var photoDiv = card.querySelector('.souvenir-photo');
-    var nameDiv  = card.querySelector('.souvenir-name');
-    var dateDiv  = card.querySelector('.souvenir-date');
+    var nameEl   = card.querySelector('.souvenir-name');
+    var dateEl   = card.querySelector('.souvenir-date');
+    var editIcon = card.querySelector('.souvenir-edit-icon');
     if(!photoDiv) return;
+    var bg    = photoDiv.style.backgroundImage;
+    var title = nameEl  ? nameEl.textContent.trim()  : '';
+    var date  = dateEl  ? dateEl.textContent.trim()  : '';
+    var editClone = editIcon ? editIcon.cloneNode(true) : null;
 
-    var bgImg = photoDiv.style.backgroundImage;
-    var title = nameDiv ? nameDiv.textContent : '';
-    var date  = dateDiv ? dateDiv.textContent : '';
-
-    // Reconstruire la card avec style thumb + bande
     card.innerHTML = '';
-    card.style.cssText = 'flex:0 0 88px;height:106px;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;border:1px solid var(--border);flex-shrink:0;';
+    card.className = 'sov-thumb';
 
-    var thumbImg = document.createElement('div');
-    thumbImg.style.cssText = 'flex:1;background-size:cover;background-position:center;background-color:var(--s3);display:flex;align-items:center;justify-content:center;font-size:24px;';
-    if(bgImg && bgImg !== 'none') {
-      thumbImg.style.backgroundImage = bgImg;
+    var imgDiv = document.createElement('div');
+    imgDiv.className = 'sov-thumb-img';
+    if(bg && bg!=='none'){
+      imgDiv.style.backgroundImage = bg;
     } else {
-      thumbImg.textContent = '📷';
+      imgDiv.textContent = '📷';
     }
-    card.appendChild(thumbImg);
+    card.appendChild(imgDiv);
 
     var band = document.createElement('div');
     band.className = 'sov-band';
-    if(title){
-      var bt = document.createElement('div');
-      bt.className = 'sov-band-title';
-      bt.textContent = title;
-      band.appendChild(bt);
-    }
-    if(date){
-      var bs = document.createElement('div');
-      bs.className = 'sov-band-sub';
-      bs.textContent = date;
-      band.appendChild(bs);
-    }
+    if(title){ var bt=document.createElement('div'); bt.className='sov-band-title'; bt.textContent=title; band.appendChild(bt); }
+    if(date){  var bs=document.createElement('div'); bs.className='sov-band-sub';   bs.textContent=date;  band.appendChild(bs); }
     card.appendChild(band);
+
+    if(editClone){
+      editClone.style.cssText='position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.45);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;';
+      card.style.position='relative';
+      card.appendChild(editClone);
+    }
   }
 
-  // Observer les mutations dans les scrolls souvenirs
-  function _watchSouvenirScrolls(){
+  function _watchScrolls(){
     ['souvenirsRecentScroll','souvenirsFavScroll'].forEach(function(id){
       var el = document.getElementById(id); if(!el) return;
-      var obs = new MutationObserver(function(mutations){
-        mutations.forEach(function(m){
-          m.addedNodes.forEach(function(node){
-            if(node.nodeType===1 && node.classList.contains('souvenir-card')){
-              _patchSouvenirCard(node);
-            }
-          });
+      if(el._sovObserver) return;
+      el._sovObserver = new MutationObserver(function(muts){
+        muts.forEach(function(m){
+          m.addedNodes.forEach(function(n){ if(n.nodeType===1) _patchCard(n); });
         });
-        // Rendre visibles si des cards existent
-        if(el.children.length > 0) el.style.display = 'flex';
       });
-      obs.observe(el, {childList:true});
+      el._sovObserver.observe(el, {childList:true});
+      el.querySelectorAll('.souvenir-card').forEach(_patchCard);
     });
   }
 
-  // Init quand DOM prêt
-  setTimeout(_watchSouvenirScrolls, 500);
-  document.addEventListener('nousContentReady', function(){
-    setTimeout(_watchSouvenirScrolls, 300);
-  });
-})();
-
-
-// ────────────────────────────────────────────────
-// LIVRES — Patch slider pour style maquette (bande opaque)
-// Override de _buildLivreCard via observer sur livresSlider
-// ────────────────────────────────────────────────
-(function(){
-  function _patchLivreCard(card){
-    if(card.classList.contains('livre-v8-patched')) return;
-    card.classList.add('livre-v8-patched');
-
-    // Lire les infos du card actuel
-    var bannerEl = card.querySelector('.album-banner');
-    var descEl   = card.querySelector('.album-desc');
-    var imgEl    = card.querySelector('img');
-
-    var title = bannerEl ? bannerEl.textContent.trim() : 'Livre';
-    var desc  = descEl   ? descEl.textContent.trim()   : '';
-    var imgSrc = imgEl   ? imgEl.src                   : '';
-
-    // Reconstruire en style maquette
-    card.innerHTML = '';
-    card.style.cssText = 'flex:0 0 78px;height:110px;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;border:1.5px solid var(--border);flex-shrink:0;background:var(--s2);';
-
-    var imgArea = document.createElement('div');
-    imgArea.style.cssText = 'flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--muted);';
-    if(imgSrc && !imgSrc.endsWith('null')){
-      var img = document.createElement('img');
-      img.src = imgSrc;
-      img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
-      imgArea.appendChild(img);
-    } else {
-      imgArea.textContent = '📚';
-    }
-    card.appendChild(imgArea);
-
-    var band = document.createElement('div');
-    band.className = 'livre-band';
-    var bt = document.createElement('div');
-    bt.className = 'livre-band-title';
-    bt.textContent = title;
-    band.appendChild(bt);
-    if(desc){
-      var bs = document.createElement('div');
-      bs.className = 'livre-band-author';
-      bs.textContent = desc;
-      band.appendChild(bs);
-    }
-    card.appendChild(band);
-  }
-
-  function _watchLivresSlider(){
-    var el = document.getElementById('livresSlider'); if(!el) return;
-    var obs = new MutationObserver(function(mutations){
-      mutations.forEach(function(m){
-        m.addedNodes.forEach(function(node){
-          if(node.nodeType===1 && (node.classList.contains('album-card')||node.classList.contains('lui-card-wrap'))){
-            _patchLivreCard(node);
-          }
-        });
-      });
-    });
-    obs.observe(el, {childList:true});
-    // Patch les cartes déjà présentes
-    el.querySelectorAll('.album-card').forEach(_patchLivreCard);
-  }
-
-  setTimeout(_watchLivresSlider, 500);
-  document.addEventListener('nousContentReady', function(){
-    setTimeout(_watchLivresSlider, 300);
-  });
+  setTimeout(_watchScrolls, 300);
+  document.addEventListener('nousContentReady', function(){ setTimeout(_watchScrolls, 100); });
 })();
 
 
