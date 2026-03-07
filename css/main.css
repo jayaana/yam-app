@@ -5445,271 +5445,223 @@ body.light #rappelOverlay.open { background: rgba(0,0,0,0.22); }
 }
 .rsh-loader-txt { font-size: 11px; color: var(--muted); margin-left: 4px; }
 
+/* ══════════════════════════════════════════
+   YAM v8 — REFONTE NOUS ♥ — NOUVEAUX COMPOSANTS
+   ══════════════════════════════════════════ */
 
-/* ══════════════════════════════════════════════════════════════════
-   NOTRE HISTOIRE — Carte compacte v8 (maquette v5)
-   Remplace la timeline verticale .tl-* pour l'affichage principal.
-   La timeline (.tl-*) reste dans le DOM (display:none) pour la
-   modale de gestion — on ne la supprime pas.
-══════════════════════════════════════════════════════════════════ */
+/* ── Label section unifié ── */
+.nous-section-lbl {
+  font-size: 11px; font-weight: 800; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--green);
+}
+body.light .nous-section-lbl { color: var(--green); }
 
-/* ── Carte englobante ── */
-.hist-card {
+/* ── ios-group style preview ── */
+.ios-group {
   background: var(--s1);
   border-radius: 16px;
   border: 1px solid var(--border);
   overflow: hidden;
 }
-body.light .hist-card { background: #fff; }
+body.dark .ios-group { background: #242020; }
+body.light .ios-group { background: #ffffff; }
 
-/* ── Zone principale (chapitre sélectionné) ── */
+/* ── hist-card — Notre Histoire ── */
+.hist-card {
+  background: var(--s2);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+body.dark .hist-card { background: #2e2928; }
+
 .hist-main {
   padding: 13px 14px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: flex; flex-direction: column; gap: 4px;
   position: relative;
 }
-
-/* ── Groupe boutons top-right ── */
 .hist-actions {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
+  position: absolute; top: 10px; right: 10px;
+  display: flex; align-items: center; gap: 5px;
 }
-
-/* ── Bouton Éditer ── */
-.hist-edit-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  font-size: 11px;
-  font-weight: 700;
-  font-family: 'Bricolage Grotesque', sans-serif;
-  color: var(--accent);
-  background: rgba(231,90,124,0.10);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background .15s;
-  white-space: nowrap;
-}
-.hist-edit-btn:active { background: rgba(231,90,124,0.22); }
-
-/* ── Bouton Œil ── */
 .hist-eye-btn {
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(124,106,247,0.12);
-  color: var(--accent);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(124,106,247,0.12); color: var(--accent);
+  border: none; border-radius: 8px; cursor: pointer;
   transition: background .15s, transform .12s;
 }
-.hist-eye-btn:active {
-  background: rgba(124,106,247,0.26);
-  transform: scale(.9);
-}
+.hist-eye-btn:hover { background: rgba(124,106,247,0.22); transform: scale(.95); }
 
-/* ── Ligne emoji + date ── */
-.hist-line1 {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
+.hist-line1 { display: flex; align-items: center; gap: 7px; }
 .hist-emoji { font-size: 18px; line-height: 1; }
 .hist-date {
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--accent);
-  text-transform: uppercase;
-  letter-spacing: .5px;
-  min-height: 14px;
+  font-size: 10px; font-weight: 800; color: var(--accent);
+  text-transform: uppercase; letter-spacing: .5px; min-height: 14px;
 }
-
-/* ── Titre & extrait ── */
 .hist-title {
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding-right: 82px; /* évite chevauchement avec .hist-actions */
+  font-size: 13px; font-weight: 800; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  padding-right: 38px;
 }
 .hist-excerpt {
-  font-size: 11px;
-  color: var(--sub);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding-right: 10px;
+  font-size: 11px; color: var(--sub);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.hist-sep { height: 1px; background: var(--border); }
 
-/* ── Séparateur horizontal ── */
-.hist-sep {
-  height: 1px;
-  background: var(--border);
-}
-
-/* ── Strip horizontal des chapitres ── */
+/* Strip horizontal des chapitres */
 .hist-strip {
-  display: flex;
-  overflow-x: auto;
-  scrollbar-width: none;
+  display: flex; overflow-x: auto; scrollbar-width: none;
 }
 .hist-strip::-webkit-scrollbar { display: none; }
+.hist-strip-inner {
+  display: flex; flex-direction: row; width: 100%;
+}
 
-.hist-strip-item {
-  flex: 1 1 0;
-  min-width: 72px;
-  padding: 9px 10px;
-  cursor: pointer;
-  border-right: 1px solid var(--border);
+/* Les tl-item deviennent des strip items horizontaux */
+.hist-strip-inner .tl-item {
+  flex: 1 1 0; min-width: 72px; padding: 9px 10px;
+  cursor: pointer; border-right: 1px solid var(--border);
+  text-align: center; display: flex; flex-direction: column;
+  gap: 2px; align-items: center; position: relative;
+  transition: background .15s;
+  opacity: 1; transform: none; margin-bottom: 0;
+  background: var(--s3);
+}
+body.dark .hist-strip-inner .tl-item { background: #2a2220; }
+.hist-strip-inner .tl-item:last-child { border-right: none; }
+.hist-strip-inner .tl-item:hover { background: var(--s2); }
+.hist-strip-inner .tl-item.active { background: var(--s2); }
+body.dark .hist-strip-inner .tl-item.active { background: #2e2928; }
+.hist-strip-inner .tl-item.active::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 2px; background: var(--accent);
+}
+
+/* Cacher les éléments de la timeline verticale (tl-dot, tl-line) dans ce contexte */
+.hist-strip-inner .tl-dot,
+.hist-strip-inner .tl-line { display: none; }
+
+/* Dans le strip, tl-date devient le numéro de chapitre */
+.hist-strip-inner .tl-date {
+  font-size: 9px; font-weight: 800; color: var(--accent);
+  text-transform: uppercase; letter-spacing: .5px; margin-bottom: 0;
+}
+/* Dans le strip, tl-card devient le titre mini */
+.hist-strip-inner .tl-card {
+  background: transparent; border: none; border-radius: 0;
+  padding: 0; box-shadow: none;
+}
+.hist-strip-inner .tl-card h3 {
+  font-size: 10px; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 80px; margin-bottom: 0;
+}
+.hist-strip-inner .tl-card p { display: none; }
+
+/* ── Elle & Lui mini-grid ── */
+.elle-lui-ios-group {
+  background: var(--s1);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  padding: 14px;
+}
+body.dark .elle-lui-ios-group { background: #242020; }
+
+.elle-lui-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.universe-card {
+  background: var(--s2); border-radius: 14px;
+  border: 1px solid var(--border);
+  overflow: hidden; cursor: pointer;
+  transition: transform .15s, border-color .2s;
+}
+.universe-card:hover { border-color: var(--accent); transform: scale(.99); }
+.universe-card:active { transform: scale(.97); }
+
+.universe-slots-wrap {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px; height: 104px; background: var(--s3);
+}
+body.dark .universe-slots-wrap { background: #1e1a18; }
+.u-slot {
   background: var(--s2);
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  align-items: center;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; overflow: hidden; position: relative;
+}
+.u-slot img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover;
+}
+.u-slot-add { opacity: .3; font-size: 18px; font-weight: 300; }
+.universe-footer {
+  padding: 8px 10px 10px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.universe-name { font-size: 12px; font-weight: 800; color: var(--text); }
+.universe-sub { font-size: 10px; color: var(--muted); }
+.universe-arrow { font-size: 14px; color: var(--muted); }
+
+/* ── Detail sections (slider dépliés) ── */
+.nous-section-detail {
+  display: none;
+  margin: 0 12px 14px;
+  background: var(--s1);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  padding: 14px 0 4px;
+}
+body.dark .nous-section-detail { background: #242020; }
+.nous-section-detail.open { display: block; }
+
+/* ── Petits mots card ── */
+.pm-card-wrap {
+  background: var(--s1);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  padding: 16px;
+  min-height: 88px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; gap: 4px;
   position: relative;
+}
+body.dark .pm-card-wrap { background: #242020; }
+
+/* ── Souvenirs ── */
+.sov-sub-label {
+  padding: 0 0 6px;
+  font-size: 10px; font-weight: 800; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .8px;
+}
+.sov-scroll {
+  display: flex; overflow-x: auto; gap: 10px;
+  padding: 2px 0 4px; scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.sov-scroll::-webkit-scrollbar { display: none; }
+.sov-add-btn {
+  width: 100%; padding: 14px;
+  background: var(--s2); border: 1.5px dashed var(--border);
+  border-radius: 14px; color: var(--muted);
+  font-size: 13px; font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
   transition: background .15s;
 }
-.hist-strip-item:last-child { border-right: none; }
-.hist-strip-item:active { background: var(--s3); }
-.hist-strip-item.active {
-  background: var(--s1);
-}
-body.light .hist-strip-item.active { background: #fff; }
-.hist-strip-item.active::after {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: var(--accent);
-}
+.sov-add-btn:hover { background: var(--s1); }
 
-.hist-strip-num {
-  font-size: 9px;
-  font-weight: 800;
-  color: var(--accent);
-  text-transform: uppercase;
-  letter-spacing: .5px;
-}
-.hist-strip-title {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 80px;
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   MODALE LECTURE CHAPITRE (#histoireViewOverlay)
-   Utilise .nous-modal-overlay (déjà dans le CSS) comme backdrop.
-   .nous-modal-card est une variante centrée sans bottom-sheet.
-══════════════════════════════════════════════════════════════════ */
-
-/* .nous-modal-card — card centrée dans la modale (pas de bottom-sheet) */
-.nous-modal-card {
-  background: var(--s1);
-  border-radius: 20px;
-  overflow: hidden;
-  width: 92%;
-  max-width: 390px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
-  animation: slideUpModal .22s ease-out;
-}
-body.light .nous-modal-card { background: #fff; }
-
-/* ── En-tête de la modale lecture ── */
-.hist-view-header {
-  padding: 20px 16px 14px;
-  background: linear-gradient(135deg, rgba(231,90,124,.08), rgba(124,106,247,.08));
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-.hist-view-emoji {
-  font-size: 2rem;
-  line-height: 1;
-  flex-shrink: 0;
-}
-.hist-view-date {
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--accent);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 4px;
-  min-height: 14px;
-}
-.hist-view-title {
-  font-size: 17px;
-  font-weight: 800;
-  color: var(--text);
-  line-height: 1.25;
-  word-break: break-word;
-}
-
-/* ── Corps scrollable ── */
-.hist-view-body {
-  padding: 18px 18px 14px;
-  max-height: 46vh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-}
-.hist-view-text {
-  font-size: 14px;
-  line-height: 1.75;
-  color: var(--text);
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-/* ── Pied de page ── */
-.hist-view-footer {
-  padding: 0 16px 18px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.hist-view-chapnum {
-  flex: 1;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--muted);
-}
-.hist-view-close-btn {
-  padding: 11px 22px;
-  background: linear-gradient(135deg, #e75a7c, #7c6af7);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  font-family: 'Bricolage Grotesque', sans-serif;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: opacity .15s;
-}
-.hist-view-close-btn:active { opacity: .8; }
-
-/* ── Centrage de la card dans l'overlay ── */
-#histoireViewOverlay {
-  align-items: center;
-  justify-content: center;
-}
+/* ── Thème clair overrides ── */
+body.light .ios-group { background: #ffffff; border-color: rgba(201,120,96,0.12); }
+body.light .elle-lui-ios-group { background: #ffffff; border-color: rgba(201,120,96,0.12); }
+body.light .hist-card { background: var(--s2); border-color: rgba(201,120,96,0.14); }
+body.light .universe-card { background: var(--s2); }
+body.light .nous-section-detail { background: #ffffff; border-color: rgba(201,120,96,0.12); }
+body.light .pm-card-wrap { background: #ffffff; border-color: rgba(201,120,96,0.12); }
+body.light .hist-strip-inner .tl-item { background: var(--s3); }
+body.light .hist-strip-inner .tl-item.active { background: #ffffff; }
