@@ -110,7 +110,7 @@ window._nousUnblockScroll = function() { _unblockBackgroundScroll(); };
 (function(){
 
   // ── Code d'accès beta — à changer quand la section sera stable ──
-  var BETA_CODE = 'yam2026';
+  var BETA_CODE = 'majversion2';
   var LS_KEY    = 'yam_nous_beta_unlocked';
 
   // Vérifie si déjà déverrouillé en session
