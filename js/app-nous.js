@@ -1987,7 +1987,7 @@ loadLikeCounters();
 
     // 2 cartes max — tri : étoilées non-terminées en tête, terminées en bas
     var sorted=_sortForHome(_activiteAllRows);
-    var toShow=sorted.slice(0,2);
+    var toShow=sorted.slice(0,1);
     toShow.forEach(function(act){ container.appendChild(_buildActiviteCard(act)); });
 
     // Bouton créer
@@ -4107,262 +4107,173 @@ window.nousLoad = function(){
 
 
 
+
 // ═══════════════════════════════════════════════════════════════════
 // NOUVEAU UI v8 — Maquette v5
 // ═══════════════════════════════════════════════════════════════════
 
-
-// ────────────────────────────────────────────────
-// HISTOIRE STRIP — Override histoireRenderTimeline
-// Remplit histStrip + met à jour histEmoji/histDate/histTitle/histExcerpt
-// ────────────────────────────────────────────────
+// ── HISTOIRE STRIP ──
 (function(){
-  var _histRows = [];
-  var _histActiveIdx = 0;
-
-  var _origRender = window.histoireRenderTimeline;
+  var _rows = [], _idx = 0;
+  var _orig = window.histoireRenderTimeline;
   window.histoireRenderTimeline = function(items){
-    if(typeof _origRender === 'function') _origRender(items);
-    _histRows = Array.isArray(items) ? items.slice().sort(function(a,b){
-      if((a.sort_order||0)!=(b.sort_order||0)) return (a.sort_order||0)-(b.sort_order||0);
-      return (a.created_at||'').localeCompare(b.created_at||'');
+    if(typeof _orig === 'function') _orig(items);
+    _rows = Array.isArray(items) ? items.slice().sort(function(a,b){
+      return ((a.sort_order||0)-(b.sort_order||0)) || (a.created_at||'').localeCompare(b.created_at||'');
     }) : [];
-    _histActiveIdx = 0;
-    _updateMain();
-    _updateStrip();
+    _idx = 0; _updateMain(); _updateStrip();
   };
-
   function _updateMain(){
-    var item = _histRows[_histActiveIdx] || null;
-    var ej = document.getElementById('histEmoji');
-    var dt = document.getElementById('histDate');
-    var ti = document.getElementById('histTitle');
-    var ex = document.getElementById('histExcerpt');
+    var item = _rows[_idx] || null;
+    var ej=document.getElementById('histEmoji'), dt=document.getElementById('histDate');
+    var ti=document.getElementById('histTitle'), ex=document.getElementById('histExcerpt');
     if(!ej) return;
-    if(!item){
-      ej.textContent='💫'; dt.textContent='';
-      ti.textContent='Notre histoire commence…';
-      ex.textContent='Clique sur le crayon pour ajouter vos premiers chapitres.';
-      return;
-    }
-    ej.textContent = item.emoji||'💫';
-    dt.textContent = item.date_label||'';
-    ti.textContent = item.title||'';
-    ex.textContent = (item.text||'').substring(0,80)+((item.text||'').length>80?'…':'');
+    if(!item){ ej.textContent='💫'; dt.textContent=''; ti.textContent='Notre histoire commence…'; ex.textContent='Clique sur le crayon pour ajouter vos premiers chapitres.'; return; }
+    ej.textContent=item.emoji||'💫'; dt.textContent=item.date_label||'';
+    ti.textContent=item.title||''; ex.textContent=(item.text||'').substring(0,80)+((item.text||'').length>80?'…':'');
   }
-
   function _updateStrip(){
-    var strip = document.getElementById('histStrip'); if(!strip) return;
-    strip.innerHTML = '';
-    if(!_histRows.length){
-      strip.innerHTML = '<div class="histoire-strip-item-new active"><div class="strip-num-new">Chap. 1</div><div class="strip-title-new">À écrire…</div></div>';
-      return;
-    }
-    _histRows.forEach(function(item, i){
-      var el = document.createElement('div');
-      el.className = 'histoire-strip-item-new'+(i===_histActiveIdx?' active':'');
-      el.innerHTML = '<div class="strip-num-new">Chap.'+(i+1)+'</div><div class="strip-title-new">'+escHtml(item.title||'')+'</div>';
-      (function(idx){ el.addEventListener('click', function(){ window.histSelectItem(idx); }); })(i);
+    var strip=document.getElementById('histStrip'); if(!strip) return;
+    strip.innerHTML='';
+    if(!_rows.length){ strip.innerHTML='<div class="histoire-strip-item-new active"><div class="strip-num-new">Chap. 1</div><div class="strip-title-new">À écrire…</div></div>'; return; }
+    _rows.forEach(function(item,i){
+      var el=document.createElement('div'); el.className='histoire-strip-item-new'+(i===_idx?' active':'');
+      el.innerHTML='<div class="strip-num-new">Chap.'+(i+1)+'</div><div class="strip-title-new">'+escHtml(item.title||'')+'</div>';
+      (function(ii){ el.addEventListener('click',function(){ _idx=ii; _updateMain(); strip.querySelectorAll('.histoire-strip-item-new').forEach(function(e,j){ e.classList.toggle('active',j===ii); }); }); })(i);
       strip.appendChild(el);
     });
   }
-
-  window.histSelectItem = function(idx){
-    if(typeof idx !== 'number') return;
-    _histActiveIdx = idx;
-    _updateMain();
-    var strip = document.getElementById('histStrip'); if(!strip) return;
-    strip.querySelectorAll('.histoire-strip-item-new').forEach(function(el,i){
-      el.classList.toggle('active', i===idx);
-    });
-  };
-  window.histSelect = function(el, idx){ window.histSelectItem(idx); };
+  window.histSelectItem=function(i){ _idx=i; _updateMain(); var s=document.getElementById('histStrip'); if(s) s.querySelectorAll('.histoire-strip-item-new').forEach(function(e,j){ e.classList.toggle('active',j===i); }); };
+  window.histSelect=function(el,i){ window.histSelectItem(i); };
 })();
 
 
-// ────────────────────────────────────────────────
-// ELLE & LUI — Vue expanded
-// Les img IDs (elle-img-*, lui-img-*) sont dans la grille visible
-// _loadImages() les remplit directement — pas besoin de sync
-// ────────────────────────────────────────────────
+// ── ELLE & LUI EXPANDED ──
 (function(){
-  var SLOTS = ['animal','fleurs','personnage','saison','repas'];
-  var SLOT_EMOJIS = {animal:'🐾',fleurs:'🌸',personnage:'🧑',saison:'🍂',repas:'🍽️'};
-  var _cur = 'elle';
+  var SLOTS=['animal','fleurs','personnage','saison','repas'];
+  var EMOJIS={animal:'🐾',fleurs:'🌸',personnage:'🧑',saison:'🍂',repas:'🍽️'};
+  var _cur='elle';
 
-  window.openElleLuiExpanded = function(section){
-    _cur = section||'elle';
-    var grid = document.getElementById('elleLuiGridNew');
-    var exp  = document.getElementById('elleLuiExpandedNew');
-    if(grid) grid.style.display = 'none';
-    if(exp)  exp.style.display  = 'block';
-    _renderSlots(_cur);
-    _updateTabs(_cur);
-    _updateNotice(_cur);
+  window.openElleLuiExpanded=function(section){
+    _cur=section||'elle';
+    var g=document.getElementById('elleLuiGridNew'), e=document.getElementById('elleLuiExpandedNew');
+    if(g) g.style.display='none'; if(e) e.style.display='block';
+    _renderSlots(_cur); _tabs(_cur); _notice(_cur);
   };
-
-  window.closeElleLuiExpanded = function(){
-    var grid = document.getElementById('elleLuiGridNew');
-    var exp  = document.getElementById('elleLuiExpandedNew');
-    if(grid) grid.style.display = '';
-    if(exp)  exp.style.display  = 'none';
+  window.closeElleLuiExpanded=function(){
+    var g=document.getElementById('elleLuiGridNew'), e=document.getElementById('elleLuiExpandedNew');
+    if(g) g.style.display=''; if(e) e.style.display='none';
   };
+  window.switchElleLuiTab=function(s){ _cur=s; _renderSlots(s); _tabs(s); _notice(s); var sc=document.getElementById('expandedScrollNew'); if(sc) sc.scrollLeft=0; _dots(0); };
+  window.updateElleLuiDots=function(){ var sc=document.getElementById('expandedScrollNew'); if(!sc) return; _dots(Math.round(sc.scrollLeft/(sc.offsetWidth||300))); };
 
-  window.switchElleLuiTab = function(section){
-    _cur = section;
-    _renderSlots(section);
-    _updateTabs(section);
-    _updateNotice(section);
-    var sc = document.getElementById('expandedScrollNew');
-    if(sc) sc.scrollLeft = 0;
-    _updateDots(0);
-  };
-
-  window.updateElleLuiDots = function(){
-    var sc = document.getElementById('expandedScrollNew'); if(!sc) return;
-    _updateDots(Math.round(sc.scrollLeft/(sc.offsetWidth||300)));
-  };
-
-  function _updateTabs(s){
-    var te = document.getElementById('tabElleNew');
-    var tl = document.getElementById('tabLuiNew');
-    if(te) te.classList.toggle('active', s==='elle');
-    if(tl) tl.classList.toggle('active', s==='lui');
-  }
-
-  function _updateNotice(s){
-    var n = document.getElementById('expandedNoticeNew'); if(!n) return;
-    var p = (typeof getProfile==='function') ? getProfile() : 'girl';
-    var canEdit = (s==='elle'&&p==='boy')||(s==='lui'&&p==='girl');
-    n.textContent = canEdit
-      ? 'Tu peux modifier les pochettes en appuyant sur "Éditer"'
-      : 'Seul(e) ton partenaire peut modifier ces pochettes';
-  }
-
-  function _updateDots(idx){
-    var dc = document.getElementById('expandedDotsNew'); if(!dc) return;
-    dc.querySelectorAll('.expanded-dot-new').forEach(function(d,i){
-      d.classList.toggle('active', i===idx);
-    });
-  }
-
+  function _tabs(s){ var te=document.getElementById('tabElleNew'), tl=document.getElementById('tabLuiNew'); if(te) te.classList.toggle('active',s==='elle'); if(tl) tl.classList.toggle('active',s==='lui'); }
+  function _notice(s){ var n=document.getElementById('expandedNoticeNew'); if(!n) return; var p=(typeof getProfile==='function')?getProfile():'girl'; var ok=(s==='elle'&&p==='boy')||(s==='lui'&&p==='girl'); n.textContent=ok?'Tu peux modifier les pochettes en appuyant sur "Éditer"':'Seul(e) ton partenaire peut modifier ces pochettes'; }
+  function _dots(i){ var dc=document.getElementById('expandedDotsNew'); if(!dc) return; dc.querySelectorAll('.expanded-dot-new').forEach(function(d,j){ d.classList.toggle('active',j===i); }); }
   function _renderSlots(section){
-    var sc = document.getElementById('expandedScrollNew'); if(!sc) return;
-    sc.innerHTML = '';
-    var p = (typeof getProfile==='function') ? getProfile() : 'girl';
-    var canEdit = (section==='elle'&&p==='boy')||(section==='lui'&&p==='girl');
-
+    var sc=document.getElementById('expandedScrollNew'); if(!sc) return; sc.innerHTML='';
+    var p=(typeof getProfile==='function')?getProfile():'girl';
+    var canEdit=(section==='elle'&&p==='boy')||(section==='lui'&&p==='girl');
     SLOTS.forEach(function(slot){
-      var el = document.createElement('div');
-      el.className = 'expanded-slot-new';
-
-      // Image — directement depuis les img visibles dans la grille
-      var imgArea = document.createElement('div');
-      imgArea.className = 'expanded-slot-img-new';
-      var srcImg = document.getElementById(section+'-img-'+slot);
-      var hasPhoto = srcImg && srcImg.classList.contains('loaded') && srcImg.style.display!=='none';
-      if(hasPhoto){
-        var img = document.createElement('img');
-        img.src = srcImg.src;
-        imgArea.appendChild(img);
-      } else {
-        imgArea.classList.add('empty');
-        imgArea.textContent = SLOT_EMOJIS[slot]||'📷';
-      }
+      var el=document.createElement('div'); el.className='expanded-slot-new';
+      var imgArea=document.createElement('div'); imgArea.className='expanded-slot-img-new';
+      var srcImg=document.getElementById(section+'-img-'+slot);
+      var hasPhoto=srcImg&&srcImg.classList.contains('loaded')&&srcImg.style.display!=='none';
+      if(hasPhoto){ var img=document.createElement('img'); img.src=srcImg.src; imgArea.appendChild(img); } else { imgArea.classList.add('empty'); imgArea.textContent=EMOJIS[slot]||'📷'; }
       el.appendChild(imgArea);
-
-      // Footer
-      var footer = document.createElement('div'); footer.className = 'expanded-slot-footer-new';
-      var info   = document.createElement('div'); info.className   = 'expanded-slot-info-new';
-      var nameDiv = document.createElement('div'); nameDiv.className = 'expanded-slot-name-new';
-      var bannerEl = document.getElementById(section+'-banner-'+slot);
-      nameDiv.textContent = (bannerEl&&bannerEl.textContent.trim()) || (slot.charAt(0).toUpperCase()+slot.slice(1));
-      info.appendChild(nameDiv);
-      var descEl = document.getElementById(section+'-desc-'+slot);
-      if(descEl && descEl.textContent.trim()){
-        var descDiv = document.createElement('div'); descDiv.className = 'expanded-slot-desc-new';
-        descDiv.textContent = descEl.textContent.trim();
-        info.appendChild(descDiv);
-      }
+      var footer=document.createElement('div'); footer.className='expanded-slot-footer-new';
+      var info=document.createElement('div'); info.className='expanded-slot-info-new';
+      var nameDiv=document.createElement('div'); nameDiv.className='expanded-slot-name-new';
+      var bannerEl=document.getElementById(section+'-banner-'+slot); nameDiv.textContent=(bannerEl&&bannerEl.textContent.trim())||(slot.charAt(0).toUpperCase()+slot.slice(1)); info.appendChild(nameDiv);
+      var descEl=document.getElementById(section+'-desc-'+slot); if(descEl&&descEl.textContent.trim()){ var dd=document.createElement('div'); dd.className='expanded-slot-desc-new'; dd.textContent=descEl.textContent.trim(); info.appendChild(dd); }
       footer.appendChild(info);
-      var editBtn = document.createElement('button');
-      editBtn.className = 'expanded-slot-edit-new'+(canEdit?'':' disabled');
-      editBtn.textContent = canEdit?'Éditer':'Lecture';
-      if(canEdit){
-        (function(s,sl){ editBtn.addEventListener('click',function(){ window.slotOpenEdit(s,sl); }); })(section,slot);
-      }
-      footer.appendChild(editBtn);
-      el.appendChild(footer);
-      sc.appendChild(el);
-    });
-    _updateDots(0);
+      var btn=document.createElement('button'); btn.className='expanded-slot-edit-new'+(canEdit?'':' disabled'); btn.textContent=canEdit?'Éditer':'Lecture';
+      if(canEdit)(function(s,sl){ btn.addEventListener('click',function(){ window.slotOpenEdit(s,sl); }); })(section,slot);
+      footer.appendChild(btn); el.appendChild(footer); sc.appendChild(el);
+    }); _dots(0);
   }
 })();
 
 
-// ────────────────────────────────────────────────
-// SOUVENIRS — Style thumb maquette
-// _buildSouvenirCard génère des souvenir-card avec .souvenir-photo (bg-image)
-// On patche pour le style thumb + bande opaque
-// ────────────────────────────────────────────────
+// ── SOUVENIRS — override _buildSouvenirCard pour style thumb ──
 (function(){
-  // Observer sur les scrolls souvenirs pour patcher chaque card ajoutée
-  function _patchCard(card){
-    if(card.classList.contains('sov-v8')) return;
-    card.classList.add('sov-v8');
-    var photoDiv = card.querySelector('.souvenir-photo');
-    var nameEl   = card.querySelector('.souvenir-name');
-    var dateEl   = card.querySelector('.souvenir-date');
-    var editIcon = card.querySelector('.souvenir-edit-icon');
-    if(!photoDiv) return;
-    var bg    = photoDiv.style.backgroundImage;
-    var title = nameEl  ? nameEl.textContent.trim()  : '';
-    var date  = dateEl  ? dateEl.textContent.trim()  : '';
-    var editClone = editIcon ? editIcon.cloneNode(true) : null;
-
-    card.innerHTML = '';
-    card.className = 'sov-thumb';
-
-    var imgDiv = document.createElement('div');
-    imgDiv.className = 'sov-thumb-img';
-    if(bg && bg!=='none'){
-      imgDiv.style.backgroundImage = bg;
-    } else {
-      imgDiv.textContent = '📷';
-    }
+  // Attendre que app-nous.js soit chargé puis remplacer _buildSouvenirCard
+  // En ciblant _renderSouvenirRows via MutationObserver sur les scrolls
+  function _makeThumb(s){
+    var card=document.createElement('div'); card.className='sov-thumb';
+    var photoUrl=s.photo_url||'';
+    var dateStr=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'';
+    var imgDiv=document.createElement('div'); imgDiv.className='sov-thumb-img';
+    if(photoUrl) imgDiv.style.backgroundImage='url('+escHtml(photoUrl)+')';
+    else imgDiv.textContent='📷';
     card.appendChild(imgDiv);
-
-    var band = document.createElement('div');
-    band.className = 'sov-band';
-    if(title){ var bt=document.createElement('div'); bt.className='sov-band-title'; bt.textContent=title; band.appendChild(bt); }
-    if(date){  var bs=document.createElement('div'); bs.className='sov-band-sub';   bs.textContent=date;  band.appendChild(bs); }
+    var band=document.createElement('div'); band.className='sov-band';
+    if(s.title){ var bt=document.createElement('div'); bt.className='sov-band-title'; bt.textContent=s.title; band.appendChild(bt); }
+    if(dateStr){ var bs=document.createElement('div'); bs.className='sov-band-sub'; bs.textContent=dateStr; band.appendChild(bs); }
     card.appendChild(band);
-
-    if(editClone){
-      editClone.style.cssText='position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.45);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;';
-      card.style.position='relative';
-      card.appendChild(editClone);
-    }
+    card.addEventListener('click',function(){ nousOpenSouvenirModal(s); });
+    if(s.id&&typeof window.yamIsNew==='function'&&window.yamIsNew('souvenir_'+s.id)){ if(typeof window.yamShowNewBadge==='function') window.yamShowNewBadge(card,true); }
+    return card;
   }
 
-  function _watchScrolls(){
-    ['souvenirsRecentScroll','souvenirsFavScroll'].forEach(function(id){
-      var el = document.getElementById(id); if(!el) return;
-      if(el._sovObserver) return;
-      el._sovObserver = new MutationObserver(function(muts){
-        muts.forEach(function(m){
-          m.addedNodes.forEach(function(n){ if(n.nodeType===1) _patchCard(n); });
-        });
-      });
-      el._sovObserver.observe(el, {childList:true});
-      el.querySelectorAll('.souvenir-card').forEach(_patchCard);
-    });
+  // Intercepter _renderSouvenirRows en patchant après chargement
+  function _patchRenderer(){
+    if(typeof window.nousLoadSouvenirs !== 'function') return;
+    var _origLoad = window.nousLoadSouvenirs;
+    window.nousLoadSouvenirs = function(){
+      var coupleId = (typeof _getCoupleId==='function') ? _getCoupleId() : null; if(!coupleId) return;
+      fetch(SB2_URL+'/rest/v1/v2_memories?couple_id=eq.'+coupleId+'&order=created_at.desc&select=*',{headers:sb2Headers()})
+      .then(function(r){ return r.ok?r.json():[]; })
+      .then(function(rows){
+        rows = Array.isArray(rows)?rows:[];
+        var recentScroll=document.getElementById('souvenirsRecentScroll');
+        var favScroll=document.getElementById('souvenirsFavScroll');
+        var emptyEl=document.getElementById('souvenirsEmpty');
+        if(!recentScroll||!favScroll) return;
+        recentScroll.innerHTML=''; favScroll.innerHTML='';
+        if(!rows.length){ if(emptyEl) emptyEl.style.display='block'; return; }
+        if(emptyEl) emptyEl.style.display='none';
+        var favs=rows.filter(function(r){ return r.is_fav; });
+        var recent=rows.filter(function(r){ return !r.is_fav; }).slice(0,6);
+        recent.forEach(function(s){ recentScroll.appendChild(_makeThumb(s)); });
+        favs.forEach(function(s){ favScroll.appendChild(_makeThumb(s)); });
+        // Met à jour aussi la modale gestion si ouverte
+        var overlay=document.getElementById('souvenirGestionOverlay');
+        if(overlay&&overlay.classList.contains('open')&&typeof window._renderGestionList==='function') window._renderGestionList();
+      }).catch(function(e){ console.warn('souvenirs',e); });
+    };
   }
-
-  setTimeout(_watchScrolls, 300);
-  document.addEventListener('nousContentReady', function(){ setTimeout(_watchScrolls, 100); });
+  // Patch dès que possible
+  if(typeof window.nousLoadSouvenirs==='function') _patchRenderer();
+  else document.addEventListener('DOMContentLoaded', _patchRenderer);
+  setTimeout(_patchRenderer, 100);
 })();
 
+
+// ── LIVRES — patch style bande ──
+(function(){
+  function _patchCard(card){
+    if(card.classList.contains('livre-v8')) return; card.classList.add('livre-v8');
+    var bannerEl=card.querySelector('.album-banner'); var imgEl=card.querySelector('img'); var descEl=card.querySelector('.album-desc');
+    var title=bannerEl?bannerEl.textContent.trim():'Livre'; var imgSrc=imgEl?imgEl.src:''; var desc=descEl?descEl.textContent.trim():'';
+    card.innerHTML=''; card.style.cssText='flex:0 0 78px;height:110px;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;border:1.5px solid var(--border);flex-shrink:0;background:var(--s2);';
+    var imgArea=document.createElement('div'); imgArea.style.cssText='flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--muted);';
+    if(imgSrc&&!imgSrc.endsWith('null')&&!imgSrc.endsWith('undefined')){ var img=document.createElement('img'); img.src=imgSrc; img.style.cssText='width:100%;height:100%;object-fit:cover;'; imgArea.appendChild(img); } else imgArea.textContent='📚';
+    card.appendChild(imgArea);
+    var band=document.createElement('div'); band.className='livre-band';
+    var bt=document.createElement('div'); bt.className='livre-band-title'; bt.textContent=title; band.appendChild(bt);
+    if(desc){ var bs=document.createElement('div'); bs.className='livre-band-author'; bs.textContent=desc; band.appendChild(bs); }
+    card.appendChild(band);
+  }
+  function _watch(){
+    var el=document.getElementById('livresSlider'); if(!el||el._livreObs) return;
+    el._livreObs=true;
+    new MutationObserver(function(m){ m.forEach(function(mu){ mu.addedNodes.forEach(function(n){ if(n.nodeType===1&&(n.classList.contains('album-card')||n.classList.contains('lui-card-wrap'))) _patchCard(n); }); }); }).observe(el,{childList:true});
+    el.querySelectorAll('.album-card,.lui-card-wrap').forEach(_patchCard);
+  }
+  setTimeout(_watch,500);
+  document.addEventListener('nousContentReady',function(){ setTimeout(_watch,100); });
+})();
 
 // ════════════════════════════════════════════════════════════════════
 // FIN — NOUVEAU UI v8
