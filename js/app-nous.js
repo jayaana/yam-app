@@ -1985,9 +1985,9 @@ loadLikeCounters();
       container.appendChild(suggCard);
     }
 
-    // 2 cartes max — tri : étoilées non-terminées en tête, terminées en bas
+    // 1 carte max — tri : étoilées non-terminées en tête, terminées en bas
     var sorted=_sortForHome(_activiteAllRows);
-    var toShow=sorted.slice(0,2);
+    var toShow=sorted.slice(0,1);
     toShow.forEach(function(act){ container.appendChild(_buildActiviteCard(act)); });
 
     // Bouton créer
