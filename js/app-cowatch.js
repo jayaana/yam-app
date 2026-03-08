@@ -24,7 +24,7 @@
   // ── CSS ────────────────────────────────────────────────────────────
   var st=document.createElement('style');
   st.textContent=[
-    '#cwOv{display:none;position:fixed;inset:0;z-index:2600;background:var(--bg);flex-direction:column;}',
+    '#cwOv{display:none;position:fixed;inset:0;z-index:2600;background:var(--bg);flex-direction:column;padding-bottom:env(safe-area-inset-bottom,0px);}',
     '#cwOv.on{display:flex;}',
     '#cwHdr{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);gap:12px;flex-shrink:0;}',
     '#cwHdr h2{flex:1;font-size:17px;font-weight:700;font-family:"Bricolage Grotesque",sans-serif;color:var(--text);}',
@@ -231,15 +231,15 @@
         '<div class="cw-cbtn" id="cwBack10" onclick="window._cwBack10()">' +
           '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5"/></svg>' +
         '</div>' +
-        '<div class="cw-time" id="cwTime">0:00 / 0:00</div>' +
-        '<div class="cw-cbtn" id="cwFwd10" onclick="window._cwFwd10()">' +
-          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-5"/></svg>' +
+        '<div class="cw-cbtn dis" id="cwPrevBtn" onclick="window._cwPrev()" title="Vid\u00e9o pr\u00e9c\u00e9dente">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="5" x2="5" y2="19"/><polygon points="19 4 9 12 19 20 19 4"/></svg>' +
         '</div>' +
+        '<div class="cw-time" id="cwTime">0:00 / 0:00</div>' +
         '<div class="cw-cbtn dis" id="cwSkipBtn" onclick="window._cwSkip()" title="Vid\u00e9o suivante">' +
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>' +
         '</div>' +
-        '<div class="cw-cbtn dis" id="cwPrevBtn" onclick="window._cwPrev()" title="Vid\u00e9o pr\u00e9c\u00e9dente">' +
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="5" x2="5" y2="19"/><polygon points="19 4 9 12 19 20 19 4"/></svg>' +
+        '<div class="cw-cbtn" id="cwFwd10" onclick="window._cwFwd10()">' +
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-5"/></svg>' +
         '</div>' +
         '<div class="cw-cbtn" id="cwPlBtn" onclick="window._cwPlToggle()" title="Playlist">' +
           '\uD83C\uDFAC' +
