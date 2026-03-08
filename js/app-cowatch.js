@@ -215,11 +215,7 @@
     +       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-5"/></svg>'
     +     '</div>'
     +   '</div>'
-    +   '<div class="cw-reactions">'
-    +     ['❤️','😂','😮','🔥','👏','😭'].map(function(e){
-    +       return '<button class="cw-react-btn" onclick="window._cwReact(\'' + e + '\')">' + e + '</button>';
-    +     }).join('')
-    +   '</div>'
+    +   '<div class="cw-reactions"><button class="cw-react-btn" onclick="window._cwReact(\'❤️\')">❤️</button><button class="cw-react-btn" onclick="window._cwReact(\'😂\')">😂</button><button class="cw-react-btn" onclick="window._cwReact(\'😮\')">😮</button><button class="cw-react-btn" onclick="window._cwReact(\'🔥\')">🔥</button><button class="cw-react-btn" onclick="window._cwReact(\'👏\')">👏</button><button class="cw-react-btn" onclick="window._cwReact(\'😭\')">😭</button></div>'
     +   '<div class="cw-chat" id="cwChat"></div>'
     + '</div>'
 
