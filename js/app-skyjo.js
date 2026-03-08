@@ -209,6 +209,9 @@
       onStateUpdate: function(gameRow){
         // Si on attendait la manche suivante et phase=init1 → reprendre
         if(_waitingNextRound && gameRow.state && gameRow.state.phase==='init1'){
+          // ✅ FIX freeze: reset complet de l'état d'animation côté adversaire
+          _sjAnimPlaying=false;
+          _sjPendingRenderRow=null;
           _waitingNextRound=false;
           _roundEndShown=false;
           document.getElementById('skyjoRoundEnd').style.display='none';
@@ -959,6 +962,9 @@
   function showRoundEnd(state){
     if(_roundEndShown)return;
     _roundEndShown=true;
+    // ✅ FIX freeze: vider la file d'animation en attente + reset flag
+    _sjAnimPlaying=false;
+    _sjPendingRenderRow=null;
     _flipAllHiddenCards(state,function(){
       var myTotEl=document.getElementById('skyjoMyTotal'),oppTotEl=document.getElementById('skyjoOppTotal');
       [myTotEl,oppTotEl].forEach(function(el){
@@ -1039,12 +1045,20 @@
       body:JSON.stringify({status:'playing',state:ns})
     }).then(function(r){return r.json();}).then(function(rows){
       if(Array.isArray(rows)&&rows[0]){
+        // ✅ FIX freeze: reset complet de l'état d'animation avant de reprendre
+        _sjAnimPlaying=false;
+        _sjPendingRenderRow=null;
         _waitingNextRound=false;
+        _roundEndShown=false;
         document.getElementById('skyjoRoundEnd').style.display='none';
         _mp.startPoll();
         renderState(rows[0]);
       }
-    }).catch(function(){});
+    }).catch(function(){
+      // ✅ FIX: en cas d'erreur réseau, réactiver le bouton
+      if(btn){btn.disabled=false;btn.textContent='Manche suivante →';}
+      _mp.startPoll();
+    });
   };
 
   // ─── Timer auto-jeu (25s) ────────────────────────────
