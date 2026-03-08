@@ -386,15 +386,17 @@ body.light .ios-group {
   /* Coins hauts pour un langage visuel arrondi cohérent */
   border-radius: 22px 22px 0 0 !important;
   border-top: none !important;
-  /* Ombre vers le haut pour détacher la nav du contenu */
-  box-shadow: 0 -4px 24px rgba(0,0,0,0.35);
+  /* Dark : fond légèrement plus clair que le body (#1a1614) pour se détacher */
+  background: #252120 !important;
+  box-shadow: 0 -1px 0 rgba(255,255,255,0.06), 0 -8px 28px rgba(0,0,0,0.45);
   overflow: hidden;
 }
 
 body.light .bottom-nav {
-  background: rgba(242,242,247,0.97) !important;
-  box-shadow: none;
-  border-top: 1px solid rgba(60,60,67,0.1) !important;
+  /* Light : blanc pur tranché sur fond gris — bordure et ombre neutres */
+  background: #ffffff !important;
+  border-top: 1px solid rgba(0,0,0,0.09) !important;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.08) !important;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -480,6 +482,10 @@ body.light #luiSection {
 #Books > div[style*="display:flex"][style*="gap:10px"] {
   padding-left: 14px !important;
   padding-right: 14px !important;
+}
+/* Réduit l'espace entre le slider et les boutons */
+#Books .slider {
+  padding-bottom: 4px !important;
 }
 /* Réduction hauteur + nowrap pour éviter le retour à la ligne */
 #Books .activite-ia-btn,
