@@ -1107,123 +1107,266 @@ function renderLb(elId, rows, detailFn){
 
 (function(){
 
-  // ── Injecter le CSS ──
+  // ── CSS ──
   var style = document.createElement('style');
   style.textContent = [
-    '#wheelSection{padding:26px 16px 0}',
-    '.wheel-container{display:flex;flex-direction:column;align-items:center;gap:18px}',
-    '.wheel-wrap{position:relative;width:min(240px,68vw);height:min(240px,68vw)}',
-    '#wheelCanvas{width:100%;height:100%;border-radius:50%;display:block}',
-    '.wheel-needle{position:absolute;top:50%;right:-10px;transform:translateY(-50%);font-size:26px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));pointer-events:none;z-index:10}',
-    '.wheel-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;border-radius:50%;background:var(--bg);border:3px solid var(--green);z-index:10}',
-    '.wheel-spin-btn{background:color-mix(in srgb,var(--green) 14%,transparent);color:var(--green);border:1.5px solid color-mix(in srgb,var(--green) 40%,transparent);border-radius:50px;padding:13px 34px;font-size:14px;font-weight:700;cursor:pointer;font-family:"Bricolage Grotesque",sans-serif;transition:background 0.15s,transform 0.12s,box-shadow 0.15s,border-color 0.15s;letter-spacing:0.5px;box-shadow:0 2px 12px color-mix(in srgb,var(--green) 20%,transparent)}',
-    '.wheel-spin-btn:hover{background:color-mix(in srgb,var(--green) 22%,transparent);border-color:color-mix(in srgb,var(--green) 60%,transparent);transform:scale(1.05);box-shadow:0 4px 20px color-mix(in srgb,var(--green) 30%,transparent)}',
-    '.wheel-spin-btn:disabled{background:var(--s3);color:var(--muted);border-color:var(--border);cursor:not-allowed;transform:none;box-shadow:none}',
-    '#wheelResult{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:14px 20px;text-align:center;width:100%;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;transition:border-color 0.3s,box-shadow 0.3s}',
-    '#wheelResult.has-result{border-color:rgba(201,120,96,0.35);box-shadow:0 0 20px rgba(201,120,96,0.08)}',
-    '.result-icon{font-size:28px;line-height:1}',
-    '.result-label{font-size:9px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:2.5px}',
-    '.result-text{font-family:"Bricolage Grotesque",sans-serif;font-size:16px;font-weight:600;color:var(--text);margin-top:2px;letter-spacing:-0.2px}',
+    // Layout overlay
+    '#wheelSection{padding:20px 16px 80px;display:flex;flex-direction:column;align-items:center;}',
+    '.wheel-container{display:flex;flex-direction:column;align-items:center;gap:22px;width:100%;max-width:340px;}',
+
+    // Wrap + glow
+    '.wheel-wrap{position:relative;width:min(260px,72vw);height:min(260px,72vw);}',
+    '.wheel-glow{position:absolute;inset:-14px;border-radius:50%;background:conic-gradient(from 0deg,rgba(224,85,119,0.22),rgba(245,158,11,0.22),rgba(16,185,129,0.22),rgba(99,102,241,0.22),rgba(217,70,239,0.22),rgba(224,85,119,0.22));filter:blur(14px);animation:wGlowSpin 9s linear infinite;opacity:0.75;pointer-events:none;}',
+    'body.light .wheel-glow{opacity:0.3;}',
+    '@keyframes wGlowSpin{to{transform:rotate(360deg)}}',
+    '.wheel-ring{position:absolute;inset:-3px;border-radius:50%;border:1.5px solid var(--border);pointer-events:none;z-index:5;}',
+    '#wheelCanvas{width:100%;height:100%;border-radius:50%;display:block;position:relative;z-index:2;filter:drop-shadow(0 8px 32px rgba(0,0,0,0.38));}',
+    'body.light #wheelCanvas{filter:drop-shadow(0 6px 20px rgba(0,0,0,0.14));}',
+
+    // Aiguille SVG
+    '.wheel-needle{position:absolute;top:50%;right:-20px;transform:translateY(-50%);z-index:10;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.45));pointer-events:none;}',
+    'body.light .wheel-needle{filter:drop-shadow(0 2px 4px rgba(0,0,0,0.18));}',
+
+    // Centre
+    '.wheel-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:42px;height:42px;border-radius:50%;background:var(--bg);border:2.5px solid rgba(255,255,255,0.12);z-index:10;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 0 0 2px rgba(255,255,255,0.05),0 4px 18px rgba(0,0,0,0.38);transition:background 0.3s;}',
+    'body.light .wheel-center{border-color:rgba(0,0,0,0.1);box-shadow:0 0 0 2px rgba(0,0,0,0.04),0 4px 12px rgba(0,0,0,0.1);}',
+
+    // Bouton spin
+    '.wheel-spin-btn{background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 70%,var(--green)));color:#fff;border:none;border-radius:50px;padding:14px 42px;font-size:15px;font-weight:700;cursor:pointer;font-family:"Bricolage Grotesque",sans-serif;letter-spacing:0.3px;box-shadow:0 4px 20px rgba(201,120,96,0.35);transition:transform 0.12s,box-shadow 0.15s,opacity 0.2s;position:relative;overflow:hidden;}',
+    '.wheel-spin-btn::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0.15) 0%,transparent 60%);pointer-events:none;}',
+    '.wheel-spin-btn:hover{transform:scale(1.04);box-shadow:0 6px 28px rgba(201,120,96,0.45);}',
+    '.wheel-spin-btn:active{transform:scale(0.97);}',
+    '.wheel-spin-btn:disabled{opacity:0.42;cursor:not-allowed;transform:none;box-shadow:none;}',
+
+    // Résultat
+    '#wheelResult{width:100%;background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:16px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;min-height:72px;justify-content:center;transition:border-color 0.4s,box-shadow 0.4s;}',
+    '#wheelResult.has-result{border-color:rgba(201,120,96,0.4);box-shadow:0 0 24px rgba(201,120,96,0.1),inset 0 1px 0 rgba(255,255,255,0.05);animation:wResultPop 0.4s cubic-bezier(0.175,0.885,0.32,1.275);}',
+    'body.light #wheelResult.has-result{box-shadow:0 0 20px rgba(201,120,96,0.12),inset 0 1px 0 rgba(255,255,255,0.6);}',
+    '@keyframes wResultPop{0%{transform:scale(0.95);opacity:0.5}100%{transform:scale(1);opacity:1}}',
+    '.result-icon{font-size:30px;line-height:1;margin-bottom:2px;}',
+    '.result-label{font-size:9px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:2px;}',
+    '.result-text{font-family:"Bricolage Grotesque",sans-serif;font-size:15px;font-weight:600;color:var(--text);margin-top:2px;letter-spacing:-0.2px;}',
+    '.result-waiting{font-size:13px;color:var(--muted);}',
+
+    // Confettis
+    '.w-confetti{position:fixed;pointer-events:none;z-index:9999;border-radius:2px;animation:wConfettiFall 1.3s ease-in forwards;}',
+    '@keyframes wConfettiFall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(220px) rotate(720deg);opacity:0}}',
+
+    // Bouton entrée (jx-wheel-btn)
     '.jx-wheel-bar{flex-shrink:0;padding:6px 16px;padding-bottom:calc(4px + env(safe-area-inset-bottom,0px))}',
     '.jx-wheel-btn{display:flex;align-items:center;gap:14px;width:100%;padding:11px 18px;background:linear-gradient(135deg,var(--green),var(--accent));border:none;border-radius:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .12s,box-shadow .12s;box-shadow:0 4px 16px rgba(201,120,96,.25)}',
     '.jx-wheel-btn:active{transform:scale(.97);box-shadow:0 2px 8px rgba(201,120,96,.2)}',
     '.jx-wheel-btn-text{flex:1;text-align:left}',
     '.jx-wheel-btn-title{font-family:"Bricolage Grotesque",sans-serif;font-size:13px;font-weight:700;color:#fff}',
     '.jx-wheel-btn-sub{font-size:10px;color:rgba(255,255,255,.7);margin-top:1px}',
-    '.jx-wheel-btn-arrow{font-size:18px;color:rgba(255,255,255,.8);flex-shrink:0}',
-    'body.light .wheel-center{border-color:var(--green);box-shadow:0 0 12px rgba(201,120,96,0.25)}',
-    'body.light #wheelResult{box-shadow:0 2px 12px rgba(100,60,30,0.08);border-color:rgba(201,120,96,0.18)}',
-    'body.light #wheelResult.has-result{border-color:rgba(201,120,96,0.42);box-shadow:0 0 22px rgba(201,120,96,0.12)}'
+    '.jx-wheel-btn-arrow{font-size:18px;color:rgba(255,255,255,.8);flex-shrink:0}'
   ].join('\n');
   document.head.appendChild(style);
 
-  // ── Injecter le HTML de l'overlay ──
+  // ── HTML overlay ──
+  var needleSVG = '<svg width="30" height="38" viewBox="0 0 30 38" fill="none">'
+    + '<path d="M30 19 L8 8 L8 30 Z" fill="#c97860"/>'
+    + '<path d="M30 19 L8 8 L8 19 Z" fill="rgba(255,255,255,0.18)"/>'
+    + '<circle cx="9" cy="19" r="6" fill="#c97860" stroke="rgba(255,255,255,0.28)" stroke-width="1.5"/>'
+    + '</svg>';
+
   var overlayHTML = '<div id="wheelOverlay" style="display:none;position:fixed;inset:0;z-index:2500;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;">'
     + '<div style="height:env(safe-area-inset-top,0px);"></div>'
     + '<div style="display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);gap:12px;">'
     + '<div onclick="closeWheelModal()" style="width:36px;height:36px;border-radius:50%;background:var(--s2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>'
-    + '<div style="font-size:18px;font-weight:700;color:var(--text);font-family:\'Bricolage Grotesque\',sans-serif;">Roue des activités</div>'
+    + '<div style="font-size:18px;font-weight:700;color:var(--text);font-family:\'Bricolage Grotesque\',sans-serif;">🎡 Roue des activités</div>'
     + '</div>'
-    + '<div id="wheelSection" style="padding:20px 16px 80px;display:flex;flex-direction:column;align-items:center;">'
-    + '<div style="width:100%;max-width:340px;">'
+    + '<div id="wheelSection">'
     + '<div class="wheel-container">'
     + '<div class="wheel-wrap">'
+    + '<div class="wheel-glow"></div>'
+    + '<div class="wheel-ring"></div>'
     + '<canvas id="wheelCanvas"></canvas>'
-    + '<div class="wheel-needle">◀</div>'
-    + '<div class="wheel-center"></div>'
+    + '<div class="wheel-needle">' + needleSVG + '</div>'
+    + '<div class="wheel-center">✨</div>'
     + '</div>'
     + '<button class="wheel-spin-btn" id="spinBtn">Tourner la roue ✨</button>'
-    + '<div id="wheelResult"><span class="result-label">En attente...</span><span class="result-text">Lance la roue pour décider 🎲</span></div>'
-    + '</div></div></div></div>';
+    + '<div id="wheelResult"><span class="result-waiting">Lance la roue pour décider 🎲</span></div>'
+    + '</div></div></div>';
   document.body.insertAdjacentHTML('beforeend', overlayHTML);
 
   // ── Données ──
   var activities = [
-    {label:'Regarder une série',    icon:'📺'},
-    {label:'Apprendre à cuisiner',  icon:'🍳'},
-    {label:'Appel surprise',        icon:'📞'},
-    {label:'Film au hasard',        icon:'🎬'},
-    {label:'Envoyer des vocaux',    icon:'🎤'},
-    {label:'Jouer en ligne',        icon:'🎮'},
-    {label:'Écouter notre playlist',icon:'🎵'},
-    {label:'Se raconter un souvenir',icon:'💭'},
-    {label:'Regarder les étoiles',  icon:'🌙'},
-    {label:"S'écrire une lettre",   icon:'💌'}
+    {label:'Regarder une série',      icon:'📺', c1:'#e05577', c2:'#c73d62'},
+    {label:'Apprendre à cuisiner',    icon:'🍳', c1:'#f59e0b', c2:'#d97706'},
+    {label:'Appel surprise',          icon:'📞', c1:'#10b981', c2:'#059669'},
+    {label:'Film au hasard',          icon:'🎬', c1:'#6366f1', c2:'#4f46e5'},
+    {label:'Envoyer des vocaux',      icon:'🎤', c1:'#ec4899', c2:'#db2777'},
+    {label:'Jouer en ligne',          icon:'🎮', c1:'#0ea5e9', c2:'#0284c7'},
+    {label:'Écouter notre playlist',  icon:'🎵', c1:'#8b5cf6', c2:'#7c3aed'},
+    {label:'Se raconter un souvenir', icon:'💭', c1:'#14b8a6', c2:'#0d9488'},
+    {label:'Regarder les étoiles',    icon:'🌙', c1:'#f97316', c2:'#ea580c'},
+    {label:"S'écrire une lettre",     icon:'💌', c1:'#d946ef', c2:'#c026d3'}
   ];
 
-  // ── Canvas ──
+  // ── Canvas setup ──
   var wheelCanvas = document.getElementById('wheelCanvas');
   var wCtx = wheelCanvas.getContext('2d');
-  var SIZE = wheelCanvas.parentElement.offsetWidth || 240;
-  wheelCanvas.width = SIZE; wheelCanvas.height = SIZE;
-  var R = SIZE / 2, currentAngle = 0, isSpinning = false;
-  var sliceColors = ['#1a2a1a','#1a1a2a','#2a1a1a','#1a2a2a','#2a2a1a','#1a1a1a','#242424','#1e2a1e','#2a1e1e','#1e1e2a'];
+  var SIZE = 0, R = 0, currentAngle = 0, isSpinning = false;
+  var DPR = window.devicePixelRatio || 1;
+
+  function initCanvas() {
+    var wrap = wheelCanvas.parentElement;
+    SIZE = wrap.offsetWidth || 260;
+    wheelCanvas.width  = SIZE * DPR;
+    wheelCanvas.height = SIZE * DPR;
+    wheelCanvas.style.width  = SIZE + 'px';
+    wheelCanvas.style.height = SIZE + 'px';
+    wCtx.setTransform(1,0,0,1,0,0);
+    wCtx.scale(DPR, DPR);
+    R = SIZE / 2;
+    drawWheel(currentAngle);
+  }
 
   function drawWheel(angle) {
-    var n = activities.length, slice = (2 * Math.PI) / n;
+    var n = activities.length;
+    var slice = (2 * Math.PI) / n;
+    var isLight = document.body.classList.contains('light');
     wCtx.clearRect(0, 0, SIZE, SIZE);
-    for (var i = 0; i < n; i++) {
-      var start = angle + i * slice, end = start + slice;
-      wCtx.beginPath(); wCtx.moveTo(R, R); wCtx.arc(R, R, R - 2, start, end); wCtx.closePath();
-      wCtx.fillStyle = sliceColors[i % sliceColors.length]; wCtx.fill();
-      wCtx.strokeStyle = 'rgba(255,255,255,0.08)'; wCtx.lineWidth = 1; wCtx.stroke();
-      wCtx.save(); wCtx.translate(R, R); wCtx.rotate(start + slice / 2); wCtx.textAlign = 'center'; wCtx.textBaseline = 'middle';
-      wCtx.font = Math.round(R * 0.18) + 'px serif';
-      wCtx.fillText(activities[i].icon, R * 0.58, 0); wCtx.restore();
-    }
-    wCtx.beginPath(); wCtx.arc(R, R, R - 2, 0, 2 * Math.PI);
-    wCtx.strokeStyle = 'rgba(0,201,167,0.3)'; wCtx.lineWidth = 2; wCtx.stroke();
-  }
-  drawWheel(currentAngle);
 
+    for (var i = 0; i < n; i++) {
+      var start = angle + i * slice;
+      var end   = start + slice;
+      var mid   = start + slice / 2;
+      var a = activities[i];
+
+      // Gradient radial du centre vers le bord
+      var gx1 = R + Math.cos(mid) * R * 0.25;
+      var gy1 = R + Math.sin(mid) * R * 0.25;
+      var gx2 = R + Math.cos(mid) * R * 0.92;
+      var gy2 = R + Math.sin(mid) * R * 0.92;
+      var grad = wCtx.createLinearGradient(gx1, gy1, gx2, gy2);
+      if (isLight) {
+        grad.addColorStop(0, a.c1 + 'bb');
+        grad.addColorStop(1, a.c2 + '88');
+      } else {
+        grad.addColorStop(0, a.c1 + 'e0');
+        grad.addColorStop(1, a.c2 + 'aa');
+      }
+
+      // Segment
+      wCtx.beginPath();
+      wCtx.moveTo(R, R);
+      wCtx.arc(R, R, R - 2, start, end);
+      wCtx.closePath();
+      wCtx.fillStyle = grad;
+      wCtx.fill();
+
+      // Séparateur
+      wCtx.strokeStyle = isLight ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.14)';
+      wCtx.lineWidth = 1.5;
+      wCtx.stroke();
+
+      // Reflet radial
+      wCtx.save();
+      wCtx.beginPath();
+      wCtx.moveTo(R, R);
+      wCtx.arc(R, R, R - 2, start, end);
+      wCtx.closePath();
+      wCtx.clip();
+      var shine = wCtx.createRadialGradient(R, R, 0, R, R, R);
+      shine.addColorStop(0,   'rgba(255,255,255,0.20)');
+      shine.addColorStop(0.45,'rgba(255,255,255,0.04)');
+      shine.addColorStop(1,   'rgba(255,255,255,0)');
+      wCtx.fillStyle = shine;
+      wCtx.fill();
+      wCtx.restore();
+
+      // Emoji
+      wCtx.save();
+      wCtx.translate(R, R);
+      wCtx.rotate(mid);
+      wCtx.font = Math.round(R * 0.22) + 'px serif';
+      wCtx.textAlign = 'center';
+      wCtx.textBaseline = 'middle';
+      wCtx.shadowColor = 'rgba(0,0,0,0.35)';
+      wCtx.shadowBlur  = 5;
+      wCtx.fillText(a.icon, R * 0.60, 0);
+      wCtx.restore();
+    }
+
+    // Anneau extérieur
+    wCtx.beginPath();
+    wCtx.arc(R, R, R - 2, 0, 2 * Math.PI);
+    wCtx.strokeStyle = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+    wCtx.lineWidth = 2;
+    wCtx.stroke();
+
+    // Anneau intérieur décoratif
+    wCtx.beginPath();
+    wCtx.arc(R, R, R * 0.20, 0, 2 * Math.PI);
+    wCtx.strokeStyle = isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)';
+    wCtx.lineWidth = 1;
+    wCtx.stroke();
+  }
+
+  // ── Spin ──
   document.getElementById('spinBtn').addEventListener('click', function() {
-    if (isSpinning) return; isSpinning = true; this.disabled = true;
+    if (isSpinning) return;
+    isSpinning = true;
+    this.disabled = true;
     var wr = document.getElementById('wheelResult');
-    wr.className = ''; wr.innerHTML = '<span class="result-label">En train de tourner...</span>';
-    var extraSpins = (5 + Math.floor(Math.random() * 5)) * 2 * Math.PI;
+    wr.className = '';
+    wr.innerHTML = '<span class="result-waiting">En train de tourner...</span>';
+
     var targetSlice = Math.floor(Math.random() * activities.length);
-    var sliceAngle = (2 * Math.PI) / activities.length;
+    var sliceAngle  = (2 * Math.PI) / activities.length;
+    var extraSpins  = (6 + Math.floor(Math.random() * 4)) * 2 * Math.PI;
     var targetAngle = extraSpins + (-(targetSlice + 0.5) * sliceAngle);
-    var startAngle = currentAngle, duration = 3500 + Math.random() * 1000, startTime = null;
-    var spinBtn = this;
-    function easeOut(t) { return 1 - Math.pow(1 - t, 4); }
+    var startAngle  = currentAngle;
+    var duration    = 3800 + Math.random() * 800;
+    var startTime   = null;
+    var spinBtn     = this;
+
+    function easeOut(t) { return 1 - Math.pow(1 - t, 3.5); }
+
     function animate(ts) {
       if (!startTime) startTime = ts;
-      var elapsed = ts - startTime, progress = Math.min(elapsed / duration, 1);
+      var progress = Math.min((ts - startTime) / duration, 1);
       currentAngle = startAngle + (targetAngle - startAngle) * easeOut(progress);
       drawWheel(currentAngle);
-      if (progress < 1) { requestAnimationFrame(animate); }
-      else {
-        isSpinning = false; spinBtn.disabled = false;
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        isSpinning = false;
+        spinBtn.disabled = false;
         var act = activities[targetSlice];
-        wr.className = 'wheelResult has-result';
+        wr.className = 'has-result';
         wr.innerHTML = '<span class="result-icon">' + act.icon + '</span>'
-          + '<span class="result-label">Ce soir c\'est décidé !</span>'
+          + '<span class="result-label">Ce soir c\'est décidé\u202f!</span>'
           + '<span class="result-text">' + (typeof escHtml === 'function' ? escHtml(act.label) : act.label) + '</span>';
+        _launchConfetti(act.c1);
       }
     }
     requestAnimationFrame(animate);
   });
+
+  function _launchConfetti(baseColor) {
+    var colors = [baseColor, '#c97860', '#00c9a7', '#f59e0b', '#ec4899', '#6366f1'];
+    for (var i = 0; i < 24; i++) {
+      (function(i){
+        var p = document.createElement('div');
+        p.className = 'w-confetti';
+        var x = 20 + Math.random() * 60;
+        var y = 55 + Math.random() * 15;
+        var delay = Math.random() * 0.35;
+        var dur   = 0.9 + Math.random() * 0.6;
+        var sz    = 5 + Math.random() * 6;
+        p.style.cssText = 'left:'+x+'vw;top:'+y+'vh;background:'+colors[Math.floor(Math.random()*colors.length)]
+          +';animation-delay:'+delay+'s;animation-duration:'+dur+'s'
+          +';transform:rotate('+Math.floor(Math.random()*360)+'deg)'
+          +';width:'+sz+'px;height:'+sz+'px'
+          +';border-radius:'+(Math.random()>0.5?'50%':'2px')+';';
+        document.body.appendChild(p);
+        setTimeout(function(){ p.remove(); }, (delay + dur + 0.1) * 1000);
+      })(i);
+    }
+  }
 
   // ── API publique ──
   window.openWheelModal = function() {
@@ -1231,11 +1374,8 @@ function renderLb(elId, rows, detailFn){
     if (!ov) return;
     ov.style.display = 'block';
     document.body.classList.add('subview-active');
-    var c = document.getElementById('wheelCanvas');
-    if (c) {
-      var sz = c.parentElement.offsetWidth || 240;
-      if (c.width !== sz) { c.width = sz; c.height = sz; drawWheel(currentAngle); }
-    }
+    // Redessiner avec la bonne taille au moment de l'ouverture
+    setTimeout(function() { initCanvas(); }, 30);
   };
 
   window.closeWheelModal = function() {
