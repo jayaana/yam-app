@@ -17,8 +17,9 @@
   var _isHost=false,_player=null,_ytReady=false;
   var _pollIv=null,_timeIv=null,_presIv=null,_broadcastIv=null;
   var _isSyncing=false,_lastSeekAt=0,_lastAppliedTs=0,_lastChatTs=0,_lastReactTs=0;
-  var _playlist=[]; // [{ytId,addedBy}] — géré par l'hôte
-  var _currentYtId=null; // ytId en cours de lecture
+  var _playlist=[]; // [{ytId}] — historique complet, jamais supprimé
+  var _plIndex=0;   // index de la vidéo en cours dans _playlist
+  var _currentYtId=null;
 
   // ── CSS ────────────────────────────────────────────────────────────
   var st=document.createElement('style');
@@ -121,32 +122,35 @@
     '.cw-send-btn:active{transform:scale(.9);}.cw-send-btn:disabled{opacity:.35;cursor:not-allowed;}',
     '.cw-send-btn svg{pointer-events:none;}',
     '.cw-chat-empty{flex:1;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);text-align:center;padding:20px;}',
-    // Playlist
-    '.cw-pl-bar{flex-shrink:0;border-top:1px solid var(--border);background:var(--s1);}',
-    '.cw-pl-toggle{display:flex;align-items:center;gap:6px;padding:7px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;}',
-    '.cw-pl-toggle-label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;flex:1;}',
-    '.cw-pl-count{font-size:10px;font-weight:700;background:var(--accent);color:#fff;border-radius:20px;padding:1px 6px;min-width:16px;text-align:center;}',
-    '.cw-pl-chevron{transition:transform .2s;color:var(--muted);}',
-    '.cw-pl-chevron.open{transform:rotate(180deg);}',
-    '.cw-pl-body{overflow:hidden;max-height:0;transition:max-height .25s ease;}',
-    '.cw-pl-body.open{max-height:220px;}',
-    '.cw-pl-list{overflow-y:auto;max-height:160px;padding:0 10px 8px;}',
-    '.cw-pl-item{display:flex;align-items:center;gap:8px;padding:5px 4px;border-radius:8px;}',
-    '.cw-pl-item.playing{background:rgba(201,120,96,.1);}',
-    '.cw-pl-thumb{width:44px;height:28px;border-radius:4px;object-fit:cover;flex-shrink:0;background:var(--s2);}',
+    // Safe zone iOS
+    '.cw-safe-bottom{flex-shrink:0;height:env(safe-area-inset-bottom,0px);}',
+    // Playlist — panel qui remplace réactions+chat
+    '.cw-pl-panel{display:none;flex-direction:column;flex:1;min-height:0;border-top:1px solid var(--border);background:var(--bg);}',
+    '.cw-pl-panel.on{display:flex;}',
+    '.cw-pl-hdr{flex-shrink:0;padding:9px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);background:var(--s1);}',
+    '.cw-pl-hdr-title{flex:1;font-size:13px;font-weight:700;color:var(--text);}',
+    '.cw-pl-count{font-size:10px;font-weight:700;background:var(--accent);color:#fff;border-radius:20px;padding:1px 7px;}',
+    '.cw-pl-close-btn{width:28px;height:28px;border-radius:50%;background:var(--s2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;}',
+    '.cw-pl-close-btn svg{pointer-events:none;}',
+    '.cw-pl-list{flex:1;overflow-y:auto;padding:6px 10px;-webkit-overflow-scrolling:touch;}',
+    '.cw-pl-item{display:flex;align-items:center;gap:8px;padding:6px 4px;border-radius:8px;transition:background .15s;}',
+    '.cw-pl-item.current{background:rgba(201,120,96,.1);}',
+    '.cw-pl-item.past{opacity:.45;}',
+    '.cw-pl-thumb{width:52px;height:32px;border-radius:5px;object-fit:cover;flex-shrink:0;background:var(--s2);}',
     '.cw-pl-info{flex:1;min-width:0;}',
+    '.cw-pl-status{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px;}',
+    '.cw-pl-status.now{color:var(--accent);}.cw-pl-status.next{color:var(--green);}.cw-pl-status.done{color:var(--muted);}',
     '.cw-pl-id{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
-    '.cw-pl-now{font-size:9px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;}',
-    '.cw-pl-rm{width:24px;height:24px;border-radius:50%;border:none;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);flex-shrink:0;-webkit-tap-highlight-color:transparent;}',
-    '.cw-pl-rm:active{opacity:.5;}',
-    '.cw-pl-rm svg{pointer-events:none;}',
-    '.cw-pl-add{display:flex;gap:6px;padding:0 10px 8px;align-items:center;}',
-    '.cw-pl-input{flex:1;padding:7px 10px;background:var(--s2);border:1.5px solid var(--border);border-radius:10px;font-size:12px;color:var(--text);font-family:"Bricolage Grotesque",sans-serif;outline:none;-webkit-appearance:none;transition:border-color .2s;box-sizing:border-box;}',
+    '.cw-pl-rm{width:26px;height:26px;border-radius:50%;border:none;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);flex-shrink:0;-webkit-tap-highlight-color:transparent;}',
+    '.cw-pl-rm:active{opacity:.5;}.cw-pl-rm svg{pointer-events:none;}',
+    '.cw-pl-add{flex-shrink:0;display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--border);align-items:center;}',
+    '.cw-pl-input{flex:1;padding:8px 11px;background:var(--s2);border:1.5px solid var(--border);border-radius:10px;font-size:12px;color:var(--text);font-family:"Bricolage Grotesque",sans-serif;outline:none;-webkit-appearance:none;transition:border-color .2s;box-sizing:border-box;}',
     '.cw-pl-input:focus{border-color:var(--accent);}',
     '.cw-pl-add-btn{width:30px;height:30px;border-radius:50%;background:var(--accent);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent;}',
-    '.cw-pl-add-btn:disabled{opacity:.35;cursor:not-allowed;}',
-    '.cw-pl-add-btn svg{pointer-events:none;}',
-    '.cw-pl-empty{font-size:11px;color:var(--muted);text-align:center;padding:8px 0;}',
+    '.cw-pl-add-btn:disabled{opacity:.35;cursor:not-allowed;}.cw-pl-add-btn svg{pointer-events:none;}',
+    '.cw-pl-empty{font-size:12px;color:var(--muted);text-align:center;padding:16px 0;}',
+    // Bouton playlist actif dans la ctrl bar
+    '.cw-cbtn.pl-active{background:rgba(201,120,96,.15);border-color:rgba(201,120,96,.4);}',
   ].join('\n');
   document.head.appendChild(st);
 
@@ -234,8 +238,15 @@
         '<div class="cw-cbtn dis" id="cwSkipBtn" onclick="window._cwSkip()" title="Vid\u00e9o suivante">' +
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>' +
         '</div>' +
+        '<div class="cw-cbtn dis" id="cwPrevBtn" onclick="window._cwPrev()" title="Vid\u00e9o pr\u00e9c\u00e9dente">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="5" x2="5" y2="19"/><polygon points="19 4 9 12 19 20 19 4"/></svg>' +
+        '</div>' +
+        '<div class="cw-cbtn" id="cwPlBtn" onclick="window._cwPlToggle()" title="Playlist">' +
+          '\uD83C\uDFAC' +
+        '</div>' +
       '</div>' +
-      '<div class="cw-reacts">' +
+      // Réactions (masquées quand playlist ouverte)
+      '<div class="cw-reacts" id="cwReacts">' +
         '<button class="cw-rbtn" onclick="window._cwReact(\'\u2764\uFE0F\')">\u2764\uFE0F</button>' +
         '<button class="cw-rbtn" onclick="window._cwReact(\'\uD83D\uDE02\')">\uD83D\uDE02</button>' +
         '<button class="cw-rbtn" onclick="window._cwReact(\'\uD83D\uDE2E\')">\uD83D\uDE2E</button>' +
@@ -243,7 +254,8 @@
         '<button class="cw-rbtn" onclick="window._cwReact(\'\uD83D\uDC4F\')">\uD83D\uDC4F</button>' +
         '<button class="cw-rbtn" onclick="window._cwReact(\'\uD83D\uDE2D\')">\uD83D\uDE2D</button>' +
       '</div>' +
-      '<div class="cw-chat-wrap">' +
+      // Chat (masqué quand playlist ouverte)
+      '<div class="cw-chat-wrap" id="cwChatWrap">' +
         '<div class="cw-chat" id="cwChat">' +
           '<div class="cw-chat-empty" id="cwChatEmpty">Aucun message pour l\u2019instant \uD83C\uDF7F</div>' +
         '</div>' +
@@ -254,24 +266,25 @@
           '</button>' +
         '</div>' +
       '</div>' +
-      // Playlist collapsible
-      '<div class="cw-pl-bar" id="cwPlBar">' +
-        '<div class="cw-pl-toggle" onclick="window._cwPlToggle()">' +
-          '<span>\uD83C\uDFAC</span>' +
-          '<span class="cw-pl-toggle-label">Playlist</span>' +
+      // Panel playlist (remplace réactions+chat quand ouvert)
+      '<div class="cw-pl-panel" id="cwPlPanel">' +
+        '<div class="cw-pl-hdr">' +
+          '<span style="font-size:16px;">\uD83C\uDFAC</span>' +
+          '<span class="cw-pl-hdr-title">Playlist</span>' +
           '<span class="cw-pl-count" id="cwPlCount">0</span>' +
-          '<svg class="cw-pl-chevron" id="cwPlChevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>' +
-        '</div>' +
-        '<div class="cw-pl-body" id="cwPlBody">' +
-          '<div class="cw-pl-list" id="cwPlList"></div>' +
-          '<div class="cw-pl-add" id="cwPlAddRow">' +
-            '<input id="cwPlInput" class="cw-pl-input" type="url" placeholder="Colle un lien YouTube\u2026" autocomplete="off" />' +
-            '<button class="cw-pl-add-btn" id="cwPlAddBtn" onclick="window._cwPlAdd()" disabled>' +
-              '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
-            '</button>' +
+          '<div class="cw-pl-close-btn" onclick="window._cwPlToggle()">' +
+            '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
           '</div>' +
         '</div>' +
+        '<div class="cw-pl-list" id="cwPlList"></div>' +
+        '<div class="cw-pl-add" id="cwPlAddRow">' +
+          '<input id="cwPlInput" class="cw-pl-input" type="url" placeholder="Colle un lien YouTube\u2026" autocomplete="off" />' +
+          '<button class="cw-pl-add-btn" id="cwPlAddBtn" onclick="window._cwPlAdd()" disabled>' +
+            '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+          '</button>' +
+        '</div>' +
       '</div>' +
+      '<div class="cw-safe-bottom"></div>' +
     '</div>' +
     '</div>'
   );
@@ -373,7 +386,7 @@
         method:'POST',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=representation'}),
         body:JSON.stringify({couple_id:_coupleId,yt_id:ytId,host_role:_myRole,active:true,
           state:{playing:false,currentTime:0,ts:0,reactions:[],joined:false,currentYtId:ytId},
-          chat:[],presence:{},playlist:[]})
+          chat:[],presence:{},playlist:[{ytId:ytId}],playlist_index:0})
       });
     }).then(function(r){return r.json();})
     .then(function(rows){
@@ -420,6 +433,8 @@
   function _startPlayer(ytId){
     _sc('cwScPlayer');
     _currentYtId=ytId;
+    // Hôte : init playlist avec la première vidéo
+    if(_isHost&&_playlist.length===0){_playlist=[{ytId:ytId}];_plIndex=0;}
     // Badge hôte
     var badge=document.getElementById('cwRoleBadge');if(badge)badge.style.display=_isHost?'':'none';
     // Désactiver contrôles pour non-hôte
@@ -517,7 +532,7 @@
     _stopPoll();
     _pollIv=setInterval(function(){
       if(!_sessionId)return;
-      fetch(SB2_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId)+'&select=state,active,chat,presence,playlist',{headers:sb2Headers()})
+      fetch(SB2_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId)+'&select=state,active,chat,presence,playlist,playlist_index',{headers:sb2Headers()})
       .then(function(r){return r.json();})
       .then(function(rows){
         if(!rows||!rows.length)return;
@@ -526,7 +541,7 @@
         var state=row.state||{};
         if(!_isHost)_applyStateIfNeeded(state);
         // Sync playlist pour tout le monde
-        _applyPlaylist(row.playlist||[],state.currentYtId||null);
+        _applyPlaylist(row.playlist||[],state.currentYtId||null,row.playlist_index||0);
         _handleReacts(state);
         _updatePresenceUI(row.presence||{});
         _applyChat(row.chat||[]);
@@ -586,12 +601,25 @@
   // Stockée dans colonne `playlist` (jsonb array [{ytId}]) en base.
   // currentYtId voyage dans state pour que le non-hôte sache ce qui tourne.
 
+  // ── Playlist ────────────────────────────────────────────────────────
+  // Structure : [{ytId}] — tableau ordonné, _plIndex = index en cours.
+  // On ne supprime jamais les vidéos passées, on avance juste l'index.
+  // Seul l'hôte peut ajouter/supprimer les vidéos à venir.
+  // L'index courant et la playlist voyagent dans state + colonne playlist.
+
+  var _plOpen=false;
+
   window._cwPlToggle=function(){
-    var body=document.getElementById('cwPlBody');
-    var chev=document.getElementById('cwPlChevron');
-    if(!body)return;
-    body.classList.toggle('open');
-    if(chev)chev.classList.toggle('open',body.classList.contains('open'));
+    _plOpen=!_plOpen;
+    var panel=document.getElementById('cwPlPanel');
+    var reacts=document.getElementById('cwReacts');
+    var chatWrap=document.getElementById('cwChatWrap');
+    var plBtn=document.getElementById('cwPlBtn');
+    if(panel)panel.classList.toggle('on',_plOpen);
+    if(reacts)reacts.style.display=_plOpen?'none':'';
+    if(chatWrap)chatWrap.style.display=_plOpen?'none':'';
+    if(plBtn)plBtn.classList.toggle('pl-active',_plOpen);
+    if(_plOpen)_renderPlaylist();
   };
 
   // Input add
@@ -599,12 +627,8 @@
     var inp=document.getElementById('cwPlInput');
     var btn=document.getElementById('cwPlAddBtn');
     if(!inp||!btn)return;
-    inp.addEventListener('input',function(){
-      btn.disabled=!_ytId(this.value.trim());
-    });
-    inp.addEventListener('keydown',function(e){
-      if(e.key==='Enter')window._cwPlAdd();
-    });
+    inp.addEventListener('input',function(){btn.disabled=!_ytId(this.value.trim());});
+    inp.addEventListener('keydown',function(e){if(e.key==='Enter')window._cwPlAdd();});
   })();
 
   window._cwPlAdd=function(){
@@ -616,29 +640,38 @@
     _playlist.push({ytId:id});
     _savePlaylist();
     _renderPlaylist();
-    // Ouvrir la playlist si fermée
-    var body=document.getElementById('cwPlBody');
-    var chev=document.getElementById('cwPlChevron');
-    if(body&&!body.classList.contains('open')){
-      body.classList.add('open');if(chev)chev.classList.add('open');
-    }
+    _updateSkipBtn();
   };
 
   window._cwPlRemove=function(idx){
-    if(!_isHost)return;
+    // Ne peut supprimer que les vidéos futures (idx > _plIndex)
+    if(!_isHost||idx<=_plIndex)return;
     _playlist.splice(idx,1);
     _savePlaylist();
     _renderPlaylist();
+    _updateSkipBtn();
   };
 
-  // Skip manuel (hôte) ou automatique (fin vidéo)
+  // Skip : avance l'index, charge la suivante
   window._cwSkip=function(){if(_isHost)_cwSkipNext();};
   function _cwSkipNext(){
     if(!_isHost||!_sessionId)return;
-    if(!_playlist.length)return;
-    var next=_playlist.shift(); // prendre le premier
+    var nextIdx=_plIndex+1;
+    if(nextIdx>=_playlist.length)return;
+    _plIndex=nextIdx;
     _savePlaylist();
-    _loadVideo(next.ytId);
+    _loadVideo(_playlist[_plIndex].ytId);
+  }
+
+  // Prev : recule l'index
+  window._cwPrev=function(){if(_isHost)_cwSkipPrev();};
+  function _cwSkipPrev(){
+    if(!_isHost||!_sessionId)return;
+    var prevIdx=_plIndex-1;
+    if(prevIdx<0)return;
+    _plIndex=prevIdx;
+    _savePlaylist();
+    _loadVideo(_playlist[_plIndex].ytId);
   }
 
   function _loadVideo(ytId){
@@ -655,56 +688,73 @@
     fetch(SB2_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId),{
       method:'PATCH',
       headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
-      body:JSON.stringify({playlist:_playlist})
+      body:JSON.stringify({playlist:_playlist,playlist_index:_plIndex})
     }).catch(function(){});
   }
 
-  // Appelé depuis le poll pour les deux côtés
-  function _applyPlaylist(serverPlaylist,serverYtId){
-    // Mettre à jour la playlist locale affichée pour le non-hôte
+  // Sync playlist depuis le poll (les deux côtés)
+  function _applyPlaylist(serverPlaylist,serverYtId,serverIdx){
+    var idx=typeof serverIdx==='number'?serverIdx:0;
     if(!_isHost){
       _playlist=serverPlaylist||[];
+      _plIndex=idx;
       _renderPlaylist();
-      // Si l'hôte a changé de vidéo, on la charge aussi
+      // Changement de vidéo côté hôte
       if(serverYtId&&serverYtId!==_currentYtId&&_player&&typeof _player.loadVideoById==='function'){
         _currentYtId=serverYtId;
         _player.loadVideoById(serverYtId);
       }
+    } else {
+      // Hôte : re-render si playlist changée (ex: non-hôte n'ajoute pas mais on garde la porte)
+      _renderPlaylist();
     }
     _updateSkipBtn();
   }
 
   function _updateSkipBtn(){
-    var btn=document.getElementById('cwSkipBtn');
-    if(!btn)return;
-    btn.classList.toggle('dis',!_isHost||_playlist.length===0);
+    var skip=document.getElementById('cwSkipBtn');
+    var prev=document.getElementById('cwPrevBtn');
+    var hasNext=_playlist.length>0&&(_plIndex+1)<_playlist.length;
+    var hasPrev=_plIndex>0;
+    if(skip)skip.classList.toggle('dis',!_isHost||!hasNext);
+    if(prev)prev.classList.toggle('dis',!_isHost||!hasPrev);
   }
 
   function _renderPlaylist(){
     var list=document.getElementById('cwPlList');
     var count=document.getElementById('cwPlCount');
     if(!list)return;
-    if(count)count.textContent=_playlist.length;
-    if(!_playlist.length){
-      list.innerHTML='<div class="cw-pl-empty">Aucune vid\u00e9o en attente</div>';
+    var total=_playlist.length;
+    if(count)count.textContent=total;
+    if(!total){
+      list.innerHTML='<div class="cw-pl-empty">Aucune vid\u00e9o dans la playlist</div>';
       return;
     }
     list.innerHTML=_playlist.map(function(item,i){
       var thumb='https://img.youtube.com/vi/'+item.ytId+'/default.jpg';
-      var rmHtml=_isHost
+      var isCurrent=(i===_plIndex);
+      var isPast=(i<_plIndex);
+      var isNext=(i===_plIndex+1);
+      var cls='cw-pl-item'+(isCurrent?' current':isPast?' past':'');
+      var statusCls=isCurrent?'now':isPast?'done':isNext?'next':'';
+      var statusLbl=isCurrent?'\u25b6 En cours':isPast?'\u2713 Vue':isNext?'\u25b6 Suivante':'\u2014 En attente';
+      // Bouton suppr uniquement sur les futures (non passées, non en cours)
+      var rmHtml=(_isHost&&!isCurrent&&!isPast)
         ?'<button class="cw-pl-rm" onclick="window._cwPlRemove('+i+')">' +
-          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
-          '</button>'
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
         :'';
-      return '<div class="cw-pl-item">'+
+      return '<div class="'+cls+'">'+
         '<img class="cw-pl-thumb" src="'+thumb+'" alt="" />'+
         '<div class="cw-pl-info">'+
-          '<div class="cw-pl-now">'+(i===0?'\u25b6 Suivante':'')+'</div>'+
+          '<div class="cw-pl-status '+statusCls+'">'+statusLbl+'</div>'+
           '<div class="cw-pl-id">youtu.be/'+item.ytId+'</div>'+
         '</div>'+
         rmHtml+
       '</div>';
     }).join('');
+    // Scroll jusqu'à la vidéo en cours
+    var items=list.querySelectorAll('.cw-pl-item');
+    if(items[_plIndex])items[_plIndex].scrollIntoView({block:'nearest'});
   }
 
   function _saveState(patch){
@@ -964,7 +1014,7 @@
     if(_broadcastIv){clearInterval(_broadcastIv);_broadcastIv=null;}
     if(_player){try{_player.destroy();}catch(e){}_player=null;}
     _isHost=false;_isSyncing=false;_lastSeekAt=0;_lastAppliedTs=0;_lastChatTs=0;_lastReactTs=0;_sessionId=null;
-    _playlist=[];_currentYtId=null;
+    _playlist=[];_plIndex=0;_currentYtId=null;_plOpen=false;
     var ui=document.getElementById('cwUrlIn');if(ui)ui.value='';
     var pr=document.getElementById('cwPreview');if(pr)pr.classList.remove('on');
     var gb=document.getElementById('cwGoBtn');if(gb)gb.disabled=true;
