@@ -3535,34 +3535,10 @@ window.nousLoad = function(){
     var profile = _getProfile();
     if (!cid || !profile) return;
 
-    // Déjà fait aujourd'hui ? (garde locale — 1x/jour par type)
+    // Garde mémoire — bloque les doublons dans la même session
     if (_activitiesToday[activityType]) return;
-    _activitiesToday[activityType] = true;
+    _activitiesToday[activityType] = true; // réserver pour éviter les appels concurrents
 
-    // Mise à jour optimiste locale (affichage immédiat)
-    var current = _currentPoints();
-    var newPts  = Math.min(FLAME_MAX, current + ACTIVITY_POINTS);
-    _flame.points       = newPts;
-    _flame.last_updated = new Date();
-    _renderFlame();
-
-    // Log activité en base
-    fetch(SB2_URL + '/rest/v1/v2_flame_activities', {
-      method  : 'POST',
-      headers : sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
-      body    : JSON.stringify({
-        couple_id    : cid,
-        activity_type: activityType,
-        triggered_by : profile,
-        triggered_at : new Date().toISOString()
-      })
-    }).catch(function () {});
-
-    // Incrément atomique côté serveur (évite race condition si les deux
-    // partenaires déclenchent une activité en même temps)
-    _incrementFlameAtomic(cid, ACTIVITY_POINTS, null);
-
-    // Feedback toast
     var labels = {
       first_login    : 'Première connexion du jour 🔥',
       first_message  : 'Premier message du jour 🔥',
@@ -3572,15 +3548,49 @@ window.nousLoad = function(){
       petit_mot      : 'Petit mot écrit 🔥',
       skyjo_together : 'Partie Skyjo ensemble 🔥',
       mood_change    : 'Humeur mise à jour 🔥',
-      histoire_new   : 'Nouvelle page d\'histoire 🔥',
+      histoire_new   : "Nouvelle page d'histoire 🔥",
       elle_lui_update: 'Section Elle/Lui mise à jour 🔥',
       souvenir_new   : 'Nouveau souvenir 🔥',
       activite_done  : 'Activité complétée 🔥',
       music_together : 'Musique ensemble 🔥'
     };
-    if (typeof showToast === 'function') {
-      showToast(labels[activityType] || '🔥 +2 flamme !', 'success', 2200);
-    }
+
+    // INSERT en base EN PREMIER — si 409 (doublon Supabase) ou erreur → pas d'incrément
+    fetch(SB2_URL + '/rest/v1/v2_flame_activities', {
+      method  : 'POST',
+      headers : sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
+      body    : JSON.stringify({
+        couple_id    : cid,
+        activity_type: activityType,
+        triggered_by : profile,
+        triggered_at : new Date().toISOString()
+      })
+    })
+    .then(function(r) {
+      if (r.status === 409) {
+        // Doublon — déjà fait aujourd'hui selon Supabase, on n'incrémente pas
+        return;
+      }
+      if (!r.ok) {
+        // Autre erreur — libérer la réservation pour permettre un retry
+        _activitiesToday[activityType] = false;
+        return;
+      }
+      // INSERT accepté (201) → incrémenter flamme locale + serveur + toast
+      var current = _currentPoints();
+      var newPts  = Math.min(FLAME_MAX, current + ACTIVITY_POINTS);
+      _flame.points       = newPts;
+      _flame.last_updated = new Date();
+      _renderFlame();
+      _incrementFlameAtomic(cid, ACTIVITY_POINTS, null);
+      if (typeof showToast === 'function') {
+        showToast(labels[activityType] || '🔥 +2 flamme !', 'success', 2200);
+      }
+    })
+    .catch(function() {
+      // Réseau KO — libérer pour permettre retry
+      _activitiesToday[activityType] = false;
+    });
   };
 
   // ════════════════════════════════════════════════════════════════
@@ -3975,37 +3985,8 @@ window.nousLoad = function(){
       _checkStreak();
       _startTicks();
 
-      // Activité "première connexion du jour"
-      // Double garde : localStorage (persiste entre sessions) + Supabase (source de vérité)
-      (function() {
-        var cid     = _getCoupleId();
-        var profile = _getProfile();
-        // Si pas encore de session — on n'essaie pas, sera fait au prochain flammeInit
-        if (!cid || !profile) return;
-
-        var lsKey = 'yam_first_login_' + profile;
-        var today = _todayStr();
-
-        // Garde 1 — localStorage : déjà marqué aujourd'hui → stop immédiat
-        try { if (localStorage.getItem(lsKey) === today) return; } catch(e) {}
-
-        // Garde 2 — Supabase : vérifie qu'il n'existe pas déjà en base
-        var localMidnight = new Date(); localMidnight.setHours(0,0,0,0);
-        fetch(SB2_URL + '/rest/v1/v2_flame_activities?couple_id=eq.' + cid +
-          '&activity_type=eq.first_login&triggered_by=eq.' + profile +
-          '&triggered_at=gte.' + localMidnight.toISOString() +
-          '&select=id&limit=1', { headers: sb2Headers() })
-          .then(function(r){ return r.ok ? r.json() : null; })
-          .then(function(rows){
-            if (rows === null) return; // erreur réseau → on ne fait rien
-            // Marquer en localStorage dans tous les cas (présent ou pas en base)
-            try { localStorage.setItem(lsKey, today); } catch(e) {}
-            if (!rows || rows.length === 0) {
-              window.yamFlameActivity('first_login');
-            }
-          })
-          .catch(function(){ /* réseau KO → ne pas déclencher, réessaiera demain */ });
-      })();
+      // Activité "première connexion du jour" — yamFlameActivity gère le 409 Supabase
+      window.yamFlameActivity('first_login');
     });
   };
 
