@@ -3426,10 +3426,13 @@ window.nousLoad = function(){
           _streak.best_streak     = rows[0].best_streak     || 0;
           _streak.total_days      = rows[0].total_days      || 0;
           _streak.last_flame_date = rows[0].last_flame_date || null;
+          _streak.last_malus_date = rows[0].last_malus_date || null;
           _streak.rowId           = rows[0].id;
         }
-        // Garde locale malus (localStorage, par device)
-        try { _streak.last_malus_date = localStorage.getItem('yam_malus_date') || null; } catch(e) {}
+        // Fallback localStorage si pas encore en base (migration douce)
+        if (!_streak.last_malus_date) {
+          try { _streak.last_malus_date = localStorage.getItem('yam_malus_date') || null; } catch(e) {}
+        }
         _mayDone();
       }).catch(_mayDone);
 
@@ -3594,11 +3597,17 @@ window.nousLoad = function(){
     })();
 
     // ── MALUS MINUIT : -50% une fois par jour ──────────────────────
-    // Appliqué en premier, indépendamment du streak, dès qu'un nouveau
-    // jour est détecté et que le malus n'a pas encore été appliqué.
     if (_streak.last_malus_date !== today) {
       _streak.last_malus_date = today;
+      // Persister en Supabase (source de vérité) + localStorage (fallback)
       try { localStorage.setItem('yam_malus_date', today); } catch(e) {}
+      if (_streak.rowId) {
+        fetch(SB2_URL + '/rest/v1/v2_streak?id=eq.' + _streak.rowId, {
+          method: 'PATCH',
+          headers: sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
+          body: JSON.stringify({ last_malus_date: today, updated_at: new Date().toISOString() })
+        }).catch(function () {});
+      }
       var currentPts = _currentPoints();
       if (currentPts > 0) {
         var afterMalus = Math.floor(currentPts * 0.5);
@@ -3628,6 +3637,7 @@ window.nousLoad = function(){
         best_streak    : _streak.best_streak,
         total_days     : _streak.total_days,
         last_flame_date: today,
+        last_malus_date: _streak.last_malus_date || null,
         updated_at     : new Date().toISOString()
       };
 
