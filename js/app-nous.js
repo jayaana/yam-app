@@ -3967,6 +3967,15 @@ window.nousLoad = function(){
         var cid = _getCoupleId();
         var profile = _getProfile();
         if (!cid || !profile) { window.yamFlameActivity('first_login'); return; }
+
+        // ✅ FIX : garde localStorage persistante entre sessions
+        // Empêche le re-déclenchement à chaque déco/reco dans la même journée
+        var lsKey = 'yam_first_login_' + profile;
+        var today = _todayStr();
+        try {
+          if (localStorage.getItem(lsKey) === today) return; // déjà fait aujourd'hui
+        } catch(e) {}
+
         var localMidnight = new Date(); localMidnight.setHours(0,0,0,0);
         fetch(SB2_URL + '/rest/v1/v2_flame_activities?couple_id=eq.' + cid +
           '&activity_type=eq.first_login&triggered_by=eq.' + profile +
@@ -3975,10 +3984,17 @@ window.nousLoad = function(){
           .then(function(r){ return r.ok ? r.json() : []; })
           .then(function(rows){
             if (!rows || rows.length === 0) {
+              try { localStorage.setItem(lsKey, today); } catch(e) {}
               window.yamFlameActivity('first_login');
+            } else {
+              // Déjà en base → marquer localement pour éviter future requête
+              try { localStorage.setItem(lsKey, today); } catch(e) {}
             }
           })
-          .catch(function(){ window.yamFlameActivity('first_login'); });
+          .catch(function(){
+            // Pas de fallback automatique si réseau KO — on ne déclenche pas
+            // pour éviter les faux positifs. Sera retentée demain.
+          });
       })();
     });
   };
