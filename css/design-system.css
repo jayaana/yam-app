@@ -481,6 +481,14 @@ body.light #luiSection {
   padding-left: 14px !important;
   padding-right: 14px !important;
 }
+/* Réduction hauteur + nowrap pour éviter le retour à la ligne */
+#Books .activite-ia-btn,
+#Books .activite-new-btn {
+  padding-top: 9px !important;
+  padding-bottom: 9px !important;
+  font-size: 12px !important;
+  white-space: nowrap;
+}
 /* livreIdeaCard aussi */
 #livreIdeaCard {
   margin-left: 14px !important;
