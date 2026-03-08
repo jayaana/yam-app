@@ -140,6 +140,9 @@ body.light .yam-tab-panel {
   border: 1px solid var(--border);
   overflow: hidden;
 }
+body.light .ios-group {
+  box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.07), 0 6px 16px rgba(0,0,0,0.05);
+}
 
 /* Sections enfants d'un ios-group perdent leurs propres bordures */
 .ios-group > .section {
@@ -387,7 +390,7 @@ body.light #wheelSection,
 body.light #luiSection {
   background: rgba(255,255,255,1) !important;
   border-color: rgba(60,60,67,0.12) !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.07), 0 6px 16px rgba(0,0,0,0.05);
 }
 
 /* Sections standalone hors ios-group — bulle blanche arrondie avec margin */
@@ -399,7 +402,7 @@ body.light #Books {
   border: 1px solid rgba(60,60,67,0.12) !important;
   border-radius: 16px !important;
   margin: 0 14px 14px !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.07), 0 6px 16px rgba(0,0,0,0.05);
   overflow: hidden !important;
   padding: 0 !important;
 }
