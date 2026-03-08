@@ -3799,6 +3799,7 @@ window.nousLoad = function(){
     if (dangerEl) {
       dangerEl.style.display = (pts > 0 && ratio < 0.25) ? 'block' : 'none';
     }
+  }
 
   // ════════════════════════════════════════════════════════════════
   // RENDU — Barre de streak
