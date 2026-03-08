@@ -2460,13 +2460,19 @@ body:has(#snakeView.active) #themeToggleHome { opacity: 0 !important; pointer-ev
   border-radius: 18px;
   padding: 14px 16px 12px;
   position: relative; overflow: hidden;
+  box-shadow: var(--section-shadow);
 }
 body.dark .mu-card-header { background: #2a2524; }
+/* Couche 1 : highlight de surface (shimmer haut) */
 .mu-card-header::before {
   content: ''; position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 80% 20%, rgba(231,90,124,0.14) 0%, transparent 65%);
+  background:
+    var(--section-highlight),
+    radial-gradient(ellipse at 80% 20%, rgba(231,90,124,0.14) 0%, transparent 65%);
   pointer-events: none;
+  z-index: 0;
 }
+.mu-card-header > * { position: relative; z-index: 1; }
 .mu-card-label { font-size: 9px; font-weight: 800; letter-spacing: 2.5px; color: var(--green); text-transform: uppercase; margin-bottom: 2px; padding: 0 2px; }
 /* Ligne titre + boutons */
 .mu-card-top-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 2px; }
@@ -2486,7 +2492,7 @@ body.dark .mu-card-header { background: #2a2524; }
 .mu-mode-btn.active { color: var(--green); border-color: rgba(231,90,124,0.4); }
 
 /* ══ CARD TITRES ══ */
-.mu-card-tracks { margin: 0 16px; background: var(--s1); border: 1px solid var(--border); border-radius: 18px; overflow: hidden; }
+.mu-card-tracks { margin: 0 16px; background: var(--s1); border: 1px solid var(--border); border-radius: 18px; overflow: hidden; box-shadow: var(--section-shadow); position: relative; }
 .mu-col-header { display: flex; align-items: center; padding: 10px 14px 8px 16px; border-bottom: 1px solid var(--border); }
 .mu-col-num { flex: 1; font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
 .mu-col-plays { font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; text-align: right; }
@@ -2494,8 +2500,8 @@ body.dark .mu-card-header { background: #2a2524; }
 .top50-expand:hover { background: var(--s2); }
 .top50-expand-icon { font-size: 12px; transition: transform 0.3s; }
 .top50-expand.open .top50-expand-icon { transform: rotate(180deg); }
-body.light .mu-card-header { background: var(--s3); border-color: rgba(60,60,67,0.12); }
-body.light .mu-card-tracks { background: #ffffff; border-color: rgba(60,60,67,0.10); }
+body.light .mu-card-header { background: var(--s3); border-color: rgba(60,60,67,0.12); box-shadow: var(--section-shadow); }
+body.light .mu-card-tracks { background: #ffffff; border-color: rgba(60,60,67,0.10); box-shadow: var(--section-shadow); }
 body.light .mu-play-btn { box-shadow: 0 4px 18px rgba(231,90,124,0.35); }
 
 /* ══ SUGGESTIONS — une seule card défilante ══ */
@@ -2506,8 +2512,8 @@ body.light .mu-play-btn { box-shadow: 0 4px 18px rgba(231,90,124,0.35); }
 .mu-sugg-add-btn { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: var(--green); background: rgba(231,90,124,0.10); border: 1px solid rgba(231,90,124,0.25); border-radius: 20px; padding: 6px 12px; cursor: pointer; transition: background 0.15s; -webkit-tap-highlight-color: transparent; flex-shrink: 0; margin-left: 12px; }
 .mu-sugg-add-btn:active { background: rgba(231,90,124,0.18); }
 /* Une seule card visible qui défile */
-.mu-sugg-bubble { margin: 0 16px; background: var(--s1); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
-body.light .mu-sugg-bubble { background: #ffffff; border-color: rgba(231,90,124,0.15); }
+.mu-sugg-bubble { margin: 0 16px; background: var(--s1); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: var(--section-shadow); position: relative; }
+body.light .mu-sugg-bubble { background: #ffffff; border-color: rgba(231,90,124,0.15); box-shadow: var(--section-shadow); }
 .mu-sugg-ticker-wrap { height: 66px; overflow: hidden; position: relative; }
 .mu-sugg-ticker { display: flex; flex-direction: column; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
 
