@@ -3436,14 +3436,15 @@ window.nousLoad = function(){
         _mayDone();
       }).catch(_mayDone);
 
-    // 3. Activités du jour déjà faites
-    var todayStart = _todayStr() + 'T00:00:00.000Z';
-    // Compenser offset local (on prend les 24h locales, pas UTC stricte)
+    // 3. Activités du jour déjà faites — filtrées par triggered_by pour ne charger que les miennes
     var localMidnight = new Date();
     localMidnight.setHours(0, 0, 0, 0);
-    fetch(SB2_URL + '/rest/v1/v2_flame_activities?couple_id=eq.' + cid +
+    var profile3 = _getProfile();
+    var actUrl = SB2_URL + '/rest/v1/v2_flame_activities?couple_id=eq.' + cid +
       '&triggered_at=gte.' + localMidnight.toISOString() +
-      '&select=activity_type', { headers: sb2Headers() })
+      '&select=activity_type';
+    if (profile3) actUrl += '&triggered_by=eq.' + profile3;
+    fetch(actUrl, { headers: sb2Headers() })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (rows) {
         _activitiesToday = {};
@@ -3961,15 +3962,10 @@ window.nousLoad = function(){
   // INIT — Point d'entrée appelé par _nousInitAll()
   // ════════════════════════════════════════════════════════════════
 
-  var _flammeInitDone = false; // garde — flammeInit ne tourne qu'une fois par session
-
   window.flammeInit = function () {
-    if (_flammeInitDone) {
-      // Re-appel après la 1ère init → simple refresh sans re-déclencher first_login
-      window.flammeRefresh();
-      return;
-    }
-    _flammeInitDone = true;
+    // Garde : first_login ne se déclenche qu'une fois par jour, même après déco/reco
+    // On délègue entièrement au check localStorage+Supabase ci-dessous.
+    // flammeInit lui-même peut être rappelé — seul first_login est protégé.
     _loadAll(function () {
       _renderFlame();
       _renderStreak();
