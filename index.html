@@ -236,6 +236,9 @@ body.splash-active {
       // mhpAvatar = partenaire qui envoie
       var mhp = document.getElementById('mhpAvatar'); if(mhp){ var i5=mhp.querySelector('img'); if(i5) i5.src=url; }
     }
+    // Bloc flamme — toujours mettre à jour girl et boy indépendamment du profil actif
+    var nousGirl = document.getElementById('nousProfilGirlAvatar'); if(nousGirl){ var ig=nousGirl.querySelector('img'); if(ig) ig.src = (role==='girl'?url:ig.src); }
+    var nousBoy  = document.getElementById('nousProfilBoyAvatar');  if(nousBoy){  var ib=nousBoy.querySelector('img');  if(ib) ib.src  = (role==='boy' ?url:ib.src);  }
   };
 })();
 </script>
@@ -894,7 +897,7 @@ body.nous-active #yamStickyAvatarSelf {
   color: var(--muted);
   font-family: 'Bricolage Grotesque', sans-serif;
   text-align: right;
-  margin-top: 2px;
+  margin-top: 14px;
   min-height: 12px;
   opacity: 0.75;
 }
