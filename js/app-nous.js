@@ -105,11 +105,20 @@ window._nousUnblockScroll = function() { _unblockBackgroundScroll(); };
 
 
 // ════════════════════════════════════════════════════════════════════
-// 0. ACCÈS DIRECT — Beta gate supprimé
+// 0. ACCÈS BETA — Code d'accès requis (section en cours de développement)
 // ════════════════════════════════════════════════════════════════════
 (function(){
 
-  // Affiche le contenu directement, sans code d'accès
+  // ── Code d'accès beta — à changer quand la section sera stable ──
+  var BETA_CODE = 'majversion2';
+  var LS_KEY    = 'yam_nous_beta_unlocked';
+
+  // Vérifie si déjà déverrouillé en session
+  function _isUnlocked() {
+    return sessionStorage.getItem(LS_KEY) === '1';
+  }
+
+  // Affiche le contenu (après unlock)
   function _nousShowContent() {
     var overlay = document.getElementById('nousLockOverlay');
     var content = document.getElementById('nousContentWrapper');
@@ -118,17 +127,72 @@ window._nousUnblockScroll = function() { _unblockBackgroundScroll(); };
     if (!window._nousContentLoaded) {
       window._nousContentLoaded = true;
       _nousInitAll();
+      // Déclenche l'initialisation des sections IA et Histoire
       setTimeout(function(){ document.dispatchEvent(new Event('nousContentReady')); }, 300);
     }
   }
 
-  // Point d'entrée appelé par yamSwitchTab — accès immédiat
-  window.nousCheckLock = function() {
-    _nousShowContent();
+  // Affiche l'overlay de code d'accès beta
+  function _nousShowBetaGate() {
+    var overlay = document.getElementById('nousLockOverlay');
+    var content = document.getElementById('nousContentWrapper');
+    if (content) content.style.display = 'none';
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    // Injecte le formulaire beta si pas déjà là
+    if (!overlay.querySelector('.nous-beta-gate')) {
+      overlay.innerHTML =
+        '<div class="nous-beta-gate" style="' +
+          'display:flex;flex-direction:column;align-items:center;gap:18px;' +
+          'padding:36px 28px;background:rgba(15,15,26,0.97);border-radius:20px;' +
+          'border:1px solid rgba(255,255,255,0.08);max-width:320px;width:90%;text-align:center;' +
+        '">' +
+          '<div style="font-size:2rem;">🔒</div>' +
+          '<div style="font-weight:700;font-size:1.1rem;color:#fff;">Section en beta</div>' +
+          '<div style="font-size:0.85rem;color:rgba(255,255,255,0.5);line-height:1.5;">' +
+            'Cette section est encore en développement.<br>Entre le code d\'accès pour y accéder.' +
+          '</div>' +
+          '<input id="nousBetaInput" type="password" placeholder="Code d\'accès…" ' +
+            'style="width:100%;padding:12px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);' +
+            'background:rgba(255,255,255,0.07);color:#fff;font-size:1rem;text-align:center;outline:none;" ' +
+            'onkeydown="if(event.key===\'Enter\') window.nousBetaSubmit()" />' +
+          '<div id="nousBetaError" style="font-size:0.82rem;color:#ff6b6b;min-height:18px;"></div>' +
+          '<button onclick="window.nousBetaSubmit()" ' +
+            'style="width:100%;padding:13px;border-radius:12px;border:none;' +
+            'background:linear-gradient(135deg,#e91e8c,#9c27b0);color:#fff;font-weight:700;' +
+            'font-size:1rem;cursor:pointer;">Accéder ✨</button>' +
+        '</div>';
+      // Focus auto
+      setTimeout(function(){ var inp=document.getElementById('nousBetaInput'); if(inp) inp.focus(); }, 100);
+    }
+  }
+
+  // Soumission du code
+  window.nousBetaSubmit = function() {
+    var inp = document.getElementById('nousBetaInput');
+    var err = document.getElementById('nousBetaError');
+    if (!inp) return;
+    if (inp.value.trim() === BETA_CODE) {
+      sessionStorage.setItem(LS_KEY, '1');
+      if (err) err.textContent = '';
+      _nousShowContent();
+    } else {
+      if (err) err.textContent = 'Code incorrect, réessaie 🙈';
+      inp.value = '';
+      inp.focus();
+    }
   };
 
-  window._nousIsUnlocked = function(){ return true; };
-  window.nousBetaSubmit  = function() {};
+  // Point d'entrée appelé par yamSwitchTab
+  window.nousCheckLock = function() {
+    if (_isUnlocked()) {
+      _nousShowContent();
+    } else {
+      _nousShowBetaGate();
+    }
+  };
+
+  window._nousIsUnlocked = function(){ return _isUnlocked(); };
 
   setTimeout(function(){
     if (window._currentTab === 'nous') window.nousCheckLock();
@@ -3716,57 +3780,71 @@ window.nousLoad = function(){
     if (ptsEl) {
       if (pts <= 0) {
         ptsEl.textContent = 'Éteinte';
+        ptsEl.classList.add('flamme-pts-danger');
       } else {
         var hLeft = pts / FLAME_DECAY_PH;
         var hh    = Math.floor(hLeft);
         var mm    = Math.floor((hLeft - hh) * 60);
         ptsEl.textContent = hh + 'h' + String(mm).padStart(2, '0');
+        if (ratio < 0.25) {
+          ptsEl.classList.add('flamme-pts-danger');
+        } else {
+          ptsEl.classList.remove('flamme-pts-danger');
+        }
       }
     }
-  }
+
+    // Indicateur d'alerte "flamme en danger" sous la gauge
+    var dangerEl = document.getElementById('flammeDangerAlert');
+    if (dangerEl) {
+      dangerEl.style.display = (pts > 0 && ratio < 0.25) ? 'block' : 'none';
+    }
 
   // ════════════════════════════════════════════════════════════════
   // RENDU — Barre de streak
   // ════════════════════════════════════════════════════════════════
 
   function _renderStreak () {
-    var days = _streak.total_days;
+    var days = _streak.current_streak;   // ← streak consécutif (pas total_days)
+    var best = _streak.best_streak;
 
     var streakNumEl = document.getElementById('flammeStreakNum');
     if (streakNumEl) streakNumEl.textContent = days;
 
-    // Segments : [jours_min, jours_max, pct_physique_min, pct_physique_max, label_next]
-    // Les ticks sont placés à 0% / 7% / 30% / 100% sur la barre
-    // correspondant à 0j / 7j / 30j / 100j
+    // Paliers linéaires : 0→7 / 7→14 / 14→30 / 30→60 / 60→∞
+    // Chaque palier occupe 20% de la barre physique
     var segs = [
-      { dMin:0,   dMax:7,   pMin:0,   pMax:7,   next:'→ 7 jours'    },
-      { dMin:7,   dMax:30,  pMin:7,   pMax:30,  next:'→ 30 jours'   },
-      { dMin:30,  dMax:100, pMin:30,  pMax:100, next:'→ 100 jours'  },
-      { dMin:100, dMax:999, pMin:100, pMax:100, next:'∞ continuez !' }
+      { dMin:0,  dMax:7,  next:'→ 7 jours'   },
+      { dMin:7,  dMax:14, next:'→ 14 jours'  },
+      { dMin:14, dMax:30, next:'→ 30 jours'  },
+      { dMin:30, dMax:60, next:'→ 60 jours'  },
+      { dMin:60, dMax:60, next:'🔥 Record !'  }
     ];
 
+    var segW   = 100 / (segs.length - 1); // largeur physique par palier = 25%
     var barPct = 100;
-    var nextLabel = '∞ continuez !';
+    var nextLabel = '🔥 Record !';
 
-    for (var i = 0; i < segs.length; i++) {
+    for (var i = 0; i < segs.length - 1; i++) {
       var s = segs[i];
       if (days <= s.dMax) {
         var ratio = (days - s.dMin) / (s.dMax - s.dMin);
-        barPct = s.pMin + ratio * (s.pMax - s.pMin);
+        barPct    = (i + ratio) * segW;
         nextLabel = s.next;
         break;
       }
     }
-
     barPct = Math.max(0, Math.min(100, barPct));
 
     var barEl   = document.getElementById('flammeStreakBar');
     var labelEl = document.getElementById('flammeStreakLabel');
     var nextEl  = document.getElementById('flammeStreakNext');
+    var bestEl  = document.getElementById('flammeStreakBest');
 
     if (barEl)   barEl.style.width   = barPct.toFixed(2) + '%';
-    if (labelEl) labelEl.textContent = 'Jour ' + days;
+    if (labelEl) labelEl.textContent = days + (days <= 1 ? ' jour 🔥' : ' jours 🔥');
     if (nextEl)  nextEl.textContent  = nextLabel;
+    if (bestEl)  bestEl.textContent  = best > 0 ? '🏆 Record : ' + best + 'j' : '';
   }
 
   // ════════════════════════════════════════════════════════════════
@@ -3865,8 +3943,25 @@ window.nousLoad = function(){
       _checkStreak();
       _startTicks();
 
-      // Activité "première connexion du jour"
-      window.yamFlameActivity('first_login');
+      // Activité "première connexion du jour" — vérification en base avant de déclencher
+      // pour éviter le re-déclenchement si sessionStorage a été vidé (Safari iOS)
+      (function() {
+        var cid = _getCoupleId();
+        var profile = _getProfile();
+        if (!cid || !profile) { window.yamFlameActivity('first_login'); return; }
+        var localMidnight = new Date(); localMidnight.setHours(0,0,0,0);
+        fetch(SB2_URL + '/rest/v1/v2_flame_activities?couple_id=eq.' + cid +
+          '&activity_type=eq.first_login&triggered_by=eq.' + profile +
+          '&triggered_at=gte.' + localMidnight.toISOString() +
+          '&select=id&limit=1', { headers: sb2Headers() })
+          .then(function(r){ return r.ok ? r.json() : []; })
+          .then(function(rows){
+            if (!rows || rows.length === 0) {
+              window.yamFlameActivity('first_login');
+            }
+          })
+          .catch(function(){ window.yamFlameActivity('first_login'); });
+      })();
     });
   };
 
