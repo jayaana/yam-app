@@ -3951,7 +3951,15 @@ window.nousLoad = function(){
   // INIT — Point d'entrée appelé par _nousInitAll()
   // ════════════════════════════════════════════════════════════════
 
+  var _flammeInitDone = false; // garde — flammeInit ne tourne qu'une fois par session
+
   window.flammeInit = function () {
+    if (_flammeInitDone) {
+      // Re-appel après la 1ère init → simple refresh sans re-déclencher first_login
+      window.flammeRefresh();
+      return;
+    }
+    _flammeInitDone = true;
     _loadAll(function () {
       _renderFlame();
       _renderStreak();
@@ -3961,40 +3969,36 @@ window.nousLoad = function(){
       _checkStreak();
       _startTicks();
 
-      // Activité "première connexion du jour" — vérification en base avant de déclencher
-      // pour éviter le re-déclenchement si sessionStorage a été vidé (Safari iOS)
+      // Activité "première connexion du jour"
+      // Double garde : localStorage (persiste entre sessions) + Supabase (source de vérité)
       (function() {
-        var cid = _getCoupleId();
+        var cid     = _getCoupleId();
         var profile = _getProfile();
-        if (!cid || !profile) { window.yamFlameActivity('first_login'); return; }
+        // Si pas encore de session — on n'essaie pas, sera fait au prochain flammeInit
+        if (!cid || !profile) return;
 
-        // ✅ FIX : garde localStorage persistante entre sessions
-        // Empêche le re-déclenchement à chaque déco/reco dans la même journée
         var lsKey = 'yam_first_login_' + profile;
         var today = _todayStr();
-        try {
-          if (localStorage.getItem(lsKey) === today) return; // déjà fait aujourd'hui
-        } catch(e) {}
 
+        // Garde 1 — localStorage : déjà marqué aujourd'hui → stop immédiat
+        try { if (localStorage.getItem(lsKey) === today) return; } catch(e) {}
+
+        // Garde 2 — Supabase : vérifie qu'il n'existe pas déjà en base
         var localMidnight = new Date(); localMidnight.setHours(0,0,0,0);
         fetch(SB2_URL + '/rest/v1/v2_flame_activities?couple_id=eq.' + cid +
           '&activity_type=eq.first_login&triggered_by=eq.' + profile +
           '&triggered_at=gte.' + localMidnight.toISOString() +
           '&select=id&limit=1', { headers: sb2Headers() })
-          .then(function(r){ return r.ok ? r.json() : []; })
+          .then(function(r){ return r.ok ? r.json() : null; })
           .then(function(rows){
+            if (rows === null) return; // erreur réseau → on ne fait rien
+            // Marquer en localStorage dans tous les cas (présent ou pas en base)
+            try { localStorage.setItem(lsKey, today); } catch(e) {}
             if (!rows || rows.length === 0) {
-              try { localStorage.setItem(lsKey, today); } catch(e) {}
               window.yamFlameActivity('first_login');
-            } else {
-              // Déjà en base → marquer localement pour éviter future requête
-              try { localStorage.setItem(lsKey, today); } catch(e) {}
             }
           })
-          .catch(function(){
-            // Pas de fallback automatique si réseau KO — on ne déclenche pas
-            // pour éviter les faux positifs. Sera retentée demain.
-          });
+          .catch(function(){ /* réseau KO → ne pas déclencher, réessaiera demain */ });
       })();
     });
   };
