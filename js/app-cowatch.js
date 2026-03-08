@@ -10,8 +10,8 @@
   var POLL_MS  = 3000;   // poll état
   var PRES_MS  = 5000;   // heartbeat présence
   var BROADCAST_MS = 5000; // hôte broadcast currentTime toutes les 5s
-  var DRIFT_MAX = 4;     // secondes de dérive max avant seekTo
-  var SEEK_COOLDOWN = 8000; // ms minimum entre deux seekTo non-hôte
+  var DRIFT_MAX = 10;    // secondes de dérive max avant seekTo
+  var SEEK_COOLDOWN = 15000; // ms minimum entre deux seekTo non-hôte
 
   var _myRole=null,_coupleId=null,_sessionId=null;
   var _isHost=false,_player=null,_ytReady=false;
