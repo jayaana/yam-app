@@ -24,7 +24,7 @@
   // ── CSS ────────────────────────────────────────────────────────────
   var st=document.createElement('style');
   st.textContent=[
-    '#cwOv{display:none;position:fixed;inset:0;z-index:2600;background:var(--bg);flex-direction:column;padding-bottom:env(safe-area-inset-bottom,0px);}',
+    '#cwOv{display:none;position:fixed;inset:0;z-index:2600;background:var(--bg);flex-direction:column;}',
     '#cwOv.on{display:flex;}',
     '#cwHdr{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);gap:12px;flex-shrink:0;}',
     '#cwHdr h2{flex:1;font-size:17px;font-weight:700;font-family:"Bricolage Grotesque",sans-serif;color:var(--text);}',
@@ -60,7 +60,7 @@
     '.cw-join-title{font-family:"Bricolage Grotesque",sans-serif;font-size:20px;font-weight:800;color:var(--text);}',
     '.cw-join-sub{font-size:13px;color:var(--muted);}.cw-join-host{font-size:14px;color:var(--accent);font-weight:700;}',
     // Player screen
-    '#cwScPlayer{flex:1;flex-direction:column;overflow:hidden;}',
+    '#cwScPlayer{flex:1;flex-direction:column;overflow:hidden;min-height:0;}',
     // Barre présence + actions
     '.cw-top-bar{flex-shrink:0;padding:7px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);background:var(--s1);}',
     '.cw-pres-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);font-weight:500;}',
@@ -123,7 +123,7 @@
     '.cw-send-btn svg{pointer-events:none;}',
     '.cw-chat-empty{flex:1;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);text-align:center;padding:20px;}',
     // Safe zone iOS
-    '.cw-safe-bottom{flex-shrink:0;height:env(safe-area-inset-bottom,0px);}',
+    '.cw-safe-bottom{flex-shrink:0;height:calc(env(safe-area-inset-bottom,0px) + 8px);min-height:env(safe-area-inset-bottom,0px);}',
     // Playlist — panel qui remplace réactions+chat
     '.cw-pl-panel{display:none;flex-direction:column;flex:1;min-height:0;border-top:1px solid var(--border);background:var(--bg);}',
     '.cw-pl-panel.on{display:flex;}',
@@ -283,9 +283,9 @@
             '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
           '</button>' +
         '</div>' +
-      '</div>' +
-      '<div class="cw-safe-bottom"></div>' +
-    '</div>' +
+      '</div>' +   
+    '</div>' +     
+    '<div class="cw-safe-bottom"></div>' +
     '</div>'
   );
 
