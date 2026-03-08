@@ -258,9 +258,7 @@ body.light .yam-tab-panel {
 /* ══════════════════════════════════════════════════════════
    8. MÉMO DUO CARDS — padding interne harmonisé
 ══════════════════════════════════════════════════════════ */
-.memo-duo-wrap {
-  padding: 12px 14px 14px !important;
-}
+/* .memo-duo-wrap — pas de padding ici, les marges sont gérées par .memo-duo-outer dans main.css */
 
 /* ══════════════════════════════════════════════════════════
    9. BOUTONS PLEINE LARGEUR en bas de section
