@@ -900,7 +900,7 @@ body.nous-active #yamStickyAvatarSelf {
 .streak-bar-bg {
   position: relative;
   height: 6px;
-  background: var(--s2);
+  background: rgba(60,60,67,0.12);
   border-radius: 99px;
   overflow: visible;
 }
@@ -1885,6 +1885,9 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
   <div class="histoire-bulle-wrap">
     <!-- Partie haute — cliquable → modale -->
     <div id="histoireBulle" class="histoire-bulle-top" onclick="(function(){var m=document.getElementById('histoireChapterModal');if(m&&m.style.display!=='none'){histoireCloseChapterModal();}else{histoireOpenChapterModal();}})()">
+      <div style="position:absolute;top:10px;right:12px;color:var(--accent);opacity:0.6;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </div>
       <div id="histoireBulleMeta" class="histoire-bulle-meta">📅 · ...</div>
       <div id="histoireBulleTitre" class="histoire-bulle-titre">En construction</div>
       <div id="histoireBulleTexte" class="histoire-bulle-texte">Clique sur Éditer pour ajouter vos premiers chapitres...</div>
