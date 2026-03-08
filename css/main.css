@@ -5235,7 +5235,7 @@ body.light #counterBlock.glowing .c-num-big {
   cursor: pointer;
 }
 body.light .memo-duo-card {
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.07), 0 6px 16px rgba(0,0,0,0.05);
 }
 .memo-duo-card:active { background: var(--s2); }
 .memo-duo-title {
