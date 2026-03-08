@@ -148,7 +148,7 @@
     '.cw-pl-input:focus{border-color:var(--accent);}',
     '.cw-pl-add-btn{width:30px;height:30px;border-radius:50%;background:var(--accent);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent;}',
     '.cw-pl-add-btn:disabled{opacity:.35;cursor:not-allowed;}.cw-pl-add-btn svg{pointer-events:none;}',
-    '.cw-pl-empty{font-size:12px;color:var(--muted);text-align:center;padding:16px 0;}',
+    '.cw-pl-clickable:hover{background:var(--s2);}.cw-pl-clickable:active{opacity:.7;}',
     // Bouton playlist actif dans la ctrl bar
     '.cw-cbtn.pl-active{background:rgba(201,120,96,.15);border-color:rgba(201,120,96,.4);}',
   ].join('\n');
@@ -643,6 +643,13 @@
     _updateSkipBtn();
   };
 
+  window._cwPlJump=function(idx){
+    if(!_isHost||idx===_plIndex||idx<0||idx>=_playlist.length)return;
+    _plIndex=idx;
+    _savePlaylist();
+    _loadVideo(_playlist[_plIndex].ytId);
+  };
+
   window._cwPlRemove=function(idx){
     // Ne peut supprimer que les vidéos futures (idx > _plIndex)
     if(!_isHost||idx<=_plIndex)return;
@@ -736,6 +743,8 @@
       var isPast=(i<_plIndex);
       var isNext=(i===_plIndex+1);
       var cls='cw-pl-item'+(isCurrent?' current':isPast?' past':'');
+      var clickable=_isHost&&!isCurrent;
+      if(clickable)cls+=' cw-pl-clickable';
       var statusCls=isCurrent?'now':isPast?'done':isNext?'next':'';
       var statusLbl=isCurrent?'\u25b6 En cours':isPast?'\u2713 Vue':isNext?'\u25b6 Suivante':'\u2014 En attente';
       // Bouton suppr uniquement sur les futures (non passées, non en cours)
@@ -743,7 +752,7 @@
         ?'<button class="cw-pl-rm" onclick="window._cwPlRemove('+i+')">' +
           '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
         :'';
-      return '<div class="'+cls+'">'+
+      return '<div class="'+cls+'"'+(clickable?' onclick="window._cwPlJump('+i+')" style="cursor:pointer;"':'')+'>'+
         '<img class="cw-pl-thumb" src="'+thumb+'" alt="" />'+
         '<div class="cw-pl-info">'+
           '<div class="cw-pl-status '+statusCls+'">'+statusLbl+'</div>'+
