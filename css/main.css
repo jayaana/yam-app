@@ -811,6 +811,7 @@ body.light .histoire-bulle-wrap {
 
 /* Partie haute — cliquable */
 .histoire-bulle-top {
+  position: relative;
   padding: 14px 16px 12px;
   cursor: pointer;
   transition: background 0.15s;
@@ -5209,14 +5210,14 @@ body.light #counterBlock.glowing .c-num-big {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2px 10px;
+  padding: 0 0 14px;
 }
 .memo-duo-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 1.6px;
+  letter-spacing: 2.5px;
 }
 /* Les deux cartes dans leur propre bulle, côte à côte */
 .memo-duo-wrap {
