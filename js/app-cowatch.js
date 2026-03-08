@@ -71,6 +71,9 @@
     '.cw-hbadge{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:10px;background:rgba(201,120,96,.15);color:var(--accent);border:1px solid rgba(201,120,96,.3);}',
     // Vidéo
     '.cw-vwrap{position:relative;width:100%;background:#000;flex-shrink:0;}',
+    '.cw-vwrap.cw-ios-fs{position:fixed!important;inset:0!important;z-index:9000!important;width:100vw!important;height:100vh!important;display:flex!important;align-items:center!important;justify-content:center!important;}',
+    '.cw-vwrap.cw-ios-fs #cwYTDiv,.cw-vwrap.cw-ios-fs iframe{width:100vw!important;height:56.25vw!important;max-height:100vh!important;max-width:177.78vh!important;aspect-ratio:unset!important;}',
+    '.cw-vwrap.cw-ios-fs .cw-syncov{height:56.25vw;max-height:100vh;}',
     '#cwYTDiv{display:block;width:100%;aspect-ratio:16/9;}',
     '.cw-syncov{position:absolute;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;flex-direction:column;gap:8px;z-index:5;}',
     '.cw-syncov.on{display:flex;}',
@@ -175,7 +178,7 @@
         '</div>' +
         '<div class="cw-top-actions">' +
           // Plein écran
-          '<div class="cw-icon-btn" onclick="window._cwFullscreen()" title="Plein \u00e9cran">' +
+          '<div class="cw-icon-btn" id="cwFsBtn" onclick="window._cwFullscreen()" title="Plein \u00e9cran">' +
             '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>' +
           '</div>' +
           // Thème
@@ -681,50 +684,55 @@
   };
 
   // ── Plein écran ────────────────────────────────────────────────────
-  // Sur mobile (iOS/Android) requestFullscreen ne fonctionne pas sur iframe.
-  // On overlay l'iframe en position fixed pour simuler le plein écran.
+  // Desktop/Android : requestFullscreen natif sur l'iframe existante.
+  // iOS PWA : on agrandit le .cw-vwrap en position fixed (même iframe, même session YT).
   window._cwFullscreen=function(){
     var wrap=document.querySelector('.cw-vwrap');if(!wrap)return;
     var iframe=wrap.querySelector('iframe');
 
-    // Tentative native d'abord (Android Chrome, desktop)
+    // Si déjà en mode iOS-fs → sortir
+    if(wrap.classList.contains('cw-ios-fs')){
+      wrap.classList.remove('cw-ios-fs');
+      var btn=document.getElementById('cwFsBtn');
+      if(btn)btn.innerHTML=_iconExpand();
+      document.body.style.overflow='';
+      return;
+    }
+
+    // Tentative native (desktop Chrome/Firefox, Android Chrome)
     var target=iframe||wrap;
-    if(document.fullscreenElement||document.webkitFullscreenElement){
+    if(!document.fullscreenElement&&!document.webkitFullscreenElement){
+      if(target.requestFullscreen){target.requestFullscreen();return;}
+      if(target.webkitRequestFullscreen){target.webkitRequestFullscreen();return;}
+    } else {
       if(document.exitFullscreen)document.exitFullscreen();
       else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
       return;
     }
-    if(target.requestFullscreen){target.requestFullscreen();return;}
-    if(target.webkitRequestFullscreen){target.webkitRequestFullscreen();return;}
 
-    // Fallback iOS : faux plein écran via CSS fixé
-    var ov=document.getElementById('cwFsOverlay');
-    if(ov){
-      ov.parentNode.removeChild(ov);
-      document.body.classList.remove('cw-fs-active');
-      return;
-    }
-    var fsOv=document.createElement('div');
-    fsOv.id='cwFsOverlay';
-    fsOv.style.cssText='position:fixed;inset:0;z-index:9999;background:#000;display:flex;align-items:center;justify-content:center;';
-    // Bouton fermer
-    var closeBtn=document.createElement('div');
-    closeBtn.style.cssText='position:absolute;top:14px;right:14px;z-index:10000;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;cursor:pointer;';
-    closeBtn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-    closeBtn.onclick=function(){window._cwFullscreen();};
-    if(iframe){
-      // Cloner l'iframe dans l'overlay
-      var ifrClone=document.createElement('iframe');
-      ifrClone.src=iframe.src;
-      ifrClone.style.cssText='width:100vw;height:56.25vw;max-height:100vh;max-width:177.78vh;border:none;';
-      ifrClone.allow=iframe.allow||'autoplay';
-      ifrClone.setAttribute('allowfullscreen','');
-      fsOv.appendChild(ifrClone);
-    }
-    fsOv.appendChild(closeBtn);
-    document.body.appendChild(fsOv);
-    document.body.classList.add('cw-fs-active');
+    // Fallback iOS : agrandir le wrap existant sans toucher à l'iframe
+    wrap.classList.add('cw-ios-fs');
+    document.body.style.overflow='hidden';
+    var btn=document.getElementById('cwFsBtn');
+    if(btn)btn.innerHTML=_iconCompress();
   };
+
+  // Écouter la sortie fullscreen native (bouton Échap / swipe)
+  document.addEventListener('fullscreenchange',_onFsChange);
+  document.addEventListener('webkitfullscreenchange',_onFsChange);
+  function _onFsChange(){
+    if(!document.fullscreenElement&&!document.webkitFullscreenElement){
+      var btn=document.getElementById('cwFsBtn');
+      if(btn)btn.innerHTML=_iconExpand();
+    }
+  }
+
+  function _iconExpand(){
+    return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
+  }
+  function _iconCompress(){
+    return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>';
+  }
 
   // ── Thème ──────────────────────────────────────────────────────────
   window._cwToggleTheme=function(){
