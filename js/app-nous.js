@@ -3373,6 +3373,7 @@ window.nousLoad = function(){
     best_streak    : 0,
     total_days     : 0,
     last_flame_date: null,
+    last_malus_date: null,   // date du dernier malus minuit appliqué
     rowId          : null
   };
   var _activitiesToday = {}; // { activity_type: true } — activités déjà faites aujourd'hui
@@ -3427,6 +3428,8 @@ window.nousLoad = function(){
           _streak.last_flame_date = rows[0].last_flame_date || null;
           _streak.rowId           = rows[0].id;
         }
+        // Garde locale malus (localStorage, par device)
+        try { _streak.last_malus_date = localStorage.getItem('yam_malus_date') || null; } catch(e) {}
         _mayDone();
       }).catch(_mayDone);
 
@@ -3589,6 +3592,22 @@ window.nousLoad = function(){
       var d = new Date(); d.setDate(d.getDate() - 1);
       return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     })();
+
+    // ── MALUS MINUIT : -50% une fois par jour ──────────────────────
+    // Appliqué en premier, indépendamment du streak, dès qu'un nouveau
+    // jour est détecté et que le malus n'a pas encore été appliqué.
+    if (_streak.last_malus_date !== today) {
+      _streak.last_malus_date = today;
+      try { localStorage.setItem('yam_malus_date', today); } catch(e) {}
+      var currentPts = _currentPoints();
+      if (currentPts > 0) {
+        var afterMalus = Math.floor(currentPts * 0.5);
+        _flame.points       = afterMalus;
+        _flame.last_updated = new Date();
+        _saveFlame(afterMalus);
+        _renderFlame();
+      }
+    }
 
     // Déjà crédité aujourd'hui ?
     if (_streak.last_flame_date === today) return;
