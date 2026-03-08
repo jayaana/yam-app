@@ -803,10 +803,11 @@ header::before {
   border: 1px solid var(--border);
   border-radius: 18px;
   overflow: hidden; /* CRUCIAL : empêche le bandeau de déborder sur la page */
+  box-shadow: var(--section-shadow);
 }
 body.light .histoire-bulle-wrap {
   border-color: rgba(60,60,67,0.12);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  box-shadow: var(--section-shadow);
 }
 
 /* Partie haute — cliquable */
