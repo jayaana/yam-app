@@ -687,7 +687,7 @@ body.nous-active #yamStickyAvatarSelf {
 
 /* ── Conteneur principal ── */
 .nous-header-v2 {
-  padding: 20px 12px 12px;
+  padding: 8px 12px 10px;
   background: var(--bg);
 }
 
@@ -768,9 +768,9 @@ body.nous-active #yamStickyAvatarSelf {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   padding: 0 4px;
-  padding-top: 2px;
+  padding-top: 0;
 }
 
 /* ── Flamme + gauge ── */
@@ -867,45 +867,12 @@ body.nous-active #yamStickyAvatarSelf {
   color: var(--muted);
   white-space: nowrap;
   text-align: center;
-  transition: color 0.4s;
-}
-/* État danger : label vire au orange et clignote */
-.flamme-pts-label.flamme-pts-danger {
-  color: #f97316;
-  animation: flammeUrgence 1.6s ease-in-out infinite;
-}
-@keyframes flammeUrgence {
-  0%,100% { opacity: 1; }
-  50%     { opacity: 0.55; }
-}
-
-/* Alerte danger sous la jauge */
-.flamme-danger-alert {
-  font-size: 9px;
-  font-weight: 700;
-  color: #f97316;
-  font-family: 'Bricolage Grotesque', sans-serif;
-  text-align: center;
-  letter-spacing: 0.3px;
-  margin-top: 1px;
-  animation: flammeUrgence 1.6s ease-in-out infinite;
-}
-
-/* Record personnel sous la barre */
-.streak-best {
-  font-size: 9px;
-  font-weight: 700;
-  color: var(--muted);
-  font-family: 'Bricolage Grotesque', sans-serif;
-  text-align: right;
-  margin-top: 2px;
-  min-height: 12px;
-  opacity: 0.75;
 }
 
 /* ── Barre de streak ── */
 .streak-block {
   width: 100%;
+  max-width: 160px;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -1843,24 +1810,21 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
           </div>
         </div>
         <div id="flammePts" class="flamme-pts-label">—</div>
-        <div id="flammeDangerAlert" class="flamme-danger-alert" style="display:none;">⚠️ S'éteint bientôt</div>
       </div>
 
       <!-- Streak -->
       <div class="streak-block">
         <div class="streak-header">
-          <span id="flammeStreakLabel" class="streak-day">0 jour 🔥</span>
+          <span id="flammeStreakLabel" class="streak-day">Jour 0</span>
           <span id="flammeStreakNext"  class="streak-next">→ 7 jours</span>
         </div>
         <div class="streak-bar-bg">
           <div class="streak-tick" style="left:0%">  <span>0</span></div>
-          <div class="streak-tick" style="left:25%"> <span>7</span></div>
-          <div class="streak-tick" style="left:50%"> <span>14</span></div>
-          <div class="streak-tick" style="left:75%"> <span>30</span></div>
-          <div class="streak-tick" style="left:100%"><span>60</span></div>
+          <div class="streak-tick" style="left:7%">  <span>7</span></div>
+          <div class="streak-tick" style="left:30%"> <span>30</span></div>
+          <div class="streak-tick" style="left:100%"><span>100</span></div>
           <div id="flammeStreakBar" class="streak-bar-fill" style="width:0%"></div>
         </div>
-        <div id="flammeStreakBest" class="streak-best"></div>
       </div>
 
       <!-- Trophées + coeur -->
