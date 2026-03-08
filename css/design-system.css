@@ -134,7 +134,7 @@ body.light .yam-tab-panel {
 
 /* Wrapper qui fusionne plusieurs éléments en un groupe iOS */
 .ios-group {
-  margin: 0 14px 18px !important;
+  margin: 0 14px 6px !important;
   background: var(--group-bg);
   border-radius: var(--group-radius);
   border: 1px solid var(--border);
@@ -171,9 +171,9 @@ body.light .yam-tab-panel {
    (ex: #memoCoupleSection, #wheelSection, etc.)
 ══════════════════════════════════════════════════════════ */
 
-/* memoCoupleSection — standalone, juste les deux cartes duo sans wrapper */
+/* memoCoupleSection — maintenant .memo-duo-outer gère le style via main.css */
 #memoCoupleSection {
-  margin: 0 14px 14px;
+  margin: 0;
   background: transparent;
   border: none;
   border-radius: 0;
