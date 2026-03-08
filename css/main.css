@@ -482,7 +482,7 @@ body.light #yamStickyAvatarSelf { background: rgba(231,90,124,0.08); }
 /* Thème clair */
 body.light #yamStickyHeader, html[data-theme="warm"] #yamStickyHeader {
   background: rgba(242,242,247,0.92);
-  border-bottom: none;
+  border-bottom: 1px solid rgba(60,60,67,0.1);
 }
 /* Masquer quand InstaLove est ouvert */
 body:has(#hiddenPage.active) #yamStickyHeader {
@@ -2492,8 +2492,8 @@ body.dark .mu-card-header { background: #2a2524; }
 .top50-expand:hover { background: var(--s2); }
 .top50-expand-icon { font-size: 12px; transition: transform 0.3s; }
 .top50-expand.open .top50-expand-icon { transform: rotate(180deg); }
-body.light .mu-card-header { background: var(--s3); border-color: rgba(231,90,124,0.2); }
-body.light .mu-card-tracks { background: #ffffff; border-color: rgba(231,90,124,0.15); }
+body.light .mu-card-header { background: var(--s3); border-color: rgba(60,60,67,0.12); }
+body.light .mu-card-tracks { background: #ffffff; border-color: rgba(60,60,67,0.10); }
 body.light .mu-play-btn { box-shadow: 0 4px 18px rgba(231,90,124,0.35); }
 
 /* ══ SUGGESTIONS — une seule card défilante ══ */
@@ -5190,7 +5190,7 @@ body.light #counterBlock.glowing .c-num-big {
   min-width: 0;
   transition: border-color 0.2s;
 }
-.memo-duo-card:hover { border-color: rgba(231,90,124,0.35); }
+.memo-duo-card:hover { border-color: rgba(60,60,67,0.25); }
 .memo-duo-title {
   font-size: 10px;
   font-weight: 700;
