@@ -3793,6 +3793,67 @@ window.nousLoad = function(){
     var boyEl  = document.getElementById('flammeScoreBoy');
     if (girlEl) girlEl.textContent = _formatScore(_trophies.girl);
     if (boyEl)  boyEl.textContent  = _formatScore(_trophies.boy);
+    _renderCrown();
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // COURONNE — Attribue la couronne au meilleur score de trophées
+  // Calculé une fois par jour (vérifié à chaque tick minuit)
+  // Stocké en localStorage avec la date du jour pour éviter recalcul
+  // ════════════════════════════════════════════════════════════════
+
+  function _renderCrown () {
+    var today   = _todayStr();
+    var stored  = null;
+    try { stored = JSON.parse(localStorage.getItem('yam_crown') || 'null'); } catch(e) {}
+
+    var winner;
+    if (stored && stored.date === today) {
+      // Couronne déjà attribuée aujourd'hui — on respecte le résultat du jour
+      winner = stored.winner;
+    } else {
+      // Nouveau jour : on recalcule
+      if (_trophies.girl > _trophies.boy)       winner = 'girl';
+      else if (_trophies.boy > _trophies.girl)  winner = 'boy';
+      else                                       winner = null; // égalité → personne
+      try { localStorage.setItem('yam_crown', JSON.stringify({ date: today, winner: winner })); } catch(e) {}
+    }
+
+    // Éléments DOM
+    var girlRing   = document.getElementById('girlAvatarRing');
+    var boyRing    = document.getElementById('boyAvatarRing');
+    var girlCrown  = document.getElementById('girlCrown');
+    var boyCrown   = document.getElementById('boyCrown');
+    var girlSpark  = document.getElementById('girlSparkles');
+    var boySpark   = document.getElementById('boySparkles');
+    var girlBadge  = document.getElementById('girlCrownBadge');
+    var boyBadge   = document.getElementById('boyCrownBadge');
+
+    // Reset tout
+    if (girlRing)  girlRing.classList.remove('ring-winner');
+    if (boyRing)   boyRing.classList.remove('ring-winner');
+    if (girlCrown) girlCrown.style.display  = 'none';
+    if (boyCrown)  boyCrown.style.display   = 'none';
+    if (girlSpark) girlSpark.style.display  = 'none';
+    if (boySpark)  boySpark.style.display   = 'none';
+    if (girlBadge) girlBadge.style.display  = 'none';
+    if (boyBadge)  boyBadge.style.display   = 'none';
+
+    if (!winner) return; // égalité
+
+    var score = winner === 'girl' ? _trophies.girl : _trophies.boy;
+    var ring   = winner === 'girl' ? girlRing  : boyRing;
+    var crown  = winner === 'girl' ? girlCrown : boyCrown;
+    var spark  = winner === 'girl' ? girlSpark : boySpark;
+    var badge  = winner === 'girl' ? girlBadge : boyBadge;
+
+    if (ring)  ring.classList.add('ring-winner');
+    if (crown) crown.style.display = 'block';
+    if (spark) spark.style.display = 'block';
+    if (badge) {
+      badge.textContent  = '👑 ' + _formatScore(score) + ' pts';
+      badge.style.display = 'inline-block';
+    }
   }
 
   function _formatScore (n) {
@@ -3851,10 +3912,11 @@ window.nousLoad = function(){
         }).catch(function () {});
     }, SYNC_MS);
 
-    // Vérification minuit (streak)
+    // Vérification minuit (streak + couronne)
     _midnightIv = setInterval(function () {
       if (document.hidden) return;
       _checkStreak();
+      _renderCrown(); // recalcule si nouveau jour
     }, MIDNIGHT_CHECK_MS);
   }
 
