@@ -17,6 +17,8 @@
   var _isHost=false,_player=null,_ytReady=false;
   var _pollIv=null,_timeIv=null,_presIv=null,_broadcastIv=null;
   var _isSyncing=false,_lastSeekAt=0,_lastAppliedTs=0,_lastChatTs=0,_lastReactTs=0;
+  var _playlist=[]; // [{ytId,addedBy}] — géré par l'hôte
+  var _currentYtId=null; // ytId en cours de lecture
 
   // ── CSS ────────────────────────────────────────────────────────────
   var st=document.createElement('style');
@@ -119,6 +121,32 @@
     '.cw-send-btn:active{transform:scale(.9);}.cw-send-btn:disabled{opacity:.35;cursor:not-allowed;}',
     '.cw-send-btn svg{pointer-events:none;}',
     '.cw-chat-empty{flex:1;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);text-align:center;padding:20px;}',
+    // Playlist
+    '.cw-pl-bar{flex-shrink:0;border-top:1px solid var(--border);background:var(--s1);}',
+    '.cw-pl-toggle{display:flex;align-items:center;gap:6px;padding:7px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;}',
+    '.cw-pl-toggle-label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;flex:1;}',
+    '.cw-pl-count{font-size:10px;font-weight:700;background:var(--accent);color:#fff;border-radius:20px;padding:1px 6px;min-width:16px;text-align:center;}',
+    '.cw-pl-chevron{transition:transform .2s;color:var(--muted);}',
+    '.cw-pl-chevron.open{transform:rotate(180deg);}',
+    '.cw-pl-body{overflow:hidden;max-height:0;transition:max-height .25s ease;}',
+    '.cw-pl-body.open{max-height:220px;}',
+    '.cw-pl-list{overflow-y:auto;max-height:160px;padding:0 10px 8px;}',
+    '.cw-pl-item{display:flex;align-items:center;gap:8px;padding:5px 4px;border-radius:8px;}',
+    '.cw-pl-item.playing{background:rgba(201,120,96,.1);}',
+    '.cw-pl-thumb{width:44px;height:28px;border-radius:4px;object-fit:cover;flex-shrink:0;background:var(--s2);}',
+    '.cw-pl-info{flex:1;min-width:0;}',
+    '.cw-pl-id{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
+    '.cw-pl-now{font-size:9px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;}',
+    '.cw-pl-rm{width:24px;height:24px;border-radius:50%;border:none;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);flex-shrink:0;-webkit-tap-highlight-color:transparent;}',
+    '.cw-pl-rm:active{opacity:.5;}',
+    '.cw-pl-rm svg{pointer-events:none;}',
+    '.cw-pl-add{display:flex;gap:6px;padding:0 10px 8px;align-items:center;}',
+    '.cw-pl-input{flex:1;padding:7px 10px;background:var(--s2);border:1.5px solid var(--border);border-radius:10px;font-size:12px;color:var(--text);font-family:"Bricolage Grotesque",sans-serif;outline:none;-webkit-appearance:none;transition:border-color .2s;box-sizing:border-box;}',
+    '.cw-pl-input:focus{border-color:var(--accent);}',
+    '.cw-pl-add-btn{width:30px;height:30px;border-radius:50%;background:var(--accent);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent;}',
+    '.cw-pl-add-btn:disabled{opacity:.35;cursor:not-allowed;}',
+    '.cw-pl-add-btn svg{pointer-events:none;}',
+    '.cw-pl-empty{font-size:11px;color:var(--muted);text-align:center;padding:8px 0;}',
   ].join('\n');
   document.head.appendChild(st);
 
@@ -203,6 +231,9 @@
         '<div class="cw-cbtn" id="cwFwd10" onclick="window._cwFwd10()">' +
           '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-5"/></svg>' +
         '</div>' +
+        '<div class="cw-cbtn dis" id="cwSkipBtn" onclick="window._cwSkip()" title="Vid\u00e9o suivante">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>' +
+        '</div>' +
       '</div>' +
       '<div class="cw-reacts">' +
         '<button class="cw-rbtn" onclick="window._cwReact(\'\u2764\uFE0F\')">\u2764\uFE0F</button>' +
@@ -221,6 +252,24 @@
           '<button class="cw-send-btn" id="cwSendBtn" onclick="window._cwSend()" disabled>' +
             '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>' +
           '</button>' +
+        '</div>' +
+      '</div>' +
+      // Playlist collapsible
+      '<div class="cw-pl-bar" id="cwPlBar">' +
+        '<div class="cw-pl-toggle" onclick="window._cwPlToggle()">' +
+          '<span>\uD83C\uDFAC</span>' +
+          '<span class="cw-pl-toggle-label">Playlist</span>' +
+          '<span class="cw-pl-count" id="cwPlCount">0</span>' +
+          '<svg class="cw-pl-chevron" id="cwPlChevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>' +
+        '</div>' +
+        '<div class="cw-pl-body" id="cwPlBody">' +
+          '<div class="cw-pl-list" id="cwPlList"></div>' +
+          '<div class="cw-pl-add" id="cwPlAddRow">' +
+            '<input id="cwPlInput" class="cw-pl-input" type="url" placeholder="Colle un lien YouTube\u2026" autocomplete="off" />' +
+            '<button class="cw-pl-add-btn" id="cwPlAddBtn" onclick="window._cwPlAdd()" disabled>' +
+              '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+            '</button>' +
+          '</div>' +
         '</div>' +
       '</div>' +
     '</div>' +
@@ -323,8 +372,8 @@
       return fetch(SB2_URL+'/rest/v1/'+TABLE,{
         method:'POST',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=representation'}),
         body:JSON.stringify({couple_id:_coupleId,yt_id:ytId,host_role:_myRole,active:true,
-          state:{playing:false,currentTime:0,ts:0,reactions:[],joined:false},
-          chat:[],presence:{}})
+          state:{playing:false,currentTime:0,ts:0,reactions:[],joined:false,currentYtId:ytId},
+          chat:[],presence:{},playlist:[]})
       });
     }).then(function(r){return r.json();})
     .then(function(rows){
@@ -370,6 +419,7 @@
   // ── Player ─────────────────────────────────────────────────────────
   function _startPlayer(ytId){
     _sc('cwScPlayer');
+    _currentYtId=ytId;
     // Badge hôte
     var badge=document.getElementById('cwRoleBadge');if(badge)badge.style.display=_isHost?'':'none';
     // Désactiver contrôles pour non-hôte
@@ -383,6 +433,10 @@
     _setPresAvatar('cwPresAvOther',_otherRole(_myRole));
     document.getElementById('cwPresMe').classList.add('on');
     _loadChat();
+    // Playlist : input add visible seulement hôte
+    var plAddRow=document.getElementById('cwPlAddRow');
+    if(plAddRow)plAddRow.style.display=_isHost?'':'none';
+    _renderPlaylist();
     _loadYT(function(){
       var wrap=document.getElementById('cwYTDiv');if(!wrap)return;
       wrap.innerHTML='';
@@ -437,6 +491,10 @@
     var P=window.YT?window.YT.PlayerState:{};
     if(data===(P.PLAYING||1)){_updatePlayIc(true);_broadcastNow(true);}
     if(data===(P.PAUSED||2)){_updatePlayIc(false);_broadcastNow(false);}
+    // Fin de vidéo → passer à la suivante automatiquement
+    if(data===(P.ENDED||0)){
+      setTimeout(function(){_cwSkipNext();},1200);
+    }
   }
 
   // Hôte : broadcast son état en temps réel toutes les BROADCAST_MS
@@ -451,7 +509,7 @@
   }
   function _broadcastNow(playing){
     if(!_player||!_sessionId)return;
-    _saveState({playing:playing,currentTime:_player.getCurrentTime(),ts:Date.now()});
+    _saveState({playing:playing,currentTime:_player.getCurrentTime(),ts:Date.now(),currentYtId:_currentYtId});
   }
 
   // ── Poll ────────────────────────────────────────────────────────────
@@ -459,7 +517,7 @@
     _stopPoll();
     _pollIv=setInterval(function(){
       if(!_sessionId)return;
-      fetch(SB2_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId)+'&select=state,active,chat,presence',{headers:sb2Headers()})
+      fetch(SB2_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId)+'&select=state,active,chat,presence,playlist',{headers:sb2Headers()})
       .then(function(r){return r.json();})
       .then(function(rows){
         if(!rows||!rows.length)return;
@@ -467,6 +525,8 @@
         if(!row.active){_stopAll();if(typeof showToast==='function')showToast('Session termin\u00e9e','info');_sc('cwScLobby');return;}
         var state=row.state||{};
         if(!_isHost)_applyStateIfNeeded(state);
+        // Sync playlist pour tout le monde
+        _applyPlaylist(row.playlist||[],state.currentYtId||null);
         _handleReacts(state);
         _updatePresenceUI(row.presence||{});
         _applyChat(row.chat||[]);
@@ -520,6 +580,131 @@
       _player.playVideo();_updatePlayIc(true);
       _showSync(false);_isSyncing=false;
     },800);
+  }
+
+  // ── Playlist ────────────────────────────────────────────────────────
+  // Stockée dans colonne `playlist` (jsonb array [{ytId}]) en base.
+  // currentYtId voyage dans state pour que le non-hôte sache ce qui tourne.
+
+  window._cwPlToggle=function(){
+    var body=document.getElementById('cwPlBody');
+    var chev=document.getElementById('cwPlChevron');
+    if(!body)return;
+    body.classList.toggle('open');
+    if(chev)chev.classList.toggle('open',body.classList.contains('open'));
+  };
+
+  // Input add
+  (function(){
+    var inp=document.getElementById('cwPlInput');
+    var btn=document.getElementById('cwPlAddBtn');
+    if(!inp||!btn)return;
+    inp.addEventListener('input',function(){
+      btn.disabled=!_ytId(this.value.trim());
+    });
+    inp.addEventListener('keydown',function(e){
+      if(e.key==='Enter')window._cwPlAdd();
+    });
+  })();
+
+  window._cwPlAdd=function(){
+    if(!_isHost)return;
+    var inp=document.getElementById('cwPlInput');if(!inp)return;
+    var id=_ytId(inp.value.trim());if(!id)return;
+    inp.value='';
+    var btn=document.getElementById('cwPlAddBtn');if(btn)btn.disabled=true;
+    _playlist.push({ytId:id});
+    _savePlaylist();
+    _renderPlaylist();
+    // Ouvrir la playlist si fermée
+    var body=document.getElementById('cwPlBody');
+    var chev=document.getElementById('cwPlChevron');
+    if(body&&!body.classList.contains('open')){
+      body.classList.add('open');if(chev)chev.classList.add('open');
+    }
+  };
+
+  window._cwPlRemove=function(idx){
+    if(!_isHost)return;
+    _playlist.splice(idx,1);
+    _savePlaylist();
+    _renderPlaylist();
+  };
+
+  // Skip manuel (hôte) ou automatique (fin vidéo)
+  window._cwSkip=function(){if(_isHost)_cwSkipNext();};
+  function _cwSkipNext(){
+    if(!_isHost||!_sessionId)return;
+    if(!_playlist.length)return;
+    var next=_playlist.shift(); // prendre le premier
+    _savePlaylist();
+    _loadVideo(next.ytId);
+  }
+
+  function _loadVideo(ytId){
+    if(!ytId||!_player)return;
+    _currentYtId=ytId;
+    _player.loadVideoById(ytId);
+    _broadcastNow(true);
+    _renderPlaylist();
+    _updateSkipBtn();
+  }
+
+  function _savePlaylist(){
+    if(!_sessionId)return;
+    fetch(SB2_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId),{
+      method:'PATCH',
+      headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
+      body:JSON.stringify({playlist:_playlist})
+    }).catch(function(){});
+  }
+
+  // Appelé depuis le poll pour les deux côtés
+  function _applyPlaylist(serverPlaylist,serverYtId){
+    // Mettre à jour la playlist locale affichée pour le non-hôte
+    if(!_isHost){
+      _playlist=serverPlaylist||[];
+      _renderPlaylist();
+      // Si l'hôte a changé de vidéo, on la charge aussi
+      if(serverYtId&&serverYtId!==_currentYtId&&_player&&typeof _player.loadVideoById==='function'){
+        _currentYtId=serverYtId;
+        _player.loadVideoById(serverYtId);
+      }
+    }
+    _updateSkipBtn();
+  }
+
+  function _updateSkipBtn(){
+    var btn=document.getElementById('cwSkipBtn');
+    if(!btn)return;
+    btn.classList.toggle('dis',!_isHost||_playlist.length===0);
+  }
+
+  function _renderPlaylist(){
+    var list=document.getElementById('cwPlList');
+    var count=document.getElementById('cwPlCount');
+    if(!list)return;
+    if(count)count.textContent=_playlist.length;
+    if(!_playlist.length){
+      list.innerHTML='<div class="cw-pl-empty">Aucune vid\u00e9o en attente</div>';
+      return;
+    }
+    list.innerHTML=_playlist.map(function(item,i){
+      var thumb='https://img.youtube.com/vi/'+item.ytId+'/default.jpg';
+      var rmHtml=_isHost
+        ?'<button class="cw-pl-rm" onclick="window._cwPlRemove('+i+')">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+          '</button>'
+        :'';
+      return '<div class="cw-pl-item">'+
+        '<img class="cw-pl-thumb" src="'+thumb+'" alt="" />'+
+        '<div class="cw-pl-info">'+
+          '<div class="cw-pl-now">'+(i===0?'\u25b6 Suivante':'')+'</div>'+
+          '<div class="cw-pl-id">youtu.be/'+item.ytId+'</div>'+
+        '</div>'+
+        rmHtml+
+      '</div>';
+    }).join('');
   }
 
   function _saveState(patch){
@@ -779,6 +964,7 @@
     if(_broadcastIv){clearInterval(_broadcastIv);_broadcastIv=null;}
     if(_player){try{_player.destroy();}catch(e){}_player=null;}
     _isHost=false;_isSyncing=false;_lastSeekAt=0;_lastAppliedTs=0;_lastChatTs=0;_lastReactTs=0;_sessionId=null;
+    _playlist=[];_currentYtId=null;
     var ui=document.getElementById('cwUrlIn');if(ui)ui.value='';
     var pr=document.getElementById('cwPreview');if(pr)pr.classList.remove('on');
     var gb=document.getElementById('cwGoBtn');if(gb)gb.disabled=true;
