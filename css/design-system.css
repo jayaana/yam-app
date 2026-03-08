@@ -30,6 +30,20 @@
 
   /* Transition partagée */
   --ease:          cubic-bezier(.4,0,.2,1);
+
+  /* ── Profondeur des bulles de section (dark) ──
+     Ombre portée multicouche + highlight interne */
+  --section-shadow:
+    0 1px 0   rgba(255,255,255,0.04) inset,   /* highlight haut */
+    0 2px 6px  rgba(0,0,0,0.30),
+    0 6px 18px rgba(0,0,0,0.28),
+    0 14px 40px rgba(0,0,0,0.20);
+  --section-highlight: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.055) 0%,
+    rgba(255,255,255,0.010) 40%,
+    rgba(0,0,0,0.0) 100%
+  );
 }
 
 /* LIGHT */
@@ -39,6 +53,20 @@ body.light {
   --group-sep:     rgba(60,60,67,0.09);
   --group-label:   #6e6e73;
   --page-shadow:   0 -2px 16px rgba(0,0,0,0.08);
+
+  /* ── Profondeur des bulles (light) ──
+     Ombre portée douce + highlight haut blanc */
+  --section-shadow:
+    0 1px 0   rgba(255,255,255,0.90) inset,   /* highlight haut */
+    0 1px 0   rgba(0,0,0,0.04),
+    0 2px 8px  rgba(0,0,0,0.07),
+    0 8px 24px rgba(0,0,0,0.07),
+    0 18px 48px rgba(0,0,0,0.05);
+  --section-highlight: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.85) 0%,
+    rgba(255,255,255,0.0)  28%
+  );
 }
 
 /* Fix background html en thème clair */
@@ -74,11 +102,26 @@ body.light .yam-tab-panel {
   /* Fond de groupe */
   background: var(--group-bg);
   border-radius: var(--group-radius);
-  /* Bordure subtile */
+  /* Bordure subtile (inchangée) */
   border: 1px solid var(--border);
   /* Clip les séparateurs internes */
   overflow: hidden;
+  /* ── Profondeur ── */
+  box-shadow: var(--section-shadow);
+  position: relative;
 }
+
+/* Highlight interne en haut de chaque bulle (shimmer de surface) */
+.section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--section-highlight);
+  pointer-events: none;
+  z-index: 0;
+}
+.section > * { position: relative; z-index: 1; }
 
 /* L'étiquette de section passe en en-tête du groupe */
 .section > .section-label:first-child,
@@ -139,9 +182,22 @@ body.light .yam-tab-panel {
   border-radius: var(--group-radius);
   border: 1px solid var(--border);
   overflow: hidden;
+  position: relative;
+  box-shadow: var(--section-shadow);
 }
+/* Highlight interne ios-group */
+.ios-group::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--section-highlight);
+  pointer-events: none;
+  z-index: 0;
+}
+.ios-group > * { position: relative; z-index: 1; }
 body.light .ios-group {
-  box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.07), 0 6px 16px rgba(0,0,0,0.05);
+  box-shadow: var(--section-shadow);
 }
 
 /* Sections enfants d'un ios-group perdent leurs propres bordures */
@@ -223,7 +279,20 @@ body.light .ios-group {
   border-radius: var(--group-radius);
   border: 1px solid var(--border);
   padding: 14px 12px;
+  box-shadow: var(--section-shadow);
+  position: relative;
+  overflow: hidden;
 }
+.yam-mood-strip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--section-highlight);
+  pointer-events: none;
+  z-index: 0;
+}
+.yam-mood-strip > * { position: relative; z-index: 1; }
 
 /* Compteur — carte distincte sous la mood strip */
 .counter-block {
@@ -390,7 +459,15 @@ body.light #wheelSection,
 body.light #luiSection {
   background: rgba(255,255,255,1) !important;
   border-color: rgba(60,60,67,0.12) !important;
-  box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.07), 0 6px 16px rgba(0,0,0,0.05);
+  box-shadow: var(--section-shadow);
+}
+
+/* ── Profondeur en dark mode : sections standalone ── */
+#postitsSection,
+#souvenirsSection,
+#activitesSection,
+#Books {
+  box-shadow: var(--section-shadow);
 }
 
 /* Sections standalone hors ios-group — bulle blanche arrondie avec margin */
@@ -402,7 +479,7 @@ body.light #Books {
   border: 1px solid rgba(60,60,67,0.12) !important;
   border-radius: 16px !important;
   margin: 0 14px 14px !important;
-  box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.07), 0 6px 16px rgba(0,0,0,0.05);
+  box-shadow: var(--section-shadow);
   overflow: hidden !important;
   padding: 0 !important;
 }
@@ -410,6 +487,7 @@ body.light #Books {
 body.light .yam-mood-strip {
   background: rgba(255,255,255,1) !important;
   border-color: rgba(60,60,67,0.12) !important;
+  box-shadow: var(--section-shadow);
 }
 
 body.light .section-label,
