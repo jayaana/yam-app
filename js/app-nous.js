@@ -3558,7 +3558,7 @@ window.nousLoad = function(){
     // INSERT en base EN PREMIER — si 409 (doublon Supabase) ou erreur → pas d'incrément
     fetch(SB2_URL + '/rest/v1/v2_flame_activities', {
       method  : 'POST',
-      headers : sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
+      headers : sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal,resolution=ignore-duplicates' }),
       body    : JSON.stringify({
         couple_id    : cid,
         activity_type: activityType,
@@ -3567,8 +3567,8 @@ window.nousLoad = function(){
       })
     })
     .then(function(r) {
-      if (r.status === 409) {
-        // Doublon — déjà fait aujourd'hui selon Supabase, on n'incrémente pas
+      if (r.status === 409 || r.status === 200) {
+        // 409 = doublon rejeté, 200 = doublon ignoré — pas d'incrément dans les deux cas
         return;
       }
       if (!r.ok) {
