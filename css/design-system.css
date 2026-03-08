@@ -171,8 +171,17 @@ body.light .yam-tab-panel {
    (ex: #memoCoupleSection, #wheelSection, etc.)
 ══════════════════════════════════════════════════════════ */
 
-/* Sections qui ne portent PAS la classe .section */
-#memoCoupleSection,
+/* memoCoupleSection — standalone, juste les deux cartes duo sans wrapper */
+#memoCoupleSection {
+  margin: 0 14px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+  padding: 0 !important;
+}
+
+/* Sections standalone avec leur propre bulle arrondie */
 #postitsSection,
 #souvenirsSection,
 #activitesSection,
@@ -386,16 +395,30 @@ body.light .yam-tab-panel {
 }
 
 body.light .section,
-body.light #memoCoupleSection,
-body.light #postitsSection,
-body.light #souvenirsSection,
-body.light #activitesSection,
-body.light #Books,
+body.light #memoCoupleSection {
+  /* Les duo-cards ont leurs propres bordures, pas de wrapper */
+}
+
+body.light .section,
 body.light #wheelSection,
 body.light #luiSection {
   background: rgba(255,255,255,1) !important;
   border-color: rgba(60,60,67,0.12) !important;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+/* Sections standalone hors ios-group — bulle blanche arrondie avec margin */
+body.light #postitsSection,
+body.light #souvenirsSection,
+body.light #activitesSection,
+body.light #Books {
+  background: rgba(255,255,255,1) !important;
+  border: 1px solid rgba(60,60,67,0.12) !important;
+  border-radius: 16px !important;
+  margin: 0 14px 14px !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  overflow: hidden !important;
+  padding: 0 !important;
 }
 
 body.light .yam-mood-strip {
