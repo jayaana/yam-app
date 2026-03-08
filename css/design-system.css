@@ -467,7 +467,25 @@ body.light #luiSection {
 #souvenirsSection,
 #activitesSection,
 #Books {
+  background: var(--group-bg) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
+  margin: 0 14px 14px !important;
+  overflow: hidden !important;
+  padding: 0 !important;
   box-shadow: var(--section-shadow);
+}
+
+/* ── Boutons bas de #Books — padding latéral pour ne pas coller au bord ── */
+#Books > div[style*="display:flex"][style*="gap:10px"] {
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+}
+/* livreIdeaCard aussi */
+#livreIdeaCard {
+  margin-left: 14px !important;
+  margin-right: 14px !important;
+  margin-bottom: 14px !important;
 }
 
 /* Sections standalone hors ios-group — bulle blanche arrondie avec margin */
