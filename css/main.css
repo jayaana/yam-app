@@ -481,8 +481,8 @@ body.light #yamStickyAvatarSelf { background: rgba(231,90,124,0.08); }
 }
 /* Thème clair */
 body.light #yamStickyHeader, html[data-theme="warm"] #yamStickyHeader {
-  background: rgba(240, 235, 229, 0.90);
-  border-bottom: 1px solid rgba(60,60,67,0.12);
+  background: rgba(242,242,247,0.92);
+  border-bottom: none;
 }
 /* Masquer quand InstaLove est ouvert */
 body:has(#hiddenPage.active) #yamStickyHeader {
@@ -805,8 +805,8 @@ header::before {
   overflow: hidden; /* CRUCIAL : empêche le bandeau de déborder sur la page */
 }
 body.light .histoire-bulle-wrap {
-  border-color: rgba(231,90,124,0.18);
-  box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+  border-color: rgba(60,60,67,0.12);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 
 /* Partie haute — cliquable */
@@ -915,8 +915,8 @@ body.light .histoire-bulle-wrap {
   box-shadow: 0 8px 32px rgba(0,0,0,0.22);
 }
 body.light .histoire-chapter-modal-content {
-  border-color: rgba(231,90,124,0.22);
-  box-shadow: 0 8px 28px rgba(0,0,0,0.13);
+  border-color: rgba(60,60,67,0.12);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.10);
 }
 
 /* Bulle vidéo événement */
@@ -1488,16 +1488,16 @@ body.light {
 /* Header */
 body.light header {
   background: var(--bg);
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
 }
 
 body.light header::before { display: none; }
 
 /* Navigation basse */
 body.light .bottom-nav {
-  background: rgba(249,249,249,0.96);
-  border-top: 1px solid rgba(60,60,67,0.12);
-  box-shadow: 0 -1px 0 rgba(60,60,67,0.08);
+  background: rgba(242,242,247,0.97);
+  border-top: 1px solid rgba(60,60,67,0.1);
+  box-shadow: none;
 }
 body.light .nav-item { color: var(--muted); }
 body.light .nav-item:hover { color: var(--text); }
@@ -1515,8 +1515,8 @@ body.light .counter-block { border-color: rgba(60,60,67,0.12); }
 body.light .counter-block-top { background: linear-gradient(90deg, var(--accent) 0%, rgba(231,90,124,0.15) 100%); opacity: 0.8; }
 
 /* Section labels */
-body.light .section-label { color: var(--accent); }
-body.light .section-label::after { background: rgba(231,90,124,0.15); }
+body.light .section-label { color: var(--muted); }
+body.light .section-label::after { background: rgba(60,60,67,0.1); }
 body.light .hdr-tag { letter-spacing: 3px; }
 body.light .hdr-sub::before { background: var(--accent); box-shadow: 0 0 6px rgba(231,90,124,0.4); }
 
@@ -1613,8 +1613,7 @@ body.light .qz-result { background: var(--s1); border-color: rgba(231,90,124,0.2
 
 /* Nav lock */
 /* Divers */
-body.light .section-label { color: var(--accent); }
-body.light #reasonBox { background: var(--s1); }
+body.light .section-label { color: var(--muted); }
 /* loveBox light bg handled in component CSS */
 .nav-item {
   display: flex; flex-direction: column; align-items: center;
