@@ -5,6 +5,7 @@
   'use strict';
 
   var TABLE    = 'v2_cowatch_sessions';
+  var TABLE_PL = 'v2_cowatch_playlist'; // playlist persistante par couple
   var BETA_CODE= 'YAMNOW';
   var BETA_KEY = 'yam_cowatch_beta_ok';
   var POLL_MS  = 3000;   // poll état
@@ -17,9 +18,10 @@
   var _isHost=false,_player=null,_ytReady=false;
   var _pollIv=null,_timeIv=null,_presIv=null,_broadcastIv=null;
   var _isSyncing=false,_lastSeekAt=0,_lastAppliedTs=0,_lastChatTs=0,_lastReactTs=0;
-  var _playlist=[]; // [{ytId}] — historique complet, jamais supprimé
+  var _playlist=[]; // [{ytId}] — historique complet session en cours, jamais supprimé
   var _plIndex=0;   // index de la vidéo en cours dans _playlist
   var _currentYtId=null;
+  var _savedPlaylist=[]; // playlist persistante du couple (v2_cowatch_playlist)
 
   // ── CSS ────────────────────────────────────────────────────────────
   var st=document.createElement('style');
@@ -49,6 +51,30 @@
     '.cw-preview{background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:none;}',
     '.cw-preview.on{display:block;}.cw-preview img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;}',
     '.cw-preview-info{padding:10px 14px;}.cw-preview-id{font-size:12px;color:var(--muted);}',
+    // Lobby — section playlist sauvegardée
+    '.cw-lpl-box{background:var(--s1);border:1px solid var(--border);border-radius:14px;overflow:hidden;}',
+    '.cw-lpl-hdr{padding:11px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);}',
+    '.cw-lpl-title{flex:1;font-size:13px;font-weight:700;color:var(--text);}',
+    '.cw-lpl-count{font-size:10px;font-weight:700;background:var(--accent);color:#fff;border-radius:20px;padding:1px 7px;}',
+    '.cw-lpl-list{max-height:180px;overflow-y:auto;-webkit-overflow-scrolling:touch;}',
+    '.cw-lpl-item{display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid var(--border);}',
+    '.cw-lpl-item:last-child{border-bottom:none;}',
+    '.cw-lpl-thumb{width:44px;height:28px;border-radius:4px;object-fit:cover;flex-shrink:0;background:var(--s2);}',
+    '.cw-lpl-id{flex:1;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
+    '.cw-lpl-rm{width:26px;height:26px;border-radius:50%;border:none;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);-webkit-tap-highlight-color:transparent;flex-shrink:0;}',
+    '.cw-lpl-rm:active{opacity:.5;}.cw-lpl-rm svg{pointer-events:none;}',
+    '.cw-lpl-add{display:flex;gap:6px;padding:8px 10px;align-items:center;border-top:1px solid var(--border);}',
+    '.cw-lpl-input{flex:1;padding:7px 10px;background:var(--s2);border:1.5px solid var(--border);border-radius:10px;font-size:12px;color:var(--text);font-family:"Bricolage Grotesque",sans-serif;outline:none;-webkit-appearance:none;transition:border-color .2s;box-sizing:border-box;}',
+    '.cw-lpl-input:focus{border-color:var(--accent);}',
+    '.cw-lpl-add-btn{width:30px;height:30px;border-radius:50%;background:var(--accent);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}',
+    '.cw-lpl-add-btn:disabled{opacity:.35;cursor:not-allowed;}.cw-lpl-add-btn svg{pointer-events:none;}',
+    '.cw-lpl-empty{font-size:12px;color:var(--muted);text-align:center;padding:14px;}',
+    // Bouton "lancer playlist"
+    '.cw-btn-pl{background:linear-gradient(135deg,var(--green,#22c55e),color-mix(in srgb,var(--green,#22c55e) 70%,var(--accent)));color:#fff;border:none;border-radius:50px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer;font-family:"Bricolage Grotesque",sans-serif;box-shadow:0 4px 20px rgba(34,197,94,.25);transition:transform .12s;width:100%;}',
+    '.cw-btn-pl:active{transform:scale(.97);}.cw-btn-pl:disabled{opacity:.4;cursor:not-allowed;}',
+    // Bouton import playlist (dans le panel playlist en session)
+    '.cw-pl-import-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;margin:0 10px 8px;border-radius:10px;background:rgba(201,120,96,.1);border:1.5px dashed rgba(201,120,96,.4);cursor:pointer;font-size:12px;font-weight:600;color:var(--accent);-webkit-tap-highlight-color:transparent;}',
+    '.cw-pl-import-btn:active{opacity:.7;}',
     '#cwScWait{align-items:center;justify-content:center;padding:40px 24px;gap:16px;text-align:center;}',
     '.cw-spin{width:52px;height:52px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);animation:cwRot 1s linear infinite;}',
     '@keyframes cwRot{to{transform:rotate(360deg)}}',
@@ -172,14 +198,41 @@
       '<button class="cw-btn" onclick="window._cwBetaOk()">Acc\u00e9der \u2728</button>' +
     '</div>' +
     '<div id="cwScLobby" class="cw-sc">' +
-      '<div class="cw-label">Colle un lien YouTube</div>' +
-      '<input id="cwUrlIn" class="cw-urlinput" type="url" placeholder="https://youtube.com/watch?v=..." autocomplete="off" />' +
-      '<div id="cwPreview" class="cw-preview">' +
-        '<img id="cwThumb" src="" alt="" />' +
-        '<div class="cw-preview-info"><div id="cwPreviewId" class="cw-preview-id"></div></div>' +
+      // Mode A : lancer un nouveau lien
+      '<div id="cwLobbyNewLink">' +
+        '<div class="cw-label">Nouveau lien YouTube</div>' +
+        '<input id="cwUrlIn" class="cw-urlinput" type="url" placeholder="https://youtube.com/watch?v=..." autocomplete="off" />' +
+        '<div id="cwPreview" class="cw-preview">' +
+          '<img id="cwThumb" src="" alt="" />' +
+          '<div class="cw-preview-info"><div id="cwPreviewId" class="cw-preview-id"></div></div>' +
+        '</div>' +
+        '<button class="cw-btn" id="cwGoBtn" onclick="window._cwLaunch()" disabled>Lancer ce lien \uD83C\uDFAC</button>' +
       '</div>' +
-      '<button class="cw-btn" id="cwGoBtn" onclick="window._cwLaunch()" disabled>Lancer la session \uD83C\uDFAC</button>' +
-      '<div style="font-size:12px;color:var(--muted);text-align:center;line-height:1.6;">Tu seras l\u2019h\u00f4te et tu contr\u00f4les la lecture.<br>L\u2019autre verra une invitation d\u00e8s qu\u2019il ouvre cette section.</div>' +
+      // Séparateur
+      '<div style="display:flex;align-items:center;gap:10px;">' +
+        '<div style="flex:1;height:1px;background:var(--border);"></div>' +
+        '<span style="font-size:11px;color:var(--muted);font-weight:600;">ou</span>' +
+        '<div style="flex:1;height:1px;background:var(--border);"></div>' +
+      '</div>' +
+      // Mode B : lancer la playlist sauvegardée
+      '<div id="cwLobbyPl">' +
+        '<div class="cw-lpl-box">' +
+          '<div class="cw-lpl-hdr">' +
+            '<span style="font-size:15px;">\uD83C\uDFAC</span>' +
+            '<span class="cw-lpl-title">Notre playlist</span>' +
+            '<span class="cw-lpl-count" id="cwLplCount">0</span>' +
+          '</div>' +
+          '<div class="cw-lpl-list" id="cwLplList"><div class="cw-lpl-empty">Aucune vid\u00e9o enregistr\u00e9e</div></div>' +
+          '<div class="cw-lpl-add">' +
+            '<input id="cwLplInput" class="cw-lpl-input" type="url" placeholder="Ajouter un lien\u2026" autocomplete="off" />' +
+            '<button class="cw-lpl-add-btn" id="cwLplAddBtn" onclick="window._cwLplAdd()" disabled>' +
+              '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+            '</button>' +
+          '</div>' +
+        '</div>' +
+        '<button class="cw-btn-pl" id="cwGoPlBtn" onclick="window._cwLaunchPlaylist()" disabled>Lancer la playlist \u25b6</button>' +
+      '</div>' +
+      '<div style="font-size:12px;color:var(--muted);text-align:center;line-height:1.6;">Tu seras l\u2019h\u00f4te et tu contr\u00f4les la lecture.</div>' +
     '</div>' +
     '<div id="cwScWait" class="cw-sc">' +
       '<div class="cw-spin"></div>' +
@@ -277,6 +330,10 @@
           '</div>' +
         '</div>' +
         '<div class="cw-pl-list" id="cwPlList"></div>' +
+        '<div class="cw-pl-import-btn" id="cwPlImportBtn" onclick="window._cwImportSavedPl()">' +
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
+          'Importer notre playlist \u00e0 la suite' +
+        '</div>' +
         '<div class="cw-pl-add" id="cwPlAddRow">' +
           '<input id="cwPlInput" class="cw-pl-input" type="url" placeholder="Colle un lien YouTube\u2026" autocomplete="off" />' +
           '<button class="cw-pl-add-btn" id="cwPlAddBtn" onclick="window._cwPlAdd()" disabled>' +
@@ -317,7 +374,114 @@
     return '<div class="'+className+'" style="background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);">'+_escHtml(init)+'</div>';
   }
 
-  // ── Beta ───────────────────────────────────────────────────────────
+  // ── Lobby playlist sauvegardée ─────────────────────────────────────
+  (function(){
+    var inp=document.getElementById('cwLplInput');
+    var btn=document.getElementById('cwLplAddBtn');
+    if(!inp||!btn)return;
+    inp.addEventListener('input',function(){btn.disabled=!_ytId(this.value.trim());});
+    inp.addEventListener('keydown',function(e){if(e.key==='Enter')window._cwLplAdd();});
+  })();
+
+  function _loadSavedPlaylist(cb){
+    if(!_coupleId)return;
+    fetch(SB2_URL+'/rest/v1/'+TABLE_PL+'?couple_id=eq.'+encodeURIComponent(_coupleId)+'&order=position.asc',{headers:sb2Headers()})
+    .then(function(r){return r.json();})
+    .then(function(rows){
+      _savedPlaylist=(rows||[]).map(function(r){return{ytId:r.yt_id,id:r.id};});
+      _renderLobbyPlaylist();
+      if(cb)cb();
+    }).catch(function(){if(cb)cb();});
+  }
+
+  function _renderLobbyPlaylist(){
+    var list=document.getElementById('cwLplList');
+    var count=document.getElementById('cwLplCount');
+    var goBtn=document.getElementById('cwGoPlBtn');
+    if(!list)return;
+    if(count)count.textContent=_savedPlaylist.length;
+    if(goBtn)goBtn.disabled=_savedPlaylist.length===0;
+    if(!_savedPlaylist.length){
+      list.innerHTML='<div class="cw-lpl-empty">Aucune vid\u00e9o enregistr\u00e9e</div>';
+      return;
+    }
+    list.innerHTML=_savedPlaylist.map(function(item,i){
+      var thumb='https://img.youtube.com/vi/'+item.ytId+'/default.jpg';
+      return '<div class="cw-lpl-item">'+
+        '<img class="cw-lpl-thumb" src="'+thumb+'" alt="" />'+
+        '<span class="cw-lpl-id">youtu.be/'+item.ytId+'</span>'+
+        '<button class="cw-lpl-rm" onclick="window._cwLplRemove('+i+')">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+        '</button>'+
+      '</div>';
+    }).join('');
+  }
+
+  window._cwLplAdd=function(){
+    var inp=document.getElementById('cwLplInput');if(!inp)return;
+    var id=_ytId(inp.value.trim());if(!id||!_coupleId)return;
+    inp.value='';
+    var btn=document.getElementById('cwLplAddBtn');if(btn)btn.disabled=true;
+    var pos=_savedPlaylist.length;
+    fetch(SB2_URL+'/rest/v1/'+TABLE_PL,{
+      method:'POST',
+      headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=representation'}),
+      body:JSON.stringify({couple_id:_coupleId,yt_id:id,position:pos})
+    }).then(function(r){return r.json();})
+    .then(function(rows){
+      if(rows&&rows[0])_savedPlaylist.push({ytId:id,id:rows[0].id});
+      _renderLobbyPlaylist();
+    }).catch(function(){});
+  };
+
+  window._cwLplRemove=function(idx){
+    var item=_savedPlaylist[idx];if(!item||!item.id)return;
+    fetch(SB2_URL+'/rest/v1/'+TABLE_PL+'?id=eq.'+encodeURIComponent(item.id),{
+      method:'DELETE',headers:sb2Headers({'Prefer':'return=minimal'})
+    }).catch(function(){});
+    _savedPlaylist.splice(idx,1);
+    _renderLobbyPlaylist();
+  };
+
+  // Lancer depuis la playlist sauvegardée (premier item)
+  window._cwLaunchPlaylist=function(){
+    if(!_savedPlaylist.length||!_coupleId||!_myRole)return;
+    var firstId=_savedPlaylist[0].ytId;
+    var allItems=_savedPlaylist.map(function(i){return{ytId:i.ytId};});
+    fetch(SB2_URL+'/rest/v1/'+TABLE+'?couple_id=eq.'+encodeURIComponent(_coupleId),{
+      method:'PATCH',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
+      body:JSON.stringify({active:false})
+    }).then(function(){
+      return fetch(SB2_URL+'/rest/v1/'+TABLE,{
+        method:'POST',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=representation'}),
+        body:JSON.stringify({couple_id:_coupleId,yt_id:firstId,host_role:_myRole,active:true,
+          state:{playing:false,currentTime:0,ts:0,reactions:[],joined:false,currentYtId:firstId},
+          chat:[],presence:{},playlist:allItems,playlist_index:0})
+      });
+    }).then(function(r){return r.json();})
+    .then(function(rows){
+      if(!rows||!rows.length)return;
+      _sessionId=rows[0].id;_isHost=true;
+      _playlist=allItems;_plIndex=0;
+      document.getElementById('cwWaitTxt').textContent='En attente que '+_name(_otherRole(_myRole))+' rejoigne\u2026';
+      _sc('cwScWait');_startWaitPoll();
+    }).catch(function(){if(typeof showToast==='function')showToast('Erreur r\u00e9seau','error');});
+  };
+
+  // Import playlist sauvegardée dans une session en cours (à la fin)
+  window._cwImportSavedPl=function(){
+    if(!_isHost||!_savedPlaylist.length)return;
+    var newItems=_savedPlaylist.map(function(i){return{ytId:i.ytId};});
+    // Dédupliquer : ne pas ajouter ce qui est déjà dans _playlist
+    var existing=_playlist.map(function(i){return i.ytId;});
+    var toAdd=newItems.filter(function(i){return existing.indexOf(i.ytId)===-1;});
+    if(!toAdd.length){if(typeof showToast==='function')showToast('D\u00e9j\u00e0 tout dans la playlist','info');return;}
+    _playlist=_playlist.concat(toAdd);
+    _savePlaylist();
+    _renderPlaylist();
+    _updateSkipBtn();
+    if(typeof showToast==='function')showToast(toAdd.length+' vid\u00e9o(s) ajout\u00e9e(s)','success');
+  };
   window._cwBetaOk=function(){
     var el=document.getElementById('cwBetaIn');if(!el)return;
     if(el.value.trim().toUpperCase()===BETA_CODE){try{localStorage.setItem(BETA_KEY,'1');}catch(e){}_afterBeta();}
@@ -360,6 +524,7 @@
 
   function _afterBeta(){
     if(!_coupleId){_sc('cwScLobby');return;}
+    _loadSavedPlaylist(); // charger la playlist du couple
     fetch(SB2_URL+'/rest/v1/'+TABLE+'?couple_id=eq.'+encodeURIComponent(_coupleId)+'&active=eq.true&order=created_at.desc&limit=1',{headers:sb2Headers()})
     .then(function(r){return r.json();})
     .then(function(rows){
@@ -448,9 +613,11 @@
     _setPresAvatar('cwPresAvOther',_otherRole(_myRole));
     document.getElementById('cwPresMe').classList.add('on');
     _loadChat();
-    // Playlist : input add visible seulement hôte
+    // Playlist : input add + import visibles seulement hôte
     var plAddRow=document.getElementById('cwPlAddRow');
     if(plAddRow)plAddRow.style.display=_isHost?'':'none';
+    var plImport=document.getElementById('cwPlImportBtn');
+    if(plImport)plImport.style.display=_isHost?'':'none';
     _renderPlaylist();
     _loadYT(function(){
       var wrap=document.getElementById('cwYTDiv');if(!wrap)return;
@@ -1023,7 +1190,7 @@
     if(_broadcastIv){clearInterval(_broadcastIv);_broadcastIv=null;}
     if(_player){try{_player.destroy();}catch(e){}_player=null;}
     _isHost=false;_isSyncing=false;_lastSeekAt=0;_lastAppliedTs=0;_lastChatTs=0;_lastReactTs=0;_sessionId=null;
-    _playlist=[];_plIndex=0;_currentYtId=null;_plOpen=false;
+    _playlist=[];_plIndex=0;_currentYtId=null;_plOpen=false;_savedPlaylist=[];
     var ui=document.getElementById('cwUrlIn');if(ui)ui.value='';
     var pr=document.getElementById('cwPreview');if(pr)pr.classList.remove('on');
     var gb=document.getElementById('cwGoBtn');if(gb)gb.disabled=true;
@@ -1034,9 +1201,11 @@
 
   window.closeCowatchModal=function(){
     if(_isHost&&_sessionId){
+      // Nettoyer chat, présence, réactions — garder playlist intacte en base
       fetch(SB2_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId),{
         method:'PATCH',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
-        body:JSON.stringify({active:false})
+        body:JSON.stringify({active:false,chat:[],presence:{},
+          state:{playing:false,currentTime:0,ts:0,reactions:[],joined:false}})
       }).catch(function(){});
     }
     _stopAll();
