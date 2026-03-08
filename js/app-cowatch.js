@@ -7,14 +7,16 @@
   var TABLE    = 'v2_cowatch_sessions';
   var BETA_CODE= 'YAMNOW';
   var BETA_KEY = 'yam_cowatch_beta_ok';
-  var POLL_MS  = 2500;
-  var PRES_MS  = 5000;
-  var DRIFT_TOLERANCE = 3.5; // secondes avant de resync
+  var POLL_MS  = 3000;   // poll état
+  var PRES_MS  = 5000;   // heartbeat présence
+  var BROADCAST_MS = 5000; // hôte broadcast currentTime toutes les 5s
+  var DRIFT_MAX = 4;     // secondes de dérive max avant seekTo
+  var SEEK_COOLDOWN = 8000; // ms minimum entre deux seekTo non-hôte
 
   var _myRole=null,_coupleId=null,_sessionId=null;
   var _isHost=false,_player=null,_ytReady=false;
-  var _pollIv=null,_timeIv=null,_presIv=null;
-  var _isSyncing=false,_lastStateTsApplied=0,_lastChatTs=0,_lastReactTs=0;
+  var _pollIv=null,_timeIv=null,_presIv=null,_broadcastIv=null;
+  var _isSyncing=false,_lastSeekAt=0,_lastAppliedTs=0,_lastChatTs=0,_lastReactTs=0;
 
   // ── CSS ────────────────────────────────────────────────────────────
   var st=document.createElement('style');
@@ -385,7 +387,7 @@
         width:'100%',videoId:ytId,
         playerVars:{playsinline:1,controls:0,rel:0,modestbranding:1,disablekb:1},
         events:{
-          onReady:function(){_startTimeIv();},
+          onReady:function(){_startTimeIv();if(_isHost)_startBroadcast();},
           onStateChange:function(e){_onYTState(e.data);}
         }
       });
@@ -428,10 +430,25 @@
   }
 
   function _onYTState(data){
-    if(!_isHost)return; // non-hôte : ignorer tous les events locaux
+    if(!_isHost)return;
     var P=window.YT?window.YT.PlayerState:{};
-    if(data===(P.PLAYING||1)){_updatePlayIc(true);_saveState({playing:true,currentTime:_player.getCurrentTime(),ts:Date.now()});}
-    if(data===(P.PAUSED||2)){_updatePlayIc(false);_saveState({playing:false,currentTime:_player.getCurrentTime(),ts:Date.now()});}
+    if(data===(P.PLAYING||1)){_updatePlayIc(true);_broadcastNow(true);}
+    if(data===(P.PAUSED||2)){_updatePlayIc(false);_broadcastNow(false);}
+  }
+
+  // Hôte : broadcast son état en temps réel toutes les BROADCAST_MS
+  function _startBroadcast(){
+    if(_broadcastIv)clearInterval(_broadcastIv);
+    _broadcastIv=setInterval(function(){
+      if(!_player||!_isHost||!_sessionId)return;
+      var P=window.YT?window.YT.PlayerState:{};
+      var playing=_player.getPlayerState()===(P.PLAYING||1);
+      _broadcastNow(playing);
+    },BROADCAST_MS);
+  }
+  function _broadcastNow(playing){
+    if(!_player||!_sessionId)return;
+    _saveState({playing:playing,currentTime:_player.getCurrentTime(),ts:Date.now()});
   }
 
   // ── Poll ────────────────────────────────────────────────────────────
@@ -454,43 +471,52 @@
     },POLL_MS);
   }
 
-  // ── Sync intelligente : ne resync que si décalage > DRIFT_TOLERANCE ─
+  // ── Sync non-hôte : stable, sans boucle ────────────────────────────
+  // Principe : l'hôte broadcast currentTime + ts toutes les 5s.
+  // On recalcule la position attendue en ajoutant le lag réseau.
+  // On ne seekTo QUE si la dérive > DRIFT_MAX ET cooldown respecté.
+  // Pour play/pause : on agit immédiatement sans seekTo.
   function _applyStateIfNeeded(state){
     if(!state||!state.ts)return;
     if(!_player||typeof _player.seekTo!=='function')return;
     if(_isSyncing)return;
 
-    var lag=Math.min((Date.now()-state.ts)/1000,10);
-    var expectedTime=(state.currentTime||0)+(state.playing?lag:0);
-    var actualTime=_player.getCurrentTime()||0;
-    var drift=Math.abs(actualTime-expectedTime);
     var P=window.YT?window.YT.PlayerState:{};
     var isPlaying=_player.getPlayerState()===(P.PLAYING||1);
     var statePlaying=!!state.playing;
+    var now=Date.now();
 
-    // Resync seulement si : état play/pause différent OU dérive > seuil OU ts nouveau
-    var needSync=(statePlaying!==isPlaying)||(drift>DRIFT_TOLERANCE)||(state.ts>_lastStateTsApplied);
-    if(!needSync)return;
-
-    _lastStateTsApplied=state.ts;
-    _isSyncing=true;
-
-    // Si simple changement play/pause sans gros décalage → pas de seekTo
-    if(drift<=DRIFT_TOLERANCE&&statePlaying!==isPlaying){
+    // ── 1. Gérer play/pause si changé ──
+    if(statePlaying!==isPlaying&&state.ts!==_lastAppliedTs){
+      _lastAppliedTs=state.ts;
       if(statePlaying){_player.playVideo();_updatePlayIc(true);}
       else{_player.pauseVideo();_updatePlayIc(false);}
-      _isSyncing=false;
-      return;
+      // Ne pas retourner : on vérifie aussi la dérive ci-dessous
     }
 
-    // Gros décalage → seekTo + overlay
+    // ── 2. Calculer la dérive SEULEMENT si la vidéo tourne ──
+    // Si pausée, pas besoin de rattraper
+    if(!statePlaying)return;
+
+    var lag=Math.min((now-state.ts)/1000,8); // lag réseau estimé, max 8s
+    var expectedTime=(state.currentTime||0)+lag;
+    var actualTime=_player.getCurrentTime()||0;
+    var drift=actualTime-expectedTime; // positif = on est en avance, négatif = en retard
+
+    // Cooldown entre deux seeks
+    var cooldownOk=(now-_lastSeekAt)>SEEK_COOLDOWN;
+    if(Math.abs(drift)<=DRIFT_MAX||!cooldownOk)return;
+
+    // ── 3. seekTo uniquement si dérive réelle ──
+    _isSyncing=true;
+    _lastSeekAt=now;
+    _lastAppliedTs=state.ts;
     _showSync(true);
     _player.seekTo(expectedTime,true);
     setTimeout(function(){
-      if(statePlaying){_player.playVideo();_updatePlayIc(true);}
-      else{_player.pauseVideo();_updatePlayIc(false);}
+      _player.playVideo();_updatePlayIc(true);
       _showSync(false);_isSyncing=false;
-    },600);
+    },800);
   }
 
   function _saveState(patch){
@@ -646,22 +672,58 @@
   window._cwBack10=function(){
     if(!_player||!_isHost)return;
     var t=Math.max(0,_player.getCurrentTime()-10);
-    _player.seekTo(t,true);_saveState({playing:true,currentTime:t,ts:Date.now()});
+    _player.seekTo(t,true);_broadcastNow(true);
   };
   window._cwFwd10=function(){
     if(!_player||!_isHost)return;
     var t=_player.getCurrentTime()+10;
-    _player.seekTo(t,true);_saveState({playing:true,currentTime:t,ts:Date.now()});
+    _player.seekTo(t,true);_broadcastNow(true);
   };
 
   // ── Plein écran ────────────────────────────────────────────────────
+  // Sur mobile (iOS/Android) requestFullscreen ne fonctionne pas sur iframe.
+  // On overlay l'iframe en position fixed pour simuler le plein écran.
   window._cwFullscreen=function(){
     var wrap=document.querySelector('.cw-vwrap');if(!wrap)return;
     var iframe=wrap.querySelector('iframe');
+
+    // Tentative native d'abord (Android Chrome, desktop)
     var target=iframe||wrap;
-    if(target.requestFullscreen)target.requestFullscreen();
-    else if(target.webkitRequestFullscreen)target.webkitRequestFullscreen();
-    else if(target.webkitEnterFullscreen)target.webkitEnterFullscreen();
+    if(document.fullscreenElement||document.webkitFullscreenElement){
+      if(document.exitFullscreen)document.exitFullscreen();
+      else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
+      return;
+    }
+    if(target.requestFullscreen){target.requestFullscreen();return;}
+    if(target.webkitRequestFullscreen){target.webkitRequestFullscreen();return;}
+
+    // Fallback iOS : faux plein écran via CSS fixé
+    var ov=document.getElementById('cwFsOverlay');
+    if(ov){
+      ov.parentNode.removeChild(ov);
+      document.body.classList.remove('cw-fs-active');
+      return;
+    }
+    var fsOv=document.createElement('div');
+    fsOv.id='cwFsOverlay';
+    fsOv.style.cssText='position:fixed;inset:0;z-index:9999;background:#000;display:flex;align-items:center;justify-content:center;';
+    // Bouton fermer
+    var closeBtn=document.createElement('div');
+    closeBtn.style.cssText='position:absolute;top:14px;right:14px;z-index:10000;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;cursor:pointer;';
+    closeBtn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    closeBtn.onclick=function(){window._cwFullscreen();};
+    if(iframe){
+      // Cloner l'iframe dans l'overlay
+      var ifrClone=document.createElement('iframe');
+      ifrClone.src=iframe.src;
+      ifrClone.style.cssText='width:100vw;height:56.25vw;max-height:100vh;max-width:177.78vh;border:none;';
+      ifrClone.allow=iframe.allow||'autoplay';
+      ifrClone.setAttribute('allowfullscreen','');
+      fsOv.appendChild(ifrClone);
+    }
+    fsOv.appendChild(closeBtn);
+    document.body.appendChild(fsOv);
+    document.body.classList.add('cw-fs-active');
   };
 
   // ── Thème ──────────────────────────────────────────────────────────
@@ -697,8 +759,9 @@
     _stopPoll();
     if(_timeIv){clearInterval(_timeIv);_timeIv=null;}
     if(_presIv){clearInterval(_presIv);_presIv=null;}
+    if(_broadcastIv){clearInterval(_broadcastIv);_broadcastIv=null;}
     if(_player){try{_player.destroy();}catch(e){}_player=null;}
-    _isHost=false;_isSyncing=false;_lastStateTsApplied=0;_lastChatTs=0;_lastReactTs=0;_sessionId=null;
+    _isHost=false;_isSyncing=false;_lastSeekAt=0;_lastAppliedTs=0;_lastChatTs=0;_lastReactTs=0;_sessionId=null;
     var ui=document.getElementById('cwUrlIn');if(ui)ui.value='';
     var pr=document.getElementById('cwPreview');if(pr)pr.classList.remove('on');
     var gb=document.getElementById('cwGoBtn');if(gb)gb.disabled=true;
