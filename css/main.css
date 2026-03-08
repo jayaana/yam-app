@@ -5200,7 +5200,7 @@ body.light #counterBlock.glowing .c-num-big {
    MÉMO COUPLE — wrapper bulle + duo cards
    ══════════════════════════════════════════════════════ */
 .memo-duo-outer {
-  margin: 0 14px 14px;
+  margin: 14px 14px 14px;
   background: transparent;
   border: none;
   border-radius: 0;
@@ -5210,7 +5210,7 @@ body.light #counterBlock.glowing .c-num-big {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 0 14px;
+  padding: 0 0 8px;
 }
 .memo-duo-label {
   font-size: 10px;
