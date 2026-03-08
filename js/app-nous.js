@@ -105,20 +105,11 @@ window._nousUnblockScroll = function() { _unblockBackgroundScroll(); };
 
 
 // ════════════════════════════════════════════════════════════════════
-// 0. ACCÈS BETA — Code d'accès requis (section en cours de développement)
+// 0. ACCÈS DIRECT — Beta gate supprimé
 // ════════════════════════════════════════════════════════════════════
 (function(){
 
-  // ── Code d'accès beta — à changer quand la section sera stable ──
-  var BETA_CODE = 'majversion2';
-  var LS_KEY    = 'yam_nous_beta_unlocked';
-
-  // Vérifie si déjà déverrouillé en session
-  function _isUnlocked() {
-    return sessionStorage.getItem(LS_KEY) === '1';
-  }
-
-  // Affiche le contenu (après unlock)
+  // Affiche le contenu directement, sans code d'accès
   function _nousShowContent() {
     var overlay = document.getElementById('nousLockOverlay');
     var content = document.getElementById('nousContentWrapper');
@@ -127,72 +118,17 @@ window._nousUnblockScroll = function() { _unblockBackgroundScroll(); };
     if (!window._nousContentLoaded) {
       window._nousContentLoaded = true;
       _nousInitAll();
-      // Déclenche l'initialisation des sections IA et Histoire
       setTimeout(function(){ document.dispatchEvent(new Event('nousContentReady')); }, 300);
     }
   }
 
-  // Affiche l'overlay de code d'accès beta
-  function _nousShowBetaGate() {
-    var overlay = document.getElementById('nousLockOverlay');
-    var content = document.getElementById('nousContentWrapper');
-    if (content) content.style.display = 'none';
-    if (!overlay) return;
-    overlay.style.display = 'flex';
-    // Injecte le formulaire beta si pas déjà là
-    if (!overlay.querySelector('.nous-beta-gate')) {
-      overlay.innerHTML =
-        '<div class="nous-beta-gate" style="' +
-          'display:flex;flex-direction:column;align-items:center;gap:18px;' +
-          'padding:36px 28px;background:rgba(15,15,26,0.97);border-radius:20px;' +
-          'border:1px solid rgba(255,255,255,0.08);max-width:320px;width:90%;text-align:center;' +
-        '">' +
-          '<div style="font-size:2rem;">🔒</div>' +
-          '<div style="font-weight:700;font-size:1.1rem;color:#fff;">Section en beta</div>' +
-          '<div style="font-size:0.85rem;color:rgba(255,255,255,0.5);line-height:1.5;">' +
-            'Cette section est encore en développement.<br>Entre le code d\'accès pour y accéder.' +
-          '</div>' +
-          '<input id="nousBetaInput" type="password" placeholder="Code d\'accès…" ' +
-            'style="width:100%;padding:12px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);' +
-            'background:rgba(255,255,255,0.07);color:#fff;font-size:1rem;text-align:center;outline:none;" ' +
-            'onkeydown="if(event.key===\'Enter\') window.nousBetaSubmit()" />' +
-          '<div id="nousBetaError" style="font-size:0.82rem;color:#ff6b6b;min-height:18px;"></div>' +
-          '<button onclick="window.nousBetaSubmit()" ' +
-            'style="width:100%;padding:13px;border-radius:12px;border:none;' +
-            'background:linear-gradient(135deg,#e91e8c,#9c27b0);color:#fff;font-weight:700;' +
-            'font-size:1rem;cursor:pointer;">Accéder ✨</button>' +
-        '</div>';
-      // Focus auto
-      setTimeout(function(){ var inp=document.getElementById('nousBetaInput'); if(inp) inp.focus(); }, 100);
-    }
-  }
-
-  // Soumission du code
-  window.nousBetaSubmit = function() {
-    var inp = document.getElementById('nousBetaInput');
-    var err = document.getElementById('nousBetaError');
-    if (!inp) return;
-    if (inp.value.trim() === BETA_CODE) {
-      sessionStorage.setItem(LS_KEY, '1');
-      if (err) err.textContent = '';
-      _nousShowContent();
-    } else {
-      if (err) err.textContent = 'Code incorrect, réessaie 🙈';
-      inp.value = '';
-      inp.focus();
-    }
-  };
-
-  // Point d'entrée appelé par yamSwitchTab
+  // Point d'entrée appelé par yamSwitchTab — accès immédiat
   window.nousCheckLock = function() {
-    if (_isUnlocked()) {
-      _nousShowContent();
-    } else {
-      _nousShowBetaGate();
-    }
+    _nousShowContent();
   };
 
-  window._nousIsUnlocked = function(){ return _isUnlocked(); };
+  window._nousIsUnlocked = function(){ return true; };
+  window.nousBetaSubmit  = function() {};
 
   setTimeout(function(){
     if (window._currentTab === 'nous') window.nousCheckLock();
