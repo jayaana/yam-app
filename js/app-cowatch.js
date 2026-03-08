@@ -123,7 +123,7 @@
     '.cw-send-btn svg{pointer-events:none;}',
     '.cw-chat-empty{flex:1;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);text-align:center;padding:20px;}',
     // Safe zone iOS
-    '.cw-safe-bottom{flex-shrink:0;height:calc(env(safe-area-inset-bottom,0px) + 8px);min-height:env(safe-area-inset-bottom,0px);}',
+    '.cw-safe-bottom{flex-shrink:0;height:calc(env(safe-area-inset-bottom,16px) + 24px);}',
     // Playlist — panel qui remplace réactions+chat
     '.cw-pl-panel{display:none;flex-direction:column;flex:1;min-height:0;border-top:1px solid var(--border);background:var(--bg);}',
     '.cw-pl-panel.on{display:flex;}',
