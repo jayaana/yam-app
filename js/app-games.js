@@ -1111,7 +1111,7 @@ function renderLb(elId, rows, detailFn){
   var style = document.createElement('style');
   style.textContent = [
     // Layout overlay
-    '#wheelSection{padding:20px 16px 80px;display:flex;flex-direction:column;align-items:center;}',
+    '#wheelSection{padding:28px 16px 80px;display:flex;flex-direction:column;align-items:center;}',
     '.wheel-container{display:flex;flex-direction:column;align-items:center;gap:22px;width:100%;max-width:340px;}',
 
     // Wrap + glow
@@ -1159,7 +1159,10 @@ function renderLb(elId, rows, detailFn){
     '.jx-wheel-btn-text{flex:1;text-align:left}',
     '.jx-wheel-btn-title{font-family:"Bricolage Grotesque",sans-serif;font-size:13px;font-weight:700;color:#fff}',
     '.jx-wheel-btn-sub{font-size:10px;color:rgba(255,255,255,.7);margin-top:1px}',
-    '.jx-wheel-btn-arrow{font-size:18px;color:rgba(255,255,255,.8);flex-shrink:0}'
+    '.jx-wheel-btn-arrow{font-size:18px;color:rgba(255,255,255,.8);flex-shrink:0}',
+    // Emoji DOM overlay
+    '.wheel-emoji-layer{position:absolute;inset:0;border-radius:50%;pointer-events:none;z-index:3;}',
+    '.wheel-emoji-item{position:absolute;font-size:min(28px,7.5vw);line-height:1;transform:translate(-50%,-50%);pointer-events:none;transition:opacity 0.2s;}'
   ].join('\n');
   document.head.appendChild(style);
 
@@ -1182,6 +1185,7 @@ function renderLb(elId, rows, detailFn){
     + '<div class="wheel-glow"></div>'
     + '<div class="wheel-ring"></div>'
     + '<canvas id="wheelCanvas"></canvas>'
+    + '<div class="wheel-emoji-layer" id="wheelEmojiLayer"></div>'
     + '<div class="wheel-needle">' + needleSVG + '</div>'
     + '<div class="wheel-center">✨</div>'
     + '</div>'
@@ -1210,6 +1214,33 @@ function renderLb(elId, rows, detailFn){
   var SIZE = 0, R = 0, currentAngle = 0, isSpinning = false;
   var DPR = window.devicePixelRatio || 1;
 
+  // Met à jour les emoji DOM en fonction de l'angle courant
+  function _updateEmojiLayer(angle) {
+    var layer = document.getElementById('wheelEmojiLayer');
+    if (!layer) return;
+    var n = activities.length;
+    var slice = (2 * Math.PI) / n;
+    // Créer les éléments si pas encore fait
+    if (layer.children.length !== n) {
+      layer.innerHTML = '';
+      for (var i = 0; i < n; i++) {
+        var span = document.createElement('span');
+        span.className = 'wheel-emoji-item';
+        span.textContent = activities[i].icon;
+        layer.appendChild(span);
+      }
+    }
+    var items = layer.children;
+    for (var i = 0; i < n; i++) {
+      var mid = angle + i * slice + slice / 2;
+      var dist = R * 0.60; // distance du centre
+      var x = R + Math.cos(mid) * dist;
+      var y = R + Math.sin(mid) * dist;
+      items[i].style.left = x + 'px';
+      items[i].style.top  = y + 'px';
+    }
+  }
+
   function initCanvas() {
     var wrap = wheelCanvas.parentElement;
     SIZE = wrap.offsetWidth || 260;
@@ -1221,6 +1252,7 @@ function renderLb(elId, rows, detailFn){
     wCtx.scale(DPR, DPR);
     R = SIZE / 2;
     drawWheel(currentAngle);
+    _updateEmojiLayer(currentAngle);
   }
 
   function drawWheel(angle) {
@@ -1277,17 +1309,7 @@ function renderLb(elId, rows, detailFn){
       wCtx.fill();
       wCtx.restore();
 
-      // Emoji
-      wCtx.save();
-      wCtx.translate(R, R);
-      wCtx.rotate(mid);
-      wCtx.font = Math.round(R * 0.22) + 'px serif';
-      wCtx.textAlign = 'center';
-      wCtx.textBaseline = 'middle';
-      wCtx.shadowColor = 'rgba(0,0,0,0.35)';
-      wCtx.shadowBlur  = 5;
-      wCtx.fillText(a.icon, R * 0.60, 0);
-      wCtx.restore();
+      // Emoji dessiné via DOM (voir _updateEmojiLayer)
     }
 
     // Anneau extérieur
@@ -1330,6 +1352,7 @@ function renderLb(elId, rows, detailFn){
       var progress = Math.min((ts - startTime) / duration, 1);
       currentAngle = startAngle + (targetAngle - startAngle) * easeOut(progress);
       drawWheel(currentAngle);
+      _updateEmojiLayer(currentAngle);
       if (progress < 1) {
         requestAnimationFrame(animate);
       } else {
@@ -1375,7 +1398,7 @@ function renderLb(elId, rows, detailFn){
     ov.style.display = 'block';
     document.body.classList.add('subview-active');
     // Redessiner avec la bonne taille au moment de l'ouverture
-    setTimeout(function() { initCanvas(); }, 30);
+    setTimeout(function() { initCanvas(); _updateEmojiLayer(currentAngle); }, 30);
   };
 
   window.closeWheelModal = function() {
