@@ -171,15 +171,8 @@ body.light .yam-tab-panel {
    (ex: #memoCoupleSection, #wheelSection, etc.)
 ══════════════════════════════════════════════════════════ */
 
-/* memoCoupleSection — maintenant .memo-duo-outer gère le style via main.css */
-#memoCoupleSection {
-  margin: 0;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  overflow: visible;
-  padding: 0 !important;
-}
+/* memoCoupleSection = .memo-duo-outer — le style est dans main.css */
+/* On ne surcharge RIEN ici pour ne pas écraser les marges et paddings */
 
 /* Sections standalone avec leur propre bulle arrondie */
 #postitsSection,
@@ -198,8 +191,6 @@ body.light .yam-tab-panel {
 }
 
 /* Leurs section-label internes */
-#memoCoupleSection .section-label,
-#memoCoupleSection .memo-header-row,
 #wheelSection      .section-label,
 #luiSection        .section-label {
   padding: 14px 16px 10px;
@@ -213,7 +204,6 @@ body.light .yam-tab-panel {
 }
 
 /* Contenus des sections hors .section */
-#memoCoupleSection > *,
 #wheelSection > *,
 #luiSection > *,
 #loveSection > * {
@@ -392,11 +382,6 @@ header + div[style*="height:1px"] {
 ══════════════════════════════════════════════════════════ */
 body.light .yam-tab-panel {
   background: var(--bg) !important;
-}
-
-body.light .section,
-body.light #memoCoupleSection {
-  /* Les duo-cards ont leurs propres bordures, pas de wrapper */
 }
 
 body.light .section,
