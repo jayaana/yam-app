@@ -1069,8 +1069,10 @@
     window._cwPlAddOrClear=function(){
       var val=inp.value.trim();
       var hasResults=res&&res.classList.contains('on');
+      // Si un lien YouTube valide est dans le champ → ajouter directement
+      if(_ytId(val)){window._cwPlAdd();return;}
+      // Sinon (résultats de recherche affichés ou texte non-URL) → effacer
       if(hasResults||val){inp.value='';res.innerHTML='';res.classList.remove('on');_updatePlBtn('');}
-      else{window._cwPlAdd();}
     };
   })();
 
