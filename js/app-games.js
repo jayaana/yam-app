@@ -175,26 +175,24 @@ function memCardClick(card) {
   card.classList.add('flipped');
   memFlipped.push(card);
 
-  // En multi : sauvegarder après chaque retournement pour que l'adversaire voit la carte
-  if (memMode === 'multi') {
-    if (memFlipped.length === 1) {
-      // Première carte : sauvegarder immédiatement (tour reste à moi)
-      _memSaveMultiState(false);
-    }
-  }
-
   if (memFlipped.length === 2) {
     memMoves++;
     var movesEl = document.getElementById('memMoves');
     if (movesEl) movesEl.textContent = memMoves;
     memLocked = true;
     _memProcessing = true;
-    // En multi : bloquer les cartes adverses pendant la vérif
-    if (memMode === 'multi') _memSetBoardBlocked(true);
+    if (memMode === 'multi') {
+      _memSetBoardBlocked(true);
+      // Sauvegarder avec les 2 cartes visibles — l'adversaire les voit pendant 700ms
+      _memSaveMultiState(false);
+    }
     setTimeout(function() {
       _memProcessing = false;
       checkMemMatch();
     }, 700);
+  } else if (memMode === 'multi' && memFlipped.length === 1) {
+    // 1ère carte : sauvegarder pour que l'adversaire la voit tout de suite
+    _memSaveMultiState(false);
   }
 }
 
@@ -330,7 +328,6 @@ function _memStartMulti() {
     },
 
     onLobbyTick: function(girlOk, boyOk) {
-      var isMe   = profile === 'girl' ? girlOk : boyOk;
       var isOth  = profile === 'girl' ? boyOk  : girlOk;
       if (dotOth) dotOth.style.opacity = isOth ? '1' : '0.3';
       if (isOth && status) status.textContent = othName + ' est prêt(e) ! Lancement…';
@@ -342,6 +339,12 @@ function _memStartMulti() {
       setTimeout(function() { _memLaunchMultiGame(gameRow); }, 400);
     },
 
+    onPresenceUpdate: function(isOnline) {
+      // Dot de présence adversaire pendant la partie
+      var dot = document.getElementById('memOppDot');
+      if (dot) dot.style.opacity = isOnline ? '1' : '0.3';
+    },
+
     onStateUpdate: function(gameRow) {
       if (!gameRow.state) return;
       _memApplyMultiState(gameRow.state);
@@ -351,7 +354,7 @@ function _memStartMulti() {
       if (_memMp) _memMp.showChoice(
         '😔', oppName + ' est déconnecté(e)',
         'Tu peux attendre ou quitter.',
-        'Attendre', null,
+        'Attendre', function() { _memMp.startReconnectWait(); },
         'Quitter', function() { memoryQuit(); }
       );
     },
@@ -403,11 +406,12 @@ function _memLaunchMultiGame(gameRow) {
 
 function _memApplyMultiState(state) {
   if (!state) return;
-  // Ne pas appliquer un état distant si on est en plein traitement local
-  // (animation retournement en cours) — évite les flashs visuels et les conflits de tour
-  if (_memProcessing || memFlipped.length > 0) return;
-
+  // Bloquer les updates distants uniquement si c'est MON tour et que je suis
+  // en plein traitement local (animation retournement) — sinon laisser passer
+  // pour que l'adversaire voie mes cartes en temps réel
   var profile = _memGetProfile();
+  var isMyTurn = state.turn === profile;
+  if (isMyTurn && (_memProcessing || memFlipped.length > 0)) return;
   var other   = profile === 'girl' ? 'boy' : 'girl';
 
   // Si partie terminée
@@ -439,25 +443,25 @@ function _memApplyMultiState(state) {
       });
     }
 
-    // Appliquer l'état des cartes matchées
+    // Appliquer l'état des cartes
     var matched = state.matched || [];
     var flipped = state.flipped || [];
     memCards.forEach(function(c, i) {
       if (matched.indexOf(i) !== -1) {
         c.classList.add('flipped', 'matched');
         c.classList.remove('blocked', 'wrong');
-      } else if (!memMyTurn && flipped.indexOf(i) !== -1) {
-        // Carte retournée par l'adversaire : montrer visuellement, non cliquable
+      } else if (flipped.indexOf(i) !== -1) {
+        // Carte retournée (par moi ou l'adversaire) : toujours visible
         c.classList.add('flipped');
-        c.classList.remove('matched', 'wrong');
+        c.classList.remove('matched', 'wrong', 'blocked');
       } else {
-        // Retourner face cachée les cartes non matchées
+        // Carte face cachée
         c.classList.remove('matched', 'flipped', 'wrong');
       }
     });
     memMatched = matched.length / 2;
-    memFlipped = []; // vider les cartes retournées localement
-    // NE PAS reset memLocked ici — _memSetBoardBlocked le gère juste après
+    // Ne vider memFlipped que si c'est mon tour (sinon ce sont les cartes de l'adversaire)
+    if (memMyTurn) memFlipped = [];
   }
 
   // Mettre à jour les scores
@@ -561,6 +565,12 @@ function _memShowMultiResult(state) {
   // Masquer le bouton rejouer en multi
   var replayBtn = document.getElementById('memWinReplayBtn');
   if (replayBtn) replayBtn.style.display = 'none';
+  // Bouton quitter visible en multi
+  var quitBtn = document.getElementById('memWinQuitBtn');
+  if (quitBtn) {
+    quitBtn.style.display = '';
+    quitBtn.onclick = function() { memoryQuit(); };
+  }
   win.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   // Sauvegarder le score du gagnant
