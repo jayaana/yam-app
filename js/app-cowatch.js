@@ -38,8 +38,8 @@
     '.cw-search-wrap{position:relative;width:100%;}',
     '.cw-search-input{width:100%;padding:11px 38px 11px 14px;background:var(--s1);border:1.5px solid var(--border);border-radius:14px;font-size:14px;color:var(--text);font-family:"Bricolage Grotesque",sans-serif;outline:none;transition:border-color .2s;-webkit-appearance:none;box-sizing:border-box;}',
     '.cw-search-input:focus{border-color:var(--accent);}',
-    '.cw-search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:22px;height:22px;border-radius:50%;background:var(--s2);border:none;display:none;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);padding:0;font-size:16px;line-height:1;}',
-    '.cw-search-clear.on{display:flex;}',
+    '.cw-search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:26px;height:26px;border-radius:50%;background:var(--muted);border:none;display:none;align-items:center;justify-content:center;cursor:pointer;color:#fff;padding:0;font-size:0;line-height:1;transition:opacity .15s;}',
+    '.cw-search-clear.on{display:flex;}.cw-search-clear:active{opacity:.7;}',
     '.cw-search-results{background:var(--s2);border:1.5px solid var(--accent);border-radius:12px;overflow:hidden;margin-top:6px;display:none;max-height:300px;overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 18px rgba(232,90,126,.13);}',
     '.cw-search-results.on{display:block;}',
     '.cw-search-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);-webkit-tap-highlight-color:transparent;transition:background .15s;}',
@@ -68,9 +68,8 @@
     '.cw-binput{width:100%;max-width:280px;padding:14px 18px;background:var(--s1);border:1.5px solid var(--border);border-radius:14px;font-size:20px;font-weight:700;letter-spacing:5px;text-align:center;color:var(--text);font-family:"Bricolage Grotesque",sans-serif;outline:none;transition:border-color .2s;-webkit-appearance:none;box-sizing:border-box;}',
     '.cw-binput:focus{border-color:var(--accent);}.cw-binput.err{border-color:#ef4444;animation:cwShk .35s;}',
     '@keyframes cwShk{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}',
-    '.cw-btn{background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 70%,var(--green)));color:#fff;border:none;border-radius:50px;padding:14px 40px;font-size:15px;font-weight:700;cursor:pointer;font-family:"Bricolage Grotesque",sans-serif;box-shadow:0 4px 20px rgba(201,120,96,.3);transition:transform .12s;position:relative;overflow:hidden;}',
-    '.cw-btn::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.15) 0%,transparent 60%);pointer-events:none;}',
-    '.cw-btn:active{transform:scale(.97);}.cw-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}',
+    '.cw-btn{background:var(--accent);color:#fff;border:none;border-radius:0 0 14px 14px;padding:13px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:"Bricolage Grotesque",sans-serif;transition:opacity .15s;width:100%;display:block;}',
+    '.cw-btn:active{opacity:.8;}.cw-btn:disabled{opacity:.35;cursor:not-allowed;}',
     '.cw-btn-ghost{background:var(--s2);color:var(--muted);border:1.5px solid var(--border);border-radius:50px;padding:12px 32px;font-size:14px;font-weight:600;cursor:pointer;font-family:"Bricolage Grotesque",sans-serif;}',
     '#cwScLobby{padding:24px 20px;gap:18px;}',
     '.cw-label{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}',
@@ -81,6 +80,7 @@
     '.cw-preview-info{padding:10px 14px;}.cw-preview-id{font-size:12px;color:var(--muted);}',
     // Lobby — section playlist sauvegardée
     '.cw-lpl-box{background:var(--s1);border:1px solid var(--border);border-radius:14px;overflow:hidden;}',
+    '.cw-link-box{background:var(--s1);border:1px solid var(--border);border-radius:14px;overflow:hidden;padding:10px 10px 0;}',
     '.cw-lpl-hdr{padding:11px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);}',
     '.cw-lpl-title{flex:1;font-size:13px;font-weight:700;color:var(--text);}',
     '.cw-lpl-count{font-size:10px;font-weight:700;background:var(--accent);color:#fff;border-radius:20px;padding:1px 7px;}',
@@ -99,8 +99,8 @@
     '.cw-lpl-add-btn:disabled{opacity:.35;cursor:not-allowed;}.cw-lpl-add-btn svg{pointer-events:none;}',
     '.cw-lpl-empty{font-size:12px;color:var(--muted);text-align:center;padding:14px;}',
     // Bouton "lancer playlist"
-    '.cw-btn-pl{background:linear-gradient(135deg,var(--green,#22c55e),color-mix(in srgb,var(--green,#22c55e) 70%,var(--accent)));color:#fff;border:none;border-radius:50px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer;font-family:"Bricolage Grotesque",sans-serif;box-shadow:0 4px 20px rgba(34,197,94,.25);transition:transform .12s;width:100%;}',
-    '.cw-btn-pl:active{transform:scale(.97);}.cw-btn-pl:disabled{opacity:.4;cursor:not-allowed;}',
+    '.cw-btn-pl{background:var(--accent);color:#fff;border:none;border-radius:0 0 14px 14px;padding:13px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:"Bricolage Grotesque",sans-serif;transition:opacity .15s;width:100%;display:block;}',
+    '.cw-btn-pl:active{opacity:.8;}.cw-btn-pl:disabled{opacity:.35;cursor:not-allowed;}',
     // Bouton import playlist (dans le panel playlist en session)
     '.cw-pl-import-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;margin:0 10px 8px;border-radius:10px;background:rgba(201,120,96,.1);border:1.5px dashed rgba(201,120,96,.4);cursor:pointer;font-size:12px;font-weight:600;color:var(--accent);-webkit-tap-highlight-color:transparent;}',
     '.cw-pl-import-btn:active{opacity:.7;}',
@@ -227,8 +227,15 @@
       '<button class="cw-btn" onclick="window._cwBetaOk()">Acc\u00e9der \u2728</button>' +
     '</div>' +
     '<div id="cwScLobby" class="cw-sc">' +
+      // Barre top lobby avec toggle thème
+      '<div style="display:flex;justify-content:flex-end;padding:2px 2px 6px;">' +
+        '<div class="cw-icon-btn" onclick="window._cwToggleTheme()" title="Changer le thème" style="width:30px;height:30px;">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>' +
+        '</div>' +
+      '</div>' +
       // Mode A : lancer par lien ou recherche
       '<div id="cwLobbyNewLink">' +
+        '<div class="cw-link-box">' +
         '<div class="cw-tabs">' +
           '<div class="cw-tab active" id="cwTabLink" onclick="window._cwSwitchTab(0)">\uD83D\uDD17 Coller un lien</div>' +
           '<div class="cw-tab" id="cwTabSearch" onclick="window._cwSwitchTab(1)">\uD83D\uDD0D Rechercher</div>' +
@@ -243,9 +250,10 @@
         '<div id="cwPanelSearch" style="display:none;">' +
           '<div class="cw-search-wrap">' +
             '<input id="cwSearchIn" class="cw-search-input" type="search" placeholder="Titre, artiste\u2026" autocomplete="off" autocorrect="off" spellcheck="false" />' +
-            '<button class="cw-search-clear" id="cwSearchClear" onclick="window._cwSearchClear()">&times;</button>' +
+            '<button class="cw-search-clear" id="cwSearchClear" onclick="window._cwSearchClear()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
           '</div>' +
           '<div class="cw-search-results" id="cwSearchResults"></div>' +
+        '</div>' +
         '</div>' +
         '<button class="cw-btn" id="cwGoBtn" onclick="window._cwLaunch()" disabled>Lancer ce lien \uD83C\uDFAC</button>' +
       '</div>' +
@@ -658,11 +666,13 @@
 
   window._cwLplRemove=function(idx){
     var item=_savedPlaylist[idx];if(!item||!item.id)return;
-    fetch(SB2_URL+'/rest/v1/'+TABLE_PL+'?id=eq.'+encodeURIComponent(item.id),{
-      method:'DELETE',headers:sb2Headers({'Prefer':'return=minimal'})
-    }).catch(function(){});
-    _savedPlaylist.splice(idx,1);
-    _renderLobbyPlaylist();
+    _cwConfirm('Supprimer cette vidéo de la playlist ?',function(){
+      fetch(SB2_URL+'/rest/v1/'+TABLE_PL+'?id=eq.'+encodeURIComponent(item.id),{
+        method:'DELETE',headers:sb2Headers({'Prefer':'return=minimal'})
+      }).catch(function(){});
+      _savedPlaylist.splice(idx,1);
+      _renderLobbyPlaylist();
+    });
   };
 
   // Lancer depuis la playlist sauvegardée (premier item)
@@ -1104,12 +1114,13 @@
   };
 
   window._cwPlRemove=function(idx){
-    // Ne peut supprimer que les vidéos futures (idx > _plIndex)
     if(!_isHost||idx<=_plIndex)return;
-    _playlist.splice(idx,1);
-    _savePlaylist();
-    _renderPlaylist();
-    _updateSkipBtn();
+    _cwConfirm('Supprimer cette vidéo de la playlist ?',function(){
+      _playlist.splice(idx,1);
+      _savePlaylist();
+      _renderPlaylist();
+      _updateSkipBtn();
+    });
   };
 
   // Skip : avance l'index, charge la suivante
@@ -1438,6 +1449,24 @@
   }
   function _iconCompress(){
     return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>';
+  }
+
+  // ── Confirmation inline ───────────────────────────────────────────
+  function _cwConfirm(msg,onOk){
+    var existing=document.getElementById('cwConfirmToast');
+    if(existing)existing.remove();
+    var toast=document.createElement('div');
+    toast.id='cwConfirmToast';
+    toast.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--s1);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;box-shadow:0 8px 32px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:10px;min-width:240px;max-width:300px;font-family:"Bricolage Grotesque",sans-serif;';
+    toast.innerHTML='<div style="font-size:13px;font-weight:600;color:var(--text);text-align:center;">'+msg+'</div>'+
+      '<div style="display:flex;gap:8px;">'+
+        '<button id="cwConfirmNo" style="flex:1;padding:8px;border-radius:10px;border:1.5px solid var(--border);background:var(--s2);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Annuler</button>'+
+        '<button id="cwConfirmYes" style="flex:1;padding:8px;border-radius:10px;border:none;background:#ef4444;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Supprimer</button>'+
+      '</div>';
+    document.body.appendChild(toast);
+    document.getElementById('cwConfirmNo').onclick=function(){toast.remove();};
+    document.getElementById('cwConfirmYes').onclick=function(){toast.remove();onOk();};
+    setTimeout(function(){if(toast.parentNode)toast.remove();},6000);
   }
 
   // ── Thème ──────────────────────────────────────────────────────────
