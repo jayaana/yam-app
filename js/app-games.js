@@ -348,6 +348,11 @@ function _memStartMulti() {
     },
 
     onMatchFound: function(gameRow) {
+      // Si partie déjà en cours (retour fenêtre) → juste réappliquer l'état, ne pas relancer
+      if (memStarted) {
+        if (gameRow.state) _memApplyMultiState(gameRow.state);
+        return;
+      }
       if (dotOth) dotOth.style.opacity = '1';
       if (status)  status.textContent   = 'Partie trouvée !';
       setTimeout(function() { _memLaunchMultiGame(gameRow); }, 400);
