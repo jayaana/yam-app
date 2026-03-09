@@ -314,6 +314,7 @@ function _memStartMulti() {
     gameTable:        MEM_GAME_TABLE,
     presenceTable:    MEM_PRESENCE_TABLE,
     deleteOnLeave:    true,
+    staleGameMinutes: 2,  // partie non mise à jour depuis 2min → fantôme à la relance
 
     buildInitialState: function() {
       // Générer les 6 paires mélangées
