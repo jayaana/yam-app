@@ -382,6 +382,11 @@ function _memStartMulti() {
   });
 
   _memMp.enterLobby();
+
+  // Expose pour le système pause/resume (identique Skyjo)
+  window._memRefreshRates   = function() { if (_memMp) _memMp.refreshRates(); };
+  window._memDeletePresence = function() { if (_memMp) _memMp.deletePresence(); };
+  window._memUpsertPresence = function() { if (_memMp) _memMp.upsertPresence(); };
 }
 
 function memoryMultiCancel() {
@@ -408,10 +413,9 @@ function _memLaunchMultiGame(gameRow) {
   // Appliquer l'état initial
   _memApplyMultiState(gameRow.state || { cards:[], matched:[], girl_pairs:0, boy_pairs:0, turn:'girl', moves:0, winner:null });
 
-  // Timer — reset seulement si nouvelle partie (pas de cartes existantes)
-  var isNewGame = !gameRow.state || !gameRow.state.cards || gameRow.state.cards.length === 0 || gameRow.state.moves === 0;
+  // Timer — reprendre elapsed_seconds depuis le state si reconnexion
   clearInterval(memTimerInt);
-  if (isNewGame) memSeconds = 0;
+  memSeconds = (gameRow.state && gameRow.state.elapsed_seconds) ? gameRow.state.elapsed_seconds : 0;
   memStarted = true;
   memTimerInt = setInterval(function() {
     memSeconds++;
@@ -524,14 +528,15 @@ function _memSaveMultiState(passTurn) {
   var nextTurn = passTurn ? other : profile;
 
   var state = {
-    cards:      cardEmojis,
-    matched:    matchedIndices,
-    flipped:    flippedIndices, // cartes retournées momentanément (visibles par l'adversaire)
-    girl_pairs: profile === 'girl' ? memMyPairs : memOtherPairs,
-    boy_pairs:  profile === 'boy'  ? memMyPairs : memOtherPairs,
-    turn:       nextTurn,
-    moves:      memMoves,
-    winner:     null
+    cards:           cardEmojis,
+    matched:         matchedIndices,
+    flipped:         flippedIndices,
+    girl_pairs:      profile === 'girl' ? memMyPairs : memOtherPairs,
+    boy_pairs:       profile === 'boy'  ? memMyPairs : memOtherPairs,
+    turn:            nextTurn,
+    moves:           memMoves,
+    elapsed_seconds: memSeconds,
+    winner:          null
   };
 
   _memMp.saveState(state);
@@ -1926,4 +1931,34 @@ function renderLb(elId, rows, detailFn){
     document.body.classList.remove('subview-active');
   };
 
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   MEMORY — pause/resume quand page cachée (identique Skyjo v3.6)
+══════════════════════════════════════════════════════════════ */
+(function() {
+  var mv = document.getElementById('memoryView');
+
+  function isMemoryActive() {
+    return mv ? mv.classList.contains('active') : false;
+  }
+
+  function pauseMemory() {
+    if (typeof window._memRefreshRates   === 'function') window._memRefreshRates();
+    if (typeof window._memDeletePresence === 'function') window._memDeletePresence();
+  }
+
+  function resumeMemory() {
+    if (typeof window._memUpsertPresence === 'function') window._memUpsertPresence();
+    if (typeof window._memRefreshRates   === 'function') window._memRefreshRates();
+  }
+
+  document.addEventListener('visibilitychange', function() {
+    if (!isMemoryActive()) return;
+    if (document.hidden) { pauseMemory(); } else { resumeMemory(); }
+  });
+  window.addEventListener('pagehide',  function() { if (!isMemoryActive()) return; pauseMemory(); });
+  window.addEventListener('pageshow',  function() { if (!isMemoryActive()) return; if (!document.hidden) resumeMemory(); });
+  window.addEventListener('blur',      function() { if (!isMemoryActive()) return; pauseMemory(); });
+  window.addEventListener('focus',     function() { if (!isMemoryActive()) return; if (!document.hidden) resumeMemory(); });
 })();
