@@ -217,6 +217,9 @@
         '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>' +
       '</div>' +
       '<h2>\uD83D\uDCFA Regarder ensemble</h2>' +
+      '<div id="cwHdrThemeBtn" class="cw-icon-btn" onclick="window._cwToggleTheme()" title="Changer le th\u00e8me" style="width:30px;height:30px;flex-shrink:0;">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>' +
+      '</div>' +
       '<div class="cw-bbadge">BETA</div>' +
     '</div>' +
     '<div id="cwScBeta" class="cw-sc">' +
@@ -227,12 +230,6 @@
       '<button class="cw-btn" onclick="window._cwBetaOk()">Acc\u00e9der \u2728</button>' +
     '</div>' +
     '<div id="cwScLobby" class="cw-sc">' +
-      // Barre top lobby avec toggle thème
-      '<div style="display:flex;justify-content:flex-end;padding:2px 2px 6px;">' +
-        '<div class="cw-icon-btn" onclick="window._cwToggleTheme()" title="Changer le thème" style="width:30px;height:30px;">' +
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>' +
-        '</div>' +
-      '</div>' +
       // Mode A : lancer par lien ou recherche
       '<div id="cwLobbyNewLink">' +
         '<div class="cw-link-box">' +
@@ -844,11 +841,13 @@
       body:JSON.stringify({active:false})
     }).catch(function(){});}
     _sessionId=null;_isHost=false;_sc('cwScLobby');
+    var _ht=document.getElementById('cwHdrThemeBtn');if(_ht)_ht.style.display='';
   };
 
   // ── Player ─────────────────────────────────────────────────────────
   function _startPlayer(ytId){
     _sc('cwScPlayer');
+    var _ht=document.getElementById('cwHdrThemeBtn');if(_ht)_ht.style.display='none';
     _currentYtId=ytId;
     // Hôte : init playlist avec la première vidéo
     if(_isHost&&_playlist.length===0){_playlist=[{ytId:ytId}];_plIndex=0;}
@@ -957,6 +956,7 @@
         if(!rows||!rows.length)return;
         var row=rows[0];
         if(!row.active){_stopAll();if(typeof showToast==='function')showToast('Session termin\u00e9e','info');_sc('cwScLobby');return;}
+    var _ht=document.getElementById('cwHdrThemeBtn');if(_ht)_ht.style.display='';
         var state=row.state||{};
         if(!_isHost)_applyStateIfNeeded(state);
         // Sync playlist pour tout le monde
