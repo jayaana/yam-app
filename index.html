@@ -2789,6 +2789,10 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 .jx-row-sub{font-size:11px;color:var(--muted);margin-top:1px;}
 .jx-row-chevron{width:7px;height:12px;stroke:var(--muted);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
 .jx-badge{font-size:8px;font-weight:700;letter-spacing:.5px;color:var(--beta-color);background:var(--beta-bg);border-radius:4px;padding:2px 6px;margin-left:6px;vertical-align:middle;text-transform:uppercase;}
+#cwLivePill{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:#22c55e;background:rgba(34,197,94,.12);border:1.5px solid rgba(34,197,94,.35);border-radius:20px;padding:3px 8px;margin-right:6px;white-space:nowrap;animation:cwLivePulse 1.6s ease-in-out infinite;}
+#cwLivePill::before{content:"";width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0;animation:cwLiveDot 1.6s ease-in-out infinite;}
+@keyframes cwLivePulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,197,94,.4);}50%{opacity:.85;box-shadow:0 0 0 4px rgba(34,197,94,0);}}
+@keyframes cwLiveDot{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.35);opacity:.7;}}
 .jx-row.disabled{opacity:.45;pointer-events:none;}
 </style>
 
@@ -2859,9 +2863,10 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       <div class="jx-row" onclick="window.openCowatchModal()">
         <div class="jx-row-icon" style="background:rgba(185,153,112,.12);">📺</div>
         <div class="jx-row-body">
-          <div class="jx-row-name">Regarder ensemble <span class="jx-badge">BETA</span></div>
+          <div class="jx-row-name">Regarder ensemble <span class="jx-badge" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;">PREMIUM</span></div>
           <div class="jx-row-sub">Synchronisez YouTube en temps réel</div>
         </div>
+        <span id="cwLivePill" style="display:none;"></span>
         <svg class="jx-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg>
       </div>
       <div class="jx-row disabled">
