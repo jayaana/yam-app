@@ -6,8 +6,6 @@
 
   var TABLE    = 'v2_cowatch_sessions';
   var TABLE_PL = 'v2_cowatch_playlist'; // playlist persistante par couple
-  var BETA_CODE= 'YAMNOW';
-  var BETA_KEY = 'yam_cowatch_beta_ok';
   var POLL_MS  = 3000;   // poll état
   var POLL_CMD_MS = 800;  // poll rapide quand co-contrôle actif
   var PRES_MS  = 5000;   // heartbeat présence
@@ -24,7 +22,7 @@
   var _currentYtId=null;
   var _savedPlaylist=[];
   var _launchedFromLink=false;
-  var _coControl=false;_lastCmdTs=0; // mode co-contrôle actif
+  var _coControl=false;_lastCmdTs=0;_setLivePill(false); // mode co-contrôle actif
   // Edge Function proxy — évite les erreurs CORS
   var SB2_EDGE_PIPED = SB2_URL + '/functions/v1/piped-search';
   var _pipedIdx=0;
@@ -61,21 +59,15 @@
     '#cwHdr{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);gap:12px;flex-shrink:0;}',
     '#cwHdr h2{flex:1;font-size:17px;font-weight:700;font-family:"Bricolage Grotesque",sans-serif;color:var(--text);}',
     '.cw-back{width:36px;height:36px;border-radius:50%;background:var(--s2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}',
-        '.cw-duo-banner{position:sticky;top:0;z-index:10;display:none;align-items:center;justify-content:center;gap:7px;padding:7px 14px;background:linear-gradient(90deg,rgba(201,120,96,.18),rgba(232,90,126,.18));border-bottom:1.5px solid rgba(201,120,96,.35);font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;}',
-    '.cw-duo-banner.on{display:flex;}',
-    '.cw-duo-banner svg{flex-shrink:0;}',
+        '.cw-duo-pill{display:none;align-items:center;font-size:11px;font-weight:800;color:var(--accent);letter-spacing:.5px;padding:3px 9px;border-radius:20px;border:1.5px solid var(--accent);background:rgba(201,120,96,.1);}',
+    '.cw-duo-pill.on{display:flex;animation:cwDuoPulse 1.8s ease-in-out infinite;}',
+    '@keyframes cwDuoPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(201,120,96,.5);}50%{opacity:.75;box-shadow:0 0 0 5px rgba(201,120,96,0);}}',
     '.cw-coctl-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;border:1.5px solid var(--border);background:var(--s2);font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;transition:background .2s,color .2s,border-color .2s;-webkit-tap-highlight-color:transparent;white-space:nowrap;}',
     '.cw-coctl-btn.on{background:rgba(201,120,96,.15);border-color:var(--accent);color:var(--accent);}',
     '.cw-coctl-btn svg{pointer-events:none;}',
-    '.cw-bbadge{background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-size:9px;font-weight:800;letter-spacing:1.5px;padding:3px 8px;border-radius:20px;}',
+    '.cw-bbadge{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:9px;font-weight:800;letter-spacing:1.5px;padding:3px 8px;border-radius:20px;box-shadow:0 1px 6px rgba(245,158,11,.35);}',
     '.cw-sc{display:none;flex-direction:column;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}',
     '.cw-sc.on{display:flex;}',
-    '#cwScBeta{align-items:center;justify-content:center;padding:40px 24px;gap:20px;text-align:center;}',
-    '.cw-bi{font-size:52px;}.cw-bt{font-family:"Bricolage Grotesque",sans-serif;font-size:22px;font-weight:800;color:var(--text);}',
-    '.cw-bs{font-size:14px;color:var(--muted);line-height:1.5;max-width:280px;}',
-    '.cw-binput{width:100%;max-width:280px;padding:14px 18px;background:var(--s1);border:1.5px solid var(--border);border-radius:14px;font-size:20px;font-weight:700;letter-spacing:5px;text-align:center;color:var(--text);font-family:"Bricolage Grotesque",sans-serif;outline:none;transition:border-color .2s;-webkit-appearance:none;box-sizing:border-box;}',
-    '.cw-binput:focus{border-color:var(--accent);}.cw-binput.err{border-color:#ef4444;animation:cwShk .35s;}',
-    '@keyframes cwShk{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}',
     '.cw-btn{background:var(--accent);color:#fff;border:none;border-radius:0 0 14px 14px;padding:13px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:"Bricolage Grotesque",sans-serif;transition:opacity .15s;width:100%;display:block;}',
     '.cw-btn:active{opacity:.8;}.cw-btn:disabled{opacity:.35;cursor:not-allowed;}',
     '.cw-btn-ghost{background:var(--s2);color:var(--muted);border:1.5px solid var(--border);border-radius:50px;padding:12px 32px;font-size:14px;font-weight:600;cursor:pointer;font-family:"Bricolage Grotesque",sans-serif;}',
@@ -228,15 +220,9 @@
       '<div id="cwHdrThemeBtn" class="cw-icon-btn" onclick="window._cwToggleTheme()" title="Changer le th\u00e8me" style="width:30px;height:30px;flex-shrink:0;">' +
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>' +
       '</div>' +
-      '<div class="cw-bbadge">BETA</div>' +
+      '<div class="cw-bbadge">PREMIUM</div>' +
     '</div>' +
-    '<div id="cwScBeta" class="cw-sc">' +
-      '<div class="cw-bi">\uD83D\uDD10</div>' +
-      '<div class="cw-bt">Acc\u00e8s b\u00eata</div>' +
-      '<div class="cw-bs">Entre le code d\u2019acc\u00e8s pour tester cette fonctionnalit\u00e9.</div>' +
-      '<input id="cwBetaIn" class="cw-binput" type="text" placeholder="CODE" autocomplete="off" autocorrect="off" spellcheck="false" />' +
-      '<button class="cw-btn" onclick="window._cwBetaOk()">Acc\u00e9der \u2728</button>' +
-    '</div>' +
+
     '<div id="cwScLobby" class="cw-sc">' +
       // Mode A : lancer par lien ou recherche
       '<div id="cwLobbyNewLink">' +
@@ -325,6 +311,7 @@
             '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>' +
           '</div>' +
 
+          '<div id="cwDuoPill" class="cw-duo-pill">Duo</div>' +
           '<div id="cwRoleBadge" class="cw-hbadge" style="display:none;">H\u00f4te</div>' +
           '<button id="cwCoCtlBtn" class="cw-coctl-btn" onclick="window._cwToggleCoControl()" style="display:none;">'+
             '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-4v4M8 3h4v4"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>'+
@@ -332,10 +319,6 @@
           '</button>' +
         '</div>' +
       '</div>' +
-      '<div id="cwDuoBanner" class="cw-duo-banner">'+
-        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-4v4M8 3h4v4"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>'+
-        'Mode Duo actif — tu contrôles la vidéo 🎮'+
-      '</div>'+
       '<div class="cw-vwrap">'+
         '<div id="cwYTDiv"></div>' +
         '<div class="cw-syncov" id="cwSyncOv"><div class="cw-syncspin"></div><div class="cw-synctxt">Synchronisation\u2026</div></div>' +
@@ -410,11 +393,11 @@
   );
 
   // ── Helpers ────────────────────────────────────────────────────────
-  function _sc(id){['cwScBeta','cwScLobby','cwScWait','cwScJoin','cwScPlayer'].forEach(function(s){var el=document.getElementById(s);if(el)el.classList.toggle('on',s===id);});}
+  function _setLivePill(on){var p=document.getElementById('cwLivePill');if(!p)return;p.style.display=on?'inline-flex':'none';if(on)p.textContent='En live';}
+  function _sc(id){['cwScLobby','cwScWait','cwScJoin','cwScPlayer'].forEach(function(s){var el=document.getElementById(s);if(el)el.classList.toggle('on',s===id);});_setLivePill(id==='cwScWait');}
   function _ytId(url){var m=(url||'').match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{11})/);return m?m[1]:null;}
   function _fmt(s){s=Math.floor(s||0);var m=Math.floor(s/60),ss=s%60;return m+':'+(ss<10?'0':'')+ss;}
   function _getCoupleId(){var u=typeof v2GetUser==='function'?v2GetUser():null;return u?u.couple_id:null;}
-  function _betaOk(){try{return localStorage.getItem(BETA_KEY)==='1';}catch(e){return false;}}
   function _otherRole(r){return r==='girl'?'boy':'girl';}
   function _name(r){return typeof v2GetDisplayName==='function'?v2GetDisplayName(r):(r==='girl'?'Elle':'Lui');}
   function _escHtml(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -742,13 +725,6 @@
     _launchedFromLink=false;
     if(typeof showToast==='function')showToast(toAdd.length+' vid\u00e9o(s) ajout\u00e9e(s)','success');
   };
-  window._cwBetaOk=function(){
-    var el=document.getElementById('cwBetaIn');if(!el)return;
-    if(el.value.trim().toUpperCase()===BETA_CODE){try{localStorage.setItem(BETA_KEY,'1');}catch(e){}_afterBeta();}
-    else{el.classList.add('err');el.value='';setTimeout(function(){el.classList.remove('err');},400);}
-  };
-  document.getElementById('cwBetaIn').addEventListener('keydown',function(e){if(e.key==='Enter')window._cwBetaOk();});
-  document.getElementById('cwBetaIn').addEventListener('input',function(){this.value=this.value.toUpperCase();});
 
   // ── Preview URL ────────────────────────────────────────────────────
   var _pvDeb=null;
@@ -779,7 +755,6 @@
     _myRole=typeof getProfile==='function'?getProfile():null;
     _coupleId=_getCoupleId();
     if(!_coupleId){var u=typeof v2GetUser==='function'?v2GetUser():null;if(u)_coupleId=u.couple_id||null;}
-    if(!_betaOk()){_sc('cwScBeta');return;}
     _afterBeta();
   };
 
@@ -1488,9 +1463,9 @@
         ?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-4v4M8 3h4v4"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>Duo ✓'
         :'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-4v4M8 3h4v4"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>Duo');
     }
-    // Bannière visible uniquement côté non-hôte
-    var banner=document.getElementById('cwDuoBanner');
-    if(banner)banner.classList.toggle('on',!_isHost&&active);
+    // Pill Duo visible uniquement côté non-hôte
+    var pill=document.getElementById('cwDuoPill');
+    if(pill)pill.classList.toggle('on',!_isHost&&active);
     // Activer/désactiver les boutons pour le non-hôte
     if(!_isHost){
       ['cwBack10','cwFwd10','cwPlayBtn'].forEach(function(id){
