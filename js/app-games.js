@@ -25,6 +25,7 @@ var memMyPairs = 0;       // paires trouvées par moi (multi)
 var memOtherPairs = 0;    // paires trouvées par l'autre (multi)
 var memMyTurn = true;     // true = c'est mon tour (multi)
 var _memMp = null;        // handle YAMMultiplayer
+var _memProcessing = false; // true pendant le délai de retournement (700ms) → bloque onStateUpdate
 
 // ── Tables Supabase pour le multi memory ──
 var MEM_GAME_TABLE     = 'v2_memory_games';
@@ -96,6 +97,7 @@ function memoryInit() {
   memCards=[]; memFlipped=[]; memMatched=0; memMoves=0; memSeconds=0;
   memLocked=false; memStarted=false;
   memMyPairs=0; memOtherPairs=0;
+  _memProcessing=false;
 
   var scoreEl = document.getElementById('memScore');
   var movesEl = document.getElementById('memMoves');
@@ -178,9 +180,13 @@ function memCardClick(card) {
     var movesEl = document.getElementById('memMoves');
     if (movesEl) movesEl.textContent = memMoves;
     memLocked = true;
+    _memProcessing = true;
     // En multi : bloquer les cartes adverses pendant la vérif
     if (memMode === 'multi') _memSetBoardBlocked(true);
-    setTimeout(checkMemMatch, 700);
+    setTimeout(function() {
+      _memProcessing = false;
+      checkMemMatch();
+    }, 700);
   }
 }
 
@@ -213,7 +219,9 @@ function checkMemMatch() {
   } else {
     a.classList.add('wrong');
     b.classList.add('wrong');
+    _memProcessing = true;
     setTimeout(function() {
+      _memProcessing = false;
       a.classList.remove('flipped', 'wrong');
       b.classList.remove('flipped', 'wrong');
       if (memMode === 'multi') {
@@ -387,6 +395,10 @@ function _memLaunchMultiGame(gameRow) {
 
 function _memApplyMultiState(state) {
   if (!state) return;
+  // Ne pas appliquer un état distant si on est en plein traitement local
+  // (animation retournement en cours) — évite les flashs visuels et les conflits de tour
+  if (_memProcessing || memFlipped.length > 0) return;
+
   var profile = _memGetProfile();
   var other   = profile === 'girl' ? 'boy' : 'girl';
 
@@ -402,8 +414,9 @@ function _memApplyMultiState(state) {
   // Reconstruire la grille à partir de state.cards
   if (state.cards && state.cards.length > 0) {
     var grid = document.getElementById('memoryGrid');
-    // Reconstruire seulement si la grille est vide (premier chargement)
-    if (grid.children.length !== state.cards.length) {
+    // Reconstruire la grille si elle est vide ou si la taille ne correspond pas
+    // (premier chargement ou reconnexion)
+    if (memCards.length !== state.cards.length) {
       grid.innerHTML = '';
       memCards = [];
       state.cards.forEach(function(emoji, idx) {
@@ -412,7 +425,6 @@ function _memApplyMultiState(state) {
         card.innerHTML = '<div class="mem-card-inner"><div class="mem-card-front"></div><div class="mem-card-back">' + emoji + '</div></div>';
         card.dataset.emoji = emoji;
         card.dataset.idx   = String(idx);
-        // Utiliser memCardClick directement — le blocage est géré par memMyTurn + memLocked
         (function(c) { c.addEventListener('click', function() { memCardClick(c); }); })(card);
         grid.appendChild(card);
         memCards.push(card);
@@ -432,7 +444,7 @@ function _memApplyMultiState(state) {
     });
     memMatched = matched.length / 2;
     memFlipped = []; // vider les cartes retournées localement
-    memLocked  = false;
+    // NE PAS reset memLocked ici — _memSetBoardBlocked le gère juste après
   }
 
   // Mettre à jour les scores
