@@ -3237,8 +3237,6 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
         <button onclick="memoryChooseMulti()" style="padding:14px;background:var(--green);border:none;border-radius:14px;font-size:15px;font-weight:700;color:#000;cursor:pointer;">👫 Multijoueur</button>
       </div>
     </div>
-
-    <!-- LOBBY MULTI -->
     <div id="memoryLobbyScreen" style="display:none;flex-direction:column;align-items:center;padding:32px 16px;gap:20px;">
       <div style="font-size:36px;">🎴</div>
       <div style="font-size:17px;font-weight:700;color:var(--text);">Recherche d'adversaire…</div>
@@ -3250,7 +3248,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
         <div style="font-size:20px;color:var(--muted);">VS</div>
         <div style="text-align:center;">
           <div style="font-size:13px;font-weight:600;color:var(--text);" id="memLobbyNameOther">Adversaire</div>
-          <div id="memLobbyDotOther" style="width:10px;height:10px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px rgba(34,197,94,0.8);margin:6px auto 0;opacity:0.3;transition:opacity 0.3s;"></div>
+          <div id="memLobbyDotOther" style="width:10px;height:10px;border-radius:50%;background:#555;margin:6px auto 0;transition:background 0.3s,box-shadow 0.3s;"></div>
         </div>
       </div>
       <div style="font-size:13px;color:var(--muted);text-align:center;" id="memLobbyStatus">En attente…</div>
@@ -3269,7 +3267,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
         <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
           <div id="memTurnBadge" class="mem-game-badge" style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:50px;background:var(--green);color:#000;white-space:nowrap;">⏳</div>
           <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);">
-            <div id="memOppDot" style="width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 5px rgba(34,197,94,0.8);transition:opacity 0.3s;opacity:0.3;"></div>
+            <div id="memOppDot" style="width:7px;height:7px;border-radius:50%;background:#555;transition:background 0.3s,box-shadow 0.3s;flex-shrink:0;"></div>
             <span id="memMscoreNameOther">Adversaire</span>
           </div>
         </div>
@@ -3301,7 +3299,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     </div>
 
     <!-- CLASSEMENT -->
-    <div class="leaderboard-wrap" id="memoryLeaderboard">
+    <div class="leaderboard-wrap" id="memoryLeaderboard" style="display:none;margin-top:20px;">
       <div class="leaderboard-title">Classement</div>
       <div class="leaderboard-tabs">
         <div class="lb-tab active-all" id="lbTabAll" onclick="lbSetTab('all')">Tous</div>
