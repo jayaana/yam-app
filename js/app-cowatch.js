@@ -608,7 +608,7 @@
     }).then(function(r){return r.json();})
     .then(function(rows){
       if(!rows||!rows.length){if(typeof showToast==='function')showToast('Erreur','error');return;}
-      _sessionId=rows[0].id;_isHost=true;
+      _sessionId=rows[0].id;_isHost=true;_launchedFromLink=true;
       document.getElementById('cwWaitTxt').textContent='En attente que '+_name(_otherRole(_myRole))+' rejoigne\u2026';
       _sc('cwScWait');_startWaitPoll();
     }).catch(function(){if(typeof showToast==='function')showToast('Erreur r\u00e9seau','error');});
