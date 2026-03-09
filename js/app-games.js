@@ -370,13 +370,23 @@ function _memStartMulti() {
     // onOpponentOffline non surchargé — module gère nativement (identique Skyjo)
 
     onAbandon: function() {
-      // Adversaire a abandonné — identique Skyjo
       clearInterval(memTimerInt);
       _memMp.showAlert('🏳️', 'Partie abandonnée', function() { _memResetToMode(); });
     },
 
+    onBothAbsent: function() {
+      // Les 2 absents 40s — module a déjà supprimé la partie
+      clearInterval(memTimerInt);
+      _memMp.showAlert('⏱️', 'Partie expirée', function() { _memResetToMode(); });
+    },
+
+    onReconnectTimeout: function() {
+      // Countdown à 0 — module a déjà supprimé la partie
+      clearInterval(memTimerInt);
+      _memResetToMode();
+    },
+
     onLeave: function() {
-      // Retour arrière — identique Skyjo
       clearInterval(memTimerInt);
       _memMp = null;
       _memResetToMode();
