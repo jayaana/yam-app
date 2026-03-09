@@ -3677,78 +3677,95 @@ window.nousLoad = function(){
   // TROPHÉES — Cumul des meilleurs scores par jeu
   // ════════════════════════════════════════════════════════════════
 
-  function _loadTrophies () {
+  // Recalcule les scores cumulés depuis v2_game_scores et met à jour l'affichage.
+  // NE touche PAS à v2_crown — la couronne est attribuée uniquement à minuit par _assignCrown().
+  function _recalcTrophies () {
+    var cid = _getCoupleId();
+    if (!cid) return;
+
+    fetch(SB2_URL + '/rest/v1/v2_game_scores?couple_id=eq.' + cid +
+      '&select=player,game_id,score&order=score.desc', { headers: sb2Headers() })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (scoreRows) {
+        if (!Array.isArray(scoreRows)) return;
+
+        var games    = ['memory', 'pendu', 'puzzle', 'snake'];
+        var girlBest = {};
+        var boyBest  = {};
+
+        scoreRows.forEach(function (row) {
+          if (row.player === 'girl') {
+            if (!girlBest[row.game_id] || row.score > girlBest[row.game_id])
+              girlBest[row.game_id] = row.score;
+          } else {
+            if (!boyBest[row.game_id] || row.score > boyBest[row.game_id])
+              boyBest[row.game_id] = row.score;
+          }
+        });
+
+        _trophies.girl = games.reduce(function (s, g) { return s + (girlBest[g] || 0); }, 0);
+        _trophies.boy  = games.reduce(function (s, g) { return s + (boyBest[g]  || 0); }, 0);
+
+        _renderTrophies(); // affiche les scores — la couronne reste celle chargée en mémoire
+      }).catch(function () {});
+  }
+
+  // Attribue la couronne à minuit : lit les scores du jour et écrit v2_crown.
+  // Appelé uniquement par le tick minuit (_startTicks) et à l'init (_loadTrophies).
+  function _assignCrown () {
     var cid   = _getCoupleId();
     var today = _todayStr();
     if (!cid) return;
 
-    // 1. Lire le resultat du jour en base
-    fetch(SB2_URL + '/rest/v1/v2_crown?couple_id=eq.' + cid +
-      '&date=eq.' + today + '&select=winner,girl_score,boy_score', { headers: sb2Headers() })
+    fetch(SB2_URL + '/rest/v1/v2_game_scores?couple_id=eq.' + cid +
+      '&select=player,game_id,score&order=score.desc', { headers: sb2Headers() })
       .then(function (r) { return r.ok ? r.json() : []; })
-      .then(function (rows) {
-        if (Array.isArray(rows) && rows.length > 0) {
-          // Resultat deja calcule aujourd'hui — on l'applique directement
-          var row = rows[0];
-          _trophies.girl = row.girl_score;
-          _trophies.boy  = row.boy_score;
-          _renderTrophies();
-          return;
-        }
+      .then(function (scoreRows) {
+        if (!Array.isArray(scoreRows)) return;
 
-        // 2. Pas de resultat pour aujourd'hui => calculer depuis v2_game_scores
-        fetch(SB2_URL + '/rest/v1/v2_game_scores?couple_id=eq.' + cid +
-          '&select=player,game_id,score&order=score.desc', { headers: sb2Headers() })
-          .then(function (r) { return r.ok ? r.json() : []; })
-          .then(function (scoreRows) {
-            if (!Array.isArray(scoreRows)) return;
+        var games    = ['memory', 'pendu', 'puzzle', 'snake'];
+        var girlBest = {};
+        var boyBest  = {};
 
-            var games    = ['memory', 'pendu', 'puzzle', 'snake'];
-            var girlBest = {};
-            var boyBest  = {};
+        scoreRows.forEach(function (row) {
+          if (row.player === 'girl') {
+            if (!girlBest[row.game_id] || row.score > girlBest[row.game_id])
+              girlBest[row.game_id] = row.score;
+          } else {
+            if (!boyBest[row.game_id] || row.score > boyBest[row.game_id])
+              boyBest[row.game_id] = row.score;
+          }
+        });
 
-            scoreRows.forEach(function (row) {
-              if (row.player === 'girl') {
-                if (!girlBest[row.game_id] || row.score > girlBest[row.game_id])
-                  girlBest[row.game_id] = row.score;
-              } else {
-                if (!boyBest[row.game_id] || row.score > boyBest[row.game_id])
-                  boyBest[row.game_id] = row.score;
-              }
-            });
+        _trophies.girl = games.reduce(function (s, g) { return s + (girlBest[g] || 0); }, 0);
+        _trophies.boy  = games.reduce(function (s, g) { return s + (boyBest[g]  || 0); }, 0);
 
-            _trophies.girl = games.reduce(function (s, g) { return s + (girlBest[g] || 0); }, 0);
-            _trophies.boy  = games.reduce(function (s, g) { return s + (boyBest[g]  || 0); }, 0);
+        if (_trophies.girl === 0 && _trophies.boy === 0) { _renderTrophies(); return; }
 
-            // Aucun score du tout => pas la peine d'ecrire en base
-            if (_trophies.girl === 0 && _trophies.boy === 0) {
-              _renderTrophies();
-              return;
-            }
+        var winner = _trophies.girl > _trophies.boy ? 'girl'
+                   : _trophies.boy  > _trophies.girl ? 'boy'
+                   : 'draw';
 
-            var winner = _trophies.girl > _trophies.boy ? 'girl'
-                       : _trophies.boy  > _trophies.girl ? 'boy'
-                       : 'draw';
+        fetch(SB2_URL + '/rest/v1/v2_crown', {
+          method  : 'POST',
+          headers : Object.assign({}, sb2Headers(), { 'Prefer': 'resolution=merge-duplicates' }),
+          body: JSON.stringify({
+            couple_id : cid,
+            date      : today,
+            winner    : winner,
+            girl_score: _trophies.girl,
+            boy_score : _trophies.boy
+          })
+        }).catch(function () {});
 
-            // 3. Ecrire le resultat en base (UPSERT)
-            fetch(SB2_URL + '/rest/v1/v2_crown', {
-              method  : 'POST',
-              headers : Object.assign({}, sb2Headers(), {
-                'Prefer': 'resolution=merge-duplicates'
-              }),
-              body: JSON.stringify({
-                couple_id : cid,
-                date      : today,
-                winner    : winner,
-                girl_score: _trophies.girl,
-                boy_score : _trophies.boy
-              })
-            }).catch(function () {});
-
-            _renderTrophies();
-          }).catch(function () {});
+        _renderTrophies();
       }).catch(function () {});
   }
+
+  function _loadTrophies () { _assignCrown(); }
+
+  // Hook public — met à jour les scores affichés sans toucher à la couronne
+  window.yamUpdateTrophies = function () { _recalcTrophies(); };
 
   // ════════════════════════════════════════════════════════════════
   // RENDU — Flamme SVG + gauge circulaire
