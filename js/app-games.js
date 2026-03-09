@@ -26,6 +26,7 @@ var memOtherPairs = 0;    // paires trouvées par l'autre (multi)
 var memMyTurn = true;     // true = c'est mon tour (multi)
 var _memMp = null;        // handle YAMMultiplayer
 var _memProcessing = false; // true pendant le délai de retournement (700ms) → bloque onStateUpdate
+var _memResultShown = false; // guard anti-doublon fin de partie
 
 // ── Tables Supabase pour le multi memory ──
 var MEM_GAME_TABLE     = 'v2_memory_games';
@@ -59,9 +60,11 @@ function _memShowScreen(screen) {
   Object.keys(screens).forEach(function(k) {
     if (screens[k]) screens[k].style.display = k === screen ? 'flex' : 'none';
   });
-  // L'écran mode doit s'afficher en block (pas flex)
   if (screen === 'mode' && screens.mode) screens.mode.style.display = 'block';
   if (screen === 'game' && screens.game) screens.game.style.display = 'block';
+  // Classement visible seulement sur l'écran mode
+  var lb = document.getElementById('memoryLeaderboard');
+  if (lb) lb.style.display = screen === 'mode' ? 'block' : 'none';
 }
 
 // ── Choix de mode ──
@@ -98,6 +101,7 @@ function memoryInit() {
   memLocked=false; memStarted=false;
   memMyPairs=0; memOtherPairs=0;
   _memProcessing=false;
+  _memResultShown=false;
 
   var scoreEl = document.getElementById('memScore');
   var movesEl = document.getElementById('memMoves');
@@ -189,7 +193,7 @@ function memCardClick(card) {
     setTimeout(function() {
       _memProcessing = false;
       checkMemMatch();
-    }, 700);
+    }, memMode === 'multi' ? 1200 : 700);
   } else if (memMode === 'multi' && memFlipped.length === 1) {
     // 1ère carte : sauvegarder pour que l'adversaire la voit tout de suite
     _memSaveMultiState(false);
@@ -231,13 +235,12 @@ function checkMemMatch() {
       a.classList.remove('flipped', 'wrong');
       b.classList.remove('flipped', 'wrong');
       if (memMode === 'multi') {
-        // Rater = passer le tour à l'adversaire
         memMyTurn = false;
         _memSetBoardBlocked(true);
         _memUpdateTurnBadge();
-        _memSaveMultiState(true); // true = passer le tour
+        _memSaveMultiState(true);
       }
-    }, 350);
+    }, memMode === 'multi' ? 1000 : 350);
   }
   memFlipped = [];
   if (memMode !== 'multi') memLocked = false;
@@ -328,8 +331,11 @@ function _memStartMulti() {
     },
 
     onLobbyTick: function(girlOk, boyOk) {
-      var isOth  = profile === 'girl' ? boyOk  : girlOk;
-      if (dotOth) dotOth.style.opacity = isOth ? '1' : '0.3';
+      var isOth = profile === 'girl' ? boyOk : girlOk;
+      if (dotOth) {
+        dotOth.style.background  = isOth ? '#22c55e' : '#555';
+        dotOth.style.boxShadow   = isOth ? '0 0 6px rgba(34,197,94,0.8)' : 'none';
+      }
       if (isOth && status) status.textContent = othName + ' est prêt(e) ! Lancement…';
     },
 
@@ -340,9 +346,12 @@ function _memStartMulti() {
     },
 
     onPresenceUpdate: function(isOnline) {
-      // Dot de présence adversaire pendant la partie
       var dot = document.getElementById('memOppDot');
-      if (dot) dot.style.opacity = isOnline ? '1' : '0.3';
+      if (dot) {
+        dot.style.background = isOnline ? '#22c55e' : '#555';
+        dot.style.boxShadow  = isOnline ? '0 0 5px rgba(34,197,94,0.8)' : 'none';
+        dot.style.opacity    = '1';
+      }
     },
 
     onStateUpdate: function(gameRow) {
@@ -545,6 +554,8 @@ function _memEndMulti() {
 }
 
 function _memShowMultiResult(state) {
+  if (_memResultShown) return;
+  _memResultShown = true;
   var profile = _memGetProfile();
   var other   = profile === 'girl' ? 'boy' : 'girl';
   var winner  = state.winner;
