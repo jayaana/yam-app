@@ -80,7 +80,7 @@ function memoryChooseSolo() {
   // Badge joueur courant
   var profile = _memGetProfile();
   var badge = document.getElementById('memTurnBadge');
-  if (badge && profile) { badge.className = 'mem-turn-badge'; badge.textContent = '🧠 ' + _memGetName(profile); }
+  if (badge && profile) badge.textContent = '🧠 ' + _memGetName(profile);
 }
 
 function memoryChooseMulti() {
@@ -130,7 +130,10 @@ function memoryInit() {
   pairs.forEach(function(emoji, idx) {
     var card = document.createElement('div');
     card.className = 'mem-card';
-    card.innerHTML = '<div class="mem-card-inner"><div class="mem-card-front"><div class="mf-sky"></div><div class="mf-moon"></div><div class="mf-reflection"></div><div class="mf-wave1"></div><div class="mf-wave2"></div><div class="mf-wave3"></div><div class="mf-border"></div></div><div class="mem-card-back">' + emoji + '</div></div>';
+    card.innerHTML = '<div class="mem-card-inner"><div class="mem-card-front"></div><div class="mem-card-back">' + emoji + '</div></div>';
+    card.dataset.emoji = emoji;
+    card.dataset.idx   = idx;
+    (function(c) { c.addEventListener('click', function() { memCardClick(c); }); })(card);
     grid.appendChild(card);
     memCards.push(card);
   });
@@ -464,7 +467,7 @@ function _memApplyMultiState(state) {
       state.cards.forEach(function(emoji, idx) {
         var card = document.createElement('div');
         card.className = 'mem-card';
-        card.innerHTML = '<div class="mem-card-inner"><div class="mem-card-front"><div class="mf-sky"></div><div class="mf-moon"></div><div class="mf-reflection"></div><div class="mf-wave1"></div><div class="mf-wave2"></div><div class="mf-wave3"></div><div class="mf-border"></div></div><div class="mem-card-back">' + emoji + '</div></div>';
+        card.innerHTML = '<div class="mem-card-inner"><div class="mem-card-front"></div><div class="mem-card-back">' + emoji + '</div></div>';
         card.dataset.emoji = emoji;
         card.dataset.idx   = String(idx);
         (function(c) { c.addEventListener('click', function() { memCardClick(c); }); })(card);
@@ -649,13 +652,9 @@ function _memUpdateTurnBadge() {
   if (memMyTurn) {
     badge.textContent = '🎯 Ton tour !';
     badge.className   = 'mem-turn-badge';
-    badge.style.background = 'linear-gradient(135deg, #ff85a1, #ff5580)';
-    badge.style.color = '#fff';
   } else {
     badge.textContent = '⏳ Tour de ' + _memGetName(profile === 'girl' ? 'boy' : 'girl');
-    badge.className   = 'mem-turn-badge';
-    badge.style.background = 'rgba(255,255,255,0.08)';
-    badge.style.color = 'var(--muted)';
+    badge.className   = 'mem-turn-badge mem-turn-badge--other';
   }
 }
 
