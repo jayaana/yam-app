@@ -130,7 +130,7 @@
       if(!coupleId) return;
       fetch(SB2_URL+'/rest/v1/'+PRESENCE_TABLE, {
         method:'POST',
-        headers: sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),
+        headers: sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','on-conflict':'couple_id,profile'}),
         body: JSON.stringify({profile:_me, couple_id:coupleId, updated_at:new Date().toISOString()})
       }).catch(function(){});
     }
