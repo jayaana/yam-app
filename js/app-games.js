@@ -314,6 +314,7 @@ function _memStartMulti() {
     gameTable:        MEM_GAME_TABLE,
     presenceTable:    MEM_PRESENCE_TABLE,
     deleteOnLeave:    true,
+    bothAbsentTimeout: 8000,  // 8s — supprime la partie dès que les 2 sont absents
 
     buildInitialState: function() {
       // Générer les 6 paires mélangées
