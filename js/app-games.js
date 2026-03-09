@@ -375,6 +375,11 @@ function _memStartMulti() {
       _memMp.showAlert('🏳️', 'Partie abandonnée', function() { _memResetToMode(); });
     },
 
+    onReconnectTimeout: function() {
+      clearInterval(memTimerInt);
+      _memResetToMode();
+    },
+
     onLeave: function() {
       clearInterval(memTimerInt);
       _memMp = null;
