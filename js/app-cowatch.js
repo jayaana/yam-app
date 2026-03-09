@@ -553,8 +553,17 @@
         function(){if(res){res.innerHTML='<div class="cw-search-err">Erreur r\u00e9seau</div>';res.classList.add('on');}});
       },500);
     });
-    inp.addEventListener('keydown',function(e){if(e.key==='Enter')window._cwLplAdd();});
+    inp.addEventListener('keydown',function(e){if(e.key==='Enter')window._cwLplAdd();if(e.key==='Escape'&&res){res.innerHTML='';res.classList.remove('on');}});
   })();
+
+  // Fermer les résultats de recherche au clic en dehors
+  document.addEventListener('click',function(e){
+    document.querySelectorAll('.cw-search-results.on').forEach(function(r){
+      if(!r.contains(e.target)&&!e.target.closest('.cw-search-wrap')&&e.target.id!=='cwPlInput'&&e.target.id!=='cwSearchIn'){
+        r.innerHTML='';r.classList.remove('on');
+      }
+    });
+  });
 
   function _loadSavedPlaylist(cb){
     if(!_coupleId)return;
@@ -812,7 +821,7 @@
     _loadChat();
     // Playlist : input add + import visibles seulement hôte
     var plAddRow=document.getElementById('cwPlAddRow');
-    if(plAddRow)plAddRow.style.display=_isHost?'':'none';
+    if(plAddRow)plAddRow.style.display=(_isHost&&!_launchedFromLink)?'':'none';
     var plImport=document.getElementById('cwPlImportBtn');
     if(plImport)plImport.style.display=(_isHost&&_launchedFromLink)?'':'none';
     _renderPlaylist();
@@ -972,9 +981,11 @@
   // L'index courant et la playlist voyagent dans state + colonne playlist.
 
   var _plOpen=false;
+  var _plJustOpened=false;
 
   window._cwPlToggle=function(){
     _plOpen=!_plOpen;
+    if(_plOpen)_plJustOpened=true;
     var panel=document.getElementById('cwPlPanel');
     var reacts=document.getElementById('cwReacts');
     var chatWrap=document.getElementById('cwChatWrap');
@@ -1152,9 +1163,9 @@
         rmHtml+
       '</div>';
     }).join('');
-    // Scroll jusqu'à la vidéo en cours
+    // Scroll jusqu'à la vidéo en cours uniquement à l'ouverture du panel
     var items=list.querySelectorAll('.cw-pl-item');
-    if(items[_plIndex])items[_plIndex].scrollIntoView({block:'nearest'});
+    if(_plJustOpened&&items[_plIndex]){items[_plIndex].scrollIntoView({block:'nearest'});_plJustOpened=false;}
   }
 
   function _saveState(patch){
