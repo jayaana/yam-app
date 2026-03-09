@@ -539,7 +539,7 @@
       if(!q){res.innerHTML='';res.classList.remove('on');return;}
       res.innerHTML='<div class="cw-search-loading">Recherche\u2026</div>';res.classList.add('on');
       _searchDeb=setTimeout(function(){
-        _pipedSearch(q,function(items){_renderSearchResults(items,res,'window._cwLplPick')},
+        _pipedSearch(q,function(items){_renderSearchResults(items,res,'window._cwSearchPick');},
         function(){res.innerHTML='<div class="cw-search-err">Impossible de contacter YouTube.</div>';res.classList.add('on');});
       },500);
     });
