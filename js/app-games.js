@@ -422,6 +422,8 @@ function _memLaunchMultiGame(gameRow) {
   _memApplyMultiState(gameRow.state || { cards:[], matched:[], girl_pairs:0, boy_pairs:0, turn:'girl', moves:0, winner:null });
 
   // Timer commun (cosmétique seulement)
+  clearInterval(memTimerInt);
+  memSeconds = 0;
   memStarted = true;
   memTimerInt = setInterval(function() {
     memSeconds++;
