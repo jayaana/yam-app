@@ -186,7 +186,7 @@
       }
 
       Promise.all([
-        fetch(SB2_URL+'/rest/v1/'+GAME_TABLE+'?couple_id=eq.'+coupleId+'&status=eq.playing&order=created_at.desc&limit=1&select=id,status,state,created_by', {headers:sb2Headers()}).then(function(r){return r.json();}),
+        fetch(SB2_URL+'/rest/v1/'+GAME_TABLE+'?couple_id=eq.'+coupleId+'&status=eq.playing&order=created_at.desc&limit=1&select=id,status,state,created_by,updated_at', {headers:sb2Headers()}).then(function(r){return r.json();}),
         fetch(SB2_URL+'/rest/v1/'+PRESENCE_TABLE+'?couple_id=eq.'+coupleId+'&select=profile', {headers:sb2Headers()}).then(function(r){return r.json();})
       ])
       .then(function(results){
@@ -194,8 +194,15 @@
         var presRows = results[1];
         var presenceEmpty = !Array.isArray(presRows) || presRows.length === 0;
 
+        // Partie trop ancienne → considérée comme fantôme même si présence non vide
+        var isStale = false;
+        if(cfg.staleGameMinutes && Array.isArray(rows) && rows[0] && rows[0].updated_at){
+          var ageMs = Date.now() - new Date(rows[0].updated_at).getTime();
+          isStale = ageMs > cfg.staleGameMinutes * 60 * 1000;
+        }
+
         if(Array.isArray(rows) && rows[0]){
-          if(presenceEmpty){
+          if(presenceEmpty || isStale){
             // Partie fantôme → supprimer
             fetch(SB2_URL+'/rest/v1/'+GAME_TABLE+'?id=eq.'+rows[0].id, {
               method:'DELETE', headers:sb2Headers()
