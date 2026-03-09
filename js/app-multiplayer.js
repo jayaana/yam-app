@@ -687,7 +687,8 @@
       getOther:       function(){ return _other; },
       getGameState:   function(){ return _gameState; },
       isSaving:       function(){ return _saving; },
-      isLaunched:     function(){ return _launched; }
+      isLaunched:     function(){ return _launched; },
+      startReconnectWait: function(){ _waitingForReconnect = true; startPoll(); startReconnectWait(); }
     };
   }
 
