@@ -148,17 +148,39 @@ function memoryRestart() {
 }
 
 function memoryQuit() {
-  // Déléguer à closeMemoryGame (app-nav.js) qui gère le slide + reset complet
-  if (typeof closeMemoryGame === 'function') {
-    closeMemoryGame();
+  clearInterval(memTimerInt);
+  if (_memMp && memMode === 'multi') {
+    var gid = _memMp.getGameId();
+    // 1. Notifier l'adversaire via status=abandoned
+    if (gid) {
+      fetch(SB2_URL + '/rest/v1/' + MEM_GAME_TABLE + '?id=eq.' + gid, {
+        method: 'PATCH',
+        headers: sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
+        body: JSON.stringify({ status: 'abandoned' })
+      }).catch(function() {});
+      // 2. Supprimer la partie après 4s (laisse le temps à l'adversaire de voir le message)
+      setTimeout(function() {
+        fetch(SB2_URL + '/rest/v1/' + MEM_GAME_TABLE + '?id=eq.' + gid, {
+          method: 'DELETE', headers: sb2Headers()
+        }).catch(function() {});
+      }, 4000);
+    }
+    _memMp.stopAll();
+    _memMp = null;
   } else {
-    // Fallback si app-nav pas encore chargé
-    clearInterval(memTimerInt);
     if (_memMp) { _memMp.leave(); _memMp = null; }
-    var winEl = document.getElementById('memoryWin');
-    if (winEl) winEl.classList.remove('show');
-    _memShowScreen('mode');
   }
+  _memResetToMode();
+}
+
+function _memResetToMode() {
+  var winEl = document.getElementById('memoryWin');
+  if (winEl) winEl.classList.remove('show');
+  var multiScores = document.getElementById('memMultiScores');
+  if (multiScores) multiScores.style.display = 'none';
+  memMode = null;
+  _memResultShown = false;
+  _memShowScreen('mode');
 }
 
 function memCardClick(card) {
@@ -367,7 +389,16 @@ function _memStartMulti() {
 
     onAbandon: function() {
       clearInterval(memTimerInt);
-      if (_memMp) _memMp.showAlert('🏳️', 'Partie abandonnée', function() { memoryQuit(); });
+      if (_memMp) { _memMp.stopAll(); _memMp = null; }
+      var overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+      overlay.innerHTML = '<div style="background:var(--s1);border:1px solid var(--border);border-radius:20px;padding:28px 24px;max-width:280px;text-align:center;">'
+        + '<div style="font-size:36px;margin-bottom:12px;">🏳️</div>'
+        + '<div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">Partie terminée</div>'
+        + '<div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Votre adversaire a quitté la partie.</div>'
+        + '<button onclick="this.closest(\'div\').parentNode.remove();_memResetToMode();" style="padding:10px 28px;background:var(--green);border:none;border-radius:50px;font-size:14px;font-weight:700;color:#000;cursor:pointer;">OK</button>'
+        + '</div>';
+      document.body.appendChild(overlay);
     },
 
     onLeave: function() { memoryQuit(); }
