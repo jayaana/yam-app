@@ -9,6 +9,7 @@
   var BETA_CODE= 'YAMNOW';
   var BETA_KEY = 'yam_cowatch_beta_ok';
   var POLL_MS  = 3000;   // poll état
+  var POLL_CMD_MS = 800;  // poll rapide quand co-contrôle actif
   var PRES_MS  = 5000;   // heartbeat présence
   var BROADCAST_MS = 5000; // hôte broadcast currentTime toutes les 5s
   var DRIFT_MAX = 10;    // secondes de dérive max avant seekTo
@@ -60,7 +61,10 @@
     '#cwHdr{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);gap:12px;flex-shrink:0;}',
     '#cwHdr h2{flex:1;font-size:17px;font-weight:700;font-family:"Bricolage Grotesque",sans-serif;color:var(--text);}',
     '.cw-back{width:36px;height:36px;border-radius:50%;background:var(--s2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}',
-        '.cw-coctl-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;border:1.5px solid var(--border);background:var(--s2);font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;transition:background .2s,color .2s,border-color .2s;-webkit-tap-highlight-color:transparent;white-space:nowrap;}',
+        '.cw-duo-banner{position:sticky;top:0;z-index:10;display:none;align-items:center;justify-content:center;gap:7px;padding:7px 14px;background:linear-gradient(90deg,rgba(201,120,96,.18),rgba(232,90,126,.18));border-bottom:1.5px solid rgba(201,120,96,.35);font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;}',
+    '.cw-duo-banner.on{display:flex;}',
+    '.cw-duo-banner svg{flex-shrink:0;}',
+    '.cw-coctl-btn{'display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;border:1.5px solid var(--border);background:var(--s2);font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;transition:background .2s,color .2s,border-color .2s;-webkit-tap-highlight-color:transparent;white-space:nowrap;}',
     '.cw-coctl-btn.on{background:rgba(201,120,96,.15);border-color:var(--accent);color:var(--accent);}',
     '.cw-coctl-btn svg{pointer-events:none;}',
     '.cw-bbadge{background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-size:9px;font-weight:800;letter-spacing:1.5px;padding:3px 8px;border-radius:20px;}',
@@ -328,7 +332,11 @@
           '</button>' +
         '</div>' +
       '</div>' +
-      '<div class="cw-vwrap">' +
+      '<div id="cwDuoBanner" class="cw-duo-banner">'+
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-4v4M8 3h4v4"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>'+
+        'Mode Duo actif — tu contrôles la vidéo 🎮'+
+      '</div>'+
+      '<div class="cw-vwrap">'+
         '<div id="cwYTDiv"></div>' +
         '<div class="cw-syncov" id="cwSyncOv"><div class="cw-syncspin"></div><div class="cw-synctxt">Synchronisation\u2026</div></div>' +
       '</div>' +
@@ -961,6 +969,7 @@
   // ── Poll ────────────────────────────────────────────────────────────
   function _startSyncPoll(){
     _stopPoll();
+    var interval=(_coControl)?POLL_CMD_MS:POLL_MS;
     _pollIv=setInterval(function(){
       if(!_sessionId)return;
       fetch(SB2_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId)+'&select=state,active,chat,presence,playlist,playlist_index',{headers:sb2Headers()})
@@ -978,7 +987,7 @@
         _updatePresenceUI(row.presence||{});
         _applyChat(row.chat||[]);
       }).catch(function(){});
-    },POLL_MS);
+    },interval);
   }
 
   // ── Sync non-hôte : stable, sans boucle ────────────────────────────
@@ -1128,10 +1137,9 @@
   };
 
   window._cwPlJump=function(idx){
-    if(!_isHost||idx===_plIndex||idx<0||idx>=_playlist.length)return;
-    _plIndex=idx;
-    _savePlaylist();
-    _loadVideo(_playlist[_plIndex].ytId);
+    if(idx===_plIndex||idx<0||idx>=_playlist.length)return;
+    if(_isHost){_plIndex=idx;_savePlaylist();_loadVideo(_playlist[_plIndex].ytId);}
+    else if(_coControl){_cwSendCmd('jump:'+idx);}
   };
 
   window._cwPlRemove=function(idx){
@@ -1160,6 +1168,10 @@
 
   // Skip : avance l'index, charge la suivante
   window._cwSkip=function(){if(_isHost){_cwSkipNext();}else if(_coControl){_cwSendCmd('skip');}};;
+  function _cwJumpTo(idx){
+    if(!_sessionId||idx<0||idx>=_playlist.length||idx===_plIndex)return;
+    _plIndex=idx;_savePlaylist();_loadVideo(_playlist[_plIndex].ytId);
+  }
   function _cwSkipNext(){
     if(!_isHost||!_sessionId)return;
     var nextIdx=_plIndex+1;
@@ -1243,7 +1255,7 @@
       var isPast=(i<_plIndex);
       var isNext=(i===_plIndex+1);
       var cls='cw-pl-item'+(isCurrent?' current':isPast?' past':'');
-      var clickable=_isHost&&!isCurrent;
+      var clickable=(_isHost||_coControl)&&!isCurrent;
       if(clickable)cls+=' cw-pl-clickable';
       var statusCls=isCurrent?'now':isPast?'done':isNext?'next':'';
       var statusLbl=isCurrent?'\u25b6 En cours':isPast?'\u2713 Vue':isNext?'\u25b6 Suivante':'\u2014 En attente';
@@ -1441,6 +1453,7 @@
     else if(cmd.action==='fwd10'){var t2=_player.getCurrentTime()+10;_player.seekTo(t2,true);_broadcastNow(true);}
     else if(cmd.action==='skip'){_cwSkipNext();}
     else if(cmd.action==='prev'){_cwSkipPrev();}
+    else if(cmd.action&&cmd.action.indexOf('jump:')=== 0){var ji=parseInt(cmd.action.split(':')[1],10);if(!isNaN(ji))_cwJumpTo(ji);}
   }
 
   // ── Duo ───────────────────────────────────────────────────
@@ -1448,6 +1461,7 @@
     if(!_isHost||!_sessionId)return;
     _coControl=!_coControl;
     _applyCoControlUI(_coControl);
+    _startSyncPoll(); // redémarrer avec le bon intervalle
     // Broadcaster le flag dans state
     if(!_player)return;
     var P=window.YT?window.YT.PlayerState:{};
@@ -1474,6 +1488,9 @@
         ?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-4v4M8 3h4v4"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>Duo ✓'
         :'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-4v4M8 3h4v4"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>Duo');
     }
+    // Bannière visible uniquement côté non-hôte
+    var banner=document.getElementById('cwDuoBanner');
+    if(banner)banner.classList.toggle('on',!_isHost&&active);
     // Activer/désactiver les boutons pour le non-hôte
     if(!_isHost){
       ['cwBack10','cwFwd10','cwPlayBtn'].forEach(function(id){
