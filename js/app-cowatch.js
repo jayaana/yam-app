@@ -40,7 +40,7 @@
     '.cw-search-input:focus{border-color:var(--accent);}',
     '.cw-search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:22px;height:22px;border-radius:50%;background:var(--s2);border:none;display:none;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);padding:0;font-size:16px;line-height:1;}',
     '.cw-search-clear.on{display:flex;}',
-    '.cw-search-results{background:var(--s2);border:1.5px solid var(--accent);border-radius:12px;overflow:hidden;margin-top:6px;display:none;max-height:300px;overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:0 4px 18px rgba(232,90,126,.13);}',
+    '.cw-search-results{background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:6px;display:none;max-height:300px;overflow-y:auto;-webkit-overflow-scrolling:touch;}',
     '.cw-search-results.on{display:block;}',
     '.cw-search-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);-webkit-tap-highlight-color:transparent;transition:background .15s;}',
     '.cw-search-item:last-child{border-bottom:none;}',
@@ -270,8 +270,8 @@
           '<div class="cw-search-results" id="cwLplSearchResults" style="margin:0 4px 4px;"></div>' +
           '<div class="cw-lpl-add" id="cwLplAddRow" style="display:none;">' +
             '<input id="cwLplInput" class="cw-lpl-input" type="text" placeholder="Lien ou titre YouTube\u2026" autocomplete="off" autocorrect="off" spellcheck="false" />' +
-            '<button class="cw-lpl-add-btn" id="cwLplAddBtn" onclick="window._cwLplAddOrClear()" disabled>' +
-              '<svg id="cwLplBtnIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+            '<button class="cw-lpl-add-btn" id="cwLplAddBtn" onclick="window._cwLplAdd()" disabled>' +
+              '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
             '</button>' +
           '</div>' +
         '</div>' +
@@ -381,8 +381,8 @@
         '</div>' +
         '<div class="cw-pl-add" id="cwPlAddRow">' +
           '<input id="cwPlInput" class="cw-pl-input" type="text" placeholder="Lien ou titre YouTube\u2026" autocomplete="off" autocorrect="off" spellcheck="false" />' +
-          '<button class="cw-pl-add-btn" id="cwPlAddBtn" onclick="window._cwPlAddOrClear()" disabled>' +
-            '<svg id="cwPlBtnIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+          '<button class="cw-pl-add-btn" id="cwPlAddBtn" onclick="window._cwPlAdd()" disabled>' +
+            '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
           '</button>' +
         '</div>' +
       '</div>' +   
@@ -460,6 +460,14 @@
       var fn=btn.getAttribute('data-fn').replace('window.','');
       if(ytId&&window[fn])window[fn](ytId);
     };
+    // Fermer le clavier au scroll sur les résultats
+    if(!listEl._scrollBlurBound){
+      listEl._scrollBlurBound=true;
+      listEl.addEventListener('touchstart',function(){
+        var focused=document.activeElement;
+        if(focused&&(focused.tagName==='INPUT'||focused.tagName==='TEXTAREA'))focused.blur();
+      },{passive:true});
+    }
     listEl.classList.add('on');
   }
 
@@ -542,19 +550,10 @@
     var inp=document.getElementById('cwLplInput'),btn=document.getElementById('cwLplAddBtn'),res=document.getElementById('cwLplSearchResults');
     if(!inp||!btn)return;
     var _lplDeb=null;
-    var _plusSvg='<svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"white\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"12\" y1=\"5\" x2=\"12\" y2=\"19\"/><line x1=\"5\" y1=\"12\" x2=\"19\" y2=\"12\"/></svg>';
-    var _crossSvg='<svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"white\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"18\" y1=\"6\" x2=\"6\" y2=\"18\"/><line x1=\"6\" y1=\"6\" x2=\"18\" y2=\"18\"/></svg>';
-    function _updateLplBtn(val){
-      var icon=document.getElementById('cwLplBtnIcon');
-      if(!icon)return;
-      if(val){icon.outerHTML=_crossSvg.replace('<svg ','<svg id="cwLplBtnIcon" ');btn.disabled=false;btn.style.background='var(--muted)';}
-      else{icon.outerHTML=_plusSvg.replace('<svg ','<svg id="cwLplBtnIcon" ');btn.disabled=true;btn.style.background='';}
-    }
     inp.addEventListener('input',function(){
       var val=this.value.trim();
-      _updateLplBtn(val);
-      if(_ytId(val)){if(res){res.innerHTML='';res.classList.remove('on');}return;}
-      btn.disabled=!!val?false:true;clearTimeout(_lplDeb);
+      if(_ytId(val)){btn.disabled=false;if(res){res.innerHTML='';res.classList.remove('on');}return;}
+      btn.disabled=true;clearTimeout(_lplDeb);
       if(!val){if(res){res.innerHTML='';res.classList.remove('on');}return;}
       if(res){res.innerHTML='<div class="cw-search-loading">Recherche\u2026</div>';res.classList.add('on');}
       _lplDeb=setTimeout(function(){
@@ -562,13 +561,7 @@
         function(){if(res){res.innerHTML='<div class="cw-search-err">Erreur r\u00e9seau</div>';res.classList.add('on');}});
       },500);
     });
-    inp.addEventListener('keydown',function(e){if(e.key==='Enter')window._cwLplAdd();if(e.key==='Escape'&&res){inp.value='';res.innerHTML='';res.classList.remove('on');_updateLplBtn('');}});
-    window._cwLplAddOrClear=function(){
-      var val=inp.value.trim();
-      var hasResults=res&&res.classList.contains('on');
-      if(hasResults||val){inp.value='';if(res){res.innerHTML='';res.classList.remove('on');}_updateLplBtn('');}
-      else{window._cwLplAdd();}
-    };
+    inp.addEventListener('keydown',function(e){if(e.key==='Enter')window._cwLplAdd();});
   })();
 
   function _loadSavedPlaylist(cb){
@@ -1009,19 +1002,10 @@
     var res=document.createElement('div');res.className='cw-search-results';res.style.cssText='margin:0 10px 6px;';
     var addRow=document.getElementById('cwPlAddRow');
     if(addRow&&addRow.parentNode)addRow.parentNode.insertBefore(res,addRow);
-    var _plusSvg='<svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"white\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"12\" y1=\"5\" x2=\"12\" y2=\"19\"/><line x1=\"5\" y1=\"12\" x2=\"19\" y2=\"12\"/></svg>';
-    var _crossSvg='<svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"white\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"18\" y1=\"6\" x2=\"6\" y2=\"18\"/><line x1=\"6\" y1=\"6\" x2=\"18\" y2=\"18\"/></svg>';
-    function _updatePlBtn(val){
-      var icon=document.getElementById('cwPlBtnIcon');
-      if(!icon)return;
-      if(val){icon.outerHTML=_crossSvg.replace('<svg ','<svg id="cwPlBtnIcon" ');btn.disabled=false;btn.style.background='var(--muted)';}
-      else{icon.outerHTML=_plusSvg.replace('<svg ','<svg id="cwPlBtnIcon" ');btn.disabled=true;btn.style.background='';}
-    }
     inp.addEventListener('input',function(){
       var val=this.value.trim();
-      _updatePlBtn(val);
-      if(_ytId(val)){res.innerHTML='';res.classList.remove('on');return;}
-      clearTimeout(_plDeb);
+      if(_ytId(val)){btn.disabled=false;res.innerHTML='';res.classList.remove('on');return;}
+      btn.disabled=true;clearTimeout(_plDeb);
       if(!val){res.innerHTML='';res.classList.remove('on');return;}
       res.innerHTML='<div class="cw-search-loading">Recherche\u2026</div>';res.classList.add('on');
       _plDeb=setTimeout(function(){
@@ -1029,13 +1013,7 @@
         function(){res.innerHTML='<div class="cw-search-err">Erreur r\u00e9seau</div>';res.classList.add('on');});
       },500);
     });
-    inp.addEventListener('keydown',function(e){if(e.key==='Enter')window._cwPlAdd();if(e.key==='Escape'){inp.value='';res.innerHTML='';res.classList.remove('on');_updatePlBtn('');}});
-    window._cwPlAddOrClear=function(){
-      var val=inp.value.trim();
-      var hasResults=res&&res.classList.contains('on');
-      if(hasResults||val){inp.value='';res.innerHTML='';res.classList.remove('on');_updatePlBtn('');}
-      else{window._cwPlAdd();}
-    };
+    inp.addEventListener('keydown',function(e){if(e.key==='Enter')window._cwPlAdd();});
   })();
 
   window._cwPlAdd=function(){
