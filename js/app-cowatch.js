@@ -838,13 +838,11 @@
       body:JSON.stringify({active:false})
     }).catch(function(){});}
     _sessionId=null;_isHost=false;_sc('cwScLobby');
-    var _ht=document.getElementById('cwHdrThemeBtn');if(_ht)_ht.style.display='';
   };
 
   // ── Player ─────────────────────────────────────────────────────────
   function _startPlayer(ytId){
     _sc('cwScPlayer');
-    var _ht=document.getElementById('cwHdrThemeBtn');if(_ht)_ht.style.display='none';
     _currentYtId=ytId;
     // Hôte : init playlist avec la première vidéo
     if(_isHost&&_playlist.length===0){_playlist=[{ytId:ytId}];_plIndex=0;}
@@ -953,7 +951,6 @@
         if(!rows||!rows.length)return;
         var row=rows[0];
         if(!row.active){_stopAll();if(typeof showToast==='function')showToast('Session termin\u00e9e','info');_sc('cwScLobby');return;}
-    var _ht=document.getElementById('cwHdrThemeBtn');if(_ht)_ht.style.display='';
         var state=row.state||{};
         if(!_isHost)_applyStateIfNeeded(state);
         // Sync playlist pour tout le monde
