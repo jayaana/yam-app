@@ -3227,32 +3227,6 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
   </div>
   <div class="game-view-body">
 
-    <!-- ÉTAPE 1 : Choix du joueur -->
-    <div class="gender-select-screen" id="memoryGenderScreen">
-      <div class="memory-start-icon">🎴</div>
-      <div class="gender-select-title">Qui joue ?</div>
-      <div class="gender-select-sub">Choisis ton identité pour sauvegarder ton score</div>
-      <div class="gender-select-btns">
-        <button class="gender-select-btn" id="memGenderGirl" onclick="memorySelectGender('girl')">
-          <span class="gender-select-icon girl-dot"></span>
-          <span id="memGenderGirlName">Elle</span>
-        </button>
-        <button class="gender-select-btn" id="memGenderBoy" onclick="memorySelectGender('boy')">
-          <span class="gender-select-icon boy-dot"></span>
-          <span id="memGenderBoyName">Lui</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- ÉTAPE 2 : Prêt à jouer -->
-    <div class="memory-start-screen" id="memoryStartScreen" style="display:none">
-      <div class="memory-start-icon" id="memoryStartEmoji">🎴</div>
-      <div class="memory-start-title" id="memoryStartTitle">Jeu de mémoire</div>
-      <div class="memory-start-sub">Retrouve toutes les paires d'émojis cachées. Moins de coups = meilleur score !</div>
-      <button class="memory-start-btn" onclick="memoryLaunch()">▶ Jouer</button>
-      <div style="font-size:11px;color:var(--muted);cursor:pointer;margin-top:-4px;" onclick="memoryBackToGender()">← Changer de joueur</div>
-    </div>
-
     <!-- CHOIX MODE solo / multi -->
     <div id="memoryModeScreen" style="display:block;padding:24px 16px;text-align:center;">
       <div style="font-size:48px;margin-bottom:12px;">🎴</div>
