@@ -17,168 +17,566 @@ function closeSnakeGame()  { _closeSnakeGame(); }
 
 
 // ── MEMORY ──
-var MEMORY_EMOJIS=['💕','🌸','💋','🥰','🌙','✨','🎵','💎'];
-var memCards=[],memFlipped=[],memMatched=0,memMoves=0,memLocked=false,memTimerInt=null,memSeconds=0,memStarted=false;
-var memCurrentPlayer = null; // 'girl' ou 'boy'
+var MEMORY_EMOJIS = ['💕','🌸','💋','🥰','🌙','✨','🎵','💎','🎀','🍓','🌺','🦋'];
+var memCards=[], memFlipped=[], memMatched=0, memMoves=0, memLocked=false;
+var memTimerInt=null, memSeconds=0, memStarted=false;
+var memMode = 'solo';     // 'solo' | 'multi'
+var memMyPairs = 0;       // paires trouvées par moi (multi)
+var memOtherPairs = 0;    // paires trouvées par l'autre (multi)
+var memMyTurn = true;     // true = c'est mon tour (multi)
+var _memMp = null;        // handle YAMMultiplayer
 
-// ── Sélection du genre ──
-function memorySelectGender(gender) {
-  memCurrentPlayer = gender;
-  // Highlight bouton sélectionné
-  document.getElementById('memGenderGirl').className = 'gender-select-btn' + (gender === 'girl' ? ' girl' : '');
-  document.getElementById('memGenderBoy').className  = 'gender-select-btn' + (gender === 'boy'  ? ' boy'  : '');
-  // Afficher titre personnalisé
-  document.getElementById('memoryStartTitle').textContent = (typeof v2GetDisplayName==="function"?'Jeu de mémoire — '+v2GetDisplayName(gender):(gender==="girl"?'Jeu de mémoire — Elle 🩷':'Jeu de mémoire — Lui 💙'));
-  // Transition vers écran de départ
-  document.getElementById('memoryGenderScreen').style.display = 'none';
-  document.getElementById('memoryStartScreen').style.display  = 'flex';
+// ── Tables Supabase pour le multi memory ──
+var MEM_GAME_TABLE     = 'v2_memory_games';
+var MEM_PRESENCE_TABLE = 'v2_memory_presence';
+
+// ── Helpers session ──
+function _memGetSession() {
+  try { return JSON.parse(localStorage.getItem('yam_v2_session') || 'null'); } catch(e) { return null; }
+}
+function _memGetCoupleId() {
+  var s = _memGetSession(); return s && s.user ? s.user.couple_id : null;
+}
+function _memGetProfile() {
+  return (typeof getProfile === 'function') ? getProfile() : null;
+}
+function _memGetName(role) {
+  return (typeof v2GetDisplayName === 'function') ? v2GetDisplayName(role) : (role === 'girl' ? 'Elle' : 'Lui');
 }
 
-function memoryBackToGender() {
-  memCurrentPlayer = null;
-  document.getElementById('memoryStartScreen').style.display  = 'none';
-  document.getElementById('memoryGenderScreen').style.display = 'flex';
-  document.getElementById('memGenderGirl').className = 'gender-select-btn';
-  document.getElementById('memGenderBoy').className  = 'gender-select-btn';
+// ── Ouverture / Fermeture ──
+function openMemoryGame() {
+  resetZoom();
+  _yamSlide(document.getElementById('memoryView'), document.getElementById('gamesView'), 'forward');
+  particleActive = false;
+  if(typeof hideDance === 'function') hideDance();
+  window.scrollTo(0, 0);
+  // Charger le classement au démarrage
+  _lbLoad();
+  // Afficher l'écran de mode
+  _memShowScreen('mode');
 }
-
-function memoryLaunch(){
-  document.getElementById('memoryStartScreen').style.display='none';
-  document.getElementById('memoryGameArea').style.display='block';
-  memoryInit();
-}
-function memoryQuit(){
+function closeMemoryGame() {
+  // Arrêter tout timer / multi
   clearInterval(memTimerInt);
-  document.getElementById('memoryGameArea').style.display='none';
-  document.getElementById('memoryWin').classList.remove('show');
-  // Retour à l'écran genre
-  memoryBackToGender();
+  if (_memMp) { _memMp.leave(); _memMp = null; }
+  _yamSlide(document.getElementById('gamesView'), document.getElementById('memoryView'), 'backward');
 }
-function memoryInit(){
-  clearInterval(memTimerInt);memCards=[];memFlipped=[];memMatched=0;memMoves=0;memSeconds=0;memLocked=false;memStarted=false;
-  document.getElementById('memScore').textContent='0';document.getElementById('memMoves').textContent='0';document.getElementById('memTime').textContent='0s';document.getElementById('memoryWin').classList.remove('show');
-  var pairs=MEMORY_EMOJIS.concat(MEMORY_EMOJIS);
-  for(var i=pairs.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=pairs[i];pairs[i]=pairs[j];pairs[j]=tmp;}
-  var grid=document.getElementById('memoryGrid');grid.innerHTML='';
-  pairs.forEach(function(emoji,idx){
-    var card=document.createElement('div');card.className='mem-card';
-    card.innerHTML='<div class="mem-card-inner"><div class="mem-card-front"></div><div class="mem-card-back">'+emoji+'</div></div>';
-    card.dataset.emoji=emoji;card.dataset.idx=idx;
-    (function(c){c.addEventListener('click',function(){memCardClick(c);});})(card);
-    grid.appendChild(card);memCards.push(card);
+
+// ── Navigation entre écrans internes ──
+function _memShowScreen(screen) {
+  var screens = {
+    mode:  document.getElementById('memoryModeScreen'),
+    lobby: document.getElementById('memoryLobbyScreen'),
+    game:  document.getElementById('memoryGameArea')
+  };
+  Object.keys(screens).forEach(function(k) {
+    if (screens[k]) screens[k].style.display = k === screen ? 'flex' : 'none';
+  });
+  // L'écran mode doit s'afficher en block (pas flex)
+  if (screen === 'mode' && screens.mode) screens.mode.style.display = 'block';
+  if (screen === 'game' && screens.game) screens.game.style.display = 'block';
+}
+
+// ── Choix de mode ──
+function memoryChooseSolo() {
+  memMode = 'solo';
+  _memShowScreen('game');
+  // Cacher les scores multi, montrer restart
+  var ms = document.getElementById('memMultiScores');
+  var rb = document.getElementById('memBtnRestart');
+  if (ms) ms.style.display = 'none';
+  if (rb) rb.style.display = '';
+  memoryInit();
+  // Badge joueur courant
+  var profile = _memGetProfile();
+  var badge = document.getElementById('memTurnBadge');
+  if (badge && profile) badge.textContent = '🧠 ' + _memGetName(profile);
+}
+
+function memoryChooseMulti() {
+  memMode = 'multi';
+  // Cacher restart en multi
+  var rb = document.getElementById('memBtnRestart');
+  if (rb) rb.style.display = 'none';
+  _memShowScreen('lobby');
+  _memStartMulti();
+}
+
+// ────────────────────────────────────────────────────────────
+// MODE SOLO
+// ────────────────────────────────────────────────────────────
+function memoryInit() {
+  clearInterval(memTimerInt);
+  memCards=[]; memFlipped=[]; memMatched=0; memMoves=0; memSeconds=0;
+  memLocked=false; memStarted=false;
+  memMyPairs=0; memOtherPairs=0;
+
+  var scoreEl = document.getElementById('memScore');
+  var movesEl = document.getElementById('memMoves');
+  var timeEl  = document.getElementById('memTime');
+  var winEl   = document.getElementById('memoryWin');
+  if (scoreEl) scoreEl.textContent = '0';
+  if (movesEl) movesEl.textContent = '0';
+  if (timeEl)  timeEl.textContent  = '0s';
+  if (winEl)   winEl.classList.remove('show');
+
+  // Utiliser 8 paires en solo, 6 en multi (grille plus rapide)
+  var pool = memMode === 'multi' ? MEMORY_EMOJIS.slice(0, 6) : MEMORY_EMOJIS.slice(0, 8);
+  var pairs = pool.concat(pool);
+  // Mélanger
+  for (var i = pairs.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = pairs[i]; pairs[i] = pairs[j]; pairs[j] = tmp;
+  }
+
+  var grid = document.getElementById('memoryGrid');
+  grid.innerHTML = '';
+  // Adapter la grille selon le nombre de paires
+  var cols = memMode === 'multi' ? 4 : 4;
+  grid.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
+
+  pairs.forEach(function(emoji, idx) {
+    var card = document.createElement('div');
+    card.className = 'mem-card';
+    card.innerHTML = '<div class="mem-card-inner"><div class="mem-card-front"></div><div class="mem-card-back">' + emoji + '</div></div>';
+    card.dataset.emoji = emoji;
+    card.dataset.idx   = idx;
+    (function(c) { c.addEventListener('click', function() { memCardClick(c); }); })(card);
+    grid.appendChild(card);
+    memCards.push(card);
   });
 }
-function memoryRestart(){document.getElementById('memoryWin').classList.remove('show');memoryInit();}
-function memCardClick(card){
-  if(memLocked||card.classList.contains('flipped')||card.classList.contains('matched'))return;
-  if(!memStarted){memStarted=true;memTimerInt=setInterval(function(){memSeconds++;var m=Math.floor(memSeconds/60),s=memSeconds%60;document.getElementById('memTime').textContent=m?m+'m'+String(s).padStart(2,'0')+'s':s+'s';},1000);}
-  card.classList.add('flipped');memFlipped.push(card);
-  if(memFlipped.length===2){memMoves++;document.getElementById('memMoves').textContent=memMoves;memLocked=true;setTimeout(checkMemMatch,700);}
-}
-function checkMemMatch(){
-  var a=memFlipped[0],b=memFlipped[1];
-  if(a.dataset.emoji===b.dataset.emoji){a.classList.add('matched');b.classList.add('matched');memMatched++;document.getElementById('memScore').textContent=memMatched;if(memMatched===MEMORY_EMOJIS.length){clearInterval(memTimerInt);setTimeout(memoryWinFn,400);}}
-  else{a.classList.add('wrong');b.classList.add('wrong');setTimeout(function(){a.classList.remove('flipped','wrong');b.classList.remove('flipped','wrong');},350);}
-  memFlipped=[];memLocked=false;
+
+function memoryRestart() {
+  if (memMode === 'multi') return; // pas de restart en multi
+  clearInterval(memTimerInt);
+  var winEl = document.getElementById('memoryWin');
+  if (winEl) winEl.classList.remove('show');
+  memoryInit();
 }
 
-// Calcul score : moins de coups et moins de temps = meilleur score
+function memoryQuit() {
+  clearInterval(memTimerInt);
+  if (_memMp) { _memMp.leave(); _memMp = null; }
+  var winEl = document.getElementById('memoryWin');
+  if (winEl) winEl.classList.remove('show');
+  _lbLoad();
+  _memShowScreen('mode');
+}
+
+function memCardClick(card) {
+  // En multi, bloquer si pas mon tour
+  if (memMode === 'multi' && !memMyTurn) return;
+  if (memLocked || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+
+  if (!memStarted) {
+    memStarted = true;
+    memTimerInt = setInterval(function() {
+      memSeconds++;
+      var m = Math.floor(memSeconds / 60), s = memSeconds % 60;
+      var timeEl = document.getElementById('memTime');
+      if (timeEl) timeEl.textContent = m ? m + 'm' + String(s).padStart(2, '0') + 's' : s + 's';
+    }, 1000);
+  }
+
+  card.classList.add('flipped');
+  memFlipped.push(card);
+
+  if (memFlipped.length === 2) {
+    memMoves++;
+    var movesEl = document.getElementById('memMoves');
+    if (movesEl) movesEl.textContent = memMoves;
+    memLocked = true;
+    // En multi : bloquer les cartes adverses pendant la vérif
+    if (memMode === 'multi') _memSetBoardBlocked(true);
+    setTimeout(checkMemMatch, 700);
+  }
+}
+
+function checkMemMatch() {
+  var a = memFlipped[0], b = memFlipped[1];
+  if (a.dataset.emoji === b.dataset.emoji) {
+    a.classList.add('matched');
+    b.classList.add('matched');
+    memMatched++;
+    var scoreEl = document.getElementById('memScore');
+    if (scoreEl) scoreEl.textContent = memMatched;
+
+    if (memMode === 'multi') {
+      memMyPairs++;
+      _memUpdateMultiScores();
+      // En multi : trouver une paire = on rejoue
+      memLocked = false;
+      _memSetBoardBlocked(false);
+      if (memMatched === 6) _memEndMulti(); // 6 paires au total
+    } else {
+      if (memMatched === 8) {
+        clearInterval(memTimerInt);
+        setTimeout(memoryWinFn, 400);
+      }
+    }
+  } else {
+    a.classList.add('wrong');
+    b.classList.add('wrong');
+    setTimeout(function() {
+      a.classList.remove('flipped', 'wrong');
+      b.classList.remove('flipped', 'wrong');
+      if (memMode === 'multi') {
+        // Rater = passer le tour
+        memMyTurn = false;
+        _memSetBoardBlocked(true);
+        _memUpdateTurnBadge();
+        _memSaveMultiState();
+      }
+    }, 350);
+  }
+  memFlipped = [];
+  if (memMode !== 'multi') memLocked = false;
+}
+
+// Calcul score solo
 function memoryCalcScore(moves, seconds) {
   var base = 1000;
   var penalty = moves * 10 + seconds * 2;
   return Math.max(0, base - penalty);
 }
 
-function memoryWinFn(){
-  var win=document.getElementById('memoryWin');win.classList.add('show');
-  var stars=memMoves<=20?'🌟🌟🌟':memMoves<=30?'🌟🌟':'🌟';
+function memoryWinFn() {
+  var win = document.getElementById('memoryWin');
+  win.classList.add('show');
+  var stars = memMoves <= 18 ? '🌟🌟🌟' : memMoves <= 28 ? '🌟🌟' : '🌟';
   var timeStr = document.getElementById('memTime').textContent;
-  var who = (typeof v2GetDisplayName==="function"?v2GetDisplayName(memCurrentPlayer):(memCurrentPlayer==="girl"?"Elle":"Lui"));
-  var msg = memMoves<=20 ? 'Parfait '+who+' ! '+memMoves+' coups en '+timeStr+' 💕' : memMoves<=30 ? 'Bien joué '+who+' ! '+memMoves+' coups en '+timeStr+' 😊' : 'Bravo '+who+' ! '+memMoves+' coups en '+timeStr+' 😏';
-  document.getElementById('memoryWinTitle').textContent=stars+' Terminé !';
-  document.getElementById('memoryWinSub').textContent=msg;
-  win.scrollIntoView({behavior:'smooth',block:'center'});
+  var profile = _memGetProfile();
+  var who = _memGetName(profile);
+  var msg = memMoves <= 18
+    ? 'Parfait ' + who + ' ! ' + memMoves + ' coups en ' + timeStr + ' 💕'
+    : memMoves <= 28
+    ? 'Bien joué ' + who + ' ! ' + memMoves + ' coups en ' + timeStr + ' 😊'
+    : 'Bravo ' + who + ' ! ' + memMoves + ' coups en ' + timeStr + ' 😏';
+  document.getElementById('memoryWinTitle').textContent = stars + ' Terminé !';
+  document.getElementById('memoryWinSub').textContent   = msg;
+  win.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-  // Sauvegarder dans Supabase
-  if(memCurrentPlayer) {
-    var scoreVal = memoryCalcScore(memMoves, memSeconds);
-    // ✅ FIX: Ajouter couple_id pour isoler les scores par couple
-    var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-    var coupleId = s && s.user ? s.user.couple_id : null;
-    if(coupleId) {
-      sbPost('game_scores', {
-        couple_id: coupleId,
-        game_id: 'memory',
-        player: memCurrentPlayer,
-        score: scoreVal,
-        moves: memMoves,
-        time_seconds: memSeconds
-      }).then(function(){ _lbLoad(); }).catch(function(){});
-    }
+  // Sauvegarder score
+  var scoreVal = memoryCalcScore(memMoves, memSeconds);
+  var coupleId = _memGetCoupleId();
+  if (profile && coupleId) {
+    sbPost('game_scores', {
+      couple_id: coupleId, game_id: 'memory',
+      player: profile, score: scoreVal,
+      moves: memMoves, time_seconds: memSeconds
+    }).then(function() { _lbLoad(); }).catch(function() {});
   }
+  // Flamme
+  if (typeof window.yamFlameActivity === 'function') window.yamFlameActivity('memory_done');
 }
 
-// ── LEADERBOARD ──
-var lbCurrentTab = 'all';
+// ────────────────────────────────────────────────────────────
+// MODE MULTI
+// ────────────────────────────────────────────────────────────
+function _memStartMulti() {
+  var profile = _memGetProfile();
+  var myName  = _memGetName(profile);
+  var other   = profile === 'girl' ? 'boy' : 'girl';
+  var othName = _memGetName(other);
 
-function lbSetTab(tab) {
-  lbCurrentTab = tab;
-  ['all','girl','boy'].forEach(function(t) {
-    var el = document.getElementById('lbTab' + t.charAt(0).toUpperCase() + t.slice(1));
-    if(el) el.className = 'lb-tab' + (t === tab ? ' active-' + tab : '');
+  // Mettre à jour le lobby
+  var nameMe  = document.getElementById('memLobbyNameMe');
+  var nameOth = document.getElementById('memLobbyNameOther');
+  var dotOth  = document.getElementById('memLobbyDotOther');
+  var status  = document.getElementById('memLobbyStatus');
+  if (nameMe)  nameMe.textContent  = myName;
+  if (nameOth) nameOth.textContent = othName;
+  if (dotOth)  dotOth.style.opacity = '0.3';
+  if (status)  status.textContent  = 'En attente de ' + othName + '…';
+
+  _memMp = YAMMultiplayer.init({
+    gameTable:        MEM_GAME_TABLE,
+    presenceTable:    MEM_PRESENCE_TABLE,
+    deleteOnLeave:    true,
+
+    buildInitialState: function() {
+      // Générer les 6 paires mélangées
+      var pool = MEMORY_EMOJIS.slice(0, 6).concat(MEMORY_EMOJIS.slice(0, 6));
+      for (var i = pool.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = pool[i]; pool[i] = pool[j]; pool[j] = t;
+      }
+      return {
+        cards: pool,        // tableau des emojis mélangés
+        matched: [],        // indices des paires trouvées
+        girl_pairs: 0,
+        boy_pairs:  0,
+        turn: 'girl',       // qui commence
+        moves: 0,
+        winner: null
+      };
+    },
+
+    onWaiting: function(me, opp) {
+      if (dotOth) dotOth.style.opacity = '0.3';
+      if (status) status.textContent = 'En attente de ' + _memGetName(opp) + '…';
+    },
+
+    onLobbyTick: function(girlOk, boyOk) {
+      var isMe   = profile === 'girl' ? girlOk : boyOk;
+      var isOth  = profile === 'girl' ? boyOk  : girlOk;
+      if (dotOth) dotOth.style.opacity = isOth ? '1' : '0.3';
+      if (isOth && status) status.textContent = othName + ' est prêt(e) ! Lancement…';
+    },
+
+    onMatchFound: function(gameRow) {
+      if (dotOth) dotOth.style.opacity = '1';
+      if (status)  status.textContent   = 'Partie trouvée !';
+      setTimeout(function() { _memLaunchMultiGame(gameRow); }, 400);
+    },
+
+    onStateUpdate: function(gameRow) {
+      if (!gameRow.state) return;
+      _memApplyMultiState(gameRow.state);
+    },
+
+    onOpponentOffline: function(oppName) {
+      if (_memMp) _memMp.showChoice(
+        '😔', oppName + ' est déconnecté(e)',
+        'Tu peux attendre ou quitter.',
+        'Attendre', null,
+        'Quitter', function() { memoryQuit(); }
+      );
+    },
+
+    onAbandon: function() {
+      clearInterval(memTimerInt);
+      if (_memMp) _memMp.showAlert('🏳️', 'Partie abandonnée', function() { memoryQuit(); });
+    },
+
+    onLeave: function() { memoryQuit(); }
   });
-  lbRender(lbCurrentData);
+
+  _memMp.enterLobby();
 }
 
-var lbCurrentData = [];
+function memoryMultiCancel() {
+  if (_memMp) { _memMp.leave(); _memMp = null; }
+  _memShowScreen('mode');
+}
 
-function _lbLoad() {
-  var list = document.getElementById('lbList');
-  list.innerHTML = '<div class="lb-loading"><span class="spinner"></span></div>';
-  // ✅ FIX: Filtrer par couple_id
-  var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-  var coupleId = s && s.user ? s.user.couple_id : null;
-  if(!coupleId) {
-    list.innerHTML = '<div class="lb-empty">Session expirée — reconnectez-vous</div>';
+function _memLaunchMultiGame(gameRow) {
+  _memShowScreen('game');
+  var profile = _memGetProfile();
+  var other   = profile === 'girl' ? 'boy' : 'girl';
+  var isCreator = gameRow.created_by === profile;
+
+  // Afficher scores multi
+  var ms = document.getElementById('memMultiScores');
+  if (ms) ms.style.display = 'flex';
+
+  // Initialiser noms multi
+  var nMe  = document.getElementById('memMscoreNameMe');
+  var nOth = document.getElementById('memMscoreNameOther');
+  if (nMe)  nMe.textContent  = _memGetName(profile);
+  if (nOth) nOth.textContent = _memGetName(other);
+
+  // Appliquer l'état initial
+  _memApplyMultiState(gameRow.state || { cards:[], matched:[], girl_pairs:0, boy_pairs:0, turn:'girl', moves:0, winner:null });
+
+  // Timer commun (cosmétique seulement)
+  memStarted = true;
+  memTimerInt = setInterval(function() {
+    memSeconds++;
+    var m = Math.floor(memSeconds / 60), s = memSeconds % 60;
+    var el = document.getElementById('memTime');
+    if (el) el.textContent = m ? m + 'm' + String(s).padStart(2,'0') + 's' : s + 's';
+  }, 1000);
+}
+
+function _memApplyMultiState(state) {
+  if (!state) return;
+  var profile = _memGetProfile();
+  var other   = profile === 'girl' ? 'boy' : 'girl';
+
+  // Si partie terminée
+  if (state.winner) {
+    clearInterval(memTimerInt);
+    _memShowMultiResult(state);
     return;
   }
-  sbGet('game_scores', 'couple_id=eq.' + coupleId + '&game_id=eq.memory&order=score.desc&limit=50')
-    .then(function(rows) {
-      lbCurrentData = Array.isArray(rows) ? rows : [];
-      lbRender(lbCurrentData);
-    })
-    .catch(function() {
-      list.innerHTML = '<div class="lb-empty">❌ Erreur de connexion.</div>';
+
+  memMyTurn = (state.turn === profile);
+
+  // Reconstruire la grille à partir de state.cards
+  if (state.cards && state.cards.length > 0) {
+    var grid = document.getElementById('memoryGrid');
+    var existing = grid.children.length;
+    if (existing !== state.cards.length) {
+      // Reconstruire la grille
+      grid.innerHTML = '';
+      memCards = [];
+      state.cards.forEach(function(emoji, idx) {
+        var card = document.createElement('div');
+        card.className = 'mem-card';
+        card.innerHTML = '<div class="mem-card-inner"><div class="mem-card-front"></div><div class="mem-card-back">' + emoji + '</div></div>';
+        card.dataset.emoji = emoji;
+        card.dataset.idx   = String(idx);
+        (function(c) { c.addEventListener('click', function() { _memMultiCardClick(c, state.cards); }); })(card);
+        grid.appendChild(card);
+        memCards.push(card);
+      });
+    }
+
+    // Appliquer les cartes matchées
+    var matched = state.matched || [];
+    memCards.forEach(function(c, i) {
+      if (matched.indexOf(i) !== -1) {
+        c.classList.add('flipped', 'matched');
+      } else {
+        c.classList.remove('matched');
+        if (!c.classList.contains('flipped')) c.classList.remove('flipped');
+      }
     });
-}
-
-function lbRender(rows) {
-  var list = document.getElementById('lbList');
-  var filtered = lbCurrentTab === 'all' ? rows : rows.filter(function(r){ return r.player === lbCurrentTab; });
-  // Top 10 seulement
-  var top = filtered.slice(0, 10);
-  if(!top.length) {
-    list.innerHTML = '<div class="lb-empty">Aucun score encore — soyez les premiers ! 🎮</div>';
-    return;
+    memMatched = matched.length / 2;
   }
-  var rankIcons = ['🥇','🥈','🥉'];
-  list.innerHTML = top.map(function(row, i) {
-    var rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-    var rankDisplay = i < 3 ? rankIcons[i] : (i + 1);
-    var playerLabel = (typeof v2GetDisplayName==="function"?v2GetDisplayName(row.player):(row.player==="girl"?"Elle":"Lui"));
-    var dotClass = row.player === 'girl' ? 'girl' : 'boy';
-    var m = Math.floor(parseInt(row.time_seconds||0) / 60), s = parseInt(row.time_seconds||0) % 60;
-    var timeStr = m ? m + 'm' + String(s).padStart(2,'0') + 's' : s + 's';
-    return '<div class="lb-row">' +
-      '<div class="lb-rank ' + rankClass + '">' + rankDisplay + '</div>' +
-      '<div class="lb-dot ' + dotClass + '"></div>' +
-      '<div class="lb-name">' + playerLabel + '</div>' +
-      '<div class="lb-score"><span>' + parseInt(row.score||0) + 'pts</span> · ' + parseInt(row.moves||0) + ' coups · ' + timeStr + '</div>' +
-    '</div>';
-  }).join('');
+
+  // Mettre à jour les scores
+  var myPairs  = profile === 'girl' ? (state.girl_pairs || 0) : (state.boy_pairs || 0);
+  var othPairs = profile === 'girl' ? (state.boy_pairs  || 0) : (state.girl_pairs || 0);
+  memMyPairs    = myPairs;
+  memOtherPairs = othPairs;
+  _memUpdateMultiScores();
+  _memUpdateTurnBadge();
+
+  // Bloquer/débloquer le plateau
+  _memSetBoardBlocked(!memMyTurn);
+
+  // Moves
+  var movesEl = document.getElementById('memMoves');
+  if (movesEl) movesEl.textContent = state.moves || 0;
+  memMoves = state.moves || 0;
 }
 
-var _gamesLbLoaded = false;
+function _memMultiCardClick(card, allCards) {
+  if (!memMyTurn || memLocked) return;
+  if (card.classList.contains('flipped') || card.classList.contains('matched')) return;
+  memCardClick(card);
+}
+
+function _memSaveMultiState() {
+  if (!_memMp) return;
+  var profile = _memGetProfile();
+
+  // Construire l'état depuis les cartes actuelles
+  var matchedIndices = [];
+  memCards.forEach(function(c, i) {
+    if (c.classList.contains('matched')) matchedIndices.push(i);
+  });
+
+  var cardEmojis = memCards.map(function(c) { return c.dataset.emoji; });
+
+  var state = {
+    cards:      cardEmojis,
+    matched:    matchedIndices,
+    girl_pairs: profile === 'girl' ? memMyPairs    : memOtherPairs,
+    boy_pairs:  profile === 'boy'  ? memMyPairs    : memOtherPairs,
+    turn:       memMyTurn ? (profile === 'girl' ? 'boy' : 'girl') : profile, // passer le tour
+    moves:      memMoves,
+    winner:     null
+  };
+
+  _memMp.saveState(state);
+}
+
+function _memEndMulti() {
+  clearInterval(memTimerInt);
+  var profile = _memGetProfile();
+  var other   = profile === 'girl' ? 'boy' : 'girl';
+
+  var winner;
+  if (memMyPairs > memOtherPairs)       winner = profile;
+  else if (memOtherPairs > memMyPairs)  winner = other;
+  else                                   winner = 'draw';
+
+  var state = {
+    cards:      memCards.map(function(c) { return c.dataset.emoji; }),
+    matched:    Array.from({length: memCards.length}, function(_, i) { return i; }), // tout matché
+    girl_pairs: profile === 'girl' ? memMyPairs : memOtherPairs,
+    boy_pairs:  profile === 'boy'  ? memMyPairs : memOtherPairs,
+    turn:       profile,
+    moves:      memMoves,
+    winner:     winner
+  };
+
+  if (_memMp) _memMp.saveState(state);
+  _memShowMultiResult(state);
+}
+
+function _memShowMultiResult(state) {
+  var profile = _memGetProfile();
+  var other   = profile === 'girl' ? 'boy' : 'girl';
+  var winner  = state.winner;
+  var iWon    = winner === profile;
+  var isDraw  = winner === 'draw';
+
+  var emoji = isDraw ? '🤝' : iWon ? '🏆' : '😢';
+  var title = isDraw ? 'Égalité !' : iWon ? 'Tu as gagné ! 🎉' : _memGetName(other) + ' a gagné !';
+  var myP   = profile === 'girl' ? (state.girl_pairs || 0) : (state.boy_pairs  || 0);
+  var othP  = profile === 'girl' ? (state.boy_pairs  || 0) : (state.girl_pairs || 0);
+  var sub   = _memGetName(profile) + ' : ' + myP + ' paires · ' + _memGetName(other) + ' : ' + othP + ' paires';
+
+  var win = document.getElementById('memoryWin');
+  win.classList.add('show');
+  document.getElementById('memoryWin').querySelector('.memory-win-emoji').textContent = emoji;
+  document.getElementById('memoryWinTitle').textContent = title;
+  document.getElementById('memoryWinSub').textContent   = sub;
+  // Masquer le bouton rejouer en multi
+  var replayBtn = document.getElementById('memWinReplayBtn');
+  if (replayBtn) replayBtn.style.display = 'none';
+  win.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  // Sauvegarder le score du gagnant
+  var coupleId = _memGetCoupleId();
+  if (coupleId && iWon && !isDraw) {
+    var scoreVal = memoryCalcScore(memMoves, memSeconds);
+    sbPost('game_scores', {
+      couple_id: coupleId, game_id: 'memory',
+      player: profile, score: scoreVal,
+      moves: memMoves, time_seconds: memSeconds
+    }).then(function() { _lbLoad(); }).catch(function() {});
+  }
+
+  if (_memMp) { _memMp.stopAll(); }
+}
+
+function _memSetBoardBlocked(blocked) {
+  memCards.forEach(function(c) {
+    if (!c.classList.contains('matched')) {
+      c.classList.toggle('blocked', blocked);
+    }
+  });
+  memLocked = blocked;
+}
+
+function _memUpdateMultiScores() {
+  var valMe  = document.getElementById('memMscoreValMe');
+  var valOth = document.getElementById('memMscoreValOther');
+  if (valMe)  valMe.textContent  = memMyPairs;
+  if (valOth) valOth.textContent = memOtherPairs;
+  var scoreEl = document.getElementById('memScore');
+  if (scoreEl) scoreEl.textContent = memMyPairs;
+}
+
+function _memUpdateTurnBadge() {
+  var badge = document.getElementById('memTurnBadge');
+  if (!badge) return;
+  var profile = _memGetProfile();
+  if (memMyTurn) {
+    badge.textContent = '🎯 Ton tour !';
+    badge.className   = 'mem-game-badge';
+  } else {
+    badge.textContent = '⏳ Tour de ' + _memGetName(profile === 'girl' ? 'boy' : 'girl');
+    badge.className   = 'mem-game-badge turn-other';
+  }
+}
 
 // ── QUIZ ──
   
