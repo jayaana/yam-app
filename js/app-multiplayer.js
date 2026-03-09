@@ -120,18 +120,27 @@
     }
 
     function upsertPresence(){
-      if(!_presenceActive) return; // stopAll/leave a désactivé la présence
+      if(!_presenceActive) return;
       if(!_me) return;
-      // Bloquer seulement en lobby (pas lancé) — pendant une partie active,
-      // on envoie la présence même si le document est caché (mobile background)
       if(document.hidden && !_launched) return;
       _lastPresenceSent = Date.now();
       var coupleId = _getCoupleId();
       if(!coupleId) return;
-      fetch(SB2_URL+'/rest/v1/'+PRESENCE_TABLE, {
-        method:'POST',
-        headers: sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','on-conflict':'couple_id,profile'}),
-        body: JSON.stringify({profile:_me, couple_id:coupleId, updated_at:new Date().toISOString()})
+      var now = new Date().toISOString();
+      // Essayer d'abord un PATCH (update si la ligne existe)
+      fetch(SB2_URL+'/rest/v1/'+PRESENCE_TABLE+'?couple_id=eq.'+coupleId+'&profile=eq.'+_me, {
+        method:'PATCH',
+        headers: sb2Headers({'Prefer':'return=minimal'}),
+        body: JSON.stringify({updated_at: now})
+      }).then(function(r){
+        // Si 0 lignes modifiées (404 ou PATCH sur rien), insérer
+        if(r.status === 404 || r.headers.get('content-range') === '*/0'){
+          fetch(SB2_URL+'/rest/v1/'+PRESENCE_TABLE, {
+            method:'POST',
+            headers: sb2Headers({'Prefer':'return=minimal'}),
+            body: JSON.stringify({profile:_me, couple_id:coupleId, updated_at:now})
+          }).catch(function(){});
+        }
       }).catch(function(){});
     }
 
