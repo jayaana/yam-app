@@ -314,7 +314,6 @@ function _memStartMulti() {
     gameTable:        MEM_GAME_TABLE,
     presenceTable:    MEM_PRESENCE_TABLE,
     deleteOnLeave:    true,
-    bothAbsentTimeout: 3000,  // 3s — supprime dès que les 2 présences sont vides
 
     buildInitialState: function() {
       // Générer les 6 paires mélangées
@@ -373,18 +372,6 @@ function _memStartMulti() {
     onAbandon: function() {
       clearInterval(memTimerInt);
       _memMp.showAlert('🏳️', 'Partie abandonnée', function() { _memResetToMode(); });
-    },
-
-    onBothAbsent: function() {
-      // Les 2 absents 40s — module a déjà supprimé la partie
-      clearInterval(memTimerInt);
-      _memMp.showAlert('⏱️', 'Partie expirée', function() { _memResetToMode(); });
-    },
-
-    onReconnectTimeout: function() {
-      // Countdown à 0 — module a déjà supprimé la partie
-      clearInterval(memTimerInt);
-      _memResetToMode();
     },
 
     onLeave: function() {
