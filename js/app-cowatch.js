@@ -22,6 +22,7 @@
   var _plIndex=0;   // index de la vidéo en cours dans _playlist
   var _currentYtId=null;
   var _savedPlaylist=[]; // playlist persistante du couple (v2_cowatch_playlist)
+  var _launchedFromLink=false; // true si session lancée avec un lien seul (pas playlist)
 
   // ── CSS ────────────────────────────────────────────────────────────
   var st=document.createElement('style');
@@ -56,7 +57,13 @@
     '.cw-lpl-hdr{padding:11px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);}',
     '.cw-lpl-title{flex:1;font-size:13px;font-weight:700;color:var(--text);}',
     '.cw-lpl-count{font-size:10px;font-weight:700;background:var(--accent);color:#fff;border-radius:20px;padding:1px 7px;}',
-    '.cw-lpl-list{max-height:180px;overflow-y:auto;-webkit-overflow-scrolling:touch;}',
+    '.cw-lpl-list{max-height:190px;overflow-y:auto;-webkit-overflow-scrolling:touch;display:none;}',
+    '.cw-lpl-list.open{display:block;}',
+    '.cw-lpl-add{display:none;gap:6px;padding:8px 10px;align-items:center;border-top:1px solid var(--border);}',
+    '.cw-lpl-add.open{display:flex;}',
+    '.cw-lpl-eye{width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:50%;transition:transform .15s;-webkit-tap-highlight-color:transparent;flex-shrink:0;}',
+    '.cw-lpl-eye:active{transform:scale(.85);}',
+    '.cw-lpl-eye svg{color:#e85a7e;}',
     '.cw-lpl-item{display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid var(--border);}',
     '.cw-lpl-item:last-child{border-bottom:none;}',
     '.cw-lpl-thumb{width:44px;height:28px;border-radius:4px;object-fit:cover;flex-shrink:0;background:var(--s2);}',
@@ -221,9 +228,12 @@
             '<span style="font-size:15px;">\uD83C\uDFAC</span>' +
             '<span class="cw-lpl-title">Notre playlist</span>' +
             '<span class="cw-lpl-count" id="cwLplCount">0</span>' +
+            '<div class="cw-lpl-eye" id="cwLplEye" onclick="window._cwLplToggle()">' +
+              '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' +
+            '</div>' +
           '</div>' +
           '<div class="cw-lpl-list" id="cwLplList"><div class="cw-lpl-empty">Aucune vid\u00e9o enregistr\u00e9e</div></div>' +
-          '<div class="cw-lpl-add">' +
+          '<div class="cw-lpl-add" id="cwLplAddRow">' +
             '<input id="cwLplInput" class="cw-lpl-input" type="url" placeholder="Ajouter un lien\u2026" autocomplete="off" />' +
             '<button class="cw-lpl-add-btn" id="cwLplAddBtn" onclick="window._cwLplAdd()" disabled>' +
               '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
@@ -398,9 +408,13 @@
     var list=document.getElementById('cwLplList');
     var count=document.getElementById('cwLplCount');
     var goBtn=document.getElementById('cwGoPlBtn');
+    var addRow=document.getElementById('cwLplAddRow');
     if(!list)return;
     if(count)count.textContent=_savedPlaylist.length;
     if(goBtn)goBtn.disabled=_savedPlaylist.length===0;
+    // Préserver l'état ouvert/fermé après re-render
+    list.classList.toggle('open',_lplOpen);
+    if(addRow)addRow.classList.toggle('open',_lplOpen);
     if(!_savedPlaylist.length){
       list.innerHTML='<div class="cw-lpl-empty">Aucune vid\u00e9o enregistr\u00e9e</div>';
       return;
@@ -416,6 +430,17 @@
       '</div>';
     }).join('');
   }
+
+  var _lplOpen=false;
+  window._cwLplToggle=function(){
+    _lplOpen=!_lplOpen;
+    var list=document.getElementById('cwLplList');
+    var addRow=document.getElementById('cwLplAddRow');
+    var eye=document.getElementById('cwLplEye');
+    if(list)list.classList.toggle('open',_lplOpen);
+    if(addRow)addRow.classList.toggle('open',_lplOpen);
+    if(eye)eye.style.opacity=_lplOpen?'1':'0.5';
+  };
 
   window._cwLplAdd=function(){
     var inp=document.getElementById('cwLplInput');if(!inp)return;
@@ -465,7 +490,7 @@
     }).then(function(r){return r.json();})
     .then(function(rows){
       if(!rows||!rows.length)return;
-      _sessionId=rows[0].id;_isHost=true;
+      _sessionId=rows[0].id;_isHost=true;_launchedFromLink=false;
       _playlist=allItems;_plIndex=0;
       document.getElementById('cwWaitTxt').textContent='En attente que '+_name(_otherRole(_myRole))+' rejoigne\u2026';
       _sc('cwScWait');_startWaitPoll();
@@ -500,6 +525,8 @@
     _savePlaylist();
     _renderPlaylist();
     _updateSkipBtn();
+    var importBtn=document.getElementById('cwPlImportBtn');if(importBtn)importBtn.style.display='none';
+    _launchedFromLink=false; // import fait, on masque définitivement
     if(typeof showToast==='function')showToast(toAdd.length+' vid\u00e9o(s) ajout\u00e9e(s)','success');
   };
   window._cwBetaOk=function(){
@@ -650,7 +677,7 @@
     var plAddRow=document.getElementById('cwPlAddRow');
     if(plAddRow)plAddRow.style.display=_isHost?'':'none';
     var plImport=document.getElementById('cwPlImportBtn');
-    if(plImport)plImport.style.display=_isHost?'':'none';
+    if(plImport)plImport.style.display=(_isHost&&_launchedFromLink)?'':'none';
     _renderPlaylist();
     _loadYT(function(){
       var wrap=document.getElementById('cwYTDiv');if(!wrap)return;
@@ -1240,7 +1267,7 @@
     if(_broadcastIv){clearInterval(_broadcastIv);_broadcastIv=null;}
     if(_player){try{_player.destroy();}catch(e){}_player=null;}
     _isHost=false;_isSyncing=false;_lastSeekAt=0;_lastAppliedTs=0;_lastChatTs=0;_lastReactTs=0;_sessionId=null;
-    _playlist=[];_plIndex=0;_currentYtId=null;_plOpen=false;_savedPlaylist=[];
+    _playlist=[];_plIndex=0;_currentYtId=null;_plOpen=false;_savedPlaylist=[];_launchedFromLink=false;
     var ui=document.getElementById('cwUrlIn');if(ui)ui.value='';
     var pr=document.getElementById('cwPreview');if(pr)pr.classList.remove('on');
     var gb=document.getElementById('cwGoBtn');if(gb)gb.disabled=true;
