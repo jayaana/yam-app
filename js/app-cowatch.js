@@ -23,6 +23,7 @@
   var _currentYtId=null;
   var _savedPlaylist=[];
   var _launchedFromLink=false;
+  var _coControl=false; // mode co-contrôle actif
   // Edge Function proxy — évite les erreurs CORS
   var SB2_EDGE_PIPED = SB2_URL + '/functions/v1/piped-search';
   var _pipedIdx=0;
@@ -59,6 +60,9 @@
     '#cwHdr{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);gap:12px;flex-shrink:0;}',
     '#cwHdr h2{flex:1;font-size:17px;font-weight:700;font-family:"Bricolage Grotesque",sans-serif;color:var(--text);}',
     '.cw-back{width:36px;height:36px;border-radius:50%;background:var(--s2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}',
+        '.cw-coctl-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;border:1.5px solid var(--border);background:var(--s2);font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;transition:background .2s,color .2s,border-color .2s;-webkit-tap-highlight-color:transparent;white-space:nowrap;}',
+    '.cw-coctl-btn.on{background:rgba(201,120,96,.15);border-color:var(--accent);color:var(--accent);}',
+    '.cw-coctl-btn svg{pointer-events:none;}',
     '.cw-bbadge{background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-size:9px;font-weight:800;letter-spacing:1.5px;padding:3px 8px;border-radius:20px;}',
     '.cw-sc{display:none;flex-direction:column;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}',
     '.cw-sc.on{display:flex;}',
@@ -318,6 +322,10 @@
           '</div>' +
 
           '<div id="cwRoleBadge" class="cw-hbadge" style="display:none;">H\u00f4te</div>' +
+          '<button id="cwCoCtlBtn" class="cw-coctl-btn" onclick="window._cwToggleCoControl()" style="display:none;">'+
+            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-4v4M8 3h4v4"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>'+
+            'Co-contr\u00f4le'+
+          '</button>' +
         '</div>' +
       '</div>' +
       '<div class="cw-vwrap">' +
@@ -852,10 +860,16 @@
     if(_isHost&&_playlist.length===0){_playlist=[{ytId:ytId}];_plIndex=0;}
     // Badge hôte
     var badge=document.getElementById('cwRoleBadge');if(badge)badge.style.display=_isHost?'':'none';
+    // Reset co-control à chaque nouvelle session
+    _coControl=false;
+    // Bouton co-control : visible hôte seulement
+    var coCtlBtn=document.getElementById('cwCoCtlBtn');
+    if(coCtlBtn){coCtlBtn.style.display=_isHost?'':'none';coCtlBtn.classList.remove('on');coCtlBtn.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-4v4M8 3h4v4"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>Co-contrôle';}
     // Désactiver contrôles pour non-hôte
     ['cwBack10','cwFwd10','cwPlayBtn'].forEach(function(id){
       var el=document.getElementById(id);if(el)el.classList.toggle('dis',!_isHost);
     });
+    _updateSkipBtn();
     // Présence : noms + avatars
     document.getElementById('cwPresNameMe').textContent=_name(_myRole);
     document.getElementById('cwPresNameOther').textContent=_name(_otherRole(_myRole));
@@ -973,6 +987,12 @@
   // Pour play/pause : on agit immédiatement sans seekTo.
   function _applyStateIfNeeded(state){
     if(!state||!state.ts)return;
+    // Sync flag co_control
+    var serverCoCtrl=!!state.co_control;
+    if(serverCoCtrl!==_coControl){
+      _coControl=serverCoCtrl;
+      _applyCoControlUI(_coControl);
+    }
     if(!_player||typeof _player.seekTo!=='function')return;
     if(_isSyncing)return;
 
@@ -1138,9 +1158,9 @@
   };
 
   // Skip : avance l'index, charge la suivante
-  window._cwSkip=function(){if(_isHost)_cwSkipNext();};
+  window._cwSkip=function(){if(_isHost||_coControl)_cwSkipNext();};
   function _cwSkipNext(){
-    if(!_isHost||!_sessionId)return;
+    if((!_isHost&&!_coControl)||!_sessionId)return;
     var nextIdx=_plIndex+1;
     if(nextIdx>=_playlist.length)return;
     _plIndex=nextIdx;
@@ -1149,9 +1169,9 @@
   }
 
   // Prev : recule l'index
-  window._cwPrev=function(){if(_isHost)_cwSkipPrev();};
+  window._cwPrev=function(){if(_isHost||_coControl)_cwSkipPrev();};
   function _cwSkipPrev(){
-    if(!_isHost||!_sessionId)return;
+    if((!_isHost&&!_coControl)||!_sessionId)return;
     var prevIdx=_plIndex-1;
     if(prevIdx<0)return;
     _plIndex=prevIdx;
@@ -1201,8 +1221,9 @@
     var prev=document.getElementById('cwPrevBtn');
     var hasNext=_playlist.length>0&&(_plIndex+1)<_playlist.length;
     var hasPrev=_plIndex>0;
-    if(skip)skip.classList.toggle('dis',!_isHost||!hasNext);
-    if(prev)prev.classList.toggle('dis',!_isHost||!hasPrev);
+    var canCtrl=_isHost||_coControl;
+    if(skip)skip.classList.toggle('dis',!canCtrl||!hasNext);
+    if(prev)prev.classList.toggle('dis',!canCtrl||!hasPrev);
   }
 
   function _renderPlaylist(){
@@ -1388,19 +1409,59 @@
     if(isMine)_lastChatTs=Math.max(_lastChatTs,msg.ts||0);
   }
 
-  // ── Contrôles ──────────────────────────────────────────────────────
+  // ── Co-contrôle ───────────────────────────────────────────────────
+  window._cwToggleCoControl=function(){
+    if(!_isHost||!_sessionId)return;
+    _coControl=!_coControl;
+    _applyCoControlUI(_coControl);
+    // Broadcaster le flag dans state
+    if(!_player)return;
+    var P=window.YT?window.YT.PlayerState:{};
+    var playing=_player.getPlayerState()===(P.PLAYING||1);
+    fetch(SB2_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId)+'&select=state',{headers:sb2Headers()})
+    .then(function(r){return r.json();})
+    .then(function(rows){
+      if(!rows||!rows[0])return;
+      var state=rows[0].state||{};
+      state.co_control=_coControl;
+      fetch(SB2_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId),{
+        method:'PATCH',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
+        body:JSON.stringify({state:state})
+      }).catch(function(){});
+    }).catch(function(){});
+    if(typeof showToast==='function')showToast(_coControl?'Co-contrôle activé 🎮':'Co-contrôle désactivé','info');
+  };
+
+  function _applyCoControlUI(active){
+    var btn=document.getElementById('cwCoCtlBtn');
+    if(btn){
+      btn.classList.toggle('on',active);
+      btn.innerHTML=(active
+        ?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-4v4M8 3h4v4"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>Co-contrôle ✓'
+        :'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-4v4M8 3h4v4"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>Co-contrôle');
+    }
+    // Activer/désactiver les boutons pour le non-hôte
+    if(!_isHost){
+      ['cwBack10','cwFwd10','cwPlayBtn'].forEach(function(id){
+        var el=document.getElementById(id);if(el)el.classList.toggle('dis',!active);
+      });
+      _updateSkipBtn();
+    }
+  }
+
+    // ── Contrôles ──────────────────────────────────────────────────────
   window._cwPlay=function(){
-    if(!_player||!_isHost)return;
+    if(!_player||(!_isHost&&!_coControl))return;
     var P=window.YT?window.YT.PlayerState:{};
     if(_player.getPlayerState()===(P.PLAYING||1))_player.pauseVideo();else _player.playVideo();
   };
   window._cwBack10=function(){
-    if(!_player||!_isHost)return;
+    if(!_player||(!_isHost&&!_coControl))return;
     var t=Math.max(0,_player.getCurrentTime()-10);
     _player.seekTo(t,true);_broadcastNow(true);
   };
   window._cwFwd10=function(){
-    if(!_player||!_isHost)return;
+    if(!_player||(!_isHost&&!_coControl))return;
     var t=_player.getCurrentTime()+10;
     _player.seekTo(t,true);_broadcastNow(true);
   };
@@ -1517,7 +1578,7 @@
     if(_broadcastIv){clearInterval(_broadcastIv);_broadcastIv=null;}
     if(_player){try{_player.destroy();}catch(e){}_player=null;}
     _isHost=false;_isSyncing=false;_lastSeekAt=0;_lastAppliedTs=0;_lastChatTs=0;_lastReactTs=0;_sessionId=null;
-    _playlist=[];_plIndex=0;_currentYtId=null;_plOpen=false;_savedPlaylist=[];_launchedFromLink=false;
+    _playlist=[];_plIndex=0;_currentYtId=null;_plOpen=false;_savedPlaylist=[];_launchedFromLink=false;_coControl=false;
     var ui=document.getElementById('cwUrlIn');if(ui)ui.value='';
     var pr=document.getElementById('cwPreview');if(pr)pr.classList.remove('on');
     var gb=document.getElementById('cwGoBtn');if(gb)gb.disabled=true;
