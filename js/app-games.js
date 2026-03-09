@@ -375,7 +375,15 @@ function _memStartMulti() {
       _memApplyMultiState(gameRow.state);
     },
 
-    // onOpponentOffline non surchargé — module gère nativement (identique Skyjo)
+    onOpponentOffline: function(oppName) {
+      if (!_memMp) return;
+      _memMp.showChoice(
+        '😔', oppName + ' est déconnecté(e)',
+        'Tu peux attendre son retour ou quitter la partie.',
+        'Attendre', function() { _memMp.startReconnectWait(); },
+        'Quitter',  function() { memoryQuit(); }
+      );
+    },
 
     onAbandon: function() {
       clearInterval(memTimerInt);
@@ -2361,7 +2369,15 @@ function _memStartMulti() {
       _memApplyMultiState(gameRow.state);
     },
 
-    // onOpponentOffline non surchargé — module gère nativement (identique Skyjo)
+    onOpponentOffline: function(oppName) {
+      if (!_memMp) return;
+      _memMp.showChoice(
+        '😔', oppName + ' est déconnecté(e)',
+        'Tu peux attendre son retour ou quitter la partie.',
+        'Attendre', function() { _memMp.startReconnectWait(); },
+        'Quitter',  function() { memoryQuit(); }
+      );
+    },
 
     onAbandon: function() {
       clearInterval(memTimerInt);
