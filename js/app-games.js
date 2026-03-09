@@ -277,11 +277,10 @@ function memoryWinFn() {
       couple_id: coupleId, game_id: 'memory',
       player: profile, score: scoreVal,
       moves: memMoves, time_seconds: memSeconds
-    }).then(function() { _lbLoad(); }).catch(function() {});
+    }).then(function() { _lbLoad(); if (typeof window.yamUpdateTrophies === 'function') window.yamUpdateTrophies(); }).catch(function() {});
   }
   // Flamme
   if (typeof window.yamFlameActivity === 'function') window.yamFlameActivity('memory_done');
-}
 
 // ────────────────────────────────────────────────────────────
 // MODE MULTI
@@ -592,7 +591,7 @@ function _memShowMultiResult(state) {
       couple_id: coupleId, game_id: 'memory',
       player: profile, score: scoreVal,
       moves: memMoves, time_seconds: memSeconds
-    }).then(function() { _lbLoad(); }).catch(function() {});
+    }).then(function() { _lbLoad(); if (typeof window.yamUpdateTrophies === 'function') window.yamUpdateTrophies(); }).catch(function() {});
   }
 
   if (_memMp) { _memMp.stopAll(); }
@@ -940,7 +939,7 @@ function penduEndGame(won){
     var coupleId = s && s.user ? s.user.couple_id : null;
     if(coupleId) {
       sbPost('game_scores',{couple_id:coupleId,game_id:'pendu',player:penduPlayer,score:penduScore,moves:penduErrors,time_seconds:0})
-        .then(function(){ plbLoad(); }).catch(function(){});
+        .then(function(){ plbLoad(); if (typeof window.yamUpdateTrophies === 'function') window.yamUpdateTrophies(); }).catch(function(){});
     }
   }
 }
@@ -1282,7 +1281,7 @@ function puzzleWin(){
     var coupleId = s && s.user ? s.user.couple_id : null;
     if(coupleId) {
       sbPost('game_scores',{couple_id:coupleId,game_id:'puzzle',player:puzzlePlayer,score:score,moves:puzzleMoveCount,time_seconds:0})
-        .then(function(){ zplbLoad(); }).catch(function(){});
+        .then(function(){ zplbLoad(); if (typeof window.yamUpdateTrophies === 'function') window.yamUpdateTrophies(); }).catch(function(){});
     }
   }
 }
@@ -1555,7 +1554,7 @@ function snakeGameOver(){
     var coupleId = s && s.user ? s.user.couple_id : null;
     if(coupleId) {
       sbPost('game_scores',{couple_id:coupleId,game_id:'snake',player:snakePlayer,score:snakeCurScore,moves:0,time_seconds:0})
-        .then(function(){ slbLoad(); }).catch(function(){});
+        .then(function(){ slbLoad(); if (typeof window.yamUpdateTrophies === 'function') window.yamUpdateTrophies(); }).catch(function(){});
     }
   }
 }
