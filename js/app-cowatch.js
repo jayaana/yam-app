@@ -21,13 +21,39 @@
   var _playlist=[]; // [{ytId}] — historique complet session en cours, jamais supprimé
   var _plIndex=0;   // index de la vidéo en cours dans _playlist
   var _currentYtId=null;
-  var _savedPlaylist=[]; // playlist persistante du couple (v2_cowatch_playlist)
-  var _launchedFromLink=false; // true si session lancée avec un lien seul (pas playlist)
+  var _savedPlaylist=[];
+  var _launchedFromLink=false;
+  var PIPED_INSTANCES=['https://pipedapi.kavin.rocks','https://pipedapi.tokhmi.xyz','https://pipedapi.moomoo.me'];
+  var _pipedIdx=0;
+  var _searchDeb=null;
 
   // ── CSS ────────────────────────────────────────────────────────────
   var st=document.createElement('style');
   st.textContent=[
     '#cwOv{display:none;position:fixed;inset:0;z-index:2600;background:var(--bg);flex-direction:column;}',
+    '.cw-tabs{display:flex;gap:0;background:var(--s2);border-radius:12px;padding:3px;margin-bottom:6px;}',
+    '.cw-tab{flex:1;padding:8px;text-align:center;font-size:12px;font-weight:600;color:var(--muted);border-radius:9px;cursor:pointer;transition:background .15s,color .15s;-webkit-tap-highlight-color:transparent;}',
+    '.cw-tab.active{background:var(--s1);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.12);}',
+    '.cw-search-wrap{position:relative;width:100%;}',
+    '.cw-search-input{width:100%;padding:11px 38px 11px 14px;background:var(--s1);border:1.5px solid var(--border);border-radius:14px;font-size:14px;color:var(--text);font-family:"Bricolage Grotesque",sans-serif;outline:none;transition:border-color .2s;-webkit-appearance:none;box-sizing:border-box;}',
+    '.cw-search-input:focus{border-color:var(--accent);}',
+    '.cw-search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:22px;height:22px;border-radius:50%;background:var(--s2);border:none;display:none;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);padding:0;font-size:16px;line-height:1;}',
+    '.cw-search-clear.on{display:flex;}',
+    '.cw-search-results{background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:6px;display:none;max-height:300px;overflow-y:auto;-webkit-overflow-scrolling:touch;}',
+    '.cw-search-results.on{display:block;}',
+    '.cw-search-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);-webkit-tap-highlight-color:transparent;transition:background .15s;}',
+    '.cw-search-item:last-child{border-bottom:none;}',
+    '.cw-search-item:active{background:var(--s2);}',
+    '.cw-search-thumb{width:72px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--s2);}',
+    '.cw-search-info{flex:1;min-width:0;}',
+    '.cw-search-title{font-size:12px;font-weight:600;color:var(--text);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}',
+    '.cw-search-meta{font-size:10px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
+    '.cw-search-add{width:28px;height:28px;border-radius:50%;background:var(--accent);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent;}',
+    '.cw-search-add svg{pointer-events:none;}',
+    '.cw-search-loading{text-align:center;padding:16px;font-size:12px;color:var(--muted);}',
+    '.cw-search-err{text-align:center;padding:14px 16px;font-size:12px;color:var(--muted);line-height:1.5;}',
+    '.cw-lpl-eye{width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:50%;transition:opacity .15s;-webkit-tap-highlight-color:transparent;flex-shrink:0;opacity:.45;}',
+    '.cw-lpl-eye.open{opacity:1;}',
     '#cwOv.on{display:flex;}',
     '#cwHdr{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);gap:12px;flex-shrink:0;}',
     '#cwHdr h2{flex:1;font-size:17px;font-weight:700;font-family:"Bricolage Grotesque",sans-serif;color:var(--text);}',
@@ -59,11 +85,6 @@
     '.cw-lpl-count{font-size:10px;font-weight:700;background:var(--accent);color:#fff;border-radius:20px;padding:1px 7px;}',
     '.cw-lpl-list{max-height:190px;overflow-y:auto;-webkit-overflow-scrolling:touch;display:none;}',
     '.cw-lpl-list.open{display:block;}',
-    '.cw-lpl-add{display:none;gap:6px;padding:8px 10px;align-items:center;border-top:1px solid var(--border);}',
-    '.cw-lpl-add.open{display:flex;}',
-    '.cw-lpl-eye{width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:50%;transition:transform .15s;-webkit-tap-highlight-color:transparent;flex-shrink:0;}',
-    '.cw-lpl-eye:active{transform:scale(.85);}',
-    '.cw-lpl-eye svg{color:#e85a7e;}',
     '.cw-lpl-item{display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid var(--border);}',
     '.cw-lpl-item:last-child{border-bottom:none;}',
     '.cw-lpl-thumb{width:44px;height:28px;border-radius:4px;object-fit:cover;flex-shrink:0;background:var(--s2);}',
@@ -205,13 +226,25 @@
       '<button class="cw-btn" onclick="window._cwBetaOk()">Acc\u00e9der \u2728</button>' +
     '</div>' +
     '<div id="cwScLobby" class="cw-sc">' +
-      // Mode A : lancer un nouveau lien
+      // Mode A : lancer par lien ou recherche
       '<div id="cwLobbyNewLink">' +
-        '<div class="cw-label">Nouveau lien YouTube</div>' +
-        '<input id="cwUrlIn" class="cw-urlinput" type="url" placeholder="https://youtube.com/watch?v=..." autocomplete="off" />' +
-        '<div id="cwPreview" class="cw-preview">' +
-          '<img id="cwThumb" src="" alt="" />' +
-          '<div class="cw-preview-info"><div id="cwPreviewId" class="cw-preview-id"></div></div>' +
+        '<div class="cw-tabs">' +
+          '<div class="cw-tab active" id="cwTabLink" onclick="window._cwSwitchTab(0)">\uD83D\uDD17 Coller un lien</div>' +
+          '<div class="cw-tab" id="cwTabSearch" onclick="window._cwSwitchTab(1)">\uD83D\uDD0D Rechercher</div>' +
+        '</div>' +
+        '<div id="cwPanelLink">' +
+          '<input id="cwUrlIn" class="cw-urlinput" type="url" placeholder="https://youtube.com/watch?v=..." autocomplete="off" />' +
+          '<div id="cwPreview" class="cw-preview">' +
+            '<img id="cwThumb" src="" alt="" />' +
+            '<div class="cw-preview-info"><div id="cwPreviewId" class="cw-preview-id"></div></div>' +
+          '</div>' +
+        '</div>' +
+        '<div id="cwPanelSearch" style="display:none;">' +
+          '<div class="cw-search-wrap">' +
+            '<input id="cwSearchIn" class="cw-search-input" type="search" placeholder="Titre, artiste\u2026" autocomplete="off" autocorrect="off" spellcheck="false" />' +
+            '<button class="cw-search-clear" id="cwSearchClear" onclick="window._cwSearchClear()">&times;</button>' +
+          '</div>' +
+          '<div class="cw-search-results" id="cwSearchResults"></div>' +
         '</div>' +
         '<button class="cw-btn" id="cwGoBtn" onclick="window._cwLaunch()" disabled>Lancer ce lien \uD83C\uDFAC</button>' +
       '</div>' +
@@ -229,12 +262,13 @@
             '<span class="cw-lpl-title">Notre playlist</span>' +
             '<span class="cw-lpl-count" id="cwLplCount">0</span>' +
             '<div class="cw-lpl-eye" id="cwLplEye" onclick="window._cwLplToggle()">' +
-              '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' +
+              '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e85a7e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' +
             '</div>' +
           '</div>' +
           '<div class="cw-lpl-list" id="cwLplList"><div class="cw-lpl-empty">Aucune vid\u00e9o enregistr\u00e9e</div></div>' +
-          '<div class="cw-lpl-add" id="cwLplAddRow">' +
-            '<input id="cwLplInput" class="cw-lpl-input" type="url" placeholder="Ajouter un lien\u2026" autocomplete="off" />' +
+          '<div class="cw-search-results" id="cwLplSearchResults" style="margin:0 4px 4px;"></div>' +
+          '<div class="cw-lpl-add" id="cwLplAddRow" style="display:none;">' +
+            '<input id="cwLplInput" class="cw-lpl-input" type="text" placeholder="Lien ou titre YouTube\u2026" autocomplete="off" autocorrect="off" spellcheck="false" />' +
             '<button class="cw-lpl-add-btn" id="cwLplAddBtn" onclick="window._cwLplAdd()" disabled>' +
               '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
             '</button>' +
@@ -345,7 +379,7 @@
           'Importer notre playlist \u00e0 la suite' +
         '</div>' +
         '<div class="cw-pl-add" id="cwPlAddRow">' +
-          '<input id="cwPlInput" class="cw-pl-input" type="url" placeholder="Colle un lien YouTube\u2026" autocomplete="off" />' +
+          '<input id="cwPlInput" class="cw-pl-input" type="text" placeholder="Lien ou titre YouTube\u2026" autocomplete="off" autocorrect="off" spellcheck="false" />' +
           '<button class="cw-pl-add-btn" id="cwPlAddBtn" onclick="window._cwPlAdd()" disabled>' +
             '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
           '</button>' +
@@ -385,11 +419,141 @@
   }
 
   // ── Lobby playlist sauvegardée ─────────────────────────────────────
+
+  // ── Piped Search ───────────────────────────────────────────────────
+  function _pipedSearch(q,onResults,onError){
+    function tryNext(i){
+      if(i>=PIPED_INSTANCES.length){onError();return;}
+      fetch(PIPED_INSTANCES[i]+'/search?q='+encodeURIComponent(q)+'&filter=videos')
+      .then(function(r){if(!r.ok)throw new Error('err');return r.json();})
+      .then(function(data){
+        _pipedIdx=i;
+        var items=(data.items||[]).filter(function(v){return v.url&&v.type==='stream';}).slice(0,10);
+        onResults(items);
+      })
+      .catch(function(){tryNext(i+1);});
+    }
+    tryNext(_pipedIdx);
+  }
+
+  function _fmtDur(s){if(!s||s<0)return '';var m=Math.floor(s/60),sec=s%60;return m+':'+(sec<10?'0':'')+sec;}
+
+  function _renderSearchResults(items,listEl,pickFn){
+    if(!items.length){listEl.innerHTML='<div class="cw-search-err">Aucun r\u00e9sultat</div>';listEl.classList.add('on');return;}
+    listEl.innerHTML=items.map(function(v){
+      var ytId=(v.url||'').replace('/watch?v=','');
+      var thumb=v.thumbnail||('https://img.youtube.com/vi/'+ytId+'/mqdefault.jpg');
+      var meta=_escHtml(v.uploaderName||'')+(_fmtDur(v.duration)?' \u00b7 '+_fmtDur(v.duration):'');
+      return '<div class="cw-search-item">'+
+        '<img class="cw-search-thumb" src="'+_escHtml(thumb)+'" alt="" loading="lazy" />'+
+        '<div class="cw-search-info">'+
+          '<div class="cw-search-title">'+_escHtml(v.title||ytId)+'</div>'+
+          '<div class="cw-search-meta">'+meta+'</div>'+
+        '</div>'+
+        '<button class="cw-search-add" data-ytid="'+_escHtml(ytId)+'" data-fn="'+_escHtml(pickFn)+'">'+
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'+
+        '</button>'+
+      '</div>';
+    }).join('');
+    listEl.onclick=function(e){
+      var btn=e.target.closest('.cw-search-add');if(!btn)return;
+      var ytId=btn.getAttribute('data-ytid');
+      var fn=btn.getAttribute('data-fn').replace('window.','');
+      if(ytId&&window[fn])window[fn](ytId);
+    };
+    listEl.classList.add('on');
+  }
+
+  window._cwSwitchTab=function(idx){
+    var pl=document.getElementById('cwPanelLink'),ps=document.getElementById('cwPanelSearch');
+    var tl=document.getElementById('cwTabLink'),ts=document.getElementById('cwTabSearch');
+    var goBtn=document.getElementById('cwGoBtn');
+    if(idx===0){
+      if(pl)pl.style.display='';if(ps)ps.style.display='none';
+      if(tl)tl.classList.add('active');if(ts)ts.classList.remove('active');
+      var urlIn=document.getElementById('cwUrlIn');
+      if(goBtn)goBtn.disabled=!_ytId((urlIn&&urlIn.value)||'');
+    } else {
+      if(pl)pl.style.display='none';if(ps)ps.style.display='';
+      if(tl)tl.classList.remove('active');if(ts)ts.classList.add('active');
+      if(goBtn)goBtn.disabled=true;
+      setTimeout(function(){var el=document.getElementById('cwSearchIn');if(el)el.focus();},100);
+    }
+  };
+
+  window._cwSearchClear=function(){
+    var inp=document.getElementById('cwSearchIn'),res=document.getElementById('cwSearchResults'),clr=document.getElementById('cwSearchClear');
+    if(inp)inp.value='';if(res){res.innerHTML='';res.classList.remove('on');}if(clr)clr.classList.remove('on');
+  };
+
+  window._cwSearchPick=function(ytId){
+    window._cwSwitchTab(0);
+    var urlIn=document.getElementById('cwUrlIn');
+    if(urlIn)urlIn.value='https://youtube.com/watch?v='+ytId;
+    document.getElementById('cwThumb').src='https://img.youtube.com/vi/'+ytId+'/mqdefault.jpg';
+    document.getElementById('cwPreviewId').textContent='youtube.com/watch?v='+ytId;
+    document.getElementById('cwPreview').classList.add('on');
+    var goBtn=document.getElementById('cwGoBtn');if(goBtn)goBtn.disabled=false;
+  };
+
+  var _lplOpen=false;
+  window._cwLplToggle=function(){
+    _lplOpen=!_lplOpen;
+    var list=document.getElementById('cwLplList'),addRow=document.getElementById('cwLplAddRow'),eye=document.getElementById('cwLplEye');
+    if(list)list.classList.toggle('open',_lplOpen);
+    if(addRow)addRow.style.display=_lplOpen?'flex':'none';
+    if(eye)eye.classList.toggle('open',_lplOpen);
+    if(_lplOpen){setTimeout(function(){var el=document.getElementById('cwLplInput');if(el)el.focus();},150);}
+  };
+
+  window._cwLplPick=function(ytId){
+    var inp=document.getElementById('cwLplInput'),res=document.getElementById('cwLplSearchResults');
+    if(inp)inp.value='https://youtube.com/watch?v='+ytId;
+    if(res){res.innerHTML='';res.classList.remove('on');}
+    window._cwLplAdd();
+  };
+
+  window._cwPlPick=function(ytId){
+    var inp=document.getElementById('cwPlInput');
+    if(inp)inp.value='https://youtube.com/watch?v='+ytId;
+    document.querySelectorAll('#cwPlPanel .cw-search-results').forEach(function(p){p.innerHTML='';p.classList.remove('on');});
+    window._cwPlAdd();
+  };
+
+  // Wiring recherche principale
   (function(){
-    var inp=document.getElementById('cwLplInput');
-    var btn=document.getElementById('cwLplAddBtn');
+    var inp=document.getElementById('cwSearchIn'),res=document.getElementById('cwSearchResults'),clr=document.getElementById('cwSearchClear');
+    if(!inp||!res)return;
+    inp.addEventListener('input',function(){
+      var q=this.value.trim();
+      if(clr)clr.classList.toggle('on',q.length>0);
+      clearTimeout(_searchDeb);
+      if(!q){res.innerHTML='';res.classList.remove('on');return;}
+      res.innerHTML='<div class="cw-search-loading">Recherche\u2026</div>';res.classList.add('on');
+      _searchDeb=setTimeout(function(){
+        _pipedSearch(q,function(items){_renderSearchResults(items,res,'window._cwSearchPick');},
+        function(){res.innerHTML='<div class="cw-search-err">Impossible de contacter YouTube.</div>';res.classList.add('on');});
+      },500);
+    });
+    inp.addEventListener('keydown',function(e){if(e.key==='Escape')window._cwSearchClear();});
+  })();
+
+  // Wiring playlist lobby lien OU recherche
+  (function(){
+    var inp=document.getElementById('cwLplInput'),btn=document.getElementById('cwLplAddBtn'),res=document.getElementById('cwLplSearchResults');
     if(!inp||!btn)return;
-    inp.addEventListener('input',function(){btn.disabled=!_ytId(this.value.trim());});
+    var _lplDeb=null;
+    inp.addEventListener('input',function(){
+      var val=this.value.trim();
+      if(_ytId(val)){btn.disabled=false;if(res){res.innerHTML='';res.classList.remove('on');}return;}
+      btn.disabled=true;clearTimeout(_lplDeb);
+      if(!val){if(res){res.innerHTML='';res.classList.remove('on');}return;}
+      if(res){res.innerHTML='<div class="cw-search-loading">Recherche\u2026</div>';res.classList.add('on');}
+      _lplDeb=setTimeout(function(){
+        _pipedSearch(val,function(items){if(res)_renderSearchResults(items,res,'window._cwLplPick');},
+        function(){if(res){res.innerHTML='<div class="cw-search-err">Erreur r\u00e9seau</div>';res.classList.add('on');}});
+      },500);
+    });
     inp.addEventListener('keydown',function(e){if(e.key==='Enter')window._cwLplAdd();});
   })();
 
@@ -408,13 +572,9 @@
     var list=document.getElementById('cwLplList');
     var count=document.getElementById('cwLplCount');
     var goBtn=document.getElementById('cwGoPlBtn');
-    var addRow=document.getElementById('cwLplAddRow');
     if(!list)return;
     if(count)count.textContent=_savedPlaylist.length;
     if(goBtn)goBtn.disabled=_savedPlaylist.length===0;
-    // Préserver l'état ouvert/fermé après re-render
-    list.classList.toggle('open',_lplOpen);
-    if(addRow)addRow.classList.toggle('open',_lplOpen);
     if(!_savedPlaylist.length){
       list.innerHTML='<div class="cw-lpl-empty">Aucune vid\u00e9o enregistr\u00e9e</div>';
       return;
@@ -431,26 +591,15 @@
     }).join('');
   }
 
-  var _lplOpen=false;
-  window._cwLplToggle=function(){
-    _lplOpen=!_lplOpen;
-    var list=document.getElementById('cwLplList');
-    var addRow=document.getElementById('cwLplAddRow');
-    var eye=document.getElementById('cwLplEye');
-    if(list)list.classList.toggle('open',_lplOpen);
-    if(addRow)addRow.classList.toggle('open',_lplOpen);
-    if(eye)eye.style.opacity=_lplOpen?'1':'0.5';
-  };
-
   window._cwLplAdd=function(){
     var inp=document.getElementById('cwLplInput');if(!inp)return;
     var id=_ytId(inp.value.trim());if(!id)return;
-    // Re-lire dynamiquement pour éviter une valeur stale (race condition session)
     var coupleId=_getCoupleId()||_coupleId;
-    if(!coupleId){if(typeof showToast==='function')showToast('Session non chargée, réessaie','error');return;}
+    if(!coupleId){if(typeof showToast==='function')showToast('Session non chargée','error');return;}
     _coupleId=coupleId;
     inp.value='';
     var btn=document.getElementById('cwLplAddBtn');if(btn)btn.disabled=true;
+    var res=document.getElementById('cwLplSearchResults');if(res){res.innerHTML='';res.classList.remove('on');}
     var pos=_savedPlaylist.length;
     fetch(SB2_URL+'/rest/v1/'+TABLE_PL,{
       method:'POST',
@@ -497,27 +646,23 @@
     }).catch(function(){if(typeof showToast==='function')showToast('Erreur r\u00e9seau','error');});
   };
 
-  // Import playlist sauvegardée dans une session en cours (à la fin)
+  // Import playlist sauvegardée dans une session en cours
   window._cwImportSavedPl=function(){
     if(!_isHost||!_savedPlaylist.length)return;
     var coupleId=_getCoupleId()||_coupleId;
-    // Ajouter la vidéo en cours à la playlist persistante si elle n'y est pas encore
     if(_currentYtId&&coupleId){
-      var alreadySaved=_savedPlaylist.some(function(s){return s.ytId===_currentYtId;});
-      if(!alreadySaved){
-        var pos=_savedPlaylist.length;
+      var already=_savedPlaylist.some(function(s){return s.ytId===_currentYtId;});
+      if(!already){
         fetch(SB2_URL+'/rest/v1/'+TABLE_PL,{
           method:'POST',
           headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=representation'}),
-          body:JSON.stringify({couple_id:coupleId,yt_id:_currentYtId,position:pos})
+          body:JSON.stringify({couple_id:coupleId,yt_id:_currentYtId,position:_savedPlaylist.length})
         }).then(function(r){return r.json();})
-        .then(function(rows){
-          if(rows&&rows[0])_savedPlaylist.unshift({ytId:_currentYtId,id:rows[0].id});
-        }).catch(function(){});
+        .then(function(rows){if(rows&&rows[0])_savedPlaylist.unshift({ytId:_currentYtId,id:rows[0].id});})
+        .catch(function(){});
       }
     }
     var newItems=_savedPlaylist.map(function(i){return{ytId:i.ytId};});
-    // Dédupliquer : ne pas ajouter ce qui est déjà dans _playlist
     var existing=_playlist.map(function(i){return i.ytId;});
     var toAdd=newItems.filter(function(i){return existing.indexOf(i.ytId)===-1;});
     if(!toAdd.length){if(typeof showToast==='function')showToast('D\u00e9j\u00e0 tout dans la playlist','info');return;}
@@ -526,7 +671,7 @@
     _renderPlaylist();
     _updateSkipBtn();
     var importBtn=document.getElementById('cwPlImportBtn');if(importBtn)importBtn.style.display='none';
-    _launchedFromLink=false; // import fait, on masque définitivement
+    _launchedFromLink=false;
     if(typeof showToast==='function')showToast(toAdd.length+' vid\u00e9o(s) ajout\u00e9e(s)','success');
   };
   window._cwBetaOk=function(){
@@ -565,11 +710,7 @@
     ov.classList.add('on');document.body.classList.add('subview-active');
     _myRole=typeof getProfile==='function'?getProfile():null;
     _coupleId=_getCoupleId();
-    // Retry si v2GetUser() pas encore prêt (race condition au premier chargement)
-    if(!_coupleId){
-      var u=typeof v2GetUser==='function'?v2GetUser():null;
-      if(u)_coupleId=u.couple_id||null;
-    }
+    if(!_coupleId){var u=typeof v2GetUser==='function'?v2GetUser():null;if(u)_coupleId=u.couple_id||null;}
     if(!_betaOk()){_sc('cwScBeta');return;}
     _afterBeta();
   };
@@ -618,17 +759,14 @@
     _stopPoll();
     _pollIv=setInterval(function(){
       if(!_sessionId)return;
-      // Inclure playlist dans le select pour ne pas la perdre quand l'autre rejoint
       fetch(SB2_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId)+'&select=state,yt_id,playlist,playlist_index',{headers:sb2Headers()})
       .then(function(r){return r.json();})
       .then(function(rows){
         if(!rows||!rows.length)return;
         if((rows[0].state||{}).joined){
           _stopPoll();
-          // Restaurer la playlist depuis Supabase avant de lancer le player
-          var serverPl=rows[0].playlist||[];
-          var serverIdx=typeof rows[0].playlist_index==='number'?rows[0].playlist_index:0;
-          if(serverPl.length>0){_playlist=serverPl;_plIndex=serverIdx;}
+          var spl=rows[0].playlist||[];var sidx=typeof rows[0].playlist_index==='number'?rows[0].playlist_index:0;
+          if(spl.length>0){_playlist=spl;_plIndex=sidx;}
           _startPlayer(rows[0].yt_id);
         }
       }).catch(function(){});
@@ -849,12 +987,25 @@
     if(_plOpen)_renderPlaylist();
   };
 
-  // Input add
+  // Wiring session playlist lien OU recherche
   (function(){
-    var inp=document.getElementById('cwPlInput');
-    var btn=document.getElementById('cwPlAddBtn');
+    var inp=document.getElementById('cwPlInput'),btn=document.getElementById('cwPlAddBtn');
     if(!inp||!btn)return;
-    inp.addEventListener('input',function(){btn.disabled=!_ytId(this.value.trim());});
+    var _plDeb=null;
+    var res=document.createElement('div');res.className='cw-search-results';res.style.cssText='margin:0 10px 6px;';
+    var addRow=document.getElementById('cwPlAddRow');
+    if(addRow&&addRow.parentNode)addRow.parentNode.insertBefore(res,addRow);
+    inp.addEventListener('input',function(){
+      var val=this.value.trim();
+      if(_ytId(val)){btn.disabled=false;res.innerHTML='';res.classList.remove('on');return;}
+      btn.disabled=true;clearTimeout(_plDeb);
+      if(!val){res.innerHTML='';res.classList.remove('on');return;}
+      res.innerHTML='<div class="cw-search-loading">Recherche\u2026</div>';res.classList.add('on');
+      _plDeb=setTimeout(function(){
+        _pipedSearch(val,function(items){_renderSearchResults(items,res,'window._cwPlPick');},
+        function(){res.innerHTML='<div class="cw-search-err">Erreur r\u00e9seau</div>';res.classList.add('on');});
+      },500);
+    });
     inp.addEventListener('keydown',function(e){if(e.key==='Enter')window._cwPlAdd();});
   })();
 
@@ -869,20 +1020,17 @@
     _savePlaylist();
     _renderPlaylist();
     _updateSkipBtn();
-    // Sauvegarder aussi dans la playlist persistante du couple (v2_cowatch_playlist)
     var coupleId=_getCoupleId()||_coupleId;
     if(coupleId){
       var alreadySaved=_savedPlaylist.some(function(s){return s.ytId===id;});
       if(!alreadySaved){
-        var pos=_savedPlaylist.length;
         fetch(SB2_URL+'/rest/v1/'+TABLE_PL,{
           method:'POST',
           headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=representation'}),
-          body:JSON.stringify({couple_id:coupleId,yt_id:id,position:pos})
+          body:JSON.stringify({couple_id:coupleId,yt_id:id,position:_savedPlaylist.length})
         }).then(function(r){return r.json();})
-        .then(function(rows){
-          if(rows&&rows[0])_savedPlaylist.push({ytId:id,id:rows[0].id});
-        }).catch(function(){});
+        .then(function(rows){if(rows&&rows[0])_savedPlaylist.push({ytId:id,id:rows[0].id});})
+        .catch(function(){});
       }
     }
   };
