@@ -120,27 +120,16 @@
     }
 
     function upsertPresence(){
-      if(!_presenceActive) return;
+      if(!_presenceActive) return; // stopAll/leave a désactivé la présence
       if(!_me) return;
-      if(document.hidden && !_launched) return;
+      if(document.hidden) return;
       _lastPresenceSent = Date.now();
       var coupleId = _getCoupleId();
       if(!coupleId) return;
-      var now = new Date().toISOString();
-      // Essayer d'abord un PATCH (update si la ligne existe)
-      fetch(SB2_URL+'/rest/v1/'+PRESENCE_TABLE+'?couple_id=eq.'+coupleId+'&profile=eq.'+_me, {
-        method:'PATCH',
-        headers: sb2Headers({'Prefer':'return=minimal'}),
-        body: JSON.stringify({updated_at: now})
-      }).then(function(r){
-        // Si 0 lignes modifiées (404 ou PATCH sur rien), insérer
-        if(r.status === 404 || r.headers.get('content-range') === '*/0'){
-          fetch(SB2_URL+'/rest/v1/'+PRESENCE_TABLE, {
-            method:'POST',
-            headers: sb2Headers({'Prefer':'return=minimal'}),
-            body: JSON.stringify({profile:_me, couple_id:coupleId, updated_at:now})
-          }).catch(function(){});
-        }
+      fetch(SB2_URL+'/rest/v1/'+PRESENCE_TABLE, {
+        method:'POST',
+        headers: sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),
+        body: JSON.stringify({profile:_me, couple_id:coupleId, updated_at:new Date().toISOString()})
       }).catch(function(){});
     }
 
@@ -198,23 +187,16 @@
 
       Promise.all([
         fetch(SB2_URL+'/rest/v1/'+GAME_TABLE+'?couple_id=eq.'+coupleId+'&status=eq.playing&order=created_at.desc&limit=1&select=id,status,state,created_by', {headers:sb2Headers()}).then(function(r){return r.json();}),
-        fetch(SB2_URL+'/rest/v1/'+PRESENCE_TABLE+'?couple_id=eq.'+coupleId+'&select=profile,updated_at', {headers:sb2Headers()}).then(function(r){return r.json();})
+        fetch(SB2_URL+'/rest/v1/'+PRESENCE_TABLE+'?couple_id=eq.'+coupleId+'&select=profile', {headers:sb2Headers()}).then(function(r){return r.json();})
       ])
       .then(function(results){
         var rows     = results[0];
         var presRows = results[1];
         var presenceEmpty = !Array.isArray(presRows) || presRows.length === 0;
 
-        // Vérifie si au moins un joueur est réellement actif (présence fraîche < 15s)
-        var now = Date.now();
-        var activePres = Array.isArray(presRows) ? presRows.filter(function(p){
-          return (now - new Date(p.updated_at || 0).getTime()) < 15000;
-        }) : [];
-        var hasActivePlayers = activePres.length > 0;
-
         if(Array.isArray(rows) && rows[0]){
-          if(!hasActivePlayers){
-            // Partie fantôme : plus personne d'actif → supprimer
+          if(presenceEmpty){
+            // Partie fantôme → supprimer
             fetch(SB2_URL+'/rest/v1/'+GAME_TABLE+'?id=eq.'+rows[0].id, {
               method:'DELETE', headers:sb2Headers()
             }).catch(function(){});
@@ -542,7 +524,7 @@
       deletePresence();
       if(_gameId && cfg.deleteOnLeave){
         fetch(SB2_URL+'/rest/v1/'+GAME_TABLE+'?id=eq.'+_gameId+'&status=eq.waiting', {
-          method:'DELETE', headers:sb2Headers(), keepalive:true
+          method:'DELETE', headers:sb2Headers()
         }).catch(function(){});
       }
       resetState();
