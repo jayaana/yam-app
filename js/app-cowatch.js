@@ -864,7 +864,7 @@
     _coControl=false;
     // Bouton co-control : visible hôte seulement
     var coCtlBtn=document.getElementById('cwCoCtlBtn');
-    if(coCtlBtn){coCtlBtn.style.display=_isHost?'':'none';coCtlBtn.classList.remove('on');coCtlBtn.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-4v4M8 3h4v4"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>Co-contrôle';}
+    if(coCtlBtn){coCtlBtn.style.display=_isHost?'':'none';coCtlBtn.classList.remove('on');coCtlBtn.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-4v4M8 3h4v4"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>Duo';}
     // Désactiver contrôles pour non-hôte
     ['cwBack10','cwFwd10','cwPlayBtn'].forEach(function(id){
       var el=document.getElementById(id);if(el)el.classList.toggle('dis',!_isHost);
@@ -955,7 +955,7 @@
   }
   function _broadcastNow(playing){
     if(!_player||!_sessionId)return;
-    _saveState({playing:playing,currentTime:_player.getCurrentTime(),ts:Date.now(),currentYtId:_currentYtId});
+    _saveState({playing:playing,currentTime:_player.getCurrentTime(),ts:Date.now(),currentYtId:_currentYtId,co_control:_coControl});
   }
 
   // ── Poll ────────────────────────────────────────────────────────────
@@ -1443,7 +1443,7 @@
     else if(cmd.action==='prev'){_cwSkipPrev();}
   }
 
-  // ── Co-contrôle ───────────────────────────────────────────────────
+  // ── Duo ───────────────────────────────────────────────────
   window._cwToggleCoControl=function(){
     if(!_isHost||!_sessionId)return;
     _coControl=!_coControl;
@@ -1463,7 +1463,7 @@
         body:JSON.stringify({state:state})
       }).catch(function(){});
     }).catch(function(){});
-    if(typeof showToast==='function')showToast(_coControl?'Co-contrôle activé 🎮':'Co-contrôle désactivé','info');
+    if(typeof showToast==='function')showToast(_coControl?'Duo activé 🎮':'Duo désactivé','info');
   };
 
   function _applyCoControlUI(active){
@@ -1471,8 +1471,8 @@
     if(btn){
       btn.classList.toggle('on',active);
       btn.innerHTML=(active
-        ?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-4v4M8 3h4v4"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>Co-contrôle ✓'
-        :'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-4v4M8 3h4v4"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>Co-contrôle');
+        ?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-4v4M8 3h4v4"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>Duo ✓'
+        :'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-4v4M8 3h4v4"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>Duo');
     }
     // Activer/désactiver les boutons pour le non-hôte
     if(!_isHost){
