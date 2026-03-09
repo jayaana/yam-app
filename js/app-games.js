@@ -378,9 +378,15 @@ function _memStartMulti() {
       _memApplyMultiState(gameRow.state);
     },
 
-    // onOpponentOffline non surchargé — le module gère nativement :
-    // "Attendre" → compte à rebours 20s, "Quitter" → _doLeave()
-    // On surcharge seulement "Quitter" via onLeave ci-dessous.
+    onOpponentOffline: function(oppName) {
+      if (!_memMp) return;
+      _memMp.showChoice(
+        '😔', oppName + ' est déconnecté(e)',
+        'Connexion perdue. Tu peux attendre son retour ou quitter la partie.',
+        'Attendre', function() { _memMp.startReconnectWait(); },
+        'Quitter',  function() { memoryQuit(); }
+      );
+    },
 
     onAbandon: function() {
       clearInterval(memTimerInt);
