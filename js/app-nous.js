@@ -3853,9 +3853,11 @@ window.nousLoad = function(){
       winner = stored.winner;
     } else {
       // Nouveau jour : on recalcule
+      // Guard : si les deux sont à 0, les données ne sont pas encore chargées — ne pas mettre en cache
+      if (_trophies.girl === 0 && _trophies.boy === 0) return;
       if (_trophies.girl > _trophies.boy)       winner = 'girl';
       else if (_trophies.boy > _trophies.girl)  winner = 'boy';
-      else                                       winner = null; // égalité → personne
+      else                                       winner = null; // égalité réelle → personne
       try { localStorage.setItem('yam_crown', JSON.stringify({ date: today, winner: winner })); } catch(e) {}
     }
 
@@ -3979,9 +3981,8 @@ window.nousLoad = function(){
     _loadAll(function () {
       _renderFlame();
       _renderStreak();
-      _renderTrophies();
       _renderCoupleSince();
-      _loadTrophies();
+      _loadTrophies(); // _renderTrophies() + _renderCrown() sont appelés en callback une fois le fetch terminé
       _checkStreak();
       _startTicks();
 
