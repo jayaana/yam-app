@@ -23,7 +23,7 @@
   var _currentYtId=null;
   var _savedPlaylist=[];
   var _launchedFromLink=false;
-  var _coControl=false; // mode co-contrôle actif
+  var _coControl=false;_lastCmdTs=0; // mode co-contrôle actif
   // Edge Function proxy — évite les erreurs CORS
   var SB2_EDGE_PIPED = SB2_URL + '/functions/v1/piped-search';
   var _pipedIdx=0;
@@ -971,6 +971,7 @@
         if(!row.active){_stopAll();if(typeof showToast==='function')showToast('Session termin\u00e9e','info');_sc('cwScLobby');return;}
         var state=row.state||{};
         if(!_isHost)_applyStateIfNeeded(state);
+        if(_isHost&&_coControl)_applyCmd(state); // Hôte exécute les commandes du non-hôte
         // Sync playlist pour tout le monde
         _applyPlaylist(row.playlist||[],state.currentYtId||null,row.playlist_index||0);
         _handleReacts(state);
@@ -1158,9 +1159,9 @@
   };
 
   // Skip : avance l'index, charge la suivante
-  window._cwSkip=function(){if(_isHost||_coControl)_cwSkipNext();};
+  window._cwSkip=function(){if(_isHost){_cwSkipNext();}else if(_coControl){_cwSendCmd('skip');}};;
   function _cwSkipNext(){
-    if((!_isHost&&!_coControl)||!_sessionId)return;
+    if(!_isHost||!_sessionId)return;
     var nextIdx=_plIndex+1;
     if(nextIdx>=_playlist.length)return;
     _plIndex=nextIdx;
@@ -1169,9 +1170,9 @@
   }
 
   // Prev : recule l'index
-  window._cwPrev=function(){if(_isHost||_coControl)_cwSkipPrev();};
+  window._cwPrev=function(){if(_isHost){_cwSkipPrev();}else if(_coControl){_cwSendCmd('prev');}};;
   function _cwSkipPrev(){
-    if((!_isHost&&!_coControl)||!_sessionId)return;
+    if(!_isHost||!_sessionId)return;
     var prevIdx=_plIndex-1;
     if(prevIdx<0)return;
     _plIndex=prevIdx;
@@ -1409,6 +1410,39 @@
     if(isMine)_lastChatTs=Math.max(_lastChatTs,msg.ts||0);
   }
 
+  // ── Système de commandes co-contrôle ─────────────────────────────
+  // Le non-hôte écrit une commande dans state.cmd, l'hôte l'exécute dans son poll
+  function _cwSendCmd(action){
+    if(!_sessionId)return;
+    var cmd={action:action,ts:Date.now()};
+    fetch(SB2_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId)+'&select=state',{headers:sb2Headers()})
+    .then(function(r){return r.json();})
+    .then(function(rows){
+      if(!rows||!rows[0])return;
+      var state=rows[0].state||{};
+      state.cmd=cmd;
+      fetch(SB2_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId),{
+        method:'PATCH',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
+        body:JSON.stringify({state:state})
+      }).catch(function(){});
+    }).catch(function(){});
+  }
+
+  var _lastCmdTs=0;
+  function _applyCmd(state){
+    if(!_isHost||!_player||!state.cmd)return;
+    var cmd=state.cmd;
+    if(!cmd.ts||cmd.ts<=_lastCmdTs)return;
+    _lastCmdTs=cmd.ts;
+    var P=window.YT?window.YT.PlayerState:{};
+    if(cmd.action==='play'){_player.playVideo();_broadcastNow(true);}
+    else if(cmd.action==='pause'){_player.pauseVideo();_broadcastNow(false);}
+    else if(cmd.action==='back10'){var t=Math.max(0,_player.getCurrentTime()-10);_player.seekTo(t,true);_broadcastNow(true);}
+    else if(cmd.action==='fwd10'){var t2=_player.getCurrentTime()+10;_player.seekTo(t2,true);_broadcastNow(true);}
+    else if(cmd.action==='skip'){_cwSkipNext();}
+    else if(cmd.action==='prev'){_cwSkipPrev();}
+  }
+
   // ── Co-contrôle ───────────────────────────────────────────────────
   window._cwToggleCoControl=function(){
     if(!_isHost||!_sessionId)return;
@@ -1443,27 +1477,46 @@
     // Activer/désactiver les boutons pour le non-hôte
     if(!_isHost){
       ['cwBack10','cwFwd10','cwPlayBtn'].forEach(function(id){
-        var el=document.getElementById(id);if(el)el.classList.toggle('dis',!active);
+        var el=document.getElementById(id);if(el){el.classList.toggle('dis',!active);el.style.opacity=active?'':'';};
       });
       _updateSkipBtn();
+      // Retirer le shield player pour que le non-hôte puisse voir la vidéo sans blocage
+      var shield=document.getElementById('cwPlayerShield');
+      if(shield)shield.style.display='none';
     }
   }
 
     // ── Contrôles ──────────────────────────────────────────────────────
   window._cwPlay=function(){
-    if(!_player||(!_isHost&&!_coControl))return;
-    var P=window.YT?window.YT.PlayerState:{};
-    if(_player.getPlayerState()===(P.PLAYING||1))_player.pauseVideo();else _player.playVideo();
+    if(!_player&&!_coControl)return;
+    if(_isHost){
+      if(!_player)return;
+      var P=window.YT?window.YT.PlayerState:{};
+      if(_player.getPlayerState()===(P.PLAYING||1))_player.pauseVideo();else _player.playVideo();
+    } else if(_coControl){
+      // Non-hôte : déduire l'action voulue depuis le bouton visuel
+      var ic=document.getElementById('cwPlayIc');
+      var wantPlay=ic&&ic.innerHTML.indexOf('polygon')!==-1; // polygon = lecture, rect = pause
+      _cwSendCmd(wantPlay?'play':'pause');
+    }
   };
   window._cwBack10=function(){
-    if(!_player||(!_isHost&&!_coControl))return;
-    var t=Math.max(0,_player.getCurrentTime()-10);
-    _player.seekTo(t,true);_broadcastNow(true);
+    if(_isHost){
+      if(!_player)return;
+      var t=Math.max(0,_player.getCurrentTime()-10);
+      _player.seekTo(t,true);_broadcastNow(true);
+    } else if(_coControl){
+      _cwSendCmd('back10');
+    }
   };
   window._cwFwd10=function(){
-    if(!_player||(!_isHost&&!_coControl))return;
-    var t=_player.getCurrentTime()+10;
-    _player.seekTo(t,true);_broadcastNow(true);
+    if(_isHost){
+      if(!_player)return;
+      var t=_player.getCurrentTime()+10;
+      _player.seekTo(t,true);_broadcastNow(true);
+    } else if(_coControl){
+      _cwSendCmd('fwd10');
+    }
   };
 
   // ── Plein écran ────────────────────────────────────────────────────
