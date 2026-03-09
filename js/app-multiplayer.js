@@ -64,7 +64,7 @@
     var RECONNECT_GRACE_S    = 20;
 
     var _bothAbsentHandled = false;
-    var BOTH_ABSENT_TIMEOUT_MS = 40000;
+    var BOTH_ABSENT_TIMEOUT_MS = cfg.bothAbsentTimeout || 40000;
 
     var _lastPresenceSent = 0;
     var _absenceStart     = 0;
