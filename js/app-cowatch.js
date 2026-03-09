@@ -518,6 +518,8 @@
     var inp=document.getElementById('cwLplInput');
     if(inp)inp.value='https://youtube.com/watch?v='+ytId;
     if(window._cwLplHideResults)window._cwLplHideResults();
+    // inp.value a été vidé par _lplHideResults → on remet l'URL avant d'ajouter
+    if(inp)inp.value='https://youtube.com/watch?v='+ytId;
     window._cwLplAdd();
   };
 
