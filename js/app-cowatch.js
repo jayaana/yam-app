@@ -495,6 +495,8 @@
   };
 
   window._cwSearchPick=function(ytId){
+    // Si la playlist lobby est ouverte, ajouter directement à la playlist
+    if(_lplOpen){window._cwLplPick(ytId);return;}
     window._cwSwitchTab(0);
     var urlIn=document.getElementById('cwUrlIn');
     if(urlIn)urlIn.value='https://youtube.com/watch?v='+ytId;
