@@ -605,7 +605,11 @@ function _memShowMultiResult(state) {
   var quitBtn = document.getElementById('memWinQuitBtn');
   if (quitBtn) {
     quitBtn.style.display = '';
-    quitBtn.onclick = function() { memoryQuit(); };
+    quitBtn.onclick = function() {
+      clearInterval(memTimerInt);
+      if (_memMp) { _memMp.leave(); _memMp = null; }
+      _memResetToMode();
+    };
   }
   win.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
