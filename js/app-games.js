@@ -281,9 +281,7 @@ function memoryWinFn() {
   }
   // Flamme
   if (typeof window.yamFlameActivity === 'function') window.yamFlameActivity('memory_done');
-
-// ────────────────────────────────────────────────────────────
-// MODE MULTI
+}
 // ────────────────────────────────────────────────────────────
 function _memStartMulti() {
   var profile = _memGetProfile();
