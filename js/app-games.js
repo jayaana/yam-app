@@ -196,10 +196,14 @@ function checkMemMatch() {
     if (memMode === 'multi') {
       memMyPairs++;
       _memUpdateMultiScores();
-      // En multi : trouver une paire = on rejoue
-      memLocked = false;
-      _memSetBoardBlocked(false);
-      if (memMatched === 6) _memEndMulti(); // 6 paires au total
+      if (memMatched === 6) {
+        _memEndMulti(); // 6 paires au total → fin de partie
+      } else {
+        // Trouver une paire = on rejoue (turn reste à moi)
+        memLocked = false;
+        _memSetBoardBlocked(false);
+        _memSaveMultiState(false); // false = je rejoue
+      }
     } else {
       if (memMatched === 8) {
         clearInterval(memTimerInt);
@@ -213,11 +217,11 @@ function checkMemMatch() {
       a.classList.remove('flipped', 'wrong');
       b.classList.remove('flipped', 'wrong');
       if (memMode === 'multi') {
-        // Rater = passer le tour
+        // Rater = passer le tour à l'adversaire
         memMyTurn = false;
         _memSetBoardBlocked(true);
         _memUpdateTurnBadge();
-        _memSaveMultiState();
+        _memSaveMultiState(true); // true = passer le tour
       }
     }, 350);
   }
@@ -398,9 +402,8 @@ function _memApplyMultiState(state) {
   // Reconstruire la grille à partir de state.cards
   if (state.cards && state.cards.length > 0) {
     var grid = document.getElementById('memoryGrid');
-    var existing = grid.children.length;
-    if (existing !== state.cards.length) {
-      // Reconstruire la grille
+    // Reconstruire seulement si la grille est vide (premier chargement)
+    if (grid.children.length !== state.cards.length) {
       grid.innerHTML = '';
       memCards = [];
       state.cards.forEach(function(emoji, idx) {
@@ -409,23 +412,27 @@ function _memApplyMultiState(state) {
         card.innerHTML = '<div class="mem-card-inner"><div class="mem-card-front"></div><div class="mem-card-back">' + emoji + '</div></div>';
         card.dataset.emoji = emoji;
         card.dataset.idx   = String(idx);
-        (function(c) { c.addEventListener('click', function() { _memMultiCardClick(c, state.cards); }); })(card);
+        // Utiliser memCardClick directement — le blocage est géré par memMyTurn + memLocked
+        (function(c) { c.addEventListener('click', function() { memCardClick(c); }); })(card);
         grid.appendChild(card);
         memCards.push(card);
       });
     }
 
-    // Appliquer les cartes matchées
+    // Appliquer l'état des cartes matchées
     var matched = state.matched || [];
     memCards.forEach(function(c, i) {
       if (matched.indexOf(i) !== -1) {
         c.classList.add('flipped', 'matched');
+        c.classList.remove('blocked');
       } else {
-        c.classList.remove('matched');
-        if (!c.classList.contains('flipped')) c.classList.remove('flipped');
+        // Retourner face cachée les cartes non matchées (après poll adversaire)
+        c.classList.remove('matched', 'flipped', 'wrong');
       }
     });
     memMatched = matched.length / 2;
+    memFlipped = []; // vider les cartes retournées localement
+    memLocked  = false;
   }
 
   // Mettre à jour les scores
@@ -451,9 +458,10 @@ function _memMultiCardClick(card, allCards) {
   memCardClick(card);
 }
 
-function _memSaveMultiState() {
+function _memSaveMultiState(passTurn) {
   if (!_memMp) return;
   var profile = _memGetProfile();
+  var other   = profile === 'girl' ? 'boy' : 'girl';
 
   // Construire l'état depuis les cartes actuelles
   var matchedIndices = [];
@@ -463,12 +471,16 @@ function _memSaveMultiState() {
 
   var cardEmojis = memCards.map(function(c) { return c.dataset.emoji; });
 
+  // passTurn=true  → c'est maintenant le tour de l'adversaire
+  // passTurn=false → j'ai trouvé une paire, je rejoue
+  var nextTurn = passTurn ? other : profile;
+
   var state = {
     cards:      cardEmojis,
     matched:    matchedIndices,
-    girl_pairs: profile === 'girl' ? memMyPairs    : memOtherPairs,
-    boy_pairs:  profile === 'boy'  ? memMyPairs    : memOtherPairs,
-    turn:       memMyTurn ? (profile === 'girl' ? 'boy' : 'girl') : profile, // passer le tour
+    girl_pairs: profile === 'girl' ? memMyPairs : memOtherPairs,
+    boy_pairs:  profile === 'boy'  ? memMyPairs : memOtherPairs,
+    turn:       nextTurn,
     moves:      memMoves,
     winner:     null
   };
