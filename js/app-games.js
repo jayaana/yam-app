@@ -112,8 +112,8 @@ function memoryInit() {
   if (timeEl)  timeEl.textContent  = '0s';
   if (winEl)   winEl.classList.remove('show');
 
-  // Utiliser 8 paires en solo, 6 en multi (grille plus rapide)
-  var pool = memMode === 'multi' ? MEMORY_EMOJIS.slice(0, 6) : MEMORY_EMOJIS.slice(0, 8);
+  // Utiliser 8 paires en solo, 8 en multi
+  var pool = MEMORY_EMOJIS.slice(0, 8);
   var pairs = pool.concat(pool);
   // Mélanger
   for (var i = pairs.length - 1; i > 0; i--) {
@@ -124,7 +124,7 @@ function memoryInit() {
   var grid = document.getElementById('memoryGrid');
   grid.innerHTML = '';
   // Adapter la grille selon le nombre de paires
-  var cols = memMode === 'multi' ? 4 : 4;
+  var cols = 4;
   grid.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
 
   pairs.forEach(function(emoji, idx) {
@@ -317,7 +317,7 @@ function _memStartMulti() {
 
     buildInitialState: function() {
       // Générer les 6 paires mélangées
-      var pool = MEMORY_EMOJIS.slice(0, 6).concat(MEMORY_EMOJIS.slice(0, 6));
+      var pool = MEMORY_EMOJIS.slice(0, 8).concat(MEMORY_EMOJIS.slice(0, 8));
       for (var i = pool.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1));
         var t = pool[i]; pool[i] = pool[j]; pool[j] = t;
@@ -417,6 +417,12 @@ function _memLaunchMultiGame(gameRow) {
   clearInterval(memTimerInt);
   memSeconds = (gameRow.state && gameRow.state.elapsed_seconds) ? gameRow.state.elapsed_seconds : 0;
   memStarted = true;
+  // Afficher immédiatement le bon temps
+  var timeEl = document.getElementById('memTime');
+  if (timeEl) {
+    var m0 = Math.floor(memSeconds / 60), s0 = memSeconds % 60;
+    timeEl.textContent = m0 ? m0 + 'm' + String(s0).padStart(2,'0') + 's' : s0 + 's';
+  }
   memTimerInt = setInterval(function() {
     memSeconds++;
     var m = Math.floor(memSeconds / 60), s = memSeconds % 60;
