@@ -348,11 +348,6 @@ function _memStartMulti() {
     },
 
     onMatchFound: function(gameRow) {
-      // Si partie déjà en cours (retour fenêtre) → juste réappliquer l'état, ne pas relancer
-      if (memStarted) {
-        if (gameRow.state) _memApplyMultiState(gameRow.state);
-        return;
-      }
       if (dotOth) dotOth.style.opacity = '1';
       if (status)  status.textContent   = 'Partie trouvée !';
       setTimeout(function() { _memLaunchMultiGame(gameRow); }, 400);
@@ -413,9 +408,10 @@ function _memLaunchMultiGame(gameRow) {
   // Appliquer l'état initial
   _memApplyMultiState(gameRow.state || { cards:[], matched:[], girl_pairs:0, boy_pairs:0, turn:'girl', moves:0, winner:null });
 
-  // Timer commun (cosmétique seulement)
+  // Timer — reset seulement si nouvelle partie (pas de cartes existantes)
+  var isNewGame = !gameRow.state || !gameRow.state.cards || gameRow.state.cards.length === 0 || gameRow.state.moves === 0;
   clearInterval(memTimerInt);
-  memSeconds = 0;
+  if (isNewGame) memSeconds = 0;
   memStarted = true;
   memTimerInt = setInterval(function() {
     memSeconds++;
