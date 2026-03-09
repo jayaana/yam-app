@@ -475,6 +475,22 @@
   // Import playlist sauvegardée dans une session en cours (à la fin)
   window._cwImportSavedPl=function(){
     if(!_isHost||!_savedPlaylist.length)return;
+    var coupleId=_getCoupleId()||_coupleId;
+    // Ajouter la vidéo en cours à la playlist persistante si elle n'y est pas encore
+    if(_currentYtId&&coupleId){
+      var alreadySaved=_savedPlaylist.some(function(s){return s.ytId===_currentYtId;});
+      if(!alreadySaved){
+        var pos=_savedPlaylist.length;
+        fetch(SB2_URL+'/rest/v1/'+TABLE_PL,{
+          method:'POST',
+          headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=representation'}),
+          body:JSON.stringify({couple_id:coupleId,yt_id:_currentYtId,position:pos})
+        }).then(function(r){return r.json();})
+        .then(function(rows){
+          if(rows&&rows[0])_savedPlaylist.unshift({ytId:_currentYtId,id:rows[0].id});
+        }).catch(function(){});
+      }
+    }
     var newItems=_savedPlaylist.map(function(i){return{ytId:i.ytId};});
     // Dédupliquer : ne pas ajouter ce qui est déjà dans _playlist
     var existing=_playlist.map(function(i){return i.ytId;});
@@ -575,11 +591,19 @@
     _stopPoll();
     _pollIv=setInterval(function(){
       if(!_sessionId)return;
-      fetch(SB2_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId)+'&select=state,yt_id',{headers:sb2Headers()})
+      // Inclure playlist dans le select pour ne pas la perdre quand l'autre rejoint
+      fetch(SB2_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId)+'&select=state,yt_id,playlist,playlist_index',{headers:sb2Headers()})
       .then(function(r){return r.json();})
       .then(function(rows){
         if(!rows||!rows.length)return;
-        if((rows[0].state||{}).joined){_stopPoll();_startPlayer(rows[0].yt_id);}
+        if((rows[0].state||{}).joined){
+          _stopPoll();
+          // Restaurer la playlist depuis Supabase avant de lancer le player
+          var serverPl=rows[0].playlist||[];
+          var serverIdx=typeof rows[0].playlist_index==='number'?rows[0].playlist_index:0;
+          if(serverPl.length>0){_playlist=serverPl;_plIndex=serverIdx;}
+          _startPlayer(rows[0].yt_id);
+        }
       }).catch(function(){});
     },POLL_MS);
   }
@@ -818,6 +842,22 @@
     _savePlaylist();
     _renderPlaylist();
     _updateSkipBtn();
+    // Sauvegarder aussi dans la playlist persistante du couple (v2_cowatch_playlist)
+    var coupleId=_getCoupleId()||_coupleId;
+    if(coupleId){
+      var alreadySaved=_savedPlaylist.some(function(s){return s.ytId===id;});
+      if(!alreadySaved){
+        var pos=_savedPlaylist.length;
+        fetch(SB2_URL+'/rest/v1/'+TABLE_PL,{
+          method:'POST',
+          headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=representation'}),
+          body:JSON.stringify({couple_id:coupleId,yt_id:id,position:pos})
+        }).then(function(r){return r.json();})
+        .then(function(rows){
+          if(rows&&rows[0])_savedPlaylist.push({ytId:id,id:rows[0].id});
+        }).catch(function(){});
+      }
+    }
   };
 
   window._cwPlJump=function(idx){
