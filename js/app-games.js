@@ -45,23 +45,8 @@ function _memGetName(role) {
 }
 
 // ── Ouverture / Fermeture ──
-function openMemoryGame() {
-  resetZoom();
-  _yamSlide(document.getElementById('memoryView'), document.getElementById('gamesView'), 'forward');
-  particleActive = false;
-  if(typeof hideDance === 'function') hideDance();
-  window.scrollTo(0, 0);
-  // Charger le classement au démarrage
-  _lbLoad();
-  // Afficher l'écran de mode
-  _memShowScreen('mode');
-}
-function closeMemoryGame() {
-  // Arrêter tout timer / multi
-  clearInterval(memTimerInt);
-  if (_memMp) { _memMp.leave(); _memMp = null; }
-  _yamSlide(document.getElementById('gamesView'), document.getElementById('memoryView'), 'backward');
-}
+// openMemoryGame et closeMemoryGame sont definies dans app-nav.js (charge en dernier)
+// _memShowScreen, memoryChooseSolo, memoryChooseMulti etc. restent ici
 
 // ── Navigation entre écrans internes ──
 function _memShowScreen(screen) {
@@ -157,12 +142,17 @@ function memoryRestart() {
 }
 
 function memoryQuit() {
-  clearInterval(memTimerInt);
-  if (_memMp) { _memMp.leave(); _memMp = null; }
-  var winEl = document.getElementById('memoryWin');
-  if (winEl) winEl.classList.remove('show');
-  _lbLoad();
-  _memShowScreen('mode');
+  // Déléguer à closeMemoryGame (app-nav.js) qui gère le slide + reset complet
+  if (typeof closeMemoryGame === 'function') {
+    closeMemoryGame();
+  } else {
+    // Fallback si app-nav pas encore chargé
+    clearInterval(memTimerInt);
+    if (_memMp) { _memMp.leave(); _memMp = null; }
+    var winEl = document.getElementById('memoryWin');
+    if (winEl) winEl.classList.remove('show');
+    _memShowScreen('mode');
+  }
 }
 
 function memCardClick(card) {
@@ -576,6 +566,67 @@ function _memUpdateTurnBadge() {
     badge.textContent = '⏳ Tour de ' + _memGetName(profile === 'girl' ? 'boy' : 'girl');
     badge.className   = 'mem-game-badge turn-other';
   }
+}
+
+
+// ── LEADERBOARD MEMORY ──
+var lbCurrentTab = 'all';
+var lbCurrentData = [];
+var _gamesLbLoaded = false;
+
+function lbSetTab(tab) {
+  lbCurrentTab = tab;
+  ['all','girl','boy'].forEach(function(t) {
+    var el = document.getElementById('lbTab' + t.charAt(0).toUpperCase() + t.slice(1));
+    if(el) el.className = 'lb-tab' + (t === tab ? ' active-' + tab : '');
+  });
+  lbRender(lbCurrentData);
+}
+
+function _lbLoad() {
+  var list = document.getElementById('lbList');
+  if(!list) return;
+  list.innerHTML = '<div class="lb-loading"><span class="spinner"></span></div>';
+  var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
+  var coupleId = s && s.user ? s.user.couple_id : null;
+  if(!coupleId) {
+    list.innerHTML = '<div class="lb-empty">Session expirée — reconnectez-vous</div>';
+    return;
+  }
+  sbGet('game_scores', 'couple_id=eq.' + coupleId + '&game_id=eq.memory&order=score.desc&limit=50')
+    .then(function(rows) {
+      lbCurrentData = Array.isArray(rows) ? rows : [];
+      lbRender(lbCurrentData);
+    })
+    .catch(function() {
+      if(list) list.innerHTML = '<div class="lb-empty">Aucun score encore 🎮</div>';
+    });
+}
+
+function lbRender(rows) {
+  var list = document.getElementById('lbList');
+  if(!list) return;
+  var filtered = lbCurrentTab === 'all' ? rows : rows.filter(function(r){ return r.player === lbCurrentTab; });
+  var top = filtered.slice(0, 10);
+  if(!top.length) {
+    list.innerHTML = '<div class="lb-empty">Aucun score encore — soyez les premiers ! 🎮</div>';
+    return;
+  }
+  var rankIcons = ['🥇','🥈','🥉'];
+  list.innerHTML = top.map(function(row, i) {
+    var rankClass   = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    var rankDisplay = i < 3 ? rankIcons[i] : (i + 1);
+    var playerLabel = (typeof v2GetDisplayName==='function' ? v2GetDisplayName(row.player) : (row.player==='girl' ? 'Elle' : 'Lui'));
+    var dotClass    = row.player === 'girl' ? 'girl' : 'boy';
+    var m = Math.floor(parseInt(row.time_seconds||0) / 60), s = parseInt(row.time_seconds||0) % 60;
+    var timeStr = m ? m + 'm' + String(s).padStart(2,'0') + 's' : s + 's';
+    return '<div class="lb-row">' +
+      '<div class="lb-rank ' + rankClass + '">' + rankDisplay + '</div>' +
+      '<div class="lb-dot ' + dotClass + '"></div>' +
+      '<div class="lb-name">' + playerLabel + '</div>' +
+      '<div class="lb-score"><span>' + parseInt(row.score||0) + 'pts</span> · ' + parseInt(row.moves||0) + ' coups · ' + timeStr + '</div>' +
+    '</div>';
+  }).join('');
 }
 
 // ── QUIZ ──
