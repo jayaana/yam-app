@@ -23,7 +23,8 @@
   var _currentYtId=null;
   var _savedPlaylist=[];
   var _launchedFromLink=false;
-  var PIPED_INSTANCES=['https://pipedapi.kavin.rocks','https://pipedapi.tokhmi.xyz','https://pipedapi.moomoo.me'];
+  // Edge Function proxy — évite les erreurs CORS
+  var SB2_EDGE_PIPED = SB2_URL + '/functions/v1/piped-search';
   var _pipedIdx=0;
   var _searchDeb=null;
 
@@ -422,18 +423,16 @@
 
   // ── Piped Search ───────────────────────────────────────────────────
   function _pipedSearch(q,onResults,onError){
-    function tryNext(i){
-      if(i>=PIPED_INSTANCES.length){onError();return;}
-      fetch(PIPED_INSTANCES[i]+'/search?q='+encodeURIComponent(q)+'&filter=videos')
-      .then(function(r){if(!r.ok)throw new Error('err');return r.json();})
-      .then(function(data){
-        _pipedIdx=i;
-        var items=(data.items||[]).filter(function(v){return v.url&&v.type==='stream';}).slice(0,10);
-        onResults(items);
-      })
-      .catch(function(){tryNext(i+1);});
-    }
-    tryNext(_pipedIdx);
+    fetch(SB2_EDGE_PIPED+'?q='+encodeURIComponent(q),{
+      headers:sb2Headers({'x-app-secret':SB2_APP_SECRET})
+    })
+    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(function(data){
+      if(data.error){throw new Error(data.error);}
+      var items=(data.items||[]).filter(function(v){return v.url&&v.type==='stream';}).slice(0,10);
+      onResults(items);
+    })
+    .catch(function(){onError();});
   }
 
   function _fmtDur(s){if(!s||s<0)return '';var m=Math.floor(s/60),sec=s%60;return m+':'+(sec<10?'0':'')+sec;}
