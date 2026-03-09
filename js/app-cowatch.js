@@ -79,8 +79,8 @@
     '.cw-preview.on{display:block;}.cw-preview img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;}',
     '.cw-preview-info{padding:10px 14px;}.cw-preview-id{font-size:12px;color:var(--muted);}',
     // Lobby — section playlist sauvegardée
-    '.cw-lpl-box{background:var(--s1);border:1px solid var(--border);border-radius:14px;overflow:hidden;}',
-    '.cw-link-box{background:var(--s1);border:1px solid var(--border);border-radius:14px;overflow:hidden;padding:10px 10px 0;}',
+    '.cw-lpl-box{background:var(--s1);border:1px solid var(--border);border-radius:14px 14px 0 0;overflow:hidden;}',
+    '.cw-link-box{background:var(--s1);border:1px solid var(--border);border-radius:14px 14px 0 0;overflow:hidden;padding:10px 10px 0;}',
     '.cw-lpl-hdr{padding:11px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);}',
     '.cw-lpl-title{flex:1;font-size:13px;font-weight:700;color:var(--text);}',
     '.cw-lpl-count{font-size:10px;font-weight:700;background:var(--accent);color:#fff;border-radius:20px;padding:1px 7px;}',
