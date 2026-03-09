@@ -148,29 +148,18 @@ function memoryRestart() {
 }
 
 function memoryQuit() {
-  clearInterval(memTimerInt);
+  // Identique au pattern Skyjo : abandon() gère PATCH abandoned + DELETE + notification adversaire
   if (_memMp && memMode === 'multi') {
-    var gid = _memMp.getGameId();
-    // 1. Notifier l'adversaire via status=abandoned
-    if (gid) {
-      fetch(SB2_URL + '/rest/v1/' + MEM_GAME_TABLE + '?id=eq.' + gid, {
-        method: 'PATCH',
-        headers: sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
-        body: JSON.stringify({ status: 'abandoned' })
-      }).catch(function() {});
-      // 2. Supprimer la partie après 4s (laisse le temps à l'adversaire de voir le message)
-      setTimeout(function() {
-        fetch(SB2_URL + '/rest/v1/' + MEM_GAME_TABLE + '?id=eq.' + gid, {
-          method: 'DELETE', headers: sb2Headers()
-        }).catch(function() {});
-      }, 4000);
-    }
-    _memMp.stopAll();
-    _memMp = null;
+    _memMp.abandon(function() {
+      clearInterval(memTimerInt);
+      _memMp = null;
+      _memResetToMode();
+    });
   } else {
+    clearInterval(memTimerInt);
     if (_memMp) { _memMp.leave(); _memMp = null; }
+    _memResetToMode();
   }
-  _memResetToMode();
 }
 
 function _memResetToMode() {
@@ -378,31 +367,20 @@ function _memStartMulti() {
       _memApplyMultiState(gameRow.state);
     },
 
-    onOpponentOffline: function(oppName) {
-      if (!_memMp) return;
-      _memMp.showChoice(
-        '😔', oppName + ' est déconnecté(e)',
-        'Connexion perdue. Tu peux attendre son retour ou quitter la partie.',
-        'Attendre', function() { _memMp.startReconnectWait(); },
-        'Quitter',  function() { memoryQuit(); }
-      );
-    },
+    // onOpponentOffline non surchargé — module gère nativement (identique Skyjo)
 
     onAbandon: function() {
+      // Adversaire a abandonné — identique Skyjo
       clearInterval(memTimerInt);
-      if (_memMp) { _memMp.stopAll(); _memMp = null; }
-      var overlay = document.createElement('div');
-      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
-      overlay.innerHTML = '<div style="background:var(--s1);border:1px solid var(--border);border-radius:20px;padding:28px 24px;max-width:280px;text-align:center;">'
-        + '<div style="font-size:36px;margin-bottom:12px;">🏳️</div>'
-        + '<div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">Partie terminée</div>'
-        + '<div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Votre adversaire a quitté la partie.</div>'
-        + '<button onclick="this.closest(\'div\').parentNode.remove();_memResetToMode();" style="padding:10px 28px;background:var(--green);border:none;border-radius:50px;font-size:14px;font-weight:700;color:#000;cursor:pointer;">OK</button>'
-        + '</div>';
-      document.body.appendChild(overlay);
+      _memMp.showAlert('🏳️', 'Partie abandonnée', function() { _memResetToMode(); });
     },
 
-    onLeave: function() { memoryQuit(); }
+    onLeave: function() {
+      // Retour arrière — identique Skyjo
+      clearInterval(memTimerInt);
+      _memMp = null;
+      _memResetToMode();
+    }
   });
 
   _memMp.enterLobby();
