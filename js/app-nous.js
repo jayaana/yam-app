@@ -3678,35 +3678,75 @@ window.nousLoad = function(){
   // ════════════════════════════════════════════════════════════════
 
   function _loadTrophies () {
-    var cid = _getCoupleId();
+    var cid   = _getCoupleId();
+    var today = _todayStr();
     if (!cid) return;
 
-    fetch(SB2_URL + '/rest/v1/v2_game_scores?couple_id=eq.' + cid +
-      '&select=player,game_id,score&order=score.desc', { headers: sb2Headers() })
+    // 1. Lire le resultat du jour en base
+    fetch(SB2_URL + '/rest/v1/v2_crown?couple_id=eq.' + cid +
+      '&date=eq.' + today + '&select=winner,girl_score,boy_score', { headers: sb2Headers() })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (rows) {
-        if (!Array.isArray(rows)) return;
+        if (Array.isArray(rows) && rows.length > 0) {
+          // Resultat deja calcule aujourd'hui — on l'applique directement
+          var row = rows[0];
+          _trophies.girl = row.girl_score;
+          _trophies.boy  = row.boy_score;
+          _renderTrophies();
+          return;
+        }
 
-        var games   = ['memory', 'pendu', 'puzzle', 'snake'];
-        var girlBest = {};
-        var boyBest  = {};
+        // 2. Pas de resultat pour aujourd'hui => calculer depuis v2_game_scores
+        fetch(SB2_URL + '/rest/v1/v2_game_scores?couple_id=eq.' + cid +
+          '&select=player,game_id,score&order=score.desc', { headers: sb2Headers() })
+          .then(function (r) { return r.ok ? r.json() : []; })
+          .then(function (scoreRows) {
+            if (!Array.isArray(scoreRows)) return;
 
-        rows.forEach(function (row) {
-          if (row.player === 'girl') {
-            if (!girlBest[row.game_id] || row.score > girlBest[row.game_id]) {
-              girlBest[row.game_id] = row.score;
+            var games    = ['memory', 'pendu', 'puzzle', 'snake'];
+            var girlBest = {};
+            var boyBest  = {};
+
+            scoreRows.forEach(function (row) {
+              if (row.player === 'girl') {
+                if (!girlBest[row.game_id] || row.score > girlBest[row.game_id])
+                  girlBest[row.game_id] = row.score;
+              } else {
+                if (!boyBest[row.game_id] || row.score > boyBest[row.game_id])
+                  boyBest[row.game_id] = row.score;
+              }
+            });
+
+            _trophies.girl = games.reduce(function (s, g) { return s + (girlBest[g] || 0); }, 0);
+            _trophies.boy  = games.reduce(function (s, g) { return s + (boyBest[g]  || 0); }, 0);
+
+            // Aucun score du tout => pas la peine d'ecrire en base
+            if (_trophies.girl === 0 && _trophies.boy === 0) {
+              _renderTrophies();
+              return;
             }
-          } else {
-            if (!boyBest[row.game_id] || row.score > boyBest[row.game_id]) {
-              boyBest[row.game_id] = row.score;
-            }
-          }
-        });
 
-        _trophies.girl = games.reduce(function (sum, g) { return sum + (girlBest[g] || 0); }, 0);
-        _trophies.boy  = games.reduce(function (sum, g) { return sum + (boyBest[g]  || 0); }, 0);
+            var winner = _trophies.girl > _trophies.boy ? 'girl'
+                       : _trophies.boy  > _trophies.girl ? 'boy'
+                       : 'draw';
 
-        _renderTrophies();
+            // 3. Ecrire le resultat en base (UPSERT)
+            fetch(SB2_URL + '/rest/v1/v2_crown', {
+              method  : 'POST',
+              headers : Object.assign({}, sb2Headers(), {
+                'Prefer': 'resolution=merge-duplicates'
+              }),
+              body: JSON.stringify({
+                couple_id : cid,
+                date      : today,
+                winner    : winner,
+                girl_score: _trophies.girl,
+                boy_score : _trophies.boy
+              })
+            }).catch(function () {});
+
+            _renderTrophies();
+          }).catch(function () {});
       }).catch(function () {});
   }
 
@@ -3843,57 +3883,44 @@ window.nousLoad = function(){
   // ════════════════════════════════════════════════════════════════
 
   function _renderCrown () {
-    var today   = _todayStr();
-    var stored  = null;
-    try { stored = JSON.parse(localStorage.getItem('yam_crown') || 'null'); } catch(e) {}
+    // Le winner est deja dans _trophies — calcule et ecrit en base par _loadTrophies()
+    // Cette fonction se contente d'afficher le resultat en memoire
+    var winner = _trophies.girl > _trophies.boy ? 'girl'
+               : _trophies.boy  > _trophies.girl ? 'boy'
+               : null; // egalite ou pas encore charge
 
-    var winner;
-    if (stored && stored.date === today) {
-      // Couronne déjà attribuée aujourd'hui — on respecte le résultat du jour
-      winner = stored.winner;
-    } else {
-      // Nouveau jour : on recalcule
-      // Guard : si les deux sont à 0, les données ne sont pas encore chargées — ne pas mettre en cache
-      if (_trophies.girl === 0 && _trophies.boy === 0) return;
-      if (_trophies.girl > _trophies.boy)       winner = 'girl';
-      else if (_trophies.boy > _trophies.girl)  winner = 'boy';
-      else                                       winner = null; // égalité réelle → personne
-      try { localStorage.setItem('yam_crown', JSON.stringify({ date: today, winner: winner })); } catch(e) {}
-    }
-
-    // Éléments DOM
-    var girlRing   = document.getElementById('girlAvatarRing');
-    var boyRing    = document.getElementById('boyAvatarRing');
-    var girlCrown  = document.getElementById('girlCrown');
-    var boyCrown   = document.getElementById('boyCrown');
-    var girlSpark  = document.getElementById('girlSparkles');
-    var boySpark   = document.getElementById('boySparkles');
-    var girlBadge  = document.getElementById('girlCrownBadge');
-    var boyBadge   = document.getElementById('boyCrownBadge');
+    var girlRing  = document.getElementById('girlAvatarRing');
+    var boyRing   = document.getElementById('boyAvatarRing');
+    var girlCrown = document.getElementById('girlCrown');
+    var boyCrown  = document.getElementById('boyCrown');
+    var girlSpark = document.getElementById('girlSparkles');
+    var boySpark  = document.getElementById('boySparkles');
+    var girlBadge = document.getElementById('girlCrownBadge');
+    var boyBadge  = document.getElementById('boyCrownBadge');
 
     // Reset tout
     if (girlRing)  girlRing.classList.remove('ring-winner');
     if (boyRing)   boyRing.classList.remove('ring-winner');
-    if (girlCrown) girlCrown.style.display  = 'none';
-    if (boyCrown)  boyCrown.style.display   = 'none';
-    if (girlSpark) girlSpark.style.display  = 'none';
-    if (boySpark)  boySpark.style.display   = 'none';
-    if (girlBadge) girlBadge.style.display  = 'none';
-    if (boyBadge)  boyBadge.style.display   = 'none';
+    if (girlCrown) girlCrown.style.display = 'none';
+    if (boyCrown)  boyCrown.style.display  = 'none';
+    if (girlSpark) girlSpark.style.display = 'none';
+    if (boySpark)  boySpark.style.display  = 'none';
+    if (girlBadge) girlBadge.style.display = 'none';
+    if (boyBadge)  boyBadge.style.display  = 'none';
 
-    if (!winner) return; // égalité
+    if (!winner) return;
 
     var score = winner === 'girl' ? _trophies.girl : _trophies.boy;
-    var ring   = winner === 'girl' ? girlRing  : boyRing;
-    var crown  = winner === 'girl' ? girlCrown : boyCrown;
-    var spark  = winner === 'girl' ? girlSpark : boySpark;
-    var badge  = winner === 'girl' ? girlBadge : boyBadge;
+    var ring  = winner === 'girl' ? girlRing  : boyRing;
+    var crown = winner === 'girl' ? girlCrown : boyCrown;
+    var spark = winner === 'girl' ? girlSpark : boySpark;
+    var badge = winner === 'girl' ? girlBadge : boyBadge;
 
     if (ring)  ring.classList.add('ring-winner');
     if (crown) crown.style.display = 'block';
     if (spark) spark.style.display = 'block';
     if (badge) {
-      badge.textContent  = '👑 ' + _formatScore(score) + ' pts';
+      badge.textContent  = '\u{1F451} ' + _formatScore(score) + ' pts';
       badge.style.display = 'inline-block';
     }
   }
@@ -3954,11 +3981,18 @@ window.nousLoad = function(){
         }).catch(function () {});
     }, SYNC_MS);
 
-    // Vérification minuit (streak + couronne)
+    // Verification minuit (streak + couronne)
+    // A minuit : _loadTrophies() relit Supabase, detecte qu'il n'y a pas encore
+    // de ligne pour le nouveau jour, recalcule et ecrit en base.
+    var _lastCrownDate = _todayStr();
     _midnightIv = setInterval(function () {
       if (document.hidden) return;
       _checkStreak();
-      _renderCrown(); // recalcule si nouveau jour
+      var nowDate = _todayStr();
+      if (nowDate !== _lastCrownDate) {
+        _lastCrownDate = nowDate;
+        _loadTrophies(); // nouveau jour => recalcul complet + ecriture en base
+      }
     }, MIDNIGHT_CHECK_MS);
   }
 
@@ -3981,8 +4015,9 @@ window.nousLoad = function(){
     _loadAll(function () {
       _renderFlame();
       _renderStreak();
+      _renderTrophies();
       _renderCoupleSince();
-      _loadTrophies(); // _renderTrophies() + _renderCrown() sont appelés en callback une fois le fetch terminé
+      _loadTrophies();
       _checkStreak();
       _startTicks();
 
