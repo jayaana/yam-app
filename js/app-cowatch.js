@@ -495,8 +495,6 @@
   };
 
   window._cwSearchPick=function(ytId){
-    // Si la playlist lobby est ouverte, ajouter directement à la playlist
-    if(_lplOpen){window._cwLplPick(ytId);return;}
     window._cwSwitchTab(0);
     var urlIn=document.getElementById('cwUrlIn');
     if(urlIn)urlIn.value='https://youtube.com/watch?v='+ytId;
@@ -541,7 +539,7 @@
       if(!q){res.innerHTML='';res.classList.remove('on');return;}
       res.innerHTML='<div class="cw-search-loading">Recherche\u2026</div>';res.classList.add('on');
       _searchDeb=setTimeout(function(){
-        _pipedSearch(q,function(items){_renderSearchResults(items,res,'window._cwSearchPick');},
+        _pipedSearch(q,function(items){_renderSearchResults(items,res,'window._cwLplPick')},
         function(){res.innerHTML='<div class="cw-search-err">Impossible de contacter YouTube.</div>';res.classList.add('on');});
       },500);
     });
