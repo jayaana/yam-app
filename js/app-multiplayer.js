@@ -122,7 +122,9 @@
     function upsertPresence(){
       if(!_presenceActive) return; // stopAll/leave a désactivé la présence
       if(!_me) return;
-      if(document.hidden) return;
+      // Bloquer seulement en lobby (pas lancé) — pendant une partie active,
+      // on envoie la présence même si le document est caché (mobile background)
+      if(document.hidden && !_launched) return;
       _lastPresenceSent = Date.now();
       var coupleId = _getCoupleId();
       if(!coupleId) return;
