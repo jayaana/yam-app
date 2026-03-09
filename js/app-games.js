@@ -431,6 +431,11 @@ function _memLaunchMultiGame(gameRow) {
   if (nMe)  nMe.textContent  = _memGetName(profile);
   if (nOth) nOth.textContent = _memGetName(other);
 
+  // Vider memCards pour forcer reconstruction depuis Supabase (évite héritage d'une grille solo ou partie précédente)
+  memCards = [];
+  var grid = document.getElementById('memoryGrid');
+  if (grid) grid.innerHTML = '';
+
   // Appliquer l'état initial
   _memApplyMultiState(gameRow.state || { cards:[], matched:[], girl_pairs:0, boy_pairs:0, turn:'girl', moves:0, winner:null });
 
@@ -2424,6 +2429,11 @@ function _memLaunchMultiGame(gameRow) {
   var nOth = document.getElementById('memMscoreNameOther');
   if (nMe)  nMe.textContent  = _memGetName(profile);
   if (nOth) nOth.textContent = _memGetName(other);
+
+  // Vider memCards pour forcer reconstruction depuis Supabase (évite héritage d'une grille solo ou partie précédente)
+  memCards = [];
+  var grid = document.getElementById('memoryGrid');
+  if (grid) grid.innerHTML = '';
 
   // Appliquer l'état initial
   _memApplyMultiState(gameRow.state || { cards:[], matched:[], girl_pairs:0, boy_pairs:0, turn:'girl', moves:0, winner:null });
