@@ -175,6 +175,14 @@ function memCardClick(card) {
   card.classList.add('flipped');
   memFlipped.push(card);
 
+  // En multi : sauvegarder après chaque retournement pour que l'adversaire voit la carte
+  if (memMode === 'multi') {
+    if (memFlipped.length === 1) {
+      // Première carte : sauvegarder immédiatement (tour reste à moi)
+      _memSaveMultiState(false);
+    }
+  }
+
   if (memFlipped.length === 2) {
     memMoves++;
     var movesEl = document.getElementById('memMoves');
@@ -433,12 +441,17 @@ function _memApplyMultiState(state) {
 
     // Appliquer l'état des cartes matchées
     var matched = state.matched || [];
+    var flipped = state.flipped || [];
     memCards.forEach(function(c, i) {
       if (matched.indexOf(i) !== -1) {
         c.classList.add('flipped', 'matched');
-        c.classList.remove('blocked');
+        c.classList.remove('blocked', 'wrong');
+      } else if (!memMyTurn && flipped.indexOf(i) !== -1) {
+        // Carte retournée par l'adversaire : montrer visuellement, non cliquable
+        c.classList.add('flipped');
+        c.classList.remove('matched', 'wrong');
       } else {
-        // Retourner face cachée les cartes non matchées (après poll adversaire)
+        // Retourner face cachée les cartes non matchées
         c.classList.remove('matched', 'flipped', 'wrong');
       }
     });
@@ -477,8 +490,10 @@ function _memSaveMultiState(passTurn) {
 
   // Construire l'état depuis les cartes actuelles
   var matchedIndices = [];
+  var flippedIndices = [];
   memCards.forEach(function(c, i) {
     if (c.classList.contains('matched')) matchedIndices.push(i);
+    else if (c.classList.contains('flipped')) flippedIndices.push(i);
   });
 
   var cardEmojis = memCards.map(function(c) { return c.dataset.emoji; });
@@ -490,6 +505,7 @@ function _memSaveMultiState(passTurn) {
   var state = {
     cards:      cardEmojis,
     matched:    matchedIndices,
+    flipped:    flippedIndices, // cartes retournées momentanément (visibles par l'adversaire)
     girl_pairs: profile === 'girl' ? memMyPairs : memOtherPairs,
     boy_pairs:  profile === 'boy'  ? memMyPairs : memOtherPairs,
     turn:       nextTurn,
