@@ -3259,21 +3259,21 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     <div id="memoryGameArea" style="display:none">
 
       <!-- Scores multi (cachés en solo) -->
-      <div id="memMultiScores" style="display:none;justify-content:space-between;align-items:center;background:var(--s2);border:1px solid var(--border);border-radius:14px;padding:10px 16px;margin-bottom:10px;">
-        <div style="text-align:center;">
-          <div style="font-size:11px;color:var(--muted);" id="memMscoreNameMe">Moi</div>
-          <div style="font-size:22px;font-weight:800;color:var(--text);" id="memMscoreValMe">0</div>
+      <div id="memMultiScores" class="mem-multi-scores">
+        <div class="mem-player-side">
+          <div class="mem-player-name" id="memMscoreNameMe">Moi</div>
+          <div class="mem-player-score" id="memMscoreValMe">0</div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
-          <div id="memTurnBadge" class="mem-game-badge" style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:50px;background:var(--green);color:#000;white-space:nowrap;">⏳</div>
-          <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);">
-            <div id="memOppDot" style="width:7px;height:7px;border-radius:50%;background:#555;transition:background 0.3s,box-shadow 0.3s;flex-shrink:0;"></div>
-            <span id="memMscoreNameOther">Adversaire</span>
+        <div class="mem-center-col">
+          <div id="memTurnBadge" class="mem-turn-badge">⏳</div>
+          <div class="mem-opp-presence">
+            <div id="memOppDot" class="mem-opp-dot"></div>
+            <span id="memMscoreNameOther" class="mem-opp-name">Adversaire</span>
           </div>
         </div>
-        <div style="text-align:center;">
-          <div style="font-size:11px;color:var(--muted);" id="memMscoreNameOther2"></div>
-          <div style="font-size:22px;font-weight:800;color:var(--text);" id="memMscoreValOther">0</div>
+        <div class="mem-player-side mem-player-side--right">
+          <div class="mem-player-name" id="memMscoreNameOther2"></div>
+          <div class="mem-player-score" id="memMscoreValOther">0</div>
         </div>
       </div>
 
@@ -3294,7 +3294,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
         <div class="memory-win-title" id="memoryWinTitle"></div>
         <div class="memory-win-sub" id="memoryWinSub"></div>
         <button class="memory-win-replay" id="memWinReplayBtn" onclick="memoryRestart()">Rejouer 🔄</button>
-        <button id="memWinQuitBtn" style="display:none;margin-top:8px;padding:10px 28px;background:transparent;border:1px solid var(--border);border-radius:50px;font-size:13px;color:var(--muted);cursor:pointer;">Quitter</button>
+        <button id="memWinQuitBtn" class="mem-win-quit-btn" style="display:none;">Quitter</button>
       </div>
     </div>
 
