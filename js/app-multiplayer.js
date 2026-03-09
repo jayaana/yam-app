@@ -554,7 +554,10 @@
           if(gid){
             fetch(SB2_URL+'/rest/v1/'+GAME_TABLE+'?id=eq.'+gid, {method:'DELETE', headers:sb2Headers()}).catch(function(){});
           }
-          showAlert('⏰', 'Temps écoulé — Partie terminée', function(){ enterLobby(); });
+          showAlert('⏰', 'Temps écoulé — Partie terminée', function(){
+            if(cfg.onReconnectTimeout) cfg.onReconnectTimeout();
+            else enterLobby();
+          });
         }
       }, 1000);
     }
