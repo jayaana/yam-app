@@ -419,14 +419,18 @@
 
   window._cwLplAdd=function(){
     var inp=document.getElementById('cwLplInput');if(!inp)return;
-    var id=_ytId(inp.value.trim());if(!id||!_coupleId)return;
+    var id=_ytId(inp.value.trim());if(!id)return;
+    // Re-lire dynamiquement pour éviter une valeur stale (race condition session)
+    var coupleId=_getCoupleId()||_coupleId;
+    if(!coupleId){if(typeof showToast==='function')showToast('Session non chargée, réessaie','error');return;}
+    _coupleId=coupleId;
     inp.value='';
     var btn=document.getElementById('cwLplAddBtn');if(btn)btn.disabled=true;
     var pos=_savedPlaylist.length;
     fetch(SB2_URL+'/rest/v1/'+TABLE_PL,{
       method:'POST',
       headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=representation'}),
-      body:JSON.stringify({couple_id:_coupleId,yt_id:id,position:pos})
+      body:JSON.stringify({couple_id:coupleId,yt_id:id,position:pos})
     }).then(function(r){return r.json();})
     .then(function(rows){
       if(rows&&rows[0])_savedPlaylist.push({ytId:id,id:rows[0].id});
@@ -518,6 +522,11 @@
     ov.classList.add('on');document.body.classList.add('subview-active');
     _myRole=typeof getProfile==='function'?getProfile():null;
     _coupleId=_getCoupleId();
+    // Retry si v2GetUser() pas encore prêt (race condition au premier chargement)
+    if(!_coupleId){
+      var u=typeof v2GetUser==='function'?v2GetUser():null;
+      if(u)_coupleId=u.couple_id||null;
+    }
     if(!_betaOk()){_sc('cwScBeta');return;}
     _afterBeta();
   };
@@ -802,6 +811,7 @@
     if(!_isHost)return;
     var inp=document.getElementById('cwPlInput');if(!inp)return;
     var id=_ytId(inp.value.trim());if(!id)return;
+    if(!_sessionId){if(typeof showToast==='function')showToast('Pas de session active','error');return;}
     inp.value='';
     var btn=document.getElementById('cwPlAddBtn');if(btn)btn.disabled=true;
     _playlist.push({ytId:id});
