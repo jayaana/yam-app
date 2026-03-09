@@ -1116,10 +1116,24 @@
   window._cwPlRemove=function(idx){
     if(!_isHost||idx<=_plIndex)return;
     _cwConfirm('Supprimer cette vidéo de la playlist ?',function(){
+      var removedYtId=_playlist[idx]&&_playlist[idx].ytId;
       _playlist.splice(idx,1);
       _savePlaylist();
       _renderPlaylist();
       _updateSkipBtn();
+      if(removedYtId){
+        var savedIdx=-1;
+        for(var si=0;si<_savedPlaylist.length;si++){if(_savedPlaylist[si].ytId===removedYtId){savedIdx=si;break;}}
+        if(savedIdx!==-1){
+          var savedItem=_savedPlaylist[savedIdx];
+          _savedPlaylist.splice(savedIdx,1);
+          if(savedItem&&savedItem.id){
+            fetch(SB2_URL+'/rest/v1/'+TABLE_PL+'?id=eq.'+encodeURIComponent(savedItem.id),{
+              method:'DELETE',headers:sb2Headers({'Prefer':'return=minimal'})
+            }).catch(function(){});
+          }
+        }
+      }
     });
   };
 
