@@ -1074,9 +1074,14 @@ function filterSongs(q){
   }
 
   // ── Handlers — enregistrés une seule fois ──
-  // Pause/play lockscreen désactivés — bug connu PWA Safari iOS
-  navigator.mediaSession.setActionHandler('play',  null);
-  navigator.mediaSession.setActionHandler('pause', null);
+  navigator.mediaSession.setActionHandler('play', function(){
+    _log('handler PLAY');
+    if(window.mpToggle) window.mpToggle();
+  });
+  navigator.mediaSession.setActionHandler('pause', function(){
+    _log('handler PAUSE');
+    if(window.mpToggle) window.mpToggle();
+  });
 
   var _lastChange=0, _COOLDOWN=600;
   navigator.mediaSession.setActionHandler('nexttrack', function(){
@@ -1091,7 +1096,13 @@ function filterSongs(q){
     _lastChange=now; _log('handler PREV');
     if(window.mpPrev) window.mpPrev();
   });
-  // seekto non enregistré — iOS l'utilise parfois à tort comme "next"
+  navigator.mediaSession.setActionHandler('seekto', function(details){
+    if(!_gAudio.duration || !isFinite(_gAudio.duration)) return;
+    if(details.seekTime !== undefined){
+      _gAudio.currentTime = Math.max(0, Math.min(details.seekTime, _gAudio.duration));
+      _updatePos();
+    }
+  });
 
   // ── Mise à jour des métadonnées à chaque nouvelle piste ──
   window._yamMediaSession=function(song){
