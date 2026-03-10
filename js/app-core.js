@@ -647,7 +647,7 @@ document.addEventListener('DOMContentLoaded', function(){
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ⚠️  Remplacer par ta vraie clé publique VAPID (générée avec : npx web-push generate-vapid-keys)
-var _VAPID_PUBLIC_KEY = 'VAPID_PUBLIC_KEY_BASE64URL';
+var _VAPID_PUBLIC_KEY = 'BNZesKdT92j-aS0IIeuH6ea0sc927o3QjFve3Z2fIKFAB_TPaciM1MaUPFMTuYMOCrzJH3rrGbKvJsy0CReZvYU';
 
 function _urlBase64ToUint8Array(base64String) {
   var padding = '='.repeat((4 - base64String.length % 4) % 4);
