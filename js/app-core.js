@@ -95,17 +95,6 @@ function sb2Upsert(table, body, prefer){
   .then(function(r){ return r.ok; });
 }
 
-// Échappe les caractères HTML spéciaux (XSS protection)
-function escHtml(str){
-  if(str==null) return '';
-  return String(str)
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;')
-    .replace(/'/g,'&#39;');
-}
-
 // Clé localStorage pour la session v2
 var V2_SESSION_KEY = 'yam_v2_session';
 
@@ -232,108 +221,125 @@ function v2Login(pseudo, password){
   return v2Auth('login', { pseudo: pseudo, password: password })
     .then(function(data){
       if(data.error) return { ok: false, error: data.error };
-      if(data.token && data.user){
-        v2SaveSession(data);
-        if(window.yamRegisterPush) yamRegisterPush(); // activer les notifs push
-        return { ok: true, user: data.user };
-      }
-      return { ok: false, error: 'Réponse invalide' };
+      v2SaveSession(data);
+      localStorage.setItem('jayana_profile', data.user.role); // compat ancien système
+      return { ok: true, data: data };
     });
 }
 
-// Inscription : pseudo + password + role
+// Inscription : pseudo + password + role → génère un code couple
 function v2Register(pseudo, password, role){
   return v2Auth('register', { pseudo: pseudo, password: password, role: role })
     .then(function(data){
       if(data.error) return { ok: false, error: data.error };
-      if(data.token && data.user){
-        v2SaveSession(data);
-        if(window.yamRegisterPush) yamRegisterPush(); // activer les notifs push
-        return { ok: true, user: data.user };
-      }
-      return { ok: false, error: 'Réponse invalide' };
+      v2SaveSession(data);
+      localStorage.setItem('jayana_profile', data.user.role);
+      return { ok: true, data: data };
     });
 }
 
-// Test de connexion (session valide ?)
-function v2Ping(){
-  return v2Auth('ping', {});
-}
-
-// Reset password : génération d'un code à 6 chiffres + envoi par notif push
-function v2ResetPassword(pseudo){
-  return v2Auth('reset_password', { pseudo: pseudo })
+// Rejoindre un couple : pseudo + password + role + code couple
+function v2Join(pseudo, password, role, coupleCode){
+  return v2Auth('join', { pseudo: pseudo, password: password, role: role, couple_code: coupleCode })
     .then(function(data){
       if(data.error) return { ok: false, error: data.error };
-      return { ok: true };
+      v2SaveSession(data);
+      localStorage.setItem('jayana_profile', data.user.role);
+      return { ok: true, data: data };
     });
 }
 
-// Confirm reset : valide le code et change le mot de passe
-function v2ConfirmReset(pseudo, code, newPassword){
-  return v2Auth('confirm_reset', { pseudo: pseudo, code: code, new_password: newPassword })
-    .then(function(data){
-      if(data.error) return { ok: false, error: data.error };
-      if(data.token && data.user){
-        v2SaveSession(data);
-        return { ok: true };
-      }
-      return { ok: false, error: 'Réponse invalide' };
-    });
+// SÉCURITÉ — Fonction globale d'échappement HTML
+// À utiliser PARTOUT où des données Supabase sont injectées via innerHTML
+function escHtml(str){
+  if(str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
-
-// Update password : change le mot de passe (nécessite l'ancien)
-function v2UpdatePassword(oldPassword, newPassword){
-  return v2Auth('update_password', { old_password: oldPassword, new_password: newPassword })
-    .then(function(data){
-      if(data.error) return { ok: false, error: data.error };
-      return { ok: true };
-    });
-}
-
-// Update pseudo : change le pseudo de l'utilisateur connecté
-function v2UpdatePseudo(newPseudo){
-  return v2Auth('update_pseudo', { new_pseudo: newPseudo })
-    .then(function(data){
-      if(data.error) return { ok: false, error: data.error };
-      return { ok: true };
-    });
-}
-
-// Créer un couple : génère un code unique et met à jour l'utilisateur
-function v2CreateCouple(){
-  return v2Auth('create_couple', {})
-    .then(function(data){
-      if(data.error) return { ok: false, error: data.error };
-      if(data.couple && data.couple.code){
-        return { ok: true, code: data.couple.code };
-      }
-      return { ok: false, error: 'Réponse invalide' };
-    });
-}
-
-// Rejoindre un couple : entre le code et lie l'utilisateur au couple
-function v2JoinCouple(code){
-  return v2Auth('join_couple', { code: code })
-    .then(function(data){
-      if(data.error) return { ok: false, error: data.error };
-      return { ok: true };
-    });
-}
-
-// Unlink partner : supprime le lien de couple pour l'utilisateur actuel
-function v2UnlinkPartner(){
-  return v2Auth('unlink_partner', {})
-    .then(function(data){
-      if(data.error) return { ok: false, error: data.error };
-      return { ok: true };
-    });
-}
-
+// ── Toutes les images et uploads utilisent désormais SB2_URL uniquement (R4 — V1 purgé) ──
 
 /* ════════════════════════════════════════════
-   THEME — Gestion automatique clair/sombre
-   ════════════════════════════════════════════ */
+   setProfile — NOUVEAU système v2 uniquement
+   Remplace l'ancienne logique éparpillée dans app-music.js
+   Appelé par index.html (v2DoLogin/Register/Join) et par app-nav.js
+════════════════════════════════════════════ */
+window.setProfile = function(gender){
+  var s = v2LoadSession();
+  if(!s || !s.user){
+    if(window.v2ShowLogin) window.v2ShowLogin();
+    return;
+  }
+  localStorage.setItem('jayana_profile', gender);
+  if(window._profileApply) window._profileApply(gender);
+  if(window._profileLoadMoods) window._profileLoadMoods();
+  if(window._checkUnread) window._checkUnread();
+  // Mettre à jour les noms dans le popup profil
+  var u = v2GetUser();
+  var btnGirl = document.getElementById('ppBtnGirl');
+  var btnBoy  = document.getElementById('ppBtnBoy');
+  if(btnGirl && u) btnGirl.innerHTML = '<span class="profile-popup-dot girl"></span>' + escHtml(u.role==='girl' ? (u.pseudo||'Elle') : (u.partner_pseudo||'Elle'));
+  if(btnBoy  && u) btnBoy.innerHTML  = '<span class="profile-popup-dot boy"></span>'  + escHtml(u.role==='boy'  ? (u.pseudo||'Lui')  : (u.partner_pseudo||'Lui'));
+  var pp = document.getElementById('profilePopup');
+  if(pp) pp.classList.remove('open');
+  if(window._presencePush) window._presencePush();
+};
+
+/* ════════════════════════════════════════════
+   Init au chargement : si session v2 active, sync localStorage
+════════════════════════════════════════════ */
+(function(){
+  var s = v2LoadSession();
+  if(!s || !s.user) return;
+  localStorage.setItem('jayana_profile', s.user.role);
+  document.addEventListener('DOMContentLoaded', function(){
+    var u = v2GetUser();
+    if(!u) return;
+    var btnGirl = document.getElementById('ppBtnGirl');
+    var btnBoy  = document.getElementById('ppBtnBoy');
+    if(btnGirl) btnGirl.innerHTML = '<span class="profile-popup-dot girl"></span>' + escHtml(u.role==='girl' ? (u.pseudo||'Elle') : (u.partner_pseudo||'Elle'));
+    if(btnBoy)  btnBoy.innerHTML  = '<span class="profile-popup-dot boy"></span>'  + escHtml(u.role==='boy'  ? (u.pseudo||'Lui')  : (u.partner_pseudo||'Lui'));
+  });
+})();
+
+// ── COMPTEUR ──
+// startDate est sur window pour être modifiable depuis app-account.js (acSaveStartDate)
+// Valeur par défaut hardcodée — sera écrasée dès que loadCoupleConfig() charge la vraie date
+window.startDate = new Date('2024-10-29T00:00:00');
+function updateCounter() {
+  var d = Math.floor((new Date() - window.startDate) / 1000);
+  document.getElementById('cnt-days').textContent  = Math.floor(d / 86400);
+  document.getElementById('cnt-hours').textContent = String(Math.floor((d % 86400) / 3600)).padStart(2,'0');
+  document.getElementById('cnt-mins').textContent  = String(Math.floor((d % 3600) / 60)).padStart(2,'0');
+  document.getElementById('cnt-secs').textContent  = String(d % 60).padStart(2,'0');
+}
+// ✅ OPT v3.8 : updateCounter smart — pause si page cachée ou Skyjo actif
+(function(){
+  var _iv = null;
+  function startCounter(){
+    if(_iv) return;
+    updateCounter();
+    _iv = setInterval(updateCounter, 1000);
+  }
+  function stopCounter(){
+    if(!_iv) return;
+    clearInterval(_iv); _iv = null;
+  }
+  // Pause quand page cachée (écran noir, autre app)
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden){ stopCounter(); } else { startCounter(); }
+  });
+  // API pour Skyjo : suspend le counter pendant la partie (compteur hors écran)
+  window._counterSuspend = stopCounter;
+  window._counterResume  = startCounter;
+  // Démarrage
+  startCounter();
+})();
+
+// ── THEME ── (version duo-theme — warm/dark avec data-theme + body.light compat)
 function applyThemeToggle() {
   var isLight = document.body.classList.contains('light');
   var goWarm = !isLight; // toggle
@@ -369,12 +375,13 @@ function applyThemeToggle() {
   if(_v2Moon) _v2Moon.style.display = goWarm ? 'none' : '';
   if(_v2Sun)  _v2Sun.style.display  = goWarm ? ''     : 'none';
 }
-window.applyThemeToggle = applyThemeToggle;
 
 // ── Restauration du thème au chargement ──
 (function(){
   var saved = localStorage.getItem('jayana_theme');
+  // Thème clair par défaut — dark seulement si explicitement sauvegardé
   var goLight = (saved !== 'dark');
+
   if(goLight){
     document.body.classList.add('light');
     document.documentElement.classList.add('light');
@@ -398,75 +405,195 @@ window.applyThemeToggle = applyThemeToggle;
       if(_v2Sun)  _v2Sun.style.display  = '';
     });
   } else {
+    // Thème dark explicitement choisi
     document.documentElement.setAttribute('data-theme', 'dark');
   }
 })();
 
+document.getElementById('themeToggle').addEventListener('click', applyThemeToggle);
+document.getElementById('floatingThemeBtn').addEventListener('click', applyThemeToggle);
 
-/* ════════════════════════════════════════════
-   UTILITAIRES
-   ════════════════════════════════════════════ */
-
-// Formater une date
-function formatDate(d) {
-  if (!d) return '';
-  if (typeof d === 'string') d = new Date(d);
-  var opts = { day: '2-digit', month: '2-digit', year: 'numeric' };
-  return d.toLocaleDateString('fr-FR', opts);
-}
-
-// Formater un timestamp en "il y a X"
-function timeAgo(timestamp) {
-  if (!timestamp) return '';
-  var date = new Date(timestamp);
-  var seconds = Math.floor((new Date() - date) / 1000);
-  var intervals = [
-    { label: 'an', seconds: 31536000 },
-    { label: 'mois', seconds: 2592000 },
-    { label: 'jour', seconds: 86400 },
-    { label: 'heure', seconds: 3600 },
-    { label: 'minute', seconds: 60 }
-  ];
-  for (var i = 0; i < intervals.length; i++) {
-    var interval = Math.floor(seconds / intervals[i].seconds);
-    if (interval >= 1) {
-      return 'Il y a ' + interval + ' ' + intervals[i].label + (interval > 1 ? 's' : '');
-    }
-  }
-  return 'À l\'instant';
-}
-
-// Générer un UUID simple
-function generateUUID() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    var r = (Math.random() * 16) | 0;
-    var v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
+// Injecter le bouton thème dans les headers des sous-jeux
+(function(){
+  var MOON_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>';
+  var SUN_SVG  = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+  document.querySelectorAll('.game-view-header').forEach(function(header){
+    var btn = document.createElement('button');
+    btn.className = 'dm-topbar-theme';
+    btn.title = 'Thème';
+    btn.innerHTML = MOON_SVG + SUN_SVG;
+    btn.onclick = function(){ applyThemeToggle(); };
+    header.appendChild(btn);
   });
+})();
+
+// ── IDs des sous-vues (partagé avec app-pranks.js pour les MutationObservers) ──
+var _subviewIds = ['gamesView','memoryView','penduView','puzzleView','snakeView','skyjoView','quizView','hiddenPage','prankMenu'];
+
+// Gestion de la visibilité du bouton flottant selon la vue active
+function updateFloatingThemeBtn() {
+  var subviews = _subviewIds;
+  var open = subviews.some(function(id) {
+    var el = document.getElementById(id);
+    return el && (el.classList.contains('active') || el.style.display === 'block');
+  });
+  document.body.classList.toggle('subview-open', open);
+}
+// Observer les changements de classe sur les sous-vues
+
+
+
+// ── Modal édition description ──
+var _descEditCallback = null;
+function descEditOpen(currentVal, label, cb){
+  _descEditCallback = cb;
+  var input = document.getElementById('descEditInput');
+  var lbl = document.getElementById('descEditLabel');
+  if(lbl) lbl.textContent = label || 'Modifier la description';
+  if(input){ input.value = currentVal || ''; }
+  // Bloquer le scroll arrière-plan
+  if(typeof window._nousBlockScroll === 'function') window._nousBlockScroll();
+  else {
+    var nousWrap = document.getElementById('nousContentWrapper');
+    if(nousWrap) nousWrap.style.overflow = 'hidden';
+    window._yamScrollLocked = true;
+  }
+  document.getElementById('descEditModal').classList.add('open');
+  setTimeout(function(){ if(input) input.focus(); }, 100);
+}
+function descEditClose(){
+  document.getElementById('descEditModal').classList.remove('open');
+  // Restaurer le scroll arrière-plan
+  if(typeof window._nousUnblockScroll === 'function') window._nousUnblockScroll();
+  else {
+    var nousWrap = document.getElementById('nousContentWrapper');
+    if(nousWrap) nousWrap.style.overflow = '';
+    window._yamScrollLocked = false;
+  }
+  _descEditCallback = null;
+}
+function descEditSave(){
+  var val = document.getElementById('descEditInput').value.trim();
+  document.getElementById('descEditModal').classList.remove('open');
+  // Restaurer le scroll arrière-plan (identique à descEditClose)
+  if(typeof window._nousUnblockScroll === 'function') window._nousUnblockScroll();
+  else {
+    var nousWrap = document.getElementById('nousContentWrapper');
+    if(nousWrap) nousWrap.style.overflow = '';
+    window._yamScrollLocked = false;
+  }
+  if(_descEditCallback){ _descEditCallback(val); _descEditCallback = null; }
+}
+document.addEventListener('DOMContentLoaded', function(){
+  var inp = document.getElementById('descEditInput');
+  var modal = document.getElementById('descEditModal');
+  if(inp) inp.addEventListener('keydown', function(e){
+    if(e.key === 'Enter') descEditSave();
+    if(e.key === 'Escape') descEditClose();
+  });
+  if(modal) modal.addEventListener('click', function(e){
+    if(e.target === this) descEditClose();
+  });
+});
+
+
+
+
+
+// ── Push Notifications ─────────────────────────────────────────────────────
+var _VAPID_PUBLIC_KEY = 'BNZesKdT92j-aS0IIeuH6ea0sc927o3QjFve3Z2fIKFAB_TPaciM1MaUPFMTuYMOCrzJH3rrGbKvJsy0CReZvYU';
+
+function _urlBase64ToUint8Array(base64String) {
+  var padding = '='.repeat((4 - base64String.length % 4) % 4);
+  var base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  var rawData = atob(base64);
+  var output  = new Uint8Array(rawData.length);
+  for (var i = 0; i < rawData.length; i++) { output[i] = rawData.charCodeAt(i); }
+  return output;
 }
 
-// Escape HTML
-function escapeHTML(str) {
-  var div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
+async function _yamSendSubToServer(sub) {
+  var user = v2GetUser();
+  if (!user) return;
+  var subJSON = sub.toJSON();
+  try {
+    await fetch(SB2_EDGE_PUSH, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-app-secret': SB2_APP_SECRET,
+        'Authorization': 'Bearer ' + SB2_KEY
+      },
+      body: JSON.stringify({
+        action:    'subscribe',
+        user_id:   user.id,
+        couple_id: user.couple_id,
+        profile:   user.role,
+        subscription: {
+          endpoint: subJSON.endpoint,
+          p256dh:   subJSON.keys.p256dh,
+          auth:     subJSON.keys.auth,
+        },
+        user_agent: navigator.userAgent,
+      }),
+    });
+  } catch (e) {
+    console.error('[Push] _yamSendSubToServer error:', e);
+  }
 }
 
-// Détecter iOS
-function isIOS() {
-  return /iPhone|iPad|iPod/.test(navigator.userAgent);
-}
+window.yamRegisterPush = async function() {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    var reg = await navigator.serviceWorker.ready;
+    var existingSub = await reg.pushManager.getSubscription();
+    if (existingSub) { await _yamSendSubToServer(existingSub); return; }
+    var permission = await Notification.requestPermission();
+    if (permission !== 'granted') return;
+    var sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: _urlBase64ToUint8Array(_VAPID_PUBLIC_KEY),
+    });
+    await _yamSendSubToServer(sub);
+    console.log('[Push] Subscription enregistree');
+  } catch (e) {
+    console.error('[Push] yamRegisterPush error:', e);
+  }
+};
 
-// Vérifier si on est dans une PWA
-function isPWA() {
-  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-}
-
+window.yamPushNotify = async function(opts) {
+  var user = v2GetUser();
+  if (!user) return;
+  var targetProfile = user.role === 'girl' ? 'boy' : 'girl';
+  try {
+    await fetch(SB2_EDGE_PUSH, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-app-secret': SB2_APP_SECRET,
+        'Authorization': 'Bearer ' + SB2_KEY
+      },
+      body: JSON.stringify({
+        action:         'notify',
+        couple_id:      user.couple_id,
+        target_profile: targetProfile,
+        title:          opts.title || 'YAM',
+        body:           opts.body  || '',
+        tag:            opts.tag   || 'yam-notif',
+        data:           Object.assign({ url: '/yam-app/' }, opts.data || {}),
+      }),
+    });
+  } catch (e) {
+    console.error('[Push] yamPushNotify error:', e);
+  }
+};
 
 /* ════════════════════════════════════════════
-   HEARTBEAT PRÉSENCE — Système de présence temps réel
-   Envoie régulièrement un heartbeat pour signaler que l'utilisateur est actif
-   Lit la présence du partenaire pour afficher le point vert
+   PRÉSENCE EN LIGNE
+   - Heartbeat toutes les 10s → table "presence"
+   - Poll toutes les 10s pour afficher l'état de l'autre
+   - Offline après 20s sans signal (60s si musique en cours)
+   - visibilitychange : pause heartbeat quand page cachée
 ════════════════════════════════════════════ */
 (function(){
   var PRESENCE_TABLE  = 'v2_presence';
@@ -602,99 +729,3 @@ function isPWA() {
   window._presencePoll = presencePoll;
   window._presencePush = presencePush;
 })();
-
-// ── Push Notifications ────────────────────────────────────────────────────────
-// yamRegisterPush()  — demande permission + crée subscription VAPID + l'envoie en base
-// yamPushNotify()    — envoie une notif push au partenaire via Edge Function push-notify
-// ─────────────────────────────────────────────────────────────────────────────
-
-// ⚠️  Remplacer par ta vraie clé publique VAPID (générée avec : npx web-push generate-vapid-keys)
-var _VAPID_PUBLIC_KEY = 'BNZesKdT92j-aS0IIeuH6ea0sc927o3QjFve3Z2fIKFAB_TPaciM1MaUPFMTuYMOCrzJH3rrGbKvJsy0CReZvYU';
-
-function _urlBase64ToUint8Array(base64String) {
-  var padding = '='.repeat((4 - base64String.length % 4) % 4);
-  var base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  var rawData = atob(base64);
-  var output  = new Uint8Array(rawData.length);
-  for (var i = 0; i < rawData.length; i++) { output[i] = rawData.charCodeAt(i); }
-  return output;
-}
-
-async function _yamSendSubToServer(sub) {
-  var user = v2GetUser();
-  if (!user) return;
-  var subJSON = sub.toJSON();
-  try {
-    await fetch(SB2_EDGE_PUSH, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-app-secret': SB2_APP_SECRET,
-        'Authorization': 'Bearer ' + SB2_KEY
-      },
-      body: JSON.stringify({
-        action:    'subscribe',
-        user_id:   user.id,
-        couple_id: user.couple_id,
-        profile:   user.role,
-        subscription: {
-          endpoint: subJSON.endpoint,
-          p256dh:   subJSON.keys.p256dh,
-          auth:     subJSON.keys.auth,
-        },
-        user_agent: navigator.userAgent,
-      }),
-    });
-  } catch (e) {
-    console.error('[Push] _yamSendSubToServer error:', e);
-  }
-}
-
-window.yamRegisterPush = async function() {
-  try {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-    var reg = await navigator.serviceWorker.ready;
-    var existingSub = await reg.pushManager.getSubscription();
-    if (existingSub) { await _yamSendSubToServer(existingSub); return; }
-
-    var permission = await Notification.requestPermission();
-    if (permission !== 'granted') return;
-
-    var sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: _urlBase64ToUint8Array(_VAPID_PUBLIC_KEY),
-    });
-    await _yamSendSubToServer(sub);
-    console.log('[Push] Subscription enregistrée ✓');
-  } catch (e) {
-    console.error('[Push] yamRegisterPush error:', e);
-  }
-};
-
-window.yamPushNotify = async function(opts) {
-  // opts: { title, body, tag, data }
-  var user = v2GetUser();
-  if (!user) return;
-  var targetProfile = user.role === 'girl' ? 'boy' : 'girl';
-  try {
-    await fetch(SB2_EDGE_PUSH, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-app-secret': SB2_APP_SECRET,
-        'Authorization': 'Bearer ' + SB2_KEY
-      },
-      body: JSON.stringify({
-        action:         'notify',
-        couple_id:      user.couple_id,
-        target_profile: targetProfile,
-        title:          opts.title || 'YAM 💕',
-        body:           opts.body  || '',
-        tag:            opts.tag   || 'yam-notif',
-        data:           Object.assign({ url: '/yam-app/' }, opts.data || {}),
-      }),
-    });
-  } catch (e) {
-    console.error('[Push] yamPushNotify error:', e);
-  }
-};
