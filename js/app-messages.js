@@ -1015,6 +1015,12 @@
       }
       // Flamme — premier message du jour
       if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('first_message');
+      // Push au partenaire (si app fermée/backgroundée)
+      if(typeof window.yamPushNotify==='function'){
+        var partnerName = (typeof v2GetPartnerPseudo==='function' && v2GetPartnerPseudo()) || 'Partenaire';
+        var preview = text.length > 60 ? text.slice(0, 57) + '...' : text;
+        window.yamPushNotify({ title: partnerName + ' 💬', body: preview, tag: 'yam-message', data: { tab: 'messages' } });
+      }
     })
     .catch(function(err){
       console.error('[DM] doSend erreur:', err);
@@ -1131,9 +1137,13 @@
             var node = document.querySelector('[data-id="'+tmpId+'"]');
             if(node) node.dataset.id = real.id;
           }
+          // Push au partenaire — message vocal
+          if(typeof window.yamPushNotify==='function'){
+            var partnerName = (typeof v2GetPartnerPseudo==='function' && v2GetPartnerPseudo()) || 'Partenaire';
+            window.yamPushNotify({ title: partnerName + ' 🎙️', body: "T'a envoyé un message vocal", tag: 'yam-message', data: { tab: 'messages' } });
+          }
         })
         .catch(function(err){ console.error('[AUDIO SEND]', err); });
-      };
       reader.readAsDataURL(blob);
     }
 
