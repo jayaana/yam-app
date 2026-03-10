@@ -1068,10 +1068,14 @@ function filterSongs(q){
   _log('INIT — mediaSession supporté, audio global');
 
   // ── Position state ──
+  // Une seule source de vérité : le tick toutes les secondes.
+  // On n'appelle JAMAIS _updatePos() directement hors du tick,
+  // sauf au démarrage d'une nouvelle piste (après loadedmetadata).
   var _msIv=null;
   function _stopTick(){ if(_msIv){ clearInterval(_msIv); _msIv=null; } }
   function _updatePos(){
     if(!_gAudio.duration||!isFinite(_gAudio.duration)||_gAudio.duration<=0) return;
+    if(_gAudio.paused) return; // ne jamais envoyer position si paused → iOS confused
     var pos=Math.min(_gAudio.currentTime||0, _gAudio.duration);
     try { navigator.mediaSession.setPositionState({ duration:_gAudio.duration, playbackRate:1, position:pos }); } catch(e){}
   }
@@ -1120,14 +1124,13 @@ function filterSongs(q){
     navigator.mediaSession.playbackState='playing';
     _stopTick();
     if(_gAudio.duration&&isFinite(_gAudio.duration)&&_gAudio.duration>0){
-      if(myToken === _msToken){ _updatePos(); _startTick(); }
+      if(myToken === _msToken){ _startTick(); } // tick démarre, _updatePos() viendra à la prochaine seconde
     } else {
       _gAudio.addEventListener('loadedmetadata', function _onMeta(){
         _gAudio.removeEventListener('loadedmetadata',_onMeta);
         _log('loadedmetadata dur='+_gAudio.duration);
-        // Si un appel plus récent est arrivé entre temps, on ignore celui-ci
         if(myToken !== _msToken) return;
-        _updatePos(); _startTick();
+        _startTick(); // idem : on laisse le tick envoyer la première position
       });
     }
   };
@@ -1136,23 +1139,11 @@ function filterSongs(q){
   _gAudio.addEventListener('play',  function(){
     navigator.mediaSession.playbackState='playing';
     _log('gAudio PLAY');
-    // FIX BUG 3 : relancer le tick à chaque play (même simple resume après pause)
-    // On NE fait PAS _updatePos() ici — iOS appelle ce handler aussi lors des
-    // transitions de piste (PAUSE+ENDED+PLAY en 10ms), à ce moment currentTime=0
-    // et duration appartient encore à l'ancienne piste → saut visuel garanti.
-    // _yamMediaSession() + loadedmetadata gèrent déjà la position pour les nouvelles pistes.
-    // Ici on relance juste le tick pour les vrais resumes (pause manuelle → play).
-    setTimeout(function(){
-      if(_gAudio.paused) return;
-      // Vérifier que la duration est cohérente avec la piste courante
-      if(_gAudio.duration && isFinite(_gAudio.duration) && _gAudio.duration > 0
-         && _gAudio.currentTime > 0) { // currentTime=0 = nouvelle piste, pas un resume
-        _updatePos(); _startTick();
-      } else if(_gAudio.duration && isFinite(_gAudio.duration) && _gAudio.duration > 0){
-        // Nouvelle piste : juste lancer le tick, sans update de position
-        _startTick();
-      }
-    }, 300);
+    // On relance juste le tick — il enverra setPositionState à la prochaine seconde
+    // Pas d'_updatePos() immédiat : évite les sauts visuels sur lock screen iOS
+    if(!_gAudio.paused && _gAudio.duration && isFinite(_gAudio.duration) && _gAudio.duration > 0){
+      _startTick();
+    }
   });
   _gAudio.addEventListener('pause', function(){ navigator.mediaSession.playbackState='paused';   _log('gAudio PAUSE'); _stopTick(); });
   _gAudio.addEventListener('ended', function(){ _stopTick(); _log('gAudio ENDED'); });
