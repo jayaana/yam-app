@@ -41,36 +41,12 @@ var allSongs = songsLove;
 var _gAudio = (function(){
   var a = document.createElement('audio');
   a.preload = 'auto';
+  // Nécessaire sur iOS pour autoriser la lecture en arrière-plan
   a.setAttribute('playsinline', '');
   a.setAttribute('webkit-playsinline', '');
   document.body.appendChild(a);
   return a;
 })();
-
-// ── Web Audio API keepalive ──
-// iOS freeze les PWA en arrière-plan sauf si un AudioContext actif est présent.
-// On joue un silence de 0.5s en boucle via Web Audio pour maintenir le contexte
-// audio vivant — cela permet à l'event 'ended' de se déclencher même home screen.
-var _audioCtx = null;
-function _initAudioCtx(){
-  if(_audioCtx) return;
-  try {
-    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    var buf = _audioCtx.createBuffer(1, _audioCtx.sampleRate * 0.5, _audioCtx.sampleRate);
-    function _scheduleSilence(){
-      if(!_audioCtx || _gAudio.paused) return;
-      var src = _audioCtx.createBufferSource();
-      src.buffer = buf;
-      src.connect(_audioCtx.destination);
-      src.onended = function(){ _scheduleSilence(); };
-      src.start();
-    }
-    _gAudio.addEventListener('play',  function(){ if(_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume(); _scheduleSilence(); });
-  } catch(e){}
-}
-// Initialise au premier geste utilisateur (requis par iOS)
-document.addEventListener('touchstart', _initAudioCtx, { once: true });
-document.addEventListener('click',      _initAudioCtx, { once: true });
 
 // État courant du player
 var _currentSong  = null;  // objet songsLove en cours
@@ -169,7 +145,23 @@ function _playSong(song){
 
   var playPromise = _gAudio.play();
   if(playPromise && typeof playPromise.catch === 'function'){
-    playPromise.catch(function(e){ console.warn('[YAM] play() rejected:', e); });
+    playPromise.catch(function(e){
+      console.warn('[YAM] play() rejected:', e);
+      // iOS en arrière-plan peut rejeter le premier play() — on retry jusqu'à 3 fois
+      var _retryCount = 0;
+      function _retry(){
+        if(_retryCount >= 3 || !_isPlaying) return;
+        _retryCount++;
+        setTimeout(function(){
+          var p2 = _gAudio.play();
+          if(p2 && p2.catch) p2.catch(function(e2){
+            console.warn('[YAM] play() retry '+_retryCount+' rejected:', e2);
+            _retry();
+          });
+        }, 300 * _retryCount);
+      }
+      _retry();
+    });
   }
 
   _updateRowUI(song, true);
@@ -181,7 +173,6 @@ function _playSong(song){
 }
 
 function _pauseCurrent(){
-  _currentSong._pausedAt = _gAudio.currentTime; // sauvegarde position
   _gAudio.pause();
   _isPlaying = false;
   _updateRowUI(_currentSong, false);
@@ -209,28 +200,42 @@ _gAudio.addEventListener('timeupdate', function(){
     _currentSong._counted = true;
     savePlays(_currentSong.file);
   }
-  // Détection fin de piste en arrière-plan (iOS freeze 'ended' sur home screen)
-  // Si on est à moins de 0.3s de la fin et que l'audio tourne encore → on anticipe
-  if(_currentSong && !_gAudio.paused && _gAudio.duration && isFinite(_gAudio.duration)){
-    if(_gAudio.duration - _gAudio.currentTime < 0.3 && !_currentSong._endingHandled){
-      _currentSong._endingHandled = true;
-      setTimeout(_handleTrackEnd, 350);
-    }
-  }
 });
 
 // ── Fin de piste → piste suivante ──
-function _handleTrackEnd(){
-  if(!_currentSong) return;
-  if(_currentSong) { _currentSong._counted = false; _currentSong._endingHandled = false; }
-  var next = _getNextSong();
-  if(next){ _playSong(next); }
-  else    { _stopCurrent(); }
-}
-
 _gAudio.addEventListener('ended', function(){
-  // Peut ne pas se déclencher sur iOS home screen — _handleTrackEnd via timeupdate prend le relais
-  if(_currentSong && !_currentSong._endingHandled) _handleTrackEnd();
+  if(!_currentSong) return;
+  if(_currentSong) _currentSong._counted = false;
+  var next = _getNextSong();
+  if(next){
+    // Sur iOS en arrière-plan : on change le src IMMÉDIATEMENT dans le handler ended
+    // (contexte encore actif) avant que WebKit ne throttle le JS
+    var wasPlaying = _currentSong;
+    if(_currentSong && _currentSong !== next) _updateRowUI(_currentSong, false);
+    _currentSong = next;
+    _currentIndex = _playlist.indexOf(next);
+    _isPlaying = true;
+    _gAudio.src = next.file;
+    var ep = _gAudio.play();
+    if(ep && ep.catch) ep.catch(function(e){
+      console.warn('[YAM] ended->play() rejected:', e);
+      // Retry immédiat puis différé
+      setTimeout(function(){
+        if(!_isPlaying) return;
+        var p2 = _gAudio.play();
+        if(p2 && p2.catch) p2.catch(function(){
+          setTimeout(function(){ if(_isPlaying) _gAudio.play().catch(function(){}); }, 500);
+        });
+      }, 200);
+    });
+    _updateRowUI(next, true);
+    particleActive = true;
+    showDance();
+    if(window.mpUpdate) mpUpdate();
+    if(window._yamMediaSession) _yamMediaSession(next);
+  } else {
+    _stopCurrent();
+  }
 });
 
 // ── Calcul de la piste suivante/précédente ──
@@ -545,10 +550,6 @@ var particleActive = false;
   window.mpToggle = function(){
     if(!_currentSong) return;
     if(_gAudio.paused){
-      // Restaure la position si iOS l'a remise à 0
-      if(_currentSong._pausedAt && Math.abs(_gAudio.currentTime - _currentSong._pausedAt) > 1){
-        _gAudio.currentTime = _currentSong._pausedAt;
-      }
       var p = _gAudio.play(); if(p&&p.catch) p.catch(function(){});
       _isPlaying = true;
       _updateRowUI(_currentSong, true);
@@ -1121,7 +1122,15 @@ function filterSongs(q){
   };
 
   // ── Sync playbackState sur l'audio global uniquement ──
-  _gAudio.addEventListener('play',  function(){ navigator.mediaSession.playbackState='playing';  _log('gAudio PLAY'); });
+  _gAudio.addEventListener('play',  function(){
+    navigator.mediaSession.playbackState='playing';
+    _log('gAudio PLAY');
+    // FIX BUG 3 : relancer le tick à chaque play (même simple resume après pause)
+    // pour que iOS ait toujours un setPositionState valide
+    if(_gAudio.duration && isFinite(_gAudio.duration) && _gAudio.duration > 0){
+      _updatePos(); _startTick();
+    }
+  });
   _gAudio.addEventListener('pause', function(){ navigator.mediaSession.playbackState='paused';   _log('gAudio PAUSE'); _stopTick(); });
   _gAudio.addEventListener('ended', function(){ _stopTick(); _log('gAudio ENDED'); });
 
