@@ -1131,10 +1131,14 @@ function filterSongs(q){
     navigator.mediaSession.playbackState='playing';
     _log('gAudio PLAY');
     // FIX BUG 3 : relancer le tick à chaque play (même simple resume après pause)
-    // pour que iOS ait toujours un setPositionState valide
-    if(_gAudio.duration && isFinite(_gAudio.duration) && _gAudio.duration > 0){
-      _updatePos(); _startTick();
-    }
+    // Délai 250ms : iOS émet PAUSE+PLAY quasi-simultanément (lock screen/AirPods),
+    // le currentTime n'est pas encore stabilisé au moment du play event → saut visuel
+    setTimeout(function(){
+      if(_gAudio.paused) return; // une pause est arrivée entre temps, on n'update pas
+      if(_gAudio.duration && isFinite(_gAudio.duration) && _gAudio.duration > 0){
+        _updatePos(); _startTick();
+      }
+    }, 250);
   });
   _gAudio.addEventListener('pause', function(){ navigator.mediaSession.playbackState='paused';   _log('gAudio PAUSE'); _stopTick(); });
   _gAudio.addEventListener('ended', function(){ _stopTick(); _log('gAudio ENDED'); });
