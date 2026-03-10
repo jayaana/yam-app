@@ -95,6 +95,17 @@ function sb2Upsert(table, body, prefer){
   .then(function(r){ return r.ok; });
 }
 
+// Échappe les caractères HTML spéciaux (XSS protection)
+function escHtml(str){
+  if(str==null) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
 // Clé localStorage pour la session v2
 var V2_SESSION_KEY = 'yam_v2_session';
 
