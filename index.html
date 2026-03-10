@@ -2734,6 +2734,16 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       <span>Voir tout</span>
       <span class="top50-expand-icon">▾</span>
     </div>
+
+    <!-- 🛠 DEBUG Media Session — à supprimer après diagnostic -->
+    <div id="yamMsDebugZone" style="margin:16px 0;padding:12px;background:rgba(0,0,0,0.15);border-radius:12px;font-size:11px;">
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <button onclick="document.getElementById('yamMsLogBox').textContent=window.yamMsLogs?window.yamMsLogs():'(fonction absente)'" style="flex:1;padding:8px;border-radius:8px;background:var(--accent);color:#fff;border:none;font-size:12px;font-weight:600;">📋 Voir logs</button>
+        <button onclick="window.yamMsClear&&window.yamMsClear();document.getElementById('yamMsLogBox').textContent='(effacé)'" style="flex:1;padding:8px;border-radius:8px;background:rgba(255,255,255,0.1);color:var(--text);border:none;font-size:12px;">🗑 Effacer</button>
+      </div>
+      <pre id="yamMsLogBox" style="margin:0;white-space:pre-wrap;word-break:break-all;max-height:300px;overflow-y:auto;color:rgba(255,255,255,0.75);font-size:10px;line-height:1.5;">(appuie sur "Voir logs" après avoir reproduit le bug)</pre>
+    </div>
+    <!-- FIN DEBUG -->
   </div>
 </div>
 
