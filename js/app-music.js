@@ -1350,17 +1350,37 @@ function filterSongs(q){
 
 // ════════════════════════════════════════════════════════════
 // MEDIA SESSION API — Contrôles écran verrouillé iOS / AirPods
-// Bloc indépendant chargé après tous les autres modules.
-// Les handlers lisent currentAudio en direct — aucune closure périmée.
 // ════════════════════════════════════════════════════════════
 (function(){
   if(!('mediaSession' in navigator)) return;
 
-  // ── Tick de position (barre de progression sur l'écran verrouillé) ──
+  // ── Logger localStorage — lit les logs depuis l'app après le bug ──
+  var _LOG_KEY = 'yam_ms_log';
+  var _LOG_MAX = 80; // nb max de lignes conservées
+  function _log(msg){
+    try {
+      var now = new Date();
+      var ts = now.getHours()+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0')+'.'+String(now.getMilliseconds()).padStart(3,'0');
+      var lines = JSON.parse(localStorage.getItem(_LOG_KEY) || '[]');
+      lines.push('['+ts+'] '+msg);
+      if(lines.length > _LOG_MAX) lines = lines.slice(-_LOG_MAX);
+      localStorage.setItem(_LOG_KEY, JSON.stringify(lines));
+    } catch(e){}
+  }
+  // Expose pour lire depuis la console Eruda / depuis l'UI
+  window.yamMsLogs = function(){
+    try { return JSON.parse(localStorage.getItem(_LOG_KEY)||'[]').join('\n'); } catch(e){ return '(vide)'; }
+  };
+  window.yamMsClear = function(){ localStorage.removeItem(_LOG_KEY); };
+  // Efface les logs au démarrage pour repartir propre
+  window.yamMsClear();
+  _log('INIT — mediaSession supporté');
+
+  // ── Tick de position ──
   var _msIv = null;
 
   function _stopTick(){
-    if(_msIv){ clearInterval(_msIv); _msIv = null; }
+    if(_msIv){ clearInterval(_msIv); _msIv = null; _log('tick STOP'); }
   }
 
   function _updatePos(){
@@ -1374,11 +1394,12 @@ function filterSongs(q){
         playbackRate: 1,
         position:     pos
       });
-    } catch(e){}
+    } catch(e){ _log('setPositionState ERREUR: '+e.message+' dur='+a.duration+' pos='+pos); }
   }
 
   function _startTick(){
     _stopTick();
+    _log('tick START');
     _msIv = setInterval(function(){
       var a = (typeof currentAudio !== 'undefined') ? currentAudio : null;
       if(!a || a.paused){ _stopTick(); return; }
@@ -1387,20 +1408,26 @@ function filterSongs(q){
   }
 
   // ── Handlers enregistrés une seule fois ──
+  _log('setActionHandler x5');
   navigator.mediaSession.setActionHandler('play', function(){
+    _log('handler PLAY — mpToggle existe: '+(!!window.mpToggle));
     if(window.mpToggle) window.mpToggle();
   });
   navigator.mediaSession.setActionHandler('pause', function(){
+    _log('handler PAUSE — mpToggle existe: '+(!!window.mpToggle));
     if(window.mpToggle) window.mpToggle();
   });
   navigator.mediaSession.setActionHandler('nexttrack', function(){
+    _log('handler NEXT — mpNext existe: '+(!!window.mpNext));
     if(window.mpNext) window.mpNext();
   });
   navigator.mediaSession.setActionHandler('previoustrack', function(){
+    _log('handler PREV — mpPrev existe: '+(!!window.mpPrev));
     if(window.mpPrev) window.mpPrev();
   });
   navigator.mediaSession.setActionHandler('seekto', function(details){
     var a = (typeof currentAudio !== 'undefined') ? currentAudio : null;
+    _log('handler SEEKTO t='+details.seekTime+' audio='+( a ? 'ok dur='+a.duration : 'NULL'));
     if(!a || details.seekTime === undefined) return;
     var t = parseFloat(details.seekTime);
     if(isNaN(t) || t < 0) return;
@@ -1412,25 +1439,33 @@ function filterSongs(q){
 
   // ── Appelée à chaque nouvelle piste ──
   window._yamMediaSession = function(songData){
-    // Métadonnées
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title:  (songData && songData.title)  ? songData.title  : '',
-      artist: (songData && songData.artist) ? songData.artist : '',
-      album:  'YAM — You And Me'
-    });
+    var title = songData ? songData.title : '(null)';
+    _log('_yamMediaSession "'+title+'"');
+
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title:  (songData && songData.title)  ? songData.title  : '',
+        artist: (songData && songData.artist) ? songData.artist : '',
+        album:  'YAM — You And Me'
+      });
+    } catch(e){ _log('metadata ERREUR: '+e.message); }
+
     navigator.mediaSession.playbackState = 'playing';
 
-    // Démarre le tick de position — attend la durée si pas encore dispo
     _stopTick();
     var a = (typeof currentAudio !== 'undefined') ? currentAudio : null;
-    if(!a) return;
+    _log('currentAudio: '+(a ? 'ok src='+a.src.split('/').pop()+' readyState='+a.readyState+' dur='+a.duration : 'NULL'));
+    if(!a){ _log('ABORT — pas de currentAudio'); return; }
 
     if(a.duration && isFinite(a.duration) && a.duration > 0){
+      _log('durée dispo immédiatement: '+a.duration);
       _updatePos();
       _startTick();
     } else {
+      _log('attente loadedmetadata...');
       a.addEventListener('loadedmetadata', function _msOnMeta(){
         a.removeEventListener('loadedmetadata', _msOnMeta);
+        _log('loadedmetadata reçu — dur='+a.duration);
         _updatePos();
         _startTick();
       });
@@ -1440,19 +1475,26 @@ function filterSongs(q){
   // ── Sync playbackState avec les événements natifs audio ──
   document.addEventListener('play', function(e){
     if(e.target && e.target.tagName === 'AUDIO'){
+      var src = e.target.src ? e.target.src.split('/').pop() : '?';
+      _log('evt PLAY src='+src);
       navigator.mediaSession.playbackState = 'playing';
     }
   }, true);
   document.addEventListener('pause', function(e){
     if(e.target && e.target.tagName === 'AUDIO'){
+      var src = e.target.src ? e.target.src.split('/').pop() : '?';
+      _log('evt PAUSE src='+src);
       navigator.mediaSession.playbackState = 'paused';
       _stopTick();
     }
   }, true);
   document.addEventListener('ended', function(e){
     if(e.target && e.target.tagName === 'AUDIO'){
+      var src = e.target.src ? e.target.src.split('/').pop() : '?';
+      _log('evt ENDED src='+src);
       _stopTick();
     }
   }, true);
 
+  _log('INIT terminé');
 })();
