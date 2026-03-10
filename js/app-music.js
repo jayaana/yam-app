@@ -1075,7 +1075,6 @@ function filterSongs(q){
   function _stopTick(){ if(_msIv){ clearInterval(_msIv); _msIv=null; } }
   function _updatePos(){
     if(!_gAudio.duration||!isFinite(_gAudio.duration)||_gAudio.duration<=0) return;
-    if(_gAudio.paused) return; // ne jamais envoyer position si paused → iOS confused
     var pos=Math.min(_gAudio.currentTime||0, _gAudio.duration);
     try { navigator.mediaSession.setPositionState({ duration:_gAudio.duration, playbackRate:1, position:pos }); } catch(e){}
   }
@@ -1124,13 +1123,15 @@ function filterSongs(q){
     navigator.mediaSession.playbackState='playing';
     _stopTick();
     if(_gAudio.duration&&isFinite(_gAudio.duration)&&_gAudio.duration>0){
-      if(myToken === _msToken){ _startTick(); } // tick démarre, _updatePos() viendra à la prochaine seconde
+      if(myToken === _msToken){ _updatePos(); _startTick(); }
     } else {
       _gAudio.addEventListener('loadedmetadata', function _onMeta(){
         _gAudio.removeEventListener('loadedmetadata',_onMeta);
         _log('loadedmetadata dur='+_gAudio.duration);
         if(myToken !== _msToken) return;
-        _startTick(); // idem : on laisse le tick envoyer la première position
+        // Envoyer la position immédiatement après loadedmetadata
+        // iOS a besoin de cette info pour ne pas confondre play avec nexttrack
+        _updatePos(); _startTick();
       });
     }
   };
@@ -1139,13 +1140,19 @@ function filterSongs(q){
   _gAudio.addEventListener('play',  function(){
     navigator.mediaSession.playbackState='playing';
     _log('gAudio PLAY');
-    // On relance juste le tick — il enverra setPositionState à la prochaine seconde
-    // Pas d'_updatePos() immédiat : évite les sauts visuels sur lock screen iOS
-    if(!_gAudio.paused && _gAudio.duration && isFinite(_gAudio.duration) && _gAudio.duration > 0){
-      _startTick();
+    // Envoyer la position immédiatement au resume + relancer le tick
+    if(_gAudio.duration && isFinite(_gAudio.duration) && _gAudio.duration > 0){
+      _updatePos(); _startTick();
     }
   });
-  _gAudio.addEventListener('pause', function(){ navigator.mediaSession.playbackState='paused';   _log('gAudio PAUSE'); _stopTick(); });
+  _gAudio.addEventListener('pause', function(){
+    navigator.mediaSession.playbackState='paused';
+    _log('gAudio PAUSE');
+    _stopTick();
+    // Figer la position exacte au moment de la pause
+    // Sans ça, iOS ne sait pas où on en est et peut interpréter play comme nexttrack
+    _updatePos();
+  });
   _gAudio.addEventListener('ended', function(){ _stopTick(); _log('gAudio ENDED'); });
 
   _log('INIT terminé');
