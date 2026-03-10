@@ -9,6 +9,7 @@ var STATIC_ASSETS = [
   '/yam-app/',
   '/yam-app/index.html',
   '/yam-app/css/main.css',
+  '/yam-app/css/design-system.css',
   '/yam-app/js/app-ios-touch.js',
   '/yam-app/js/app-core.js',
   '/yam-app/js/app-account.js',
