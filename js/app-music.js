@@ -236,8 +236,10 @@ _gAudio.addEventListener('ended', function(){
     _updateRowUI(next, true);
     particleActive = true;
     showDance();
-    if(window.mpUpdate) mpUpdate();
+    // NE PAS appeler mpUpdate() ici — il est patché et rappelle _yamMediaSession
+    // _yamMediaSession est appelé une seule fois ci-dessous
     if(window._yamMediaSession) _yamMediaSession(next);
+    if(window.mpUpdate) mpUpdate();
   } else {
     _stopCurrent();
   }
@@ -1104,7 +1106,9 @@ function filterSongs(q){
   // seekto non enregistré — iOS l'utilise parfois à tort comme "next"
 
   // ── Mise à jour des métadonnées à chaque nouvelle piste ──
+  var _msToken = 0; // token pour éviter les doubles appels _yamMediaSession
   window._yamMediaSession=function(song){
+    var myToken = ++_msToken; // chaque appel a son token unique
     _log('track: '+(song?song.title:'null'));
     try {
       navigator.mediaSession.metadata=new MediaMetadata({
@@ -1116,11 +1120,13 @@ function filterSongs(q){
     navigator.mediaSession.playbackState='playing';
     _stopTick();
     if(_gAudio.duration&&isFinite(_gAudio.duration)&&_gAudio.duration>0){
-      _updatePos(); _startTick();
+      if(myToken === _msToken){ _updatePos(); _startTick(); }
     } else {
       _gAudio.addEventListener('loadedmetadata', function _onMeta(){
         _gAudio.removeEventListener('loadedmetadata',_onMeta);
         _log('loadedmetadata dur='+_gAudio.duration);
+        // Si un appel plus récent est arrivé entre temps, on ignore celui-ci
+        if(myToken !== _msToken) return;
         _updatePos(); _startTick();
       });
     }
