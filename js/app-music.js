@@ -98,7 +98,11 @@ function createSongEl(song, num) {
   applyHeartState(song.file, heartBtn);
   div.querySelector('.btn-yt').addEventListener('click',function(){var u=song.yt;if(u&&(u.startsWith('https://')||u.startsWith('http://')))window.open(u,'_blank','noopener,noreferrer');});
   function ps(){audio.pause();btn.innerHTML='&#9654;';btn.classList.remove('active');div.classList.remove('playing');particleActive=false;hideDance();if(window.mpUpdate) mpUpdate();}
-  function pl(){audio.play();btn.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor" style="width:12px;height:12px"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';btn.classList.add('active');div.classList.add('playing');particleActive=true;showDance();if(window.mpUpdate) mpUpdate();}
+  function pl(){
+    audio.play();
+    if(window._yamMediaSession){ var _ds='';try{_ds=decodeURIComponent(audio.src||'');}catch(e){_ds=audio.src||'';} _yamMediaSession(songsLove.find(function(s){return _ds.indexOf(s.file)!==-1;})||null, audio); }
+    btn.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor" style="width:12px;height:12px"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';btn.classList.add('active');div.classList.add('playing');particleActive=true;showDance();if(window.mpUpdate) mpUpdate();
+  }
   btn.addEventListener('click',function(){if(currentAudio===audio){audio.paused?pl():ps();}else{stopCurrent();currentAudio=audio;currentBtn=btn;currentRow=div;pl();}});
   audio.addEventListener('ended',function(){ps();currentAudio=null;currentBtn=null;currentRow=null;});
   return div;
@@ -152,7 +156,11 @@ function renderTop50() {
 
     ytb.addEventListener('click', function(e){ e.stopPropagation(); var u=song.yt;if(u&&(u.startsWith('https://')||u.startsWith('http://')))window.open(u,'_blank','noopener,noreferrer'); });
     function ps(){ audio.pause(); btn.innerHTML='&#9654;'; btn.classList.remove('active'); div.classList.remove('playing'); particleActive=false; hideDance(); if(window.mpUpdate) mpUpdate(); }
-    function pl(){ audio.play(); btn.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor" style="width:12px;height:12px"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'; btn.classList.add('active'); div.classList.add('playing'); particleActive=true; showDance(); if(window.mpUpdate) mpUpdate(); }
+    function pl(){
+      audio.play();
+      if(window._yamMediaSession){ var _ds='';try{_ds=decodeURIComponent(audio.src||'');}catch(e){_ds=audio.src||'';} _yamMediaSession(songsLove.find(function(s){return _ds.indexOf(s.file)!==-1;})||null, audio); }
+      btn.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor" style="width:12px;height:12px"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'; btn.classList.add('active'); div.classList.add('playing'); particleActive=true; showDance(); if(window.mpUpdate) mpUpdate();
+    }
     function toggle(e){ if(e) e.stopPropagation(); if(currentAudio===audio){ audio.paused?pl():ps(); }else{ stopCurrent(); currentAudio=audio; currentBtn=btn; currentRow=div; pl(); } }
     btn.addEventListener('click', toggle);
     div.addEventListener('click', toggle);
@@ -418,6 +426,70 @@ function filterSongs(q){
     document.body.classList.remove('mp-active');
   }
 
+  /* ── Media Session API — contrôles écran verrouillé iOS ── */
+  function _yamMediaSession(songData, audioEl){
+    if(!('mediaSession' in navigator)) return;
+
+    // État de lecture
+    navigator.mediaSession.playbackState = 'playing';
+
+    // Métadonnées de la piste en cours
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title:  songData ? songData.title  : '',
+      artist: songData ? songData.artist : '',
+      album:  'YAM — You And Me'
+    });
+
+    // Handlers des boutons de contrôle (écran verrouillé / AirPods / CarPlay)
+    navigator.mediaSession.setActionHandler('play', function(){
+      if(audioEl && audioEl.paused){ if(window.mpToggle) mpToggle(); }
+    });
+    navigator.mediaSession.setActionHandler('pause', function(){
+      if(audioEl && !audioEl.paused){ if(window.mpToggle) mpToggle(); }
+    });
+    navigator.mediaSession.setActionHandler('nexttrack', function(){
+      if(window.mpNext) mpNext();
+    });
+    navigator.mediaSession.setActionHandler('previoustrack', function(){
+      if(window.mpPrev) mpPrev();
+    });
+    navigator.mediaSession.setActionHandler('seekto', function(details){
+      if(audioEl && details.seekTime !== undefined){
+        audioEl.currentTime = details.seekTime;
+        if(window.mpUpdateProgress) mpUpdateProgress();
+      }
+    });
+
+    // Position de lecture — barre de progression réelle sur l'écran verrouillé
+    function _updatePositionState(){
+      if(!audioEl || !audioEl.duration || !isFinite(audioEl.duration)) return;
+      try {
+        navigator.mediaSession.setPositionState({
+          duration:     audioEl.duration,
+          playbackRate: audioEl.playbackRate || 1,
+          position:     Math.min(audioEl.currentTime || 0, audioEl.duration)
+        });
+      } catch(e){}
+    }
+
+    // Nettoie l'intervalle précédent si on change de piste
+    if(window._yamMsIv){ clearInterval(window._yamMsIv); window._yamMsIv = null; }
+
+    // Mise à jour de la position toutes les secondes
+    window._yamMsIv = setInterval(function(){
+      if(!audioEl || audioEl.paused || audioEl !== currentAudio){
+        clearInterval(window._yamMsIv);
+        window._yamMsIv = null;
+        return;
+      }
+      _updatePositionState();
+    }, 1000);
+
+    audioEl.addEventListener('loadedmetadata', _updatePositionState);
+    _updatePositionState();
+  }
+  window._yamMediaSession = _yamMediaSession;
+
   // Update mini player state from currentAudio
   window.mpUpdate = function(){
     if(!currentAudio || !currentRow){
@@ -521,12 +593,14 @@ function filterSongs(q){
     if(!currentAudio) return;
     if(currentAudio.paused){
       currentAudio.play();
+      if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
       if(currentBtn){ currentBtn.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor" style="width:12px;height:12px"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'; currentBtn.classList.add('active'); }
       if(currentRow){ currentRow.classList.add('playing'); }
       particleActive = (window._currentTab === 'musique' || window._currentTab === 'nous');
       showDance();
     } else {
       currentAudio.pause();
+      if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
       if(currentBtn){ currentBtn.innerHTML='&#9654;'; currentBtn.classList.remove('active'); }
       if(currentRow){ currentRow.classList.remove('playing'); }
       particleActive=false; hideDance();
@@ -541,6 +615,8 @@ function filterSongs(q){
   };
 
   window.mpStop = function(){
+    if('mediaSession' in navigator){ navigator.mediaSession.playbackState = 'none'; navigator.mediaSession.metadata = null; }
+    if(window._yamMsIv){ clearInterval(window._yamMsIv); window._yamMsIv = null; }
     stopCurrent();
     mpHide();
     var navMus = document.getElementById('navMusique');
