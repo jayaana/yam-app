@@ -53,6 +53,7 @@ var _currentSong  = null;  // objet songsLove en cours
 var _currentIndex = -1;    // index dans la playlist triée courante
 var _playlist     = [];    // tableau d'objets songsLove dans l'ordre de lecture
 var _isPlaying    = false;
+var _playRetryToken = 0;  // incrémenté à chaque pause/stop pour annuler les retries en cours
 
 // Compatibilité legacy (certains modules lisent currentAudio)
 Object.defineProperty(window, 'currentAudio', {
@@ -145,20 +146,22 @@ function _playSong(song){
 
   var playPromise = _gAudio.play();
   if(playPromise && typeof playPromise.catch === 'function'){
+    var _retryToken = ++_playRetryToken;
     playPromise.catch(function(e){
       console.warn('[YAM] play() rejected:', e);
-      // iOS en arrière-plan peut rejeter le premier play() — on retry jusqu'à 3 fois
       var _retryCount = 0;
       function _retry(){
+        if(_retryToken !== _playRetryToken) return; // annulé par pause ou nouvelle piste
         if(_retryCount >= 3 || !_isPlaying) return;
         _retryCount++;
         setTimeout(function(){
+          if(_retryToken !== _playRetryToken || !_isPlaying) return;
           var p2 = _gAudio.play();
           if(p2 && p2.catch) p2.catch(function(e2){
             console.warn('[YAM] play() retry '+_retryCount+' rejected:', e2);
             _retry();
           });
-        }, 300 * _retryCount);
+        }, 400);
       }
       _retry();
     });
@@ -173,6 +176,7 @@ function _playSong(song){
 }
 
 function _pauseCurrent(){
+  ++_playRetryToken; // annule tous les retries en cours
   _gAudio.pause();
   _isPlaying = false;
   _updateRowUI(_currentSong, false);
@@ -182,6 +186,7 @@ function _pauseCurrent(){
 }
 
 function _stopCurrent(){
+  ++_playRetryToken; // annule tous les retries en cours
   _gAudio.pause();
   _isPlaying = false;
   _updateRowUI(_currentSong, false);
