@@ -1,5 +1,10 @@
 // ═══════════════════════════════════════════════════════════
 // app-music.js — Top 50 · Player · Mini Player · Suggestions · Favoris · Glow
+//
+// ARCHITECTURE PLAYER :
+//   Un seul <audio> global (_gAudio). Changer de piste = changer .src
+//   sans jamais faire pause → zéro silence → iOS ne suspend pas en arrière-plan.
+// ═══════════════════════════════════════════════════════════
 
 var songsLove = [
   {title:"Perfect",            artist:"Ed Sheeran",     file:"perfect.mp3",                yt:"https://www.youtube.com/watch?v=2Vv-BfVoq4g"},
@@ -28,15 +33,44 @@ var songsLove = [
 ];
 songsLove.forEach(function(x){ x.plays = 0; });
 
+var allSongs = songsLove;
+
+// ════════════════════════════════════════════════════════════
+// AUDIO GLOBAL — un seul élément, on change juste le src
+// ════════════════════════════════════════════════════════════
+var _gAudio = (function(){
+  var a = document.createElement('audio');
+  a.preload = 'auto';
+  // Nécessaire sur iOS pour autoriser la lecture en arrière-plan
+  a.setAttribute('playsinline', '');
+  a.setAttribute('webkit-playsinline', '');
+  document.body.appendChild(a);
+  return a;
+})();
+
+// État courant du player
+var _currentSong  = null;  // objet songsLove en cours
+var _currentIndex = -1;    // index dans la playlist triée courante
+var _playlist     = [];    // tableau d'objets songsLove dans l'ordre de lecture
+var _isPlaying    = false;
+
+// Compatibilité legacy (certains modules lisent currentAudio)
+Object.defineProperty(window, 'currentAudio', {
+  get: function(){ return _isPlaying || (_gAudio.src && !_gAudio.paused) ? _gAudio : (_gAudio.src ? _gAudio : null); },
+  configurable: true
+});
+Object.defineProperty(window, 'currentRow', {
+  get: function(){ return _currentSong ? (songRows[_currentSong.file] ? songRows[_currentSong.file].div : null) : null; },
+  configurable: true
+});
+
+// ── Utilitaires ──
 function fmtPlays(n){if(n>=1e6)return(n/1e6).toFixed(1).replace('.0','')+'M';if(n>=1e3)return(n/1e3).toFixed(1).replace('.0','')+'k';return n?String(n):'—';}
 
 function savePlays(file){
-  // ✅ FIX : la RPC attend p_song_key + p_couple_id (les plays sont globaux au couple)
   var _sp = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
   var _spCoupleId = _sp && _sp.user ? _sp.user.couple_id : null;
-  if(!_spCoupleId) return; // pas de session = on n'envoie rien
-  // ✅ FIX : return=minimal → body vide, ne pas parser JSON
-  // On relit le compteur via GET après l'incrément pour mettre à jour l'affichage
+  if(!_spCoupleId) return;
   fetch(SB2_URL + '/rest/v1/rpc/increment_play', {
     method: 'POST',
     headers: sb2Headers({'Prefer': 'return=minimal'}),
@@ -44,9 +78,7 @@ function savePlays(file){
   })
   .then(function(r){
     if(!r.ok) return;
-    return fetch(SB2_URL + '/rest/v1/v2_song_plays?song_key=eq.' + encodeURIComponent(file) + '&couple_id=eq.' + _spCoupleId + '&select=play_count', {
-      headers: sb2Headers()
-    });
+    return fetch(SB2_URL + '/rest/v1/v2_song_plays?song_key=eq.' + encodeURIComponent(file) + '&couple_id=eq.' + _spCoupleId + '&select=play_count', { headers: sb2Headers() });
   })
   .then(function(r){ return r && r.ok ? r.json() : null; })
   .then(function(rows){
@@ -61,64 +93,143 @@ function savePlays(file){
   .catch(function(){});
 }
 
-var allSongs = songsLove;
-var currentAudio = null, currentBtn = null, currentRow = null;
-var TOP_VISIBLE = 4, top50Expanded = false;
-
-function stopCurrent(){
-  if(currentAudio){currentAudio.pause();if(currentBtn){currentBtn.innerHTML='&#9654;';currentBtn.classList.remove('active');}if(currentRow)currentRow.classList.remove('playing');particleActive=false;hideDance();currentAudio=null;currentBtn=null;currentRow=null;}
-  // Stoppe tous les autres audios parasites (sans currentTime=0 pour éviter de réinitialiser la cible suivante)
-  document.querySelectorAll('#Love audio').forEach(function(a){ if(!a.paused) a.pause(); });
-}
-
-// Fonctions pour changer le GIF de la mascotte quand la musique joue
+// Mascotte
 function showDance(){
   var mascotte = document.querySelector('.yam-mascotte-zone img');
-  console.log('[YAM] showDance - mascotte trouvée:', mascotte);
-  if(mascotte) {
-    console.log('[YAM] Changement vers yam_dance.gif');
-    mascotte.src = 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_dance.gif';
-  }
+  if(mascotte) mascotte.src = 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_dance.gif';
 }
 function hideDance(){
   var mascotte = document.querySelector('.yam-mascotte-zone img');
-  console.log('[YAM] hideDance - mascotte trouvée:', mascotte);
-  if(mascotte) {
-    console.log('[YAM] Retour vers yam_start.gif');
-    mascotte.src = 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_start.gif';
+  if(mascotte) mascotte.src = 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_start.gif';
+}
+
+// ── Mise à jour visuelle des lignes de la playlist ──
+var songRows = {};  // { file: { div, btn } }
+
+function _updateRowUI(song, playing){
+  if(!song) return;
+  var row = songRows[song.file];
+  if(!row) return;
+  if(playing){
+    row.btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" style="width:12px;height:12px"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+    row.btn.classList.add('active');
+    row.div.classList.add('playing');
+  } else {
+    row.btn.innerHTML = '&#9654;';
+    row.btn.classList.remove('active');
+    row.div.classList.remove('playing');
   }
 }
 
-function createSongEl(song, num) {
-  var div = document.createElement('div'); div.className = 'song';
-  var newBadge = song.isNew ? '<span class="badge-new">new</span>' : '';
-  var safeTitle=escHtml(song.title),safeArtist=escHtml(song.artist),safeFile=escHtml(song.file);
-  div.innerHTML = '<div class="song-num">'+num+'</div><div class="song-info"><div class="song-title">'+safeTitle+newBadge+'</div><div class="song-artist">'+safeArtist+'</div></div><div class="song-actions"><button class="btn-heart" data-file="'+safeFile+'">♡</button><button class="btn-play">&#9654;</button><button class="btn-yt">YT</button><audio src="'+safeFile+'"></audio></div>';
-  var btn=div.querySelector('.btn-play'), audio=div.querySelector('audio');
-  var heartBtn = div.querySelector('.btn-heart');
-  heartBtn.addEventListener('click', function(e){ e.stopPropagation(); toggleFavorite(song.file, heartBtn); });
-  applyHeartState(song.file, heartBtn);
-  div.querySelector('.btn-yt').addEventListener('click',function(){var u=song.yt;if(u&&(u.startsWith('https://')||u.startsWith('http://')))window.open(u,'_blank','noopener,noreferrer');});
-  function ps(){audio.pause();btn.innerHTML='&#9654;';btn.classList.remove('active');div.classList.remove('playing');particleActive=false;hideDance();if(window.mpUpdate) mpUpdate();}
-  function pl(){
-    audio.play();
-    if(window._yamMediaSession){ var _ds='';try{_ds=decodeURIComponent(audio.src||'');}catch(e){_ds=audio.src||'';} _yamMediaSession(songsLove.find(function(s){return _ds.indexOf(s.file)!==-1;})||null); }
-    btn.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor" style="width:12px;height:12px"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';btn.classList.add('active');div.classList.add('playing');particleActive=true;showDance();if(window.mpUpdate) mpUpdate();
+// ── Lecture d'une chanson ──
+function _playSong(song){
+  if(!song) return;
+
+  var wasPlaying = _currentSong;
+
+  // Met à jour l'UI de l'ancienne piste
+  if(_currentSong && _currentSong !== song) _updateRowUI(_currentSong, false);
+
+  _currentSong = song;
+  _currentIndex = _playlist.indexOf(song);
+  _isPlaying = true;
+
+  // Pas de pause/play — on change juste le src si nécessaire
+  var newSrc = song.file;
+  var curSrc = '';
+  try { curSrc = decodeURIComponent(_gAudio.src).split('/').pop(); } catch(e) { curSrc = _gAudio.src; }
+
+  if(curSrc !== newSrc){
+    _gAudio.src = newSrc;
   }
-  btn.addEventListener('click',function(){if(currentAudio===audio){audio.paused?pl():ps();}else{stopCurrent();currentAudio=audio;currentBtn=btn;currentRow=div;pl();}});
-  audio.addEventListener('ended',function(){ps();currentAudio=null;currentBtn=null;currentRow=null;});
-  return div;
+
+  var playPromise = _gAudio.play();
+  if(playPromise && typeof playPromise.catch === 'function'){
+    playPromise.catch(function(e){ console.warn('[YAM] play() rejected:', e); });
+  }
+
+  _updateRowUI(song, true);
+  particleActive = true;
+  showDance();
+
+  if(window.mpUpdate) mpUpdate();
+  if(window._yamMediaSession) _yamMediaSession(song);
 }
 
+function _pauseCurrent(){
+  _gAudio.pause();
+  _isPlaying = false;
+  _updateRowUI(_currentSong, false);
+  particleActive = false;
+  hideDance();
+  if(window.mpUpdate) mpUpdate();
+}
+
+function _stopCurrent(){
+  _gAudio.pause();
+  _isPlaying = false;
+  _updateRowUI(_currentSong, false);
+  _currentSong = null;
+  _currentIndex = -1;
+  particleActive = false;
+  hideDance();
+  if(window.mpUpdate) mpUpdate();
+}
+// Compatibilité legacy
+window.stopCurrent = _stopCurrent;
+
+// Comptage écoutes
+_gAudio.addEventListener('timeupdate', function(){
+  if(_currentSong && !_currentSong._counted && _gAudio.currentTime >= 10){
+    _currentSong._counted = true;
+    savePlays(_currentSong.file);
+  }
+});
+
+// ── Fin de piste → piste suivante ──
+_gAudio.addEventListener('ended', function(){
+  if(!_currentSong) return;
+  if(_currentSong) _currentSong._counted = false;
+  var next = _getNextSong();
+  if(next){
+    _playSong(next);
+  } else {
+    _stopCurrent();
+  }
+});
+
+// ── Calcul de la piste suivante/précédente ──
+function _getNextSong(){
+  if(!_currentSong || !_playlist.length) return null;
+  if(playMode === 'repeatOne') return _currentSong;
+  if(playMode === 'shuffle'){
+    var idx = Math.floor(Math.random() * _playlist.length);
+    return _playlist[idx];
+  }
+  var i = _playlist.indexOf(_currentSong);
+  if(i < _playlist.length - 1) return _playlist[i + 1];
+  if(playMode === 'repeatAll') return _playlist[0];
+  return null;
+}
+
+function _getPrevSong(){
+  if(!_currentSong || !_playlist.length) return null;
+  var i = _playlist.indexOf(_currentSong);
+  if(i > 0) return _playlist[i - 1];
+  return _playlist[_playlist.length - 1];
+}
+
+// ════════════════════════════════════════════════════════════
+// TOP 50
+// ════════════════════════════════════════════════════════════
 var prevRanks = (function(){
-  try { return JSON.parse(localStorage.getItem('sp_prev_ranks') || '{}'); }
-  catch(e){ return {}; }
+  try { return JSON.parse(localStorage.getItem('sp_prev_ranks') || '{}'); } catch(e){ return {}; }
 })();
 
-var songRows = {};
+var TOP_VISIBLE = 4, top50Expanded = false;
 
-function renderTop50() {
-  var sorted = songsLove.slice().sort(function(a,b){return b.plays-a.plays;});
+function renderTop50(){
+  var sorted = songsLove.slice().sort(function(a,b){ return b.plays - a.plays; });
   var newRanks = {};
   sorted.forEach(function(s,i){ newRanks[s.file] = i+1; });
   var container = document.getElementById('Love');
@@ -126,7 +237,10 @@ function renderTop50() {
   songRows = {};
   document.getElementById('top50Count').textContent = sorted.length;
 
-  sorted.forEach(function(song, i) {
+  // Met à jour la playlist dans l'ordre de tri
+  _playlist = sorted.slice();
+
+  sorted.forEach(function(song, i){
     var rank = i+1;
     var hidden = rank > TOP_VISIBLE && !top50Expanded;
     var trendClass = '';
@@ -144,40 +258,37 @@ function renderTop50() {
       '<div class="sp-info"><div class="sp-title">'+song.title+(song.isNew?'<span class="badge-new">new</span>':'')+'</div><div class="sp-artist">'+song.artist+'</div></div>'+
       '<button class="sp-heart" data-file="'+song.file+'">♡</button>'+
       '<div class="sp-plays">'+fmtPlays(song.plays)+'</div>'+
-      '<div class="sp-actions"><button class="sp-btn-play">&#9654;</button><button class="sp-btn-yt">YT</button>'+
-      '<audio src="'+song.file+'"></audio></div>';
+      '<div class="sp-actions"><button class="sp-btn-play">&#9654;</button><button class="sp-btn-yt">YT</button></div>';
 
     var btn = div.querySelector('.sp-btn-play');
     var ytb = div.querySelector('.sp-btn-yt');
     var heartBtn = div.querySelector('.sp-heart');
-    var audio = div.querySelector('audio');
-    audio._counted = false;
-    songRows[song.file] = { div:div, btn:btn, audio:audio };
+
+    songRows[song.file] = { div:div, btn:btn };
+
     heartBtn.addEventListener('click', function(e){ e.stopPropagation(); toggleFavorite(song.file, heartBtn); });
     applyHeartState(song.file, heartBtn);
+    ytb.addEventListener('click', function(e){ e.stopPropagation(); var u=song.yt; if(u&&(u.startsWith('https://')||u.startsWith('http://')))window.open(u,'_blank','noopener,noreferrer'); });
 
-    ytb.addEventListener('click', function(e){ e.stopPropagation(); var u=song.yt;if(u&&(u.startsWith('https://')||u.startsWith('http://')))window.open(u,'_blank','noopener,noreferrer'); });
-    function ps(){ audio.pause(); btn.innerHTML='&#9654;'; btn.classList.remove('active'); div.classList.remove('playing'); particleActive=false; hideDance(); if(window.mpUpdate) mpUpdate(); }
-    function pl(){
-      audio.play();
-      if(window._yamMediaSession){ var _ds='';try{_ds=decodeURIComponent(audio.src||'');}catch(e){_ds=audio.src||'';} _yamMediaSession(songsLove.find(function(s){return _ds.indexOf(s.file)!==-1;})||null); }
-      btn.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor" style="width:12px;height:12px"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'; btn.classList.add('active'); div.classList.add('playing'); particleActive=true; showDance(); if(window.mpUpdate) mpUpdate();
+    function toggle(e){
+      if(e) e.stopPropagation();
+      if(_currentSong === song){
+        // Toggle play/pause sur la même piste
+        if(_gAudio.paused){ _isPlaying = true; var p=_gAudio.play(); if(p&&p.catch)p.catch(function(){}); _updateRowUI(song,true); particleActive=true; showDance(); if(window.mpUpdate)mpUpdate(); if(window._yamMediaSession)_yamMediaSession(song); }
+        else { _pauseCurrent(); }
+      } else {
+        _playSong(song);
+      }
     }
-    function toggle(e){ if(e) e.stopPropagation(); if(currentAudio===audio){ audio.paused?pl():ps(); }else{ stopCurrent(); currentAudio=audio; currentBtn=btn; currentRow=div; pl(); } }
     btn.addEventListener('click', toggle);
     div.addEventListener('click', toggle);
 
-    audio.addEventListener('timeupdate', function(){
-      if(!audio._counted && audio.currentTime >= 10){
-        audio._counted = true;
-        savePlays(song.file);
-      }
-    });
-
-    audio.addEventListener('ended', function(){
-      audio._counted = false; ps(); currentAudio=null; currentBtn=null; currentRow=null;
-      playNext(div);
-    });
+    // Remettre le visuel si c'est la piste en cours (ex: après re-render)
+    if(_currentSong === song && !_gAudio.paused){
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" style="width:12px;height:12px"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+      btn.classList.add('active');
+      div.classList.add('playing');
+    }
 
     container.appendChild(div);
   });
@@ -191,14 +302,16 @@ function renderTop50() {
   eb.classList.toggle('open', top50Expanded);
 }
 
-function updateTop50() {
+function updateTop50(){
   var container = document.getElementById('Love');
-  if(!container || Object.keys(songRows).length === 0) { renderTop50(); return; }
-  var sorted = songsLove.slice().sort(function(a,b){ return b.plays-a.plays; });
+  if(!container || Object.keys(songRows).length === 0){ renderTop50(); return; }
+  var sorted = songsLove.slice().sort(function(a,b){ return b.plays - a.plays; });
   var newRanks = {};
   sorted.forEach(function(s,i){ newRanks[s.file] = i+1; });
 
-  sorted.forEach(function(song, i) {
+  _playlist = sorted.slice();
+
+  sorted.forEach(function(song, i){
     var rank = i+1;
     var row = songRows[song.file];
     if(!row) return;
@@ -209,14 +322,14 @@ function updateTop50() {
     else if(prevRanks[song.file] > rank)    { trendClass = 'up'; }
     else if(prevRanks[song.file] < rank)    { trendClass = 'down'; }
     var existingTrend = row.div.querySelector('.sp-trend');
-    if(trendClass) {
-      if(existingTrend) { existingTrend.className = 'sp-trend '+trendClass; }
+    if(trendClass){
+      if(existingTrend){ existingTrend.className = 'sp-trend '+trendClass; }
       else {
         var t = document.createElement('span'); t.className = 'sp-trend '+trendClass;
         var rankEl = row.div.querySelector('.sp-rank');
         if(rankEl) rankEl.insertBefore(t, rankEl.querySelector('.sp-rank-wave'));
       }
-    } else if(existingTrend) { existingTrend.remove(); }
+    } else if(existingTrend){ existingTrend.remove(); }
     var pe = row.div.querySelector('.sp-plays');
     if(pe) pe.textContent = fmtPlays(song.plays);
     var hidden = rank > TOP_VISIBLE && !top50Expanded;
@@ -229,412 +342,241 @@ function updateTop50() {
   try { localStorage.setItem('sp_prev_ranks', JSON.stringify(prevRanks)); } catch(e){}
 }
 
-document.getElementById('top50Expand').addEventListener('click',function(){
-  top50Expanded=!top50Expanded;
-  var rows=document.querySelectorAll('#Love .sp-song.hidden-row');
-  if(top50Expanded){rows.forEach(function(r,i){setTimeout(function(){r.classList.add('revealed');},i*35);});}
-  else{rows.forEach(function(r){r.classList.remove('revealed');});}
-  var remaining=songsLove.length-TOP_VISIBLE;
-  this.querySelector('span:first-child').textContent=top50Expanded?'Réduire':'Voir tout ('+remaining+' titres)';
-  this.classList.toggle('open',top50Expanded);
+document.getElementById('top50Expand').addEventListener('click', function(){
+  top50Expanded = !top50Expanded;
+  var rows = document.querySelectorAll('#Love .sp-song.hidden-row');
+  if(top50Expanded){ rows.forEach(function(r,i){ setTimeout(function(){ r.classList.add('revealed'); }, i*35); }); }
+  else { rows.forEach(function(r){ r.classList.remove('revealed'); }); }
+  var remaining = songsLove.length - TOP_VISIBLE;
+  this.querySelector('span:first-child').textContent = top50Expanded ? 'Réduire' : 'Voir tout ('+remaining+' titres)';
+  this.classList.toggle('open', top50Expanded);
 });
 
 // ── PLAY MODE ──
 var playMode = 'repeatAll';
 var _modeList = ['repeatAll','order','shuffle','repeatOne'];
-var _modeTitles = {
-  order:     "Dans l'ordre",
-  shuffle:   'Aléatoire',
-  repeatAll: 'Répéter tout',
-  repeatOne: 'Répéter ce titre'
-};
-var _modeIconIds = {
-  order:     'modeIconOrder',
-  shuffle:   'modeIconShuffle',
-  repeatAll: 'modeIconRepeatAll',
-  repeatOne: 'modeIconRepeatOne'
-};
-function setPlayMode(mode) {
+var _modeTitles = { order:"Dans l'ordre", shuffle:'Aléatoire', repeatAll:'Répéter tout', repeatOne:'Répéter ce titre' };
+var _modeIconIds = { order:'modeIconOrder', shuffle:'modeIconShuffle', repeatAll:'modeIconRepeatAll', repeatOne:'modeIconRepeatOne' };
+
+function setPlayMode(mode){
   playMode = mode;
   Object.keys(_modeIconIds).forEach(function(k){
     var el = document.getElementById(_modeIconIds[k]);
     if(el) el.style.display = k === mode ? '' : 'none';
   });
   var btn = document.getElementById('top50ModeBtn');
-  if(btn){
-    btn.title = _modeTitles[mode] || mode;
-    btn.classList.toggle('active', mode !== 'order');
-
-  }
+  if(btn){ btn.title = _modeTitles[mode] || mode; btn.classList.toggle('active', mode !== 'order'); }
 }
 setPlayMode('repeatAll');
 document.getElementById('top50ModeBtn').addEventListener('click', function(){
   var idx = _modeList.indexOf(playMode);
   setPlayMode(_modeList[(idx + 1) % _modeList.length]);
 });
-function playNext(currentDiv) {
-  var songs = Array.from(document.querySelectorAll('#Love .sp-song'));
-  if(!songs.length) return;
-  if(playMode === 'repeatOne') {
-    var btn=currentDiv.querySelector('.sp-btn-play'); if(btn) setTimeout(function(){btn.click();},80); return;
-  }
-  if(playMode === 'shuffle') {
-    var idx=Math.floor(Math.random()*songs.length); var btn=songs[idx].querySelector('.sp-btn-play'); if(btn) setTimeout(function(){btn.click();},80); return;
-  }
-  var idx=songs.indexOf(currentDiv), next=songs[idx+1];
-  if(next){
-    var btn=next.querySelector('.sp-btn-play'); if(btn) setTimeout(function(){btn.click();},80);
-  } else if(playMode === 'repeatAll'){
-    // Retourne au début
-    var btn=songs[0].querySelector('.sp-btn-play'); if(btn) setTimeout(function(){btn.click();},80);
-  }
-}
+
 document.getElementById('top50PlayAll').addEventListener('click', function(){
-  if(currentRow) { var btn=currentRow.querySelector('.sp-btn-play'); if(btn){btn.click();return;} }
-  var first=document.querySelector('#Love .sp-song');
-  if(first) first.querySelector('.sp-btn-play').click();
+  if(_currentSong){
+    if(_gAudio.paused){ var p=_gAudio.play(); if(p&&p.catch)p.catch(function(){}); _isPlaying=true; _updateRowUI(_currentSong,true); particleActive=true; showDance(); if(window.mpUpdate)mpUpdate(); }
+    else { _pauseCurrent(); }
+    return;
+  }
+  if(_playlist.length) _playSong(_playlist[0]);
 });
 
 function updateTop50PlayBtn(){
-  var btn=document.getElementById('top50PlayAll');
+  var btn = document.getElementById('top50PlayAll');
   if(!btn) return;
-  var isLovePlaying = currentAudio && !currentAudio.paused && currentRow && currentRow.closest && currentRow.closest('#Love');
+  var isPlaying = _currentSong && !_gAudio.paused;
   var iconPlay  = document.getElementById('top50IconPlay');
   var iconPause = document.getElementById('top50IconPause');
-  if(isLovePlaying){
-    btn.classList.add('playing');
-    if(iconPlay)  iconPlay.style.display  = 'none';
-    if(iconPause) iconPause.style.display = '';
-  } else {
-    btn.classList.remove('playing');
-    if(iconPlay)  iconPlay.style.display  = '';
-    if(iconPause) iconPause.style.display = 'none';
-  }
+  if(isPlaying){ btn.classList.add('playing'); if(iconPlay) iconPlay.style.display='none'; if(iconPause) iconPause.style.display=''; }
+  else         { btn.classList.remove('playing'); if(iconPlay) iconPlay.style.display=''; if(iconPause) iconPause.style.display='none'; }
 }
-// Poll léger pour capturer les changements d'état audio
 window._top50Iv = setInterval(updateTop50PlayBtn, 500);
 
-// ── CHARGEMENT INITIAL depuis Supabase ──
+// ── CHARGEMENT INITIAL ──
 (function(){
   sbGet('song_plays', 'select=song_key,play_count').then(function(rows){
-    if(!Array.isArray(rows)) { renderTop50(); return; }
+    if(!Array.isArray(rows)){ renderTop50(); return; }
     var map = {};
     rows.forEach(function(r){ map[r.song_key] = r.play_count || 0; });
     songsLove.forEach(function(s){ s.plays = map[s.file] || 0; });
     renderTop50();
   }).catch(function(){ renderTop50(); });
 
-  function refreshPlays() {
+  function refreshPlays(){
     sbGet('song_plays', 'select=song_key,play_count').then(function(rows){
       if(!Array.isArray(rows)) return;
-      var changed = false;
-      var map = {};
+      var changed = false, map = {};
       rows.forEach(function(r){ map[r.song_key] = r.play_count || 0; });
-      songsLove.forEach(function(s){
-        var remote = map[s.file] || 0;
-        if(remote > s.plays) { s.plays = remote; changed = true; }
-      });
+      songsLove.forEach(function(s){ var remote = map[s.file]||0; if(remote>s.plays){ s.plays=remote; changed=true; } });
       if(changed) updateTop50();
     }).catch(function(){});
   }
   setInterval(refreshPlays, 30000);
 })();
 
-// ── PARTICLES ──
+// ── PARTICLES (déclaré pour compatibilité) ──
+var particleActive = false;
 
-function openSearch(){
-  if(isQuizOpen)return;
-  resetZoom();
-  var o=document.getElementById('searchOverlay');
-  o.classList.add('open');
-  document.getElementById('searchInput').value='';
-  document.getElementById('searchResults').innerHTML='';
-  setTimeout(function(){document.getElementById('searchInput').focus();},80);
-}
-function closeSearch(){
-  resetZoom();
-  document.getElementById('searchOverlay').classList.remove('open');
-}
-function filterSongs(q){
-  var res=document.getElementById('searchResults');
-  res.innerHTML='';
-  if(!q.trim())return;
-  var f=allSongs.filter(function(s){return s.title.toLowerCase().includes(q.toLowerCase())||s.artist.toLowerCase().includes(q.toLowerCase());});
-  if(!f.length){res.innerHTML='<p style="color:var(--muted);text-align:center;padding:20px;font-size:13px">Aucun résultat</p>';return;}
-  f.forEach(function(s){
-    var row=document.createElement('div');
-    row.className='sp-song';
-    row.style.cssText='display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;';
-    row.innerHTML='<div class="sp-info"><div class="sp-title">'+escHtml(s.title)+'</div><div class="sp-artist">'+escHtml(s.artist)+'</div></div><div style="font-size:11px;color:var(--green);font-weight:600;flex-shrink:0">▶</div>';
-    row.addEventListener('click', function(){
-      closeSearch();
-      // Trouver la vraie ligne dans le top50 et la jouer
-      var realRow = songRows[s.file];
-      if(realRow){
-        // Scroller vers la chanson dans le top50
-        realRow.div.scrollIntoView({behavior:'smooth', block:'center'});
-        setTimeout(function(){
-          // Si une chanson est déjà en cours, l'arrêter
-          if(currentAudio && currentAudio !== realRow.audio){
-            stopCurrent();
-          }
-          // Lancer via le bouton du top50 pour que tout soit comptabilisé
-          realRow.btn.click();
-        }, 400);
-      }
-    });
-    res.appendChild(row);
-  });
-}
-
-
+// ════════════════════════════════════════════════════════════
 // MINI PLAYER
-// ════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
 (function(){
-  var mp = document.getElementById('miniPlayer');
-  var mpTitle = document.getElementById('mpTitle');
-  var mpArtist = document.getElementById('mpArtist');
-  var mpIconPlay = document.getElementById('mpIconPlay');
+  var mp        = document.getElementById('miniPlayer');
+  var mpTitle   = document.getElementById('mpTitle');
+  var mpArtist  = document.getElementById('mpArtist');
+  var mpIconPlay  = document.getElementById('mpIconPlay');
   var mpIconPause = document.getElementById('mpIconPause');
-  var mpModeBtn = document.getElementById('mpModeBtn');
+  var mpModeBtn   = document.getElementById('mpModeBtn');
 
-  // Track if we're in a game (to hide mini player)
   var _gameViews = ['memoryView','penduView','puzzleView','snakeView','skyjoView','gamesView','quizView'];
-
   function isGameActive(){
-    return _gameViews.some(function(id){
-      var el = document.getElementById(id);
-      return el && el.classList.contains('active');
-    });
+    return _gameViews.some(function(id){ var el=document.getElementById(id); return el&&el.classList.contains('active'); });
   }
 
   function mpShow(){
     if(isGameActive()){ mp.classList.add('game-hidden'); mp.classList.remove('visible'); document.body.classList.remove('mp-active'); return; }
     mp.classList.remove('game-hidden');
-    // Cacher hors onglet musique (si tab connu et différent de musique)
     if(window._currentTab && window._currentTab !== 'musique'){
-      mp.classList.add('tab-hidden');
-      mp.classList.remove('visible');
-      document.body.classList.remove('mp-active');
-      return;
+      mp.classList.add('tab-hidden'); mp.classList.remove('visible'); document.body.classList.remove('mp-active'); return;
     }
-    mp.classList.remove('tab-hidden');
-    mp.classList.add('visible');
-    document.body.classList.add('mp-active');
+    mp.classList.remove('tab-hidden'); mp.classList.add('visible'); document.body.classList.add('mp-active');
   }
   function mpHide(){
-    mp.classList.remove('visible');
-    mp.classList.remove('tab-hidden');
-    document.body.classList.remove('mp-active');
+    mp.classList.remove('visible','tab-hidden'); document.body.classList.remove('mp-active');
   }
 
-  // Update mini player state from currentAudio
   window.mpUpdate = function(){
-    if(!currentAudio || !currentRow){
-      // If no current audio, check if paused (still has info)
-      mpUpdateIcons();
-      // Retire l'icône dansante si plus de musique
-      var navMus = document.getElementById('navMusique');
-      if(navMus) navMus.classList.remove('music-playing');
-      return;
-    }
-    // Find song info (decode URL to handle special chars like é, ï, apostrophes)
-    var decodedSrc = '';
-    try { decodedSrc = decodeURIComponent(currentAudio.src || ''); } catch(e) { decodedSrc = currentAudio.src || ''; }
-    var songData = songsLove.find(function(s){ return decodedSrc.indexOf(s.file) !== -1; });
-    if(songData){
-      mpTitle.textContent = songData.title;
-      mpArtist.textContent = songData.artist;
-    }
+    if(!_currentSong){ mpUpdateIcons(); var navMus=document.getElementById('navMusique'); if(navMus)navMus.classList.remove('music-playing'); return; }
+    mpTitle.textContent  = _currentSong.title;
+    mpArtist.textContent = _currentSong.artist;
     mpUpdateIcons();
     mpShow();
-    // Icône dansante : si musique joue et pas sur onglet musique
     var navMus2 = document.getElementById('navMusique');
-    if(navMus2){
-      var playing2 = currentAudio && !currentAudio.paused;
-      navMus2.classList.toggle('music-playing', playing2 && window._currentTab !== 'musique');
-    }
+    if(navMus2){ navMus2.classList.toggle('music-playing', !_gAudio.paused && window._currentTab !== 'musique'); }
   };
 
   function mpUpdateIcons(){
-    var playing = currentAudio && !currentAudio.paused;
-    mpIconPlay.style.display = playing ? 'none' : '';
+    var playing = _currentSong && !_gAudio.paused;
+    mpIconPlay.style.display  = playing ? 'none' : '';
     mpIconPause.style.display = playing ? '' : 'none';
   }
 
-  /* ── Seekbar ── */
-  var mpSeek     = document.getElementById('mpSeek');
-  var mpSeekFill = document.getElementById('mpSeekFill');
-  var mpSeekThumb= document.getElementById('mpSeekThumb');
-  var mpTime     = document.getElementById('mpTime');
+  // ── Seekbar ──
+  var mpSeek      = document.getElementById('mpSeek');
+  var mpSeekFill  = document.getElementById('mpSeekFill');
+  var mpSeekThumb = document.getElementById('mpSeekThumb');
+  var mpTime      = document.getElementById('mpTime');
 
-  function fmtTime(s){
-    if(isNaN(s) || !isFinite(s)) return '—';
-    var m = Math.floor(s/60), sec = Math.floor(s%60);
-    return m + ':' + (sec < 10 ? '0' : '') + sec;
-  }
+  function fmtTime(s){ if(isNaN(s)||!isFinite(s)) return '—'; var m=Math.floor(s/60),sec=Math.floor(s%60); return m+':'+(sec<10?'0':'')+sec; }
 
   window.mpUpdateProgress = function(){
-    if(!currentAudio) return;
-    var cur = currentAudio.currentTime || 0;
-    var dur = currentAudio.duration;
+    var cur = _gAudio.currentTime || 0;
+    var dur = _gAudio.duration;
     var pct = (dur && isFinite(dur)) ? (cur / dur * 100) : 0;
     mpSeekFill.style.width = pct + '%';
     mpSeekThumb.style.right = 'auto';
-    mpSeekThumb.style.left  = 'calc(' + pct + '% - 5px)';
-    var durStr = (dur && isFinite(dur)) ? fmtTime(dur) : '—';
-    mpTime.textContent = fmtTime(cur) + ' / ' + durStr;
+    mpSeekThumb.style.left  = 'calc('+pct+'% - 5px)';
+    mpTime.textContent = fmtTime(cur) + ' / ' + ((dur&&isFinite(dur))?fmtTime(dur):'—');
   };
   var mpUpdateProgress = window.mpUpdateProgress;
 
-  // Seek on click / drag
   function seekTo(e){
-    if(!currentAudio || !currentAudio.duration) return;
+    if(!_gAudio.duration) return;
     var rect = mpSeek.getBoundingClientRect();
     var x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
     var pct = Math.max(0, Math.min(1, x / rect.width));
-    currentAudio.currentTime = pct * currentAudio.duration;
+    _gAudio.currentTime = pct * _gAudio.duration;
     mpUpdateProgress();
   }
   var _seeking = false;
   mpSeek.addEventListener('mousedown',  function(e){ _seeking=true; mpSeek.classList.add('dragging'); seekTo(e); });
   mpSeek.addEventListener('touchstart', function(e){ _seeking=true; mpSeek.classList.add('dragging'); seekTo(e); }, {passive:true});
   document.addEventListener('mousemove', function(e){ if(_seeking) seekTo(e); });
-  document.addEventListener('touchmove', function(e){ if(_seeking) seekTo(e.touches?e:e); }, {passive:true});
-  document.addEventListener('mouseup',  function(){ if(_seeking){ _seeking=false; mpSeek.classList.remove('dragging'); } });
-  document.addEventListener('touchend', function(){ if(_seeking){ _seeking=false; mpSeek.classList.remove('dragging'); } });
+  document.addEventListener('touchmove', function(e){ if(_seeking) seekTo(e); }, {passive:true});
+  document.addEventListener('mouseup',   function(){ if(_seeking){ _seeking=false; mpSeek.classList.remove('dragging'); } });
+  document.addEventListener('touchend',  function(){ if(_seeking){ _seeking=false; mpSeek.classList.remove('dragging'); } });
 
   window.mpUpdateMode = function(){
     var mode = typeof playMode !== 'undefined' ? playMode : 'repeatAll';
-    var mpIconIds = {
-      order:     'mpModeIconOrder',
-      shuffle:   'mpModeIconShuffle',
-      repeatAll: 'mpModeIconRepeatAll',
-      repeatOne: 'mpModeIconRepeatOne'
-    };
-    var titles = {
-      order:     "Dans l'ordre",
-      shuffle:   'Aléatoire',
-      repeatAll: 'Répéter tout',
-      repeatOne: 'Répéter ce titre'
-    };
-    Object.keys(mpIconIds).forEach(function(k){
-      var el = document.getElementById(mpIconIds[k]);
-      if(el) el.style.display = k === mode ? '' : 'none';
-    });
+    var mpIconIds = { order:'mpModeIconOrder', shuffle:'mpModeIconShuffle', repeatAll:'mpModeIconRepeatAll', repeatOne:'mpModeIconRepeatOne' };
+    var titles    = { order:"Dans l'ordre", shuffle:'Aléatoire', repeatAll:'Répéter tout', repeatOne:'Répéter ce titre' };
+    Object.keys(mpIconIds).forEach(function(k){ var el=document.getElementById(mpIconIds[k]); if(el) el.style.display = k===mode?'':'none'; });
     mpModeBtn.classList.toggle('active', mode !== 'order');
     mpModeBtn.title = titles[mode] || mode;
   };
 
-  // Actions
+  // ── Actions mini player ──
   window.mpToggle = function(){
-    if(!currentAudio) return;
-    if(currentAudio.paused){
-      currentAudio.play();
-      if(currentBtn){ currentBtn.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor" style="width:12px;height:12px"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'; currentBtn.classList.add('active'); }
-      if(currentRow){ currentRow.classList.add('playing'); }
+    if(!_currentSong) return;
+    if(_gAudio.paused){
+      var p = _gAudio.play(); if(p&&p.catch) p.catch(function(){});
+      _isPlaying = true;
+      _updateRowUI(_currentSong, true);
       particleActive = (window._currentTab === 'musique' || window._currentTab === 'nous');
       showDance();
     } else {
-      currentAudio.pause();
-      if(currentBtn){ currentBtn.innerHTML='&#9654;'; currentBtn.classList.remove('active'); }
-      if(currentRow){ currentRow.classList.remove('playing'); }
-      particleActive=false; hideDance();
+      _pauseCurrent();
     }
     mpUpdateIcons();
-    // Icône dansante
     var navMus = document.getElementById('navMusique');
-    if(navMus){
-      var playing = currentAudio && !currentAudio.paused;
-      navMus.classList.toggle('music-playing', playing && window._currentTab !== 'musique');
-    }
+    if(navMus) navMus.classList.toggle('music-playing', !_gAudio.paused && window._currentTab !== 'musique');
   };
 
   window.mpStop = function(){
     if('mediaSession' in navigator){ navigator.mediaSession.playbackState = 'none'; navigator.mediaSession.metadata = null; }
-    stopCurrent();
+    _stopCurrent();
     mpHide();
     var navMus = document.getElementById('navMusique');
     if(navMus) navMus.classList.remove('music-playing');
   };
 
   window.mpNext = function(){
-    if(!currentRow) return;
-    var songs = Array.from(document.querySelectorAll('#Love .sp-song'));
-    if(typeof playMode !== 'undefined' && playMode === 'repeatOne'){
-      var btn = currentRow.querySelector('.sp-btn-play'); if(btn) btn.click();
-    } else if(typeof playMode !== 'undefined' && playMode === 'shuffle'){
-      var idx = Math.floor(Math.random()*songs.length);
-      var btn = songs[idx] && songs[idx].querySelector('.sp-btn-play'); if(btn) btn.click();
-    } else {
-      var idx = songs.indexOf(currentRow);
-      var next = songs[idx+1] || songs[0];
-      if(next){ var btn = next.querySelector('.sp-btn-play'); if(btn) btn.click(); }
-    }
+    var next = _getNextSong();
+    if(next) _playSong(next);
   };
 
   window.mpPrev = function(){
-    if(!currentRow) return;
-    var songs = Array.from(document.querySelectorAll('#Love .sp-song'));
-    var idx = songs.indexOf(currentRow);
-    var prev = songs[idx-1] || songs[songs.length-1];
-    if(prev){ var btn = prev.querySelector('.sp-btn-play'); if(btn) btn.click(); }
+    var prev = _getPrevSong();
+    if(prev) _playSong(prev);
   };
 
   window.mpCycleMode = function(){
-    var mode = typeof playMode !== 'undefined' ? playMode : 'order';
-    var idx = _modeList ? _modeList.indexOf(mode) : 0; var next = _modeList ? _modeList[(idx+1)%_modeList.length] : 'order';
-    setPlayMode(next);
+    var idx = _modeList ? _modeList.indexOf(playMode) : 0;
+    setPlayMode(_modeList[(idx+1) % _modeList.length]);
     mpUpdateMode();
   };
 
-  // Show/hide based on game state
   window.mpCheckGameState = function(){
-    if(currentAudio && !currentAudio.paused){
-      if(isGameActive()){
-        mp.classList.add('game-hidden');
-        mp.classList.remove('visible');
-      } else {
+    if(_currentSong && !_gAudio.paused){
+      if(isGameActive()){ mp.classList.add('game-hidden'); mp.classList.remove('visible'); }
+      else {
         mp.classList.remove('game-hidden');
-        // Respecter la restriction d'onglet
-        if(window._currentTab && window._currentTab !== 'musique'){
-          mp.classList.add('tab-hidden');
-          mp.classList.remove('visible');
-        } else {
-          mp.classList.remove('tab-hidden');
-          mp.classList.add('visible');
-        }
+        if(window._currentTab && window._currentTab !== 'musique'){ mp.classList.add('tab-hidden'); mp.classList.remove('visible'); }
+        else { mp.classList.remove('tab-hidden'); mp.classList.add('visible'); }
       }
     }
   };
 
-  // Poll for updates — remplacé par event-driven dans Perf v3
   window._mpPollIv = setInterval(function(){
-    if(currentAudio && !currentAudio.paused) {
-      mpUpdate();
-      mpUpdateProgress();
-    }
+    if(_currentSong && !_gAudio.paused){ mpUpdate(); mpUpdateProgress(); }
     mpUpdateMode();
     mpCheckGameState();
   }, 250);
 })();
 
-
-// Patch openGames / closeGames / open*Game / close*Game to call mpCheckGameState
+// Patch openGames / closeGames
 (function(){
-  var patchOpen = ['openGames','openMemoryGame','openPenduGame','openPuzzleGame','openSnakeGame','openSkyjoLock','openQuiz'];
+  var patchOpen  = ['openGames','openMemoryGame','openPenduGame','openPuzzleGame','openSnakeGame','openSkyjoLock','openQuiz'];
   var patchClose = ['closeGames','closeMemoryGame','closePenduGame','closePuzzleGame','closeSnakeGame','closeSkyjoGame','closeQuiz'];
-  patchOpen.forEach(function(fn){
-    var orig = window[fn];
-    if(orig) window[fn] = function(){ orig.apply(this,arguments); if(window.mpCheckGameState) mpCheckGameState(); };
-  });
-  patchClose.forEach(function(fn){
-    var orig = window[fn];
-    if(orig) window[fn] = function(){ orig.apply(this,arguments); setTimeout(function(){ if(window.mpCheckGameState) mpCheckGameState(); if(window.mpUpdate) mpUpdate(); }, 300); };
-  });
+  patchOpen.forEach(function(fn){ var orig=window[fn]; if(orig) window[fn]=function(){ orig.apply(this,arguments); if(window.mpCheckGameState) mpCheckGameState(); }; });
+  patchClose.forEach(function(fn){ var orig=window[fn]; if(orig) window[fn]=function(){ orig.apply(this,arguments); setTimeout(function(){ if(window.mpCheckGameState) mpCheckGameState(); if(window.mpUpdate) mpUpdate(); },300); }; });
 })();
 
 
+// ════════════════════════════════════════════════════════════
+// SUGGESTIONS
+// ════════════════════════════════════════════════════════════
 (function(){
   var _SG_HASH = 'a586ffe3acf28484d17760d1ddaa2af699666c870aaaa66f8cfc826a528429ce';
   var sgUnlocked = false;
@@ -642,7 +584,6 @@ function filterSongs(q){
 
   function escSg(str){ return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
 
-  // Auth modal
   function openSgAuth(cb){
     _sgAuthCb = cb;
     document.getElementById('sgAuthModal').classList.add('open');
@@ -650,18 +591,15 @@ function filterSongs(q){
     document.getElementById('sgAuthErr').style.display = 'none';
     setTimeout(function(){ document.getElementById('sgAuthInput').focus(); }, 80);
   }
-  window.closeSgAuth = function(){
-    document.getElementById('sgAuthModal').classList.remove('open');
-  };
+  window.closeSgAuth = function(){ document.getElementById('sgAuthModal').classList.remove('open'); };
+
   var _sgFailCount=0, _sgBlocked=false;
   window.sgCheckAuth = async function(){
     if(_sgBlocked) return;
     var val = document.getElementById('sgAuthInput').value.trim().toUpperCase();
     var h = await _sha256(val);
     if(h === _SG_HASH){
-      _sgFailCount=0;
-      window.closeSgAuth();
-      if(_sgAuthCb){ _sgAuthCb(); _sgAuthCb = null; }
+      _sgFailCount=0; window.closeSgAuth(); if(_sgAuthCb){ _sgAuthCb(); _sgAuthCb=null; }
     } else {
       _sgFailCount++;
       document.getElementById('sgAuthInput').value = '';
@@ -669,21 +607,19 @@ function filterSongs(q){
       var errEl = document.getElementById('sgAuthErr');
       if(_sgFailCount >= 5){
         _sgBlocked = true;
-        errEl.style.display = 'block'; errEl.textContent = '⛔ Trop de tentatives — attends 30s';
+        errEl.style.display='block'; errEl.textContent='⛔ Trop de tentatives — attends 30s';
         document.getElementById('sgAuthInput').disabled = true;
         setTimeout(function(){ _sgBlocked=false; _sgFailCount=0; document.getElementById('sgAuthInput').disabled=false; errEl.style.display='none'; }, 30000);
       } else {
-        errEl.style.display = 'block'; errEl.textContent = '❌ Code incorrect, réessaie ! ('+_sgFailCount+'/5)';
+        errEl.style.display='block'; errEl.textContent='❌ Code incorrect, réessaie ! ('+_sgFailCount+'/5)';
       }
     }
   };
   document.getElementById('sgAuthInput').addEventListener('keydown', function(e){ if(e.key==='Enter') window.sgCheckAuth(); });
   document.getElementById('sgAuthModal').addEventListener('click', function(e){ if(e.target===this) window.closeSgAuth(); });
 
-  // Toggle lock
   window.sgToggleLock = function(){
     if(sgUnlocked){ sgLock(); return; }
-    // Si session V2 active, pas de code demandé
     if(v2LoadSession()){ sgUnlock(); return; }
     openSgAuth(sgUnlock);
   };
@@ -703,647 +639,357 @@ function filterSongs(q){
     renderSuggestions();
   }
 
-  // Suggestion modal
   var sgGender = null;
-
   window.sgSelectGender = function(g){
     sgGender = g;
-    var btnG = document.getElementById('sgBtnGirl');
-    var btnB = document.getElementById('sgBtnBoy');
-    if(btnG) btnG.className = 'sg-gender-btn' + (g === 'girl' ? ' selected-girl' : '');
-    if(btnB) btnB.className = 'sg-gender-btn' + (g === 'boy'  ? ' selected-boy'  : '');
+    var btnG=document.getElementById('sgBtnGirl'), btnB=document.getElementById('sgBtnBoy');
+    if(btnG) btnG.className='sg-gender-btn'+(g==='girl'?' selected-girl':'');
+    if(btnB) btnB.className='sg-gender-btn'+(g==='boy'?' selected-boy':'');
   };
 
   window.openSgModal = function(){
     sgGender = null;
-    var bg = document.getElementById('sgBtnGirl'); if(bg) bg.className = 'sg-gender-btn';
-    var bb = document.getElementById('sgBtnBoy');  if(bb) bb.className = 'sg-gender-btn';
-    var ti = document.getElementById('sgTitleInput');   if(ti) ti.value = '';
-    var ai = document.getElementById('sgArtistInput');  if(ai) ai.value = '';
-    var ni = document.getElementById('sgNoteInput');    if(ni) ni.value = '';
-    var em = document.getElementById('sgErrMsg'); if(em){ em.style.display='none'; em.textContent=''; }
+    var bg=document.getElementById('sgBtnGirl'); if(bg) bg.className='sg-gender-btn';
+    var bb=document.getElementById('sgBtnBoy');  if(bb) bb.className='sg-gender-btn';
+    ['sgTitleInput','sgArtistInput','sgNoteInput'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+    var em=document.getElementById('sgErrMsg'); if(em){ em.style.display='none'; em.textContent=''; }
     document.getElementById('sgModal').classList.add('open');
     setTimeout(function(){ var t=document.getElementById('sgTitleInput'); if(t) t.focus(); }, 80);
   };
-  window.closeSgModal = function(){
-    document.getElementById('sgModal').classList.remove('open');
-  };
+  window.closeSgModal = function(){ document.getElementById('sgModal').classList.remove('open'); };
   document.getElementById('sgModal').addEventListener('click', function(e){ if(e.target===this) window.closeSgModal(); });
 
   window.sgSave = function(){
-    var title = document.getElementById('sgTitleInput').value.trim();
-    var artist = document.getElementById('sgArtistInput').value.trim();
-    var note = document.getElementById('sgNoteInput').value.trim();
-    if(!title || !artist) {
+    var title=(document.getElementById('sgTitleInput').value||'').trim();
+    var artist=(document.getElementById('sgArtistInput').value||'').trim();
+    var note=(document.getElementById('sgNoteInput').value||'').trim();
+    if(!title||!artist){
       if(!title) document.getElementById('sgTitleInput').style.borderColor='#e05555';
       if(!artist) document.getElementById('sgArtistInput').style.borderColor='#e05555';
       return;
     }
-    var btn = document.querySelector('.sg-modal-save');
-    btn.textContent = '⏳'; btn.disabled = true;
-
-    // ✅ FIX : couple_id + sender pour isolation par couple
-    var _sg2 = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-    var _sg2Id = _sg2 && _sg2.user ? _sg2.user.couple_id : null;
-    if(!_sg2Id){ btn.textContent = 'Proposer 💚'; btn.disabled = false; return; }
-    var payload = { couple_id: _sg2Id, title: title, artist: artist, sender: getProfile() || null };
-    if(note) payload.note = note;
-    if(sgGender) payload.sender = sgGender;
-
-    var url = SB2_URL + '/rest/v1/v2_suggestion_songs';
-    fetch(url, {
-      method: 'POST',
-      headers: sb2Headers({'Prefer': 'return=representation'}),
-      body: JSON.stringify(payload)
-    })
-    .then(function(r){
-      return r.text().then(function(txt){
-        return { ok: r.ok, status: r.status, body: txt };
-      });
-    })
+    var btn=document.querySelector('.sg-modal-save'); btn.textContent='⏳'; btn.disabled=true;
+    var _sg2=JSON.parse(localStorage.getItem('yam_v2_session')||'null');
+    var _sg2Id=_sg2&&_sg2.user?_sg2.user.couple_id:null;
+    if(!_sg2Id){ btn.textContent='Proposer 💚'; btn.disabled=false; return; }
+    var payload={couple_id:_sg2Id,title:title,artist:artist,sender:getProfile()||null};
+    if(note) payload.note=note;
+    if(sgGender) payload.sender=sgGender;
+    var url=SB2_URL+'/rest/v1/v2_suggestion_songs';
+    fetch(url,{ method:'POST', headers:sb2Headers({'Prefer':'return=representation'}), body:JSON.stringify(payload) })
+    .then(function(r){ return r.text().then(function(txt){ return {ok:r.ok,status:r.status,body:txt}; }); })
     .then(function(res){
-      btn.textContent = 'Proposer 💚'; btn.disabled = false;
-      if(res.ok){
-        window.closeSgModal();
-        renderSuggestions();
-      } else {
-        // Essai sans gender si erreur de colonne inconnue
-        if(res.body && res.body.indexOf('gender') !== -1){
-          var p2 = { couple_id: _sg2Id, title: title, artist: artist, sender: getProfile() || null };
-          if(note) p2.note = note;
-          fetch(url, {
-            method: 'POST',
-            headers: sb2Headers({'Prefer': 'return=representation'}),
-            body: JSON.stringify(p2)
-          })
-          .then(function(r2){ return r2.text(); })
-          .then(function(){ window.closeSgModal(); renderSuggestions(); })
-          .catch(function(){ window.closeSgModal(); });
+      btn.textContent='Proposer 💚'; btn.disabled=false;
+      if(res.ok){ window.closeSgModal(); renderSuggestions(); }
+      else {
+        if(res.body&&res.body.indexOf('gender')!==-1){
+          var p2={couple_id:_sg2Id,title:title,artist:artist,sender:getProfile()||null}; if(note) p2.note=note;
+          fetch(url,{method:'POST',headers:sb2Headers({'Prefer':'return=representation'}),body:JSON.stringify(p2)})
+          .then(function(r2){ return r2.text(); }).then(function(){ window.closeSgModal(); renderSuggestions(); }).catch(function(){ window.closeSgModal(); });
         } else {
-          var errMsg = document.getElementById('sgErrMsg');
-          if(errMsg) { errMsg.textContent = '❌ Erreur : ' + res.status + ' — ' + res.body.substring(0,120); errMsg.style.display='block'; }
+          var errMsg=document.getElementById('sgErrMsg');
+          if(errMsg){ errMsg.textContent='❌ Erreur : '+res.status+' — '+res.body.substring(0,120); errMsg.style.display='block'; }
         }
       }
-    })
-    .catch(function(err){
-      btn.textContent = 'Proposer 💚'; btn.disabled = false;
-      var errMsg = document.getElementById('sgErrMsg');
-      if(errMsg) { errMsg.textContent = '❌ ' + err.message; errMsg.style.display='block'; }
-    });
+    }).catch(function(err){ btn.textContent='Proposer 💚'; btn.disabled=false; var errMsg=document.getElementById('sgErrMsg'); if(errMsg){ errMsg.textContent='❌ '+err.message; errMsg.style.display='block'; } });
   };
-
-  // Enter key in inputs
   ['sgTitleInput','sgArtistInput','sgNoteInput'].forEach(function(id){
-    var el = document.getElementById(id);
-    if(el){
-      el.addEventListener('keydown', function(e){ if(e.key==='Enter') window.sgSave(); });
-      el.addEventListener('focus', function(){ this.style.borderColor=''; });
-    }
+    var el=document.getElementById(id);
+    if(el){ el.addEventListener('keydown',function(e){ if(e.key==='Enter') window.sgSave(); }); el.addEventListener('focus',function(){ this.style.borderColor=''; }); }
   });
 
-  var _sgTickerTimer = null;
-  var _sgTickerIdx   = 0;
-
+  var _sgTickerTimer=null, _sgTickerIdx=0;
   function _startTicker(total){
     if(_sgTickerTimer) clearInterval(_sgTickerTimer);
-    if(total <= 1) return;
-    _sgTickerIdx = 0;
-    _sgTickerTimer = setInterval(function(){
-      _sgTickerIdx = (_sgTickerIdx + 1) % total;
-      var ticker = document.querySelector('.mu-sugg-ticker');
-      if(ticker) ticker.style.transform = 'translateY(-' + (_sgTickerIdx * 66) + 'px)';
-    }, 4000);
+    if(total<=1) return;
+    _sgTickerIdx=0;
+    _sgTickerTimer=setInterval(function(){
+      _sgTickerIdx=(_sgTickerIdx+1)%total;
+      var ticker=document.querySelector('.mu-sugg-ticker');
+      if(ticker) ticker.style.transform='translateY(-'+(_sgTickerIdx*66)+'px)';
+    },4000);
   }
 
   function renderSuggestions(){
-    var list = document.getElementById('sgList');
-    list.innerHTML = '<div class="sg-empty"><span class="spinner"></span></div>';
-    if(_sgTickerTimer){ clearInterval(_sgTickerTimer); _sgTickerTimer = null; }
-    var _rsg = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-    var _rsgId = _rsg && _rsg.user ? _rsg.user.couple_id : null;
-    if(!_rsgId){ list.innerHTML = '<div class="sg-empty">Session expirée.</div>'; return; }
-    sb2Fetch('v2_suggestion_songs', 'couple_id=eq.' + _rsgId + '&order=created_at.asc').then(function(items){
-      list.innerHTML = '';
-      if(!Array.isArray(items) || !items.length){
-        var em = document.createElement('div');
-        em.className = 'sg-empty';
-        em.textContent = sgUnlocked ? 'Aucune suggestion — propose-en une ! 🎵' : 'Aucune suggestion pour l\'instant. 🎵';
-        list.appendChild(em);
-        return;
+    var list=document.getElementById('sgList');
+    list.innerHTML='<div class="sg-empty"><span class="spinner"></span></div>';
+    if(_sgTickerTimer){ clearInterval(_sgTickerTimer); _sgTickerTimer=null; }
+    var _rsg=JSON.parse(localStorage.getItem('yam_v2_session')||'null');
+    var _rsgId=_rsg&&_rsg.user?_rsg.user.couple_id:null;
+    if(!_rsgId){ list.innerHTML='<div class="sg-empty">Session expirée.</div>'; return; }
+    sb2Fetch('v2_suggestion_songs','couple_id=eq.'+_rsgId+'&order=created_at.asc').then(function(items){
+      list.innerHTML='';
+      if(!Array.isArray(items)||!items.length){
+        var em=document.createElement('div'); em.className='sg-empty';
+        em.textContent=sgUnlocked?'Aucune suggestion — propose-en une ! 🎵':'Aucune suggestion pour l\'instant. 🎵';
+        list.appendChild(em); return;
       }
       items.forEach(function(item){
-        var g = item.gender || item.sender || '';
-        // Normaliser : si g n'est pas 'girl' ou 'boy', ignorer
-        if(g !== 'girl' && g !== 'boy') g = '';
-        var row = document.createElement('div');
-        row.className = 'sg-song';
-        var noteHtml = item.note ? '<div class="sg-note-pill">«\u00a0' + escSg(item.note) + '\u00a0»</div>' : '';
-        // Toujours utiliser la photo profil (réelle ou défaut)
-        var avatarSrc = g ? ((window._yamRealAvatars && window._yamRealAvatars[g]) || 'assets/images/profil_' + g + '.png') : '';
-        var avatarContent = avatarSrc ? '<img src="' + avatarSrc + '" alt="">' : '🎵';
-        var avatarClass = 'sg-avatar' + (g ? ' ' + g : '');
-        var iconClass = 'sg-icon' + (g ? ' ' + g : '');
-        row.innerHTML =
-          '<div class="' + iconClass + '">🎵</div>' +
-          '<div class="sg-info">' +
-            '<div class="sg-title">' + escSg(item.title) + '</div>' +
-            '<div class="sg-artist">' + escSg(item.artist) + '</div>' +
-            noteHtml +
-          '</div>' +
-          '<div class="' + avatarClass + '">' + avatarContent + '</div>' +
-          (sgUnlocked ? '<button class="sg-edit" title="Modifier">✏️</button>' : '') +
-          (sgUnlocked ? '<button class="sg-del" title="Supprimer">✕</button>' : '');
+        var g=item.gender||item.sender||'';
+        if(g!=='girl'&&g!=='boy') g='';
+        var row=document.createElement('div'); row.className='sg-song';
+        var noteHtml=item.note?'<div class="sg-note-pill">«\u00a0'+escSg(item.note)+'\u00a0»</div>':'';
+        var avatarSrc=g?((window._yamRealAvatars&&window._yamRealAvatars[g])||'assets/images/profil_'+g+'.png'):'';
+        var avatarContent=avatarSrc?'<img src="'+avatarSrc+'" alt="">':'🎵';
+        var avatarClass='sg-avatar'+(g?' '+g:'');
+        var iconClass='sg-icon'+(g?' '+g:'');
+        row.innerHTML='<div class="'+iconClass+'">🎵</div><div class="sg-info"><div class="sg-title">'+escSg(item.title)+'</div><div class="sg-artist">'+escSg(item.artist)+'</div>'+noteHtml+'</div><div class="'+avatarClass+'">'+avatarContent+'</div>'+(sgUnlocked?'<button class="sg-edit" title="Modifier">✏️</button>':'')+(sgUnlocked?'<button class="sg-del" title="Supprimer">✕</button>':'');
         if(sgUnlocked){
-          (function(id){
-            row.querySelector('.sg-del').addEventListener('click', function(e){
-              e.stopPropagation();
-              sb2Delete('v2_suggestion_songs', 'id=eq.' + id).then(renderSuggestions);
-            });
-          })(item.id);
-          (function(it){
-            row.querySelector('.sg-edit').addEventListener('click', function(e){
-              e.stopPropagation();
-              openSgEditModal(it);
-            });
-          })(item);
+          (function(id){ row.querySelector('.sg-del').addEventListener('click',function(e){ e.stopPropagation(); sb2Delete('v2_suggestion_songs','id=eq.'+id).then(renderSuggestions); }); })(item.id);
+          (function(it){ row.querySelector('.sg-edit').addEventListener('click',function(e){ e.stopPropagation(); openSgEditModal(it); }); })(item);
         }
         list.appendChild(row);
       });
       _startTicker(items.length);
-    }).catch(function(){
-      list.innerHTML = '<div class="sg-empty">❌ Erreur de connexion.</div>';
-    });
+    }).catch(function(){ list.innerHTML='<div class="sg-empty">❌ Erreur de connexion.</div>'; });
   }
 
   renderSuggestions();
-
-  // ✅ FIX : exposer window.sgLoad pour yamSwitchTab
   window.sgLoad = function(){ renderSuggestions(); loadFavorites(); };
 
-  // ── Sync avatars suggestion quand la vraie photo se charge ──
   (function(){
-    var _origSync = window._yamSyncAllAvatarsForRole;
     function patchSync(){
-      if(typeof window._yamSyncAllAvatarsForRole !== 'function'){ setTimeout(patchSync, 300); return; }
+      if(typeof window._yamSyncAllAvatarsForRole!=='function'){ setTimeout(patchSync,300); return; }
       if(window._sgAvatarSyncPatched) return;
-      window._sgAvatarSyncPatched = true;
-      var orig = window._yamSyncAllAvatarsForRole;
-      window._yamSyncAllAvatarsForRole = function(role, url){
-        orig.apply(this, arguments);
-        // Mettre à jour les avatars dans les cards suggestion déjà affichées
-        var avatars = document.querySelectorAll('#sgList .sg-avatar.' + role + ' img');
-        avatars.forEach(function(img){ img.src = url; });
+      window._sgAvatarSyncPatched=true;
+      var orig=window._yamSyncAllAvatarsForRole;
+      window._yamSyncAllAvatarsForRole=function(role,url){
+        orig.apply(this,arguments);
+        var avatars=document.querySelectorAll('#sgList .sg-avatar.'+role+' img');
+        avatars.forEach(function(img){ img.src=url; });
       };
     }
-    setTimeout(patchSync, 200);
+    setTimeout(patchSync,200);
   })();
 
-  // ── Édition d'une suggestion ──
-  var _sgEditId = null;
-
+  var _sgEditId=null;
   function openSgEditModal(item){
-    _sgEditId = item.id;
-    var ti = document.getElementById('sgEditTitleInput');
-    var ai = document.getElementById('sgEditArtistInput');
-    var ni = document.getElementById('sgEditNoteInput');
-    if(ti) ti.value = item.title || '';
-    if(ai) ai.value = item.artist || '';
-    if(ni) ni.value = item.note || '';
-    var errMsg = document.getElementById('sgEditErrMsg');
-    if(errMsg) errMsg.style.display = 'none';
+    _sgEditId=item.id;
+    var ti=document.getElementById('sgEditTitleInput'), ai=document.getElementById('sgEditArtistInput'), ni=document.getElementById('sgEditNoteInput');
+    if(ti) ti.value=item.title||''; if(ai) ai.value=item.artist||''; if(ni) ni.value=item.note||'';
+    var errMsg=document.getElementById('sgEditErrMsg'); if(errMsg) errMsg.style.display='none';
     document.getElementById('sgEditModal').classList.add('open');
-    setTimeout(function(){ if(ti) ti.focus(); }, 80);
+    setTimeout(function(){ if(ti) ti.focus(); },80);
   }
+  window.closeSgEditModal=function(){ document.getElementById('sgEditModal').classList.remove('open'); _sgEditId=null; };
+  document.getElementById('sgEditModal').addEventListener('click',function(e){ if(e.target===this) window.closeSgEditModal(); });
 
-  window.closeSgEditModal = function(){
-    document.getElementById('sgEditModal').classList.remove('open');
-    _sgEditId = null;
-  };
-  document.getElementById('sgEditModal').addEventListener('click', function(e){ if(e.target===this) window.closeSgEditModal(); });
-
-  window.sgEditSave = function(){
+  window.sgEditSave=function(){
     if(!_sgEditId) return;
-    var title = (document.getElementById('sgEditTitleInput').value||'').trim();
-    var artist = (document.getElementById('sgEditArtistInput').value||'').trim();
-    var note = (document.getElementById('sgEditNoteInput').value||'').trim();
-    if(!title || !artist){
-      ['sgEditTitleInput','sgEditArtistInput'].forEach(function(id){
-        var el=document.getElementById(id);
-        if(el&&!el.value.trim()) el.style.borderColor='#e05555';
-      });
+    var title=(document.getElementById('sgEditTitleInput').value||'').trim();
+    var artist=(document.getElementById('sgEditArtistInput').value||'').trim();
+    var note=(document.getElementById('sgEditNoteInput').value||'').trim();
+    if(!title||!artist){
+      ['sgEditTitleInput','sgEditArtistInput'].forEach(function(id){ var el=document.getElementById(id); if(el&&!el.value.trim()) el.style.borderColor='#e05555'; });
       return;
     }
-    var btn = document.querySelector('.sg-edit-save');
-    btn.textContent = '⏳'; btn.disabled = true;
-    var payload = { title: title, artist: artist };
-    if(note) payload.note = note; else payload.note = null;
-    // ✅ FIX : filtre couple_id pour sécurité
-    var _se2 = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-    var _se2Id = _se2 && _se2.user ? _se2.user.couple_id : null;
-    var _editFilter = 'id=eq.' + _sgEditId + (_se2Id ? '&couple_id=eq.' + _se2Id : '');
-    fetch(SB2_URL + '/rest/v1/v2_suggestion_songs?' + _editFilter, {
-      method: 'PATCH',
-      headers: sb2Headers({'Prefer': 'return=representation'}),
-      body: JSON.stringify(payload)
-    })
-    .then(function(r){
-      btn.textContent = 'Sauvegarder ✅'; btn.disabled = false;
-      if(r.ok){ window.closeSgEditModal(); renderSuggestions(); }
-      else {
-        var errMsg = document.getElementById('sgEditErrMsg');
-        if(errMsg){ errMsg.textContent = '❌ Erreur lors de la sauvegarde.'; errMsg.style.display='block'; }
-      }
-    })
-    .catch(function(err){
-      btn.textContent = 'Sauvegarder ✅'; btn.disabled = false;
-      var errMsg = document.getElementById('sgEditErrMsg');
-      if(errMsg){ errMsg.textContent = '❌ ' + err.message; errMsg.style.display='block'; }
-    });
+    var btn=document.querySelector('.sg-edit-save'); btn.textContent='⏳'; btn.disabled=true;
+    var payload={title:title,artist:artist}; if(note) payload.note=note; else payload.note=null;
+    var _se2=JSON.parse(localStorage.getItem('yam_v2_session')||'null');
+    var _se2Id=_se2&&_se2.user?_se2.user.couple_id:null;
+    var _editFilter='id=eq.'+_sgEditId+(_se2Id?'&couple_id=eq.'+_se2Id:'');
+    fetch(SB2_URL+'/rest/v1/v2_suggestion_songs?'+_editFilter,{ method:'PATCH', headers:sb2Headers({'Prefer':'return=representation'}), body:JSON.stringify(payload) })
+    .then(function(r){ btn.textContent='Sauvegarder ✅'; btn.disabled=false; if(r.ok){ window.closeSgEditModal(); renderSuggestions(); } else { var errMsg=document.getElementById('sgEditErrMsg'); if(errMsg){ errMsg.textContent='❌ Erreur lors de la sauvegarde.'; errMsg.style.display='block'; } } })
+    .catch(function(err){ btn.textContent='Sauvegarder ✅'; btn.disabled=false; var errMsg=document.getElementById('sgEditErrMsg'); if(errMsg){ errMsg.textContent='❌ '+err.message; errMsg.style.display='block'; } });
   };
-
   ['sgEditTitleInput','sgEditArtistInput','sgEditNoteInput'].forEach(function(id){
-    var el = document.getElementById(id);
-    if(el){
-      el.addEventListener('keydown', function(e){ if(e.key==='Enter') window.sgEditSave(); });
-      el.addEventListener('focus', function(){ this.style.borderColor=''; });
-    }
+    var el=document.getElementById(id);
+    if(el){ el.addEventListener('keydown',function(e){ if(e.key==='Enter') window.sgEditSave(); }); el.addEventListener('focus',function(){ this.style.borderColor=''; }); }
   });
-
 })();
 
-// ── Coup de cœur ──────────────────────────────────────────────────────────
-var favoritesCache = {}; // { girl: 'file.mp3', boy: 'file.mp3' }
+// ════════════════════════════════════════════════════════════
+// FAVORIS (Coup de cœur)
+// ════════════════════════════════════════════════════════════
+var favoritesCache = {};
 
 function loadFavorites(){
-  // ✅ FIX : filtre couple_id — chaque couple voit uniquement ses favoris
-  var _sf = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-  var _sfId = _sf && _sf.user ? _sf.user.couple_id : null;
+  var _sf=JSON.parse(localStorage.getItem('yam_v2_session')||'null');
+  var _sfId=_sf&&_sf.user?_sf.user.couple_id:null;
   if(!_sfId) return Promise.resolve();
-  return sb2Fetch('v2_favorites', 'couple_id=eq.' + _sfId + '&select=profile,song_file')
-    .then(function(rows){
-      favoritesCache = {};
-      if(!Array.isArray(rows)) return;
-      rows.forEach(function(r){ favoritesCache[r.profile] = r.song_file; });
-      refreshAllHearts();
-    }).catch(function(){});
+  return sb2Fetch('v2_favorites','couple_id=eq.'+_sfId+'&select=profile,song_file')
+    .then(function(rows){ favoritesCache={}; if(!Array.isArray(rows)) return; rows.forEach(function(r){ favoritesCache[r.profile]=r.song_file; }); refreshAllHearts(); })
+    .catch(function(){});
 }
 
-function applyHeartState(file, btn){
-  var profile = getProfile();
-  btn.className = btn.className.replace(/heart-girl|heart-boy/g,'').trim();
-  if(favoritesCache['girl'] === file) btn.classList.add('heart-girl');
-  if(favoritesCache['boy']  === file) btn.classList.add('heart-boy');
-  // Texte plein ou vide
-  var isActive = (favoritesCache['girl']===file || favoritesCache['boy']===file);
-  btn.textContent = isActive ? '♥' : '♡';
+function applyHeartState(file,btn){
+  btn.className=btn.className.replace(/heart-girl|heart-boy/g,'').trim();
+  if(favoritesCache['girl']===file) btn.classList.add('heart-girl');
+  if(favoritesCache['boy'] ===file) btn.classList.add('heart-boy');
+  btn.textContent=(favoritesCache['girl']===file||favoritesCache['boy']===file)?'♥':'♡';
 }
 
 function refreshAllHearts(){
-  document.querySelectorAll('.btn-heart, .sp-heart').forEach(function(btn){
-    var file = btn.dataset.file;
-    if(file) applyHeartState(file, btn);
-  });
+  document.querySelectorAll('.btn-heart, .sp-heart').forEach(function(btn){ var file=btn.dataset.file; if(file) applyHeartState(file,btn); });
 }
 
-function toggleFavorite(file, btn){
-  var profile = getProfile();
-  if(!profile) return;
-  // ✅ FIX : couple_id obligatoire pour isoler les favoris par couple
-  var _tf = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-  var _tfId = _tf && _tf.user ? _tf.user.couple_id : null;
-  if(!_tfId) return;
-
-  var current = favoritesCache[profile];
-
-  if(current === file){
-    fetch(SB2_URL+'/rest/v1/v2_favorites?couple_id=eq.'+_tfId+'&profile=eq.'+profile+'&song_file=eq.'+encodeURIComponent(file), {
-      method:'DELETE', headers:sb2Headers()
-    }).then(function(){
-      delete favoritesCache[profile];
-      refreshAllHearts();
-    });
+function toggleFavorite(file,btn){
+  var profile=getProfile(); if(!profile) return;
+  var _tf=JSON.parse(localStorage.getItem('yam_v2_session')||'null');
+  var _tfId=_tf&&_tf.user?_tf.user.couple_id:null; if(!_tfId) return;
+  var current=favoritesCache[profile];
+  if(current===file){
+    fetch(SB2_URL+'/rest/v1/v2_favorites?couple_id=eq.'+_tfId+'&profile=eq.'+profile+'&song_file=eq.'+encodeURIComponent(file),{method:'DELETE',headers:sb2Headers()})
+    .then(function(){ delete favoritesCache[profile]; refreshAllHearts(); });
   } else {
-    var doAdd = function(){
-      fetch(SB2_URL+'/rest/v1/v2_favorites', {
-        method:'POST',
-        headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),
-        body:JSON.stringify({ couple_id: _tfId, profile: profile, song_file: file })
-      }).then(function(){
-        favoritesCache[profile] = file;
-        refreshAllHearts();
-      });
+    var doAdd=function(){
+      fetch(SB2_URL+'/rest/v1/v2_favorites',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:_tfId,profile:profile,song_file:file})})
+      .then(function(){ favoritesCache[profile]=file; refreshAllHearts(); });
     };
     if(current){
-      fetch(SB2_URL+'/rest/v1/v2_favorites?couple_id=eq.'+_tfId+'&profile=eq.'+profile+'&song_file=eq.'+encodeURIComponent(current), {
-        method:'DELETE', headers:sb2Headers()
-      }).then(doAdd);
-    } else {
-      doAdd();
-    }
+      fetch(SB2_URL+'/rest/v1/v2_favorites?couple_id=eq.'+_tfId+'&profile=eq.'+profile+'&song_file=eq.'+encodeURIComponent(current),{method:'DELETE',headers:sb2Headers()}).then(doAdd);
+    } else { doAdd(); }
   }
 }
 
 loadFavorites();
 
-
-/* ══════════════════════════════════════════════════════
-   NOW LISTENING — Glow sur la chanson (version propre)
-   
-   Logique :
-   - Je vois UNIQUEMENT ce que l'autre écoute (pas moi)
-   - Link voit Zelda en rose, Zelda voit Link en bleu
-   - Même chanson en même temps → doré qui brille fort sur les deux
-══════════════════════════════════════════════════════ */
+// ════════════════════════════════════════════════════════════
+// NOW LISTENING — Glow sur la chanson
+// ════════════════════════════════════════════════════════════
 (function(){
+  var NL_TABLE='v2_now_listening';
+  var _nlBoyFile=null, _nlGirlFile=null, _nlLastPushRemote='__none__';
 
-  var NL_TABLE = 'v2_now_listening';
+  function basename(file){ if(!file) return null; return file.split('/').pop().split('?')[0]; }
 
-  var _nlBoyFile        = null;
-  var _nlGirlFile       = null;
-  var _nlLastPushRemote = '__none__';
-
-  /* ── Comparaison robuste par basename ── */
-  function basename(file){
-    if(!file) return null;
-    return file.split('/').pop().split('?')[0];
-  }
-
-  /* ── Met à jour l'icône nav musique selon l'état de sync ── */
   function updateNavSync(){
-    var navMus = document.getElementById('navMusique');
-    if(!navMus) return;
-    var boyPlaying  = !!_nlBoyFile;
-    var girlPlaying = !!_nlGirlFile;
-    var bothPlaying = boyPlaying && girlPlaying;
-    // music-sync : les deux écoutent quelque chose → deux notes dansantes
-    navMus.classList.toggle('music-sync', bothPlaying);
-    // music-playing : seulement moi (ou l'autre seul) → note dorée, mais PAS si sync actif
-    // La classe music-playing est gérée ailleurs (mpUpdate) — on la neutralise visuellement via CSS quand music-sync est là
+    var navMus=document.getElementById('navMusique'); if(!navMus) return;
+    navMus.classList.toggle('music-sync', !!_nlBoyFile && !!_nlGirlFile);
   }
 
-  /* ── Applique le glow sur les lignes de la playlist ── */
-  var _nlWasTogetherLast = false; // évite de retriggerer à chaque poll
+  var _nlWasTogetherLast=false;
   function applyGlow(){
-    var myProfile = getProfile();
-    var boyBase   = basename(_nlBoyFile);
-    var girlBase  = basename(_nlGirlFile);
-    var sameSong  = !!(boyBase && girlBase && boyBase === girlBase);
-
-    // Flamme — musique ensemble (1 seul trigger par session "together")
-    if(sameSong && !_nlWasTogetherLast){
-      if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('music_together');
-    }
-    _nlWasTogetherLast = sameSong;
-
-    // Mettre à jour l'icône nav à chaque changement d'état
+    var myProfile=getProfile();
+    var boyBase=basename(_nlBoyFile), girlBase=basename(_nlGirlFile);
+    var sameSong=!!(boyBase&&girlBase&&boyBase===girlBase);
+    if(sameSong&&!_nlWasTogetherLast){ if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('music_together'); }
+    _nlWasTogetherLast=sameSong;
     updateNavSync();
-
-    // Détermine ce que l'autre écoute
-    var otherBase = null;
-    var otherWho  = null;
-    if(myProfile === 'boy'){
-      otherBase = girlBase;
-      otherWho  = 'girl';
-    } else if(myProfile === 'girl'){
-      otherBase = boyBase;
-      otherWho  = 'boy';
-    }
-
-    // Retire tous les glows existants
-    document.querySelectorAll('.nl-other-playing').forEach(function(el){
-      el.classList.remove('nl-other-playing','nl-glow-boy','nl-glow-girl','nl-glow-together');
-    });
-
-    // Indicateur bandeau
-    var ind = document.getElementById('nlOtherIndicator');
-    var dot = document.getElementById('nlOtherDot');
-    var lbl = document.getElementById('nlOtherLabel');
+    var otherBase=null, otherWho=null;
+    if(myProfile==='boy'){ otherBase=girlBase; otherWho='girl'; }
+    else if(myProfile==='girl'){ otherBase=boyBase; otherWho='boy'; }
+    document.querySelectorAll('.nl-other-playing').forEach(function(el){ el.classList.remove('nl-other-playing','nl-glow-boy','nl-glow-girl','nl-glow-together'); });
+    var ind=document.getElementById('nlOtherIndicator'), dot=document.getElementById('nlOtherDot'), lbl=document.getElementById('nlOtherLabel');
     if(ind){
-      if(!otherBase){
-        ind.style.display = 'none';
-        ind.className = '';
-      } else {
-        ind.style.display = 'flex';
-        ind.className = sameSong ? 'nl-ind-together' : ('nl-ind-' + otherWho);
+      if(!otherBase){ ind.style.display='none'; ind.className=''; }
+      else {
+        ind.style.display='flex'; ind.className=sameSong?'nl-ind-together':('nl-ind-'+otherWho);
         if(lbl){
-          if(sameSong)       lbl.textContent = 'On écoute ensemble';
-          else if(otherWho === 'girl') lbl.textContent = (typeof v2GetDisplayName === 'function' ? v2GetDisplayName('girl') : 'Elle') + ' écoute';
-          else               lbl.textContent = (typeof v2GetDisplayName === 'function' ? v2GetDisplayName('boy') : 'Lui') + ' écoute';
+          if(sameSong) lbl.textContent='On écoute ensemble';
+          else if(otherWho==='girl') lbl.textContent=(typeof v2GetDisplayName==='function'?v2GetDisplayName('girl'):'Elle')+' écoute';
+          else lbl.textContent=(typeof v2GetDisplayName==='function'?v2GetDisplayName('boy'):'Lui')+' écoute';
         }
       }
     }
-
-    if(!otherBase) return; // l'autre n'écoute rien → rien à afficher
-
-    // Cherche la ligne correspondante dans la playlist
+    if(!otherBase) return;
+    // Glow sur les lignes — utilise dataset.file au lieu de l'audio src
     document.querySelectorAll('#Love .sp-song').forEach(function(row){
-      var audio = row.querySelector('audio');
-      if(!audio) return;
-      var src = '';
-      try{ src = decodeURIComponent(audio.src); }catch(e){ src = audio.src || ''; }
-      var rowBase = basename(src);
-      if(!rowBase || rowBase !== otherBase) return;
-
+      var file=row.dataset.file; if(!file) return;
+      var rowBase=basename(file);
+      if(!rowBase||rowBase!==otherBase) return;
       row.classList.add('nl-other-playing');
-      if(sameSong){
-        row.classList.add('nl-glow-together');
-      } else {
-        row.classList.add('nl-glow-' + otherWho);
-      }
+      row.classList.add(sameSong?'nl-glow-together':'nl-glow-'+otherWho);
     });
-
-    // Si même chanson, aussi glow sur MA chanson (même ligne, même base)
-    if(sameSong && myProfile){
-      var myBase = myProfile === 'boy' ? boyBase : girlBase;
+    if(sameSong&&myProfile){
+      var myBase=myProfile==='boy'?boyBase:girlBase;
       document.querySelectorAll('#Love .sp-song').forEach(function(row){
-        if(row.classList.contains('nl-glow-together')) return; // déjà fait
-        var audio = row.querySelector('audio');
-        if(!audio) return;
-        var src = '';
-        try{ src = decodeURIComponent(audio.src); }catch(e){ src = audio.src || ''; }
-        if(basename(src) === myBase){
-          row.classList.add('nl-other-playing','nl-glow-together');
-        }
+        if(row.classList.contains('nl-glow-together')) return;
+        var file=row.dataset.file; if(!file) return;
+        if(basename(file)===myBase) row.classList.add('nl-other-playing','nl-glow-together');
       });
     }
   }
 
-  /* ── Poll Supabase toutes les 5s ── */
   function nlPoll(){
-    // ✅ FIX : filtre couple_id — on ne voit que les écoutes de son propre couple
-    var _nl = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-    var _nlId = _nl && _nl.user ? _nl.user.couple_id : null;
-    if(!_nlId) return;
-    var url = SB2_URL + '/rest/v1/' + NL_TABLE + '?couple_id=eq.' + _nlId + '&select=sender,song_file&order=updated_at.desc';
-    fetch(url, { headers: sb2Headers() })
-      .then(function(r){ return r.ok ? r.json() : null; })
-      .then(function(rows){
-        if(!Array.isArray(rows)) return;
-        var newBoy = null, newGirl = null;
-        rows.forEach(function(r){
-          if(r.sender === 'boy')  newBoy  = r.song_file || null;
-          if(r.sender === 'girl') newGirl = r.song_file || null;
-        });
-        _nlBoyFile  = newBoy;
-        _nlGirlFile = newGirl;
-        applyGlow();
-      }).catch(function(){});
+    var _nl=JSON.parse(localStorage.getItem('yam_v2_session')||'null');
+    var _nlId=_nl&&_nl.user?_nl.user.couple_id:null; if(!_nlId) return;
+    fetch(SB2_URL+'/rest/v1/'+NL_TABLE+'?couple_id=eq.'+_nlId+'&select=sender,song_file&order=updated_at.desc',{headers:sb2Headers()})
+    .then(function(r){ return r.ok?r.json():null; })
+    .then(function(rows){
+      if(!Array.isArray(rows)) return;
+      var newBoy=null,newGirl=null;
+      rows.forEach(function(r){ if(r.sender==='boy') newBoy=r.song_file||null; if(r.sender==='girl') newGirl=r.song_file||null; });
+      _nlBoyFile=newBoy; _nlGirlFile=newGirl; applyGlow();
+    }).catch(function(){});
   }
 
-  /* ── Push mon état vers Supabase ── */
   function nlPush(file){
-    var profile = getProfile();
-    if(!profile) return;
-
-    var normalized = basename(file);
-
-    // Mise à jour locale immédiate
-    if(profile === 'boy')  _nlBoyFile  = normalized;
-    if(profile === 'girl') _nlGirlFile = normalized;
+    var profile=getProfile(); if(!profile) return;
+    var normalized=basename(file);
+    if(profile==='boy') _nlBoyFile=normalized; if(profile==='girl') _nlGirlFile=normalized;
     applyGlow();
-
-    // Push distant seulement si changement
-    if(_nlLastPushRemote === (normalized || 'null')) return;
-    _nlLastPushRemote = normalized || 'null';
-
-    // ✅ FIX : couple_id dans le body pour isoler par couple
-    var _np = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-    var _npId = _np && _np.user ? _np.user.couple_id : null;
-    if(!_npId) return;
-
-    fetch(SB2_URL + '/rest/v1/' + NL_TABLE, {
-      method: 'POST',
-      headers: sb2Headers({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
-      body: JSON.stringify({ couple_id: _npId, sender: profile, song_file: normalized })
-    }).catch(function(){});
+    if(_nlLastPushRemote===(normalized||'null')) return;
+    _nlLastPushRemote=normalized||'null';
+    var _np=JSON.parse(localStorage.getItem('yam_v2_session')||'null');
+    var _npId=_np&&_np.user?_np.user.couple_id:null; if(!_npId) return;
+    fetch(SB2_URL+'/rest/v1/'+NL_TABLE,{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:_npId,sender:profile,song_file:normalized})}).catch(function(){});
   }
 
-  /* ── Démarre le poll ── */
-  window.nlPoll = nlPoll;
-  nlPoll();
-  window._nlIv = setInterval(nlPoll, 5000);
+  window.nlPoll=nlPoll; nlPoll(); window._nlIv=setInterval(nlPoll,5000);
 
-  /* ── Hooks audio ── */
-  var _origMpUpdate = window.mpUpdate;
-  window.mpUpdate = function(){
-    if(_origMpUpdate) _origMpUpdate.apply(this, arguments);
-    var ca = (typeof currentAudio !== 'undefined') ? currentAudio : null;
-    if(ca && !ca.paused){
-      var src = '';
-      try{ src = decodeURIComponent(ca.src); }catch(e){ src = ca.src || ''; }
-      nlPush(src);
-    } else {
-      nlPush(null);
-    }
-  };
-
-  var _origMpStop = window.mpStop;
-  window.mpStop = function(){
-    if(_origMpStop) _origMpStop.apply(this, arguments);
-    nlPush(null);
-  };
-
-  document.addEventListener('play', function(e){
-    if(e.target && e.target.tagName === 'AUDIO'){
-      var src = '';
-      try{ src = decodeURIComponent(e.target.src); }catch(ex){ src = e.target.src || ''; }
-      if(src) nlPush(src);
-    }
-  }, true);
-
-  document.addEventListener('pause', function(e){
-    if(e.target && e.target.tagName === 'AUDIO'){
-      setTimeout(function(){
-        var any = false;
-        document.querySelectorAll('audio').forEach(function(a){ if(!a.paused) any = true; });
-        if(!any){
-          _nlLastPushRemote = '__none__';
-          nlPush(null);
-        }
-      }, 200);
-    }
-  }, true);
-
-  document.addEventListener('ended', function(e){
-    if(e.target && e.target.tagName === 'AUDIO'){
-      setTimeout(function(){
-        var any = false;
-        document.querySelectorAll('audio').forEach(function(a){ if(!a.paused) any = true; });
-        if(!any){
-          _nlLastPushRemote = '__none__';
-          nlPush(null);
-        }
-      }, 300);
-    }
-  }, true);
-
-  /* ── Efface le statut à la fermeture ── */
-  window.addEventListener('beforeunload', function(){
-    var profile = getProfile();
-    if(!profile) return;
-    // ✅ FIX : couple_id obligatoire
-    var _bu = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-    var _buId = _bu && _bu.user ? _bu.user.couple_id : null;
-    if(!_buId) return;
-    fetch(SB2_URL + '/rest/v1/' + NL_TABLE, {
-      method: 'POST',
-      headers: sb2Headers({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
-      body: JSON.stringify({ couple_id: _buId, sender: profile, song_file: null }),
-      keepalive: true
-    }).catch(function(){});
+  // Hook sur _gAudio directement — plus d'events DOM parasites
+  _gAudio.addEventListener('play', function(){
+    if(_currentSong) nlPush(_currentSong.file);
+  });
+  _gAudio.addEventListener('pause', function(){
+    setTimeout(function(){ if(_gAudio.paused){ _nlLastPushRemote='__none__'; nlPush(null); } },200);
+  });
+  _gAudio.addEventListener('ended', function(){
+    setTimeout(function(){ if(_gAudio.paused){ _nlLastPushRemote='__none__'; nlPush(null); } },300);
   });
 
-  window._nlPush = nlPush;
+  var _origMpUpdate=window.mpUpdate;
+  window.mpUpdate=function(){
+    if(_origMpUpdate) _origMpUpdate.apply(this,arguments);
+    if(_currentSong&&!_gAudio.paused) nlPush(_currentSong.file); else nlPush(null);
+  };
+  var _origMpStop=window.mpStop;
+  window.mpStop=function(){ if(_origMpStop) _origMpStop.apply(this,arguments); nlPush(null); };
 
+  window.addEventListener('beforeunload',function(){
+    var profile=getProfile(); if(!profile) return;
+    var _bu=JSON.parse(localStorage.getItem('yam_v2_session')||'null');
+    var _buId=_bu&&_bu.user?_bu.user.couple_id:null; if(!_buId) return;
+    fetch(SB2_URL+'/rest/v1/'+NL_TABLE,{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:_buId,sender:profile,song_file:null}),keepalive:true}).catch(function(){});
+  });
+  window._nlPush=nlPush;
 })();
 
-// ════════════════════════════════════════════
-// RECHERCHE MUSICALE — déplacé depuis app-love.js (R1)
-// openSearch / closeSearch / filterSongs
-// Utilise : allSongs, songRows, currentAudio, stopCurrent, resetZoom, isQuizOpen (app-games.js)
-// ════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// RECHERCHE
+// ════════════════════════════════════════════════════════════
 function openSearch(){
-  if(typeof isQuizOpen !== 'undefined' && isQuizOpen) return;
-  if(typeof resetZoom === 'function') resetZoom();
-  var o = document.getElementById('searchOverlay');
-  if(!o) return;
+  if(typeof isQuizOpen!=='undefined'&&isQuizOpen) return;
+  if(typeof resetZoom==='function') resetZoom();
+  var o=document.getElementById('searchOverlay'); if(!o) return;
   o.classList.add('open');
-  document.getElementById('searchInput').value = '';
-  document.getElementById('searchResults').innerHTML = '';
-  setTimeout(function(){ document.getElementById('searchInput').focus(); }, 80);
+  document.getElementById('searchInput').value='';
+  document.getElementById('searchResults').innerHTML='';
+  setTimeout(function(){ document.getElementById('searchInput').focus(); },80);
 }
 function closeSearch(){
-  if(typeof resetZoom === 'function') resetZoom();
-  var o = document.getElementById('searchOverlay');
-  if(o) o.classList.remove('open');
+  if(typeof resetZoom==='function') resetZoom();
+  var o=document.getElementById('searchOverlay'); if(o) o.classList.remove('open');
 }
 function filterSongs(q){
-  var res = document.getElementById('searchResults');
-  if(!res) return;
-  res.innerHTML = '';
-  if(!q.trim()) return;
-  var f = allSongs.filter(function(s){
-    return s.title.toLowerCase().includes(q.toLowerCase()) ||
-           s.artist.toLowerCase().includes(q.toLowerCase());
-  });
-  if(!f.length){
-    res.innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px;font-size:13px">Aucun résultat</p>';
-    return;
-  }
+  var res=document.getElementById('searchResults'); if(!res) return;
+  res.innerHTML=''; if(!q.trim()) return;
+  var f=allSongs.filter(function(s){ return s.title.toLowerCase().includes(q.toLowerCase())||s.artist.toLowerCase().includes(q.toLowerCase()); });
+  if(!f.length){ res.innerHTML='<p style="color:var(--muted);text-align:center;padding:20px;font-size:13px">Aucun résultat</p>'; return; }
   f.forEach(function(s){
-    var row = document.createElement('div');
-    row.className = 'sp-song';
-    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;';
-    row.innerHTML = '<div class="sp-info"><div class="sp-title">' + escHtml(s.title) + '</div><div class="sp-artist">' + escHtml(s.artist) + '</div></div><div style="font-size:11px;color:var(--green);font-weight:600;flex-shrink:0">▶</div>';
-    row.addEventListener('click', function(){
+    var row=document.createElement('div');
+    row.className='sp-song';
+    row.style.cssText='display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;';
+    row.innerHTML='<div class="sp-info"><div class="sp-title">'+escHtml(s.title)+'</div><div class="sp-artist">'+escHtml(s.artist)+'</div></div><div style="font-size:11px;color:var(--green);font-weight:600;flex-shrink:0">▶</div>';
+    row.addEventListener('click',function(){
       closeSearch();
-      var realRow = songRows[s.file];
+      var realRow=songRows[s.file];
       if(realRow){
-        realRow.div.scrollIntoView({ behavior:'smooth', block:'center' });
-        setTimeout(function(){
-          if(currentAudio && currentAudio !== realRow.audio) stopCurrent();
-          realRow.btn.click();
-        }, 400);
+        realRow.div.scrollIntoView({behavior:'smooth',block:'center'});
+        setTimeout(function(){ _playSong(s); },400);
+      } else {
+        _playSong(s);
       }
     });
     res.appendChild(row);
@@ -1351,155 +997,94 @@ function filterSongs(q){
 }
 
 // ════════════════════════════════════════════════════════════
-// MEDIA SESSION API — Contrôles écran verrouillé iOS / AirPods
+// MEDIA SESSION API — Écran verrouillé iOS / AirPods
+// Architecture : un seul <audio> global → aucun silence → iOS ne suspend pas
 // ════════════════════════════════════════════════════════════
 (function(){
   if(!('mediaSession' in navigator)) return;
 
-  // ── Logger localStorage — lit les logs depuis l'app après le bug ──
-  var _LOG_KEY = 'yam_ms_log';
-  var _LOG_MAX = 80; // nb max de lignes conservées
+  // ── Logger ──
+  var _LOG_KEY='yam_ms_log', _LOG_MAX=80;
   function _log(msg){
     try {
-      var now = new Date();
-      var ts = now.getHours()+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0')+'.'+String(now.getMilliseconds()).padStart(3,'0');
-      var lines = JSON.parse(localStorage.getItem(_LOG_KEY) || '[]');
+      var now=new Date();
+      var ts=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0')+'.'+String(now.getMilliseconds()).padStart(3,'0');
+      var lines=JSON.parse(localStorage.getItem(_LOG_KEY)||'[]');
       lines.push('['+ts+'] '+msg);
-      if(lines.length > _LOG_MAX) lines = lines.slice(-_LOG_MAX);
-      localStorage.setItem(_LOG_KEY, JSON.stringify(lines));
+      if(lines.length>_LOG_MAX) lines=lines.slice(-_LOG_MAX);
+      localStorage.setItem(_LOG_KEY,JSON.stringify(lines));
     } catch(e){}
   }
-  // Expose pour lire depuis la console Eruda / depuis l'UI
-  window.yamMsLogs = function(){
-    try { return JSON.parse(localStorage.getItem(_LOG_KEY)||'[]').join('\n'); } catch(e){ return '(vide)'; }
-  };
-  window.yamMsClear = function(){ localStorage.removeItem(_LOG_KEY); };
-  // Efface les logs au démarrage pour repartir propre
+  window.yamMsLogs=function(){ try{ return JSON.parse(localStorage.getItem(_LOG_KEY)||'[]').join('\n'); }catch(e){ return '(vide)'; } };
+  window.yamMsClear=function(){ localStorage.removeItem(_LOG_KEY); };
   window.yamMsClear();
-  _log('INIT — mediaSession supporté');
+  _log('INIT — mediaSession supporté, audio global');
 
-  // ── Tick de position ──
-  var _msIv = null;
-
-  function _stopTick(){
-    if(_msIv){ clearInterval(_msIv); _msIv = null; _log('tick STOP'); }
-  }
-
+  // ── Position state ──
+  var _msIv=null;
+  function _stopTick(){ if(_msIv){ clearInterval(_msIv); _msIv=null; } }
   function _updatePos(){
-    var a = (typeof currentAudio !== 'undefined') ? currentAudio : null;
-    if(!a || !a.duration || !isFinite(a.duration) || a.duration <= 0) return;
-    var pos = a.currentTime || 0;
-    if(pos > a.duration) pos = a.duration;
-    try {
-      navigator.mediaSession.setPositionState({
-        duration:     a.duration,
-        playbackRate: 1,
-        position:     pos
-      });
-    } catch(e){ _log('setPositionState ERREUR: '+e.message+' dur='+a.duration+' pos='+pos); }
+    if(!_gAudio.duration||!isFinite(_gAudio.duration)||_gAudio.duration<=0) return;
+    var pos=Math.min(_gAudio.currentTime||0, _gAudio.duration);
+    try { navigator.mediaSession.setPositionState({ duration:_gAudio.duration, playbackRate:1, position:pos }); } catch(e){}
   }
-
   function _startTick(){
     _stopTick();
-    _log('tick START');
-    _msIv = setInterval(function(){
-      var a = (typeof currentAudio !== 'undefined') ? currentAudio : null;
-      if(!a || a.paused){ _stopTick(); return; }
-      _updatePos();
-    }, 1000);
+    _msIv=setInterval(function(){ if(_gAudio.paused){ _stopTick(); return; } _updatePos(); },1000);
   }
 
-  // ── Handlers enregistrés une seule fois ──
-  _log('setActionHandler x4 (play/pause/next/prev — seekto désactivé)');
+  // ── Handlers — enregistrés une seule fois ──
   navigator.mediaSession.setActionHandler('play', function(){
-    _log('handler PLAY — mpToggle existe: '+(!!window.mpToggle));
+    _log('handler PLAY');
     if(window.mpToggle) window.mpToggle();
   });
   navigator.mediaSession.setActionHandler('pause', function(){
-    _log('handler PAUSE — mpToggle existe: '+(!!window.mpToggle));
+    _log('handler PAUSE');
     if(window.mpToggle) window.mpToggle();
   });
-  // Anti-spam next/prev — iOS envoie parfois plusieurs nexttrack pour un seul appui
-  var _lastTrackChange = 0;
-  var _TRACK_COOLDOWN = 800; // ms minimum entre deux changements de piste
 
+  var _lastChange=0, _COOLDOWN=600;
   navigator.mediaSession.setActionHandler('nexttrack', function(){
-    var now = Date.now();
-    _log('handler NEXT — depuis dernier: '+(now - _lastTrackChange)+'ms');
-    if(now - _lastTrackChange < _TRACK_COOLDOWN){ _log('NEXT ignoré (spam)'); return; }
-    _lastTrackChange = now;
+    var now=Date.now();
+    if(now-_lastChange<_COOLDOWN){ _log('NEXT spam ignoré'); return; }
+    _lastChange=now; _log('handler NEXT');
     if(window.mpNext) window.mpNext();
   });
   navigator.mediaSession.setActionHandler('previoustrack', function(){
-    var now = Date.now();
-    _log('handler PREV — depuis dernier: '+(now - _lastTrackChange)+'ms');
-    if(now - _lastTrackChange < _TRACK_COOLDOWN){ _log('PREV ignoré (spam)'); return; }
-    _lastTrackChange = now;
+    var now=Date.now();
+    if(now-_lastChange<_COOLDOWN){ _log('PREV spam ignoré'); return; }
+    _lastChange=now; _log('handler PREV');
     if(window.mpPrev) window.mpPrev();
   });
-  // seekto intentionnellement non enregistré — iOS l'utilise à tort pour
-  // changer de piste depuis l'écran verrouillé, ce qui crée une boucle infinie.
-  // La seekbar dans l'app fonctionne via mpUpdateProgress directement sur l'audio.
+  // seekto non enregistré — iOS l'utilise parfois à tort comme "next"
 
-  // ── Appelée à chaque nouvelle piste ──
-  window._yamMediaSession = function(songData){
-    var title = songData ? songData.title : '(null)';
-    _log('_yamMediaSession "'+title+'"');
-
+  // ── Mise à jour des métadonnées à chaque nouvelle piste ──
+  window._yamMediaSession=function(song){
+    _log('track: '+(song?song.title:'null'));
     try {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title:  (songData && songData.title)  ? songData.title  : '',
-        artist: (songData && songData.artist) ? songData.artist : '',
+      navigator.mediaSession.metadata=new MediaMetadata({
+        title:  song?song.title:'',
+        artist: song?song.artist:'',
         album:  'YAM — You And Me'
       });
-    } catch(e){ _log('metadata ERREUR: '+e.message); }
-
-    navigator.mediaSession.playbackState = 'playing';
-
+    } catch(e){ _log('metadata err: '+e.message); }
+    navigator.mediaSession.playbackState='playing';
     _stopTick();
-    var a = (typeof currentAudio !== 'undefined') ? currentAudio : null;
-    _log('currentAudio: '+(a ? 'ok src='+a.src.split('/').pop()+' readyState='+a.readyState+' dur='+a.duration : 'NULL'));
-    if(!a){ _log('ABORT — pas de currentAudio'); return; }
-
-    if(a.duration && isFinite(a.duration) && a.duration > 0){
-      _log('durée dispo immédiatement: '+a.duration);
-      _updatePos();
-      _startTick();
+    if(_gAudio.duration&&isFinite(_gAudio.duration)&&_gAudio.duration>0){
+      _updatePos(); _startTick();
     } else {
-      _log('attente loadedmetadata...');
-      a.addEventListener('loadedmetadata', function _msOnMeta(){
-        a.removeEventListener('loadedmetadata', _msOnMeta);
-        _log('loadedmetadata reçu — dur='+a.duration);
-        _updatePos();
-        _startTick();
+      _gAudio.addEventListener('loadedmetadata', function _onMeta(){
+        _gAudio.removeEventListener('loadedmetadata',_onMeta);
+        _log('loadedmetadata dur='+_gAudio.duration);
+        _updatePos(); _startTick();
       });
     }
   };
 
-  // ── Sync playbackState — uniquement pour currentAudio, pas les audios parasites ──
-  document.addEventListener('play', function(e){
-    if(e.target && e.target.tagName === 'AUDIO'){
-      var src = e.target.src ? e.target.src.split('/').pop() : '?';
-      var isCurrent = (typeof currentAudio !== 'undefined') && e.target === currentAudio;
-      _log('evt PLAY src='+src+(isCurrent ? ' [CURRENT]' : ' [parasite]'));
-      if(isCurrent) navigator.mediaSession.playbackState = 'playing';
-    }
-  }, true);
-  document.addEventListener('pause', function(e){
-    if(e.target && e.target.tagName === 'AUDIO'){
-      var src = e.target.src ? e.target.src.split('/').pop() : '?';
-      var isCurrent = (typeof currentAudio !== 'undefined') && e.target === currentAudio;
-      _log('evt PAUSE src='+src+(isCurrent ? ' [CURRENT]' : ' [parasite]'));
-      if(isCurrent){ navigator.mediaSession.playbackState = 'paused'; _stopTick(); }
-    }
-  }, true);
-  document.addEventListener('ended', function(e){
-    if(e.target && e.target.tagName === 'AUDIO'){
-      var src = e.target.src ? e.target.src.split('/').pop() : '?';
-      _log('evt ENDED src='+src);
-      _stopTick();
-    }
-  }, true);
+  // ── Sync playbackState sur l'audio global uniquement ──
+  _gAudio.addEventListener('play',  function(){ navigator.mediaSession.playbackState='playing';  _log('gAudio PLAY'); });
+  _gAudio.addEventListener('pause', function(){ navigator.mediaSession.playbackState='paused';   _log('gAudio PAUSE'); _stopTick(); });
+  _gAudio.addEventListener('ended', function(){ _stopTick(); _log('gAudio ENDED'); });
 
   _log('INIT terminé');
 })();
