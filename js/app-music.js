@@ -66,11 +66,9 @@ var currentAudio = null, currentBtn = null, currentRow = null;
 var TOP_VISIBLE = 4, top50Expanded = false;
 
 function stopCurrent(){
-  // Stoppe TOUS les éléments audio actifs — évite les conflits iOS en arrière-plan
-  document.querySelectorAll('#Love audio, #searchResults audio').forEach(function(a){
-    if(!a.paused){ a.pause(); a.currentTime = 0; }
-  });
   if(currentAudio){currentAudio.pause();if(currentBtn){currentBtn.innerHTML='&#9654;';currentBtn.classList.remove('active');}if(currentRow)currentRow.classList.remove('playing');particleActive=false;hideDance();currentAudio=null;currentBtn=null;currentRow=null;}
+  // Stoppe tous les autres audios parasites (sans currentTime=0 pour éviter de réinitialiser la cible suivante)
+  document.querySelectorAll('#Love audio').forEach(function(a){ if(!a.paused) a.pause(); });
 }
 
 // Fonctions pour changer le GIF de la mascotte quand la musique joue
@@ -1412,7 +1410,7 @@ function filterSongs(q){
   }
 
   // ── Handlers enregistrés une seule fois ──
-  _log('setActionHandler x5');
+  _log('setActionHandler x4 (play/pause/next/prev — seekto désactivé)');
   navigator.mediaSession.setActionHandler('play', function(){
     _log('handler PLAY — mpToggle existe: '+(!!window.mpToggle));
     if(window.mpToggle) window.mpToggle();
@@ -1429,22 +1427,9 @@ function filterSongs(q){
     _log('handler PREV — mpPrev existe: '+(!!window.mpPrev));
     if(window.mpPrev) window.mpPrev();
   });
-  navigator.mediaSession.setActionHandler('seekto', function(details){
-    var a = (typeof currentAudio !== 'undefined') ? currentAudio : null;
-    _log('handler SEEKTO t='+details.seekTime+' audio='+( a ? 'ok dur='+a.duration : 'NULL'));
-    if(!a || details.seekTime === undefined) return;
-    var t = parseFloat(details.seekTime);
-    if(isNaN(t) || t < 0) return;
-    // ⚠️ iOS envoie seekto avec t > durée quand l'utilisateur appuie sur "suivant"
-    // depuis l'écran verrouillé — on ignore ces faux seeks pour éviter la cascade PLAY/PAUSE
-    if(!a.duration || !isFinite(a.duration) || t > a.duration) {
-      _log('SEEKTO ignoré — t='+t+' > dur='+a.duration+' (faux next iOS)');
-      return;
-    }
-    a.currentTime = t;
-    if(window.mpUpdateProgress) window.mpUpdateProgress();
-    _updatePos();
-  });
+  // seekto intentionnellement non enregistré — iOS l'utilise à tort pour
+  // changer de piste depuis l'écran verrouillé, ce qui crée une boucle infinie.
+  // La seekbar dans l'app fonctionne via mpUpdateProgress directement sur l'audio.
 
   // ── Appelée à chaque nouvelle piste ──
   window._yamMediaSession = function(songData){
