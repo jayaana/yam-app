@@ -226,6 +226,15 @@
   // Sync initial
   _syncNavMsgUnread();
 
+  // Push notifications — navigation vers l'onglet cible au clic sur une notif
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', function(event) {
+      if (event.data && event.data.type === 'YAM_PUSH_OPEN_TAB' && event.data.tab) {
+        if (typeof window.yamSwitchTab === 'function') window.yamSwitchTab(event.data.tab);
+      }
+    });
+  }
+
   // Intercept toggleLockPopup to set nav active state
   document.addEventListener('DOMContentLoaded', function(){
     var origToggleLock = window.toggleLockPopup;
