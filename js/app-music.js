@@ -171,8 +171,8 @@ function _playSong(song){
   particleActive = true;
   showDance();
 
-  if(window.mpUpdate) mpUpdate();
   if(window._yamMediaSession) _yamMediaSession(song);
+  if(window.mpUpdate) mpUpdate();
 }
 
 function _pauseCurrent(){
@@ -236,8 +236,8 @@ _gAudio.addEventListener('ended', function(){
     _updateRowUI(next, true);
     particleActive = true;
     showDance();
-    // NE PAS appeler mpUpdate() ici — il est patché et rappelle _yamMediaSession
-    // _yamMediaSession est appelé une seule fois ci-dessous
+    // _yamMediaSession d'abord pour enregistrer les métadonnées,
+    // mpUpdate ensuite pour mettre à jour l'UI
     if(window._yamMediaSession) _yamMediaSession(next);
     if(window.mpUpdate) mpUpdate();
   } else {
@@ -1106,7 +1106,15 @@ function filterSongs(q){
     _lastChange=now; _log('handler PREV');
     if(window.mpPrev) window.mpPrev();
   });
-  // seekto non enregistré — iOS l'utilise parfois à tort comme "next"
+  // seekto : enregistré pour éviter qu'iOS ne l'interprète comme nexttrack
+  try {
+    navigator.mediaSession.setActionHandler('seekto', function(details){
+      if(details.seekTime !== undefined && _gAudio.duration && isFinite(_gAudio.duration)){
+        _gAudio.currentTime = Math.min(Math.max(0, details.seekTime), _gAudio.duration);
+        _updatePos();
+      }
+    });
+  } catch(e) {}
 
   // ── Mise à jour des métadonnées à chaque nouvelle piste ──
   var _msToken = 0; // token pour éviter les doubles appels _yamMediaSession
@@ -1140,8 +1148,10 @@ function filterSongs(q){
   _gAudio.addEventListener('play',  function(){
     navigator.mediaSession.playbackState='playing';
     _log('gAudio PLAY');
-    // Envoyer la position immédiatement au resume + relancer le tick
-    if(_gAudio.duration && isFinite(_gAudio.duration) && _gAudio.duration > 0){
+    // Relancer le tick uniquement si c'est un vrai resume (currentTime > 1s)
+    // Pour les nouvelles pistes, _yamMediaSession+loadedmetadata s'en chargent
+    if(_gAudio.duration && isFinite(_gAudio.duration) && _gAudio.duration > 0
+       && _gAudio.currentTime > 1){
       _updatePos(); _startTick();
     }
   });
