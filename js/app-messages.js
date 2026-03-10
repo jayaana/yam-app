@@ -1144,6 +1144,7 @@
           }
         })
         .catch(function(err){ console.error('[AUDIO SEND]', err); });
+      };
       reader.readAsDataURL(blob);
     }
 
