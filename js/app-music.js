@@ -1131,14 +1131,22 @@ function filterSongs(q){
     navigator.mediaSession.playbackState='playing';
     _log('gAudio PLAY');
     // FIX BUG 3 : relancer le tick à chaque play (même simple resume après pause)
-    // Délai 250ms : iOS émet PAUSE+PLAY quasi-simultanément (lock screen/AirPods),
-    // le currentTime n'est pas encore stabilisé au moment du play event → saut visuel
+    // On NE fait PAS _updatePos() ici — iOS appelle ce handler aussi lors des
+    // transitions de piste (PAUSE+ENDED+PLAY en 10ms), à ce moment currentTime=0
+    // et duration appartient encore à l'ancienne piste → saut visuel garanti.
+    // _yamMediaSession() + loadedmetadata gèrent déjà la position pour les nouvelles pistes.
+    // Ici on relance juste le tick pour les vrais resumes (pause manuelle → play).
     setTimeout(function(){
-      if(_gAudio.paused) return; // une pause est arrivée entre temps, on n'update pas
-      if(_gAudio.duration && isFinite(_gAudio.duration) && _gAudio.duration > 0){
+      if(_gAudio.paused) return;
+      // Vérifier que la duration est cohérente avec la piste courante
+      if(_gAudio.duration && isFinite(_gAudio.duration) && _gAudio.duration > 0
+         && _gAudio.currentTime > 0) { // currentTime=0 = nouvelle piste, pas un resume
         _updatePos(); _startTick();
+      } else if(_gAudio.duration && isFinite(_gAudio.duration) && _gAudio.duration > 0){
+        // Nouvelle piste : juste lancer le tick, sans update de position
+        _startTick();
       }
-    }, 250);
+    }, 300);
   });
   _gAudio.addEventListener('pause', function(){ navigator.mediaSession.playbackState='paused';   _log('gAudio PAUSE'); _stopTick(); });
   _gAudio.addEventListener('ended', function(){ _stopTick(); _log('gAudio ENDED'); });
