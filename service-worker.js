@@ -125,3 +125,43 @@ self.addEventListener('fetch', function(event) {
     })
   );
 });
+
+// ── Push Notifications ────────────────────────────────────────────────────────
+
+self.addEventListener('push', function(event) {
+  if (!event.data) return;
+  var payload;
+  try { payload = event.data.json(); }
+  catch(e) { payload = { title: 'YAM 💕', body: event.data.text() || '', tag: 'yam-notif', data: { url: '/yam-app/' } }; }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title || 'YAM 💕', {
+      body:    payload.body  || '',
+      icon:    '/yam-app/assets/icons/icon-192.png',
+      badge:   '/yam-app/assets/icons/icon-192.png',
+      tag:     payload.tag   || 'yam-notif',
+      data:    payload.data  || { url: '/yam-app/' },
+      vibrate: [100, 50, 100],
+      requireInteraction: false,
+    })
+  );
+});
+
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  var targetUrl = (event.notification.data && event.notification.data.url) || '/yam-app/';
+  var tab       = event.notification.data && event.notification.data.tab;
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(wins) {
+      for (var i = 0; i < wins.length; i++) {
+        if (wins[i].url.includes('/yam-app/') && 'focus' in wins[i]) {
+          wins[i].focus();
+          if (tab) wins[i].postMessage({ type: 'YAM_PUSH_OPEN_TAB', tab: tab });
+          return;
+        }
+      }
+      if (clients.openWindow) return clients.openWindow(targetUrl);
+    })
+  );
+});
