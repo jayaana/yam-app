@@ -21,6 +21,7 @@ async function nativeLogout(){
 var SB2_URL        = 'https://jstiwtbgkbedtldqjdhp.supabase.co';
 var SB2_KEY        = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdGl3dGJna2JlZHRsZHFqZGhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4OTI1NTgsImV4cCI6MjA4NzQ2ODU1OH0.3W1u55aIakQxW5EyF0Sahc6Pjak1JqWhcX1ZifePH98';
 var SB2_EDGE_AUTH  = SB2_URL + '/functions/v1/auth-v2';
+var SB2_EDGE_PUSH  = SB2_URL + '/functions/v1/push-notify';
 var SB2_APP_SECRET = 'Kx9mPvR3wLjN7qTnYc4Zd';
 
 // ── Helpers SB2 REST (utilisés dans tous les fichiers JS) ──
@@ -639,3 +640,91 @@ document.addEventListener('DOMContentLoaded', function(){
   window._presencePoll = presencePoll;
   window._presencePush = presencePush;
 })();
+
+// ── Push Notifications ────────────────────────────────────────────────────────
+// yamRegisterPush()  — demande permission + crée subscription VAPID + l'envoie en base
+// yamPushNotify()    — envoie une notif push au partenaire via Edge Function push-notify
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ⚠️  Remplacer par ta vraie clé publique VAPID (générée avec : npx web-push generate-vapid-keys)
+var _VAPID_PUBLIC_KEY = 'VAPID_PUBLIC_KEY_BASE64URL';
+
+function _urlBase64ToUint8Array(base64String) {
+  var padding = '='.repeat((4 - base64String.length % 4) % 4);
+  var base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  var rawData = atob(base64);
+  var output  = new Uint8Array(rawData.length);
+  for (var i = 0; i < rawData.length; i++) { output[i] = rawData.charCodeAt(i); }
+  return output;
+}
+
+async function _yamSendSubToServer(sub) {
+  var user = v2GetUser();
+  if (!user) return;
+  var subJSON = sub.toJSON();
+  try {
+    await fetch(SB2_EDGE_PUSH, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-app-secret': SB2_APP_SECRET },
+      body: JSON.stringify({
+        action:    'subscribe',
+        user_id:   user.id,
+        couple_id: user.couple_id,
+        profile:   user.role,
+        subscription: {
+          endpoint: subJSON.endpoint,
+          p256dh:   subJSON.keys.p256dh,
+          auth:     subJSON.keys.auth,
+        },
+        user_agent: navigator.userAgent,
+      }),
+    });
+  } catch (e) {
+    console.error('[Push] _yamSendSubToServer error:', e);
+  }
+}
+
+window.yamRegisterPush = async function() {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    var reg = await navigator.serviceWorker.ready;
+    var existingSub = await reg.pushManager.getSubscription();
+    if (existingSub) { await _yamSendSubToServer(existingSub); return; }
+
+    var permission = await Notification.requestPermission();
+    if (permission !== 'granted') return;
+
+    var sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: _urlBase64ToUint8Array(_VAPID_PUBLIC_KEY),
+    });
+    await _yamSendSubToServer(sub);
+    console.log('[Push] Subscription enregistrée ✓');
+  } catch (e) {
+    console.error('[Push] yamRegisterPush error:', e);
+  }
+};
+
+window.yamPushNotify = async function(opts) {
+  // opts: { title, body, tag, data }
+  var user = v2GetUser();
+  if (!user) return;
+  var targetProfile = user.role === 'girl' ? 'boy' : 'girl';
+  try {
+    await fetch(SB2_EDGE_PUSH, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-app-secret': SB2_APP_SECRET },
+      body: JSON.stringify({
+        action:         'notify',
+        couple_id:      user.couple_id,
+        target_profile: targetProfile,
+        title:          opts.title || 'YAM 💕',
+        body:           opts.body  || '',
+        tag:            opts.tag   || 'yam-notif',
+        data:           Object.assign({ url: '/yam-app/' }, opts.data || {}),
+      }),
+    });
+  } catch (e) {
+    console.error('[Push] yamPushNotify error:', e);
+  }
+};
