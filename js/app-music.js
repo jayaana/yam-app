@@ -1148,11 +1148,11 @@ function filterSongs(q){
   _gAudio.addEventListener('play',  function(){
     navigator.mediaSession.playbackState='playing';
     _log('gAudio PLAY');
-    // Relancer le tick uniquement si c'est un vrai resume (currentTime > 1s)
-    // Pour les nouvelles pistes, _yamMediaSession+loadedmetadata s'en chargent
-    if(_gAudio.duration && isFinite(_gAudio.duration) && _gAudio.duration > 0
-       && _gAudio.currentTime > 1){
-      _updatePos(); _startTick();
+    // Toujours relancer le tick au play — critique pour la lecture en arrière-plan
+    // _yamMediaSession gère la position pour les nouvelles pistes via loadedmetadata
+    // mais le tick doit toujours tourner pour que iOS ne suspende pas
+    if(_gAudio.duration && isFinite(_gAudio.duration) && _gAudio.duration > 0){
+      _startTick();
     }
   });
   _gAudio.addEventListener('pause', function(){
