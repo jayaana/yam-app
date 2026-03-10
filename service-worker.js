@@ -143,12 +143,20 @@ self.addEventListener('push', function(event) {
       data:    payload.data  || { url: '/yam-app/' },
       vibrate: [100, 50, 100],
       requireInteraction: false,
+    }).then(function() {
+      if ('setAppBadge' in self.navigator) {
+        return self.registration.getNotifications().then(function(notifs) {
+          self.navigator.setAppBadge(notifs.length || 1);
+        });
+      }
     })
   );
 });
 
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
+  // Reset du badge quand l'utilisateur clique sur la notif
+  if ('clearAppBadge' in self.navigator) self.navigator.clearAppBadge();
   var targetUrl = (event.notification.data && event.notification.data.url) || '/yam-app/';
   var tab       = event.notification.data && event.notification.data.tab;
 
