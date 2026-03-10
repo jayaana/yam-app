@@ -340,6 +340,8 @@ function toggleTheme() {
   // Sauvegarder le choix pour le prochain reload
   localStorage.setItem('yamTheme', html.classList.contains('dark') ? 'dark' : 'light');
 }
+// Alias utilisé dans index.html
+window.applyThemeToggle = toggleTheme;
 
 function initTheme() {
   var saved = localStorage.getItem('yamTheme');
