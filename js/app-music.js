@@ -53,7 +53,6 @@ var _currentSong  = null;  // objet songsLove en cours
 var _currentIndex = -1;    // index dans la playlist triée courante
 var _playlist     = [];    // tableau d'objets songsLove dans l'ordre de lecture
 var _isPlaying    = false;
-var _playRetryToken = 0;
 
 // Compatibilité legacy (certains modules lisent currentAudio)
 Object.defineProperty(window, 'currentAudio', {
@@ -146,19 +145,20 @@ function _playSong(song){
 
   var playPromise = _gAudio.play();
   if(playPromise && typeof playPromise.catch === 'function'){
-    var _retryToken = ++_playRetryToken;
     playPromise.catch(function(e){
       console.warn('[YAM] play() rejected:', e);
+      // iOS en arrière-plan peut rejeter le premier play() — on retry jusqu'à 3 fois
       var _retryCount = 0;
       function _retry(){
-        if(_retryToken !== _playRetryToken) return;
         if(_retryCount >= 3 || !_isPlaying) return;
         _retryCount++;
         setTimeout(function(){
-          if(_retryToken !== _playRetryToken || !_isPlaying) return;
           var p2 = _gAudio.play();
-          if(p2 && p2.catch) p2.catch(function(e2){ _retry(); });
-        }, 400);
+          if(p2 && p2.catch) p2.catch(function(e2){
+            console.warn('[YAM] play() retry '+_retryCount+' rejected:', e2);
+            _retry();
+          });
+        }, 300 * _retryCount);
       }
       _retry();
     });
@@ -168,12 +168,11 @@ function _playSong(song){
   particleActive = true;
   showDance();
 
-  if(window._yamMediaSession) _yamMediaSession(song);
   if(window.mpUpdate) mpUpdate();
+  if(window._yamMediaSession) _yamMediaSession(song);
 }
 
 function _pauseCurrent(){
-  ++_playRetryToken;
   _gAudio.pause();
   _isPlaying = false;
   _updateRowUI(_currentSong, false);
@@ -183,7 +182,6 @@ function _pauseCurrent(){
 }
 
 function _stopCurrent(){
-  ++_playRetryToken;
   _gAudio.pause();
   _isPlaying = false;
   _updateRowUI(_currentSong, false);
@@ -210,6 +208,9 @@ _gAudio.addEventListener('ended', function(){
   if(_currentSong) _currentSong._counted = false;
   var next = _getNextSong();
   if(next){
+    // Sur iOS en arrière-plan : on change le src IMMÉDIATEMENT dans le handler ended
+    // (contexte encore actif) avant que WebKit ne throttle le JS
+    var wasPlaying = _currentSong;
     if(_currentSong && _currentSong !== next) _updateRowUI(_currentSong, false);
     _currentSong = next;
     _currentIndex = _playlist.indexOf(next);
@@ -218,6 +219,7 @@ _gAudio.addEventListener('ended', function(){
     var ep = _gAudio.play();
     if(ep && ep.catch) ep.catch(function(e){
       console.warn('[YAM] ended->play() rejected:', e);
+      // Retry immédiat puis différé
       setTimeout(function(){
         if(!_isPlaying) return;
         var p2 = _gAudio.play();
@@ -229,8 +231,8 @@ _gAudio.addEventListener('ended', function(){
     _updateRowUI(next, true);
     particleActive = true;
     showDance();
-    if(window._yamMediaSession) _yamMediaSession(next);
     if(window.mpUpdate) mpUpdate();
+    if(window._yamMediaSession) _yamMediaSession(next);
   } else {
     _stopCurrent();
   }
@@ -1097,9 +1099,7 @@ function filterSongs(q){
   // seekto non enregistré — iOS l'utilise parfois à tort comme "next"
 
   // ── Mise à jour des métadonnées à chaque nouvelle piste ──
-  var _msToken = 0;
   window._yamMediaSession=function(song){
-    var myToken = ++_msToken;
     _log('track: '+(song?song.title:'null'));
     try {
       navigator.mediaSession.metadata=new MediaMetadata({
@@ -1111,42 +1111,28 @@ function filterSongs(q){
     navigator.mediaSession.playbackState='playing';
     _stopTick();
     if(_gAudio.duration&&isFinite(_gAudio.duration)&&_gAudio.duration>0){
-      if(myToken === _msToken){ _updatePos(); _startTick(); }
+      _updatePos(); _startTick();
     } else {
       _gAudio.addEventListener('loadedmetadata', function _onMeta(){
         _gAudio.removeEventListener('loadedmetadata',_onMeta);
         _log('loadedmetadata dur='+_gAudio.duration);
-        if(myToken !== _msToken) return;
         _updatePos(); _startTick();
       });
     }
   };
 
   // ── Sync playbackState sur l'audio global uniquement ──
-  _gAudio.addEventListener('play', function(){
+  _gAudio.addEventListener('play',  function(){
     navigator.mediaSession.playbackState='playing';
     _log('gAudio PLAY');
+    // FIX BUG 3 : relancer le tick à chaque play (même simple resume après pause)
+    // pour que iOS ait toujours un setPositionState valide
     if(_gAudio.duration && isFinite(_gAudio.duration) && _gAudio.duration > 0){
-      _startTick();
+      _updatePos(); _startTick();
     }
   });
-  _gAudio.addEventListener('pause', function(){
-    navigator.mediaSession.playbackState='paused';
-    _log('gAudio PAUSE');
-    _stopTick();
-    _updatePos();
-  });
+  _gAudio.addEventListener('pause', function(){ navigator.mediaSession.playbackState='paused';   _log('gAudio PAUSE'); _stopTick(); });
   _gAudio.addEventListener('ended', function(){ _stopTick(); _log('gAudio ENDED'); });
-
-  // seekto : évite qu'iOS l'interprète comme nexttrack
-  try {
-    navigator.mediaSession.setActionHandler('seekto', function(details){
-      if(details.seekTime !== undefined && _gAudio.duration && isFinite(_gAudio.duration)){
-        _gAudio.currentTime = Math.min(Math.max(0, details.seekTime), _gAudio.duration);
-        _updatePos();
-      }
-    });
-  } catch(e) {}
 
   _log('INIT terminé');
 })();
