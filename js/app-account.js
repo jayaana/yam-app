@@ -157,6 +157,8 @@ function _v2AfterLogin(result, msgId){
     }
     // Flamme — première connexion du jour
     if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('first_login');
+    // Push notifications — demande permission si première fois
+    setTimeout(function(){ if(typeof window.yamRegisterPush==='function') window.yamRegisterPush(); }, 1500);
   }, 350);
 }
 
