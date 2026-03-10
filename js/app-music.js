@@ -66,6 +66,10 @@ var currentAudio = null, currentBtn = null, currentRow = null;
 var TOP_VISIBLE = 4, top50Expanded = false;
 
 function stopCurrent(){
+  // Stoppe TOUS les éléments audio actifs — évite les conflits iOS en arrière-plan
+  document.querySelectorAll('#Love audio, #searchResults audio').forEach(function(a){
+    if(!a.paused){ a.pause(); a.currentTime = 0; }
+  });
   if(currentAudio){currentAudio.pause();if(currentBtn){currentBtn.innerHTML='&#9654;';currentBtn.classList.remove('active');}if(currentRow)currentRow.classList.remove('playing');particleActive=false;hideDance();currentAudio=null;currentBtn=null;currentRow=null;}
 }
 
@@ -1431,7 +1435,12 @@ function filterSongs(q){
     if(!a || details.seekTime === undefined) return;
     var t = parseFloat(details.seekTime);
     if(isNaN(t) || t < 0) return;
-    if(a.duration && isFinite(a.duration)) t = Math.min(t, a.duration);
+    // ⚠️ iOS envoie seekto avec t > durée quand l'utilisateur appuie sur "suivant"
+    // depuis l'écran verrouillé — on ignore ces faux seeks pour éviter la cascade PLAY/PAUSE
+    if(!a.duration || !isFinite(a.duration) || t > a.duration) {
+      _log('SEEKTO ignoré — t='+t+' > dur='+a.duration+' (faux next iOS)');
+      return;
+    }
     a.currentTime = t;
     if(window.mpUpdateProgress) window.mpUpdateProgress();
     _updatePos();
