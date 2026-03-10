@@ -1419,12 +1419,22 @@ function filterSongs(q){
     _log('handler PAUSE — mpToggle existe: '+(!!window.mpToggle));
     if(window.mpToggle) window.mpToggle();
   });
+  // Anti-spam next/prev — iOS envoie parfois plusieurs nexttrack pour un seul appui
+  var _lastTrackChange = 0;
+  var _TRACK_COOLDOWN = 800; // ms minimum entre deux changements de piste
+
   navigator.mediaSession.setActionHandler('nexttrack', function(){
-    _log('handler NEXT — mpNext existe: '+(!!window.mpNext));
+    var now = Date.now();
+    _log('handler NEXT — depuis dernier: '+(now - _lastTrackChange)+'ms');
+    if(now - _lastTrackChange < _TRACK_COOLDOWN){ _log('NEXT ignoré (spam)'); return; }
+    _lastTrackChange = now;
     if(window.mpNext) window.mpNext();
   });
   navigator.mediaSession.setActionHandler('previoustrack', function(){
-    _log('handler PREV — mpPrev existe: '+(!!window.mpPrev));
+    var now = Date.now();
+    _log('handler PREV — depuis dernier: '+(now - _lastTrackChange)+'ms');
+    if(now - _lastTrackChange < _TRACK_COOLDOWN){ _log('PREV ignoré (spam)'); return; }
+    _lastTrackChange = now;
     if(window.mpPrev) window.mpPrev();
   });
   // seekto intentionnellement non enregistré — iOS l'utilise à tort pour
@@ -1466,20 +1476,21 @@ function filterSongs(q){
     }
   };
 
-  // ── Sync playbackState avec les événements natifs audio ──
+  // ── Sync playbackState — uniquement pour currentAudio, pas les audios parasites ──
   document.addEventListener('play', function(e){
     if(e.target && e.target.tagName === 'AUDIO'){
       var src = e.target.src ? e.target.src.split('/').pop() : '?';
-      _log('evt PLAY src='+src);
-      navigator.mediaSession.playbackState = 'playing';
+      var isCurrent = (typeof currentAudio !== 'undefined') && e.target === currentAudio;
+      _log('evt PLAY src='+src+(isCurrent ? ' [CURRENT]' : ' [parasite]'));
+      if(isCurrent) navigator.mediaSession.playbackState = 'playing';
     }
   }, true);
   document.addEventListener('pause', function(e){
     if(e.target && e.target.tagName === 'AUDIO'){
       var src = e.target.src ? e.target.src.split('/').pop() : '?';
-      _log('evt PAUSE src='+src);
-      navigator.mediaSession.playbackState = 'paused';
-      _stopTick();
+      var isCurrent = (typeof currentAudio !== 'undefined') && e.target === currentAudio;
+      _log('evt PAUSE src='+src+(isCurrent ? ' [CURRENT]' : ' [parasite]'));
+      if(isCurrent){ navigator.mediaSession.playbackState = 'paused'; _stopTick(); }
     }
   }, true);
   document.addEventListener('ended', function(e){
