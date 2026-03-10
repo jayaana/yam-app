@@ -1074,14 +1074,9 @@ function filterSongs(q){
   }
 
   // ── Handlers — enregistrés une seule fois ──
-  navigator.mediaSession.setActionHandler('play', function(){
-    _log('handler PLAY');
-    if(window.mpToggle) window.mpToggle();
-  });
-  navigator.mediaSession.setActionHandler('pause', function(){
-    _log('handler PAUSE');
-    if(window.mpToggle) window.mpToggle();
-  });
+  // Pause/play lockscreen désactivés — bug connu PWA Safari iOS
+  navigator.mediaSession.setActionHandler('play',  null);
+  navigator.mediaSession.setActionHandler('pause', null);
 
   var _lastChange=0, _COOLDOWN=600;
   navigator.mediaSession.setActionHandler('nexttrack', function(){
