@@ -334,47 +334,73 @@ function v2UnlinkPartner(){
 /* ════════════════════════════════════════════
    THEME — Gestion automatique clair/sombre
    ════════════════════════════════════════════ */
-function toggleTheme() {
-  var html = document.documentElement;
-  html.classList.toggle('dark');
-  // Sauvegarder le choix pour le prochain reload
-  localStorage.setItem('yamTheme', html.classList.contains('dark') ? 'dark' : 'light');
+function applyThemeToggle() {
+  var isLight = document.body.classList.contains('light');
+  var goWarm = !isLight; // toggle
+  document.body.classList.toggle('light', goWarm);
+  document.documentElement.classList.toggle('light', goWarm);
+  document.documentElement.setAttribute('data-theme', goWarm ? 'warm' : 'dark');
+  // Met à jour la couleur de la safe zone iOS instantanément
+  var themeMeta = document.getElementById('themeColorMeta');
+  if(themeMeta) themeMeta.setAttribute('content', goWarm ? '#e2d9cf' : '#121212');
+  // Persistance
+  localStorage.setItem('jayana_theme', goWarm ? 'light' : 'dark');
+  // Labels boutons principaux
+  var t1 = document.getElementById('themeToggle');
+  var t2 = document.getElementById('floatingThemeBtn');
+  if(t1) t1.textContent = goWarm ? '🌙' : '☀️';
+  if(t2) t2.textContent = goWarm ? '🌙' : '☀️';
+  // Sync icônes lune/soleil dans Quiz, Jeux, sous-jeux et Bêtises
+  ['qz','gv','dm','pm','home'].forEach(function(prefix){
+    var moon = document.getElementById(prefix+'ThemeIconMoon');
+    var sun  = document.getElementById(prefix+'ThemeIconSun');
+    if(moon) moon.style.display = goWarm ? 'none' : '';
+    if(sun)  sun.style.display  = goWarm ? ''     : 'none';
+  });
+  document.querySelectorAll('.game-view-header .dm-topbar-theme svg').forEach(function(svg, i){
+    if(i % 2 === 0) svg.style.display = goWarm ? 'none' : ''; // lune
+    else            svg.style.display = goWarm ? ''     : 'none'; // soleil
+  });
+  // Haptic (si disponible — défini dans app-nav.js)
+  if(typeof haptic === 'function') haptic('light');
+  // Sync icône lune/soleil du bouton thème sur l'écran de connexion
+  var _v2Moon = document.getElementById('v2LoginIconMoon');
+  var _v2Sun  = document.getElementById('v2LoginIconSun');
+  if(_v2Moon) _v2Moon.style.display = goWarm ? 'none' : '';
+  if(_v2Sun)  _v2Sun.style.display  = goWarm ? ''     : 'none';
 }
-// Alias utilisé dans index.html
-window.applyThemeToggle = toggleTheme;
+window.applyThemeToggle = applyThemeToggle;
 
-function initTheme() {
-  var saved = localStorage.getItem('yamTheme');
-  var html = document.documentElement;
-
-  if (saved === 'dark') {
-    html.classList.add('dark');
-  } else if (saved === 'light') {
-    html.classList.remove('dark');
-  } else {
-    // Auto — détection système
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      html.classList.add('dark');
-    }
-  }
-
-  // Écouter les changements du système
-  if (window.matchMedia) {
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
-      var html = document.documentElement;
-      // Respecter le choix manuel si déjà défini
-      if (localStorage.getItem('yamTheme')) return;
-      if (e.matches) {
-        html.classList.add('dark');
-      } else {
-        html.classList.remove('dark');
-      }
+// ── Restauration du thème au chargement ──
+(function(){
+  var saved = localStorage.getItem('jayana_theme');
+  var goLight = (saved !== 'dark');
+  if(goLight){
+    document.body.classList.add('light');
+    document.documentElement.classList.add('light');
+    document.documentElement.setAttribute('data-theme', 'warm');
+    var themeMeta = document.getElementById('themeColorMeta');
+    if(themeMeta) themeMeta.setAttribute('content', '#e2d9cf');
+    document.addEventListener('DOMContentLoaded', function(){
+      var btn = document.getElementById('themeToggle');
+      if(btn) btn.textContent = '🌙';
+      var fBtn = document.getElementById('floatingThemeBtn');
+      if(fBtn) fBtn.textContent = '🌙';
+      ['qz','gv','dm','pm','home'].forEach(function(prefix){
+        var moon = document.getElementById(prefix+'ThemeIconMoon');
+        var sun  = document.getElementById(prefix+'ThemeIconSun');
+        if(moon) moon.style.display = 'none';
+        if(sun)  sun.style.display  = '';
+      });
+      var _v2Moon = document.getElementById('v2LoginIconMoon');
+      var _v2Sun  = document.getElementById('v2LoginIconSun');
+      if(_v2Moon) _v2Moon.style.display = 'none';
+      if(_v2Sun)  _v2Sun.style.display  = '';
     });
+  } else {
+    document.documentElement.setAttribute('data-theme', 'dark');
   }
-}
-
-// Lancer au chargement
-initTheme();
+})();
 
 
 /* ════════════════════════════════════════════
