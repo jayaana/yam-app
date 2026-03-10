@@ -53,7 +53,7 @@ var _currentSong  = null;  // objet songsLove en cours
 var _currentIndex = -1;    // index dans la playlist triée courante
 var _playlist     = [];    // tableau d'objets songsLove dans l'ordre de lecture
 var _isPlaying    = false;
-var _playRetryToken = 0;  // incrémenté à chaque pause/stop pour annuler les retries en cours
+var _playRetryToken = 0;
 
 // Compatibilité legacy (certains modules lisent currentAudio)
 Object.defineProperty(window, 'currentAudio', {
@@ -151,16 +151,13 @@ function _playSong(song){
       console.warn('[YAM] play() rejected:', e);
       var _retryCount = 0;
       function _retry(){
-        if(_retryToken !== _playRetryToken) return; // annulé par pause ou nouvelle piste
+        if(_retryToken !== _playRetryToken) return;
         if(_retryCount >= 3 || !_isPlaying) return;
         _retryCount++;
         setTimeout(function(){
           if(_retryToken !== _playRetryToken || !_isPlaying) return;
           var p2 = _gAudio.play();
-          if(p2 && p2.catch) p2.catch(function(e2){
-            console.warn('[YAM] play() retry '+_retryCount+' rejected:', e2);
-            _retry();
-          });
+          if(p2 && p2.catch) p2.catch(function(e2){ _retry(); });
         }, 400);
       }
       _retry();
@@ -176,7 +173,7 @@ function _playSong(song){
 }
 
 function _pauseCurrent(){
-  ++_playRetryToken; // annule tous les retries en cours
+  ++_playRetryToken;
   _gAudio.pause();
   _isPlaying = false;
   _updateRowUI(_currentSong, false);
@@ -186,7 +183,7 @@ function _pauseCurrent(){
 }
 
 function _stopCurrent(){
-  ++_playRetryToken; // annule tous les retries en cours
+  ++_playRetryToken;
   _gAudio.pause();
   _isPlaying = false;
   _updateRowUI(_currentSong, false);
@@ -213,9 +210,6 @@ _gAudio.addEventListener('ended', function(){
   if(_currentSong) _currentSong._counted = false;
   var next = _getNextSong();
   if(next){
-    // Sur iOS en arrière-plan : on change le src IMMÉDIATEMENT dans le handler ended
-    // (contexte encore actif) avant que WebKit ne throttle le JS
-    var wasPlaying = _currentSong;
     if(_currentSong && _currentSong !== next) _updateRowUI(_currentSong, false);
     _currentSong = next;
     _currentIndex = _playlist.indexOf(next);
@@ -224,7 +218,6 @@ _gAudio.addEventListener('ended', function(){
     var ep = _gAudio.play();
     if(ep && ep.catch) ep.catch(function(e){
       console.warn('[YAM] ended->play() rejected:', e);
-      // Retry immédiat puis différé
       setTimeout(function(){
         if(!_isPlaying) return;
         var p2 = _gAudio.play();
@@ -236,8 +229,6 @@ _gAudio.addEventListener('ended', function(){
     _updateRowUI(next, true);
     particleActive = true;
     showDance();
-    // _yamMediaSession d'abord pour enregistrer les métadonnées,
-    // mpUpdate ensuite pour mettre à jour l'UI
     if(window._yamMediaSession) _yamMediaSession(next);
     if(window.mpUpdate) mpUpdate();
   } else {
@@ -1068,9 +1059,6 @@ function filterSongs(q){
   _log('INIT — mediaSession supporté, audio global');
 
   // ── Position state ──
-  // Une seule source de vérité : le tick toutes les secondes.
-  // On n'appelle JAMAIS _updatePos() directement hors du tick,
-  // sauf au démarrage d'une nouvelle piste (après loadedmetadata).
   var _msIv=null;
   function _stopTick(){ if(_msIv){ clearInterval(_msIv); _msIv=null; } }
   function _updatePos(){
@@ -1106,20 +1094,12 @@ function filterSongs(q){
     _lastChange=now; _log('handler PREV');
     if(window.mpPrev) window.mpPrev();
   });
-  // seekto : enregistré pour éviter qu'iOS ne l'interprète comme nexttrack
-  try {
-    navigator.mediaSession.setActionHandler('seekto', function(details){
-      if(details.seekTime !== undefined && _gAudio.duration && isFinite(_gAudio.duration)){
-        _gAudio.currentTime = Math.min(Math.max(0, details.seekTime), _gAudio.duration);
-        _updatePos();
-      }
-    });
-  } catch(e) {}
+  // seekto non enregistré — iOS l'utilise parfois à tort comme "next"
 
   // ── Mise à jour des métadonnées à chaque nouvelle piste ──
-  var _msToken = 0; // token pour éviter les doubles appels _yamMediaSession
+  var _msToken = 0;
   window._yamMediaSession=function(song){
-    var myToken = ++_msToken; // chaque appel a son token unique
+    var myToken = ++_msToken;
     _log('track: '+(song?song.title:'null'));
     try {
       navigator.mediaSession.metadata=new MediaMetadata({
@@ -1137,20 +1117,15 @@ function filterSongs(q){
         _gAudio.removeEventListener('loadedmetadata',_onMeta);
         _log('loadedmetadata dur='+_gAudio.duration);
         if(myToken !== _msToken) return;
-        // Envoyer la position immédiatement après loadedmetadata
-        // iOS a besoin de cette info pour ne pas confondre play avec nexttrack
         _updatePos(); _startTick();
       });
     }
   };
 
   // ── Sync playbackState sur l'audio global uniquement ──
-  _gAudio.addEventListener('play',  function(){
+  _gAudio.addEventListener('play', function(){
     navigator.mediaSession.playbackState='playing';
     _log('gAudio PLAY');
-    // Toujours relancer le tick au play — critique pour la lecture en arrière-plan
-    // _yamMediaSession gère la position pour les nouvelles pistes via loadedmetadata
-    // mais le tick doit toujours tourner pour que iOS ne suspende pas
     if(_gAudio.duration && isFinite(_gAudio.duration) && _gAudio.duration > 0){
       _startTick();
     }
@@ -1159,11 +1134,19 @@ function filterSongs(q){
     navigator.mediaSession.playbackState='paused';
     _log('gAudio PAUSE');
     _stopTick();
-    // Figer la position exacte au moment de la pause
-    // Sans ça, iOS ne sait pas où on en est et peut interpréter play comme nexttrack
     _updatePos();
   });
   _gAudio.addEventListener('ended', function(){ _stopTick(); _log('gAudio ENDED'); });
+
+  // seekto : évite qu'iOS l'interprète comme nexttrack
+  try {
+    navigator.mediaSession.setActionHandler('seekto', function(details){
+      if(details.seekTime !== undefined && _gAudio.duration && isFinite(_gAudio.duration)){
+        _gAudio.currentTime = Math.min(Math.max(0, details.seekTime), _gAudio.duration);
+        _updatePos();
+      }
+    });
+  } catch(e) {}
 
   _log('INIT terminé');
 })();
