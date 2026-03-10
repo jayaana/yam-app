@@ -221,290 +221,213 @@ function v2Login(pseudo, password){
   return v2Auth('login', { pseudo: pseudo, password: password })
     .then(function(data){
       if(data.error) return { ok: false, error: data.error };
-      v2SaveSession(data);
-      localStorage.setItem('jayana_profile', data.user.role); // compat ancien système
-      return { ok: true, data: data };
+      if(data.token && data.user){
+        v2SaveSession(data);
+        if(window.yamRegisterPush) yamRegisterPush(); // activer les notifs push
+        return { ok: true, user: data.user };
+      }
+      return { ok: false, error: 'Réponse invalide' };
     });
 }
 
-// Inscription : pseudo + password + role → génère un code couple
+// Inscription : pseudo + password + role
 function v2Register(pseudo, password, role){
   return v2Auth('register', { pseudo: pseudo, password: password, role: role })
     .then(function(data){
       if(data.error) return { ok: false, error: data.error };
-      v2SaveSession(data);
-      localStorage.setItem('jayana_profile', data.user.role);
-      return { ok: true, data: data };
+      if(data.token && data.user){
+        v2SaveSession(data);
+        if(window.yamRegisterPush) yamRegisterPush(); // activer les notifs push
+        return { ok: true, user: data.user };
+      }
+      return { ok: false, error: 'Réponse invalide' };
     });
 }
 
-// Rejoindre un couple : pseudo + password + role + code couple
-function v2Join(pseudo, password, role, coupleCode){
-  return v2Auth('join', { pseudo: pseudo, password: password, role: role, couple_code: coupleCode })
+// Test de connexion (session valide ?)
+function v2Ping(){
+  return v2Auth('ping', {});
+}
+
+// Reset password : génération d'un code à 6 chiffres + envoi par notif push
+function v2ResetPassword(pseudo){
+  return v2Auth('reset_password', { pseudo: pseudo })
     .then(function(data){
       if(data.error) return { ok: false, error: data.error };
-      v2SaveSession(data);
-      localStorage.setItem('jayana_profile', data.user.role);
-      return { ok: true, data: data };
+      return { ok: true };
     });
 }
 
-// SÉCURITÉ — Fonction globale d'échappement HTML
-// À utiliser PARTOUT où des données Supabase sont injectées via innerHTML
-function escHtml(str){
-  if(str === null || str === undefined) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-// ── Toutes les images et uploads utilisent désormais SB2_URL uniquement (R4 — V1 purgé) ──
-
-/* ════════════════════════════════════════════
-   setProfile — NOUVEAU système v2 uniquement
-   Remplace l'ancienne logique éparpillée dans app-music.js
-   Appelé par index.html (v2DoLogin/Register/Join) et par app-nav.js
-════════════════════════════════════════════ */
-window.setProfile = function(gender){
-  var s = v2LoadSession();
-  if(!s || !s.user){
-    if(window.v2ShowLogin) window.v2ShowLogin();
-    return;
-  }
-  localStorage.setItem('jayana_profile', gender);
-  if(window._profileApply) window._profileApply(gender);
-  if(window._profileLoadMoods) window._profileLoadMoods();
-  if(window._checkUnread) window._checkUnread();
-  // Mettre à jour les noms dans le popup profil
-  var u = v2GetUser();
-  var btnGirl = document.getElementById('ppBtnGirl');
-  var btnBoy  = document.getElementById('ppBtnBoy');
-  if(btnGirl && u) btnGirl.innerHTML = '<span class="profile-popup-dot girl"></span>' + escHtml(u.role==='girl' ? (u.pseudo||'Elle') : (u.partner_pseudo||'Elle'));
-  if(btnBoy  && u) btnBoy.innerHTML  = '<span class="profile-popup-dot boy"></span>'  + escHtml(u.role==='boy'  ? (u.pseudo||'Lui')  : (u.partner_pseudo||'Lui'));
-  var pp = document.getElementById('profilePopup');
-  if(pp) pp.classList.remove('open');
-  if(window._presencePush) window._presencePush();
-};
-
-/* ════════════════════════════════════════════
-   Init au chargement : si session v2 active, sync localStorage
-════════════════════════════════════════════ */
-(function(){
-  var s = v2LoadSession();
-  if(!s || !s.user) return;
-  localStorage.setItem('jayana_profile', s.user.role);
-  document.addEventListener('DOMContentLoaded', function(){
-    var u = v2GetUser();
-    if(!u) return;
-    var btnGirl = document.getElementById('ppBtnGirl');
-    var btnBoy  = document.getElementById('ppBtnBoy');
-    if(btnGirl) btnGirl.innerHTML = '<span class="profile-popup-dot girl"></span>' + escHtml(u.role==='girl' ? (u.pseudo||'Elle') : (u.partner_pseudo||'Elle'));
-    if(btnBoy)  btnBoy.innerHTML  = '<span class="profile-popup-dot boy"></span>'  + escHtml(u.role==='boy'  ? (u.pseudo||'Lui')  : (u.partner_pseudo||'Lui'));
-  });
-})();
-
-// ── COMPTEUR ──
-// startDate est sur window pour être modifiable depuis app-account.js (acSaveStartDate)
-// Valeur par défaut hardcodée — sera écrasée dès que loadCoupleConfig() charge la vraie date
-window.startDate = new Date('2024-10-29T00:00:00');
-function updateCounter() {
-  var d = Math.floor((new Date() - window.startDate) / 1000);
-  document.getElementById('cnt-days').textContent  = Math.floor(d / 86400);
-  document.getElementById('cnt-hours').textContent = String(Math.floor((d % 86400) / 3600)).padStart(2,'0');
-  document.getElementById('cnt-mins').textContent  = String(Math.floor((d % 3600) / 60)).padStart(2,'0');
-  document.getElementById('cnt-secs').textContent  = String(d % 60).padStart(2,'0');
-}
-// ✅ OPT v3.8 : updateCounter smart — pause si page cachée ou Skyjo actif
-(function(){
-  var _iv = null;
-  function startCounter(){
-    if(_iv) return;
-    updateCounter();
-    _iv = setInterval(updateCounter, 1000);
-  }
-  function stopCounter(){
-    if(!_iv) return;
-    clearInterval(_iv); _iv = null;
-  }
-  // Pause quand page cachée (écran noir, autre app)
-  document.addEventListener('visibilitychange', function(){
-    if(document.hidden){ stopCounter(); } else { startCounter(); }
-  });
-  // API pour Skyjo : suspend le counter pendant la partie (compteur hors écran)
-  window._counterSuspend = stopCounter;
-  window._counterResume  = startCounter;
-  // Démarrage
-  startCounter();
-})();
-
-// ── THEME ── (version duo-theme — warm/dark avec data-theme + body.light compat)
-function applyThemeToggle() {
-  var isLight = document.body.classList.contains('light');
-  var goWarm = !isLight; // toggle
-  document.body.classList.toggle('light', goWarm);
-  document.documentElement.classList.toggle('light', goWarm);
-  document.documentElement.setAttribute('data-theme', goWarm ? 'warm' : 'dark');
-  // Met à jour la couleur de la safe zone iOS instantanément
-  var themeMeta = document.getElementById('themeColorMeta');
-  if(themeMeta) themeMeta.setAttribute('content', goWarm ? '#e2d9cf' : '#121212');
-  // Persistance
-  localStorage.setItem('jayana_theme', goWarm ? 'light' : 'dark');
-  // Labels boutons principaux
-  var t1 = document.getElementById('themeToggle');
-  var t2 = document.getElementById('floatingThemeBtn');
-  if(t1) t1.textContent = goWarm ? '🌙' : '☀️';
-  if(t2) t2.textContent = goWarm ? '🌙' : '☀️';
-  // Sync icônes lune/soleil dans Quiz, Jeux, sous-jeux et Bêtises
-  ['qz','gv','dm','pm','home'].forEach(function(prefix){
-    var moon = document.getElementById(prefix+'ThemeIconMoon');
-    var sun  = document.getElementById(prefix+'ThemeIconSun');
-    if(moon) moon.style.display = goWarm ? 'none' : '';
-    if(sun)  sun.style.display  = goWarm ? ''     : 'none';
-  });
-  document.querySelectorAll('.game-view-header .dm-topbar-theme svg').forEach(function(svg, i){
-    if(i % 2 === 0) svg.style.display = goWarm ? 'none' : ''; // lune
-    else            svg.style.display = goWarm ? ''     : 'none'; // soleil
-  });
-  // Haptic (si disponible — défini dans app-nav.js)
-  if(typeof haptic === 'function') haptic('light');
-  // Sync icône lune/soleil du bouton thème sur l'écran de connexion
-  var _v2Moon = document.getElementById('v2LoginIconMoon');
-  var _v2Sun  = document.getElementById('v2LoginIconSun');
-  if(_v2Moon) _v2Moon.style.display = goWarm ? 'none' : '';
-  if(_v2Sun)  _v2Sun.style.display  = goWarm ? ''     : 'none';
-}
-
-// ── Restauration du thème au chargement ──
-(function(){
-  var saved = localStorage.getItem('jayana_theme');
-  // Thème clair par défaut — dark seulement si explicitement sauvegardé
-  var goLight = (saved !== 'dark');
-
-  if(goLight){
-    document.body.classList.add('light');
-    document.documentElement.classList.add('light');
-    document.documentElement.setAttribute('data-theme', 'warm');
-    var themeMeta = document.getElementById('themeColorMeta');
-    if(themeMeta) themeMeta.setAttribute('content', '#e2d9cf');
-    document.addEventListener('DOMContentLoaded', function(){
-      var btn = document.getElementById('themeToggle');
-      if(btn) btn.textContent = '🌙';
-      var fBtn = document.getElementById('floatingThemeBtn');
-      if(fBtn) fBtn.textContent = '🌙';
-      ['qz','gv','dm','pm','home'].forEach(function(prefix){
-        var moon = document.getElementById(prefix+'ThemeIconMoon');
-        var sun  = document.getElementById(prefix+'ThemeIconSun');
-        if(moon) moon.style.display = 'none';
-        if(sun)  sun.style.display  = '';
-      });
-      var _v2Moon = document.getElementById('v2LoginIconMoon');
-      var _v2Sun  = document.getElementById('v2LoginIconSun');
-      if(_v2Moon) _v2Moon.style.display = 'none';
-      if(_v2Sun)  _v2Sun.style.display  = '';
+// Confirm reset : valide le code et change le mot de passe
+function v2ConfirmReset(pseudo, code, newPassword){
+  return v2Auth('confirm_reset', { pseudo: pseudo, code: code, new_password: newPassword })
+    .then(function(data){
+      if(data.error) return { ok: false, error: data.error };
+      if(data.token && data.user){
+        v2SaveSession(data);
+        return { ok: true };
+      }
+      return { ok: false, error: 'Réponse invalide' };
     });
+}
+
+// Update password : change le mot de passe (nécessite l'ancien)
+function v2UpdatePassword(oldPassword, newPassword){
+  return v2Auth('update_password', { old_password: oldPassword, new_password: newPassword })
+    .then(function(data){
+      if(data.error) return { ok: false, error: data.error };
+      return { ok: true };
+    });
+}
+
+// Update pseudo : change le pseudo de l'utilisateur connecté
+function v2UpdatePseudo(newPseudo){
+  return v2Auth('update_pseudo', { new_pseudo: newPseudo })
+    .then(function(data){
+      if(data.error) return { ok: false, error: data.error };
+      return { ok: true };
+    });
+}
+
+// Créer un couple : génère un code unique et met à jour l'utilisateur
+function v2CreateCouple(){
+  return v2Auth('create_couple', {})
+    .then(function(data){
+      if(data.error) return { ok: false, error: data.error };
+      if(data.couple && data.couple.code){
+        return { ok: true, code: data.couple.code };
+      }
+      return { ok: false, error: 'Réponse invalide' };
+    });
+}
+
+// Rejoindre un couple : entre le code et lie l'utilisateur au couple
+function v2JoinCouple(code){
+  return v2Auth('join_couple', { code: code })
+    .then(function(data){
+      if(data.error) return { ok: false, error: data.error };
+      return { ok: true };
+    });
+}
+
+// Unlink partner : supprime le lien de couple pour l'utilisateur actuel
+function v2UnlinkPartner(){
+  return v2Auth('unlink_partner', {})
+    .then(function(data){
+      if(data.error) return { ok: false, error: data.error };
+      return { ok: true };
+    });
+}
+
+
+/* ════════════════════════════════════════════
+   THEME — Gestion automatique clair/sombre
+   ════════════════════════════════════════════ */
+function toggleTheme() {
+  var html = document.documentElement;
+  html.classList.toggle('dark');
+  // Sauvegarder le choix pour le prochain reload
+  localStorage.setItem('yamTheme', html.classList.contains('dark') ? 'dark' : 'light');
+}
+
+function initTheme() {
+  var saved = localStorage.getItem('yamTheme');
+  var html = document.documentElement;
+
+  if (saved === 'dark') {
+    html.classList.add('dark');
+  } else if (saved === 'light') {
+    html.classList.remove('dark');
   } else {
-    // Thème dark explicitement choisi
-    document.documentElement.setAttribute('data-theme', 'dark');
+    // Auto — détection système
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      html.classList.add('dark');
+    }
   }
-})();
 
-document.getElementById('themeToggle').addEventListener('click', applyThemeToggle);
-document.getElementById('floatingThemeBtn').addEventListener('click', applyThemeToggle);
-
-// Injecter le bouton thème dans les headers des sous-jeux
-(function(){
-  var MOON_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>';
-  var SUN_SVG  = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
-  document.querySelectorAll('.game-view-header').forEach(function(header){
-    var btn = document.createElement('button');
-    btn.className = 'dm-topbar-theme';
-    btn.title = 'Thème';
-    btn.innerHTML = MOON_SVG + SUN_SVG;
-    btn.onclick = function(){ applyThemeToggle(); };
-    header.appendChild(btn);
-  });
-})();
-
-// ── IDs des sous-vues (partagé avec app-pranks.js pour les MutationObservers) ──
-var _subviewIds = ['gamesView','memoryView','penduView','puzzleView','snakeView','skyjoView','quizView','hiddenPage','prankMenu'];
-
-// Gestion de la visibilité du bouton flottant selon la vue active
-function updateFloatingThemeBtn() {
-  var subviews = _subviewIds;
-  var open = subviews.some(function(id) {
-    var el = document.getElementById(id);
-    return el && (el.classList.contains('active') || el.style.display === 'block');
-  });
-  document.body.classList.toggle('subview-open', open);
-}
-// Observer les changements de classe sur les sous-vues
-
-
-
-// ── Modal édition description ──
-var _descEditCallback = null;
-function descEditOpen(currentVal, label, cb){
-  _descEditCallback = cb;
-  var input = document.getElementById('descEditInput');
-  var lbl = document.getElementById('descEditLabel');
-  if(lbl) lbl.textContent = label || 'Modifier la description';
-  if(input){ input.value = currentVal || ''; }
-  // Bloquer le scroll arrière-plan
-  if(typeof window._nousBlockScroll === 'function') window._nousBlockScroll();
-  else {
-    var nousWrap = document.getElementById('nousContentWrapper');
-    if(nousWrap) nousWrap.style.overflow = 'hidden';
-    window._yamScrollLocked = true;
+  // Écouter les changements du système
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+      var html = document.documentElement;
+      // Respecter le choix manuel si déjà défini
+      if (localStorage.getItem('yamTheme')) return;
+      if (e.matches) {
+        html.classList.add('dark');
+      } else {
+        html.classList.remove('dark');
+      }
+    });
   }
-  document.getElementById('descEditModal').classList.add('open');
-  setTimeout(function(){ if(input) input.focus(); }, 100);
 }
-function descEditClose(){
-  document.getElementById('descEditModal').classList.remove('open');
-  // Restaurer le scroll arrière-plan
-  if(typeof window._nousUnblockScroll === 'function') window._nousUnblockScroll();
-  else {
-    var nousWrap = document.getElementById('nousContentWrapper');
-    if(nousWrap) nousWrap.style.overflow = '';
-    window._yamScrollLocked = false;
-  }
-  _descEditCallback = null;
-}
-function descEditSave(){
-  var val = document.getElementById('descEditInput').value.trim();
-  document.getElementById('descEditModal').classList.remove('open');
-  // Restaurer le scroll arrière-plan (identique à descEditClose)
-  if(typeof window._nousUnblockScroll === 'function') window._nousUnblockScroll();
-  else {
-    var nousWrap = document.getElementById('nousContentWrapper');
-    if(nousWrap) nousWrap.style.overflow = '';
-    window._yamScrollLocked = false;
-  }
-  if(_descEditCallback){ _descEditCallback(val); _descEditCallback = null; }
-}
-document.addEventListener('DOMContentLoaded', function(){
-  var inp = document.getElementById('descEditInput');
-  var modal = document.getElementById('descEditModal');
-  if(inp) inp.addEventListener('keydown', function(e){
-    if(e.key === 'Enter') descEditSave();
-    if(e.key === 'Escape') descEditClose();
-  });
-  if(modal) modal.addEventListener('click', function(e){
-    if(e.target === this) descEditClose();
-  });
-});
 
-
+// Lancer au chargement
+initTheme();
 
 
 /* ════════════════════════════════════════════
-   PRÉSENCE EN LIGNE
-   - Heartbeat toutes les 10s → table "presence"
-   - Poll toutes les 10s pour afficher l'état de l'autre
-   - Offline après 20s sans signal (60s si musique en cours)
-   - visibilitychange : pause heartbeat quand page cachée
+   UTILITAIRES
+   ════════════════════════════════════════════ */
+
+// Formater une date
+function formatDate(d) {
+  if (!d) return '';
+  if (typeof d === 'string') d = new Date(d);
+  var opts = { day: '2-digit', month: '2-digit', year: 'numeric' };
+  return d.toLocaleDateString('fr-FR', opts);
+}
+
+// Formater un timestamp en "il y a X"
+function timeAgo(timestamp) {
+  if (!timestamp) return '';
+  var date = new Date(timestamp);
+  var seconds = Math.floor((new Date() - date) / 1000);
+  var intervals = [
+    { label: 'an', seconds: 31536000 },
+    { label: 'mois', seconds: 2592000 },
+    { label: 'jour', seconds: 86400 },
+    { label: 'heure', seconds: 3600 },
+    { label: 'minute', seconds: 60 }
+  ];
+  for (var i = 0; i < intervals.length; i++) {
+    var interval = Math.floor(seconds / intervals[i].seconds);
+    if (interval >= 1) {
+      return 'Il y a ' + interval + ' ' + intervals[i].label + (interval > 1 ? 's' : '');
+    }
+  }
+  return 'À l\'instant';
+}
+
+// Générer un UUID simple
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = (Math.random() * 16) | 0;
+    var v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+// Escape HTML
+function escapeHTML(str) {
+  var div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// Détecter iOS
+function isIOS() {
+  return /iPhone|iPad|iPod/.test(navigator.userAgent);
+}
+
+// Vérifier si on est dans une PWA
+function isPWA() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+
+/* ════════════════════════════════════════════
+   HEARTBEAT PRÉSENCE — Système de présence temps réel
+   Envoie régulièrement un heartbeat pour signaler que l'utilisateur est actif
+   Lit la présence du partenaire pour afficher le point vert
 ════════════════════════════════════════════ */
 (function(){
   var PRESENCE_TABLE  = 'v2_presence';
@@ -665,7 +588,11 @@ async function _yamSendSubToServer(sub) {
   try {
     await fetch(SB2_EDGE_PUSH, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-app-secret': SB2_APP_SECRET },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-app-secret': SB2_APP_SECRET,
+        'Authorization': 'Bearer ' + SB2_KEY
+      },
       body: JSON.stringify({
         action:    'subscribe',
         user_id:   user.id,
@@ -713,7 +640,11 @@ window.yamPushNotify = async function(opts) {
   try {
     await fetch(SB2_EDGE_PUSH, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-app-secret': SB2_APP_SECRET },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-app-secret': SB2_APP_SECRET,
+        'Authorization': 'Bearer ' + SB2_KEY
+      },
       body: JSON.stringify({
         action:         'notify',
         couple_id:      user.couple_id,
