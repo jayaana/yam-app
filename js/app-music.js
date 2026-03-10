@@ -426,102 +426,6 @@ function filterSongs(q){
     document.body.classList.remove('mp-active');
   }
 
-  /* ── Media Session API — contrôles écran verrouillé iOS ──
-     Règles d'architecture :
-     - Les setActionHandler sont enregistrés UNE SEULE FOIS (au chargement du mini player)
-     - Ils lisent toujours `currentAudio` en direct → jamais de closure sur un audioEl périmé
-     - _yamMediaSession() ne fait QUE mettre à jour les métadonnées + relancer le tick de position
-     - loadedmetadata est nettoyé avant d'être réajouté pour éviter les doublons
-  ── */
-
-  // Tick de position — une seule instance globale
-  window._yamMsIv = null;
-
-  function _yamMsStopTick(){
-    if(window._yamMsIv){ clearInterval(window._yamMsIv); window._yamMsIv = null; }
-  }
-
-  function _yamMsUpdatePosition(){
-    if(!('mediaSession' in navigator)) return;
-    var a = currentAudio;
-    if(!a || !a.duration || !isFinite(a.duration)) return;
-    try {
-      navigator.mediaSession.setPositionState({
-        duration:     a.duration,
-        playbackRate: a.playbackRate || 1,
-        position:     Math.min(a.currentTime || 0, a.duration)
-      });
-    } catch(e){}
-  }
-
-  function _yamMsStartTick(){
-    _yamMsStopTick();
-    window._yamMsIv = setInterval(function(){
-      if(!currentAudio || currentAudio.paused){ _yamMsStopTick(); return; }
-      _yamMsUpdatePosition();
-    }, 1000);
-  }
-
-  // Enregistrement des handlers UNE SEULE FOIS
-  (function _yamMsInitHandlers(){
-    if(!('mediaSession' in navigator)) return;
-    navigator.mediaSession.setActionHandler('play', function(){
-      if(window.mpToggle) mpToggle();
-    });
-    navigator.mediaSession.setActionHandler('pause', function(){
-      if(window.mpToggle) mpToggle();
-    });
-    navigator.mediaSession.setActionHandler('nexttrack', function(){
-      if(window.mpNext) mpNext();
-    });
-    navigator.mediaSession.setActionHandler('previoustrack', function(){
-      if(window.mpPrev) mpPrev();
-    });
-    navigator.mediaSession.setActionHandler('seekto', function(details){
-      var a = currentAudio;
-      if(a && details.seekTime !== undefined){
-        a.currentTime = details.seekTime;
-        _yamMsUpdatePosition();
-        if(window.mpUpdateProgress) mpUpdateProgress();
-      }
-    });
-  })();
-
-  // Appelée à chaque nouvelle piste — met à jour métadonnées + relance le tick
-  function _yamMediaSession(songData){
-    if(!('mediaSession' in navigator)) return;
-
-    navigator.mediaSession.playbackState = 'playing';
-
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title:  songData ? songData.title  : '',
-      artist: songData ? songData.artist : '',
-      album:  'YAM — You And Me'
-    });
-
-    // Attend que l'audio soit chargé pour avoir une durée valide, puis démarre le tick
-    var a = currentAudio;
-    if(!a) return;
-
-    // Retire l'ancien listener loadedmetadata s'il existe pour éviter les doublons
-    if(a._yamMsMetaFn){ a.removeEventListener('loadedmetadata', a._yamMsMetaFn); a._yamMsMetaFn = null; }
-
-    function _onMeta(){
-      _yamMsUpdatePosition();
-      _yamMsStartTick();
-    }
-
-    if(a.readyState >= 1 && a.duration && isFinite(a.duration)){
-      // Métadonnées déjà disponibles
-      _onMeta();
-    } else {
-      // Attend loadedmetadata
-      a._yamMsMetaFn = _onMeta;
-      a.addEventListener('loadedmetadata', _onMeta, { once: true });
-    }
-  }
-  window._yamMediaSession = _yamMediaSession;
-
   // Update mini player state from currentAudio
   window.mpUpdate = function(){
     if(!currentAudio || !currentRow){
@@ -625,14 +529,12 @@ function filterSongs(q){
     if(!currentAudio) return;
     if(currentAudio.paused){
       currentAudio.play();
-      if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
       if(currentBtn){ currentBtn.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor" style="width:12px;height:12px"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'; currentBtn.classList.add('active'); }
       if(currentRow){ currentRow.classList.add('playing'); }
       particleActive = (window._currentTab === 'musique' || window._currentTab === 'nous');
       showDance();
     } else {
       currentAudio.pause();
-      if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
       if(currentBtn){ currentBtn.innerHTML='&#9654;'; currentBtn.classList.remove('active'); }
       if(currentRow){ currentRow.classList.remove('playing'); }
       particleActive=false; hideDance();
@@ -648,7 +550,6 @@ function filterSongs(q){
 
   window.mpStop = function(){
     if('mediaSession' in navigator){ navigator.mediaSession.playbackState = 'none'; navigator.mediaSession.metadata = null; }
-    if(window._yamMsIv){ clearInterval(window._yamMsIv); window._yamMsIv = null; }
     stopCurrent();
     mpHide();
     var navMus = document.getElementById('navMusique');
@@ -1446,3 +1347,112 @@ function filterSongs(q){
     res.appendChild(row);
   });
 }
+
+// ════════════════════════════════════════════════════════════
+// MEDIA SESSION API — Contrôles écran verrouillé iOS / AirPods
+// Bloc indépendant chargé après tous les autres modules.
+// Les handlers lisent currentAudio en direct — aucune closure périmée.
+// ════════════════════════════════════════════════════════════
+(function(){
+  if(!('mediaSession' in navigator)) return;
+
+  // ── Tick de position (barre de progression sur l'écran verrouillé) ──
+  var _msIv = null;
+
+  function _stopTick(){
+    if(_msIv){ clearInterval(_msIv); _msIv = null; }
+  }
+
+  function _updatePos(){
+    var a = (typeof currentAudio !== 'undefined') ? currentAudio : null;
+    if(!a || !a.duration || !isFinite(a.duration) || a.duration <= 0) return;
+    var pos = a.currentTime || 0;
+    if(pos > a.duration) pos = a.duration;
+    try {
+      navigator.mediaSession.setPositionState({
+        duration:     a.duration,
+        playbackRate: 1,
+        position:     pos
+      });
+    } catch(e){}
+  }
+
+  function _startTick(){
+    _stopTick();
+    _msIv = setInterval(function(){
+      var a = (typeof currentAudio !== 'undefined') ? currentAudio : null;
+      if(!a || a.paused){ _stopTick(); return; }
+      _updatePos();
+    }, 1000);
+  }
+
+  // ── Handlers enregistrés une seule fois ──
+  navigator.mediaSession.setActionHandler('play', function(){
+    if(window.mpToggle) window.mpToggle();
+  });
+  navigator.mediaSession.setActionHandler('pause', function(){
+    if(window.mpToggle) window.mpToggle();
+  });
+  navigator.mediaSession.setActionHandler('nexttrack', function(){
+    if(window.mpNext) window.mpNext();
+  });
+  navigator.mediaSession.setActionHandler('previoustrack', function(){
+    if(window.mpPrev) window.mpPrev();
+  });
+  navigator.mediaSession.setActionHandler('seekto', function(details){
+    var a = (typeof currentAudio !== 'undefined') ? currentAudio : null;
+    if(!a || details.seekTime === undefined) return;
+    var t = parseFloat(details.seekTime);
+    if(isNaN(t) || t < 0) return;
+    if(a.duration && isFinite(a.duration)) t = Math.min(t, a.duration);
+    a.currentTime = t;
+    if(window.mpUpdateProgress) window.mpUpdateProgress();
+    _updatePos();
+  });
+
+  // ── Appelée à chaque nouvelle piste ──
+  window._yamMediaSession = function(songData){
+    // Métadonnées
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title:  (songData && songData.title)  ? songData.title  : '',
+      artist: (songData && songData.artist) ? songData.artist : '',
+      album:  'YAM — You And Me'
+    });
+    navigator.mediaSession.playbackState = 'playing';
+
+    // Démarre le tick de position — attend la durée si pas encore dispo
+    _stopTick();
+    var a = (typeof currentAudio !== 'undefined') ? currentAudio : null;
+    if(!a) return;
+
+    if(a.duration && isFinite(a.duration) && a.duration > 0){
+      _updatePos();
+      _startTick();
+    } else {
+      a.addEventListener('loadedmetadata', function _msOnMeta(){
+        a.removeEventListener('loadedmetadata', _msOnMeta);
+        _updatePos();
+        _startTick();
+      });
+    }
+  };
+
+  // ── Sync playbackState avec les événements natifs audio ──
+  document.addEventListener('play', function(e){
+    if(e.target && e.target.tagName === 'AUDIO'){
+      navigator.mediaSession.playbackState = 'playing';
+    }
+  }, true);
+  document.addEventListener('pause', function(e){
+    if(e.target && e.target.tagName === 'AUDIO'){
+      navigator.mediaSession.playbackState = 'paused';
+      _stopTick();
+    }
+  }, true);
+  document.addEventListener('ended', function(e){
+    if(e.target && e.target.tagName === 'AUDIO'){
+      _stopTick();
+    }
+  }, true);
+
+})();
