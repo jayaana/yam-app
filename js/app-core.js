@@ -684,12 +684,21 @@ window.yamPushNotify = async function(opts) {
     }).catch(function(){ setDot(false); });
   }
 
-  /* Expose l'état en ligne du partenaire pour les autres modules */
-  window.yamIsPartnerOnline = function() {
-    if (!_lastPartnerSeen) return false;
-    var elapsed = Date.now() - _lastPartnerSeen;
-    return elapsed < OFFLINE_AFTER;
-  };
+// Vérifie en temps réel si le partenaire est en ligne avant d'envoyer un push
+// Retourne une Promise<bool>
+window.yamPartnerOnlineCheck = async function() {
+  try {
+    var user = v2GetUser();
+    if (!user) return false;
+    var other = user.role === 'girl' ? 'boy' : 'girl';
+    var r = await fetch(SB2_URL + '/rest/v1/v2_presence?couple_id=eq.' + user.couple_id
+      + '&player=eq.' + other + '&select=last_seen', { headers: sb2Headers() });
+    var rows = await r.json();
+    if (!Array.isArray(rows) || !rows.length) return false;
+    var elapsed = Date.now() - new Date(rows[0].last_seen).getTime();
+    return elapsed < 20000; // en ligne si heartbeat < 20s
+  } catch(e) { return false; }
+};
 
   /* Affiche ou cache le point vert */
   function setDot(online) {
