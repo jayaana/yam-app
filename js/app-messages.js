@@ -277,44 +277,174 @@
   function attachListeners(){
     var input    = $('dmInput');
     var sendBtn  = $('dmSendBtn');
-    var emojiBtn = $('dmEmojiBtn');
-    var picker   = $('dmEmojiPicker');
+    var photoBtn = $('dmPhotoBtn');
+    var photoInput = $('dmPhotoInput');
 
     if(input){
       input.addEventListener('input', function(){ updateSendBtn(); sendTypingPing(); });
       input.addEventListener('keydown', function(e){
         if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); doSend(); }
       });
-      // Scroll vers le bas au focus géré par app-ios-touch.js (_applyKeyboard)
     }
     if(sendBtn) sendBtn.addEventListener('click', doSend);
 
-    if(emojiBtn && picker){
-      picker.querySelectorAll('span').forEach(function(sp){
-        sp.addEventListener('click', function(ev){
-          ev.stopPropagation();
-          var input = $('dmInput');
-          if(!input) return;
-          var s = input.selectionStart, en = input.selectionEnd;
-          input.value = input.value.slice(0,s) + sp.textContent + input.value.slice(en);
-          input.selectionStart = input.selectionEnd = s + sp.textContent.length;
-          input.focus();
-          updateSendBtn();
-          picker.classList.remove('open');
-          emojiBtn.classList.remove('open');
-        });
-      });
-      emojiBtn.addEventListener('click', function(ev){
-        ev.stopPropagation();
-        picker.classList.toggle('open');
-        emojiBtn.classList.toggle('open', picker.classList.contains('open'));
-      });
-      document.addEventListener('click', function(){
-        if(picker) picker.classList.remove('open');
-        if(emojiBtn) emojiBtn.classList.remove('open');
+    // ── Bouton galerie photo ──
+    if(photoBtn && photoInput){
+      photoBtn.addEventListener('click', function(){ photoInput.click(); });
+      photoInput.addEventListener('change', function(){
+        var file = photoInput.files && photoInput.files[0];
+        if(!file) return;
+        photoInput.value = ''; // reset pour permettre de resélectionner le même fichier
+        _dmShowPhotoPreview(file);
       });
     }
   }
+
+  /* ══ PHOTOS ══════════════════════════════════════════════════════════ */
+
+  var _dmPendingPhotoBlob = null;
+
+  // Compression canvas avant upload
+  function _dmCompressImage(file, maxW, maxH, quality, cb){
+    var img = new Image();
+    var url = URL.createObjectURL(file);
+    img.onload = function(){
+      var w = img.naturalWidth, h = img.naturalHeight;
+      var ratio = Math.min(maxW / w, maxH / h, 1);
+      var cw = Math.round(w * ratio), ch = Math.round(h * ratio);
+      var canvas = document.createElement('canvas');
+      canvas.width = cw; canvas.height = ch;
+      canvas.getContext('2d').drawImage(img, 0, 0, cw, ch);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(function(blob){ cb(blob); }, 'image/jpeg', quality);
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); cb(null); };
+    img.src = url;
+  }
+
+  // Afficher la prévisualisation avant envoi
+  function _dmShowPhotoPreview(file){
+    _dmCompressImage(file, 1200, 1200, 0.82, function(blob){
+      if(!blob) return;
+      _dmPendingPhotoBlob = blob;
+      var previewUrl = URL.createObjectURL(blob);
+      var overlay  = document.getElementById('dmPhotoPreview');
+      var img      = document.getElementById('dmPhotoPreviewImg');
+      var btnSend  = document.getElementById('dmPhotoPreviewSend');
+      var btnCancel= document.getElementById('dmPhotoPreviewCancel');
+      if(!overlay || !img) return;
+      img.src = previewUrl;
+      overlay.style.display = 'flex';
+
+      btnSend.onclick = function(){
+        overlay.style.display = 'none';
+        URL.revokeObjectURL(previewUrl);
+        _dmSendPhoto(_dmPendingPhotoBlob);
+        _dmPendingPhotoBlob = null;
+      };
+      btnCancel.onclick = function(){
+        overlay.style.display = 'none';
+        URL.revokeObjectURL(previewUrl);
+        _dmPendingPhotoBlob = null;
+      };
+      document.getElementById('dmPhotoPreviewBg').onclick = btnCancel.onclick;
+    });
+  }
+
+  // Upload vers Supabase Storage + envoi du message
+  function _dmSendPhoto(blob){
+    var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
+    var coupleId = s && s.user ? s.user.couple_id : null;
+    if(!coupleId || !identity) return;
+
+    var uuid = 'dm_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    var path = 'dm_photos/' + coupleId + '/' + uuid + '.jpg';
+    var storageUrl = SB2_URL + '/storage/v1/object/images/' + path;
+
+    // Afficher une miniature "en cours d'envoi" immédiatement
+    var tmpId  = 'tmp_photo_' + Date.now();
+    var localUrl = URL.createObjectURL(blob);
+    var tmpMsg = {
+      id: tmpId, sender: identity, message_type: 'photo',
+      photo_url: localUrl, text: '', seen: false,
+      created_at: new Date().toISOString()
+    };
+    cache.push(tmpMsg);
+    appendBubble(tmpMsg, cache.length - 1, cache);
+    scrollBottom();
+
+    // Upload Storage
+    fetch(storageUrl, {
+      method: 'POST',
+      headers: Object.assign(sb2Headers(), { 'Content-Type': 'image/jpeg', 'x-upsert': 'true' }),
+      body: blob
+    })
+    .then(function(r){
+      if(!r.ok) throw new Error('Upload failed ' + r.status);
+      // URL publique
+      var publicUrl = SB2_URL + '/storage/v1/object/public/images/' + path;
+      // Enregistrer le message en base
+      return fetch(SB2_URL + '/rest/v1/' + TABLE, {
+        method: 'POST',
+        headers: sb2Headers({'Prefer':'return=representation'}),
+        body: JSON.stringify({
+          couple_id: coupleId, sender: identity,
+          text: '', message_type: 'photo', photo_url: publicUrl
+        })
+      });
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(rows){
+      var real = Array.isArray(rows) ? rows[0] : null;
+      URL.revokeObjectURL(localUrl);
+      if(real && real.id){
+        // Remplacer le tmp dans le cache
+        for(var i=0; i<cache.length; i++){
+          if(cache[i].id === tmpId){ cache[i] = real; break; }
+        }
+        // Mettre à jour le data-id dans le DOM
+        var node = document.querySelector('[data-id="'+tmpId+'"]');
+        if(node){
+          node.dataset.id = real.id;
+          // Remplacer l'URL locale par l'URL publique
+          var img = node.querySelector('.dm-photo-inner img');
+          if(img) img.src = real.photo_url;
+          var inner = node.querySelector('.dm-photo-inner');
+          if(inner) inner.classList.remove('sending');
+        }
+      }
+      // Push notif
+      if(typeof window.yamPushNotify==='function'){
+        window.yamPartnerOnlineCheck().then(function(online){
+          if(!online){
+            var _me3 = v2GetUser && v2GetUser();
+            var pName = (_me3 && _me3.pseudo) || (v2GetPartnerPseudo && v2GetPartnerPseudo()) || 'Partenaire';
+            window.yamPushNotify({ title: pName + ' 📷', body: 'T\'a envoyé une photo', tag: 'yam-message', data: { tab: 'messages' } });
+          }
+        });
+      }
+    })
+    .catch(function(err){
+      console.error('[DM PHOTO]', err);
+      URL.revokeObjectURL(localUrl);
+      // Retirer la miniature en erreur
+      cache = cache.filter(function(m){ return m.id !== tmpId; });
+      var node = document.querySelector('[data-id="'+tmpId+'"]');
+      if(node) node.remove();
+      if(typeof showToast === 'function') showToast('Erreur envoi photo', 'error');
+    });
+  }
+
+  // Ouvrir une photo en plein écran
+  window._dmOpenPhotoViewer = function(url){
+    var v = document.getElementById('dmPhotoViewer');
+    var img = document.getElementById('dmPhotoViewerImg');
+    if(!v || !img) return;
+    img.src = url;
+    v.style.display = 'flex';
+    document.getElementById('dmPhotoViewerClose').onclick = function(){ v.style.display = 'none'; img.src = ''; };
+    document.getElementById('dmPhotoViewerBg').onclick    = function(){ v.style.display = 'none'; img.src = ''; };
+  };
 
   /* ══ FLASH NOUVEAU MESSAGE ══ */
   function flashNewMsg(){
@@ -416,7 +546,7 @@
     var txt  = $('dmReplyBarText');
     if(!bar || !txt) return;
     var who  = (typeof v2GetDisplayName==="function"?v2GetDisplayName(msg.sender):(msg.sender==="girl"?"Elle":"Lui"));
-    var preview = msg.message_type === 'audio' ? '🎤 Vocal' : (msg.text || '');
+    var preview = msg.message_type === 'audio' ? '🎤 Vocal' : (msg.message_type === 'photo' ? '📷 Photo' : (msg.text || ''));
     if(preview.length > 40) preview = preview.slice(0,40) + '…';
     txt.textContent = who + ' : ' + preview;
     bar.classList.add('show');
@@ -898,8 +1028,37 @@
       el.appendChild(sp);
     }
 
-    var wrap = document.createElement('div');
-    wrap.className = 'dm-msg-wrap' + (mine ? ' mine' : '');
+    // ── Rendu spécial PHOTO (sans bulle, style Instagram) ──
+    if(msg.message_type === 'photo' && msg.photo_url && !msg.deleted){
+      var photoWrap = document.createElement('div');
+      photoWrap.className = 'dm-photo-wrap' + (mine ? ' mine' : '');
+      photoWrap.dataset.id = msg.id;
+
+      var inner = document.createElement('div');
+      inner.className = 'dm-photo-inner' + (String(msg.id).indexOf('tmp_') === 0 ? ' sending' : '');
+
+      var img = document.createElement('img');
+      img.src = msg.photo_url;
+      img.alt = 'Photo';
+      img.loading = 'lazy';
+
+      var d  = new Date(msg.created_at);
+      var ts = ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+      var timeEl = document.createElement('div');
+      timeEl.className = 'dm-photo-time';
+      timeEl.textContent = ts;
+
+      inner.appendChild(img);
+      inner.appendChild(timeEl);
+      photoWrap.appendChild(inner);
+      el.appendChild(photoWrap);
+
+      // Tap → plein écran
+      inner.addEventListener('click', function(){
+        if(window._dmOpenPhotoViewer) window._dmOpenPhotoViewer(msg.photo_url);
+      });
+      return; // pas de bulle classique
+    }
     if(!samePrev) wrap.classList.add('first-in-group');
     if(!sameNext) wrap.classList.add('last-in-group');
     wrap.dataset.id = msg.id;
@@ -1143,7 +1302,7 @@
 
     // Capture reply avant de le cancel
     var replyId   = _replyMsg ? _replyMsg.id   : null;
-    var replyText = _replyMsg ? (_replyMsg.message_type === 'audio' ? '🎤 Vocal' : (_replyMsg.text || '')) : null;
+    var replyText = _replyMsg ? (_replyMsg.message_type === 'audio' ? '🎤 Vocal' : (_replyMsg.message_type === 'photo' ? '📷 Photo' : (_replyMsg.text || ''))) : null;
     var replySender = _replyMsg ? _replyMsg.sender : null;
     window.dmCancelReply();
 
@@ -1396,7 +1555,7 @@
 
       if(p && last){
         var who = (typeof v2GetDisplayName==="function"?v2GetDisplayName(last.sender):(last.sender==="girl"?"Elle":"Lui"));
-        var txt = last.deleted ? '🚫 Message supprimé' : (last.message_type === 'audio' ? '🎤 Vocal' : (last.text || ''));
+        var txt = last.deleted ? '🚫 Message supprimé' : (last.message_type === 'audio' ? '🎤 Vocal' : (last.message_type === 'photo' ? '📷 Photo' : (last.text || '')));
         if(txt.length > 34) txt = txt.slice(0,34) + '…';
       }
       if(t){
