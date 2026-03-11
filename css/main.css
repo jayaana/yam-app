@@ -4481,7 +4481,6 @@ body.light .dm-id-overlay { background: transparent; }
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
-  overflow:visible;
 }
 .dm-msg-wrap.has-reaction { margin-bottom: 18px; }
 @keyframes dmMsgIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
@@ -4490,7 +4489,6 @@ body.light .dm-id-overlay { background: transparent; }
 .dm-bubble {
   max-width:75%; padding:9px 13px; border-radius:20px;
   font-size:14px; line-height:1.5; word-break:break-word; position:relative;
-  overflow:visible;
 }
 .dm-msg-wrap:not(.mine) .dm-bubble { background:var(--s2); color:var(--text); border-radius:20px 20px 20px 4px; }
 .dm-msg-wrap:not(.mine).first-in-group .dm-bubble { border-radius:4px 20px 20px 20px; }
@@ -4524,12 +4522,7 @@ body.light .dm-msg-wrap.mine .dm-bubble {
   flex-shrink: 0;
 }
 body.light .dm-seen-label { color: var(--muted); }
-.dm-react {
-  position:absolute; bottom:-10px; font-size:13px;
-  background:var(--s1); border:1px solid var(--border); border-radius:10px;
-  padding:1px 4px; cursor:pointer; user-select:none; transition:transform 0.15s;
-}
-/* dm-react positioning — voir bloc réactions Instagram ci-dessous */
+/* dm-react — voir bloc réactions Instagram */
 
 /* ── Menu contextuel messages ── overlay Instagram ── */
 
@@ -4648,50 +4641,44 @@ body.light .dm-ctx-menu.dm-ctx-menu-insta .dm-ctx-item:hover { background: rgba(
 .dm-ctx-menu.dm-ctx-menu-insta .dm-ctx-item.danger { color: #ff5555; }
 
 /* ── Réactions style Instagram — avatar + emoji ── */
+
+/* Row de réactions : sous la bulle, dans le flux normal */
+.dm-react-row {
+  display: flex; flex-direction: row; gap: 4px;
+  padding-left: 32px; /* aligner avec les bulles reçues (avatar 26px + gap 6px) */
+  margin-top: -4px; margin-bottom: 4px;
+}
+.dm-react-row.mine {
+  padding-left: 0; padding-right: 8px;
+  justify-content: flex-end;
+}
+
+/* Chip réaction */
 .dm-react {
-  position: absolute; bottom: -14px;
+  display: inline-flex; align-items: center; gap: 3px;
   background: var(--s1); border: 1px solid var(--border);
   border-radius: 20px; padding: 3px 7px 3px 4px;
-  font-size: 13px; cursor: pointer; user-select: none;
-  transition: transform 0.15s; box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-  display: inline-flex; align-items: center; gap: 3px;
-  white-space: nowrap; z-index: 3;
+  cursor: pointer; user-select: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transition: transform 0.15s;
+  white-space: nowrap;
 }
-.dm-react:hover { transform: scale(1.12); }
-.dm-react-avatar {
-  width: 18px; height: 18px; border-radius: 50%;
-  object-fit: cover; flex-shrink: 0;
-  border: 1.5px solid var(--border);
-  display: block;
-  max-width: 18px; max-height: 18px;
-}
-.dm-react-avatar-fb { font-size: 13px; line-height: 1; }
-.dm-react-em { font-size: 14px; line-height: 1; }
+.dm-react:hover { transform: scale(1.08); }
+body.light .dm-react { background:#fff; border-color:rgba(0,0,0,0.1); }
 
-/* Positionnement bulle texte — côte à côte */
-/* Message reçu (not mine) : aligné à droite de la bulle */
-.dm-msg-wrap:not(.mine) .dm-bubble .dm-react:first-of-type { right: -6px; }
-.dm-msg-wrap:not(.mine) .dm-bubble .dm-react:nth-of-type(2){ right: -6px; transform: translateX(-110%); }
-/* Message envoyé (mine) : aligné à gauche de la bulle */
-.dm-msg-wrap.mine .dm-bubble .dm-react:first-of-type { left: -6px; }
-.dm-msg-wrap.mine .dm-bubble .dm-react:nth-of-type(2){ left: -6px; transform: translateX(110%); }
-/* Réaction commune (both) */
-.dm-msg-wrap:not(.mine) .dm-react-both { right: -6px; }
-.dm-msg-wrap.mine .dm-react-both       { left: -6px; }
-
-/* Espace en bas pour les réactions */
-.dm-msg-wrap.has-reaction { margin-bottom: 20px; }
+/* Espace sous le message avec réaction */
+.dm-msg-wrap.has-reaction { margin-bottom: 2px; }
 
 /* Réaction sur photo */
 /* Réaction sur photo — positionnée sur dm-photo-inner (overflow:hidden retiré) */
 .dm-photo-wrap { position: relative; }
 .dm-photo-inner.has-reaction { overflow: visible; }
 .dm-photo-wrap.has-reaction .dm-photo-inner { margin-bottom: 14px; overflow: visible; }
-.dm-photo-inner .dm-react { position: absolute; bottom: -14px; right: -6px; z-index: 3; }
-.dm-photo-inner .dm-react:nth-of-type(2) { right: -6px; transform: translateX(-110%); }
-.dm-photo-wrap.mine .dm-photo-inner .dm-react { right: auto; left: -6px; }
-.dm-photo-wrap.mine .dm-photo-inner .dm-react:nth-of-type(2) { left: -6px; transform: translateX(110%); }
-.dm-photo-wrap.has-reaction { padding-bottom: 18px; }
+/* Réactions photo — row sous la photo, même système que bulles */
+.dm-photo-wrap .dm-react-row { padding-left: 0; margin-top: 4px; }
+.dm-photo-wrap:not(.mine) .dm-react-row { justify-content: flex-start; }
+.dm-photo-wrap.mine .dm-react-row { justify-content: flex-end; padding-right: 0; }
+.dm-photo-wrap.has-reaction { margin-bottom: 2px; }
 
 /* ── Emoji picker modal réactions ── */
 #dmReactPickerModal {
