@@ -1476,7 +1476,10 @@
     function startLockRecording(){
       if(!identity){ showIdentityOverlay(); return; }
       isLockRecording = true;
-      getStream().then(function(stream){
+      // Utiliser cachedStream s'il a été pré-chargé dans touchstart
+      var p = (cachedStream && cachedStream.active) ? Promise.resolve(cachedStream) : getStream();
+      p.then(function(stream){
+        cachedStream = stream;
         if(!isLockRecording) return; // annulé entre temps
         lockCancelled   = false;
         lockAudioChunks = [];
@@ -1503,8 +1506,8 @@
         lockMediaRec = new MediaRecorder(stream, {mimeType: mimeType});
         lockMediaRec.addEventListener('dataavailable', function(e){ if(e.data.size>0) lockAudioChunks.push(e.data); });
         lockMediaRec.addEventListener('stop', function(){
-          stream.getTracks().forEach(function(t){ t.stop(); });
-          cachedStream = null;
+          // Ne pas stopper les tracks — garder le stream en vie dans cachedStream
+          // pour éviter que iOS redemande la permission micro à la prochaine utilisation.
           if(!lockCancelled && lockAudioChunks.length){
             var blob = new Blob(lockAudioChunks, {type: lockMediaRec.mimeType});
             var duration = (Date.now() - lockRecStart) / 1000;
@@ -1620,8 +1623,9 @@
       mediaRec = new MediaRecorder(stream, {mimeType: mimeType});
       mediaRec.addEventListener('dataavailable', function(e){ if(e.data.size>0) audioChunks.push(e.data); });
       mediaRec.addEventListener('stop', function(){
-          stream.getTracks().forEach(function(t){ t.stop(); });
-          cachedStream = null;
+        // Ne pas stopper les tracks — garder le stream en vie dans cachedStream
+        // pour éviter que iOS redemande la permission micro à la prochaine utilisation.
+        // Les tracks seront stoppés uniquement par _dmReleaseStream() à la fermeture du chat.
         if(!cancelled && audioChunks.length){
           var blob = new Blob(audioChunks, {type: mediaRec.mimeType});
           var duration = (Date.now() - recStart) / 1000;
@@ -1726,6 +1730,9 @@
       reader.readAsDataURL(blob);
     }
 
+    // Stream pré-chargé dès le touchstart pour éviter le délai async au démarrage
+    var _pendingStream = null;
+
     micBtn.addEventListener('touchstart', function(e){
       e.preventDefault();
       if(isLockRecording) return;
@@ -1733,11 +1740,13 @@
       swipeStartX = touch.clientX;
       swipeDeltaX = 0;
       touchStartTime = Date.now();
-      startRecording();
+      // Lancer getUserMedia immédiatement dès le touchstart — Dynamic Island s'allume,
+      // le stream sera prêt quand touchend arrivera (quelques ms plus tard).
+      _pendingStream = getStream().catch(function(){ _pendingStream = null; });
     }, {passive: false});
 
     micBtn.addEventListener('touchmove', function(e){
-      if(swipeStartX === null || !isRecording) return;
+      if(swipeStartX === null) return;
       var touch = e.touches[0];
       var dx = touch.clientX - swipeStartX;
       if(dx > 0) dx = 0;
@@ -1749,16 +1758,10 @@
       micBtn.classList.add('swiping');
       recBar.classList.add('swiping');
 
-      // Mic suit le doigt légèrement
       micBtn.style.transform = 'translateX(' + Math.max(dx * 0.5, -SWIPE_CANCEL * 0.5) + 'px)';
-
-      // Poubelle rouge au seuil danger
       if(recTrash) recTrash.classList.toggle('danger', danger);
-
-      // Barre disparaît au seuil extrême — poubelle extrême apparaît à la place du bouton photo
       recBar.classList.toggle('extreme', extreme);
       if(extremeTrash) extremeTrash.classList.toggle('active', extreme);
-      // Micro invisible en mode extreme — seule la poubelle rouge reste visible
       micBtn.classList.toggle('extreme-hide', extreme);
 
     }, {passive: true});
@@ -1767,28 +1770,43 @@
       var elapsed = Date.now() - touchStartTime;
       var isTap = elapsed < TAP_MAX_MS && Math.abs(swipeDeltaX) < 10;
 
-      // Si mode lock déjà actif — ne rien faire, les boutons lock gèrent eux-mêmes
-      if(isLockRecording){ swipeStartX = null; swipeDeltaX = 0; return; }
+      if(isLockRecording){ swipeStartX = null; swipeDeltaX = 0; _pendingStream = null; return; }
 
-      // Tap court = mode verrouillé
+      var streamPromise = _pendingStream || getStream();
+      _pendingStream = null;
+
       if(isTap){
-        if(isRecording){
-          // On était en mode hold (rare) — stopper proprement sans envoyer, relancer en lock
-          stopRecording(false);
-        }
-        _closeLockBar(); // au cas où
-        startLockRecording();
+        // Tap court = mode lock — utiliser le stream déjà ouvert
+        streamPromise.then(function(stream){
+          if(!stream) return;
+          cachedStream = stream;
+          startLockRecording();
+        }).catch(function(err){
+          console.warn('[MIC]', err);
+          if(typeof showToast==='function') showToast('Micro non disponible', 'error');
+        });
         swipeStartX = null; swipeDeltaX = 0;
         return;
       }
 
-      // Cas 3 : hold normal — annuler ou envoyer selon swipe
-      if(!isRecording){ swipeStartX = null; swipeDeltaX = 0; return; }
-      if(Math.abs(swipeDeltaX) >= SWIPE_CANCEL){
-        cancelRecording();
-      } else {
-        stopRecording(true);
-      }
+      // Hold normal — utiliser le stream déjà ouvert
+      streamPromise.then(function(stream){
+        if(!stream) return;
+        cachedStream = stream;
+        isRecording = true;
+        _doRecord(stream);
+        // Si touchend est déjà passé avant que le stream soit prêt, stopper immédiatement
+        if(!isRecording){ return; }
+        // Vérifier si le doigt a été levé entre temps
+        if(Math.abs(swipeDeltaX) >= SWIPE_CANCEL){
+          cancelRecording();
+        }
+      }).catch(function(err){
+        console.warn('[MIC]', err);
+        if(typeof showToast==='function') showToast('Micro non disponible', 'error');
+      });
+
+      swipeStartX = null; swipeDeltaX = 0;
     }, {passive: true});
 
     micBtn.addEventListener('touchcancel', function(){ cancelRecording(); }, {passive:true});
