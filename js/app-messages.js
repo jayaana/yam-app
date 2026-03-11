@@ -1364,10 +1364,10 @@
   /* ══ ENREGISTREMENT VOCAL ══ */
   (function(){
     var micBtn     = $('dmMicBtn');
-    var recBar     = $('dmRecIndicator');   // la barre overlay
-    var recInner   = recBar ? recBar.querySelector('.dm-rec-bar-inner') : null;
+    var recBar     = $('dmRecIndicator');
     var recTime    = $('dmRecTime');
-    var recTrash   = $('dmRecBarTrash') || (recBar ? recBar.querySelector('.dm-rec-bar-trash') : null);
+    var recTrash   = recBar ? recBar.querySelector('.dm-rec-bar-trash') : null;
+    var recLock    = $('dmRecLock');
     var recWaveform= $('dmRecWaveform');
     var dmInput    = $('dmInput');
     if(!micBtn || !recBar) return;
@@ -1378,20 +1378,17 @@
     var recTimer    = null;
     var MAX_SEC     = 60;
 
-    // Web Audio pour waveform live
     var audioCtx    = null;
     var analyser    = null;
     var wvBars      = [];
     var wvRafId     = null;
     var WV_BARS     = 40;
 
-    // Permission
     var cachedStream    = null;
     var permissionAsked = false;
 
-    // Swipe
-    var SWIPE_SHOW   = 16;
     var SWIPE_CANCEL = 72;
+    var SWIPE_WARN   = 36;
     var swipeStartX  = null;
     var swipeDeltaX  = 0;
     var cancelled    = false;
@@ -1399,7 +1396,6 @@
 
     function fmtTime(s){ return Math.floor(s/60)+':'+('0'+Math.floor(s%60)).slice(-2); }
 
-    /* ── Waveform ── */
     function buildWaveform(){
       if(!recWaveform) return;
       recWaveform.innerHTML = '';
@@ -1428,12 +1424,10 @@
           analyser.getByteFrequencyData(data);
           var binStep = Math.floor(data.length / WV_BARS);
           for(var i=0; i<WV_BARS; i++){
-            // Symmetrical : mirrors from center like Instagram
             var idx = i < WV_BARS/2
               ? Math.floor(i * binStep)
               : Math.floor((WV_BARS - 1 - i) * binStep);
             var v = data[idx] / 255;
-            // Enhance contrast : min 3px, max 24px
             var h = Math.round(3 + v * v * 21);
             wvBars[i].style.height = h + 'px';
             wvBars[i].style.opacity = 0.5 + v * 0.5;
@@ -1446,11 +1440,9 @@
     function stopWaveform(){
       if(wvRafId){ cancelAnimationFrame(wvRafId); wvRafId = null; }
       if(audioCtx){ try{ audioCtx.close(); }catch(e){} audioCtx = null; analyser = null; }
-      // Reset bars
       wvBars.forEach(function(b){ b.style.height = '3px'; b.style.opacity = '0.85'; });
     }
 
-    /* ── Permission ── */
     function warmUpPermission(){
       if(permissionAsked) return;
       permissionAsked = true;
@@ -1466,7 +1458,6 @@
       });
     }
 
-    /* ── Start / Stop / Cancel ── */
     function _doRecord(stream){
       if(!isRecording) return;
       cancelled   = false;
@@ -1476,8 +1467,8 @@
       buildWaveform();
       startWaveform(stream);
 
-      // Afficher la barre, cacher le reste
       recBar.classList.add('active');
+      if(recLock) recLock.classList.add('active');
       micBtn.classList.add('recording');
       dmInput.style.opacity = '0';
       dmInput.style.pointerEvents = 'none';
@@ -1514,6 +1505,7 @@
       isRecording = false;
       micBtn.classList.remove('recording', 'swiping');
       recBar.classList.remove('active', 'swiping');
+      if(recLock){ recLock.classList.remove('active', 'danger'); recLock.style.transform = ''; }
       if(recTime) recTime.textContent = '0:00';
       dmInput.style.opacity = '';
       dmInput.style.pointerEvents = '';
@@ -1539,20 +1531,16 @@
       mediaRec.stop();
     }
 
-    function cancelRecording(){
-      _resetSwipeUI();
-      stopRecording(false);
-    }
+    function cancelRecording(){ stopRecording(false); }
 
     function _resetSwipeUI(){
       swipeStartX = null;
       swipeDeltaX = 0;
-      if(recInner) recInner.style.transform = '';
-      if(recTrash) recTrash.classList.remove('visible', 'danger');
       micBtn.style.transform = '';
+      if(recTrash) recTrash.classList.remove('danger');
+      if(recLock)  { recLock.classList.remove('danger'); recLock.style.transform = ''; }
     }
 
-    /* ── Envoi ── */
     function sendAudio(blob, duration){
       var s = JSON.parse(localStorage.getItem('yam_v2_session')||'null');
       var coupleId = s && s.user ? s.user.couple_id : null;
@@ -1605,7 +1593,6 @@
       reader.readAsDataURL(blob);
     }
 
-    /* ── Touch events ── */
     micBtn.addEventListener('touchstart', function(e){
       e.preventDefault();
       swipeStartX = e.touches[0].clientX;
@@ -1620,21 +1607,24 @@
       if(dx > 0) dx = 0;
       swipeDeltaX = dx;
       var abs = Math.abs(dx);
+      var danger = abs >= SWIPE_WARN;
 
       micBtn.classList.add('swiping');
       recBar.classList.add('swiping');
 
-      // Le contenu de la barre glisse vers la droite (recule)
-      var shift = Math.min(abs * 0.6, SWIPE_CANCEL * 0.6);
-      if(recInner) recInner.style.transform = 'translateX(' + shift + 'px)';
+      // Mic suit le doigt légèrement
+      micBtn.style.transform = 'translateX(' + Math.max(dx * 0.5, -SWIPE_CANCEL * 0.5) + 'px)';
 
-      // Le bouton mic suit aussi légèrement
-      micBtn.style.transform = 'translateX(' + Math.max(dx * 0.4, -30) + 'px)';
-
-      if(recTrash){
-        recTrash.classList.toggle('visible', abs >= SWIPE_SHOW);
-        recTrash.classList.toggle('danger',  abs >= SWIPE_CANCEL);
+      // Cadenas monte légèrement vers la poubelle
+      if(recLock){
+        var liftY = Math.min(abs * 0.3, 14);
+        recLock.style.transform = 'translateY(-' + liftY + 'px)';
+        recLock.classList.toggle('danger', danger);
       }
+
+      // Poubelle rouge au seuil
+      if(recTrash) recTrash.classList.toggle('danger', danger);
+
     }, {passive: true});
 
     micBtn.addEventListener('touchend', function(){
@@ -1647,7 +1637,6 @@
 
     micBtn.addEventListener('touchcancel', function(){ cancelRecording(); }, {passive:true});
 
-    /* ── Fallback desktop ── */
     var desktopRec = false;
     micBtn.addEventListener('click', function(e){
       if(swipeStartX !== null) return;
