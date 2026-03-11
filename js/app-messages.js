@@ -1362,82 +1362,201 @@
   window.dmSend = doSend;
 
   /* ══ ENREGISTREMENT VOCAL ══ */
-  // ✅ CORRECTION BUG #1e — Envoi message audio avec couple_id
   (function(){
     var micBtn     = $('dmMicBtn');
-    var recInd     = $('dmRecIndicator');
+    var recBar     = $('dmRecIndicator');   // la barre overlay
+    var recInner   = recBar ? recBar.querySelector('.dm-rec-bar-inner') : null;
     var recTime    = $('dmRecTime');
+    var recTrash   = $('dmRecBarTrash') || (recBar ? recBar.querySelector('.dm-rec-bar-trash') : null);
+    var recWaveform= $('dmRecWaveform');
     var dmInput    = $('dmInput');
-    if(!micBtn) return;
+    if(!micBtn || !recBar) return;
 
-    var mediaRec   = null;
-    var audioChunks= [];
-    var recStart   = null;
-    var recTimer   = null;
-    var MAX_SEC    = 60;
-    var pressing   = false;
+    var mediaRec    = null;
+    var audioChunks = [];
+    var recStart    = null;
+    var recTimer    = null;
+    var MAX_SEC     = 60;
+
+    // Web Audio pour waveform live
+    var audioCtx    = null;
+    var analyser    = null;
+    var wvBars      = [];
+    var wvRafId     = null;
+    var WV_BARS     = 40;
+
+    // Permission
+    var cachedStream    = null;
+    var permissionAsked = false;
+
+    // Swipe
+    var SWIPE_SHOW   = 16;
+    var SWIPE_CANCEL = 72;
+    var swipeStartX  = null;
+    var swipeDeltaX  = 0;
+    var cancelled    = false;
+    var isRecording  = false;
 
     function fmtTime(s){ return Math.floor(s/60)+':'+('0'+Math.floor(s%60)).slice(-2); }
 
+    /* ── Waveform ── */
+    function buildWaveform(){
+      if(!recWaveform) return;
+      recWaveform.innerHTML = '';
+      wvBars = [];
+      for(var i=0; i<WV_BARS; i++){
+        var b = document.createElement('div');
+        b.className = 'dm-rec-wv-bar';
+        b.style.height = '3px';
+        recWaveform.appendChild(b);
+        wvBars.push(b);
+      }
+    }
+
+    function startWaveform(stream){
+      if(!window.AudioContext && !window.webkitAudioContext) return;
+      try{
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 128;
+        analyser.smoothingTimeConstant = 0.7;
+        var src = audioCtx.createMediaStreamSource(stream);
+        src.connect(analyser);
+        var data = new Uint8Array(analyser.frequencyBinCount);
+        function draw(){
+          wvRafId = requestAnimationFrame(draw);
+          analyser.getByteFrequencyData(data);
+          var binStep = Math.floor(data.length / WV_BARS);
+          for(var i=0; i<WV_BARS; i++){
+            // Symmetrical : mirrors from center like Instagram
+            var idx = i < WV_BARS/2
+              ? Math.floor(i * binStep)
+              : Math.floor((WV_BARS - 1 - i) * binStep);
+            var v = data[idx] / 255;
+            // Enhance contrast : min 3px, max 24px
+            var h = Math.round(3 + v * v * 21);
+            wvBars[i].style.height = h + 'px';
+            wvBars[i].style.opacity = 0.5 + v * 0.5;
+          }
+        }
+        draw();
+      }catch(e){}
+    }
+
+    function stopWaveform(){
+      if(wvRafId){ cancelAnimationFrame(wvRafId); wvRafId = null; }
+      if(audioCtx){ try{ audioCtx.close(); }catch(e){} audioCtx = null; analyser = null; }
+      // Reset bars
+      wvBars.forEach(function(b){ b.style.height = '3px'; b.style.opacity = '0.85'; });
+    }
+
+    /* ── Permission ── */
+    function warmUpPermission(){
+      if(permissionAsked) return;
+      permissionAsked = true;
+      navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
+        s.getTracks().forEach(function(t){ t.stop(); });
+      }).catch(function(){});
+    }
+
+    function getStream(){
+      if(cachedStream && cachedStream.active) return Promise.resolve(cachedStream);
+      return navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
+        cachedStream = s; return s;
+      });
+    }
+
+    /* ── Start / Stop / Cancel ── */
+    function _doRecord(stream){
+      if(!isRecording) return;
+      cancelled   = false;
+      audioChunks = [];
+      recStart    = Date.now();
+
+      buildWaveform();
+      startWaveform(stream);
+
+      // Afficher la barre, cacher le reste
+      recBar.classList.add('active');
+      micBtn.classList.add('recording');
+      dmInput.style.opacity = '0';
+      dmInput.style.pointerEvents = 'none';
+
+      recTimer = setInterval(function(){
+        var elapsed = (Date.now() - recStart) / 1000;
+        if(recTime) recTime.textContent = fmtTime(elapsed);
+        if(elapsed >= MAX_SEC) stopRecording(true);
+      }, 200);
+
+      var mimeType = 'audio/webm';
+      if(MediaRecorder.isTypeSupported('audio/webm;codecs=opus'))      mimeType = 'audio/webm;codecs=opus';
+      else if(MediaRecorder.isTypeSupported('audio/mp4'))              mimeType = 'audio/mp4';
+      else if(MediaRecorder.isTypeSupported('audio/aac'))              mimeType = 'audio/aac';
+
+      mediaRec = new MediaRecorder(stream, {mimeType: mimeType});
+      mediaRec.addEventListener('dataavailable', function(e){ if(e.data.size>0) audioChunks.push(e.data); });
+      mediaRec.addEventListener('stop', function(){
+        stream.getTracks().forEach(function(t){ t.stop(); });
+        cachedStream = null;
+        if(!cancelled && audioChunks.length){
+          var blob = new Blob(audioChunks, {type: mediaRec.mimeType});
+          var duration = (Date.now() - recStart) / 1000;
+          sendAudio(blob, duration);
+        }
+        audioChunks = [];
+      });
+      mediaRec.start();
+    }
+
+    function _closeBar(){
+      stopWaveform();
+      clearInterval(recTimer);
+      isRecording = false;
+      micBtn.classList.remove('recording', 'swiping');
+      recBar.classList.remove('active', 'swiping');
+      if(recTime) recTime.textContent = '0:00';
+      dmInput.style.opacity = '';
+      dmInput.style.pointerEvents = '';
+      _resetSwipeUI();
+    }
+
     function startRecording(){
       if(!identity){ showIdentityOverlay(); return; }
-      navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
-        pressing = true;
-        audioChunks = [];
-        recStart = Date.now();
-        micBtn.classList.add('recording');
-        recInd.classList.add('active');
-        dmInput.placeholder = 'Enregistrement…';
-
-        // Timer affiché
-        recTimer = setInterval(function(){
-          var elapsed = (Date.now() - recStart) / 1000;
-          recTime.textContent = fmtTime(elapsed);
-          if(elapsed >= MAX_SEC) stopRecording(true);
-        }, 200);
-
-        // Détection mimeType : webm/opus pour Chrome/Android, mp4 pour iOS Safari
-        var mimeType = 'audio/webm';
-        if(MediaRecorder.isTypeSupported('audio/webm;codecs=opus'))      mimeType = 'audio/webm;codecs=opus';
-        else if(MediaRecorder.isTypeSupported('audio/mp4'))              mimeType = 'audio/mp4';
-        else if(MediaRecorder.isTypeSupported('audio/aac'))              mimeType = 'audio/aac';
-        mediaRec = new MediaRecorder(stream, {mimeType: mimeType});
-        mediaRec.addEventListener('dataavailable', function(e){ if(e.data.size > 0) audioChunks.push(e.data); });
-        mediaRec.addEventListener('stop', function(){
-          stream.getTracks().forEach(function(t){ t.stop(); });
-          if(!pressing && audioChunks.length){
-            var blob = new Blob(audioChunks, {type: mediaRec.mimeType});
-            var duration = (Date.now() - recStart) / 1000;
-            sendAudio(blob, duration);
-          }
-          audioChunks = [];
-        });
-        mediaRec.start();
+      isRecording = true;
+      getStream().then(function(stream){
+        _doRecord(stream);
       }).catch(function(err){
+        isRecording = false;
         console.warn('[MIC]', err);
-        alert('Micro non disponible : ' + err.message);
+        if(typeof showToast==='function') showToast('Micro non disponible', 'error');
       });
     }
 
     function stopRecording(send){
-      if(!mediaRec || mediaRec.state === 'inactive') return;
-      clearInterval(recTimer);
-      pressing = !send;
-      micBtn.classList.remove('recording');
-      recInd.classList.remove('active');
-      recTime.textContent = '0:00';
-      dmInput.placeholder = 'Message…';
+      if(!mediaRec || mediaRec.state==='inactive'){ _closeBar(); return; }
+      cancelled = !send;
+      _closeBar();
       mediaRec.stop();
     }
 
+    function cancelRecording(){
+      _resetSwipeUI();
+      stopRecording(false);
+    }
+
+    function _resetSwipeUI(){
+      swipeStartX = null;
+      swipeDeltaX = 0;
+      if(recInner) recInner.style.transform = '';
+      if(recTrash) recTrash.classList.remove('visible', 'danger');
+      micBtn.style.transform = '';
+    }
+
+    /* ── Envoi ── */
     function sendAudio(blob, duration){
-      var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
+      var s = JSON.parse(localStorage.getItem('yam_v2_session')||'null');
       var coupleId = s && s.user ? s.user.couple_id : null;
-      if(!coupleId){
-        console.error('[DM] sendAudio: couple_id manquant');
-        return;
-      }
-      
+      if(!coupleId){ console.error('[DM] sendAudio: couple_id manquant'); return; }
       var reader = new FileReader();
       reader.onloadend = function(){
         var b64 = reader.result.split(',')[1];
@@ -1446,8 +1565,7 @@
         var tmpMsg = {
           id: tmpId, sender: identity,
           message_type: 'audio', audio_data: b64,
-          audio_mime: audioMime,
-          audio_duration: duration,
+          audio_mime: audioMime, audio_duration: duration,
           text: '', seen: false, created_at: new Date().toISOString()
         };
         cache.push(tmpMsg);
@@ -1458,28 +1576,25 @@
           method: 'POST',
           headers: sb2Headers({'Prefer':'return=representation'}),
           body: JSON.stringify({
-            couple_id: coupleId,
-            sender: identity, text: '',
+            couple_id: coupleId, sender: identity, text: '',
             message_type: 'audio', audio_data: b64,
-            audio_mime: audioMime,
-            audio_duration: Math.round(duration)
+            audio_mime: audioMime, audio_duration: Math.round(duration)
           })
         })
         .then(function(r){ return r.json(); })
         .then(function(rows){
           var real = Array.isArray(rows) ? rows[0] : null;
           if(real && real.id){
-            for(var i=0; i<cache.length; i++){
+            for(var i=0;i<cache.length;i++){
               if(cache[i].id===tmpId){ cache[i]=real; break; }
             }
             var node = document.querySelector('[data-id="'+tmpId+'"]');
             if(node) node.dataset.id = real.id;
           }
-          // Push au partenaire — message vocal (uniquement si hors ligne)
           if(typeof window.yamPushNotify==='function'){
             var _me2 = (typeof v2GetUser==='function' && v2GetUser());
-            var partnerName = (_me2 && _me2.pseudo) || (typeof v2GetPartnerPseudo==='function' && v2GetPartnerPseudo()) || 'Partenaire';
-            var _vPush = { title: partnerName + ' 🎙️', body: "T'a envoyé un message vocal", tag: 'yam-message', data: { tab: 'messages' } };
+            var partnerName = (_me2 && _me2.pseudo)||(typeof v2GetPartnerPseudo==='function' && v2GetPartnerPseudo())||'Partenaire';
+            var _vPush = { title: partnerName+' 🎙️', body:"T'a envoyé un message vocal", tag:'yam-message', data:{tab:'messages'} };
             window.yamPartnerOnlineCheck().then(function(online){
               if(!online) window.yamPushNotify(_vPush);
             });
@@ -1490,63 +1605,58 @@
       reader.readAsDataURL(blob);
     }
 
-    // ── Maintenir pour enregistrer / relâcher pour envoyer / swipe gauche pour annuler ──
-    var isRecording    = false;
-    var _touchStartX   = 0;
-    var CANCEL_THRESHOLD = 80; // px à gauche pour annuler
-    var trash = document.getElementById('dmRecTrash');
-
-    function _micReset(){
-      micBtn.classList.remove('recording', 'sliding');
-      micBtn.style.transform = '';
-      if(trash){ trash.classList.remove('visible', 'ready'); }
-    }
-
-    // Touch — maintenir
+    /* ── Touch events ── */
     micBtn.addEventListener('touchstart', function(e){
       e.preventDefault();
-      _touchStartX = e.touches[0].clientX;
-      isRecording = true;
+      swipeStartX = e.touches[0].clientX;
+      swipeDeltaX = 0;
+      if(!permissionAsked) warmUpPermission();
       startRecording();
-    }, { passive: false });
+    }, {passive: false});
 
-    // Touch — glissement
     micBtn.addEventListener('touchmove', function(e){
-      if(!isRecording) return;
-      var dx = e.touches[0].clientX - _touchStartX;
-      if(dx >= 0){ micBtn.style.transform = ''; return; }
-      var move = Math.max(dx, -CANCEL_THRESHOLD - 20);
-      micBtn.style.transform = 'translateX(' + move + 'px)';
-      micBtn.classList.add('sliding');
-      if(trash){
-        if(dx < -20)  trash.classList.add('visible');
-        else          trash.classList.remove('visible', 'ready');
-        if(dx < -CANCEL_THRESHOLD) trash.classList.add('ready');
-        else                       trash.classList.remove('ready');
+      if(swipeStartX === null || !isRecording) return;
+      var dx = e.touches[0].clientX - swipeStartX;
+      if(dx > 0) dx = 0;
+      swipeDeltaX = dx;
+      var abs = Math.abs(dx);
+
+      micBtn.classList.add('swiping');
+      recBar.classList.add('swiping');
+
+      // Le contenu de la barre glisse vers la droite (recule)
+      var shift = Math.min(abs * 0.6, SWIPE_CANCEL * 0.6);
+      if(recInner) recInner.style.transform = 'translateX(' + shift + 'px)';
+
+      // Le bouton mic suit aussi légèrement
+      micBtn.style.transform = 'translateX(' + Math.max(dx * 0.4, -30) + 'px)';
+
+      if(recTrash){
+        recTrash.classList.toggle('visible', abs >= SWIPE_SHOW);
+        recTrash.classList.toggle('danger',  abs >= SWIPE_CANCEL);
       }
-    }, { passive: true });
+    }, {passive: true});
 
-    // Touch — relâcher
-    micBtn.addEventListener('touchend', function(e){
-      if(!isRecording) return;
-      var dx = e.changedTouches[0].clientX - _touchStartX;
-      var cancel = dx < -CANCEL_THRESHOLD;
-      isRecording = false;
-      _micReset();
-      stopRecording(!cancel); // true = envoyer, false = annuler
-    }, { passive: true });
-
-    // Fallback click desktop
-    micBtn.addEventListener('click', function(e){
-      if(e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return;
-      if(!isRecording){
-        isRecording = true;
-        startRecording();
+    micBtn.addEventListener('touchend', function(){
+      if(Math.abs(swipeDeltaX) >= SWIPE_CANCEL){
+        cancelRecording();
       } else {
-        isRecording = false;
         stopRecording(true);
       }
+    }, {passive: true});
+
+    micBtn.addEventListener('touchcancel', function(){ cancelRecording(); }, {passive:true});
+
+    /* ── Fallback desktop ── */
+    var desktopRec = false;
+    micBtn.addEventListener('click', function(e){
+      if(swipeStartX !== null) return;
+      e.preventDefault();
+      if(!desktopRec){ desktopRec = true; startRecording(); }
+      else            { desktopRec = false; stopRecording(true); }
     });
+    micBtn.addEventListener('touchend', function(){ desktopRec = false; }, {passive:true});
+
   })();
 
   function markSeen(id){
