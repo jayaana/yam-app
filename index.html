@@ -3155,7 +3155,11 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
           <span>😭</span><span>💅</span><span>🥰</span><span>😈</span>
         </div>
         <div class="dm-rec-indicator" id="dmRecIndicator">
-          <div class="dm-rec-dot"></div> <span id="dmRecTime">0:00</span>
+          <div class="dm-rec-dot"></div>
+          <span id="dmRecTime">0:00</span>
+          <div class="dm-rec-trash" id="dmRecTrash">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </div>
         </div>
         <input type="text" class="dm-input" id="dmInput" placeholder="Message…" autocomplete="off" maxlength="500">
         <button class="dm-mic-btn" id="dmMicBtn" title="Maintenir pour enregistrer">
