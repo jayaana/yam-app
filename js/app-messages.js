@@ -1367,7 +1367,6 @@
     var recBar     = $('dmRecIndicator');
     var recTime    = $('dmRecTime');
     var recTrash   = recBar ? recBar.querySelector('.dm-rec-bar-trash') : null;
-    var recLock    = $('dmRecLock');
     var recWaveform= $('dmRecWaveform');
     var dmInput    = $('dmInput');
     if(!micBtn || !recBar) return;
@@ -1387,8 +1386,9 @@
     var cachedStream    = null;
     var permissionAsked = false;
 
-    var SWIPE_CANCEL = 120; // px pour déclencher l'annulation
-    var SWIPE_WARN   = 100; // px — danger seulement dans les 20 derniers px
+    var SWIPE_CANCEL  = 120; // px pour déclencher l'annulation
+    var SWIPE_WARN    = 100; // px — danger (poubelle rouge)
+    var SWIPE_EXTREME = 112; // px — barre disparaît, on voit la saisie en dessous
     var swipeStartX  = null;
     var swipeDeltaX  = 0;
     var cancelled    = false;
@@ -1468,14 +1468,6 @@
       startWaveform(stream);
 
       recBar.classList.add('active');
-      // Recalculer Y maintenant que la barre est visible (délai 1 frame pour getBoundingClientRect)
-      requestAnimationFrame(function(){
-        computeLockY();
-        if(recLock){
-          recLock.style.top = lockFixedY + 'px';
-          recLock.classList.add('active');
-        }
-      });
       micBtn.classList.add('recording');
       dmInput.style.opacity = '0';
       dmInput.style.pointerEvents = 'none';
@@ -1511,9 +1503,8 @@
       clearInterval(recTimer);
       isRecording = false;
       micBtn.classList.remove('recording', 'swiping');
-      recBar.classList.remove('active', 'swiping');
-      if(recLock){ recLock.classList.remove('active', 'danger'); }
-      // recLock.style.transform intact — CSS gère translate(-50%,-50%)
+      recBar.classList.remove('active', 'swiping', 'extreme');
+
       if(recTime) recTime.textContent = '0:00';
       dmInput.style.opacity = '';
       dmInput.style.pointerEvents = '';
@@ -1546,8 +1537,6 @@
       swipeDeltaX = 0;
       micBtn.style.transform = '';
       if(recTrash) recTrash.classList.remove('danger');
-      if(recLock)  recLock.classList.remove('danger');
-      // NE PAS toucher recLock.style.transform — le CSS gère translate(-50%,-50%)
     }
 
     function sendAudio(blob, duration){
@@ -1602,24 +1591,11 @@
       reader.readAsDataURL(blob);
     }
 
-    // Y fixe du cadenas : juste au-dessus de la barre d'enregistrement
-    var lockFixedY = null;
-    function computeLockY(){
-      var rect = recBar.getBoundingClientRect();
-      lockFixedY = rect.top - 44; // 44px au-dessus du bord haut de la barre
-    }
-
     micBtn.addEventListener('touchstart', function(e){
       e.preventDefault();
       var touch = e.touches[0];
       swipeStartX = touch.clientX;
       swipeDeltaX = 0;
-      // Calculer Y fixe depuis la barre (pas depuis le doigt)
-      computeLockY();
-      if(recLock){
-        recLock.style.left = touch.clientX + 'px';
-        recLock.style.top  = (lockFixedY || (touch.clientY - 44)) + 'px';
-      }
       if(!permissionAsked) warmUpPermission();
       startRecording();
     }, {passive: false});
@@ -1631,7 +1607,8 @@
       if(dx > 0) dx = 0;
       swipeDeltaX = dx;
       var abs = Math.abs(dx);
-      var danger = abs >= SWIPE_WARN;
+      var danger  = abs >= SWIPE_WARN;
+      var extreme = abs >= SWIPE_EXTREME;
 
       micBtn.classList.add('swiping');
       recBar.classList.add('swiping');
@@ -1639,15 +1616,11 @@
       // Mic suit le doigt légèrement
       micBtn.style.transform = 'translateX(' + Math.max(dx * 0.5, -SWIPE_CANCEL * 0.5) + 'px)';
 
-      // Cadenas : X suit le doigt, Y fixe au-dessus de la barre
-      if(recLock){
-        recLock.style.left = touch.clientX + 'px';
-        if(lockFixedY !== null) recLock.style.top = lockFixedY + 'px';
-        recLock.classList.toggle('danger', danger);
-      }
-
-      // Poubelle rouge au seuil
+      // Poubelle rouge au seuil danger
       if(recTrash) recTrash.classList.toggle('danger', danger);
+
+      // Barre disparaît au seuil extrême (juste avant annulation)
+      recBar.classList.toggle('extreme', extreme);
 
     }, {passive: true});
 
