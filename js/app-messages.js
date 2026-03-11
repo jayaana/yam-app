@@ -1059,7 +1059,9 @@
       });
       return; // pas de bulle classique
     }
-    if(!samePrev) wrap.classList.add('first-in-group');
+
+    var wrap = document.createElement('div');
+    wrap.className = 'dm-msg-wrap' + (mine ? ' mine' : '');
     if(!sameNext) wrap.classList.add('last-in-group');
     wrap.dataset.id = msg.id;
 
