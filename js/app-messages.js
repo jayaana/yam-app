@@ -1729,26 +1729,21 @@
       reader.readAsDataURL(blob);
     }
 
-    var _pendingStream = null;
-    var _swipeAtEnd    = 0;
-    var _gestureIsTap  = false; // posé dans touchend avant que le .then() de touchstart s'exécute
+    var _pendingStream  = null;
+    var _swipeAtEnd     = 0;
+    var _holdTimer      = null;
 
     micBtn.addEventListener('touchstart', function(e){
       e.preventDefault();
       if(isLockRecording) return;
       var touch = e.touches[0];
-      swipeStartX   = touch.clientX;
-      swipeDeltaX   = 0;
-      _gestureIsTap = false;
+      swipeStartX    = touch.clientX;
+      swipeDeltaX    = 0;
       touchStartTime = Date.now();
-      // getUserMedia immédiatement — Dynamic Island s'allume dès le touchstart
+
+      // Pré-charger le stream — Dynamic Island s'allume au touchstart
       _pendingStream = getStream().then(function(stream){
         cachedStream = stream;
-        // Ne démarrer _doRecord que si c'est un hold (pas un tap) et que le doigt est encore appuyé
-        if(!_gestureIsTap && swipeStartX !== null && !isLockRecording){
-          isRecording = true;
-          _doRecord(stream);
-        }
         return stream;
       }).catch(function(err){
         console.warn('[MIC]', err);
@@ -1756,6 +1751,20 @@
         _pendingStream = null;
         return null;
       });
+
+      // Timer : si le doigt est encore appuyé après TAP_MAX_MS → hold → démarrer _doRecord
+      _holdTimer = setTimeout(function(){
+        _holdTimer = null;
+        if(swipeStartX === null || isLockRecording) return;
+        var p = _pendingStream || getStream().catch(function(){ return null; });
+        p.then(function(stream){
+          if(!stream || swipeStartX === null) return;
+          cachedStream = stream;
+          isRecording = true;
+          _doRecord(stream);
+        });
+      }, TAP_MAX_MS);
+
     }, {passive: false});
 
     micBtn.addEventListener('touchmove', function(e){
@@ -1777,31 +1786,29 @@
     }, {passive: true});
 
     micBtn.addEventListener('touchend', function(){
-      var elapsed  = Date.now() - touchStartTime;
-      var isTap    = elapsed < TAP_MAX_MS && Math.abs(swipeDeltaX) < 10;
-      _swipeAtEnd  = swipeDeltaX;
-      _gestureIsTap = isTap; // posé AVANT reset et AVANT que le .then() puisse s'exécuter
-      swipeStartX  = null;
-      swipeDeltaX  = 0;
+      var elapsed = Date.now() - touchStartTime;
+      var isTap   = elapsed < TAP_MAX_MS && Math.abs(swipeDeltaX) < 10;
+      _swipeAtEnd = swipeDeltaX;
+      swipeStartX = null;
+      swipeDeltaX = 0;
 
+      if(_holdTimer){ clearTimeout(_holdTimer); _holdTimer = null; }
       if(isLockRecording){ _pendingStream = null; return; }
 
       var p = _pendingStream || getStream().catch(function(){ return null; });
       _pendingStream = null;
 
       if(isTap){
-        // Tap → mode lock, stream déjà ouvert dans touchstart
+        if(isRecording){ stopRecording(false); }
         p.then(function(stream){
           if(!stream) return;
-          // Annuler _doRecord si jamais il a démarré avant qu'on pose _gestureIsTap
-          if(isRecording){ stopRecording(false); }
           cachedStream = stream;
           startLockRecording();
         });
         return;
       }
 
-      // Hold — si _doRecord a déjà démarré dans le .then() de touchstart → arrêter
+      // Hold — _doRecord démarré via timer → arrêter
       if(isRecording){
         if(Math.abs(_swipeAtEnd) >= SWIPE_CANCEL){
           cancelRecording();
@@ -1811,7 +1818,7 @@
         return;
       }
 
-      // Hold rare : stream pas encore prêt au touchend → démarrer + arrêter dans le .then()
+      // Hold très court (doigt levé avant que le timer + getUserMedia soient prêts)
       p.then(function(stream){
         if(!stream) return;
         cachedStream = stream;
