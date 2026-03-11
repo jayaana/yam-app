@@ -4531,41 +4531,122 @@ body.light .dm-seen-label { color: var(--muted); }
 .dm-msg-wrap.mine .dm-react { left:-6px; }
 .dm-react:hover { transform:scale(1.25); }
 
-/* ── Menu contextuel messages ── */
-.dm-ctx-menu {
-  position: fixed; z-index: 9999;
-  background: var(--s1); border: 1px solid var(--border);
-  border-radius: 16px; padding: 6px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-  display: flex; flex-direction: column; gap: 2px;
-  min-width: 160px;
-  animation: dmSlideUp 0.18s cubic-bezier(.4,0,.2,1);
+/* ── Menu contextuel messages ── overlay Instagram ── */
+
+/* Overlay fond flou */
+.dm-ctx-overlay-blur {
+  position: fixed; inset: 0; z-index: 9990;
+  background: rgba(0,0,0,0.72);
+  backdrop-filter: blur(12px) saturate(0.8);
+  -webkit-backdrop-filter: blur(12px) saturate(0.8);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 16px;
+  animation: dmCtxFadeIn 0.2s ease;
 }
-.dm-ctx-reactions {
-  display: flex; gap: 4px; padding: 6px 8px 4px;
-  border-bottom: 1px solid var(--border); margin-bottom: 2px;
-  justify-content: space-around;
+body.light .dm-ctx-overlay-blur {
+  background: rgba(200,180,175,0.55);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+}
+@keyframes dmCtxFadeIn { from { opacity:0; } to { opacity:1; } }
+
+/* Message isolé (clone) */
+.dm-ctx-msg-preview {
+  max-width: 72vw; pointer-events: none;
+  animation: dmCtxPopIn 0.22s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes dmCtxPopIn {
+  from { transform: scale(0.88); opacity:0; }
+  to   { transform: scale(1);    opacity:1; }
+}
+.dm-ctx-preview-bubble {
+  background: var(--s2); border-radius: 18px;
+  padding: 10px 14px; font-size: 15px; color: var(--text);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+}
+.dm-ctx-preview-bubble.mine-preview {
+  background: var(--accent); color: #fff;
+}
+.dm-ctx-preview-photo {
+  max-width: 68vw; max-height: 38vh;
+  border-radius: 16px; object-fit: cover;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+  display: block;
+}
+
+/* Barre réactions style Instagram */
+.dm-ctx-react-bar {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  background: rgba(30,26,24,0.92);
+  border-radius: 22px; padding: 10px 16px 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.45);
+  animation: dmCtxPopIn 0.22s cubic-bezier(.34,1.56,.64,1) 0.05s both;
+  min-width: 280px;
+}
+body.light .dm-ctx-react-bar {
+  background: rgba(255,255,255,0.95);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+}
+.dm-ctx-react-hint {
+  font-size: 11px; color: rgba(255,240,230,0.45);
+  font-family: 'Bricolage Grotesque', sans-serif;
+  text-align: center; letter-spacing: 0.01em;
+}
+body.light .dm-ctx-react-hint { color: rgba(38,26,18,0.4); }
+.dm-ctx-react-row {
+  display: flex; gap: 4px; align-items: center;
 }
 .dm-ctx-react-btn {
-  font-size: 20px; cursor: pointer; padding: 4px;
-  border-radius: 8px; transition: transform 0.15s, background 0.15s;
-  user-select: none;
+  font-size: 28px; cursor: pointer;
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), background 0.15s;
+  user-select: none; -webkit-user-select: none;
 }
-.dm-ctx-react-btn:hover { transform: scale(1.3); background: var(--s2); }
-.dm-ctx-react-btn.active { transform: scale(1.15); background: var(--s2); }
-.dm-ctx-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 9px 12px; border-radius: 10px;
-  font-size: 13px; font-weight: 500; color: var(--text);
-  cursor: pointer; transition: background 0.12s;
-  user-select: none;
+.dm-ctx-react-btn:active, .dm-ctx-react-btn:hover { transform: scale(1.35); }
+.dm-ctx-react-btn.active {
+  transform: scale(1.2);
+  background: rgba(232,90,126,0.18);
+  outline: 2px solid var(--accent);
 }
-.dm-ctx-item:hover { background: var(--s2); }
-.dm-ctx-item.danger { color: #ff4444; }
-.dm-ctx-item.danger:hover { background: rgba(255,68,68,0.1); }
-.dm-ctx-overlay {
-  position: fixed; inset: 0; z-index: 9998;
+.dm-ctx-react-btn.super {
+  animation: dmSuperReact 0.45s cubic-bezier(.34,1.56,.64,1);
 }
+@keyframes dmSuperReact {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.7); }
+  70%  { transform: scale(1.45); }
+  100% { transform: scale(1.2); }
+}
+.dm-ctx-react-plus {
+  color: rgba(255,240,230,0.6); font-size: 18px;
+  background: rgba(255,255,255,0.08);
+}
+body.light .dm-ctx-react-plus { color: rgba(38,26,18,0.5); background: rgba(0,0,0,0.06); }
+.dm-ctx-react-plus:hover { background: rgba(255,255,255,0.15); }
+
+/* Menu actions */
+.dm-ctx-menu.dm-ctx-menu-insta {
+  background: rgba(30,26,24,0.94);
+  border: none; border-radius: 16px;
+  padding: 6px; min-width: 180px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  animation: dmCtxPopIn 0.2s cubic-bezier(.34,1.56,.64,1) 0.08s both;
+}
+body.light .dm-ctx-menu.dm-ctx-menu-insta {
+  background: rgba(255,255,255,0.97);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+}
+.dm-ctx-menu.dm-ctx-menu-insta .dm-ctx-item {
+  color: rgba(255,240,230,0.9); gap: 11px;
+  padding: 11px 14px; font-size: 14px;
+}
+body.light .dm-ctx-menu.dm-ctx-menu-insta .dm-ctx-item { color: var(--text); }
+.dm-ctx-menu.dm-ctx-menu-insta .dm-ctx-item:hover { background: rgba(255,255,255,0.08); }
+body.light .dm-ctx-menu.dm-ctx-menu-insta .dm-ctx-item:hover { background: rgba(0,0,0,0.05); }
+.dm-ctx-menu.dm-ctx-menu-insta .dm-ctx-item.danger { color: #ff5555; }
+
 /* Réaction affichée sur la bulle */
 .dm-react {
   position: absolute; bottom: -12px;
@@ -4577,6 +4658,59 @@ body.light .dm-seen-label { color: var(--muted); }
 .dm-msg-wrap:not(.mine) .dm-react { right: -6px; }
 .dm-msg-wrap.mine .dm-react { left: -6px; }
 .dm-react:hover { transform: scale(1.25); }
+
+/* Réaction sur photo */
+.dm-photo-wrap { position: relative; }
+.dm-photo-wrap .dm-react { bottom: -10px; right: 6px; }
+.dm-photo-wrap.mine .dm-react { right: auto; left: 6px; }
+
+/* ── Emoji picker modal réactions ── */
+#dmReactPickerModal {
+  display: none; position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  align-items: flex-end; justify-content: center;
+}
+body.light #dmReactPickerModal {
+  background: rgba(180,160,155,0.45);
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+}
+#dmReactPickerModal.open { display: flex; }
+.dm-react-picker-inner {
+  background: var(--s1); border-radius: 24px 24px 0 0;
+  width: 100%; max-width: 480px; max-height: 70vh;
+  display: flex; flex-direction: column;
+  padding: 0 0 env(safe-area-inset-bottom,0);
+  animation: dmSlideUp 0.22s cubic-bezier(.4,0,.2,1);
+}
+.dm-react-picker-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px 10px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.dm-react-picker-header span {
+  font-size: 15px; font-weight: 700; color: var(--text);
+  font-family: 'Bricolage Grotesque', sans-serif;
+}
+.dm-react-picker-close {
+  background: none; border: none; cursor: pointer;
+  color: var(--text); opacity: 0.5; padding: 4px;
+  font-size: 18px; line-height: 1;
+}
+.dm-react-picker-grid {
+  overflow-y: auto; padding: 12px 16px 20px;
+  display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px;
+}
+.dm-react-picker-em {
+  font-size: 26px; cursor: pointer; text-align: center;
+  padding: 5px; border-radius: 10px;
+  transition: transform 0.15s, background 0.12s;
+  user-select: none; -webkit-user-select: none;
+}
+.dm-react-picker-em:hover, .dm-react-picker-em:active { transform: scale(1.25); background: var(--s2); }
+.dm-react-picker-em.active { background: rgba(232,90,126,0.18); outline: 2px solid var(--accent); }
+
 /* Message supprimé */
 .dm-bubble.deleted .dm-bubble-text {
   opacity: 0.4; font-style: italic;
