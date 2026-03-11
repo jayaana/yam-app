@@ -889,13 +889,20 @@
     // ── Overlay fond flou style Instagram ──
     ctxOverlay = document.createElement('div');
     ctxOverlay.className = 'dm-ctx-overlay dm-ctx-overlay-blur';
-    // Délai anti-click synthétique iOS : le click qui suit un long-press
-    // arrive ~100-300ms après touchend et fermerait l'overlay immédiatement
+    // Sur iOS, on utilise touchend pour fermer (pas click ni touchstart)
+    // pour éviter que le touchend du long-press ou le click synthétique
+    // ne referme l'overlay immédiatement après ouverture.
+    // Délai 500ms = temps que le doigt se lève après le long-press
     var _ctxReady = false;
-    setTimeout(function(){ _ctxReady = true; }, 400);
+    setTimeout(function(){ _ctxReady = true; }, 500);
+    ctxOverlay.addEventListener('touchend', function(e){
+      if(!_ctxReady) return;
+      // Fermer seulement si le touch est directement sur l'overlay (fond)
+      if(e.target === ctxOverlay) closeCtxMenu();
+    });
     ctxOverlay.addEventListener('click', function(e){
-      if(!_ctxReady) return; // ignore le click fantôme post-long-press
-      closeCtxMenu();
+      if(!_ctxReady) return;
+      if(e.target === ctxOverlay) closeCtxMenu();
     });
     document.body.appendChild(ctxOverlay);
 
@@ -1172,25 +1179,38 @@
               lpFired = true;
               pw.style.opacity = '0';
               openCtxMenu({clientX: window.innerWidth/2, clientY: window.innerHeight/2}, m, pw, pw);
-              // Restaurer l'opacité dès que l'overlay se ferme (au prochain touchstart)
-              var restoreOpa = function(){
-                pw.style.opacity = '';
-                document.removeEventListener('touchstart', restoreOpa, true);
-              };
-              setTimeout(function(){ document.addEventListener('touchstart', restoreOpa, true); }, 300);
             }
           }, 500);
         }, {passive:true});
         pw.addEventListener('touchmove', function(){ moved = true; clearTimeout(tapT); }, {passive:true});
-        pw.addEventListener('touchend', function(){ clearTimeout(tapT); }, {passive:true});
+        pw.addEventListener('touchend', function(e){
+          clearTimeout(tapT);
+          // Si long-press déclenché : stopper la propagation du touchend
+          // pour qu'il n'atteigne pas l'overlay et ne le ferme pas
+          if(lpFired){ e.stopPropagation(); }
+        });
         pw.addEventListener('contextmenu', function(e){ e.preventDefault(); e.stopPropagation(); });
 
         // Tap court → plein écran — ignoré si long-press vient de se déclencher
         innerEl.addEventListener('click', function(e){
           if(lpFired){ lpFired = false; e.stopPropagation(); return; }
+          // Restaurer l'opacité si on arrive ici sans long-press
+          pw.style.opacity = '';
           if(window._dmOpenPhotoViewer) window._dmOpenPhotoViewer(m.photo_url);
         });
       })(msg, photoWrap, inner);
+
+      // Restaurer l'opacité quand l'overlay se ferme
+      // (écouté sur document pour capturer closeCtxMenu depuis n'importe où)
+      (function(pw){
+        var _obs = new MutationObserver(function(){
+          if(!document.getElementById || !document.querySelector('.dm-ctx-overlay-blur')){
+            pw.style.opacity = '';
+            _obs.disconnect();
+          }
+        });
+        _obs.observe(document.body, { childList: true });
+      })(photoWrap);
       return; // pas de bulle classique
     }
 
