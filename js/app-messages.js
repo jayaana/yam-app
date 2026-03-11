@@ -601,11 +601,9 @@
             }
           }
         }
-        // Ne marquer comme lu QUE si InstaLove est ouvert ET on est dans dmChatScreen
-        var hiddenPage = document.getElementById('hiddenPage');
+        // Marquer comme lu si le chat est visible
         var chatScreen = document.getElementById('dmChatScreen');
-        if(hiddenPage && hiddenPage.classList.contains('active') &&
-           chatScreen && chatScreen.style.display !== 'none' &&
+        if(chatScreen && chatScreen.style.display !== 'none' &&
            msg.sender !== identity && !msg.seen){
           markSeen(msg.id);
         }
@@ -652,12 +650,21 @@
       appendBubble(msg, i, cache);
     });
     scrollBottom();
-    // Ne marquer comme lu QUE si InstaLove est ouvert ET on est dans dmChatScreen
-    var hiddenPage = document.getElementById('hiddenPage');
+    // Marquer comme lu si le chat est visible (dmChatScreen affiché)
+    // On ne vérifie plus hiddenPage.classList.contains('active') car ce flag
+    // peut ne pas encore être posé au moment où renderAll() s'exécute (timing race).
     var chatScreen = document.getElementById('dmChatScreen');
-    if(hiddenPage && hiddenPage.classList.contains('active') && 
-       chatScreen && chatScreen.style.display !== 'none'){
-      cache.forEach(function(m){ if(m.sender !== identity && !m.seen) markSeen(m.id); });
+    if(chatScreen && chatScreen.style.display !== 'none'){
+      var toMark = cache.filter(function(m){ return m.sender !== identity && !m.seen; });
+      toMark.forEach(function(m){ markSeen(m.id); });
+      // Si des messages ont été marqués lus, re-poller le badge immédiatement
+      if(toMark.length > 0 && typeof window._dmPollUnread === 'function'){
+        setTimeout(window._dmPollUnread, 800);
+      }
+      // Reset du badge icône PWA (iOS home screen)
+      if(toMark.length > 0 && navigator.serviceWorker && navigator.serviceWorker.controller){
+        navigator.serviceWorker.controller.postMessage({ type: 'YAM_CLEAR_BADGE' });
+      }
     }
     updateSeenLabel();
   }
@@ -1275,8 +1282,17 @@
     attached = false;
     if(window._dmUpdateHeaderAvatars) window._dmUpdateHeaderAvatars();
     if(window._dmUpdateVP) window._dmUpdateVP();
+    // Reset immédiat du badge visuel dès l'ouverture
+    var lockBadge = document.getElementById('lockUnreadBadge');
+    var lockBtn   = document.getElementById('lockNavBtn');
+    if(lockBadge) lockBadge.classList.remove('visible');
+    if(lockBtn)   lockBtn.classList.remove('has-unread');
     // Toujours afficher conv directement — plus d'écran intermédiaire/logo
     showConvScreen();
+    // Re-poller le badge après que les markSeen soient partis en base
+    setTimeout(function(){
+      if(typeof window._dmPollUnread === 'function') window._dmPollUnread();
+    }, 1500);
   };
 
   var _origClose = window.closeHiddenPage;
