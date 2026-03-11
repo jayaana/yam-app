@@ -679,18 +679,7 @@ var particleActive = false;
     renderSuggestions();
   }
 
-  var sgGender = null;
-  window.sgSelectGender = function(g){
-    sgGender = g;
-    var btnG=document.getElementById('sgBtnGirl'), btnB=document.getElementById('sgBtnBoy');
-    if(btnG) btnG.className='sg-gender-btn'+(g==='girl'?' selected-girl':'');
-    if(btnB) btnB.className='sg-gender-btn'+(g==='boy'?' selected-boy':'');
-  };
-
   window.openSgModal = function(){
-    sgGender = null;
-    var bg=document.getElementById('sgBtnGirl'); if(bg) bg.className='sg-gender-btn';
-    var bb=document.getElementById('sgBtnBoy');  if(bb) bb.className='sg-gender-btn';
     ['sgTitleInput','sgArtistInput','sgNoteInput'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
     var em=document.getElementById('sgErrMsg'); if(em){ em.style.display='none'; em.textContent=''; }
     document.getElementById('sgModal').classList.add('open');
@@ -714,7 +703,6 @@ var particleActive = false;
     if(!_sg2Id){ btn.textContent='Proposer 💚'; btn.disabled=false; return; }
     var payload={couple_id:_sg2Id,title:title,artist:artist,sender:getProfile()||null};
     if(note) payload.note=note;
-    if(sgGender) payload.sender=sgGender;
     var url=SB2_URL+'/rest/v1/v2_suggestion_songs';
     fetch(url,{ method:'POST', headers:sb2Headers({'Prefer':'return=representation'}), body:JSON.stringify(payload) })
     .then(function(r){ return r.text().then(function(txt){ return {ok:r.ok,status:r.status,body:txt}; }); })
@@ -813,6 +801,58 @@ var particleActive = false;
   }
   window.closeSgEditModal=function(){ document.getElementById('sgEditModal').classList.remove('open'); _sgEditId=null; };
   document.getElementById('sgEditModal').addEventListener('click',function(e){ if(e.target===this) window.closeSgEditModal(); });
+
+  // ── Modal "Modifier les suggestions" ──
+  window.openSgManageModal = function(){
+    document.getElementById('sgManageModal').classList.add('open');
+    renderSgManageList();
+  };
+  window.closeSgManageModal = function(){ document.getElementById('sgManageModal').classList.remove('open'); };
+  document.getElementById('sgManageModal').addEventListener('click',function(e){ if(e.target===this) window.closeSgManageModal(); });
+
+  function renderSgManageList(){
+    var list=document.getElementById('sgManageList');
+    list.innerHTML='<div class="sg-empty"><span class="spinner"></span></div>';
+    var _rm=JSON.parse(localStorage.getItem('yam_v2_session')||'null');
+    var _rmId=_rm&&_rm.user?_rm.user.couple_id:null;
+    if(!_rmId){ list.innerHTML='<div class="sg-empty">Session expirée.</div>'; return; }
+    sb2Fetch('v2_suggestion_songs','couple_id=eq.'+_rmId+'&order=created_at.asc').then(function(items){
+      list.innerHTML='';
+      if(!Array.isArray(items)||!items.length){
+        list.innerHTML='<div class="sg-empty">Aucune suggestion à modifier. 🎵</div>'; return;
+      }
+      items.forEach(function(item){
+        var row=document.createElement('div'); row.className='sg-manage-row';
+        var senderLabel=item.sender==='girl'?'Elle':item.sender==='boy'?'Lui':'';
+        row.innerHTML=
+          '<div class="sg-manage-info">'+
+            '<div class="sg-manage-title">'+escSg(item.title)+'</div>'+
+            '<div class="sg-manage-artist">'+escSg(item.artist)+(item.note?' · <em>'+escSg(item.note)+'</em>':'')+'</div>'+
+          '</div>'+
+          '<button class="sg-manage-edit-btn" title="Modifier" aria-label="Modifier">'+
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'+
+          '</button>'+
+          '<button class="sg-manage-del-btn" title="Supprimer" aria-label="Supprimer">'+
+            '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>'+
+          '</button>';
+        (function(it){
+          row.querySelector('.sg-manage-edit-btn').addEventListener('click',function(e){
+            e.stopPropagation();
+            window.closeSgManageModal();
+            openSgEditModal(it);
+          });
+          row.querySelector('.sg-manage-del-btn').addEventListener('click',function(e){
+            e.stopPropagation();
+            sb2Delete('v2_suggestion_songs','id=eq.'+it.id).then(function(){
+              renderSgManageList();
+              renderSuggestions();
+            });
+          });
+        })(item);
+        list.appendChild(row);
+      });
+    }).catch(function(){ list.innerHTML='<div class="sg-empty">❌ Erreur de connexion.</div>'; });
+  }
 
   window.sgEditSave=function(){
     if(!_sgEditId) return;
