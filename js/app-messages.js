@@ -1506,9 +1506,7 @@
         lockMediaRec = new MediaRecorder(stream, {mimeType: mimeType});
         lockMediaRec.addEventListener('dataavailable', function(e){ if(e.data.size>0) lockAudioChunks.push(e.data); });
         lockMediaRec.addEventListener('stop', function(){
-          stream.getTracks().forEach(function(t){ t.stop(); });
-          cachedStream = null;
-          // Tracks stoppés → Dynamic Island s'éteint
+          // Ne pas stopper les tracks — garder le stream en vie dans cachedStream
           // pour éviter que iOS redemande la permission micro à la prochaine utilisation.
           if(!lockCancelled && lockAudioChunks.length){
             var blob = new Blob(lockAudioChunks, {type: lockMediaRec.mimeType});
@@ -1625,9 +1623,7 @@
       mediaRec = new MediaRecorder(stream, {mimeType: mimeType});
       mediaRec.addEventListener('dataavailable', function(e){ if(e.data.size>0) audioChunks.push(e.data); });
       mediaRec.addEventListener('stop', function(){
-        stream.getTracks().forEach(function(t){ t.stop(); });
-        cachedStream = null;
-        // Tracks stoppés → Dynamic Island s'éteint
+        // Ne pas stopper les tracks — garder le stream en vie dans cachedStream
         // pour éviter que iOS redemande la permission micro à la prochaine utilisation.
         // Les tracks seront stoppés uniquement par _dmReleaseStream() à la fermeture du chat.
         if(!cancelled && audioChunks.length){
@@ -1734,24 +1730,23 @@
       reader.readAsDataURL(blob);
     }
 
-    // getUserMedia lancé dès touchstart — stream prêt au touchend sans délai
     var _pendingStream = null;
-    // Snapshot du swipeDeltaX au moment du touchend pour le hold (avant reset)
-    var _swipeAtEnd = 0;
+    var _swipeAtEnd    = 0;
+    var _gestureIsTap  = false; // posé dans touchend avant que le .then() de touchstart s'exécute
 
     micBtn.addEventListener('touchstart', function(e){
       e.preventDefault();
       if(isLockRecording) return;
       var touch = e.touches[0];
-      swipeStartX = touch.clientX;
-      swipeDeltaX = 0;
+      swipeStartX   = touch.clientX;
+      swipeDeltaX   = 0;
+      _gestureIsTap = false;
       touchStartTime = Date.now();
-      // getUserMedia immédiatement — Dynamic Island s'allume au touchstart
-      // Dès que le stream est prêt, on démarre _doRecord (hold actif tant que le doigt est appuyé)
+      // getUserMedia immédiatement — Dynamic Island s'allume dès le touchstart
       _pendingStream = getStream().then(function(stream){
         cachedStream = stream;
-        // Ne démarrer le hold que si le doigt est encore appuyé (touchend pas encore reçu)
-        if(swipeStartX !== null && !isLockRecording){
+        // Ne démarrer _doRecord que si c'est un hold (pas un tap) et que le doigt est encore appuyé
+        if(!_gestureIsTap && swipeStartX !== null && !isLockRecording){
           isRecording = true;
           _doRecord(stream);
         }
@@ -1783,11 +1778,12 @@
     }, {passive: true});
 
     micBtn.addEventListener('touchend', function(){
-      var elapsed   = Date.now() - touchStartTime;
-      var isTap     = elapsed < TAP_MAX_MS && Math.abs(swipeDeltaX) < 10;
-      _swipeAtEnd   = swipeDeltaX;
-      swipeStartX   = null;
-      swipeDeltaX   = 0;
+      var elapsed  = Date.now() - touchStartTime;
+      var isTap    = elapsed < TAP_MAX_MS && Math.abs(swipeDeltaX) < 10;
+      _swipeAtEnd  = swipeDeltaX;
+      _gestureIsTap = isTap; // posé AVANT reset et AVANT que le .then() puisse s'exécuter
+      swipeStartX  = null;
+      swipeDeltaX  = 0;
 
       if(isLockRecording){ _pendingStream = null; return; }
 
@@ -1795,18 +1791,19 @@
       _pendingStream = null;
 
       if(isTap){
-        // Tap court → mode lock
+        // Tap → mode lock, stream déjà ouvert dans touchstart
         p.then(function(stream){
           if(!stream) return;
+          // Annuler _doRecord si jamais il a démarré avant qu'on pose _gestureIsTap
+          if(isRecording){ stopRecording(false); }
           cachedStream = stream;
           startLockRecording();
         });
         return;
       }
 
-      // Hold — le doigt est déjà levé
+      // Hold — si _doRecord a déjà démarré dans le .then() de touchstart → arrêter
       if(isRecording){
-        // _doRecord() a déjà démarré (stream était prêt avant touchend) → on arrête
         if(Math.abs(_swipeAtEnd) >= SWIPE_CANCEL){
           cancelRecording();
         } else {
@@ -1815,14 +1812,12 @@
         return;
       }
 
-      // Stream pas encore prêt au moment du touchend — on démarre et on arrête dans le .then()
-      // (cas rare : getUserMedia très lent)
+      // Hold rare : stream pas encore prêt au touchend → démarrer + arrêter dans le .then()
       p.then(function(stream){
         if(!stream) return;
         cachedStream = stream;
         isRecording = true;
         _doRecord(stream);
-        // Arrêter immédiatement car le doigt est déjà levé
         if(Math.abs(_swipeAtEnd) >= SWIPE_CANCEL){
           cancelRecording();
         } else {
