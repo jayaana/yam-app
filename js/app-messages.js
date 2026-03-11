@@ -611,9 +611,15 @@
       }
       if(meta) meta.style.display = '';
       if(String(msg.id).indexOf('tmp_') === 0) return;
-      fetch(SB2_URL + '/rest/v1/' + TABLE + '?id=eq.' + msg.id, {
-        method: 'PATCH', headers: sb2Headers(),
+      var _editSession = JSON.parse(localStorage.getItem('yam_v2_session')||'null');
+      var _editCoupleId = _editSession&&_editSession.user?_editSession.user.couple_id:null;
+      var _editFilter = 'id=eq.' + msg.id + (_editCoupleId ? '&couple_id=eq.' + _editCoupleId : '');
+      fetch(SB2_URL + '/rest/v1/' + TABLE + '?' + _editFilter, {
+        method: 'PATCH',
+        headers: sb2Headers({'Prefer':'return=minimal'}),
         body: JSON.stringify({ text: newText, edited: true })
+      }).then(function(r){
+        if(!r.ok) r.text().then(function(t){ console.error('[DM] edit err:', r.status, t); });
       }).catch(function(err){ console.error('[DM] edit err:', err); });
     }
 
