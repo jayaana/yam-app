@@ -889,7 +889,14 @@
     // ── Overlay fond flou style Instagram ──
     ctxOverlay = document.createElement('div');
     ctxOverlay.className = 'dm-ctx-overlay dm-ctx-overlay-blur';
-    ctxOverlay.addEventListener('click', closeCtxMenu);
+    // Délai anti-click synthétique iOS : le click qui suit un long-press
+    // arrive ~100-300ms après touchend et fermerait l'overlay immédiatement
+    var _ctxReady = false;
+    setTimeout(function(){ _ctxReady = true; }, 400);
+    ctxOverlay.addEventListener('click', function(e){
+      if(!_ctxReady) return; // ignore le click fantôme post-long-press
+      closeCtxMenu();
+    });
     document.body.appendChild(ctxOverlay);
 
     // ── Clone du message isolé au centre ──
