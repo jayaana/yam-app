@@ -1729,9 +1729,7 @@
       reader.readAsDataURL(blob);
     }
 
-    var _pendingStream  = null;
-    var _swipeAtEnd     = 0;
-    var _holdTimer      = null;
+    var _swipeAtEnd = 0;
 
     micBtn.addEventListener('touchstart', function(e){
       e.preventDefault();
@@ -1740,31 +1738,8 @@
       swipeStartX    = touch.clientX;
       swipeDeltaX    = 0;
       touchStartTime = Date.now();
-
-      // Pré-charger le stream — Dynamic Island s'allume au touchstart
-      _pendingStream = getStream().then(function(stream){
-        cachedStream = stream;
-        return stream;
-      }).catch(function(err){
-        console.warn('[MIC]', err);
-        if(typeof showToast==='function') showToast('Micro non disponible', 'error');
-        _pendingStream = null;
-        return null;
-      });
-
-      // Timer : si le doigt est encore appuyé après TAP_MAX_MS → hold → démarrer _doRecord
-      _holdTimer = setTimeout(function(){
-        _holdTimer = null;
-        if(swipeStartX === null || isLockRecording) return;
-        var p = _pendingStream || getStream().catch(function(){ return null; });
-        p.then(function(stream){
-          if(!stream || swipeStartX === null) return;
-          cachedStream = stream;
-          isRecording = true;
-          _doRecord(stream);
-        });
-      }, TAP_MAX_MS);
-
+      // touchstart ne fait rien d'autre — pas de getUserMedia ici
+      // tap vs hold décidé uniquement dans touchend, sans ambiguïté
     }, {passive: false});
 
     micBtn.addEventListener('touchmove', function(e){
@@ -1792,35 +1767,18 @@
       swipeStartX = null;
       swipeDeltaX = 0;
 
-      if(_holdTimer){ clearTimeout(_holdTimer); _holdTimer = null; }
-      if(isLockRecording){ _pendingStream = null; return; }
-
-      var p = _pendingStream || getStream().catch(function(){ return null; });
-      _pendingStream = null;
+      if(isLockRecording) return;
 
       if(isTap){
-        if(isRecording){ stopRecording(false); }
-        p.then(function(stream){
-          if(!stream) return;
-          cachedStream = stream;
-          startLockRecording();
-        });
+        // Tap court → mode lock (enregistrement avec UI lock bar)
+        startLockRecording();
         return;
       }
 
-      // Hold — _doRecord démarré via timer → arrêter
-      if(isRecording){
-        if(Math.abs(_swipeAtEnd) >= SWIPE_CANCEL){
-          cancelRecording();
-        } else {
-          stopRecording(true);
-        }
-        return;
-      }
-
-      // Hold très court (doigt levé avant que le timer + getUserMedia soient prêts)
-      p.then(function(stream){
-        if(!stream) return;
+      // Hold → enregistrement direct, getUserMedia maintenant
+      // Le doigt vient de se lever — on démarre ET arrête dans le même .then()
+      // durée = temps pendant lequel le doigt était appuyé
+      getStream().then(function(stream){
         cachedStream = stream;
         isRecording = true;
         _doRecord(stream);
@@ -1829,6 +1787,10 @@
         } else {
           stopRecording(true);
         }
+      }).catch(function(err){
+        isRecording = false;
+        console.warn('[MIC]', err);
+        if(typeof showToast==='function') showToast('Micro non disponible', 'error');
       });
     }, {passive: true});
 
