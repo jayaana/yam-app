@@ -1453,6 +1453,10 @@
     var lockBtn   = document.getElementById('lockNavBtn');
     if(lockBadge) lockBadge.classList.remove('visible');
     if(lockBtn)   lockBtn.classList.remove('has-unread');
+    // Reset badge icône PWA systématiquement à l'ouverture du chat
+    if(navigator.serviceWorker && navigator.serviceWorker.controller){
+      navigator.serviceWorker.controller.postMessage({ type: 'YAM_CLEAR_BADGE' });
+    }
     // Toujours afficher conv directement — plus d'écran intermédiaire/logo
     showConvScreen();
     // Re-poller le badge après que les markSeen soient partis en base
