@@ -4492,6 +4492,7 @@ body.light .dm-id-overlay { background: transparent; }
 }
 .dm-msg-wrap:not(.mine) .dm-bubble { background:var(--s2); color:var(--text); border-radius:20px 20px 20px 4px; }
 .dm-msg-wrap:not(.mine).first-in-group .dm-bubble { border-radius:4px 20px 20px 20px; }
+body.light .dm-msg-wrap:not(.mine) .dm-bubble { background:#e8e0f0; color:#1a1020; }
 .dm-msg-wrap.mine .dm-bubble {
   background:linear-gradient(145deg,var(--green) 0%,#e8507a 100%);
   color:#fff; border-radius:20px 20px 4px 20px;
@@ -4649,6 +4650,17 @@ body.light .dm-send-btn { background:linear-gradient(135deg,var(--green),var(--a
   animation:recBlink 1s ease-in-out infinite;
 }
 @keyframes recBlink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* Bouton charger messages précédents */
+#dmLoadMoreBtn {
+  text-align:center; padding:10px 16px; margin:8px auto;
+  font-size:12px; font-weight:600; color:var(--accent);
+  background:var(--s2); border-radius:20px;
+  cursor:pointer; display:block; width:fit-content;
+  transition:opacity 0.15s, transform 0.15s;
+}
+#dmLoadMoreBtn:active { opacity:0.7; transform:scale(0.97); }
+body.light #dmLoadMoreBtn { background:#f0e8f8; }
 
 /* ══ Bulle vocale — style Instagram ══ */
 .dm-audio-bubble {
