@@ -1387,9 +1387,18 @@
     var WV_BARS     = 40;
 
     var cachedStream    = null;
-    var permissionAsked  = false; // true dès qu'on a demandé la permission (premier tap)
-    var permissionGranted = false; // true une fois getUserMedia résolu avec succès
-    var _warmingUp       = false;  // true pendant le getUserMedia du warm-up — évite le double startLockRecording
+    var permissionAsked  = false;
+    var permissionGranted = false;
+    var _warmingUp       = false;
+
+    // Persistance localStorage : si la permission a déjà été accordée lors d'une session précédente,
+    // on le sait immédiatement — plus de warm-up, plus de double tap, même sur Safari < 16
+    try {
+      if(localStorage.getItem('yam_mic_granted') === '1'){
+        permissionAsked   = true;
+        permissionGranted = true;
+      }
+    } catch(e){}
 
     // Vérifier silencieusement si la permission micro est déjà accordée (sans déclencher le micro)
     if(navigator.permissions && navigator.permissions.query){
@@ -1397,9 +1406,17 @@
         if(result.state === 'granted'){
           permissionAsked   = true;
           permissionGranted = true;
+          try{ localStorage.setItem('yam_mic_granted','1'); }catch(e){}
         }
         result.onchange = function(){
-          if(result.state === 'granted'){ permissionAsked = true; permissionGranted = true; }
+          if(result.state === 'granted'){
+            permissionAsked = true; permissionGranted = true;
+            try{ localStorage.setItem('yam_mic_granted','1'); }catch(e){}
+          } else {
+            // Permission révoquée dans les réglages iOS
+            permissionAsked = false; permissionGranted = false;
+            try{ localStorage.removeItem('yam_mic_granted'); }catch(e){}
+          }
         };
       }).catch(function(){}); // Safari < 16 ne supporte pas — silencieux
     }
@@ -1519,8 +1536,10 @@
         lockMediaRec = new MediaRecorder(stream, {mimeType: mimeType});
         lockMediaRec.addEventListener('dataavailable', function(e){ if(e.data.size>0) lockAudioChunks.push(e.data); });
         lockMediaRec.addEventListener('stop', function(){
-          // Ne pas stopper les tracks — garder le stream en vie dans cachedStream
-          // pour éviter que iOS redemande la permission micro à la prochaine utilisation.
+          // Stopper les tracks → Dynamic Island s'éteint immédiatement
+          // iOS se souvient de la permission accordée — pas de re-prompt au prochain enregistrement
+          stream.getTracks().forEach(function(t){ t.stop(); });
+          cachedStream = null;
           if(!lockCancelled && lockAudioChunks.length){
             var blob = new Blob(lockAudioChunks, {type: lockMediaRec.mimeType});
             var duration = (Date.now() - lockRecStart) / 1000;
@@ -1609,9 +1628,10 @@
       // On fait juste un getStream() qui sera utilisé immédiatement après par startLockRecording.
       // Le stream reste ouvert — pas de stop — pour que startLockRecording le réutilise via cachedStream.
       navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
-        cachedStream = s;          // garde le stream ouvert → pas de clignotement Dynamic Island
+        cachedStream = s;
         permissionGranted = true;
         _warmingUp = false;
+        try{ localStorage.setItem('yam_mic_granted','1'); }catch(e){}
         // Lancer l'enregistrement lock immédiatement puisque c'était l'intention du tap
         startLockRecording();
       }).catch(function(){
@@ -1656,9 +1676,10 @@
       mediaRec = new MediaRecorder(stream, {mimeType: mimeType});
       mediaRec.addEventListener('dataavailable', function(e){ if(e.data.size>0) audioChunks.push(e.data); });
       mediaRec.addEventListener('stop', function(){
-        // Ne pas stopper les tracks — garder le stream en vie dans cachedStream
-        // pour éviter que iOS redemande la permission micro à la prochaine utilisation.
-        // Les tracks seront stoppés uniquement par _dmReleaseStream() à la fermeture du chat.
+        // Stopper les tracks → Dynamic Island s'éteint immédiatement
+        // iOS se souvient de la permission accordée — pas de re-prompt au prochain enregistrement
+        stream.getTracks().forEach(function(t){ t.stop(); });
+        cachedStream = null;
         if(!cancelled && audioChunks.length){
           var blob = new Blob(audioChunks, {type: mediaRec.mimeType});
           var duration = (Date.now() - recStart) / 1000;
