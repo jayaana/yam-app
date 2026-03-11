@@ -4664,6 +4664,27 @@ body.light .dm-rec-bar {
   transform:scale(0.92);
 }
 
+/* Poubelle extrême — flotte à la place du bouton photo en mode extreme */
+.dm-extreme-trash {
+  display:none;
+  position:absolute;
+  left:0; top:50%;
+  transform:translateY(-50%) scale(1.15);
+  width:39px; height:39px;
+  border-radius:50%; border:none;
+  background:#fff;
+  color:#e05555;
+  align-items:center; justify-content:center;
+  cursor:pointer; flex-shrink:0;
+  z-index:20;
+  box-shadow:0 2px 10px rgba(224,85,85,0.35);
+  pointer-events:none;
+  transition:opacity 0.12s, transform 0.12s;
+}
+.dm-extreme-trash.active {
+  display:flex;
+}
+
 /* Poubelle — rond blanc avec icône blanche */
 .dm-rec-bar-trash {
   width:34px; height:34px;
