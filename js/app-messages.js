@@ -1387,9 +1387,9 @@
     var cachedStream    = null;
     var permissionAsked = false;
 
-    var SWIPE_CANCEL  = 130; // px pour déclencher l'annulation
-    var SWIPE_WARN    =  108; // px — danger (poubelle rouge) — 22px avant cancel
-    var SWIPE_EXTREME =  120; // px — barre disparaît — 10px avant cancel
+    var SWIPE_CANCEL  = 108; // px — annulation dès le seuil danger (warn = cancel)
+    var SWIPE_WARN    = 108; // px — danger (poubelle rouge) = déclenchement annulation
+    var SWIPE_EXTREME = 148; // px — barre disparaît — 40px après danger pour une phase visible
     var swipeStartX  = null;
     var swipeDeltaX  = 0;
     var cancelled    = false;
