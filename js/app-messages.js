@@ -1384,15 +1384,32 @@
     var wvRafId     = null;
     var WV_BARS     = 40;
 
-    var SWIPE_CANCEL  = 108;
-    var SWIPE_WARN    = 108;
-    var SWIPE_EXTREME = 148;
+    var cachedStream    = null;
+    var permissionAsked  = false; // true dès qu'on a demandé la permission (premier tap)
+    var permissionGranted = false; // true une fois getUserMedia résolu avec succès
+
+    // Vérifier silencieusement si la permission micro est déjà accordée (sans déclencher le micro)
+    if(navigator.permissions && navigator.permissions.query){
+      navigator.permissions.query({name:'microphone'}).then(function(result){
+        if(result.state === 'granted'){
+          permissionAsked   = true;
+          permissionGranted = true;
+        }
+        result.onchange = function(){
+          if(result.state === 'granted'){ permissionAsked = true; permissionGranted = true; }
+        };
+      }).catch(function(){}); // Safari < 16 ne supporte pas — silencieux
+    }
+
+    var SWIPE_CANCEL  = 108; // px — annulation dès le seuil danger (warn = cancel)
+    var SWIPE_WARN    = 108; // px — danger (poubelle rouge) = déclenchement annulation
+    var SWIPE_EXTREME = 148; // px — barre disparaît — 40px après danger pour une phase visible
     var swipeStartX  = null;
     var swipeDeltaX  = 0;
     var cancelled    = false;
     var isRecording  = false;
     var touchStartTime = 0;
-    var TAP_MAX_MS   = 200;
+    var TAP_MAX_MS   = 200; // durée max d'un tap court (ms)
 
     // — Mode verrouillé —
     var lockBar      = $('dmRecLockBar');
@@ -1471,10 +1488,9 @@
 
     function startLockRecording(){
       if(!identity){ showIdentityOverlay(); return; }
-      if(isLockRecording) return;
       isLockRecording = true;
       getStream().then(function(stream){
-        if(!isLockRecording) return;
+        if(!isLockRecording) return; // annulé entre temps
         lockCancelled   = false;
         lockAudioChunks = [];
         lockRecStart    = Date.now();
@@ -1500,7 +1516,8 @@
         lockMediaRec = new MediaRecorder(stream, {mimeType: mimeType});
         lockMediaRec.addEventListener('dataavailable', function(e){ if(e.data.size>0) lockAudioChunks.push(e.data); });
         lockMediaRec.addEventListener('stop', function(){
-          // Stream gardé vivant — pas de stop tracks, pas de cachedStream = null
+          stream.getTracks().forEach(function(t){ t.stop(); });
+          cachedStream = null;
           if(!lockCancelled && lockAudioChunks.length){
             var blob = new Blob(lockAudioChunks, {type: lockMediaRec.mimeType});
             var duration = (Date.now() - lockRecStart) / 1000;
@@ -1525,13 +1542,11 @@
 
     if(lockTrash){
       lockTrash.addEventListener('touchstart', function(e){ e.stopPropagation(); }, {passive:true});
-      lockTrash.addEventListener('touchend',   function(e){ e.stopPropagation(); stopLockRecording(false); }, {passive:true});
-      lockTrash.addEventListener('click',      function(e){ e.stopPropagation(); e.preventDefault(); });
+      lockTrash.addEventListener('click', function(e){ e.stopPropagation(); stopLockRecording(false); });
     }
     if(lockSend){
       lockSend.addEventListener('touchstart', function(e){ e.stopPropagation(); }, {passive:true});
-      lockSend.addEventListener('touchend',   function(e){ e.stopPropagation(); stopLockRecording(true); }, {passive:true});
-      lockSend.addEventListener('click',      function(e){ e.stopPropagation(); e.preventDefault(); });
+      lockSend.addEventListener('click', function(e){ e.stopPropagation(); stopLockRecording(true); });
     }
 
     function fmtTime(s){ return Math.floor(s/60)+':'+('0'+Math.floor(s%60)).slice(-2); }
@@ -1583,12 +1598,27 @@
       wvBars.forEach(function(b){ b.style.height = '3px'; b.style.opacity = '0.85'; });
     }
 
-    // Un seul getUserMedia par session — stream partagé entre mode hold et mode lock
+    function warmUpPermission(){
+      if(permissionAsked) return;
+      permissionAsked = true;
+      // Sur iOS, on ne peut pas détecter la permission sans déclencher le micro.
+      // On fait juste un getStream() qui sera utilisé immédiatement après par startLockRecording.
+      // Le stream reste ouvert — pas de stop — pour que startLockRecording le réutilise via cachedStream.
+      navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
+        cachedStream = s;          // garde le stream ouvert → pas de clignotement Dynamic Island
+        permissionGranted = true;
+        // Lancer l'enregistrement lock immédiatement puisque c'était l'intention du tap
+        startLockRecording();
+      }).catch(function(){
+        permissionAsked = false;
+        if(typeof showToast==='function') showToast('Accès micro refusé', 'error');
+      });
+    }
+
     function getStream(){
       if(cachedStream && cachedStream.active) return Promise.resolve(cachedStream);
       return navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
-        cachedStream = s;
-        return s;
+        cachedStream = s; return s;
       });
     }
 
@@ -1620,8 +1650,8 @@
       mediaRec = new MediaRecorder(stream, {mimeType: mimeType});
       mediaRec.addEventListener('dataavailable', function(e){ if(e.data.size>0) audioChunks.push(e.data); });
       mediaRec.addEventListener('stop', function(){
-        // Ne pas stopper le stream — cachedStream reste actif pour le prochain vocal
-        // sans redemander getUserMedia (et donc sans popup iOS)
+        stream.getTracks().forEach(function(t){ t.stop(); });
+        cachedStream = null;
         if(!cancelled && audioChunks.length){
           var blob = new Blob(audioChunks, {type: mediaRec.mimeType});
           var duration = (Date.now() - recStart) / 1000;
@@ -1728,12 +1758,17 @@
 
     micBtn.addEventListener('touchstart', function(e){
       e.preventDefault();
+      // Si mode lock en cours — ignorer complètement
       if(isLockRecording) return;
       var touch = e.touches[0];
-      swipeStartX    = touch.clientX;
-      swipeDeltaX    = 0;
+      swipeStartX = touch.clientX;
+      swipeDeltaX = 0;
       touchStartTime = Date.now();
-      // Lancer immédiatement — 1 geste = 1 getUserMedia = 1 MediaRecorder
+      // Premier tap jamais vu : warm-up permission seulement, pas d'enregistrement
+      if(!permissionGranted){
+        warmUpPermission();
+        return;
+      }
       startRecording();
     }, {passive: false});
 
@@ -1743,64 +1778,54 @@
       var dx = touch.clientX - swipeStartX;
       if(dx > 0) dx = 0;
       swipeDeltaX = dx;
-      var abs     = Math.abs(dx);
+      var abs = Math.abs(dx);
       var danger  = abs >= SWIPE_WARN;
       var extreme = abs >= SWIPE_EXTREME;
 
       micBtn.classList.add('swiping');
       recBar.classList.add('swiping');
+
+      // Mic suit le doigt légèrement
       micBtn.style.transform = 'translateX(' + Math.max(dx * 0.5, -SWIPE_CANCEL * 0.5) + 'px)';
 
+      // Poubelle rouge au seuil danger
       if(recTrash) recTrash.classList.toggle('danger', danger);
+
+      // Barre disparaît au seuil extrême — poubelle extrême apparaît à la place du bouton photo
       recBar.classList.toggle('extreme', extreme);
       if(extremeTrash) extremeTrash.classList.toggle('active', extreme);
+      // Micro invisible en mode extreme — seule la poubelle rouge reste visible
       micBtn.classList.toggle('extreme-hide', extreme);
+
     }, {passive: true});
 
     micBtn.addEventListener('touchend', function(){
       var elapsed = Date.now() - touchStartTime;
-      var isTap   = elapsed < TAP_MAX_MS && Math.abs(swipeDeltaX) < 10;
+      var isTap = elapsed < TAP_MAX_MS && Math.abs(swipeDeltaX) < 10;
 
+      // Si mode lock déjà actif — ne rien faire, les boutons lock gèrent eux-mêmes
       if(isLockRecording){ swipeStartX = null; swipeDeltaX = 0; return; }
 
+      // Cas 1 : permission pas encore accordée — ce tap déclenche warm-up + enregistrement immédiat
+      if(!permissionGranted){
+        swipeStartX = null; swipeDeltaX = 0;
+        return; // warmUpPermission() a déjà été appelé dans touchstart et lancera startLockRecording
+      }
+
+      // Cas 2 : tap court = mode verrouillé
       if(isTap){
-        // Tap court : annuler le hold sans stopper le stream, lancer le mode lock
-        cancelled = true;
-        isRecording = false;
-        stopWaveform();
-        clearInterval(recTimer);
-        micBtn.classList.remove('recording', 'swiping', 'extreme-hide');
-        recBar.classList.remove('active', 'swiping', 'extreme');
-        if(recTime) recTime.textContent = '0:00';
-        dmInput.style.opacity = '';
-        dmInput.style.pointerEvents = '';
-        _resetSwipeUI();
-        // Stopper mediaRec si déjà démarré, sans stopper les tracks (cachedStream reste vivant)
-        if(mediaRec && mediaRec.state !== 'inactive'){
-          mediaRec.removeEventListener('stop', mediaRec._stopHandler);
-          mediaRec.stop();
+        if(isRecording){
+          // On était en mode hold (rare) — stopper proprement sans envoyer, relancer en lock
+          stopRecording(false);
         }
-        mediaRec = null;
-        isLockRecording = false; // reset pour que startLockRecording puisse démarrer
-        _closeLockBar();
+        _closeLockBar(); // au cas où
         startLockRecording();
         swipeStartX = null; swipeDeltaX = 0;
         return;
       }
 
-      // Hold : arrêter selon swipe
-      // Si mediaRec pas encore prêt (getStream async), attendre
-      if(!mediaRec || mediaRec.state === 'inactive'){
-        var waitStop = setInterval(function(){
-          if(mediaRec && mediaRec.state === 'recording'){
-            clearInterval(waitStop);
-            if(Math.abs(swipeDeltaX) >= SWIPE_CANCEL){ cancelRecording(); }
-            else { stopRecording(true); }
-          }
-        }, 30);
-        setTimeout(function(){ clearInterval(waitStop); cancelRecording(); }, 3000);
-        return;
-      }
+      // Cas 3 : hold normal — annuler ou envoyer selon swipe
+      if(!isRecording){ swipeStartX = null; swipeDeltaX = 0; return; }
       if(Math.abs(swipeDeltaX) >= SWIPE_CANCEL){
         cancelRecording();
       } else {
@@ -1810,12 +1835,15 @@
 
     micBtn.addEventListener('touchcancel', function(){ cancelRecording(); }, {passive:true});
 
-    // Desktop : clic = mode lock directement
+    var desktopRec = false;
     micBtn.addEventListener('click', function(e){
       if(swipeStartX !== null) return;
       e.preventDefault();
-      if(!isLockRecording) startLockRecording();
+      if(!permissionGranted){ warmUpPermission(); return; }
+      if(!desktopRec){ desktopRec = true; startLockRecording(); }
+      else            { desktopRec = false; }
     });
+    micBtn.addEventListener('touchend', function(){ desktopRec = false; }, {passive:true});
 
   })();
 
@@ -1952,16 +1980,13 @@
   window.closeHiddenPage = function(){
     stopPoll();
     attached = false;
+    // Retirer dm-chat-active — hiddenPage n'est plus actif
     document.body.classList.remove('dm-chat-active');
     var fb = document.getElementById('floatingThemeBtn');
     if(fb){ fb.style.opacity = ''; fb.style.pointerEvents = ''; }
     if(window._dmUpdateVP) window._dmUpdateVP();
-    // Libérer le stream micro quand on quitte le chat
-    if(typeof cachedStream !== 'undefined' && cachedStream){
-      try{ cachedStream.getTracks().forEach(function(t){ t.stop(); }); }catch(e){}
-      cachedStream = null;
-    }
     if(_origClose) _origClose.apply(this, arguments);
+    // Dispatch event so nav can clean up messages active state
     document.dispatchEvent(new CustomEvent('hiddenPageClosed'));
   };
 
