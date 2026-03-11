@@ -4628,45 +4628,92 @@ body.light .dm-send-btn { background:linear-gradient(135deg,var(--green),var(--a
   cursor:pointer; flex-shrink:0;
   display:flex; align-items:center; justify-content:center;
   transition:background 0.15s, color 0.15s;
-  touch-action:none; user-select:none; -webkit-user-select:none;
+  touch-action:none; user-select:none;
   position:relative; z-index:2;
 }
 .dm-mic-btn:hover { background:var(--s2); color:var(--text); }
 .dm-mic-btn.recording {
   background:linear-gradient(135deg,#e05555,#ff8c00);
-  color:#fff; animation:micPulse 0.7s ease-in-out infinite;
+  color:#fff;
 }
-.dm-mic-btn.recording.sliding { animation:none; box-shadow:none; }
-@keyframes micPulse {
-  0%,100% { transform:translateX(0) scale(1); box-shadow:0 0 0 0 rgba(224,85,85,0.4); }
-  50%      { transform:translateX(0) scale(1.08); box-shadow:0 0 0 6px rgba(224,85,85,0); }
-}
-.dm-rec-indicator {
-  display:none; align-items:center; gap:6px;
-  font-size:11px; color:#e05555; font-weight:600;
-  padding:0 8px; flex:1; min-width:0;
-}
-.dm-rec-indicator.active { display:flex; }
-.dm-rec-dot {
-  width:7px; height:7px; border-radius:50%; background:#e05555;
-  flex-shrink:0; animation:recBlink 1s ease-in-out infinite;
-}
-@keyframes recBlink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+.dm-mic-btn.recording.swiping { transition:none; }
 
-/* Icône poubelle — apparaît au swipe gauche */
-.dm-rec-trash {
-  width:32px; height:32px; border-radius:50%;
+/* ── Barre d'enregistrement style Instagram ── */
+.dm-rec-bar {
+  display:none;
+  position:absolute;
+  inset:0; /* couvre toute la dm-input-wrap */
+  border-radius:26px;
+  background:var(--s1);
+  align-items:center;
+  overflow:hidden;
+  z-index:10;
+}
+.dm-rec-bar.active { display:flex; }
+
+/* Contenu principal : dot + waveform + durée */
+.dm-rec-bar-inner {
+  flex:1; display:flex; align-items:center;
+  gap:10px; padding:0 12px 0 14px;
+  min-width:0;
+}
+.dm-rec-bar-left {
+  flex:1; display:flex; align-items:center; gap:8px; min-width:0;
+}
+.dm-rec-dot {
+  width:8px; height:8px; border-radius:50%; background:#e05555; flex-shrink:0;
+  animation:recBlink 1s ease-in-out infinite;
+}
+@keyframes recBlink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+/* Waveform live */
+.dm-rec-waveform {
+  flex:1; height:28px; display:flex; align-items:center;
+  gap:2px; overflow:hidden; min-width:0;
+}
+.dm-rec-wv-bar {
+  width:3px; border-radius:3px; flex-shrink:0;
+  background:#e05555; opacity:0.85;
+  transform-origin:center;
+  transition:height 0.07s ease;
+  min-height:3px;
+}
+
+/* Durée */
+.dm-rec-bar-time {
+  font-size:13px; font-weight:600;
+  color:var(--text); font-variant-numeric:tabular-nums;
+  flex-shrink:0; letter-spacing:0.02em;
+}
+
+/* Zone poubelle — slide depuis la gauche */
+.dm-rec-bar-trash {
+  position:absolute;
+  left:0; top:0; bottom:0;
+  width:56px;
   display:flex; align-items:center; justify-content:center;
-  background:var(--s3); color:var(--muted);
-  flex-shrink:0; margin-left:auto;
-  opacity:0; transform:scale(0.6);
-  transition:opacity 0.15s, transform 0.15s, background 0.15s, color 0.15s;
+  color:var(--muted);
+  transform:translateX(-100%);
+  transition:transform 0.22s cubic-bezier(.4,0,.2,1), color 0.18s;
+  background:var(--s1);
+  border-radius:26px 0 0 26px;
   pointer-events:none;
 }
-.dm-rec-trash.visible { opacity:1; transform:scale(1); }
-.dm-rec-trash.ready   { background:rgba(224,85,85,0.15); color:#e05555; transform:scale(1.15); }
+.dm-rec-bar-trash.visible {
+  transform:translateX(0);
+}
+.dm-rec-bar-trash.danger {
+  color:#e05555;
+  background:rgba(224,85,85,0.10);
+}
 
-.dm-input-wrap { position:relative; }
+/* Quand on swipe, le contenu principal recule */
+.dm-rec-bar-inner {
+  transition:transform 0.07s linear, opacity 0.1s;
+}
+.dm-rec-bar.swiping .dm-rec-bar-inner {
+  transition:none;
+}
 
 /* Bouton galerie photo */
 .dm-photo-btn {
