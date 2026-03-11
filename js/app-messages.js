@@ -1386,41 +1386,7 @@
     var wvRafId     = null;
     var WV_BARS     = 40;
 
-    var cachedStream    = null;
-    var permissionAsked   = false;
-    var permissionGranted = false;
-    var _warmingUp        = false;
-
-    // Persistance inter-sessions : si l'utilisateur a déjà accordé la permission micro
-    // lors d'une session précédente, on le sait immédiatement sans redemander.
-    // localStorage survit à la fermeture/réouverture de l'app, contrairement aux variables JS.
-    try {
-      if(localStorage.getItem('yam_mic_granted') === '1'){
-        permissionAsked   = true;
-        permissionGranted = true;
-      }
-    } catch(e){}
-
-    // Permissions API en complément (Chrome / Safari 16+) — silencieux sur Safari < 16
-    if(navigator.permissions && navigator.permissions.query){
-      navigator.permissions.query({name:'microphone'}).then(function(result){
-        if(result.state === 'granted'){
-          permissionAsked   = true;
-          permissionGranted = true;
-          try{ localStorage.setItem('yam_mic_granted','1'); }catch(e){}
-        }
-        result.onchange = function(){
-          if(result.state === 'granted'){
-            permissionAsked = true; permissionGranted = true;
-            try{ localStorage.setItem('yam_mic_granted','1'); }catch(e){}
-          } else {
-            // Permission révoquée dans les réglages iOS
-            permissionAsked = false; permissionGranted = false;
-            try{ localStorage.removeItem('yam_mic_granted'); }catch(e){}
-          }
-        };
-      }).catch(function(){});
-    }
+    var cachedStream = null;
 
     var SWIPE_CANCEL  = 108; // px — annulation dès le seuil danger (warn = cancel)
     var SWIPE_WARN    = 108; // px — danger (poubelle rouge) = déclenchement annulation
@@ -1619,27 +1585,6 @@
       wvBars.forEach(function(b){ b.style.height = '3px'; b.style.opacity = '0.85'; });
     }
 
-    function warmUpPermission(){
-      if(permissionAsked) return;
-      permissionAsked = true;
-      _warmingUp = true;
-      // Sur iOS, on ne peut pas détecter la permission sans déclencher le micro.
-      // On fait juste un getStream() qui sera utilisé immédiatement après par startLockRecording.
-      // Le stream reste ouvert — pas de stop — pour que startLockRecording le réutilise via cachedStream.
-      navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
-        cachedStream = s;
-        permissionGranted = true;
-        // Persister pour les prochaines sessions — plus jamais de re-prompt au relancement
-        try{ localStorage.setItem('yam_mic_granted','1'); }catch(e){}
-        _warmingUp = false;
-        startLockRecording();
-      }).catch(function(){
-        permissionAsked = false;
-        _warmingUp = false;
-        if(typeof showToast==='function') showToast('Accès micro refusé', 'error');
-      });
-    }
-
     function getStream(){
       if(cachedStream && cachedStream.active) return Promise.resolve(cachedStream);
       return navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
@@ -1784,17 +1729,11 @@
 
     micBtn.addEventListener('touchstart', function(e){
       e.preventDefault();
-      // Si mode lock en cours — ignorer complètement
       if(isLockRecording) return;
       var touch = e.touches[0];
       swipeStartX = touch.clientX;
       swipeDeltaX = 0;
       touchStartTime = Date.now();
-      // Premier tap jamais vu : warm-up permission seulement, pas d'enregistrement
-      if(!permissionGranted){
-        warmUpPermission();
-        return;
-      }
       startRecording();
     }, {passive: false});
 
@@ -1832,19 +1771,7 @@
       // Si mode lock déjà actif — ne rien faire, les boutons lock gèrent eux-mêmes
       if(isLockRecording){ swipeStartX = null; swipeDeltaX = 0; return; }
 
-      // Cas 1 : permission pas encore accordée — ce tap déclenche warm-up + enregistrement immédiat
-      if(!permissionGranted){
-        swipeStartX = null; swipeDeltaX = 0;
-        return; // warmUpPermission() a déjà été appelé dans touchstart et lancera startLockRecording
-      }
-
-      // Cas 1b : warm-up en cours (permission accordée mais stream pas encore prêt) — ne rien faire
-      if(_warmingUp){
-        swipeStartX = null; swipeDeltaX = 0;
-        return;
-      }
-
-      // Cas 2 : tap court = mode verrouillé
+      // Tap court = mode verrouillé
       if(isTap){
         if(isRecording){
           // On était en mode hold (rare) — stopper proprement sans envoyer, relancer en lock
@@ -1871,7 +1798,6 @@
     micBtn.addEventListener('click', function(e){
       if(swipeStartX !== null) return;
       e.preventDefault();
-      if(!permissionGranted){ warmUpPermission(); return; }
       if(!desktopRec){ desktopRec = true; startLockRecording(); }
       else            { desktopRec = false; }
     });
