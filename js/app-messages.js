@@ -1500,8 +1500,7 @@
         lockMediaRec = new MediaRecorder(stream, {mimeType: mimeType});
         lockMediaRec.addEventListener('dataavailable', function(e){ if(e.data.size>0) lockAudioChunks.push(e.data); });
         lockMediaRec.addEventListener('stop', function(){
-          stream.getTracks().forEach(function(t){ t.stop(); });
-          cachedStream = null;
+          // Stream gardé vivant — pas de stop tracks, pas de cachedStream = null
           if(!lockCancelled && lockAudioChunks.length){
             var blob = new Blob(lockAudioChunks, {type: lockMediaRec.mimeType});
             var duration = (Date.now() - lockRecStart) / 1000;
@@ -1621,11 +1620,8 @@
       mediaRec = new MediaRecorder(stream, {mimeType: mimeType});
       mediaRec.addEventListener('dataavailable', function(e){ if(e.data.size>0) audioChunks.push(e.data); });
       mediaRec.addEventListener('stop', function(){
-        // Ne stopper les tracks que si le stream n'est plus utilisé (pas de lock en cours)
-        if(!isLockRecording){
-          stream.getTracks().forEach(function(t){ t.stop(); });
-          cachedStream = null;
-        }
+        // Ne pas stopper le stream — cachedStream reste actif pour le prochain vocal
+        // sans redemander getUserMedia (et donc sans popup iOS)
         if(!cancelled && audioChunks.length){
           var blob = new Blob(audioChunks, {type: mediaRec.mimeType});
           var duration = (Date.now() - recStart) / 1000;
@@ -1768,21 +1764,43 @@
       if(isLockRecording){ swipeStartX = null; swipeDeltaX = 0; return; }
 
       if(isTap){
-        // Tap court : interrompre le hold SANS stopper le stream (cachedStream reste actif)
-        // puis démarrer le lock sur ce même stream → zéro getUserMedia supplémentaire
-        isLockRecording = true; // guard positionné avant mediaRec.stop() pour le callback 'stop'
+        // Tap court : annuler le hold sans stopper le stream, lancer le mode lock
+        cancelled = true;
+        isRecording = false;
+        stopWaveform();
+        clearInterval(recTimer);
+        micBtn.classList.remove('recording', 'swiping', 'extreme-hide');
+        recBar.classList.remove('active', 'swiping', 'extreme');
+        if(recTime) recTime.textContent = '0:00';
+        dmInput.style.opacity = '';
+        dmInput.style.pointerEvents = '';
+        _resetSwipeUI();
+        // Stopper mediaRec si déjà démarré, sans stopper les tracks (cachedStream reste vivant)
         if(mediaRec && mediaRec.state !== 'inactive'){
-          cancelled = true;
-          mediaRec.stop(); // callback 'stop' verra isLockRecording=true → ne stopera pas les tracks
+          mediaRec.removeEventListener('stop', mediaRec._stopHandler);
+          mediaRec.stop();
         }
-        _closeBar();
+        mediaRec = null;
+        isLockRecording = false; // reset pour que startLockRecording puisse démarrer
         _closeLockBar();
-        startLockRecording(); // cachedStream actif → getStream() résout immédiatement, pas de getUserMedia
+        startLockRecording();
         swipeStartX = null; swipeDeltaX = 0;
         return;
       }
 
       // Hold : arrêter selon swipe
+      // Si mediaRec pas encore prêt (getStream async), attendre
+      if(!mediaRec || mediaRec.state === 'inactive'){
+        var waitStop = setInterval(function(){
+          if(mediaRec && mediaRec.state === 'recording'){
+            clearInterval(waitStop);
+            if(Math.abs(swipeDeltaX) >= SWIPE_CANCEL){ cancelRecording(); }
+            else { stopRecording(true); }
+          }
+        }, 30);
+        setTimeout(function(){ clearInterval(waitStop); cancelRecording(); }, 3000);
+        return;
+      }
       if(Math.abs(swipeDeltaX) >= SWIPE_CANCEL){
         cancelRecording();
       } else {
@@ -1934,13 +1952,16 @@
   window.closeHiddenPage = function(){
     stopPoll();
     attached = false;
-    // Retirer dm-chat-active — hiddenPage n'est plus actif
     document.body.classList.remove('dm-chat-active');
     var fb = document.getElementById('floatingThemeBtn');
     if(fb){ fb.style.opacity = ''; fb.style.pointerEvents = ''; }
     if(window._dmUpdateVP) window._dmUpdateVP();
+    // Libérer le stream micro quand on quitte le chat
+    if(typeof cachedStream !== 'undefined' && cachedStream){
+      try{ cachedStream.getTracks().forEach(function(t){ t.stop(); }); }catch(e){}
+      cachedStream = null;
+    }
     if(_origClose) _origClose.apply(this, arguments);
-    // Dispatch event so nav can clean up messages active state
     document.dispatchEvent(new CustomEvent('hiddenPageClosed'));
   };
 
