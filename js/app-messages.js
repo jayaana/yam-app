@@ -1086,70 +1086,64 @@
   // Crée un mini avatar circulaire pour les réactions
   function _makeReactAvatar(who){
     var av = document.createElement('img');
-    av.className = 'dm-react-avatar';
-    av.width  = 18;
-    av.height = 18;
-    av.style.cssText = 'width:18px;height:18px;min-width:18px;min-height:18px;max-width:18px;max-height:18px;border-radius:50%;object-fit:cover;flex-shrink:0;';
+    av.width = 18; av.height = 18;
+    av.style.cssText = 'width:18px;height:18px;min-width:18px;max-width:18px;border-radius:50%;object-fit:cover;flex-shrink:0;display:block;';
     av.src = window.yamAvatarSrc ? window.yamAvatarSrc(who) : ('assets/images/profil_' + who + '.png');
     av.onerror = function(){
-      this.style.display='none';
+      this.style.display = 'none';
       var fb = document.createElement('span');
-      fb.className = 'dm-react-avatar-fb';
+      fb.style.fontSize = '13px';
       fb.textContent = (who === 'girl') ? '👧' : '👦';
       this.parentNode && this.parentNode.insertBefore(fb, this);
     };
     return av;
   }
 
-  // Rendu des réactions sur un wrap (bulle ou photo) — style Instagram avec avatars
+  // Rendu des réactions — un .dm-react-row collé sous la bulle, dans le flux normal
   function renderReactions(msg, wrap){
-    wrap.querySelectorAll('.dm-react').forEach(function(el){ el.remove(); });
-    var bubble = wrap.querySelector('.dm-bubble') || wrap.querySelector('.dm-photo-inner') || wrap;
-    bubble.classList.remove('has-reaction');
+    var oldRow = wrap.querySelector('.dm-react-row');
+    if(oldRow) oldRow.remove();
     wrap.classList.remove('has-reaction');
 
     var rg = msg.reaction_girl;
     var rb = msg.reaction_boy;
     if(!rg && !rb) return;
 
-    if(rg && rb && rg === rb){
-      // Même emoji — une bulle avec les 2 avatars
-      var r = document.createElement('div');
-      r.className = 'dm-react dm-react-both';
-      r.appendChild(_makeReactAvatar('girl'));
-      r.appendChild(_makeReactAvatar('boy'));
+    var isMine = wrap.classList.contains('mine');
+
+    // Conteneur en flux normal, aligné comme la bulle
+    var row = document.createElement('div');
+    row.className = 'dm-react-row' + (isMine ? ' mine' : '');
+
+    function makeChip(who, emoji, canTap){
+      var chip = document.createElement('div');
+      chip.className = 'dm-react';
+      chip.appendChild(_makeReactAvatar(who));
       var em = document.createElement('span');
-      em.className = 'dm-react-em';
-      em.textContent = rg;
-      r.appendChild(em);
-      r.addEventListener('click', function(){ setReaction(msg, wrap, null); });
-      bubble.appendChild(r);
-    } else {
-      // Emojis différents ou un seul — une bulle par réaction
-      if(rg){
-        var rEl = document.createElement('div');
-        rEl.className = 'dm-react dm-react-girl';
-        rEl.appendChild(_makeReactAvatar('girl'));
-        var emg = document.createElement('span');
-        emg.className = 'dm-react-em';
-        emg.textContent = rg;
-        rEl.appendChild(emg);
-        if(identity === 'girl') rEl.addEventListener('click', function(){ setReaction(msg, wrap, null); });
-        bubble.appendChild(rEl);
-      }
-      if(rb){
-        var rEl2 = document.createElement('div');
-        rEl2.className = 'dm-react dm-react-boy';
-        rEl2.appendChild(_makeReactAvatar('boy'));
-        var emb = document.createElement('span');
-        emb.className = 'dm-react-em';
-        emb.textContent = rb;
-        rEl2.appendChild(emb);
-        if(identity === 'boy') rEl2.addEventListener('click', function(){ setReaction(msg, wrap, null); });
-        bubble.appendChild(rEl2);
-      }
+      em.style.cssText = 'font-size:15px;line-height:1;';
+      em.textContent = emoji;
+      chip.appendChild(em);
+      if(canTap) chip.addEventListener('click', function(){ setReaction(msg, wrap, null); });
+      return chip;
     }
-    bubble.classList.add('has-reaction');
+
+    if(rg && rb && rg === rb){
+      var chip = document.createElement('div');
+      chip.className = 'dm-react';
+      chip.appendChild(_makeReactAvatar('girl'));
+      chip.appendChild(_makeReactAvatar('boy'));
+      var em = document.createElement('span');
+      em.style.cssText = 'font-size:15px;line-height:1;';
+      em.textContent = rg;
+      chip.appendChild(em);
+      chip.addEventListener('click', function(){ setReaction(msg, wrap, null); });
+      row.appendChild(chip);
+    } else {
+      if(rg) row.appendChild(makeChip('girl', rg, identity === 'girl'));
+      if(rb) row.appendChild(makeChip('boy',  rb, identity === 'boy'));
+    }
+
+    wrap.appendChild(row);
     wrap.classList.add('has-reaction');
   }
 
@@ -1182,8 +1176,9 @@
     var txt = wrap.querySelector('.dm-bubble-text');
     if(txt) txt.textContent = 'Message supprimé';
     if(bbl) bbl.classList.add('deleted');
-    var react = wrap.querySelector('.dm-react');
-    if(react) react.remove();
+    var reactRow = wrap.querySelector('.dm-react-row');
+    if(reactRow) reactRow.remove();
+    wrap.classList.remove('has-reaction');
 
     if(String(msg.id).indexOf('tmp_') === 0){ wrap.remove(); return; }
     // Soft delete Supabase
