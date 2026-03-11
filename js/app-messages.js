@@ -1506,7 +1506,9 @@
         lockMediaRec = new MediaRecorder(stream, {mimeType: mimeType});
         lockMediaRec.addEventListener('dataavailable', function(e){ if(e.data.size>0) lockAudioChunks.push(e.data); });
         lockMediaRec.addEventListener('stop', function(){
-          // Ne pas stopper les tracks — garder le stream en vie dans cachedStream
+          stream.getTracks().forEach(function(t){ t.stop(); });
+          cachedStream = null;
+          // Tracks stoppés → Dynamic Island s'éteint
           // pour éviter que iOS redemande la permission micro à la prochaine utilisation.
           if(!lockCancelled && lockAudioChunks.length){
             var blob = new Blob(lockAudioChunks, {type: lockMediaRec.mimeType});
@@ -1623,7 +1625,9 @@
       mediaRec = new MediaRecorder(stream, {mimeType: mimeType});
       mediaRec.addEventListener('dataavailable', function(e){ if(e.data.size>0) audioChunks.push(e.data); });
       mediaRec.addEventListener('stop', function(){
-        // Ne pas stopper les tracks — garder le stream en vie dans cachedStream
+        stream.getTracks().forEach(function(t){ t.stop(); });
+        cachedStream = null;
+        // Tracks stoppés → Dynamic Island s'éteint
         // pour éviter que iOS redemande la permission micro à la prochaine utilisation.
         // Les tracks seront stoppés uniquement par _dmReleaseStream() à la fermeture du chat.
         if(!cancelled && audioChunks.length){
