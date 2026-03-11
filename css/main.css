@@ -4698,28 +4698,38 @@ body.light .dm-send-btn { background:linear-gradient(135deg,var(--green),var(--a
   padding-right:4px;
 }
 
-/* ── Cadenas flottant au-dessus du mic, suit le doigt ── */
+/* ── Cadenas flottant position:fixed, suit le doigt via JS ── */
 .dm-rec-lock {
   display:none;
-  position:absolute;
-  bottom:calc(100% + 10px);
-  right:8px; /* aligné côté mic */
-  width:28px; height:28px;
+  position:fixed;
+  width:32px; height:32px;
   border-radius:50%;
   background:var(--s3);
   color:var(--muted);
   align-items:center; justify-content:center;
   pointer-events:none;
-  transition:color 0.18s, background 0.18s, transform 0.15s;
-  box-shadow:0 2px 10px rgba(0,0,0,0.22);
-  z-index:20;
+  transition:color 0.15s, background 0.15s;
+  box-shadow:0 2px 10px rgba(0,0,0,0.25);
+  z-index:9999;
+  transform:translate(-50%, -50%);
 }
 .dm-rec-lock.active { display:flex; }
 .dm-rec-lock.danger {
   color:#e05555;
-  background:rgba(224,85,85,0.15);
-  transform:scale(1.12);
+  background:rgba(224,85,85,0.18);
 }
+
+/* Icônes cadenas : ouvert par défaut, fermé en danger */
+.dm-rec-lock .dm-lock-open  { display:block; }
+.dm-rec-lock .dm-lock-closed { display:none; }
+.dm-rec-lock.danger .dm-lock-open  { display:none; }
+.dm-rec-lock.danger .dm-lock-closed { display:block; }
+
+/* Icônes poubelle : fermée par défaut, ouverte en danger */
+.dm-rec-bar-trash .dm-trash-open   { display:none; }
+.dm-rec-bar-trash .dm-trash-closed { display:block; }
+.dm-rec-bar-trash.danger .dm-trash-closed { display:none; }
+.dm-rec-bar-trash.danger .dm-trash-open   { display:block; }
 
 /* Bouton galerie photo */
 .dm-photo-btn {
