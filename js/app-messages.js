@@ -797,7 +797,8 @@
               r.className = 'dm-react';
               r.textContent = msg.reaction;
               r.addEventListener('click', function(){ setReaction(cached, wrap, null); });
-              wrap.querySelector('.dm-bubble').appendChild(r);
+              var _pb = wrap.querySelector('.dm-bubble') || wrap;
+              _pb.appendChild(r);
               wrap.classList.add('has-reaction');
             } else {
               wrap.classList.remove('has-reaction');
@@ -1102,7 +1103,9 @@
       r.textContent = reaction;
       r.addEventListener('click', function(){ setReaction(msg, wrap, null); });
       // Pour les photos : pas de .dm-bubble, on ajoute directement sur wrap
-      var bubble = wrap.querySelector('.dm-bubble') || wrap.querySelector('.dm-photo-inner') || wrap;
+      // Pour les photos : ajouter sur wrap directement (dm-photo-inner a overflow:hidden)
+      // Pour les bulles : ajouter sur .dm-bubble
+      var bubble = wrap.querySelector('.dm-bubble') || wrap;
       bubble.appendChild(r);
       wrap.classList.add('has-reaction');
     } else {
@@ -1184,6 +1187,17 @@
       inner.appendChild(img);
       inner.appendChild(timeEl);
       photoWrap.appendChild(inner);
+
+      // Réaction existante sur la photo
+      if(msg.reaction){
+        var pr = document.createElement('div');
+        pr.className = 'dm-react';
+        pr.textContent = msg.reaction;
+        pr.addEventListener('click', function(){ setReaction(msg, photoWrap, null); });
+        photoWrap.appendChild(pr);
+        photoWrap.classList.add('has-reaction');
+      }
+
       el.appendChild(photoWrap);
 
       // Bloquer menu système iOS sur l'image
