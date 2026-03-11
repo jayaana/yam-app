@@ -1385,7 +1385,8 @@
     var WV_BARS     = 40;
 
     var cachedStream    = null;
-    var permissionAsked = false;
+    var permissionAsked  = false; // true dès qu'on a demandé la permission (premier tap)
+    var permissionGranted = false; // true une fois getUserMedia résolu avec succès
 
     var SWIPE_CANCEL  = 108; // px — annulation dès le seuil danger (warn = cancel)
     var SWIPE_WARN    = 108; // px — danger (poubelle rouge) = déclenchement annulation
@@ -1394,6 +1395,140 @@
     var swipeDeltaX  = 0;
     var cancelled    = false;
     var isRecording  = false;
+    var touchStartTime = 0;
+    var TAP_MAX_MS   = 200; // durée max d'un tap court (ms)
+
+    // — Mode verrouillé —
+    var lockBar      = $('dmRecLockBar');
+    var lockTime     = $('dmRecLockTime');
+    var lockWaveform = $('dmRecLockWaveform');
+    var lockTrash    = $('dmRecLockTrash');
+    var lockSend     = $('dmRecLockSend');
+
+    var lockMediaRec    = null;
+    var lockAudioChunks = [];
+    var lockRecStart    = null;
+    var lockTimer       = null;
+    var lockWvBars      = [];
+    var lockWvRafId     = null;
+    var lockCancelled   = false;
+    var isLockRecording = false;
+
+    function buildLockWaveform(){
+      if(!lockWaveform) return;
+      lockWaveform.innerHTML = '';
+      lockWvBars = [];
+      for(var i=0; i<WV_BARS; i++){
+        var b = document.createElement('div');
+        b.className = 'dm-rec-wv-bar';
+        b.style.height = '3px';
+        lockWaveform.appendChild(b);
+        lockWvBars.push(b);
+      }
+    }
+
+    function startLockWaveform(stream){
+      if(!window.AudioContext && !window.webkitAudioContext) return;
+      try{
+        var lCtx = new (window.AudioContext || window.webkitAudioContext)();
+        var lAna = lCtx.createAnalyser();
+        lAna.fftSize = 128;
+        lAna.smoothingTimeConstant = 0.7;
+        var src = lCtx.createMediaStreamSource(stream);
+        src.connect(lAna);
+        var data = new Uint8Array(lAna.frequencyBinCount);
+        // Stocker pour pouvoir fermer
+        lockBar._audioCtx = lCtx;
+        function draw(){
+          lockWvRafId = requestAnimationFrame(draw);
+          lAna.getByteFrequencyData(data);
+          var binStep = Math.floor(data.length / WV_BARS);
+          for(var i=0; i<WV_BARS; i++){
+            var idx = i < WV_BARS/2
+              ? Math.floor(i * binStep)
+              : Math.floor((WV_BARS - 1 - i) * binStep);
+            var v = data[idx] / 255;
+            var h = Math.round(3 + v * v * 21);
+            lockWvBars[i].style.height = h + 'px';
+            lockWvBars[i].style.opacity = 0.5 + v * 0.5;
+          }
+        }
+        draw();
+      }catch(e){}
+    }
+
+    function stopLockWaveform(){
+      if(lockWvRafId){ cancelAnimationFrame(lockWvRafId); lockWvRafId = null; }
+      if(lockBar && lockBar._audioCtx){ try{ lockBar._audioCtx.close(); }catch(e){} lockBar._audioCtx = null; }
+      lockWvBars.forEach(function(b){ b.style.height = '3px'; b.style.opacity = '0.85'; });
+    }
+
+    function _closeLockBar(){
+      stopLockWaveform();
+      clearInterval(lockTimer);
+      isLockRecording = false;
+      if(lockBar) lockBar.classList.remove('active');
+      if(lockTime) lockTime.textContent = '0:00';
+      dmInput.style.opacity = '';
+      dmInput.style.pointerEvents = '';
+    }
+
+    function startLockRecording(){
+      if(!identity){ showIdentityOverlay(); return; }
+      isLockRecording = true;
+      getStream().then(function(stream){
+        if(!isLockRecording) return; // annulé entre temps
+        lockCancelled   = false;
+        lockAudioChunks = [];
+        lockRecStart    = Date.now();
+
+        buildLockWaveform();
+        startLockWaveform(stream);
+
+        if(lockBar) lockBar.classList.add('active');
+        dmInput.style.opacity = '0';
+        dmInput.style.pointerEvents = 'none';
+
+        lockTimer = setInterval(function(){
+          var elapsed = (Date.now() - lockRecStart) / 1000;
+          if(lockTime) lockTime.textContent = fmtTime(elapsed);
+          if(elapsed >= MAX_SEC) stopLockRecording(true);
+        }, 200);
+
+        var mimeType = 'audio/webm';
+        if(MediaRecorder.isTypeSupported('audio/webm;codecs=opus'))      mimeType = 'audio/webm;codecs=opus';
+        else if(MediaRecorder.isTypeSupported('audio/mp4'))              mimeType = 'audio/mp4';
+        else if(MediaRecorder.isTypeSupported('audio/aac'))              mimeType = 'audio/aac';
+
+        lockMediaRec = new MediaRecorder(stream, {mimeType: mimeType});
+        lockMediaRec.addEventListener('dataavailable', function(e){ if(e.data.size>0) lockAudioChunks.push(e.data); });
+        lockMediaRec.addEventListener('stop', function(){
+          stream.getTracks().forEach(function(t){ t.stop(); });
+          cachedStream = null;
+          if(!lockCancelled && lockAudioChunks.length){
+            var blob = new Blob(lockAudioChunks, {type: lockMediaRec.mimeType});
+            var duration = (Date.now() - lockRecStart) / 1000;
+            sendAudio(blob, duration);
+          }
+          lockAudioChunks = [];
+        });
+        lockMediaRec.start();
+      }).catch(function(err){
+        isLockRecording = false;
+        console.warn('[MIC LOCK]', err);
+        if(typeof showToast==='function') showToast('Micro non disponible', 'error');
+      });
+    }
+
+    function stopLockRecording(send){
+      if(!lockMediaRec || lockMediaRec.state==='inactive'){ _closeLockBar(); return; }
+      lockCancelled = !send;
+      _closeLockBar();
+      lockMediaRec.stop();
+    }
+
+    if(lockTrash) lockTrash.addEventListener('click', function(){ stopLockRecording(false); });
+    if(lockSend)  lockSend.addEventListener('click',  function(){ stopLockRecording(true);  });
 
     function fmtTime(s){ return Math.floor(s/60)+':'+('0'+Math.floor(s%60)).slice(-2); }
 
@@ -1449,7 +1584,8 @@
       permissionAsked = true;
       navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
         s.getTracks().forEach(function(t){ t.stop(); });
-      }).catch(function(){});
+        permissionGranted = true;
+      }).catch(function(){ permissionAsked = false; }); // reset si refusé pour réessayer
     }
 
     function getStream(){
@@ -1598,7 +1734,12 @@
       var touch = e.touches[0];
       swipeStartX = touch.clientX;
       swipeDeltaX = 0;
-      if(!permissionAsked) warmUpPermission();
+      touchStartTime = Date.now();
+      // Premier tap jamais vu : warm-up permission seulement, pas d'enregistrement
+      if(!permissionGranted){
+        warmUpPermission();
+        return;
+      }
       startRecording();
     }, {passive: false});
 
@@ -1630,6 +1771,29 @@
     }, {passive: true});
 
     micBtn.addEventListener('touchend', function(){
+      var elapsed = Date.now() - touchStartTime;
+      var isTap = elapsed < TAP_MAX_MS && Math.abs(swipeDeltaX) < 10;
+
+      // Cas 1 : permission pas encore accordée — ce tap ne fait rien (warm-up en cours)
+      if(!permissionGranted){
+        swipeStartX = null; swipeDeltaX = 0;
+        return;
+      }
+
+      // Cas 2 : tap court = mode verrouillé
+      if(isTap){
+        if(isRecording){
+          // On était en mode hold (rare) — stopper proprement sans envoyer, relancer en lock
+          stopRecording(false);
+        }
+        _closeLockBar(); // au cas où
+        startLockRecording();
+        swipeStartX = null; swipeDeltaX = 0;
+        return;
+      }
+
+      // Cas 3 : hold normal — annuler ou envoyer selon swipe
+      if(!isRecording){ swipeStartX = null; swipeDeltaX = 0; return; }
       if(Math.abs(swipeDeltaX) >= SWIPE_CANCEL){
         cancelRecording();
       } else {
@@ -1643,8 +1807,9 @@
     micBtn.addEventListener('click', function(e){
       if(swipeStartX !== null) return;
       e.preventDefault();
-      if(!desktopRec){ desktopRec = true; startRecording(); }
-      else            { desktopRec = false; stopRecording(true); }
+      if(!permissionGranted){ warmUpPermission(); return; }
+      if(!desktopRec){ desktopRec = true; startLockRecording(); }
+      else            { desktopRec = false; }
     });
     micBtn.addEventListener('touchend', function(){ desktopRec = false; }, {passive:true});
 
