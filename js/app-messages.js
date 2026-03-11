@@ -886,89 +886,151 @@
     closeCtxMenu();
     var mine = (msg.sender === identity);
 
-    // Overlay transparent pour fermer au clic extérieur
+    // ── Overlay fond flou style Instagram ──
     ctxOverlay = document.createElement('div');
-    ctxOverlay.className = 'dm-ctx-overlay';
+    ctxOverlay.className = 'dm-ctx-overlay dm-ctx-overlay-blur';
     ctxOverlay.addEventListener('click', closeCtxMenu);
     document.body.appendChild(ctxOverlay);
 
-    // Menu
-    ctxMenu = document.createElement('div');
-    ctxMenu.className = 'dm-ctx-menu';
+    // ── Clone du message isolé au centre ──
+    var isPhoto = (msg.message_type === 'photo');
+    var msgClone = document.createElement('div');
+    msgClone.className = 'dm-ctx-msg-preview';
+    if(isPhoto && msg.photo_url){
+      var cloneImg = document.createElement('img');
+      cloneImg.src = msg.photo_url;
+      cloneImg.className = 'dm-ctx-preview-photo';
+      msgClone.appendChild(cloneImg);
+    } else {
+      var cloneBbl = document.createElement('div');
+      cloneBbl.className = 'dm-bubble dm-ctx-preview-bubble' + (mine ? ' mine-preview' : '');
+      if(msg.reply_to_text){
+        var rp = document.createElement('div');
+        rp.className = 'dm-reply-preview';
+        rp.textContent = msg.reply_to_text.length > 40 ? msg.reply_to_text.slice(0,40)+'…' : msg.reply_to_text;
+        cloneBbl.appendChild(rp);
+      }
+      var cloneTxt = document.createElement('div');
+      cloneTxt.className = 'dm-bubble-text';
+      cloneTxt.textContent = msg.text || '';
+      cloneBbl.appendChild(cloneTxt);
+      msgClone.appendChild(cloneBbl);
+    }
+    ctxOverlay.appendChild(msgClone);
 
-    // Réactions
-    var reactRow = document.createElement('div');
-    reactRow.className = 'dm-ctx-reactions';
+    // ── Barre réactions style Instagram ──
+    var reactBar = document.createElement('div');
+    reactBar.className = 'dm-ctx-react-bar';
+
+    // Hint
+    var hint = document.createElement('div');
+    hint.className = 'dm-ctx-react-hint';
+    hint.textContent = 'Appuyez longuement pour une super réaction';
+    reactBar.appendChild(hint);
+
+    // Emojis row
+    var emRow = document.createElement('div');
+    emRow.className = 'dm-ctx-react-row';
     REACTIONS.forEach(function(em){
       var btn = document.createElement('span');
-      btn.className = 'dm-ctx-react-btn';
+      btn.className = 'dm-ctx-react-btn' + (msg.reaction === em ? ' active' : '');
       btn.textContent = em;
-      if(msg.reaction === em) btn.classList.add('active');
-      btn.addEventListener('click', function(){
+      btn.addEventListener('click', function(e2){ e2.stopPropagation();
         var newReact = (msg.reaction === em) ? null : em;
-        setReaction(msg, wrap, newReact);
-        closeCtxMenu();
+        setReaction(msg, wrap, newReact); closeCtxMenu();
       });
-      reactRow.appendChild(btn);
+      // Long press → super réaction (scale bounce)
+      var lp; btn.addEventListener('touchstart', function(){ lp = setTimeout(function(){ btn.classList.add('super'); }, 400); }, {passive:true});
+      btn.addEventListener('touchend', function(){ clearTimeout(lp); }, {passive:true});
+      emRow.appendChild(btn);
     });
-    ctxMenu.appendChild(reactRow);
 
-    // Répondre
+    // Bouton +
+    var plusBtn = document.createElement('span');
+    plusBtn.className = 'dm-ctx-react-btn dm-ctx-react-plus';
+    plusBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>';
+    plusBtn.addEventListener('click', function(e2){ e2.stopPropagation(); openEmojiPickerModal(msg, wrap); closeCtxMenu(); });
+    emRow.appendChild(plusBtn);
+    reactBar.appendChild(emRow);
+    ctxOverlay.appendChild(reactBar);
+
+    // ── Menu actions ──
+    ctxMenu = document.createElement('div');
+    ctxMenu.className = 'dm-ctx-menu dm-ctx-menu-insta';
+
     var replyItem = document.createElement('div');
     replyItem.className = 'dm-ctx-item';
-    replyItem.innerHTML = '<span>↩️</span> Répondre';
-    replyItem.addEventListener('click', function(){
-      startReply(msg);
-      closeCtxMenu();
-    });
+    replyItem.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg> Répondre';
+    replyItem.addEventListener('click', function(){ startReply(msg); closeCtxMenu(); });
     ctxMenu.appendChild(replyItem);
 
-    // Modifier (seulement ses propres messages texte non supprimés)
-    if(mine && !msg.deleted && msg.message_type !== 'audio'){
+    if(mine && !msg.deleted && !isPhoto){
       var editItem = document.createElement('div');
       editItem.className = 'dm-ctx-item';
-      editItem.innerHTML = '<span>✏️</span> Modifier';
-      editItem.addEventListener('click', function(){
-        startEdit(msg, wrap);
-        closeCtxMenu();
-      });
+      editItem.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Modifier';
+      editItem.addEventListener('click', function(){ startEdit(msg, wrap); closeCtxMenu(); });
       ctxMenu.appendChild(editItem);
     }
 
-    // Copier
-    var copyItem = document.createElement('div');
-    copyItem.className = 'dm-ctx-item';
-    copyItem.innerHTML = '<span>📋</span> Copier';
-    copyItem.addEventListener('click', function(){
-      navigator.clipboard && navigator.clipboard.writeText(msg.text);
-      closeCtxMenu();
-    });
-    ctxMenu.appendChild(copyItem);
+    if(!isPhoto){
+      var copyItem = document.createElement('div');
+      copyItem.className = 'dm-ctx-item';
+      copyItem.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copier';
+      copyItem.addEventListener('click', function(){ navigator.clipboard && navigator.clipboard.writeText(msg.text); closeCtxMenu(); });
+      ctxMenu.appendChild(copyItem);
+    }
 
-    // Supprimer (seulement ses propres messages)
     if(mine){
       var delItem = document.createElement('div');
       delItem.className = 'dm-ctx-item danger';
-      delItem.innerHTML = '<span>🗑️</span> Supprimer';
-      delItem.addEventListener('click', function(){
-        deleteMsg(msg, wrap);
-        closeCtxMenu();
-      });
+      delItem.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg> Supprimer';
+      delItem.addEventListener('click', function(){ deleteMsg(msg, wrap); closeCtxMenu(); });
       ctxMenu.appendChild(delItem);
     }
 
-    // Positionner le menu
-    document.body.appendChild(ctxMenu);
-    var mw = ctxMenu.offsetWidth  || 170;
-    var mh = ctxMenu.offsetHeight || 160;
-    var vw = window.innerWidth, vh = window.innerHeight;
-    var x  = e.clientX, y = e.clientY;
-    if(x + mw > vw - 8) x = vw - mw - 8;
-    if(y + mh > vh - 8) y = y - mh - 8;
-    if(y < 8) y = 8;
-    ctxMenu.style.left = x + 'px';
-    ctxMenu.style.top  = y + 'px';
+    ctxOverlay.appendChild(ctxMenu);
   }
+
+  /* ══ EMOJI PICKER MODAL ══ */
+  var ALL_EMOJI = [
+    '❤️','🧡','💛','💚','💙','💜','🖤','🤍','💕','💞','💓','💗','💖','💘','💝','💟','❣️',
+    '😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘',
+    '😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🥸','🤩','🥳','😏','😒',
+    '😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬',
+    '🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤥','😶','😐','😑',
+    '😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧',
+    '😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','💀','☠️','👻','👽','🤖','🎃','😺','😸',
+    '😹','😻','😼','😽','🙀','😿','😾','👋','🤚','🖐️','✋','🖖','👌','🤌','🤏','✌️','🤞',
+    '🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','👍','👎','✊','👊','🤛','🤜','👏','🙌',
+    '👐','🤲','🤝','🙏','💪','🦵','🦶','👂','🦻','👃','🧠','🦷','🦴','👀','👁️','👅','👄',
+    '🔥','✨','⭐','🌟','💫','⚡','🌈','❄️','💥','🎉','🎊','🏆','🥇','🎵','🎶','💯','‼️',
+    '❓','❗','💢','🔴','🟠','🟡','🟢','🔵','🟣','⚫','⚪','🟤'
+  ];
+
+  function openEmojiPickerModal(msg, wrap){
+    var modal = document.getElementById('dmReactPickerModal');
+    if(!modal) return;
+    var grid = document.getElementById('dmReactPickerGrid');
+    if(!grid) return;
+    grid.innerHTML = '';
+    ALL_EMOJI.forEach(function(em){
+      var btn = document.createElement('span');
+      btn.className = 'dm-react-picker-em' + (msg.reaction === em ? ' active' : '');
+      btn.textContent = em;
+      btn.addEventListener('click', function(){
+        var newReact = (msg.reaction === em) ? null : em;
+        setReaction(msg, wrap, newReact);
+        closeEmojiPickerModal();
+      });
+      grid.appendChild(btn);
+    });
+    modal.classList.add('open');
+  }
+  function closeEmojiPickerModal(){
+    var modal = document.getElementById('dmReactPickerModal');
+    if(modal) modal.classList.remove('open');
+  }
+  window.closeDmReactPicker = closeEmojiPickerModal;
 
   /* ══ RÉACTION ══ */
   function setReaction(msg, wrap, reaction){
@@ -1059,7 +1121,21 @@
       photoWrap.appendChild(inner);
       el.appendChild(photoWrap);
 
-      // Tap → plein écran
+      // Long press → menu réactions (comme les bulles)
+      (function(m, pw){
+        var tapT = null, moved = false;
+        pw.addEventListener('touchstart', function(e){
+          moved = false;
+          tapT = setTimeout(function(){
+            if(!moved) openCtxMenu({clientX: window.innerWidth/2, clientY: window.innerHeight/2}, m, pw, pw);
+          }, 500);
+        }, {passive:true});
+        pw.addEventListener('touchmove', function(){ moved=true; clearTimeout(tapT); }, {passive:true});
+        pw.addEventListener('touchend', function(){ clearTimeout(tapT); }, {passive:true});
+        pw.addEventListener('contextmenu', function(e){ e.preventDefault(); openCtxMenu(e, m, pw, pw); });
+      })(msg, photoWrap);
+
+      // Tap court → plein écran (seulement si pas long press)
       inner.addEventListener('click', function(){
         if(window._dmOpenPhotoViewer) window._dmOpenPhotoViewer(msg.photo_url);
       });
