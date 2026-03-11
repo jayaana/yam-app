@@ -1623,8 +1623,14 @@
       mediaRec = new MediaRecorder(stream, {mimeType: mimeType});
       mediaRec.addEventListener('dataavailable', function(e){ if(e.data.size>0) audioChunks.push(e.data); });
       mediaRec.addEventListener('stop', function(){
-        stream.getTracks().forEach(function(t){ t.stop(); });
-        cachedStream = null;
+        // Stopper les tracks seulement si ce n'est pas un tap (cancelled=true sur tap)
+        // Sur tap, le stream est réutilisé par startLockRecording
+        if(cancelled && audioChunks.length === 0){
+          // tap annulé — ne pas stopper, startLockRecording réutilise le stream
+        } else {
+          stream.getTracks().forEach(function(t){ t.stop(); });
+          cachedStream = null;
+        }
         if(!cancelled && audioChunks.length){
           var blob = new Blob(audioChunks, {type: mediaRec.mimeType});
           var duration = (Date.now() - recStart) / 1000;
@@ -1729,7 +1735,8 @@
       reader.readAsDataURL(blob);
     }
 
-    var _swipeAtEnd = 0;
+    var _swipeAtEnd  = 0;
+    var _streamReady = null; // Promise du stream lancée au touchstart
 
     micBtn.addEventListener('touchstart', function(e){
       e.preventDefault();
@@ -1738,8 +1745,21 @@
       swipeStartX    = touch.clientX;
       swipeDeltaX    = 0;
       touchStartTime = Date.now();
-      // touchstart ne fait rien d'autre — pas de getUserMedia ici
-      // tap vs hold décidé uniquement dans touchend, sans ambiguïté
+      // getUserMedia + MediaRecorder.start() immédiatement
+      // Si c'est un tap, on annulera dans touchend — mais l'audio aura été capturé pendant le hold
+      _streamReady = getStream().then(function(stream){
+        cachedStream = stream;
+        // Démarrer l'enregistrement immédiatement — tap ou hold, on ne sait pas encore
+        isRecording = true;
+        _doRecord(stream);
+        return stream;
+      }).catch(function(err){
+        isRecording = false;
+        console.warn('[MIC]', err);
+        if(typeof showToast==='function') showToast('Micro non disponible', 'error');
+        _streamReady = null;
+        return null;
+      });
     }, {passive: false});
 
     micBtn.addEventListener('touchmove', function(e){
@@ -1766,32 +1786,36 @@
       _swipeAtEnd = swipeDeltaX;
       swipeStartX = null;
       swipeDeltaX = 0;
+      _streamReady = null;
 
       if(isLockRecording) return;
 
       if(isTap){
-        // Tap court → mode lock (enregistrement avec UI lock bar)
-        startLockRecording();
+        // Tap court — arrêter proprement le MediaRecorder sans tuer le stream
+        // puis basculer en mode lock en réutilisant le même stream
+        if(mediaRec && mediaRec.state !== 'inactive'){
+          mediaRec.addEventListener('stop', function onTapStop(){
+            mediaRec.removeEventListener('stop', onTapStop);
+            // Stream toujours vivant (pas de getTracks().stop() ici) — le réutiliser
+            startLockRecording();
+          }, {once: true});
+          cancelled = true; // ne pas envoyer les chunks
+          _closeBar();
+          mediaRec.stop();
+        } else {
+          startLockRecording();
+        }
         return;
       }
 
-      // Hold → enregistrement direct, getUserMedia maintenant
-      // Le doigt vient de se lever — on démarre ET arrête dans le même .then()
-      // durée = temps pendant lequel le doigt était appuyé
-      getStream().then(function(stream){
-        cachedStream = stream;
-        isRecording = true;
-        _doRecord(stream);
+      // Hold — arrêter l'enregistrement et envoyer ou annuler selon swipe
+      if(isRecording){
         if(Math.abs(_swipeAtEnd) >= SWIPE_CANCEL){
           cancelRecording();
         } else {
           stopRecording(true);
         }
-      }).catch(function(err){
-        isRecording = false;
-        console.warn('[MIC]', err);
-        if(typeof showToast==='function') showToast('Micro non disponible', 'error');
-      });
+      }
     }, {passive: true});
 
     micBtn.addEventListener('touchcancel', function(){ cancelRecording(); }, {passive:true});
