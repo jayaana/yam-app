@@ -1155,29 +1155,35 @@
       img.draggable = false;
 
       // Long press → menu réactions
-      (function(m, pw){
-        var tapT = null, moved = false, longPressed = false;
+      // _photoLpBlocked : bloque le click synthétique iOS qui suit un long-press
+      (function(m, pw, innerEl){
+        var tapT = null, moved = false, lpFired = false;
         pw.addEventListener('touchstart', function(e){
-          moved = false; longPressed = false;
+          moved = false; lpFired = false;
           tapT = setTimeout(function(){
             if(!moved){
-              longPressed = true;
+              lpFired = true;
               pw.style.opacity = '0';
               openCtxMenu({clientX: window.innerWidth/2, clientY: window.innerHeight/2}, m, pw, pw);
-              var restoreOpa = function(){ pw.style.opacity = ''; document.removeEventListener('touchstart', restoreOpa, true); };
+              // Restaurer l'opacité dès que l'overlay se ferme (au prochain touchstart)
+              var restoreOpa = function(){
+                pw.style.opacity = '';
+                document.removeEventListener('touchstart', restoreOpa, true);
+              };
               setTimeout(function(){ document.addEventListener('touchstart', restoreOpa, true); }, 300);
             }
           }, 500);
         }, {passive:true});
-        pw.addEventListener('touchmove', function(){ moved=true; clearTimeout(tapT); }, {passive:true});
-        pw.addEventListener('touchend', function(e){ clearTimeout(tapT); if(longPressed){ e.stopPropagation(); longPressed=false; } }, {passive:true});
+        pw.addEventListener('touchmove', function(){ moved = true; clearTimeout(tapT); }, {passive:true});
+        pw.addEventListener('touchend', function(){ clearTimeout(tapT); }, {passive:true});
         pw.addEventListener('contextmenu', function(e){ e.preventDefault(); e.stopPropagation(); });
-      })(msg, photoWrap);
 
-      // Tap court → plein écran
-      inner.addEventListener('click', function(){
-        if(window._dmOpenPhotoViewer) window._dmOpenPhotoViewer(msg.photo_url);
-      });
+        // Tap court → plein écran — ignoré si long-press vient de se déclencher
+        innerEl.addEventListener('click', function(e){
+          if(lpFired){ lpFired = false; e.stopPropagation(); return; }
+          if(window._dmOpenPhotoViewer) window._dmOpenPhotoViewer(m.photo_url);
+        });
+      })(msg, photoWrap, inner);
       return; // pas de bulle classique
     }
 
