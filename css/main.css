@@ -4650,41 +4650,75 @@ body.light .dm-send-btn { background:linear-gradient(135deg,var(--green),var(--a
 }
 @keyframes recBlink { 0%,100%{opacity:1} 50%{opacity:0.2} }
 
-/* Bulle vocale */
+/* ══ Bulle vocale — style Instagram ══ */
 .dm-audio-bubble {
   display:flex; align-items:center; gap:10px;
-  padding:10px 14px; min-width:180px;
+  padding:10px 12px 10px 10px; min-width:200px; max-width:260px;
 }
-/* Bouton play — mes messages */
+
+/* Bouton play/pause rond */
 .dm-audio-play {
-  width:34px; height:34px; border-radius:50%; border:none;
-  background:rgba(255,255,255,0.2); color:#fff;
+  width:38px; height:38px; border-radius:50%; border:none;
+  background:rgba(255,255,255,0.22); color:#fff;
   display:flex; align-items:center; justify-content:center;
-  cursor:pointer; flex-shrink:0; transition:transform 0.15s, background 0.15s;
+  cursor:pointer; flex-shrink:0;
+  transition:transform 0.13s, background 0.13s;
 }
-.dm-audio-play:hover { background:rgba(255,255,255,0.32); transform:scale(1.08); }
-/* Bouton play — messages reçus */
+.dm-audio-play:active { transform:scale(0.92); }
 .dm-msg-wrap:not(.mine) .dm-audio-play {
-  background:var(--s3); color:var(--text);
+  background:var(--accent); color:#fff;
 }
-.dm-msg-wrap:not(.mine) .dm-audio-play:hover { background:var(--border); }
-/* Barre de progression */
-.dm-audio-bar {
-  flex:1; height:4px; border-radius:4px;
-  background:rgba(0,0,0,0.2); position:relative; cursor:pointer;
+
+/* Zone waveform + durée */
+.dm-audio-right {
+  flex:1; display:flex; flex-direction:column; gap:5px; min-width:0;
 }
-.dm-msg-wrap:not(.mine) .dm-audio-bar { background:rgba(131,58,180,0.25); }
-.dm-audio-progress {
-  height:100%; border-radius:4px; background:rgba(255,255,255,0.9);
-  width:0%; transition:width 0.1s linear; pointer-events:none;
+
+/* Waveform — conteneur scrubable */
+.dm-audio-waveform {
+  display:flex; align-items:center; gap:2px;
+  height:28px; cursor:pointer;
+  position:relative; touch-action:none;
 }
-.dm-msg-wrap:not(.mine) .dm-audio-progress { background:#833ab4; }
+
+/* Chaque barre de la waveform */
+.dm-audio-waveform .dm-wv-bar {
+  flex-shrink:0; width:3px; border-radius:3px;
+  background:rgba(255,255,255,0.28);
+  transition:background 0.08s;
+}
+/* Barres "lues" (avant le curseur) */
+.dm-audio-waveform .dm-wv-bar.played {
+  background:rgba(255,255,255,0.95);
+}
+/* Messages reçus */
+.dm-msg-wrap:not(.mine) .dm-audio-waveform .dm-wv-bar {
+  background:rgba(131,58,180,0.22);
+}
+.dm-msg-wrap:not(.mine) .dm-audio-waveform .dm-wv-bar.played {
+  background:var(--accent);
+}
+
+/* Curseur de position */
+.dm-audio-waveform .dm-wv-thumb {
+  position:absolute; top:50%; transform:translate(-50%,-50%);
+  width:12px; height:12px; border-radius:50%;
+  background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.35);
+  pointer-events:none; transition:left 0.05s linear;
+  display:none;
+}
+.dm-audio-waveform.active .dm-wv-thumb,
+.dm-audio-waveform:hover .dm-wv-thumb { display:block; }
+.dm-msg-wrap:not(.mine) .dm-audio-waveform .dm-wv-thumb {
+  background:var(--accent);
+}
+
 /* Durée */
 .dm-audio-dur {
-  font-size:11px; font-weight:700; flex-shrink:0; min-width:30px;
-  color:rgba(255,255,255,0.95);
+  font-size:11px; font-weight:600; color:rgba(255,255,255,0.75);
+  line-height:1; align-self:flex-start;
 }
-.dm-msg-wrap:not(.mine) .dm-audio-dur { color:var(--text); }
+.dm-msg-wrap:not(.mine) .dm-audio-dur { color:var(--muted); }
 
 .dm-emoji-picker {
   position:absolute; bottom:calc(100% + 10px); left:0; right:0;
