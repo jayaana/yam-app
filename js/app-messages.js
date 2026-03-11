@@ -1503,7 +1503,7 @@
       stopWaveform();
       clearInterval(recTimer);
       isRecording = false;
-      micBtn.classList.remove('recording', 'swiping');
+      micBtn.classList.remove('recording', 'swiping', 'extreme-hide');
       recBar.classList.remove('active', 'swiping', 'extreme');
 
       if(recTime) recTime.textContent = '0:00';
@@ -1624,6 +1624,8 @@
       // Barre disparaît au seuil extrême — poubelle extrême apparaît à la place du bouton photo
       recBar.classList.toggle('extreme', extreme);
       if(extremeTrash) extremeTrash.classList.toggle('active', extreme);
+      // Micro invisible en mode extreme — seule la poubelle rouge reste visible
+      micBtn.classList.toggle('extreme-hide', extreme);
 
     }, {passive: true});
 
