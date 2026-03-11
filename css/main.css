@@ -4660,10 +4660,15 @@ body.light .dm-ctx-menu.dm-ctx-menu-insta .dm-ctx-item:hover { background: rgba(
 .dm-react:hover { transform: scale(1.25); }
 
 /* Réaction sur photo */
-/* Réaction sur photo — sur .dm-photo-wrap qui n'a pas overflow:hidden */
+/* Réaction sur photo — wrapper relatif autour de dm-photo-inner */
 .dm-photo-wrap { position: relative; }
-.dm-photo-wrap.has-reaction { padding-bottom: 14px; }
-.dm-photo-wrap .dm-react { bottom: 2px; right: 6px; position: absolute; z-index: 2; }
+.dm-photo-wrap.has-reaction .dm-photo-inner { margin-bottom: 14px; }
+.dm-photo-wrap .dm-react {
+  position: absolute;
+  bottom: 2px;
+  right: 6px;
+  z-index: 2;
+}
 .dm-photo-wrap.mine .dm-react { right: auto; left: 6px; }
 
 /* ── Emoji picker modal réactions ── */
@@ -4935,7 +4940,7 @@ body.light .dm-rec-lock-bar {
 
 /* Photo dans le chat — sans bulle */
 .dm-photo-wrap {
-  display:flex; margin-bottom:2px;
+  display:flex; margin-bottom:2px; position:relative;
   animation:dmMsgIn 0.22s cubic-bezier(.4,0,.2,1);
 }
 .dm-photo-wrap.mine { justify-content:flex-end; }
