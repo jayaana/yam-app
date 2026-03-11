@@ -1378,10 +1378,11 @@
       var validRows = rows.filter(function(m){ return !m.deleted; });
       var last  = validRows.length ? validRows[0] : rows[0];
       // Compter uniquement les messages non-lus de l'autre personne (pas les siens) et non supprimés
-      var other = identity === 'girl' ? 'boy' : (identity === 'boy' ? 'girl' : null);
+      var myId = identity || (typeof getProfile === 'function' ? getProfile() : null);
+      var other = myId === 'girl' ? 'boy' : (myId === 'boy' ? 'girl' : null);
       var unread = other
         ? rows.filter(function(m){ return !m.seen && m.sender === other && !m.deleted; }).length
-        : rows.filter(function(m){ return !m.seen && !m.deleted; }).length;
+        : 0; // si on ne connaît pas l'identité, on n'affiche rien plutôt que de compter faux
 
       var p = $('dmHomePreview');
       var t = $('dmHomeTime');
@@ -1529,7 +1530,9 @@
       if(!Array.isArray(rows)) return;
 
       // — Badge non-lus —
-      var unread = rows.filter(function(m){ return myProfile ? m.sender !== myProfile : true; }).length;
+      var unread = myProfile
+        ? rows.filter(function(m){ return m.sender !== myProfile; }).length
+        : 0; // identité inconnue → on n'affiche rien plutôt que compter faux
       var lockBtn   = document.getElementById('lockNavBtn');
       var lockBadge = document.getElementById('lockUnreadBadge');
       if(lockBtn){
