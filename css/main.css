@@ -4639,24 +4639,32 @@ body.light .dm-send-btn { background:linear-gradient(135deg,var(--green),var(--a
 .dm-mic-btn.recording.swiping { transition:none; }
 
 
-/* ── Barre d'enregistrement — fond coloré plein ── */
+/* ── Barre d'enregistrement — fond orange nav ── */
 .dm-rec-bar {
   display:none;
   position:absolute;
   inset:0;
   border-radius:26px;
-  background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);
+  background:#e8823a;
   align-items:center;
   overflow:visible;
   z-index:10;
   padding:0 8px 0 6px;
+  transition:opacity 0.15s, transform 0.15s;
 }
 body.light .dm-rec-bar {
   background:linear-gradient(135deg,var(--green),var(--accent));
 }
 .dm-rec-bar.active { display:flex; }
 
-/* Poubelle — rond blanc avec icône grise */
+/* Barre disparaît au seuil extrême (juste avant annulation) */
+.dm-rec-bar.extreme {
+  opacity:0;
+  pointer-events:none;
+  transform:scale(0.92);
+}
+
+/* Poubelle — rond blanc avec icône blanche */
 .dm-rec-bar-trash {
   width:34px; height:34px;
   display:flex; align-items:center; justify-content:center;
@@ -4664,7 +4672,7 @@ body.light .dm-rec-bar {
   background:rgba(255,255,255,0.22);
   border-radius:50%;
   color:rgba(255,255,255,0.85);
-  transition:background 0.18s, transform 0.18s;
+  transition:background 0.18s, transform 0.18s, color 0.18s;
   pointer-events:none;
 }
 .dm-rec-bar-trash.danger {
@@ -4672,9 +4680,6 @@ body.light .dm-rec-bar {
   color:#e05555;
   transform:scale(1.15);
 }
-
-/* Une seule icône poubelle — pas de swap ouvert/fermé */
-.dm-rec-bar-trash svg { display:block; }
 
 /* Centre : dot + waveform */
 .dm-rec-bar-center {
@@ -4688,7 +4693,7 @@ body.light .dm-rec-bar {
 }
 @keyframes recBlink { 0%,100%{opacity:1} 50%{opacity:0.2} }
 
-/* Waveform — blanc/semi-transparent, pas rouge */
+/* Waveform — blanc semi-transparent */
 .dm-rec-waveform {
   flex:1; height:28px; display:flex; align-items:center;
   gap:2px; overflow:hidden; min-width:0;
@@ -4708,34 +4713,6 @@ body.light .dm-rec-bar {
   min-width:34px; text-align:right;
   padding-right:4px;
 }
-
-/* ── Cadenas flottant position:fixed, suit X du doigt, Y fixe au-dessus barre ── */
-.dm-rec-lock {
-  display:none;
-  position:fixed;
-  width:34px; height:34px;
-  border-radius:50%;
-  background:rgba(255,255,255,0.95);
-  color:#555;
-  align-items:center; justify-content:center;
-  pointer-events:none;
-  transition:color 0.15s, background 0.15s, transform 0.15s;
-  box-shadow:0 2px 14px rgba(0,0,0,0.30);
-  z-index:999999;
-  transform:translateX(-50%);
-}
-.dm-rec-lock.active { display:flex; }
-.dm-rec-lock.danger {
-  color:#fff;
-  background:#e05555;
-  transform:translateX(-50%) scale(1.12);
-}
-
-/* Cadenas : une seule icône, swap via JS ou CSS */
-.dm-rec-lock .dm-lock-open   { display:block; }
-.dm-rec-lock .dm-lock-closed { display:none; }
-.dm-rec-lock.danger .dm-lock-open  { display:none; }
-.dm-rec-lock.danger .dm-lock-closed { display:block; }
 
 /* Bouton galerie photo */
 .dm-photo-btn {
