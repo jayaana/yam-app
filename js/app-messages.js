@@ -1087,9 +1087,12 @@
   function _makeReactAvatar(who){
     var av = document.createElement('img');
     av.className = 'dm-react-avatar';
+    av.width  = 18;
+    av.height = 18;
+    av.style.cssText = 'width:18px;height:18px;min-width:18px;min-height:18px;max-width:18px;max-height:18px;border-radius:50%;object-fit:cover;flex-shrink:0;';
     av.src = window.yamAvatarSrc ? window.yamAvatarSrc(who) : ('assets/images/profil_' + who + '.png');
-    av.onerror = function(){ 
-      this.style.display='none'; 
+    av.onerror = function(){
+      this.style.display='none';
       var fb = document.createElement('span');
       fb.className = 'dm-react-avatar-fb';
       fb.textContent = (who === 'girl') ? '👧' : '👦';
