@@ -873,7 +873,7 @@
   }
 
   /* ══ MENU CONTEXTUEL ══ */
-  var REACTIONS = ['❤️','😂','🔥','😍','💀','🥺'];
+  var REACTIONS = ['❤️','😂','😮','😢','😡','👍'];
   var ctxOverlay = null;
   var ctxMenu    = null;
 
@@ -964,6 +964,24 @@
     replyItem.addEventListener('click', function(){ startReply(msg); closeCtxMenu(); });
     ctxMenu.appendChild(replyItem);
 
+    // Enregistrer (photos uniquement)
+    if(isPhoto && msg.photo_url){
+      var dlItem = document.createElement('div');
+      dlItem.className = 'dm-ctx-item';
+      dlItem.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Enregistrer';
+      dlItem.addEventListener('click', function(){
+        closeCtxMenu();
+        fetch(msg.photo_url).then(function(r){ return r.blob(); }).then(function(blob){
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'photo-yam-' + Date.now() + '.jpg';
+          document.body.appendChild(a); a.click();
+          setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
+        }).catch(function(){ window.open(msg.photo_url, '_blank'); });
+      });
+      ctxMenu.appendChild(dlItem);
+    }
+
     if(mine && !msg.deleted && !isPhoto){
       var editItem = document.createElement('div');
       editItem.className = 'dm-ctx-item';
@@ -993,18 +1011,29 @@
 
   /* ══ EMOJI PICKER MODAL ══ */
   var ALL_EMOJI = [
-    '❤️','🧡','💛','💚','💙','💜','🖤','🤍','💕','💞','💓','💗','💖','💘','💝','💟','❣️',
-    '😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘',
-    '😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🥸','🤩','🥳','😏','😒',
-    '😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬',
-    '🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤥','😶','😐','😑',
-    '😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧',
-    '😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','💀','☠️','👻','👽','🤖','🎃','😺','😸',
-    '😹','😻','😼','😽','🙀','😿','😾','👋','🤚','🖐️','✋','🖖','👌','🤌','🤏','✌️','🤞',
-    '🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','👍','👎','✊','👊','🤛','🤜','👏','🙌',
-    '👐','🤲','🤝','🙏','💪','🦵','🦶','👂','🦻','👃','🧠','🦷','🦴','👀','👁️','👅','👄',
-    '🔥','✨','⭐','🌟','💫','⚡','🌈','❄️','💥','🎉','🎊','🏆','🥇','🎵','🎶','💯','‼️',
-    '❓','❗','💢','🔴','🟠','🟡','🟢','🔵','🟣','⚫','⚪','🟤'
+    '😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','🫠','😉','😊','😇',
+    '🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤑',
+    '🤗','🤭','🫢','🫣','🤫','🤔','🫡','🤐','🤨','😐','😑','😶','🫥','😏',
+    '😒','🙄','😬','🤥','🫨','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢',
+    '🤮','🤧','🥵','🥶','🥴','😵','💫','🤯','🤠','🥸','😎','🤓','🧐',
+    '😕','🫤','😟','🙁','☹️','😮','😯','😲','😳','🥺','🥹','😦','😧','😨',
+    '😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱',
+    '😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','🤖',
+    '😺','😸','😹','😻','😼','😽','🙀','😿','😾',
+    '😮‍💨','😶‍🌫️','😵‍💫','❤️‍🔥','🧌',
+    '👋','🤚','🖐️','✋','🖖','🫱','🫲','🫳','🫴','🤌','🤏','✌️','🤞','🫰',
+    '🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','🫵','👍','👎','✊','👊',
+    '🤛','🤜','👏','🙌','🫶','👐','🤲','🤝','🙏','💪','👀','👁️',
+    '❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥',
+    '💕','💞','💓','💗','💖','💘','💝','💟','❣️','💯','🔥','✨','⭐','🌟',
+    '💫','⚡','🌈','❄️','💥','🎉','🎊','🏆','🥇','🎵','🎶','💤','💢',
+    '🌸','🌺','🌻','🌹','🌷','🍀','🌿','🍃','🌊','🌙','☀️','⛅',
+    '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸',
+    '🐵','🙈','🙉','🙊','🐔','🐧','🦆','🦉','🦇','🐺','🦄','🐝','🦋','🐌',
+    '🐞','🐢','🐍','🦎','🐙','🦑','🐡','🐠','🐟','🐬','🐳','🦈','🐊',
+    '🍕','🍔','🍟','🌮','🍣','🍜','🍩','🎂','🍰','🧁','🍫','🍬','🍭','🥂',
+    '🎁','🎈','🎀','💌','🎮','🎯','🎲',
+    '🔴','🟠','🟡','🟢','🔵','🟣','⚫','⚪','🟤','‼️','❓','❗'
   ];
 
   function openEmojiPickerModal(msg, wrap){
@@ -1121,21 +1150,31 @@
       photoWrap.appendChild(inner);
       el.appendChild(photoWrap);
 
-      // Long press → menu réactions (comme les bulles)
+      // Bloquer menu système iOS sur l'image
+      img.addEventListener('contextmenu', function(e){ e.preventDefault(); e.stopPropagation(); });
+      img.draggable = false;
+
+      // Long press → menu réactions
       (function(m, pw){
-        var tapT = null, moved = false;
+        var tapT = null, moved = false, longPressed = false;
         pw.addEventListener('touchstart', function(e){
-          moved = false;
+          moved = false; longPressed = false;
           tapT = setTimeout(function(){
-            if(!moved) openCtxMenu({clientX: window.innerWidth/2, clientY: window.innerHeight/2}, m, pw, pw);
+            if(!moved){
+              longPressed = true;
+              pw.style.opacity = '0';
+              openCtxMenu({clientX: window.innerWidth/2, clientY: window.innerHeight/2}, m, pw, pw);
+              var restoreOpa = function(){ pw.style.opacity = ''; document.removeEventListener('touchstart', restoreOpa, true); };
+              setTimeout(function(){ document.addEventListener('touchstart', restoreOpa, true); }, 300);
+            }
           }, 500);
         }, {passive:true});
         pw.addEventListener('touchmove', function(){ moved=true; clearTimeout(tapT); }, {passive:true});
-        pw.addEventListener('touchend', function(){ clearTimeout(tapT); }, {passive:true});
-        pw.addEventListener('contextmenu', function(e){ e.preventDefault(); openCtxMenu(e, m, pw, pw); });
+        pw.addEventListener('touchend', function(e){ clearTimeout(tapT); if(longPressed){ e.stopPropagation(); longPressed=false; } }, {passive:true});
+        pw.addEventListener('contextmenu', function(e){ e.preventDefault(); e.stopPropagation(); });
       })(msg, photoWrap);
 
-      // Tap court → plein écran (seulement si pas long press)
+      // Tap court → plein écran
       inner.addEventListener('click', function(){
         if(window._dmOpenPhotoViewer) window._dmOpenPhotoViewer(msg.photo_url);
       });
