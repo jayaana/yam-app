@@ -1387,8 +1387,8 @@
     var cachedStream    = null;
     var permissionAsked = false;
 
-    var SWIPE_CANCEL = 70;  // px pour déclencher l'annulation
-    var SWIPE_WARN   = 58;  // px — poubelle/cadenas passent en danger (proche du seuil)
+    var SWIPE_CANCEL = 120; // px pour déclencher l'annulation
+    var SWIPE_WARN   = 100; // px — danger seulement dans les 20 derniers px
     var swipeStartX  = null;
     var swipeDeltaX  = 0;
     var cancelled    = false;
@@ -1468,7 +1468,12 @@
       startWaveform(stream);
 
       recBar.classList.add('active');
-      if(recLock) recLock.classList.add('active');
+      // Recalculer Y maintenant que la barre est visible
+      computeLockY();
+      if(recLock){
+        recLock.style.top = lockFixedY + 'px';
+        recLock.classList.add('active');
+      }
       micBtn.classList.add('recording');
       dmInput.style.opacity = '0';
       dmInput.style.pointerEvents = 'none';
@@ -1595,15 +1600,23 @@
       reader.readAsDataURL(blob);
     }
 
+    // Y fixe du cadenas : juste au-dessus de la barre d'enregistrement
+    var lockFixedY = null;
+    function computeLockY(){
+      var rect = recBar.getBoundingClientRect();
+      lockFixedY = rect.top - 44; // 44px au-dessus du bord haut de la barre
+    }
+
     micBtn.addEventListener('touchstart', function(e){
       e.preventDefault();
       var touch = e.touches[0];
       swipeStartX = touch.clientX;
       swipeDeltaX = 0;
-      // Positionner le cadenas sur le doigt dès le départ
+      // Calculer Y fixe depuis la barre (pas depuis le doigt)
+      computeLockY();
       if(recLock){
         recLock.style.left = touch.clientX + 'px';
-        recLock.style.top  = (touch.clientY - 48) + 'px';
+        recLock.style.top  = (lockFixedY || (touch.clientY - 44)) + 'px';
       }
       if(!permissionAsked) warmUpPermission();
       startRecording();
@@ -1624,10 +1637,10 @@
       // Mic suit le doigt légèrement
       micBtn.style.transform = 'translateX(' + Math.max(dx * 0.5, -SWIPE_CANCEL * 0.5) + 'px)';
 
-      // Cadenas suit exactement le doigt (position:fixed via coordonnées touch)
+      // Cadenas : X suit le doigt, Y fixe au-dessus de la barre
       if(recLock){
         recLock.style.left = touch.clientX + 'px';
-        recLock.style.top  = (touch.clientY - 48) + 'px'; // 48px au-dessus du doigt
+        if(lockFixedY !== null) recLock.style.top = lockFixedY + 'px';
         recLock.classList.toggle('danger', danger);
       }
 
