@@ -255,6 +255,8 @@
   /* ══ CHAT ══ */
   function startChat(){
     cache = [];
+    _msgOlderDone  = false;
+    _msgLoadingOld = false;
     var el = $('dmMessages');
     if(el) el.innerHTML = '<div class="dm-loading-msgs"><div class="dm-loading-dots"><span></span><span></span><span></span></div></div>';
     if(!attached){ attachListeners(); attached = true; }
@@ -524,6 +526,63 @@
   }
 
   // ✅ CORRECTION BUG #1a — Fetch Messages avec couple_id
+  var _msgPageSize   = 50;   // messages chargés par tranche
+  var _msgOlderDone  = false; // true si on a atteint le début de la conv
+  var _msgLoadingOld = false; // verrou anti-doublon
+
+  // Charge les messages plus anciens (bouton "Voir plus")
+  function loadOlderMsgs(){
+    if(_msgLoadingOld || _msgOlderDone) return;
+    var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
+    var coupleId = s && s.user ? s.user.couple_id : null;
+    if(!coupleId) return;
+    _msgLoadingOld = true;
+
+    // Ancre : created_at du plus vieux message en cache
+    var oldest = cache[0];
+    var anchor = oldest ? ('&created_at=lt.' + encodeURIComponent(oldest.created_at)) : '';
+    fetch(SB2_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId + anchor
+        + '&order=created_at.desc&limit=' + _msgPageSize + '&select=*', {
+      headers: sb2Headers()
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(rows){
+      _msgLoadingOld = false;
+      if(!Array.isArray(rows) || !rows.length){ _msgOlderDone = true; _hideLoadMoreBtn(); return; }
+      // rows est en desc, on remet en asc
+      rows.reverse();
+      // Prépend dans cache + DOM
+      var el = document.getElementById('dmMessages');
+      var prevScroll = el ? el.scrollHeight : 0;
+      rows.forEach(function(msg){ cache.unshift(msg); });
+      // Re-rendre tout (simple et fiable)
+      renderAll();
+      // Restaurer position scroll pour ne pas sauter
+      if(el) el.scrollTop = el.scrollHeight - prevScroll;
+      if(rows.length < _msgPageSize){ _msgOlderDone = true; _hideLoadMoreBtn(); }
+    })
+    .catch(function(){ _msgLoadingOld = false; });
+  }
+
+  function _hideLoadMoreBtn(){
+    var btn = document.getElementById('dmLoadMoreBtn');
+    if(btn) btn.style.display = 'none';
+  }
+
+  function _showLoadMoreBtn(){
+    var el = document.getElementById('dmMessages');
+    if(!el) return;
+    var btn = document.getElementById('dmLoadMoreBtn');
+    if(!btn){
+      btn = document.createElement('div');
+      btn.id = 'dmLoadMoreBtn';
+      btn.textContent = '⬆ Voir les messages précédents';
+      btn.addEventListener('click', loadOlderMsgs);
+      el.insertBefore(btn, el.firstChild);
+    }
+    btn.style.display = 'block';
+  }
+
   function fetchMsgs(){
     // Récupérer le couple_id depuis la session
     var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
@@ -532,8 +591,12 @@
       console.warn('[DM] fetchMsgs: couple_id manquant');
       return;
     }
-    
-    fetch(SB2_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId + '&order=created_at.asc&limit=300&select=*', {
+
+    // Premier chargement : les 50 derniers en ASC
+    var url = SB2_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId
+            + '&order=created_at.desc&limit=' + _msgPageSize + '&select=*';
+
+    fetch(url, {
       headers: sb2Headers()
     })
     .then(function(r){
@@ -542,11 +605,15 @@
     })
     .then(function(rows){
       if(!Array.isArray(rows)){ console.error('[DM] fetchMsgs: réponse inattendue', rows); return; }
+      // rows est desc → remettre en asc
+      rows.reverse();
 
       // Premier chargement
       if(!cache.length){
         cache = rows;
         renderAll();
+        // Afficher le bouton "voir plus" si la page est pleine
+        if(rows.length >= _msgPageSize) _showLoadMoreBtn();
         return;
       }
 
@@ -998,7 +1065,7 @@
           seekTo(pctFromEvent(e));
         });
 
-      })(audioBubble, 'data:audio/webm;base64,' + msg.audio_data, durSecs, durStr);
+      })(audioBubble, 'data:' + (msg.audio_mime || 'audio/webm') + ';base64,' + msg.audio_data, durSecs, durStr);
     } else {
       var txt = document.createElement('span');
       txt.className   = 'dm-bubble-text';
@@ -1143,7 +1210,7 @@
     var audioChunks= [];
     var recStart   = null;
     var recTimer   = null;
-    var MAX_SEC    = 30;
+    var MAX_SEC    = 60;
     var pressing   = false;
 
     function fmtTime(s){ return Math.floor(s/60)+':'+('0'+Math.floor(s%60)).slice(-2); }
@@ -1165,7 +1232,12 @@
           if(elapsed >= MAX_SEC) stopRecording(true);
         }, 200);
 
-        mediaRec = new MediaRecorder(stream, {mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm'});
+        // Détection mimeType : webm/opus pour Chrome/Android, mp4 pour iOS Safari
+        var mimeType = 'audio/webm';
+        if(MediaRecorder.isTypeSupported('audio/webm;codecs=opus'))      mimeType = 'audio/webm;codecs=opus';
+        else if(MediaRecorder.isTypeSupported('audio/mp4'))              mimeType = 'audio/mp4';
+        else if(MediaRecorder.isTypeSupported('audio/aac'))              mimeType = 'audio/aac';
+        mediaRec = new MediaRecorder(stream, {mimeType: mimeType});
         mediaRec.addEventListener('dataavailable', function(e){ if(e.data.size > 0) audioChunks.push(e.data); });
         mediaRec.addEventListener('stop', function(){
           stream.getTracks().forEach(function(t){ t.stop(); });
@@ -1205,10 +1277,12 @@
       var reader = new FileReader();
       reader.onloadend = function(){
         var b64 = reader.result.split(',')[1];
+        var audioMime = blob.type || 'audio/webm';
         var tmpId  = 'tmp_' + Date.now();
         var tmpMsg = {
           id: tmpId, sender: identity,
           message_type: 'audio', audio_data: b64,
+          audio_mime: audioMime,
           audio_duration: duration,
           text: '', seen: false, created_at: new Date().toISOString()
         };
@@ -1223,6 +1297,7 @@
             couple_id: coupleId,
             sender: identity, text: '',
             message_type: 'audio', audio_data: b64,
+            audio_mime: audioMime,
             audio_duration: Math.round(duration)
           })
         })
