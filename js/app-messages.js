@@ -1388,6 +1388,19 @@
     var permissionAsked  = false; // true dès qu'on a demandé la permission (premier tap)
     var permissionGranted = false; // true une fois getUserMedia résolu avec succès
 
+    // Vérifier silencieusement si la permission micro est déjà accordée (sans déclencher le micro)
+    if(navigator.permissions && navigator.permissions.query){
+      navigator.permissions.query({name:'microphone'}).then(function(result){
+        if(result.state === 'granted'){
+          permissionAsked   = true;
+          permissionGranted = true;
+        }
+        result.onchange = function(){
+          if(result.state === 'granted'){ permissionAsked = true; permissionGranted = true; }
+        };
+      }).catch(function(){}); // Safari < 16 ne supporte pas — silencieux
+    }
+
     var SWIPE_CANCEL  = 108; // px — annulation dès le seuil danger (warn = cancel)
     var SWIPE_WARN    = 108; // px — danger (poubelle rouge) = déclenchement annulation
     var SWIPE_EXTREME = 148; // px — barre disparaît — 40px après danger pour une phase visible
@@ -1527,8 +1540,14 @@
       lockMediaRec.stop();
     }
 
-    if(lockTrash) lockTrash.addEventListener('click', function(){ stopLockRecording(false); });
-    if(lockSend)  lockSend.addEventListener('click',  function(){ stopLockRecording(true);  });
+    if(lockTrash){
+      lockTrash.addEventListener('touchstart', function(e){ e.stopPropagation(); }, {passive:true});
+      lockTrash.addEventListener('click', function(e){ e.stopPropagation(); stopLockRecording(false); });
+    }
+    if(lockSend){
+      lockSend.addEventListener('touchstart', function(e){ e.stopPropagation(); }, {passive:true});
+      lockSend.addEventListener('click', function(e){ e.stopPropagation(); stopLockRecording(true); });
+    }
 
     function fmtTime(s){ return Math.floor(s/60)+':'+('0'+Math.floor(s%60)).slice(-2); }
 
@@ -1582,10 +1601,18 @@
     function warmUpPermission(){
       if(permissionAsked) return;
       permissionAsked = true;
+      // Sur iOS, on ne peut pas détecter la permission sans déclencher le micro.
+      // On fait juste un getStream() qui sera utilisé immédiatement après par startLockRecording.
+      // Le stream reste ouvert — pas de stop — pour que startLockRecording le réutilise via cachedStream.
       navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
-        s.getTracks().forEach(function(t){ t.stop(); });
+        cachedStream = s;          // garde le stream ouvert → pas de clignotement Dynamic Island
         permissionGranted = true;
-      }).catch(function(){ permissionAsked = false; }); // reset si refusé pour réessayer
+        // Lancer l'enregistrement lock immédiatement puisque c'était l'intention du tap
+        startLockRecording();
+      }).catch(function(){
+        permissionAsked = false;
+        if(typeof showToast==='function') showToast('Accès micro refusé', 'error');
+      });
     }
 
     function getStream(){
@@ -1731,6 +1758,8 @@
 
     micBtn.addEventListener('touchstart', function(e){
       e.preventDefault();
+      // Si mode lock en cours — ignorer complètement
+      if(isLockRecording) return;
       var touch = e.touches[0];
       swipeStartX = touch.clientX;
       swipeDeltaX = 0;
@@ -1774,10 +1803,13 @@
       var elapsed = Date.now() - touchStartTime;
       var isTap = elapsed < TAP_MAX_MS && Math.abs(swipeDeltaX) < 10;
 
-      // Cas 1 : permission pas encore accordée — ce tap ne fait rien (warm-up en cours)
+      // Si mode lock déjà actif — ne rien faire, les boutons lock gèrent eux-mêmes
+      if(isLockRecording){ swipeStartX = null; swipeDeltaX = 0; return; }
+
+      // Cas 1 : permission pas encore accordée — ce tap déclenche warm-up + enregistrement immédiat
       if(!permissionGranted){
         swipeStartX = null; swipeDeltaX = 0;
-        return;
+        return; // warmUpPermission() a déjà été appelé dans touchstart et lancera startLockRecording
       }
 
       // Cas 2 : tap court = mode verrouillé
