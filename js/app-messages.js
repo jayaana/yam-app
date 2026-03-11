@@ -889,20 +889,9 @@
     // ── Overlay fond flou style Instagram ──
     ctxOverlay = document.createElement('div');
     ctxOverlay.className = 'dm-ctx-overlay dm-ctx-overlay-blur';
-    // Sur iOS, on utilise touchend pour fermer (pas click ni touchstart)
-    // pour éviter que le touchend du long-press ou le click synthétique
-    // ne referme l'overlay immédiatement après ouverture.
-    // Délai 500ms = temps que le doigt se lève après le long-press
-    var _ctxReady = false;
-    setTimeout(function(){ _ctxReady = true; }, 500);
+    // Fermer uniquement si on touche le fond (pas un bouton enfant)
     ctxOverlay.addEventListener('touchend', function(e){
-      if(!_ctxReady) return;
-      // Fermer seulement si le touch est directement sur l'overlay (fond)
-      if(e.target === ctxOverlay) closeCtxMenu();
-    });
-    ctxOverlay.addEventListener('click', function(e){
-      if(!_ctxReady) return;
-      if(e.target === ctxOverlay) closeCtxMenu();
+      if(e.target === ctxOverlay){ e.preventDefault(); closeCtxMenu(); }
     });
     document.body.appendChild(ctxOverlay);
 
@@ -949,13 +938,14 @@
       var btn = document.createElement('span');
       btn.className = 'dm-ctx-react-btn' + (msg.reaction === em ? ' active' : '');
       btn.textContent = em;
-      btn.addEventListener('click', function(e2){ e2.stopPropagation();
+      // touchend pour réagir immédiatement sans attendre le click synthétique iOS
+      btn.addEventListener('touchend', function(e2){ e2.preventDefault(); e2.stopPropagation();
         var newReact = (msg.reaction === em) ? null : em;
         setReaction(msg, wrap, newReact); closeCtxMenu();
       });
+      btn.addEventListener('click', function(e2){ e2.stopPropagation(); }); // absorber le click fantôme
       // Long press → super réaction (scale bounce)
       var lp; btn.addEventListener('touchstart', function(){ lp = setTimeout(function(){ btn.classList.add('super'); }, 400); }, {passive:true});
-      btn.addEventListener('touchend', function(){ clearTimeout(lp); }, {passive:true});
       emRow.appendChild(btn);
     });
 
@@ -963,7 +953,8 @@
     var plusBtn = document.createElement('span');
     plusBtn.className = 'dm-ctx-react-btn dm-ctx-react-plus';
     plusBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>';
-    plusBtn.addEventListener('click', function(e2){ e2.stopPropagation(); openEmojiPickerModal(msg, wrap); closeCtxMenu(); });
+    plusBtn.addEventListener('touchend', function(e2){ e2.preventDefault(); e2.stopPropagation(); openEmojiPickerModal(msg, wrap); closeCtxMenu(); });
+    plusBtn.addEventListener('click', function(e2){ e2.stopPropagation(); });
     emRow.appendChild(plusBtn);
     reactBar.appendChild(emRow);
     ctxOverlay.appendChild(reactBar);
@@ -975,7 +966,8 @@
     var replyItem = document.createElement('div');
     replyItem.className = 'dm-ctx-item';
     replyItem.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg> Répondre';
-    replyItem.addEventListener('click', function(){ startReply(msg); closeCtxMenu(); });
+    replyItem.addEventListener('touchend', function(e){ e.preventDefault(); e.stopPropagation(); startReply(msg); closeCtxMenu(); });
+    replyItem.addEventListener('click', function(e){ e.stopPropagation(); });
     ctxMenu.appendChild(replyItem);
 
     // Enregistrer (photos uniquement)
@@ -983,7 +975,7 @@
       var dlItem = document.createElement('div');
       dlItem.className = 'dm-ctx-item';
       dlItem.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Enregistrer';
-      dlItem.addEventListener('click', function(){
+      dlItem.addEventListener('touchend', function(e){ e.preventDefault(); e.stopPropagation();
         closeCtxMenu();
         fetch(msg.photo_url).then(function(r){ return r.blob(); }).then(function(blob){
           var a = document.createElement('a');
@@ -993,6 +985,7 @@
           setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
         }).catch(function(){ window.open(msg.photo_url, '_blank'); });
       });
+      dlItem.addEventListener('click', function(e){ e.stopPropagation(); });
       ctxMenu.appendChild(dlItem);
     }
 
@@ -1000,7 +993,8 @@
       var editItem = document.createElement('div');
       editItem.className = 'dm-ctx-item';
       editItem.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Modifier';
-      editItem.addEventListener('click', function(){ startEdit(msg, wrap); closeCtxMenu(); });
+      editItem.addEventListener('touchend', function(e){ e.preventDefault(); e.stopPropagation(); startEdit(msg, wrap); closeCtxMenu(); });
+      editItem.addEventListener('click', function(e){ e.stopPropagation(); });
       ctxMenu.appendChild(editItem);
     }
 
@@ -1008,7 +1002,8 @@
       var copyItem = document.createElement('div');
       copyItem.className = 'dm-ctx-item';
       copyItem.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copier';
-      copyItem.addEventListener('click', function(){ navigator.clipboard && navigator.clipboard.writeText(msg.text); closeCtxMenu(); });
+      copyItem.addEventListener('touchend', function(e){ e.preventDefault(); e.stopPropagation(); navigator.clipboard && navigator.clipboard.writeText(msg.text); closeCtxMenu(); });
+      copyItem.addEventListener('click', function(e){ e.stopPropagation(); });
       ctxMenu.appendChild(copyItem);
     }
 
@@ -1016,7 +1011,8 @@
       var delItem = document.createElement('div');
       delItem.className = 'dm-ctx-item danger';
       delItem.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg> Supprimer';
-      delItem.addEventListener('click', function(){ deleteMsg(msg, wrap); closeCtxMenu(); });
+      delItem.addEventListener('touchend', function(e){ e.preventDefault(); e.stopPropagation(); deleteMsg(msg, wrap); closeCtxMenu(); });
+      delItem.addEventListener('click', function(e){ e.stopPropagation(); });
       ctxMenu.appendChild(delItem);
     }
 
@@ -1172,6 +1168,7 @@
       // _photoLpBlocked : bloque le click synthétique iOS qui suit un long-press
       (function(m, pw, innerEl){
         var tapT = null, moved = false, lpFired = false;
+
         pw.addEventListener('touchstart', function(e){
           moved = false; lpFired = false;
           tapT = setTimeout(function(){
@@ -1179,38 +1176,34 @@
               lpFired = true;
               pw.style.opacity = '0';
               openCtxMenu({clientX: window.innerWidth/2, clientY: window.innerHeight/2}, m, pw, pw);
+              // Restaurer opacité quand l'overlay est retiré
+              var tid = setInterval(function(){
+                if(!document.querySelector('.dm-ctx-overlay-blur')){
+                  pw.style.opacity = '';
+                  clearInterval(tid);
+                }
+              }, 100);
             }
           }, 500);
         }, {passive:true});
+
         pw.addEventListener('touchmove', function(){ moved = true; clearTimeout(tapT); }, {passive:true});
+
+        // touchend : bloquer propagation si long-press pour ne pas déclencher l'overlay
         pw.addEventListener('touchend', function(e){
           clearTimeout(tapT);
-          // Si long-press déclenché : stopper la propagation du touchend
-          // pour qu'il n'atteigne pas l'overlay et ne le ferme pas
-          if(lpFired){ e.stopPropagation(); }
+          if(lpFired){ e.preventDefault(); e.stopPropagation(); }
         });
+
         pw.addEventListener('contextmenu', function(e){ e.preventDefault(); e.stopPropagation(); });
 
-        // Tap court → plein écran — ignoré si long-press vient de se déclencher
-        innerEl.addEventListener('click', function(e){
-          if(lpFired){ lpFired = false; e.stopPropagation(); return; }
-          // Restaurer l'opacité si on arrive ici sans long-press
-          pw.style.opacity = '';
-          if(window._dmOpenPhotoViewer) window._dmOpenPhotoViewer(m.photo_url);
+        // Tap court → plein écran
+        innerEl.addEventListener('touchend', function(e){
+          if(lpFired){ lpFired = false; return; }
+          if(!moved) window._dmOpenPhotoViewer && window._dmOpenPhotoViewer(m.photo_url);
         });
+        innerEl.addEventListener('click', function(e){ e.stopPropagation(); });
       })(msg, photoWrap, inner);
-
-      // Restaurer l'opacité quand l'overlay se ferme
-      // (écouté sur document pour capturer closeCtxMenu depuis n'importe où)
-      (function(pw){
-        var _obs = new MutationObserver(function(){
-          if(!document.getElementById || !document.querySelector('.dm-ctx-overlay-blur')){
-            pw.style.opacity = '';
-            _obs.disconnect();
-          }
-        });
-        _obs.observe(document.body, { childList: true });
-      })(photoWrap);
       return; // pas de bulle classique
     }
 
