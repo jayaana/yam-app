@@ -1468,12 +1468,14 @@
       startWaveform(stream);
 
       recBar.classList.add('active');
-      // Recalculer Y maintenant que la barre est visible
-      computeLockY();
-      if(recLock){
-        recLock.style.top = lockFixedY + 'px';
-        recLock.classList.add('active');
-      }
+      // Recalculer Y maintenant que la barre est visible (délai 1 frame pour getBoundingClientRect)
+      requestAnimationFrame(function(){
+        computeLockY();
+        if(recLock){
+          recLock.style.top = lockFixedY + 'px';
+          recLock.classList.add('active');
+        }
+      });
       micBtn.classList.add('recording');
       dmInput.style.opacity = '0';
       dmInput.style.pointerEvents = 'none';
