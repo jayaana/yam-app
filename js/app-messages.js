@@ -1473,7 +1473,7 @@
       if(!identity){ showIdentityOverlay(); return; }
       if(isLockRecording) return;
       isLockRecording = true;
-      getNewStream().then(function(stream){
+      getStream().then(function(stream){
         if(!isLockRecording) return;
         lockCancelled   = false;
         lockAudioChunks = [];
@@ -1501,6 +1501,7 @@
         lockMediaRec.addEventListener('dataavailable', function(e){ if(e.data.size>0) lockAudioChunks.push(e.data); });
         lockMediaRec.addEventListener('stop', function(){
           stream.getTracks().forEach(function(t){ t.stop(); });
+          cachedStream = null;
           if(!lockCancelled && lockAudioChunks.length){
             var blob = new Blob(lockAudioChunks, {type: lockMediaRec.mimeType});
             var duration = (Date.now() - lockRecStart) / 1000;
@@ -1583,9 +1584,13 @@
       wvBars.forEach(function(b){ b.style.height = '3px'; b.style.opacity = '0.85'; });
     }
 
-    // Un seul getUserMedia par enregistrement — pas de cache, pas de warmup
-    function getNewStream(){
-      return navigator.mediaDevices.getUserMedia({audio:true});
+    // Un seul getUserMedia par session — stream partagé entre mode hold et mode lock
+    function getStream(){
+      if(cachedStream && cachedStream.active) return Promise.resolve(cachedStream);
+      return navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
+        cachedStream = s;
+        return s;
+      });
     }
 
     function _doRecord(stream){
@@ -1616,7 +1621,11 @@
       mediaRec = new MediaRecorder(stream, {mimeType: mimeType});
       mediaRec.addEventListener('dataavailable', function(e){ if(e.data.size>0) audioChunks.push(e.data); });
       mediaRec.addEventListener('stop', function(){
-        stream.getTracks().forEach(function(t){ t.stop(); });
+        // Ne stopper les tracks que si le stream n'est plus utilisé (pas de lock en cours)
+        if(!isLockRecording){
+          stream.getTracks().forEach(function(t){ t.stop(); });
+          cachedStream = null;
+        }
         if(!cancelled && audioChunks.length){
           var blob = new Blob(audioChunks, {type: mediaRec.mimeType});
           var duration = (Date.now() - recStart) / 1000;
@@ -1643,7 +1652,7 @@
     function startRecording(){
       if(!identity){ showIdentityOverlay(); return; }
       isRecording = true;
-      getNewStream().then(function(stream){
+      getStream().then(function(stream){
         _doRecord(stream);
       }).catch(function(err){
         isRecording = false;
@@ -1759,11 +1768,16 @@
       if(isLockRecording){ swipeStartX = null; swipeDeltaX = 0; return; }
 
       if(isTap){
-        // Tap court : annuler le hold qui vient de démarrer, passer en mode verrouillé
-        // stopRecording(false) stoppe proprement même si mediaRec n'a pas encore démarré
-        stopRecording(false);
+        // Tap court : interrompre le hold SANS stopper le stream (cachedStream reste actif)
+        // puis démarrer le lock sur ce même stream → zéro getUserMedia supplémentaire
+        isLockRecording = true; // guard positionné avant mediaRec.stop() pour le callback 'stop'
+        if(mediaRec && mediaRec.state !== 'inactive'){
+          cancelled = true;
+          mediaRec.stop(); // callback 'stop' verra isLockRecording=true → ne stopera pas les tracks
+        }
+        _closeBar();
         _closeLockBar();
-        startLockRecording(); // nouveau getUserMedia pour le lock
+        startLockRecording(); // cachedStream actif → getStream() résout immédiatement, pas de getUserMedia
         swipeStartX = null; swipeDeltaX = 0;
         return;
       }
