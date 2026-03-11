@@ -1387,8 +1387,8 @@
     var cachedStream    = null;
     var permissionAsked = false;
 
-    var SWIPE_CANCEL = 72;
-    var SWIPE_WARN   = 36;
+    var SWIPE_CANCEL = 70;  // px pour déclencher l'annulation
+    var SWIPE_WARN   = 58;  // px — poubelle/cadenas passent en danger (proche du seuil)
     var swipeStartX  = null;
     var swipeDeltaX  = 0;
     var cancelled    = false;
@@ -1505,7 +1505,8 @@
       isRecording = false;
       micBtn.classList.remove('recording', 'swiping');
       recBar.classList.remove('active', 'swiping');
-      if(recLock){ recLock.classList.remove('active', 'danger'); recLock.style.transform = ''; }
+      if(recLock){ recLock.classList.remove('active', 'danger'); }
+      // recLock.style.transform intact — CSS gère translate(-50%,-50%)
       if(recTime) recTime.textContent = '0:00';
       dmInput.style.opacity = '';
       dmInput.style.pointerEvents = '';
@@ -1538,7 +1539,8 @@
       swipeDeltaX = 0;
       micBtn.style.transform = '';
       if(recTrash) recTrash.classList.remove('danger');
-      if(recLock)  { recLock.classList.remove('danger'); recLock.style.transform = ''; }
+      if(recLock)  recLock.classList.remove('danger');
+      // NE PAS toucher recLock.style.transform — le CSS gère translate(-50%,-50%)
     }
 
     function sendAudio(blob, duration){
@@ -1595,15 +1597,22 @@
 
     micBtn.addEventListener('touchstart', function(e){
       e.preventDefault();
-      swipeStartX = e.touches[0].clientX;
+      var touch = e.touches[0];
+      swipeStartX = touch.clientX;
       swipeDeltaX = 0;
+      // Positionner le cadenas sur le doigt dès le départ
+      if(recLock){
+        recLock.style.left = touch.clientX + 'px';
+        recLock.style.top  = (touch.clientY - 48) + 'px';
+      }
       if(!permissionAsked) warmUpPermission();
       startRecording();
     }, {passive: false});
 
     micBtn.addEventListener('touchmove', function(e){
       if(swipeStartX === null || !isRecording) return;
-      var dx = e.touches[0].clientX - swipeStartX;
+      var touch = e.touches[0];
+      var dx = touch.clientX - swipeStartX;
       if(dx > 0) dx = 0;
       swipeDeltaX = dx;
       var abs = Math.abs(dx);
@@ -1615,10 +1624,10 @@
       // Mic suit le doigt légèrement
       micBtn.style.transform = 'translateX(' + Math.max(dx * 0.5, -SWIPE_CANCEL * 0.5) + 'px)';
 
-      // Cadenas monte légèrement vers la poubelle
+      // Cadenas suit exactement le doigt (position:fixed via coordonnées touch)
       if(recLock){
-        var liftY = Math.min(abs * 0.3, 14);
-        recLock.style.transform = 'translateY(-' + liftY + 'px)';
+        recLock.style.left = touch.clientX + 'px';
+        recLock.style.top  = (touch.clientY - 48) + 'px'; // 48px au-dessus du doigt
         recLock.classList.toggle('danger', danger);
       }
 
