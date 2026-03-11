@@ -4946,7 +4946,12 @@ body.light .dm-rec-lock-bar {
 .dm-photo-inner img {
   display:block; width:100%; height:100%;
   object-fit:cover; border-radius:16px;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  pointer-events: none;
 }
+.dm-photo-inner { touch-action: manipulation; }
 .dm-photo-time {
   position:absolute; bottom:6px; right:8px;
   font-size:10px; font-weight:600; color:#fff;
