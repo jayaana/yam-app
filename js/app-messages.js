@@ -784,27 +784,13 @@
           var cached = cache.find(function(m){ return m.id === msg.id; });
           if(cached && !cached.seen){ cached.seen = true; seenChanged = true; }
         }
-        // Sync réaction depuis serveur
+        // Sync réactions depuis serveur (reaction_girl + reaction_boy)
         var cached = cache.find(function(m){ return m.id === msg.id; });
-        if(cached && cached.reaction !== msg.reaction){
-          cached.reaction = msg.reaction;
+        if(cached && (cached.reaction_girl !== msg.reaction_girl || cached.reaction_boy !== msg.reaction_boy)){
+          cached.reaction_girl = msg.reaction_girl;
+          cached.reaction_boy  = msg.reaction_boy;
           var wrap = document.querySelector('[data-id="'+msg.id+'"]');
-          if(wrap){
-            var old = wrap.querySelector('.dm-react');
-            if(old) old.remove();
-            if(msg.reaction){
-              var r = document.createElement('div');
-              r.className = 'dm-react';
-              r.textContent = msg.reaction;
-              r.addEventListener('click', function(){ setReaction(cached, wrap, null); });
-              var _pb = wrap.querySelector('.dm-bubble') || wrap.querySelector('.dm-photo-inner') || wrap;
-              _pb.appendChild(r);
-              _pb.classList.add('has-reaction');
-              wrap.classList.add('has-reaction');
-            } else {
-              wrap.classList.remove('has-reaction');
-            }
-          }
+          if(wrap) renderReactions(cached, wrap);
         }
         // Marquer comme lu si le chat est visible
         var chatScreen = document.getElementById('dmChatScreen');
@@ -938,7 +924,8 @@
     emRow.className = 'dm-ctx-react-row';
     REACTIONS.forEach(function(em){
       var btn = document.createElement('span');
-      btn.className = 'dm-ctx-react-btn' + (msg.reaction === em ? ' active' : '');
+      var _myReact = (identity === 'girl') ? msg.reaction_girl : msg.reaction_boy;
+      btn.className = 'dm-ctx-react-btn' + (_myReact === em ? ' active' : '');
       btn.textContent = em;
       var lp;
       btn.addEventListener('touchstart', function(e2){
@@ -951,7 +938,8 @@
       }, {passive:true});
       btn.addEventListener('click', function(e2){
         e2.stopPropagation();
-        var newReact = (msg.reaction === em) ? null : em;
+        var _col = (identity === 'girl') ? 'reaction_girl' : 'reaction_boy';
+        var newReact = (msg[_col] === em) ? null : em;
         setReaction(msg, wrap, newReact); closeCtxMenu();
       });
       emRow.appendChild(btn);
@@ -1072,13 +1060,15 @@
     grid.innerHTML = '';
     ALL_EMOJI.forEach(function(em){
       var btn = document.createElement('span');
-      btn.className = 'dm-react-picker-em' + (msg.reaction === em ? ' active' : '');
+      var _myR = (identity === 'girl') ? msg.reaction_girl : msg.reaction_boy;
+      btn.className = 'dm-react-picker-em' + (_myR === em ? ' active' : '');
       btn.textContent = em;
       btn.addEventListener('touchstart', function(e){ e.stopPropagation(); }, {passive:true});
       btn.addEventListener('touchend', function(e){ e.stopPropagation(); }, {passive:true});
       btn.addEventListener('click', function(e){
         e.stopPropagation();
-        var newReact = (msg.reaction === em) ? null : em;
+        var _col2 = (identity === 'girl') ? 'reaction_girl' : 'reaction_boy';
+        var newReact = (msg[_col2] === em) ? null : em;
         setReaction(msg, wrap, newReact);
         closeEmojiPickerModal();
       });
@@ -1093,34 +1083,90 @@
   window.closeDmReactPicker = closeEmojiPickerModal;
 
   /* ══ RÉACTION ══ */
-  function setReaction(msg, wrap, reaction){
-    msg.reaction = reaction;
-    // Update UI — wrap peut être un .dm-msg-wrap (bulle) ou un .dm-photo-wrap (photo)
-    var old = wrap.querySelector('.dm-react');
-    if(old){ old.parentNode && old.parentNode.classList.remove('has-reaction'); old.remove(); }
-    if(reaction){
+  // Crée un mini avatar circulaire pour les réactions
+  function _makeReactAvatar(who){
+    var av = document.createElement('img');
+    av.className = 'dm-react-avatar';
+    av.src = window.yamAvatarSrc ? window.yamAvatarSrc(who) : ('assets/images/profil_' + who + '.png');
+    av.onerror = function(){ 
+      this.style.display='none'; 
+      var fb = document.createElement('span');
+      fb.className = 'dm-react-avatar-fb';
+      fb.textContent = (who === 'girl') ? '👧' : '👦';
+      this.parentNode && this.parentNode.insertBefore(fb, this);
+    };
+    return av;
+  }
+
+  // Rendu des réactions sur un wrap (bulle ou photo) — style Instagram avec avatars
+  function renderReactions(msg, wrap){
+    wrap.querySelectorAll('.dm-react').forEach(function(el){ el.remove(); });
+    var bubble = wrap.querySelector('.dm-bubble') || wrap.querySelector('.dm-photo-inner') || wrap;
+    bubble.classList.remove('has-reaction');
+    wrap.classList.remove('has-reaction');
+
+    var rg = msg.reaction_girl;
+    var rb = msg.reaction_boy;
+    if(!rg && !rb) return;
+
+    if(rg && rb && rg === rb){
+      // Même emoji — une bulle avec les 2 avatars
       var r = document.createElement('div');
-      r.className = 'dm-react';
-      r.textContent = reaction;
+      r.className = 'dm-react dm-react-both';
+      r.appendChild(_makeReactAvatar('girl'));
+      r.appendChild(_makeReactAvatar('boy'));
+      var em = document.createElement('span');
+      em.className = 'dm-react-em';
+      em.textContent = rg;
+      r.appendChild(em);
       r.addEventListener('click', function(){ setReaction(msg, wrap, null); });
-      // Pour les photos : pas de .dm-bubble, on ajoute directement sur wrap
-      // Pour les bulles : .dm-bubble / Pour les photos : .dm-photo-inner
-      var bubble = wrap.querySelector('.dm-bubble') || wrap.querySelector('.dm-photo-inner') || wrap;
       bubble.appendChild(r);
-      bubble.classList.add('has-reaction');
-      wrap.classList.add('has-reaction');
     } else {
-      wrap.classList.remove('has-reaction');
+      // Emojis différents ou un seul — une bulle par réaction
+      if(rg){
+        var rEl = document.createElement('div');
+        rEl.className = 'dm-react dm-react-girl';
+        rEl.appendChild(_makeReactAvatar('girl'));
+        var emg = document.createElement('span');
+        emg.className = 'dm-react-em';
+        emg.textContent = rg;
+        rEl.appendChild(emg);
+        if(identity === 'girl') rEl.addEventListener('click', function(){ setReaction(msg, wrap, null); });
+        bubble.appendChild(rEl);
+      }
+      if(rb){
+        var rEl2 = document.createElement('div');
+        rEl2.className = 'dm-react dm-react-boy';
+        rEl2.appendChild(_makeReactAvatar('boy'));
+        var emb = document.createElement('span');
+        emb.className = 'dm-react-em';
+        emb.textContent = rb;
+        rEl2.appendChild(emb);
+        if(identity === 'boy') rEl2.addEventListener('click', function(){ setReaction(msg, wrap, null); });
+        bubble.appendChild(rEl2);
+      }
     }
+    bubble.classList.add('has-reaction');
+    wrap.classList.add('has-reaction');
+  }
+
+  function setReaction(msg, wrap, reaction){
+    // Mettre à jour la réaction de l'utilisateur connecté
+    var col = (identity === 'girl') ? 'reaction_girl' : 'reaction_boy';
+    msg[col] = reaction;
+    renderReactions(msg, wrap);
+
     // Persist Supabase
     if(String(msg.id).indexOf('tmp_') === 0) return;
     var _rs = JSON.parse(localStorage.getItem('yam_v2_session')||'null');
     var _rcid = _rs&&_rs.user?_rs.user.couple_id:null;
     var _rf = 'id=eq.'+msg.id+(_rcid?'&couple_id=eq.'+_rcid:'');
+    var _body = {};
+    _body[col] = reaction;
     fetch(SB2_URL + '/rest/v1/' + TABLE + '?' + _rf, {
       method: 'PATCH',
       headers: sb2Headers({'Prefer':'return=minimal'}),
-      body: JSON.stringify({ reaction: reaction })
+      body: JSON.stringify(_body)
     }).then(function(r){
       if(!r.ok) r.text().then(function(t){ console.error('[DM] reaction err:', r.status, t); });
     }).catch(function(err){ console.error('[DM] reaction err:', err); });
@@ -1189,16 +1235,8 @@
       inner.appendChild(timeEl);
       photoWrap.appendChild(inner);
 
-      // Réaction existante sur la photo
-      if(msg.reaction){
-        var pr = document.createElement('div');
-        pr.className = 'dm-react';
-        pr.textContent = msg.reaction;
-        pr.addEventListener('click', function(){ setReaction(msg, photoWrap, null); });
-        inner.appendChild(pr);
-        inner.classList.add('has-reaction');
-        photoWrap.classList.add('has-reaction');
-      }
+      // Réactions existantes sur la photo (girl + boy)
+      if(msg.reaction_girl || msg.reaction_boy) renderReactions(msg, photoWrap);
 
       el.appendChild(photoWrap);
 
@@ -1438,15 +1476,8 @@
     meta.textContent = ts;
     bbl.appendChild(meta);
 
-    // Réaction existante
-    if(msg.reaction){
-      var r = document.createElement('div');
-      r.className   = 'dm-react';
-      r.textContent = msg.reaction;
-      r.addEventListener('click', function(){ setReaction(msg, wrap, null); });
-      bbl.appendChild(r);
-      wrap.classList.add('has-reaction');
-    }
+    // Réactions existantes (girl + boy)
+    if(msg.reaction_girl || msg.reaction_boy) renderReactions(msg, wrap);
 
     wrap.appendChild(bbl);
     el.appendChild(wrap);
@@ -2048,7 +2079,7 @@
     var coupleId = s && s.user ? s.user.couple_id : null;
     if(!coupleId) return;
     
-    fetch(SB2_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId + '&order=created_at.desc&limit=50&select=id,sender,text,message_type,seen,created_at,reaction,deleted,audio_duration', {
+    fetch(SB2_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId + '&order=created_at.desc&limit=50&select=id,sender,text,message_type,seen,created_at,reaction_girl,reaction_boy,deleted,audio_duration', {
       headers: sb2Headers()
     })
     .then(function(r){ return r.json(); })
