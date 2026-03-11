@@ -4651,6 +4651,105 @@ body.light .dm-send-btn { background:linear-gradient(135deg,var(--green),var(--a
 }
 @keyframes recBlink { 0%,100%{opacity:1} 50%{opacity:0.2} }
 
+/* Bouton galerie photo */
+.dm-photo-btn {
+  width:38px; height:38px; border-radius:50%; border:none;
+  background:transparent; color:var(--muted);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; flex-shrink:0; transition:color 0.15s;
+}
+.dm-photo-btn:active { color:var(--accent); transform:scale(0.92); }
+
+/* Photo dans le chat — sans bulle */
+.dm-photo-wrap {
+  display:flex; margin-bottom:2px;
+  animation:dmMsgIn 0.22s cubic-bezier(.4,0,.2,1);
+}
+.dm-photo-wrap.mine { justify-content:flex-end; }
+.dm-photo-wrap:not(.mine) { justify-content:flex-start; padding-left:32px; }
+.dm-photo-inner {
+  position:relative; cursor:pointer; border-radius:16px; overflow:hidden;
+  max-width:220px; max-height:280px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.25);
+}
+.dm-photo-inner img {
+  display:block; width:100%; height:100%;
+  object-fit:cover; border-radius:16px;
+}
+.dm-photo-time {
+  position:absolute; bottom:6px; right:8px;
+  font-size:10px; font-weight:600; color:#fff;
+  text-shadow:0 1px 3px rgba(0,0,0,0.6);
+}
+/* Photo en cours d'envoi */
+.dm-photo-inner.sending { opacity:0.6; }
+.dm-photo-inner.sending::after {
+  content:''; position:absolute; inset:0;
+  background:rgba(0,0,0,0.3); border-radius:16px;
+  display:flex; align-items:center; justify-content:center;
+}
+
+/* Overlay plein écran */
+#dmPhotoViewer {
+  position:fixed; inset:0; z-index:9999;
+  display:flex; align-items:center; justify-content:center;
+}
+#dmPhotoViewerBg {
+  position:absolute; inset:0; background:rgba(0,0,0,0.92);
+}
+#dmPhotoViewerImg {
+  position:relative; max-width:95vw; max-height:90vh;
+  object-fit:contain; border-radius:8px;
+  box-shadow:0 8px 40px rgba(0,0,0,0.5);
+}
+#dmPhotoViewerClose {
+  position:absolute; top:16px; right:16px;
+  width:36px; height:36px; border-radius:50%; border:none;
+  background:rgba(255,255,255,0.15); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; z-index:1;
+}
+
+/* Overlay prévisualisation avant envoi */
+#dmPhotoPreview {
+  position:fixed; inset:0; z-index:9998;
+  display:flex; align-items:center; justify-content:center;
+}
+#dmPhotoPreviewBg {
+  position:absolute; inset:0; background:rgba(0,0,0,0.85);
+}
+#dmPhotoPreviewContent {
+  position:relative; display:flex; flex-direction:column;
+  align-items:center; gap:20px; padding:20px;
+}
+#dmPhotoPreviewImg {
+  max-width:80vw; max-height:65vh;
+  object-fit:contain; border-radius:12px;
+  box-shadow:0 4px 24px rgba(0,0,0,0.4);
+}
+#dmPhotoPreviewActions {
+  display:flex; gap:12px;
+}
+#dmPhotoPreviewCancel {
+  padding:10px 24px; border-radius:24px; border:none;
+  background:rgba(255,255,255,0.15); color:#fff;
+  font-size:15px; font-weight:600; cursor:pointer;
+}
+#dmPhotoPreviewSend {
+  padding:10px 24px; border-radius:24px; border:none;
+  background:var(--accent); color:#fff;
+  font-size:15px; font-weight:600; cursor:pointer;
+  display:flex; align-items:center; gap:8px;
+}
+
+/* Bouton galerie — ancien .dm-emoji-btn pour compatibilité */
+.dm-emoji-btn {
+  width:38px; height:38px; border-radius:50%; border:none;
+  background:transparent; color:var(--muted);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; flex-shrink:0;
+}
+
 /* Bouton charger messages précédents */
 #dmLoadMoreBtn {
   text-align:center; padding:10px 16px; margin:8px auto;
