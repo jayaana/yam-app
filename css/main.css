@@ -4659,11 +4659,13 @@ body.light .dm-ctx-menu.dm-ctx-menu-insta .dm-ctx-item:hover { background: rgba(
 }
 .dm-react:hover { transform: scale(1.12); }
 .dm-react-avatar {
-  width: 16px; height: 16px; border-radius: 50%;
+  width: 18px; height: 18px; border-radius: 50%;
   object-fit: cover; flex-shrink: 0;
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
+  display: block;
+  max-width: 18px; max-height: 18px;
 }
-.dm-react-avatar-fb { font-size: 12px; line-height: 1; }
+.dm-react-avatar-fb { font-size: 13px; line-height: 1; }
 .dm-react-em { font-size: 14px; line-height: 1; }
 
 /* Positionnement bulle texte — côte à côte */
