@@ -4481,6 +4481,7 @@ body.light .dm-id-overlay { background: transparent; }
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
+  overflow:visible;
 }
 .dm-msg-wrap.has-reaction { margin-bottom: 18px; }
 @keyframes dmMsgIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
@@ -4489,6 +4490,7 @@ body.light .dm-id-overlay { background: transparent; }
 .dm-bubble {
   max-width:75%; padding:9px 13px; border-radius:20px;
   font-size:14px; line-height:1.5; word-break:break-word; position:relative;
+  overflow:visible;
 }
 .dm-msg-wrap:not(.mine) .dm-bubble { background:var(--s2); color:var(--text); border-radius:20px 20px 20px 4px; }
 .dm-msg-wrap:not(.mine).first-in-group .dm-bubble { border-radius:4px 20px 20px 20px; }
@@ -4527,9 +4529,7 @@ body.light .dm-seen-label { color: var(--muted); }
   background:var(--s1); border:1px solid var(--border); border-radius:10px;
   padding:1px 4px; cursor:pointer; user-select:none; transition:transform 0.15s;
 }
-.dm-msg-wrap:not(.mine) .dm-react { right:-6px; }
-.dm-msg-wrap.mine .dm-react { left:-6px; }
-.dm-react:hover { transform:scale(1.25); }
+/* dm-react positioning — voir bloc réactions Instagram ci-dessous */
 
 /* ── Menu contextuel messages ── overlay Instagram ── */
 
