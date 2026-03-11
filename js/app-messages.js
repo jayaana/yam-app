@@ -1490,10 +1490,55 @@
       reader.readAsDataURL(blob);
     }
 
-    // Tap pour démarrer / tap pour arrêter et envoyer
-    var isRecording = false;
-    micBtn.addEventListener('click', function(e){
+    // ── Maintenir pour enregistrer / relâcher pour envoyer / swipe gauche pour annuler ──
+    var isRecording    = false;
+    var _touchStartX   = 0;
+    var CANCEL_THRESHOLD = 80; // px à gauche pour annuler
+    var trash = document.getElementById('dmRecTrash');
+
+    function _micReset(){
+      micBtn.classList.remove('recording', 'sliding');
+      micBtn.style.transform = '';
+      if(trash){ trash.classList.remove('visible', 'ready'); }
+    }
+
+    // Touch — maintenir
+    micBtn.addEventListener('touchstart', function(e){
       e.preventDefault();
+      _touchStartX = e.touches[0].clientX;
+      isRecording = true;
+      startRecording();
+    }, { passive: false });
+
+    // Touch — glissement
+    micBtn.addEventListener('touchmove', function(e){
+      if(!isRecording) return;
+      var dx = e.touches[0].clientX - _touchStartX;
+      if(dx >= 0){ micBtn.style.transform = ''; return; }
+      var move = Math.max(dx, -CANCEL_THRESHOLD - 20);
+      micBtn.style.transform = 'translateX(' + move + 'px)';
+      micBtn.classList.add('sliding');
+      if(trash){
+        if(dx < -20)  trash.classList.add('visible');
+        else          trash.classList.remove('visible', 'ready');
+        if(dx < -CANCEL_THRESHOLD) trash.classList.add('ready');
+        else                       trash.classList.remove('ready');
+      }
+    }, { passive: true });
+
+    // Touch — relâcher
+    micBtn.addEventListener('touchend', function(e){
+      if(!isRecording) return;
+      var dx = e.changedTouches[0].clientX - _touchStartX;
+      var cancel = dx < -CANCEL_THRESHOLD;
+      isRecording = false;
+      _micReset();
+      stopRecording(!cancel); // true = envoyer, false = annuler
+    }, { passive: true });
+
+    // Fallback click desktop
+    micBtn.addEventListener('click', function(e){
+      if(e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return;
       if(!isRecording){
         isRecording = true;
         startRecording();
