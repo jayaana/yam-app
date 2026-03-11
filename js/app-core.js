@@ -561,6 +561,29 @@ window.yamRegisterPush = async function() {
   }
 };
 
+// Remet le badge icône PWA à zéro et ferme les notifs en attente
+// Gère le cas iOS où le SW controller n'est pas encore actif au démarrage
+window.yamClearAppBadge = function() {
+  if (!('serviceWorker' in navigator)) return;
+  function _send() {
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'YAM_CLOSE_NOTIFICATIONS' });
+    }
+  }
+  if (navigator.serviceWorker.controller) {
+    _send();
+  } else {
+    navigator.serviceWorker.ready.then(function() { _send(); });
+  }
+};
+
+// Reset badge dès que l'app revient au premier plan (depuis icône ou multitâche)
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden) {
+    window.yamClearAppBadge();
+  }
+});
+
 window.yamPushNotify = async function(opts) {
   var user = v2GetUser();
   if (!user) return;
@@ -605,6 +628,7 @@ window.yamPushNotify = async function(opts) {
   var _heartbeatIv = null;
   var _pollIv      = null;
   var _dot         = null;
+  var _lastPartnerSeen = 0; // timestamp ms du dernier heartbeat partenaire
 
   function isAudioPlaying() {
     var playing = false;
@@ -653,11 +677,19 @@ window.yamPushNotify = async function(opts) {
       if (!Array.isArray(rows) || !rows.length) { setDot(false); return; }
       var row       = rows[0];
       var lastSeen  = new Date(row.last_seen).getTime();
+      _lastPartnerSeen = lastSeen;
       var elapsed   = Date.now() - lastSeen;
       var threshold = row.is_playing ? OFFLINE_PLAYING : OFFLINE_AFTER;
       setDot(elapsed < threshold);
     }).catch(function(){ setDot(false); });
   }
+
+  /* Expose l'état en ligne du partenaire pour les autres modules */
+  window.yamIsPartnerOnline = function() {
+    if (!_lastPartnerSeen) return false;
+    var elapsed = Date.now() - _lastPartnerSeen;
+    return elapsed < OFFLINE_AFTER;
+  };
 
   /* Affiche ou cache le point vert */
   function setDot(online) {
