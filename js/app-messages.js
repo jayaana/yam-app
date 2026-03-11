@@ -797,8 +797,9 @@
               r.className = 'dm-react';
               r.textContent = msg.reaction;
               r.addEventListener('click', function(){ setReaction(cached, wrap, null); });
-              var _pb = wrap.querySelector('.dm-bubble') || wrap;
+              var _pb = wrap.querySelector('.dm-bubble') || wrap.querySelector('.dm-photo-inner') || wrap;
               _pb.appendChild(r);
+              _pb.classList.add('has-reaction');
               wrap.classList.add('has-reaction');
             } else {
               wrap.classList.remove('has-reaction');
@@ -1096,17 +1097,17 @@
     msg.reaction = reaction;
     // Update UI — wrap peut être un .dm-msg-wrap (bulle) ou un .dm-photo-wrap (photo)
     var old = wrap.querySelector('.dm-react');
-    if(old) old.remove();
+    if(old){ old.parentNode && old.parentNode.classList.remove('has-reaction'); old.remove(); }
     if(reaction){
       var r = document.createElement('div');
       r.className = 'dm-react';
       r.textContent = reaction;
       r.addEventListener('click', function(){ setReaction(msg, wrap, null); });
       // Pour les photos : pas de .dm-bubble, on ajoute directement sur wrap
-      // Pour les photos : ajouter sur wrap directement (dm-photo-inner a overflow:hidden)
-      // Pour les bulles : ajouter sur .dm-bubble
-      var bubble = wrap.querySelector('.dm-bubble') || wrap;
+      // Pour les bulles : .dm-bubble / Pour les photos : .dm-photo-inner
+      var bubble = wrap.querySelector('.dm-bubble') || wrap.querySelector('.dm-photo-inner') || wrap;
       bubble.appendChild(r);
+      bubble.classList.add('has-reaction');
       wrap.classList.add('has-reaction');
     } else {
       wrap.classList.remove('has-reaction');
@@ -1194,7 +1195,8 @@
         pr.className = 'dm-react';
         pr.textContent = msg.reaction;
         pr.addEventListener('click', function(){ setReaction(msg, photoWrap, null); });
-        photoWrap.appendChild(pr);
+        inner.appendChild(pr);
+        inner.classList.add('has-reaction');
         photoWrap.classList.add('has-reaction');
       }
 
