@@ -1623,13 +1623,8 @@
       mediaRec = new MediaRecorder(stream, {mimeType: mimeType});
       mediaRec.addEventListener('dataavailable', function(e){ if(e.data.size>0) audioChunks.push(e.data); });
       mediaRec.addEventListener('stop', function(){
-        var isTapCancel = cancelled && audioChunks.length === 0;
-        if(!isTapCancel){
-          // Hold normal (envoi ou annulation) — stopper les tracks, Dynamic Island s'éteint
-          stream.getTracks().forEach(function(t){ t.stop(); });
-          cachedStream = null;
-        }
-        // Sur tap annulé : stream gardé vivant pour startLockRecording
+        stream.getTracks().forEach(function(t){ t.stop(); });
+        cachedStream = null;
         if(!cancelled && audioChunks.length){
           var blob = new Blob(audioChunks, {type: mediaRec.mimeType});
           var duration = (Date.now() - recStart) / 1000;
@@ -1735,6 +1730,7 @@
     }
 
     var _swipeAtEnd = 0;
+    var _holdTimer  = null;
 
     micBtn.addEventListener('touchstart', function(e){
       e.preventDefault();
@@ -1743,18 +1739,25 @@
       swipeStartX    = touch.clientX;
       swipeDeltaX    = 0;
       touchStartTime = Date.now();
-      // Démarrer l'enregistrement hold immédiatement
-      // Si touchend arrive avant TAP_MAX_MS = tap → on annule proprement
-      getStream().then(function(stream){
-        cachedStream = stream;
-        if(swipeStartX === null) return; // touchend déjà passé avant stream prêt
-        isRecording = true;
-        _doRecord(stream);
-      }).catch(function(err){
-        isRecording = false;
-        console.warn('[MIC]', err);
-        if(typeof showToast==='function') showToast('Micro non disponible', 'error');
-      });
+
+      // Attendre TAP_MAX_MS avant de démarrer le hold
+      // Si touchend arrive avant → tap → startLockRecording, jamais de _doRecord
+      // Si le timer expire → hold confirmé → getUserMedia + _doRecord
+      _holdTimer = setTimeout(function(){
+        _holdTimer = null;
+        if(swipeStartX === null || isLockRecording) return; // touchend déjà passé = tap
+        getStream().then(function(stream){
+          if(swipeStartX === null || isLockRecording) return; // touchend passé pendant getUserMedia
+          cachedStream = stream;
+          isRecording = true;
+          _doRecord(stream);
+        }).catch(function(err){
+          isRecording = false;
+          console.warn('[MIC]', err);
+          if(typeof showToast==='function') showToast('Micro non disponible', 'error');
+        });
+      }, TAP_MAX_MS);
+
     }, {passive: false});
 
     micBtn.addEventListener('touchmove', function(e){
@@ -1782,23 +1785,20 @@
       swipeStartX = null;
       swipeDeltaX = 0;
 
+      // Annuler le timer hold si le doigt est levé avant TAP_MAX_MS
+      if(_holdTimer){ clearTimeout(_holdTimer); _holdTimer = null; }
+
       if(isLockRecording) return;
 
       if(isTap){
-        // Tap : annuler l'enregistrement hold (sans envoyer) puis démarrer lock
-        if(isRecording){
-          // Annuler hold proprement — onstop ne stoppera pas le stream (cancelled+chunks vides)
-          cancelled = true;
-          audioChunks = [];
-          _closeBar();
-          if(mediaRec && mediaRec.state !== 'inactive') mediaRec.stop();
-        }
-        // Démarrer lock — cachedStream encore vivant car onstop ne stoppe pas sur tap
+        // Tap pur — _doRecord n'a JAMAIS démarré (timer annulé)
+        // Aucun MediaRecorder actif, aucun stream à gérer
+        // Démarrer lock directement avec un getUserMedia frais
         startLockRecording();
         return;
       }
 
-      // Hold — envoyer ou annuler selon swipe
+      // Hold — _doRecord tourne depuis TAP_MAX_MS → arrêter
       if(isRecording){
         if(Math.abs(_swipeAtEnd) >= SWIPE_CANCEL){
           cancelRecording();
