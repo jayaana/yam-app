@@ -4642,16 +4642,19 @@ body.light .dm-ctx-menu.dm-ctx-menu-insta .dm-ctx-item:hover { background: rgba(
 
 /* ── Réactions style Instagram — avatar + emoji ── */
 
-/* Row de réactions : sous la bulle, dans le flux normal */
+/* wrap doit être position:relative pour que le row absolu s'y réfère */
+.dm-msg-wrap { position: relative; }
+
+/* Row de réactions : position absolute sous la bulle */
 .dm-react-row {
+  position: absolute;
+  bottom: -22px;
   display: flex; flex-direction: row; gap: 4px;
-  padding-left: 32px; /* aligner avec les bulles reçues (avatar 26px + gap 6px) */
-  margin-top: -4px; margin-bottom: 4px;
 }
-.dm-react-row.mine {
-  padding-left: 0; padding-right: 8px;
-  justify-content: flex-end;
-}
+/* Reçu : aligné à gauche, après l'avatar (26px + 6px gap) */
+.dm-msg-wrap:not(.mine) .dm-react-row { left: 32px; }
+/* Envoyé : aligné à droite */
+.dm-msg-wrap.mine .dm-react-row { right: 0; }
 
 /* Chip réaction */
 .dm-react {
@@ -4661,24 +4664,25 @@ body.light .dm-ctx-menu.dm-ctx-menu-insta .dm-ctx-item:hover { background: rgba(
   cursor: pointer; user-select: none;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   transition: transform 0.15s;
-  white-space: nowrap;
+  white-space: nowrap; z-index: 2;
 }
 .dm-react:hover { transform: scale(1.08); }
 body.light .dm-react { background:#fff; border-color:rgba(0,0,0,0.1); }
 
-/* Espace sous le message avec réaction */
-.dm-msg-wrap.has-reaction { margin-bottom: 2px; }
+/* Espace sous le message pour que la réaction soit visible */
+.dm-msg-wrap.has-reaction { margin-bottom: 26px; }
 
 /* Réaction sur photo */
 /* Réaction sur photo — positionnée sur dm-photo-inner (overflow:hidden retiré) */
 .dm-photo-wrap { position: relative; }
 .dm-photo-inner.has-reaction { overflow: visible; }
 .dm-photo-wrap.has-reaction .dm-photo-inner { margin-bottom: 14px; overflow: visible; }
-/* Réactions photo — row sous la photo, même système que bulles */
-.dm-photo-wrap .dm-react-row { padding-left: 0; margin-top: 4px; }
-.dm-photo-wrap:not(.mine) .dm-react-row { justify-content: flex-start; }
-.dm-photo-wrap.mine .dm-react-row { justify-content: flex-end; padding-right: 0; }
-.dm-photo-wrap.has-reaction { margin-bottom: 2px; }
+/* Réactions photo — row absolu sous la photo */
+.dm-photo-wrap { position: relative; }
+.dm-photo-wrap .dm-react-row { position: absolute; bottom: -22px; }
+.dm-photo-wrap:not(.mine) .dm-react-row { left: 0; }
+.dm-photo-wrap.mine .dm-react-row { right: 0; }
+.dm-photo-wrap.has-reaction { margin-bottom: 26px; }
 
 /* ── Emoji picker modal réactions ── */
 #dmReactPickerModal {
