@@ -730,7 +730,7 @@
       }
       // Reset du badge icône PWA (iOS home screen)
       if(toMark.length > 0 && navigator.serviceWorker && navigator.serviceWorker.controller){
-        navigator.serviceWorker.controller.postMessage({ type: 'YAM_CLEAR_BADGE' });
+        if(window.yamClearAppBadge) window.yamClearAppBadge();
       }
     }
     updateSeenLabel();
@@ -1180,8 +1180,8 @@
       }
       // Flamme — premier message du jour
       if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('first_message');
-      // Push au partenaire (si app fermée/backgroundée)
-      if(typeof window.yamPushNotify==='function'){
+      // Push au partenaire uniquement s'il n'est pas déjà en ligne
+      if(typeof window.yamPushNotify==='function' && !window.yamIsPartnerOnline()){
         var _me = (typeof v2GetUser==='function' && v2GetUser());
         var partnerName = (_me && _me.pseudo) || (typeof v2GetPartnerPseudo==='function' && v2GetPartnerPseudo()) || 'Partenaire';
         var preview = text.length > 60 ? text.slice(0, 57) + '...' : text;
@@ -1311,8 +1311,8 @@
             var node = document.querySelector('[data-id="'+tmpId+'"]');
             if(node) node.dataset.id = real.id;
           }
-          // Push au partenaire — message vocal
-          if(typeof window.yamPushNotify==='function'){
+          // Push au partenaire — message vocal (uniquement si hors ligne)
+          if(typeof window.yamPushNotify==='function' && !window.yamIsPartnerOnline()){
             var _me2 = (typeof v2GetUser==='function' && v2GetUser());
             var partnerName = (_me2 && _me2.pseudo) || (typeof v2GetPartnerPseudo==='function' && v2GetPartnerPseudo()) || 'Partenaire';
             window.yamPushNotify({ title: partnerName + ' 🎙️', body: "T'a envoyé un message vocal", tag: 'yam-message', data: { tab: 'messages' } });
@@ -1456,7 +1456,7 @@
     if(lockBtn)   lockBtn.classList.remove('has-unread');
     // Reset badge icône PWA systématiquement à l'ouverture du chat
     if(navigator.serviceWorker && navigator.serviceWorker.controller){
-      navigator.serviceWorker.controller.postMessage({ type: 'YAM_CLEAR_BADGE' });
+      if(window.yamClearAppBadge) window.yamClearAppBadge();
     }
     // Toujours afficher conv directement — plus d'écran intermédiaire/logo
     showConvScreen();
