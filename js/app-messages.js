@@ -1364,10 +1364,11 @@
   /* ══ ENREGISTREMENT VOCAL ══ */
   (function(){
     var micBtn     = $('dmMicBtn');
-    var recBar     = $('dmRecIndicator');
-    var recTime    = $('dmRecTime');
-    var recTrash   = recBar ? recBar.querySelector('.dm-rec-bar-trash') : null;
-    var recWaveform= $('dmRecWaveform');
+    var recBar      = $('dmRecIndicator');
+    var recTime     = $('dmRecTime');
+    var recTrash    = recBar ? recBar.querySelector('.dm-rec-bar-trash') : null;
+    var recWaveform = $('dmRecWaveform');
+    var extremeTrash= $('dmExtremeTrash');
     var dmInput    = $('dmInput');
     if(!micBtn || !recBar) return;
 
@@ -1386,9 +1387,9 @@
     var cachedStream    = null;
     var permissionAsked = false;
 
-    var SWIPE_CANCEL  = 120; // px pour déclencher l'annulation
-    var SWIPE_WARN    = 100; // px — danger (poubelle rouge)
-    var SWIPE_EXTREME = 112; // px — barre disparaît, on voit la saisie en dessous
+    var SWIPE_CANCEL  = 130; // px pour déclencher l'annulation
+    var SWIPE_WARN    =  108; // px — danger (poubelle rouge) — 22px avant cancel
+    var SWIPE_EXTREME =  120; // px — barre disparaît — 10px avant cancel
     var swipeStartX  = null;
     var swipeDeltaX  = 0;
     var cancelled    = false;
@@ -1537,6 +1538,7 @@
       swipeDeltaX = 0;
       micBtn.style.transform = '';
       if(recTrash) recTrash.classList.remove('danger');
+      if(extremeTrash) extremeTrash.classList.remove('active');
     }
 
     function sendAudio(blob, duration){
@@ -1619,8 +1621,9 @@
       // Poubelle rouge au seuil danger
       if(recTrash) recTrash.classList.toggle('danger', danger);
 
-      // Barre disparaît au seuil extrême (juste avant annulation)
+      // Barre disparaît au seuil extrême — poubelle extrême apparaît à la place du bouton photo
       recBar.classList.toggle('extreme', extreme);
+      if(extremeTrash) extremeTrash.classList.toggle('active', extreme);
 
     }, {passive: true});
 
