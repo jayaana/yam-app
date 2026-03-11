@@ -1730,8 +1730,10 @@
       reader.readAsDataURL(blob);
     }
 
-    // Stream pré-chargé dès le touchstart pour éviter le délai async au démarrage
+    // getUserMedia lancé dès touchstart — stream prêt au touchend sans délai
     var _pendingStream = null;
+    // Snapshot du swipeDeltaX au moment du touchend pour le hold (avant reset)
+    var _swipeAtEnd = 0;
 
     micBtn.addEventListener('touchstart', function(e){
       e.preventDefault();
@@ -1740,9 +1742,22 @@
       swipeStartX = touch.clientX;
       swipeDeltaX = 0;
       touchStartTime = Date.now();
-      // Lancer getUserMedia immédiatement dès le touchstart — Dynamic Island s'allume,
-      // le stream sera prêt quand touchend arrivera (quelques ms plus tard).
-      _pendingStream = getStream().catch(function(){ _pendingStream = null; });
+      // getUserMedia immédiatement — Dynamic Island s'allume au touchstart
+      // Dès que le stream est prêt, on démarre _doRecord (hold actif tant que le doigt est appuyé)
+      _pendingStream = getStream().then(function(stream){
+        cachedStream = stream;
+        // Ne démarrer le hold que si le doigt est encore appuyé (touchend pas encore reçu)
+        if(swipeStartX !== null && !isLockRecording){
+          isRecording = true;
+          _doRecord(stream);
+        }
+        return stream;
+      }).catch(function(err){
+        console.warn('[MIC]', err);
+        if(typeof showToast==='function') showToast('Micro non disponible', 'error');
+        _pendingStream = null;
+        return null;
+      });
     }, {passive: false});
 
     micBtn.addEventListener('touchmove', function(e){
@@ -1754,59 +1769,62 @@
       var abs = Math.abs(dx);
       var danger  = abs >= SWIPE_WARN;
       var extreme = abs >= SWIPE_EXTREME;
-
       micBtn.classList.add('swiping');
       recBar.classList.add('swiping');
-
       micBtn.style.transform = 'translateX(' + Math.max(dx * 0.5, -SWIPE_CANCEL * 0.5) + 'px)';
       if(recTrash) recTrash.classList.toggle('danger', danger);
       recBar.classList.toggle('extreme', extreme);
       if(extremeTrash) extremeTrash.classList.toggle('active', extreme);
       micBtn.classList.toggle('extreme-hide', extreme);
-
     }, {passive: true});
 
     micBtn.addEventListener('touchend', function(){
-      var elapsed = Date.now() - touchStartTime;
-      var isTap = elapsed < TAP_MAX_MS && Math.abs(swipeDeltaX) < 10;
+      var elapsed   = Date.now() - touchStartTime;
+      var isTap     = elapsed < TAP_MAX_MS && Math.abs(swipeDeltaX) < 10;
+      _swipeAtEnd   = swipeDeltaX;
+      swipeStartX   = null;
+      swipeDeltaX   = 0;
 
-      if(isLockRecording){ swipeStartX = null; swipeDeltaX = 0; _pendingStream = null; return; }
+      if(isLockRecording){ _pendingStream = null; return; }
 
-      var streamPromise = _pendingStream || getStream();
+      var p = _pendingStream || getStream().catch(function(){ return null; });
       _pendingStream = null;
 
       if(isTap){
-        // Tap court = mode lock — utiliser le stream déjà ouvert
-        streamPromise.then(function(stream){
+        // Tap court → mode lock
+        p.then(function(stream){
           if(!stream) return;
           cachedStream = stream;
           startLockRecording();
-        }).catch(function(err){
-          console.warn('[MIC]', err);
-          if(typeof showToast==='function') showToast('Micro non disponible', 'error');
         });
-        swipeStartX = null; swipeDeltaX = 0;
         return;
       }
 
-      // Hold normal — utiliser le stream déjà ouvert
-      streamPromise.then(function(stream){
+      // Hold — le doigt est déjà levé
+      if(isRecording){
+        // _doRecord() a déjà démarré (stream était prêt avant touchend) → on arrête
+        if(Math.abs(_swipeAtEnd) >= SWIPE_CANCEL){
+          cancelRecording();
+        } else {
+          stopRecording(true);
+        }
+        return;
+      }
+
+      // Stream pas encore prêt au moment du touchend — on démarre et on arrête dans le .then()
+      // (cas rare : getUserMedia très lent)
+      p.then(function(stream){
         if(!stream) return;
         cachedStream = stream;
         isRecording = true;
         _doRecord(stream);
-        // Si touchend est déjà passé avant que le stream soit prêt, stopper immédiatement
-        if(!isRecording){ return; }
-        // Vérifier si le doigt a été levé entre temps
-        if(Math.abs(swipeDeltaX) >= SWIPE_CANCEL){
+        // Arrêter immédiatement car le doigt est déjà levé
+        if(Math.abs(_swipeAtEnd) >= SWIPE_CANCEL){
           cancelRecording();
+        } else {
+          stopRecording(true);
         }
-      }).catch(function(err){
-        console.warn('[MIC]', err);
-        if(typeof showToast==='function') showToast('Micro non disponible', 'error');
       });
-
-      swipeStartX = null; swipeDeltaX = 0;
     }, {passive: true});
 
     micBtn.addEventListener('touchcancel', function(){ cancelRecording(); }, {passive:true});
