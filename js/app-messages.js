@@ -864,50 +864,141 @@
     }
 
     if(msg.message_type === 'audio' && msg.audio_data && !msg.deleted){
-      // Bulle vocale
       var audioBubble = document.createElement('div');
       audioBubble.className = 'dm-audio-bubble';
       var durSecs = msg.audio_duration || 0;
-      var durStr = Math.floor(durSecs/60) + ':' + ('0'+Math.floor(durSecs%60)).slice(-2);
+      var durStr  = Math.floor(durSecs/60) + ':' + ('0'+Math.floor(durSecs%60)).slice(-2);
+
+      // Waveform pseudo-aléatoire reproductible basée sur l'id du message
+      var WV_BARS = 38;
+      var seed = 0;
+      var seedStr = String(msg.id || '');
+      for(var si=0; si<seedStr.length; si++) seed = (seed * 31 + seedStr.charCodeAt(si)) & 0xffff;
+      function seededRand(){ seed = (seed * 1664525 + 1013904223) & 0xffffffff; return (seed >>> 0) / 4294967296; }
+      var barHeights = [];
+      for(var bi=0; bi<WV_BARS; bi++){
+        var center = 1 - Math.abs((bi / (WV_BARS-1)) - 0.5) * 2;
+        var h = Math.round((5 + seededRand() * 20) * (0.5 + center * 0.7));
+        barHeights.push(Math.max(3, Math.min(24, h)));
+      }
+      var barsHTML = '';
+      for(var bi2=0; bi2<WV_BARS; bi2++){
+        barsHTML += '<div class="dm-wv-bar" style="height:'+barHeights[bi2]+'px"></div>';
+      }
+
       audioBubble.innerHTML =
         '<button class="dm-audio-play" data-playing="0">'
-        + '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>'
+        + '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>'
         + '</button>'
-        + '<div class="dm-audio-bar"><div class="dm-audio-progress"></div></div>'
-        + '<span class="dm-audio-dur">'+durStr+'</span>';
+        + '<div class="dm-audio-right">'
+        +   '<div class="dm-audio-waveform">' + barsHTML + '<div class="dm-wv-thumb"></div></div>'
+        +   '<span class="dm-audio-dur">' + durStr + '</span>'
+        + '</div>';
+
       bbl.appendChild(audioBubble);
 
-      // Logique de lecture
-      (function(ab, audioData){
+      // Logique lecture + scrub
+      (function(ab, audioData, totalDurSecs, totalDurStr){
         var playBtn  = ab.querySelector('.dm-audio-play');
-        var progress = ab.querySelector('.dm-audio-progress');
+        var waveform = ab.querySelector('.dm-audio-waveform');
+        var bars     = ab.querySelectorAll('.dm-wv-bar');
+        var thumb    = ab.querySelector('.dm-wv-thumb');
         var durEl    = ab.querySelector('.dm-audio-dur');
         var aud      = null;
         var playing  = false;
-        function stopAudio(){
-          if(aud){ aud.pause(); aud.currentTime=0; }
-          playing = false;
-          playBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>';
-          progress.style.width = '0%';
-          durEl.textContent = durStr;
+        var dragging = false;
+
+        var ICON_PLAY  = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>';
+        var ICON_PAUSE = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+
+        function updateVisuals(pct){
+          var n = bars.length;
+          var active = Math.round(pct * n);
+          for(var i=0; i<n; i++){
+            if(i < active) bars[i].classList.add('played');
+            else           bars[i].classList.remove('played');
+          }
+          thumb.style.left = (pct * 100) + '%';
         }
+
+        function updateDur(currentTime, duration){
+          var rem = (duration || totalDurSecs) - currentTime;
+          if(rem < 0) rem = 0;
+          durEl.textContent = Math.floor(rem/60)+':'+('0'+Math.floor(rem%60)).slice(-2);
+        }
+
+        function stopAudio(){
+          if(aud){ aud.pause(); aud.currentTime = 0; }
+          playing = false;
+          playBtn.innerHTML = ICON_PLAY;
+          waveform.classList.remove('active');
+          updateVisuals(0);
+          durEl.textContent = totalDurStr;
+        }
+
+        function initAudio(){
+          if(aud) return;
+          aud = new Audio(audioData);
+          aud.addEventListener('timeupdate', function(){
+            if(dragging) return;
+            var pct = aud.duration ? aud.currentTime / aud.duration : 0;
+            updateVisuals(pct);
+            updateDur(aud.currentTime, aud.duration);
+          });
+          aud.addEventListener('ended', stopAudio);
+        }
+
         playBtn.addEventListener('click', function(){
           if(playing){ stopAudio(); return; }
-          if(!aud){
-            aud = new Audio(audioData);
-            aud.addEventListener('timeupdate', function(){
-              var pct = aud.duration ? (aud.currentTime/aud.duration*100) : 0;
-              progress.style.width = pct + '%';
-              var rem = aud.duration - aud.currentTime;
-              durEl.textContent = Math.floor(rem/60)+':'+('0'+Math.floor(rem%60)).slice(-2);
-            });
-            aud.addEventListener('ended', stopAudio);
-          }
+          initAudio();
           playing = true;
-          playBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
-          aud.play().catch(function(){});
+          playBtn.innerHTML = ICON_PAUSE;
+          waveform.classList.add('active');
+          aud.play().catch(function(){ stopAudio(); });
         });
-      })(audioBubble, 'data:audio/webm;base64,' + msg.audio_data);
+
+        function pctFromEvent(e){
+          var rect = waveform.getBoundingClientRect();
+          var clientX = (e.touches || e.changedTouches) ? (e.touches || e.changedTouches)[0].clientX : e.clientX;
+          return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        }
+
+        function seekTo(pct){
+          initAudio();
+          var doSeek = function(){
+            aud.currentTime = pct * aud.duration;
+            updateVisuals(pct);
+            updateDur(aud.currentTime, aud.duration);
+          };
+          if(aud.readyState >= 1 && aud.duration){ doSeek(); }
+          else { aud.addEventListener('loadedmetadata', doSeek, { once: true }); }
+        }
+
+        waveform.addEventListener('touchstart', function(e){
+          dragging = true;
+          waveform.classList.add('active');
+          updateVisuals(pctFromEvent(e));
+        }, { passive: true });
+
+        waveform.addEventListener('touchmove', function(e){
+          if(!dragging) return;
+          var pct = pctFromEvent(e);
+          updateVisuals(pct);
+          var dur = aud && aud.duration ? aud.duration : totalDurSecs;
+          updateDur(pct * dur, dur);
+        }, { passive: true });
+
+        waveform.addEventListener('touchend', function(e){
+          if(!dragging) return;
+          dragging = false;
+          seekTo(pctFromEvent(e));
+        }, { passive: true });
+
+        waveform.addEventListener('click', function(e){
+          seekTo(pctFromEvent(e));
+        });
+
+      })(audioBubble, 'data:audio/webm;base64,' + msg.audio_data, durSecs, durStr);
     } else {
       var txt = document.createElement('span');
       txt.className   = 'dm-bubble-text';
