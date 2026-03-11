@@ -4482,7 +4482,6 @@ body.light .dm-id-overlay { background: transparent; }
   user-select: none;
   -webkit-touch-callout: none;
 }
-.dm-msg-wrap.has-reaction { margin-bottom: 18px; }
 @keyframes dmMsgIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
 .dm-msg-wrap.mine { flex-direction:row-reverse; }
 .dm-msg-avatar { width:26px; height:26px; font-size:10px; flex-shrink:0; }
@@ -4674,7 +4673,7 @@ body.light .dm-react { background:#fff; border-color:rgba(0,0,0,0.1); }
 
 /* Réaction sur photo */
 /* Réaction sur photo — positionnée sur dm-photo-inner (overflow:hidden retiré) */
-.dm-photo-wrap { position: relative; }
+
 .dm-photo-inner.has-reaction { overflow: visible; }
 .dm-photo-wrap.has-reaction .dm-photo-inner { margin-bottom: 14px; overflow: visible; }
 /* Réactions photo — row absolu sous la photo */
@@ -4999,11 +4998,14 @@ body.light .dm-rec-lock-bar {
   box-shadow:0 8px 40px rgba(0,0,0,0.5);
 }
 #dmPhotoViewerClose {
-  position:absolute; top:16px; right:16px;
-  width:36px; height:36px; border-radius:50%; border:none;
-  background:rgba(255,255,255,0.15); color:#fff;
+  position:absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
+  right:16px;
+  width:44px; height:44px; border-radius:50%; border:none;
+  background:rgba(0,0,0,0.45); color:#fff;
   display:flex; align-items:center; justify-content:center;
-  cursor:pointer; z-index:1;
+  cursor:pointer; z-index:10;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Overlay prévisualisation avant envoi */
