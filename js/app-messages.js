@@ -1488,6 +1488,7 @@
 
     function startLockRecording(){
       if(!identity){ showIdentityOverlay(); return; }
+      if(isLockRecording) return; // déjà en cours — éviter double-lancement
       isLockRecording = true;
       getStream().then(function(stream){
         if(!isLockRecording) return; // annulé entre temps
@@ -1542,11 +1543,13 @@
 
     if(lockTrash){
       lockTrash.addEventListener('touchstart', function(e){ e.stopPropagation(); }, {passive:true});
-      lockTrash.addEventListener('click', function(e){ e.stopPropagation(); stopLockRecording(false); });
+      lockTrash.addEventListener('touchend',   function(e){ e.stopPropagation(); stopLockRecording(false); }, {passive:true});
+      lockTrash.addEventListener('click',      function(e){ e.stopPropagation(); e.preventDefault(); });
     }
     if(lockSend){
       lockSend.addEventListener('touchstart', function(e){ e.stopPropagation(); }, {passive:true});
-      lockSend.addEventListener('click', function(e){ e.stopPropagation(); stopLockRecording(true); });
+      lockSend.addEventListener('touchend',   function(e){ e.stopPropagation(); stopLockRecording(true); }, {passive:true});
+      lockSend.addEventListener('click',      function(e){ e.stopPropagation(); e.preventDefault(); });
     }
 
     function fmtTime(s){ return Math.floor(s/60)+':'+('0'+Math.floor(s%60)).slice(-2); }
@@ -1799,7 +1802,7 @@
 
     }, {passive: true});
 
-    micBtn.addEventListener('touchend', function(){
+    micBtn.addEventListener('touchend', function(e){
       var elapsed = Date.now() - touchStartTime;
       var isTap = elapsed < TAP_MAX_MS && Math.abs(swipeDeltaX) < 10;
 
