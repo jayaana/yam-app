@@ -4660,8 +4660,10 @@ body.light .dm-ctx-menu.dm-ctx-menu-insta .dm-ctx-item:hover { background: rgba(
 .dm-react:hover { transform: scale(1.25); }
 
 /* Réaction sur photo */
+/* Réaction sur photo — sur .dm-photo-wrap qui n'a pas overflow:hidden */
 .dm-photo-wrap { position: relative; }
-.dm-photo-wrap .dm-react { bottom: -10px; right: 6px; }
+.dm-photo-wrap.has-reaction { padding-bottom: 14px; }
+.dm-photo-wrap .dm-react { bottom: 2px; right: 6px; position: absolute; z-index: 2; }
 .dm-photo-wrap.mine .dm-react { right: auto; left: 6px; }
 
 /* ── Emoji picker modal réactions ── */
