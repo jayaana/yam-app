@@ -2,7 +2,7 @@
 // Cache les assets statiques pour un chargement rapide
 // Ne met PAS en cache les requêtes Supabase (données toujours fraîches)
 
-var CACHE_NAME = 'yam-v16';
+var CACHE_NAME = 'yam-v17';
 
 // Assets à mettre en cache au premier chargement
 var STATIC_ASSETS = [
@@ -153,9 +153,18 @@ self.addEventListener('push', function(event) {
   );
 });
 
-// Reset badge depuis l'app (quand l'utilisateur ouvre et lit les messages)
+// Reset badge et ferme les notifications en attente quand l'utilisateur lit les messages
 self.addEventListener('message', function(event) {
   if (event.data && event.data.type === 'YAM_CLEAR_BADGE') {
+    if ('clearAppBadge' in self.navigator) self.navigator.clearAppBadge();
+  }
+  if (event.data && event.data.type === 'YAM_CLOSE_NOTIFICATIONS') {
+    self.registration.getNotifications().then(function(notifs) {
+      notifs.forEach(function(n) {
+        // Fermer uniquement les notifs de messages (pas les autres types)
+        if (!n.tag || n.tag === 'yam-message' || n.tag === 'yam-notif') n.close();
+      });
+    });
     if ('clearAppBadge' in self.navigator) self.navigator.clearAppBadge();
   }
 });
