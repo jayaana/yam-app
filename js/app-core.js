@@ -22,6 +22,31 @@ var SB2_URL        = 'https://jstiwtbgkbedtldqjdhp.supabase.co';
 var SB2_KEY        = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdGl3dGJna2JlZHRsZHFqZGhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4OTI1NTgsImV4cCI6MjA4NzQ2ODU1OH0.3W1u55aIakQxW5EyF0Sahc6Pjak1JqWhcX1ZifePH98';
 var SB2_EDGE_AUTH  = SB2_URL + '/functions/v1/auth-v2';
 var SB2_EDGE_PUSH  = SB2_URL + '/functions/v1/push-notify';
+
+// ── Supabase Realtime client (#27) ──────────────────────────────────────────
+// Initialisé une seule fois — partagé par tous les modules via window._yamRT
+window._yamRT = null;
+window._yamRTChannels = {};
+
+function _yamInitRealtime() {
+  if (window._yamRT) return; // déjà initialisé
+  if (!window.supabase) { console.warn('[RT] supabase-js non chargé'); return; }
+  window._yamRT = window.supabase.createClient(SB2_URL, SB2_KEY);
+  console.log('[RT] Client Realtime initialisé');
+}
+
+// Exposer pour usage par les modules
+window._yamInitRealtime = _yamInitRealtime;
+
+// Fermer tous les channels Realtime (appelé à la déconnexion)
+window._yamRTCloseAll = function() {
+  if (!window._yamRT) return;
+  Object.keys(window._yamRTChannels).forEach(function(key) {
+    try { window._yamRT.removeChannel(window._yamRTChannels[key]); } catch(e) {}
+  });
+  window._yamRTChannels = {};
+  console.log('[RT] Tous les channels fermés');
+};
 // SB2_APP_SECRET supprimé — remplacé par token de session
 function _yamSessionToken(){
   try {
@@ -66,6 +91,8 @@ function _sb2Handle401(response){
   if(response.status === 401){
     // Stoppe tous les polls avant de purger
     window.yamClearAllPolls();
+    // Ferme les channels Realtime
+    if(window._yamRTCloseAll) window._yamRTCloseAll();
     // Purge session expirée
     localStorage.removeItem('yam_v2_session');
     localStorage.removeItem('jayana_profile');
