@@ -30,8 +30,10 @@
     var node = el;
     while (node && node !== document.body) {
       if (node.classList) {
-        if (node.classList.contains('nous-modal-overlay'))       return node;
-        if (node.classList.contains('souvenir-gestion-overlay')) return node;
+        if (node.classList.contains('nous-modal-overlay') &&
+            node.offsetParent !== null) return node;
+        if (node.classList.contains('souvenir-gestion-overlay') &&
+            node.offsetParent !== null) return node;
       }
       var id = node.id;
       if (id === 'hiddenPage'     || id === 'descEditModal'  ||
@@ -40,7 +42,11 @@
           id === 'v2LoginOverlay' || id === 'sgModal'        ||
           id === 'sgEditModal'    || id === 'sgAuthModal'    ||
           id === 'prankMsgModal'  || id === 'lockPopup') {
-        return node;
+        // Vérifier que l'élément est réellement visible
+        if (node.offsetParent !== null || node.style.display === 'flex' ||
+            node.classList.contains('active') || node.classList.contains('open')) {
+          return node;
+        }
       }
       node = node.parentElement;
     }
@@ -526,5 +532,51 @@
   } else {
     setTimeout(_initDmBar, 0);
   }
+
+
+  // ═══════════════════════════════════════════════════════
+  // 7. SAFETY GUARD — reset scroll lock si coincé (#40)
+  //
+  // Déclenché au retour au premier plan (visibilitychange)
+  // et via _yamScrollLockSafetyCheck() appelable depuis nav.
+  // ═══════════════════════════════════════════════════════
+
+  function _noModalVisible() {
+    // Retourne true si aucune modale sheet n'est réellement ouverte/visible
+    if (document.querySelector('.nous-modal-overlay.open'))       return false;
+    if (document.querySelector('.souvenir-gestion-overlay.open')) return false;
+    var ids = ['hiddenPage','descEditModal','accountModal','searchOverlay',
+               'memoModal','memoAuthModal','v2LoginOverlay','sgModal',
+               'sgEditModal','sgAuthModal','prankMsgModal','lockPopup'];
+    for (var i = 0; i < ids.length; i++) {
+      var el = document.getElementById(ids[i]);
+      if (el && (el.offsetParent !== null || el.classList.contains('active') || el.classList.contains('open'))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'visible') return;
+    // Retour au premier plan : vérifier après un court délai (iOS a besoin de 500ms)
+    setTimeout(function () {
+      if (_noModalVisible() && window._yamScrollLocked) {
+        window._yamScrollLocked = false;
+        // Reset _scrollLockCount si exposé
+        if (typeof window._nousResetScrollLock === 'function') {
+          window._nousResetScrollLock();
+        }
+      }
+    }, 500);
+  });
+
+  // Safety guard contre _scrollLockCount coincé > 5
+  // Appelé par app-nav.js yamSwitchTab() après closeAllViews()
+  window._yamScrollLockSafetyCheck = function () {
+    if (_noModalVisible()) {
+      window._yamScrollLocked = false;
+    }
+  };
 
 })();
