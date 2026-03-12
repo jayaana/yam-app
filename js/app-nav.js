@@ -821,9 +821,11 @@ function goTo(id){resetZoom();closeAllViews();document.getElementById('libraryPo
 window.showToast = function(msg, type, duration){
   var t = document.getElementById('uxToast');
   if(!t) return;
-  t.textContent = msg;
-  t.className = 'show' + (type ? ' ' + type : '');
   clearTimeout(t._timer);
+  t.className = '';
+  t.textContent = msg;
+  void t.offsetWidth; // force reflow pour que la transition CSS se déclenche
+  t.className = 'show' + (type ? ' ' + type : '');
   t._timer = setTimeout(function(){
     t.classList.remove('show');
     setTimeout(function(){ t.className = ''; }, 300);
