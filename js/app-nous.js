@@ -2355,7 +2355,7 @@ document.addEventListener('yam:session_ready', function(){
     var SB2_EDGE_GEMINI = SB2_URL + '/functions/v1/gemini-suggest';
     fetch(SB2_EDGE_GEMINI, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-app-secret': SB2_APP_SECRET, 'apikey': SB2_KEY, 'Authorization': 'Bearer ' + SB2_KEY },
+      headers: { 'Content-Type': 'application/json', 'x-session-token': _yamSessionToken(), 'apikey': SB2_KEY, 'Authorization': 'Bearer ' + SB2_KEY },
       body: JSON.stringify({ prompt: prompt })
     })
     .then(function(r){ return r.json(); })
@@ -3065,7 +3065,7 @@ document.addEventListener('yam:session_ready', function(){
 
     var prompt = 'Tu es un assistant passionné de littérature pour un couple. Propose EXACTEMENT 5 idées de livres à lire ensemble (romans, fantasy, suspense, développement personnel, etc.), variés et originaux. Réponds UNIQUEMENT en JSON strict sans texte autour, format exact : [{"title":"Titre du livre","author":"Auteur","desc":"Une phrase sur le livre"},...]';
 
-    fetch(GROQ_EDGE,{method:'POST',headers:{'Content-Type':'application/json','x-app-secret':SB2_APP_SECRET,'apikey':SB2_KEY,'Authorization':'Bearer '+SB2_KEY},body:JSON.stringify({prompt:prompt})})
+    fetch(GROQ_EDGE,{method:'POST',headers:{'Content-Type':'application/json','x-session-token':_yamSessionToken(),'apikey':SB2_KEY,'Authorization':'Bearer '+SB2_KEY},body:JSON.stringify({prompt:prompt})})
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(data.error) throw new Error(data.error);
@@ -3378,7 +3378,7 @@ window.nousLoad = function(){
 
     fetch(GROQ_EDGE, {
       method: 'POST',
-      headers: {'Content-Type':'application/json','x-app-secret':SB2_APP_SECRET,'apikey':SB2_KEY,'Authorization':'Bearer '+SB2_KEY},
+      headers: {'Content-Type':'application/json','x-session-token':_yamSessionToken(),'apikey':SB2_KEY,'Authorization':'Bearer '+SB2_KEY},
       body: JSON.stringify({prompt: prompt})
     })
     .then(function(r){ return r.json(); })
