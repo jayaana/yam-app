@@ -1207,6 +1207,67 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   var _origSetProfile = window.setProfile;
   var _prankPollTimer = null;
 
+  // ── Realtime bêtises (#27) ───────────────────────────────────────────────
+  var _prankRTChannel = null;
+
+  function _startPrankRealtime(coupleId, gender) {
+    if (!window._yamRT || !coupleId || _prankRTChannel) return;
+
+    _prankRTChannel = window._yamRT
+      .channel('pranks-' + coupleId)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'v2_pranks',
+        filter: 'couple_id=eq.' + coupleId
+      }, function(payload) {
+        // Vérifier si la bêtise nous est destinée
+        var row = payload.new;
+        if (row && row.victim === gender && row.active) {
+          window.checkActivePrank(gender);
+        }
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'v2_pranks',
+        filter: 'couple_id=eq.' + coupleId
+      }, function() {
+        if (_activePrank) {
+          // Vérifier si la bêtise active a été annulée
+          fetch(SB2_URL+'/rest/v1/'+PRANK_TABLE+'?id=eq.'+_activePrank.id+'&select=active', {
+            headers: sb2Headers()
+          }).then(function(r){ return r.json(); })
+          .then(function(rows){
+            if(rows && rows.length && rows[0].active === false) abortActivePrank();
+          }).catch(function(){});
+        }
+      })
+      .subscribe(function(status) {
+        if (status === 'SUBSCRIBED') {
+          // Stopper le poll 15s — Realtime prend le relais
+          stopPrankPoll();
+          console.log('[RT] Pranks channel connecté — poll désactivé');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          // Fallback poll si Realtime échoue
+          if (!_prankPollTimer) {
+            startPrankPoll(gender);
+            console.warn('[RT] Pranks channel perdu — fallback poll 15s');
+          }
+        }
+      });
+
+    window._yamRTChannels['pranks'] = _prankRTChannel;
+  }
+
+  function _stopPrankRealtime() {
+    if (_prankRTChannel && window._yamRT) {
+      try { window._yamRT.removeChannel(_prankRTChannel); } catch(e) {}
+      _prankRTChannel = null;
+      delete window._yamRTChannels['pranks'];
+    }
+  }
+
   function startPrankPoll(gender){
     stopPrankPoll();
     _prankPollTimer = setInterval(function(){
@@ -1233,10 +1294,16 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
 
   // ✅ #38 — Relancer le poll bêtises après reconnexion
   document.addEventListener('yam:session_ready', function(){
-    if(_prankPollTimer) return; // déjà actif
     var gender = (typeof getProfile === 'function') ? getProfile() : null;
-    if(gender){
-      setTimeout(function(){ window.checkActivePrank(gender); }, 500);
+    if (!gender) return;
+    setTimeout(function(){ window.checkActivePrank(gender); }, 500);
+    var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+    var coupleId = u ? u.couple_id : null;
+    if (window._yamRT && coupleId) {
+      _prankRTChannel = null;
+      _startPrankRealtime(coupleId, gender);
+    } else {
+      if(_prankPollTimer) return;
       startPrankPoll(gender);
     }
   });
@@ -1244,14 +1311,27 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   window.setProfile = function(gender){
     _origSetProfile(gender);
     setTimeout(function(){ window.checkActivePrank(gender); }, 1500);
-    startPrankPoll(gender);
+    var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+    var coupleId = u ? u.couple_id : null;
+    if (window._yamRT && coupleId) {
+      _stopPrankRealtime();
+      _startPrankRealtime(coupleId, gender);
+    } else {
+      startPrankPoll(gender);
+    }
   };
 
-  // Vérifier aussi au démarrage si déjà connecté + lancer le poll
+  // Vérifier aussi au démarrage si déjà connecté + lancer le poll ou Realtime
   var _savedProfile = getProfile();
   if(_savedProfile){
     setTimeout(function(){ window.checkActivePrank(_savedProfile); }, 2000);
-    startPrankPoll(_savedProfile);
+    var _u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+    var _coupleId = _u ? _u.couple_id : null;
+    if (window._yamRT && _coupleId) {
+      _startPrankRealtime(_coupleId, _savedProfile);
+    } else {
+      startPrankPoll(_savedProfile);
+    }
   }
 
   // Arrêter le poll si la victime se déconnecte
