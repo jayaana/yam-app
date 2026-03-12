@@ -29,6 +29,8 @@
     }
 
     if(window.closeAllViews) window.closeAllViews();
+    // Safety guard #40 — force reset scroll lock si aucune modale réellement visible
+    if(typeof window._yamScrollLockSafetyCheck === 'function') window._yamScrollLockSafetyCheck();
 
     // Cacher tous les panels (display:none) — window.scrollY ne change pas mais c'est invisible
     Object.keys(TAB_MAP).forEach(function(key) {
