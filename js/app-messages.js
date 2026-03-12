@@ -12,6 +12,61 @@
   var pollId   = null;
   var attached = false;
 
+  // ── Realtime (#27) ──────────────────────────────────────────
+  var _rtChannel = null;
+  var _rtConnected = false;
+
+  function _startRealtime(coupleId) {
+    if (!window._yamRT || !coupleId) return;
+    if (_rtChannel) return; // déjà actif
+
+    _rtChannel = window._yamRT
+      .channel('dm-' + coupleId)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'v2_dm_messages',
+        filter: 'couple_id=eq.' + coupleId
+      }, function() {
+        fetchMsgs();
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'v2_dm_typing',
+        filter: 'couple_id=eq.' + coupleId
+      }, function() {
+        pollTyping();
+      })
+      .subscribe(function(status) {
+        if (status === 'SUBSCRIBED') {
+          _rtConnected = true;
+          // Stopper le poll 3s — Realtime prend le relais
+          if (pollId) { clearInterval(pollId); pollId = null; window._chatPollId = null; }
+          console.log('[RT] Messages channel connecté — poll désactivé');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          _rtConnected = false;
+          // Fallback : relancer le poll si Realtime échoue
+          if (!pollId) {
+            pollId = setInterval(function(){ fetchMsgs(); pollTyping(); }, 3000);
+            window._chatPollId = pollId;
+            console.warn('[RT] Messages channel perdu — fallback poll 3s');
+          }
+        }
+      });
+
+    window._yamRTChannels['dm'] = _rtChannel;
+  }
+
+  function _stopRealtime() {
+    if (_rtChannel && window._yamRT) {
+      try { window._yamRT.removeChannel(_rtChannel); } catch(e) {}
+      _rtChannel = null;
+      _rtConnected = false;
+      delete window._yamRTChannels['dm'];
+    }
+  }
+
   function $(id){ return document.getElementById(id); }
 
   /* ══ PROFIL PILL (haut droite) ══ */
@@ -261,12 +316,26 @@
     if(el) el.innerHTML = '<div class="dm-loading-msgs"><div class="dm-loading-dots"><span></span><span></span><span></span></div></div>';
     if(!attached){ attachListeners(); attached = true; }
     stopPoll();
-    fetchMsgs();
-    pollId = setInterval(function(){ fetchMsgs(); pollTyping(); }, 3000);
-    window._chatPollId = pollId;
+
+    // ── Realtime (#27) : tenter le channel, fallback poll si indispo ──
+    var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+    var coupleId = u ? u.couple_id : null;
+    if (window._yamRT && coupleId) {
+      _startRealtime(coupleId);
+      // Fetch initial immédiat — Realtime ne livre pas les messages existants
+      fetchMsgs();
+    } else {
+      // Pas de Realtime disponible — poll classique
+      fetchMsgs();
+      pollId = setInterval(function(){ fetchMsgs(); pollTyping(); }, 3000);
+      window._chatPollId = pollId;
+    }
   }
 
-  function stopPoll(){ if(pollId){ clearInterval(pollId); pollId = null; window._chatPollId = null; } }
+  function stopPoll(){
+    if(pollId){ clearInterval(pollId); pollId = null; window._chatPollId = null; }
+    _stopRealtime();
+  }
   window._dmStopPoll  = stopPoll;
   window._dmStartPoll = function(ms){
     stopPoll();
