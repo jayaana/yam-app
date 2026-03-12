@@ -5836,7 +5836,7 @@ document.addEventListener('DOMContentLoaded', function(){
       }
       fetch(GROQ_EDGE,{
         method:'POST',
-        headers:{'Content-Type':'application/json','x-app-secret':SB2_APP_SECRET,'apikey':SB2_KEY,'Authorization':'Bearer '+SB2_KEY},
+        headers:{'Content-Type':'application/json','x-session-token':_yamSessionToken(),'apikey':SB2_KEY,'Authorization':'Bearer '+SB2_KEY},
         body:JSON.stringify({prompt:prompts[i]})
       })
       .then(function(r){return r.json();})
@@ -6098,7 +6098,7 @@ document.addEventListener('DOMContentLoaded', function(){
         return;
       }
       fetch(GROQ,{method:'POST',
-        headers:{'Content-Type':'application/json','x-app-secret':SB2_APP_SECRET,'apikey':SB2_KEY,'Authorization':'Bearer '+SB2_KEY},
+        headers:{'Content-Type':'application/json','x-session-token':_yamSessionToken(),'apikey':SB2_KEY,'Authorization':'Bearer '+SB2_KEY},
         body:JSON.stringify({prompt:prompts[i]})
       })
       .then(function(r){return r.json();})
