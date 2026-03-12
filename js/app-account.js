@@ -589,7 +589,7 @@ body.settings-open header,body.settings-open #yamStickyHeader,body.settings-open
         '<button class="stg-btn stg-btn-danger" onclick="nativeLogout()">🔓 Se déconnecter</button>' +
       '</div>' +
 
-      '<div class="stg-version">YAM v7.0 — You And Me 💕</div>' +
+      '<div class="stg-version" id="stgVersionLabel">YAM — You And Me 💕</div>' +
 
     '</div>' + /* fin stg-scroll */
   '</div>';   /* fin settingsView */
@@ -881,6 +881,15 @@ window.openAccountModal = function(){
   if(!view) return;
   view.classList.add('active');
   document.body.classList.add('settings-open');
+
+  // Afficher la version du cache SW
+  if('caches' in window) {
+    caches.keys().then(function(keys) {
+      var swCache = keys.find(function(k){ return k.startsWith('yam-'); }) || '';
+      var el = document.getElementById('stgVersionLabel');
+      if(el && swCache) el.textContent = swCache + ' — You And Me 💕';
+    });
+  }
   // Fermer le popup profil si ouvert
   var pp = document.getElementById('profilePopup');
   if(pp) pp.classList.remove('open');
