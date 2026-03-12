@@ -2,7 +2,7 @@
 // Cache les assets statiques pour un chargement rapide
 // Ne met PAS en cache les requêtes Supabase (données toujours fraîches)
 
-var CACHE_NAME = 'yam-v22';
+var CACHE_NAME = 'yam-v23';
 
 // Assets à mettre en cache au premier chargement
 var STATIC_ASSETS = [
@@ -87,6 +87,30 @@ self.addEventListener('fetch', function(event) {
 
   // ❌ Ne jamais cacher : GitHub raw (mascotte externe)
   if (url.includes('raw.githubusercontent.com')) {
+    return;
+  }
+
+  // ✅ Network-First pour index.html — toujours frais après déploiement
+  var isDocument = event.request.destination === 'document'
+    || url.endsWith('/yam-app/')
+    || url.endsWith('/yam-app/index.html');
+
+  if (isDocument) {
+    event.respondWith(
+      fetch(event.request).then(function(response) {
+        if (response && response.status === 200) {
+          caches.open(CACHE_NAME).then(function(cache) {
+            cache.put(event.request, response.clone());
+          });
+        }
+        return response;
+      }).catch(function() {
+        // Hors ligne : fallback cache
+        return caches.match(event.request).then(function(cached) {
+          return cached || caches.match('/yam-app/index.html');
+        });
+      })
+    );
     return;
   }
 
