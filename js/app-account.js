@@ -5,6 +5,77 @@
 
 // sb2Headers, sb2Fetch, sb2Post, sb2Patch, sb2Delete, sb2Upsert → définis dans app-core.js
 
+/* ════════════════════════════════════════════
+   COMPRESSION IMAGE — utilitaire global
+   Utilisé par acHandleAvatarUpload, elleUpload, luiUpload,
+   souvenirUploadPhoto, livreUploadPhoto dans app-nous.js
+════════════════════════════════════════════ */
+/**
+ * compressImage(file, maxWidthPx, targetBytes)
+ * Retourne une Promise<Blob> compressée en JPEG.
+ * Essaie quality 0.82 → 0.65 → 0.45 jusqu'à atteindre targetBytes.
+ * Rejette si HEIC ou si canvas.toBlob non supporté.
+ */
+window.compressImage = function(file, maxWidthPx, targetBytes){
+  return new Promise(function(resolve, reject){
+    // Détection HEIC (iPhone iOS 17+)
+    var isHeic = file.type === 'image/heic' || file.type === 'image/heif'
+              || file.name.toLowerCase().endsWith('.heic')
+              || file.name.toLowerCase().endsWith('.heif');
+    if(isHeic){
+      reject(new Error('HEIC_NOT_SUPPORTED'));
+      return;
+    }
+    var img = new Image();
+    var objectUrl = URL.createObjectURL(file);
+    img.onload = function(){
+      URL.revokeObjectURL(objectUrl);
+      var w = img.naturalWidth;
+      var h = img.naturalHeight;
+      // Redimensionner si nécessaire
+      if(w > maxWidthPx){
+        h = Math.round(h * maxWidthPx / w);
+        w = maxWidthPx;
+      }
+      var canvas = document.createElement('canvas');
+      canvas.width  = w;
+      canvas.height = h;
+      var ctx = canvas.getContext('2d');
+      if(!ctx){ reject(new Error('CANVAS_NOT_SUPPORTED')); return; }
+      ctx.drawImage(img, 0, 0, w, h);
+
+      // Essai qualité décroissante
+      var qualities = [0.82, 0.65, 0.45];
+      var idx = 0;
+      function tryQuality(){
+        if(idx >= qualities.length){
+          // Dernier recours : retourner le blob à la qualité minimale
+          canvas.toBlob(function(blob){
+            if(!blob){ reject(new Error('CANVAS_TO_BLOB_FAILED')); return; }
+            resolve(blob);
+          }, 'image/jpeg', 0.45);
+          return;
+        }
+        var q = qualities[idx++];
+        canvas.toBlob(function(blob){
+          if(!blob){ reject(new Error('CANVAS_TO_BLOB_FAILED')); return; }
+          if(!targetBytes || blob.size <= targetBytes){
+            resolve(blob);
+          } else {
+            tryQuality();
+          }
+        }, 'image/jpeg', q);
+      }
+      tryQuality();
+    };
+    img.onerror = function(){
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('IMAGE_LOAD_FAILED'));
+    };
+    img.src = objectUrl;
+  });
+};
+
 
 /* ════════════════════════════════════════════
    PATCH GLOBAL — Rediriger sbGet/sbPost/sbPatch/sbDelete
@@ -1273,37 +1344,72 @@ window.acHandleAvatarUpload = function(input){
   var u = v2GetUser();
   if(!u) return;
 
+  // Détection HEIC avant tout
+  var isHeic = file.type === 'image/heic' || file.type === 'image/heif'
+            || file.name.toLowerCase().endsWith('.heic')
+            || file.name.toLowerCase().endsWith('.heif');
+  if(isHeic){
+    if(typeof showToast === 'function') showToast('Format HEIC non supporté — convertissez en JPG dans Photos puis réessayez', 'error', 4000);
+    return;
+  }
+
   var ALLOWED = ['image/jpeg','image/jpg','image/png','image/webp'];
-  if(ALLOWED.indexOf(file.type) === -1){ alert('Format non autorisé (JPEG, PNG, WebP)'); return; }
-  if(file.size > 3 * 1024 * 1024){ alert('Image trop lourde (max 3 Mo)'); return; }
+  if(ALLOWED.indexOf(file.type) === -1){
+    if(typeof showToast === 'function') showToast('Format non autorisé (JPEG, PNG, WebP)', 'error', 3000);
+    return;
+  }
 
   var wrap = document.getElementById('acAvatarWrap');
-  if(wrap) wrap.style.opacity = '0.5';
+  if(wrap){ wrap.style.opacity = '0.5'; }
+  var btn = document.querySelector('[onclick="acTriggerAvatarUpload()"]');
+  if(btn){ btn.disabled = true; }
 
-  var path = 'avatars/' + u.id + '.jpg';
-  fetch(SB2_URL + '/storage/v1/object/' + _AVATAR_BUCKET + '/' + path, {
-    method: 'POST',
-    headers: Object.assign({ 'Content-Type': file.type, 'x-upsert': 'true' }, sb2Headers()),
-    body: file
+  // Compression : max 800px, cible 200 Ko
+  window.compressImage(file, 800, 200 * 1024)
+  .then(function(blob){
+    var sizeKo = Math.round(blob.size / 1024);
+    var path = 'avatars/' + u.id + '.jpg';
+    return fetch(SB2_URL + '/storage/v1/object/' + _AVATAR_BUCKET + '/' + path, {
+      method: 'POST',
+      headers: Object.assign({ 'Content-Type': 'image/jpeg', 'x-upsert': 'true' }, sb2Headers()),
+      body: blob
+    }).then(function(r){
+      if(wrap) wrap.style.opacity = '';
+      if(btn) btn.disabled = false;
+      if(r.ok){
+        var url = SB2_URL + '/storage/v1/object/public/' + _AVATAR_BUCKET + '/' + path + '?t=' + Date.now();
+        var img = document.getElementById('acAvatarImg');
+        var emoji = document.getElementById('acAvatarEmoji');
+        if(img){ img.src = url; img.style.display = ''; }
+        if(emoji) emoji.style.display = 'none';
+        var delBtn = document.getElementById('acDeleteAvatarBtn');
+        if(delBtn) delBtn.style.display = 'flex';
+        _acSyncAvatarTopbar(url, u.role);
+        if(typeof showToast === 'function') showToast('✅ Photo mise à jour (' + sizeKo + ' Ko)', 'success', 2000);
+      } else {
+        r.text().then(function(t){ if(typeof showToast === 'function') showToast('Erreur upload : ' + t, 'error', 3000); });
+      }
+    });
   })
-  .then(function(r){
+  .catch(function(err){
     if(wrap) wrap.style.opacity = '';
-    if(r.ok){
-      var url = SB2_URL + '/storage/v1/object/public/' + _AVATAR_BUCKET + '/' + path + '?t=' + Date.now();
-      var img = document.getElementById('acAvatarImg');
-      var emoji = document.getElementById('acAvatarEmoji');
-      if(img){ img.src = url; img.style.display = ''; }
-      if(emoji) emoji.style.display = 'none';
-      // ✅ Afficher le bouton suppression
-      var delBtn = document.getElementById('acDeleteAvatarBtn');
-      if(delBtn) delBtn.style.display = 'flex';
-      _acSyncAvatarTopbar(url, u.role);
-      if(typeof showToast === 'function') showToast('✅ Photo de profil mise à jour !', 'success', 2000);
+    if(btn) btn.disabled = false;
+    if(err && err.message === 'HEIC_NOT_SUPPORTED'){
+      if(typeof showToast === 'function') showToast('Format HEIC non supporté — convertissez en JPG', 'error', 4000);
+    } else if(err && err.message === 'CANVAS_NOT_SUPPORTED'){
+      // Fallback : uploader le fichier original sans compression
+      var path = 'avatars/' + u.id + '.jpg';
+      fetch(SB2_URL + '/storage/v1/object/' + _AVATAR_BUCKET + '/' + path, {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': file.type, 'x-upsert': 'true' }, sb2Headers()),
+        body: file
+      }).then(function(r){
+        if(r.ok && typeof showToast === 'function') showToast('✅ Photo mise à jour (non compressée)', 'success', 2000);
+      });
     } else {
-      r.text().then(function(t){ alert('Erreur upload : ' + t); });
+      if(typeof showToast === 'function') showToast('Erreur : ' + (err && err.message || err), 'error', 3000);
     }
-  })
-  .catch(function(err){ if(wrap) wrap.style.opacity = ''; alert('Erreur réseau : ' + err); });
+  });
 };
 
 // ✅ Suppression de la photo de profil
@@ -1314,7 +1420,7 @@ window.acDeleteAvatar = function(){
   // ✅ Passe par l'Edge Function auth-v2 (service_role requis pour supprimer du storage)
   v2Auth('delete_avatar', { user_id: u.id })
   .then(function(res){
-    if(!res || res.error){ alert('Erreur : ' + (res && res.error || 'inconnue')); return; }
+    if(!res || res.error){ if(typeof showToast==='function') showToast('Erreur : ' + (res && res.error || 'inconnue'), 'error', 3000); return; }
     // Reset UI dans le modal
     var img = document.getElementById('acAvatarImg');
     var emoji = document.getElementById('acAvatarEmoji');
@@ -1329,7 +1435,7 @@ window.acDeleteAvatar = function(){
     if(mainEmoji) mainEmoji.src = defaultSrc;
     if(typeof showToast === 'function') showToast('🗑️ Photo supprimée', 'success', 2000);
   })
-  .catch(function(err){ alert('Erreur suppression : ' + err); });
+  .catch(function(err){ if(typeof showToast==='function') showToast('Erreur suppression : ' + err, 'error', 3000); });
 };
 
 
