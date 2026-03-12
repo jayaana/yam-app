@@ -585,41 +585,78 @@ window.nousSignalNew = function() {
   // UPLOAD PHOTO (depuis modale)
   // ─────────────────────────────
   function _uploadPhoto(section, slot, file){
-    var ALLOWED=['image/jpeg','image/jpg','image/png','image/webp','image/gif'];
-    if(ALLOWED.indexOf(file.type)===-1){ alert('Format non autorisé.'); return; }
-    if(file.size>5*1024*1024){ alert('Image trop lourde (max 5 Mo)'); return; }
-    var coupleId=_getCoupleId(); if(!coupleId){ alert('Session introuvable'); return; }
+    var ALLOWED=['image/jpeg','image/jpg','image/png','image/webp'];
+    if(ALLOWED.indexOf(file.type)===-1){
+      if(typeof showToast==='function') showToast('Format non autorisé — utilisez JPG, PNG ou WebP', 'error', 3500);
+      return;
+    }
+    var coupleId=_getCoupleId();
+    if(!coupleId){
+      if(typeof showToast==='function') showToast('Session introuvable — reconnecte-toi', 'error', 3000);
+      return;
+    }
     var path = section==='elle' ? _ellePath(coupleId,slot) : _luiPath(coupleId,slot);
-
-    // Feedback dans la modale
     var photoDiv=document.getElementById('slotEditPhoto');
-    if(photoDiv) photoDiv.innerHTML='<div style="color:var(--muted);font-size:12px;">Envoi...</div>';
 
-    fetch(SB2_URL+'/storage/v1/object/'+SB_BUCKET+'/'+path,{
-      method:'POST', headers:Object.assign({'Content-Type':file.type,'x-upsert':'true'},sb2Headers()), body:file
-    }).then(function(r){ return r.text().then(function(){ return r.ok; }); })
-    .then(function(ok){
-      if(ok){
-        var newUrl=SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+path+'?t='+Date.now();
-        // Mettre à jour la card dans la page
-        var img=document.getElementById(section+'-img-'+slot);
-        var emptyEl=document.getElementById(section+'-empty-'+slot);
-        var btnEl=document.getElementById(section+'-btn-'+slot);
-        if(img){ img.src=newUrl; img.style.display=''; img.classList.add('loaded'); }
-        if(emptyEl) emptyEl.style.display='none';
-        if(btnEl) btnEl.classList.remove('empty');
-        // Mettre à jour la photo dans la modale
-        if(photoDiv){ photoDiv.innerHTML=''; photoDiv.style.backgroundImage='url('+newUrl+')'; }
-        var ph=document.getElementById('slotEditPhotoPlaceholder');
-        if(ph) ph.style.display='none';
-        if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh(section+'_slot_'+slot);
-        if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('elle_lui_update');
-      } else {
-        if(photoDiv) photoDiv.innerHTML='<div style="color:#e05555;font-size:11px;">Erreur upload</div>';
-      }
-    }).catch(function(){
-      if(photoDiv) photoDiv.innerHTML='<div style="color:#e05555;font-size:11px;">Erreur réseau</div>';
-    });
+    // Détection HEIC avant compression
+    var isHeic = file.type==='image/heic' || file.type==='image/heif'
+              || file.name.toLowerCase().endsWith('.heic')
+              || file.name.toLowerCase().endsWith('.heif');
+    if(isHeic){
+      if(typeof showToast==='function') showToast('Format HEIC non supporté — convertissez en JPG dans Photos puis réessayez', 'error', 4500);
+      if(photoDiv) photoDiv.innerHTML='';
+      return;
+    }
+
+    // doUpload : reçoit un Blob déjà compressé (ou le File original en fallback)
+    var doUpload = function(blob){
+      if(photoDiv) photoDiv.innerHTML='<div style="color:var(--muted);font-size:12px;">Envoi...</div>';
+      fetch(SB2_URL+'/storage/v1/object/'+SB_BUCKET+'/'+path,{
+        method:'POST', headers:Object.assign({'Content-Type':'image/jpeg','x-upsert':'true'},sb2Headers()), body:blob
+      }).then(function(r){ return r.text().then(function(){ return r.ok; }); })
+      .then(function(ok){
+        if(ok){
+          var newUrl=SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+path+'?t='+Date.now();
+          var img=document.getElementById(section+'-img-'+slot);
+          var emptyEl=document.getElementById(section+'-empty-'+slot);
+          var btnEl=document.getElementById(section+'-btn-'+slot);
+          if(img){ img.src=newUrl; img.style.display=''; img.classList.add('loaded'); }
+          if(emptyEl) emptyEl.style.display='none';
+          if(btnEl) btnEl.classList.remove('empty');
+          if(photoDiv){ photoDiv.innerHTML=''; photoDiv.style.backgroundImage='url('+newUrl+')'; }
+          var ph=document.getElementById('slotEditPhotoPlaceholder');
+          if(ph) ph.style.display='none';
+          if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh(section+'_slot_'+slot);
+          if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('elle_lui_update');
+        } else {
+          if(photoDiv) photoDiv.innerHTML='<div style="color:#e05555;font-size:11px;">Erreur upload</div>';
+        }
+      }).catch(function(){
+        if(photoDiv) photoDiv.innerHTML='<div style="color:#e05555;font-size:11px;">Erreur réseau</div>';
+      });
+    };
+
+    // Compression avant upload — max 1200px, cible 400 Ko
+    if(typeof window.compressImage === 'function'){
+      window.compressImage(file, 1200, 400*1024)
+        .then(function(blob){
+          var ko = Math.round(blob.size/1024);
+          if(typeof showToast==='function') showToast('Photo optimisée : '+ko+' Ko', 'info', 2500);
+          doUpload(blob);
+        })
+        .catch(function(err){
+          if(err && err.message === 'HEIC_NOT_SUPPORTED'){
+            if(typeof showToast==='function') showToast('Format HEIC non supporté — convertissez en JPG dans Photos', 'error', 4500);
+            if(photoDiv) photoDiv.innerHTML='';
+            return;
+          }
+          // Fallback : upload fichier original
+          if(typeof showToast==='function') showToast('Compression impossible — envoi en l\'original', 'info', 2500);
+          doUpload(file);
+        });
+    } else {
+      doUpload(file);
+    }
   }
 
   // ─────────────────────────────
@@ -1775,20 +1812,62 @@ document.addEventListener('yam:session_ready', function(){
 
   window.souvenirHandlePhoto=function(input){
     if(!input.files||!input.files[0]) return;
-    var file=input.files[0]; var coupleId=_getCoupleId(); if(!coupleId) return;
+    var file=input.files[0];
+    var coupleId=_getCoupleId(); if(!coupleId) return;
+
+    // Détection HEIC
+    var isHeic = file.type==='image/heic' || file.type==='image/heif'
+              || file.name.toLowerCase().endsWith('.heic')
+              || file.name.toLowerCase().endsWith('.heif');
+    if(isHeic){
+      if(typeof showToast==='function') showToast('Format HEIC non supporté — convertissez en JPG dans Photos puis réessayez', 'error', 4500);
+      return;
+    }
+
+    var ALLOWED=['image/jpeg','image/jpg','image/png','image/webp'];
+    if(ALLOWED.indexOf(file.type)===-1){
+      if(typeof showToast==='function') showToast('Format non autorisé — utilisez JPG, PNG ou WebP', 'error', 3500);
+      return;
+    }
+
     var modal=document.getElementById('souvenirModal');
     var preview=document.getElementById('souvenirPhotoPreview');
-    if(preview){ preview.innerHTML='<div style="font-size:13px;color:var(--muted);">Envoi...</div>'; }
+    if(preview){ preview.innerHTML='<div style="font-size:13px;color:var(--muted);">Compression...</div>'; }
+
     var path='memories/'+coupleId+'/'+Date.now()+'.jpg';
-    fetch(SB2_URL+'/storage/v1/object/images/'+path,{method:'POST',headers:Object.assign({'Content-Type':file.type,'x-upsert':'true'},sb2Headers()),body:file})
-    .then(function(r){ return r.text().then(function(){ return r.ok; }); })
-    .then(function(ok){
-      if(ok){
-        var url=SB2_URL+'/storage/v1/object/public/images/'+path;
-        if(modal) modal.dataset.photoUrl=url;
-        if(preview){ preview.style.backgroundImage='url('+url+')'; preview.style.backgroundSize='cover'; preview.style.backgroundPosition='center'; preview.innerHTML=''; }
-      } else { if(preview) preview.innerHTML='<div style="font-size:11px;color:#e05555;">Erreur upload</div>'; }
-    }).catch(function(){ if(preview) preview.innerHTML='<div style="font-size:11px;color:#e05555;">Erreur réseau</div>'; });
+
+    var doUpload = function(blob){
+      if(preview){ preview.innerHTML='<div style="font-size:13px;color:var(--muted);">Envoi...</div>'; }
+      fetch(SB2_URL+'/storage/v1/object/images/'+path,{method:'POST',headers:Object.assign({'Content-Type':'image/jpeg','x-upsert':'true'},sb2Headers()),body:blob})
+      .then(function(r){ return r.text().then(function(){ return r.ok; }); })
+      .then(function(ok){
+        if(ok){
+          var url=SB2_URL+'/storage/v1/object/public/images/'+path;
+          if(modal) modal.dataset.photoUrl=url;
+          if(preview){ preview.style.backgroundImage='url('+url+')'; preview.style.backgroundSize='cover'; preview.style.backgroundPosition='center'; preview.innerHTML=''; }
+        } else {
+          if(preview) preview.innerHTML='<div style="font-size:11px;color:#e05555;">Erreur upload</div>';
+        }
+      }).catch(function(){
+        if(preview) preview.innerHTML='<div style="font-size:11px;color:#e05555;">Erreur réseau</div>';
+      });
+    };
+
+    // Compression — max 1400px, cible 600 Ko
+    if(typeof window.compressImage === 'function'){
+      window.compressImage(file, 1400, 600*1024)
+        .then(function(blob){
+          var ko = Math.round(blob.size/1024);
+          if(typeof showToast==='function') showToast('Photo optimisée : '+ko+' Ko', 'info', 2500);
+          doUpload(blob);
+        })
+        .catch(function(){
+          if(typeof showToast==='function') showToast('Compression impossible — envoi en l\'original', 'info', 2500);
+          doUpload(file);
+        });
+    } else {
+      doUpload(file);
+    }
   };
 
   window.souvenirSave=function(){
@@ -2561,7 +2640,7 @@ document.addEventListener('yam:session_ready', function(){
     var dateLabel = document.getElementById('histoireItemDate').value.trim();
     var title     = document.getElementById('histoireItemTitle').value.trim();
     var text      = document.getElementById('histoireItemText').value.trim();
-    if(!title){ alert('Le titre est obligatoire.'); return; }
+    if(!title){ if(typeof showToast==='function') showToast('Le titre est obligatoire', 'error'); return; }
     var data = { couple_id: coupleId, emoji: emoji, date_label: dateLabel, title: title, text: text };
     var btn = document.getElementById('histoireItemSaveBtn');
     if(btn){ btn.textContent='...'; btn.disabled=true; }
@@ -2814,27 +2893,61 @@ document.addEventListener('yam:session_ready', function(){
   window.livresHandlePhoto = function(input){
     if(!input.files||!input.files[0]) return;
     var file = input.files[0];
+
+    // Détection HEIC
+    var isHeic = file.type==='image/heic' || file.type==='image/heif'
+              || file.name.toLowerCase().endsWith('.heic')
+              || file.name.toLowerCase().endsWith('.heif');
+    if(isHeic){
+      if(typeof showToast==='function') showToast('Format HEIC non supporté — convertissez en JPG dans Photos puis réessayez', 'error', 4500);
+      return;
+    }
+
     var ALLOWED = ['image/jpeg','image/jpg','image/png','image/webp'];
-    if(ALLOWED.indexOf(file.type)===-1){ alert('Format non autorisé.'); return; }
-    if(file.size>5*1024*1024){ alert('Image trop lourde (max 5 Mo)'); return; }
+    if(ALLOWED.indexOf(file.type)===-1){
+      if(typeof showToast==='function') showToast('Format non autorisé — utilisez JPG, PNG ou WebP', 'error', 3500);
+      return;
+    }
+
     var coupleId = _getCoupleId(); if(!coupleId) return;
     var photo = document.getElementById('livreEditPhoto');
-    if(photo) photo.innerHTML = '<div style="font-size:12px;color:var(--muted);">Envoi...</div>';
+    if(photo) photo.innerHTML = '<div style="font-size:12px;color:var(--muted);">Compression...</div>';
 
-    // Si nouveau livre, générer un ID temporaire pour l'upload
     var bookId = _livreEditingId || ('tmp_'+Date.now());
     var path = 'books/'+coupleId+'/'+bookId+'.jpg';
-    fetch(SB2_URL+'/storage/v1/object/'+SB_BUCKET+'/'+path,{method:'POST',headers:Object.assign({'Content-Type':file.type,'x-upsert':'true'},sb2Headers()),body:file})
-    .then(function(r){ return r.text().then(function(){ return r.ok; }); })
-    .then(function(ok){
-      if(ok){
-        _livreCurrentPhotoUrl = SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+path;
-        if(!_livreEditingId) window._livreTmpPhotoId = bookId; // stocker l'ID temporaire
-        if(photo){ photo.style.backgroundImage='url('+_livreCurrentPhotoUrl+'?t='+Date.now()+')'; photo.innerHTML=''; }
-      } else {
-        if(photo) photo.innerHTML='<div style="font-size:11px;color:#e05555;">Erreur upload</div>';
-      }
-    }).catch(function(){ if(photo) photo.innerHTML='<div style="font-size:11px;color:#e05555;">Erreur réseau</div>'; });
+
+    var doUpload = function(blob){
+      if(photo) photo.innerHTML = '<div style="font-size:12px;color:var(--muted);">Envoi...</div>';
+      fetch(SB2_URL+'/storage/v1/object/'+SB_BUCKET+'/'+path,{method:'POST',headers:Object.assign({'Content-Type':'image/jpeg','x-upsert':'true'},sb2Headers()),body:blob})
+      .then(function(r){ return r.text().then(function(){ return r.ok; }); })
+      .then(function(ok){
+        if(ok){
+          _livreCurrentPhotoUrl = SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+path;
+          if(!_livreEditingId) window._livreTmpPhotoId = bookId;
+          if(photo){ photo.style.backgroundImage='url('+_livreCurrentPhotoUrl+'?t='+Date.now()+')'; photo.innerHTML=''; }
+        } else {
+          if(photo) photo.innerHTML='<div style="font-size:11px;color:#e05555;">Erreur upload</div>';
+        }
+      }).catch(function(){
+        if(photo) photo.innerHTML='<div style="font-size:11px;color:#e05555;">Erreur réseau</div>';
+      });
+    };
+
+    // Compression — max 1200px, cible 400 Ko
+    if(typeof window.compressImage === 'function'){
+      window.compressImage(file, 1200, 400*1024)
+        .then(function(blob){
+          var ko = Math.round(blob.size/1024);
+          if(typeof showToast==='function') showToast('Photo optimisée : '+ko+' Ko', 'info', 2500);
+          doUpload(blob);
+        })
+        .catch(function(){
+          if(typeof showToast==='function') showToast('Compression impossible — envoi en l\'original', 'info', 2500);
+          doUpload(file);
+        });
+    } else {
+      doUpload(file);
+    }
   };
 
   // ── Sauvegarde ──
