@@ -1296,10 +1296,59 @@ window.scheduleLikeSync=function(){ if(_likeSyncDebounce) clearTimeout(_likeSync
 
 loadLikeCounters();
 
-// ✅ #38 — Relancer le poll likes + unread après reconnexion
+// ── Realtime likes coeurs (#27) ─────────────────────────────────────────────
+var _likesRTChannel = null;
+
+function _startLikesRealtime(coupleId) {
+  if (!window._yamRT || !coupleId || _likesRTChannel) return;
+
+  _likesRTChannel = window._yamRT
+    .channel('likes-' + coupleId)
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'v2_like_counters',
+      filter: 'couple_id=eq.' + coupleId
+    }, function() {
+      loadLikeCounters();
+    })
+    .subscribe(function(status) {
+      if (status === 'SUBSCRIBED') {
+        // Stopper le poll 5s — Realtime prend le relais
+        if (window._likesIv) { clearInterval(window._likesIv); window._likesIv = null; }
+        console.log('[RT] Likes channel connecté — poll désactivé');
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        // Fallback poll si Realtime échoue
+        if (!window._likesIv) {
+          window._likesIv = setInterval(loadLikeCounters, 5000);
+          console.warn('[RT] Likes channel perdu — fallback poll 5s');
+        }
+      }
+    });
+
+  window._yamRTChannels['likes'] = _likesRTChannel;
+}
+
+// Lancer Realtime ou fallback poll selon disponibilité
+(function() {
+  var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+  var coupleId = u ? u.couple_id : null;
+  if (window._yamRT && coupleId) {
+    _startLikesRealtime(coupleId);
+  } else if (!window._likesIv) {
+    window._likesIv = setInterval(loadLikeCounters, 5000);
+  }
+})();
+
+// ✅ #38 — Relancer après reconnexion
 document.addEventListener('yam:session_ready', function(){
-  if(!window._likesIv){
-    loadLikeCounters();
+  var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+  var coupleId = u ? u.couple_id : null;
+  loadLikeCounters();
+  if (window._yamRT && coupleId) {
+    _likesRTChannel = null; // reset pour permettre reconnexion
+    _startLikesRealtime(coupleId);
+  } else if (!window._likesIv) {
     window._likesIv = setInterval(loadLikeCounters, 5000);
   }
   // Reset guard pour que _startLockBadgePolling puisse redémarrer
