@@ -3364,10 +3364,12 @@ window.nousLoad = function(){
 
   // ── État en mémoire ─────────────────────────────────────────────
   var _flame = {
-    points       : 0,
-    last_updated : null,  // Date JS
-    rowId        : null
+    points            : 0,
+    last_updated      : null,  // Date JS
+    rowId             : null,
+    points_at_midnight: null   // snapshot à minuit — source de vérité pour valider le streak
   };
+
   var _streak = {
     current_streak : 0,
     best_streak    : 0,
@@ -3410,9 +3412,12 @@ window.nousLoad = function(){
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (rows) {
         if (rows && rows[0]) {
-          _flame.points       = parseFloat(rows[0].points) || 0;
-          _flame.last_updated = new Date(rows[0].last_updated);
-          _flame.rowId        = rows[0].id;
+          _flame.points             = parseFloat(rows[0].points) || 0;
+          _flame.last_updated       = new Date(rows[0].last_updated);
+          _flame.rowId              = rows[0].id;
+          _flame.points_at_midnight = (rows[0].points_at_midnight != null)
+                                        ? parseFloat(rows[0].points_at_midnight)
+                                        : null;
         }
         _mayDone();
       }).catch(_mayDone);
@@ -3607,7 +3612,56 @@ window.nousLoad = function(){
       return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     })();
 
-    // ── MALUS MINUIT : -50% une fois par jour ──────────────────────
+    // ── STREAK : récompense pour la veille — AVANT le malus ──────────
+    // Si on a bien travaillé hier, on mérite le streak avant que le nouveau
+    // jour ne commence avec son malus.
+    if (_streak.last_flame_date !== today) {
+      // points_at_midnight = snapshot écrit à minuit par la Edge Function flame-midnight.
+      // Si null : le cron n'a pas encore tourné (premier jour, ou erreur) → pas de streak.
+      // C'est la seule source de vérité fiable — pas de fallback _currentPoints()
+      // car l'app est fermée la nuit et les points auraient déjà décru.
+      var ptsAtMidnight = _flame.points_at_midnight;
+      if (ptsAtMidnight !== null && ptsAtMidnight > 0) {
+        _streak.current_streak++;
+        _streak.total_days++;
+        if (_streak.current_streak > _streak.best_streak) {
+          _streak.best_streak = _streak.current_streak;
+        }
+        _streak.last_flame_date = today;
+
+        var streakBody = {
+          couple_id      : cid,
+          current_streak : _streak.current_streak,
+          best_streak    : _streak.best_streak,
+          total_days     : _streak.total_days,
+          last_flame_date: today,
+          last_malus_date: _streak.last_malus_date || null,
+          updated_at     : new Date().toISOString()
+        };
+
+        if (_streak.rowId) {
+          fetch(SB2_URL + '/rest/v1/v2_streak?id=eq.' + _streak.rowId, {
+            method: 'PATCH',
+            headers: sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
+            body: JSON.stringify(streakBody)
+          }).catch(function () {});
+        } else {
+          fetch(SB2_URL + '/rest/v1/v2_streak', {
+            method: 'POST',
+            headers: sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=representation' }),
+            body: JSON.stringify(streakBody)
+          })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (rows) { if (rows && rows[0]) _streak.rowId = rows[0].id; })
+          .catch(function () {});
+        }
+
+        _renderStreak();
+      }
+    }
+
+    // ── MALUS MINUIT : -50% une fois par jour — APRÈS le streak ──────
+    // Pénalité pour commencer le nouveau jour, appliquée après la récompense.
     if (_streak.last_malus_date !== today) {
       _streak.last_malus_date = today;
       // Persister en Supabase (source de vérité) + localStorage (fallback)
@@ -3629,48 +3683,6 @@ window.nousLoad = function(){
       }
     }
 
-    // Déjà crédité aujourd'hui ?
-    if (_streak.last_flame_date === today) return;
-
-    // Vérifier si la flamme est active (ou était > 0 hier)
-    var pts = _currentPoints();
-    if (pts > 0 || _streak.last_flame_date === yesterday) {
-      _streak.current_streak++;
-      _streak.total_days++;
-      if (_streak.current_streak > _streak.best_streak) {
-        _streak.best_streak = _streak.current_streak;
-      }
-      _streak.last_flame_date = today;
-
-      var body = {
-        couple_id      : cid,
-        current_streak : _streak.current_streak,
-        best_streak    : _streak.best_streak,
-        total_days     : _streak.total_days,
-        last_flame_date: today,
-        last_malus_date: _streak.last_malus_date || null,
-        updated_at     : new Date().toISOString()
-      };
-
-      if (_streak.rowId) {
-        fetch(SB2_URL + '/rest/v1/v2_streak?id=eq.' + _streak.rowId, {
-          method: 'PATCH',
-          headers: sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
-          body: JSON.stringify(body)
-        }).catch(function () {});
-      } else {
-        fetch(SB2_URL + '/rest/v1/v2_streak', {
-          method: 'POST',
-          headers: sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=representation' }),
-          body: JSON.stringify(body)
-        })
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (rows) { if (rows && rows[0]) _streak.rowId = rows[0].id; })
-        .catch(function () {});
-      }
-
-      _renderStreak();
-    }
   }
 
   // ════════════════════════════════════════════════════════════════
@@ -4004,11 +4016,29 @@ window.nousLoad = function(){
     var _lastCrownDate = _todayStr();
     _midnightIv = setInterval(function () {
       if (document.hidden) return;
-      _checkStreak();
       var nowDate = _todayStr();
       if (nowDate !== _lastCrownDate) {
         _lastCrownDate = nowDate;
-        _loadTrophies(); // nouveau jour => recalcul complet + ecriture en base
+        // Recharger _flame depuis Supabase pour récupérer points_at_midnight
+        // écrit par la Edge Function flame-midnight (cron 00:00 UTC)
+        var cid = _getCoupleId();
+        if (cid) {
+          fetch(SB2_URL + '/rest/v1/v2_flame?couple_id=eq.' + cid + '&limit=1', { headers: sb2Headers() })
+            .then(function (r) { return r.ok ? r.json() : []; })
+            .then(function (rows) {
+              if (rows && rows[0]) {
+                _flame.points_at_midnight = (rows[0].points_at_midnight != null)
+                                              ? parseFloat(rows[0].points_at_midnight)
+                                              : null;
+              }
+              _checkStreak();
+            }).catch(function () { _checkStreak(); });
+        } else {
+          _checkStreak();
+        }
+        _loadTrophies();
+      } else {
+        _checkStreak();
       }
     }, MIDNIGHT_CHECK_MS);
   }
