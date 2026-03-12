@@ -609,7 +609,9 @@ window.nousSignalNew = function() {
     }
 
     // doUpload : reçoit un Blob déjà compressé (ou le File original en fallback)
+    var _uploadedKo = 0;
     var doUpload = function(blob){
+      _uploadedKo = Math.round(blob.size/1024);
       if(photoDiv) photoDiv.innerHTML='<div style="color:var(--muted);font-size:12px;">Envoi...</div>';
       fetch(SB2_URL+'/storage/v1/object/'+SB_BUCKET+'/'+path,{
         method:'POST', headers:Object.assign({'Content-Type':'image/jpeg','x-upsert':'true'},sb2Headers()), body:blob
@@ -626,13 +628,16 @@ window.nousSignalNew = function() {
           if(photoDiv){ photoDiv.innerHTML=''; photoDiv.style.backgroundImage='url('+newUrl+')'; }
           var ph=document.getElementById('slotEditPhotoPlaceholder');
           if(ph) ph.style.display='none';
+          if(typeof showToast==='function') showToast('✅ Photo optimisée : '+_uploadedKo+' Ko', 'success', 2500);
           if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh(section+'_slot_'+slot);
           if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('elle_lui_update');
         } else {
           if(photoDiv) photoDiv.innerHTML='<div style="color:#e05555;font-size:11px;">Erreur upload</div>';
+          if(typeof showToast==='function') showToast('Erreur upload — réessaie', 'error', 3000);
         }
       }).catch(function(){
         if(photoDiv) photoDiv.innerHTML='<div style="color:#e05555;font-size:11px;">Erreur réseau</div>';
+        if(typeof showToast==='function') showToast('Erreur réseau — vérifie ta connexion', 'error', 3000);
       });
     };
 
@@ -640,8 +645,6 @@ window.nousSignalNew = function() {
     if(typeof window.compressImage === 'function'){
       window.compressImage(file, 1200, 400*1024)
         .then(function(blob){
-          var ko = Math.round(blob.size/1024);
-          if(typeof showToast==='function') showToast('Photo optimisée : '+ko+' Ko', 'info', 2500);
           doUpload(blob);
         })
         .catch(function(err){
@@ -1845,20 +1848,25 @@ document.addEventListener('yam:session_ready', function(){
           var url=SB2_URL+'/storage/v1/object/public/images/'+path;
           if(modal) modal.dataset.photoUrl=url;
           if(preview){ preview.style.backgroundImage='url('+url+')'; preview.style.backgroundSize='cover'; preview.style.backgroundPosition='center'; preview.innerHTML=''; }
+          if(typeof showToast==='function') showToast('✅ Photo optimisée : '+_uploadedKo+' Ko', 'success', 2500);
         } else {
           if(preview) preview.innerHTML='<div style="font-size:11px;color:#e05555;">Erreur upload</div>';
+          if(typeof showToast==='function') showToast('Erreur upload — réessaie', 'error', 3000);
         }
       }).catch(function(){
         if(preview) preview.innerHTML='<div style="font-size:11px;color:#e05555;">Erreur réseau</div>';
+        if(typeof showToast==='function') showToast('Erreur réseau — vérifie ta connexion', 'error', 3000);
       });
     };
+
+    var _uploadedKo = 0;
+    var _origDoUpload = doUpload;
+    doUpload = function(blob){ _uploadedKo = Math.round(blob.size/1024); _origDoUpload(blob); };
 
     // Compression — max 1400px, cible 600 Ko
     if(typeof window.compressImage === 'function'){
       window.compressImage(file, 1400, 600*1024)
         .then(function(blob){
-          var ko = Math.round(blob.size/1024);
-          if(typeof showToast==='function') showToast('Photo optimisée : '+ko+' Ko', 'info', 2500);
           doUpload(blob);
         })
         .catch(function(){
@@ -2916,7 +2924,9 @@ document.addEventListener('yam:session_ready', function(){
     var bookId = _livreEditingId || ('tmp_'+Date.now());
     var path = 'books/'+coupleId+'/'+bookId+'.jpg';
 
+    var _uploadedKo = 0;
     var doUpload = function(blob){
+      _uploadedKo = Math.round(blob.size/1024);
       if(photo) photo.innerHTML = '<div style="font-size:12px;color:var(--muted);">Envoi...</div>';
       fetch(SB2_URL+'/storage/v1/object/'+SB_BUCKET+'/'+path,{method:'POST',headers:Object.assign({'Content-Type':'image/jpeg','x-upsert':'true'},sb2Headers()),body:blob})
       .then(function(r){ return r.text().then(function(){ return r.ok; }); })
@@ -2925,11 +2935,14 @@ document.addEventListener('yam:session_ready', function(){
           _livreCurrentPhotoUrl = SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+path;
           if(!_livreEditingId) window._livreTmpPhotoId = bookId;
           if(photo){ photo.style.backgroundImage='url('+_livreCurrentPhotoUrl+'?t='+Date.now()+')'; photo.innerHTML=''; }
+          if(typeof showToast==='function') showToast('✅ Photo optimisée : '+_uploadedKo+' Ko', 'success', 2500);
         } else {
           if(photo) photo.innerHTML='<div style="font-size:11px;color:#e05555;">Erreur upload</div>';
+          if(typeof showToast==='function') showToast('Erreur upload — réessaie', 'error', 3000);
         }
       }).catch(function(){
         if(photo) photo.innerHTML='<div style="font-size:11px;color:#e05555;">Erreur réseau</div>';
+        if(typeof showToast==='function') showToast('Erreur réseau — vérifie ta connexion', 'error', 3000);
       });
     };
 
@@ -2937,8 +2950,6 @@ document.addEventListener('yam:session_ready', function(){
     if(typeof window.compressImage === 'function'){
       window.compressImage(file, 1200, 400*1024)
         .then(function(blob){
-          var ko = Math.round(blob.size/1024);
-          if(typeof showToast==='function') showToast('Photo optimisée : '+ko+' Ko', 'info', 2500);
           doUpload(blob);
         })
         .catch(function(){
