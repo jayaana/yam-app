@@ -1417,8 +1417,20 @@
             aud.play().catch(function(){ stopAudio(); });
             return;
           }
-          // Vérifier dans le cache mémoire
-          var cached = cache.find(function(m){ return m.id === msgId; });
+          // Résoudre le vrai ID au moment du tap (msgId peut être tmp_ si envoi récent)
+          // On remonte au data-id de la bulle parente dans le DOM
+          var realId = msgId;
+          var bubbleNode = ab.closest ? ab.closest('[data-id]') : null;
+          if(bubbleNode && bubbleNode.dataset.id && String(bubbleNode.dataset.id).indexOf('tmp_') !== 0){
+            realId = bubbleNode.dataset.id;
+          }
+          // Si encore tmp_ → l'envoi n'est pas encore confirmé par Supabase, attendre
+          if(String(realId).indexOf('tmp_') === 0){
+            if(typeof showToast === 'function') showToast('Envoi en cours, réessaie dans un instant…', 'info', 2000);
+            return;
+          }
+          // Vérifier dans le cache mémoire (avec le vrai ID)
+          var cached = cache.find(function(m){ return m.id === realId; });
           if(cached && cached.audio_data){
             audioData = 'data:' + (cached.audio_mime || msgMime || 'audio/webm') + ';base64,' + cached.audio_data;
             initAudio();
@@ -1433,7 +1445,7 @@
           playBtn.disabled = true;
           var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
           var coupleId = s && s.user ? s.user.couple_id : null;
-          fetch(SB2_URL + '/rest/v1/' + TABLE + '?id=eq.' + msgId + '&couple_id=eq.' + coupleId + '&select=id,audio_data,audio_mime', {
+          fetch(SB2_URL + '/rest/v1/' + TABLE + '?id=eq.' + realId + '&couple_id=eq.' + coupleId + '&select=id,audio_data,audio_mime', {
             headers: sb2Headers()
           })
           .then(function(r){ return r.json(); })
@@ -1446,7 +1458,8 @@
             }
             var row = rows[0];
             // Stocker dans le cache mémoire pour éviter re-fetch
-            if(cached) cached.audio_data = row.audio_data;
+            var cachedEntry = cache.find(function(m){ return m.id === realId; });
+            if(cachedEntry) cachedEntry.audio_data = row.audio_data;
             audioData = 'data:' + (row.audio_mime || msgMime || 'audio/webm') + ';base64,' + row.audio_data;
             initAudio();
             playing = true;
