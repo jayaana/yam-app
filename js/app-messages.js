@@ -677,8 +677,9 @@
     // Ancre : created_at du plus vieux message en cache
     var oldest = cache[0];
     var anchor = oldest ? ('&created_at=lt.' + encodeURIComponent(oldest.created_at)) : '';
+    var _SEL = 'id,couple_id,sender,text,message_type,seen,created_at,reply_to_id,reply_to_text,reply_to_sender,deleted,reaction_girl,reaction_boy,audio_duration,audio_mime,photo_url,edited';
     fetch(SB2_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId + anchor
-        + '&order=created_at.desc&limit=' + _msgPageSize + '&select=*', {
+        + '&order=created_at.desc&limit=' + _msgPageSize + '&select=' + _SEL, {
       headers: sb2Headers()
     })
     .then(function(r){ return r.json(); })
@@ -729,8 +730,10 @@
     }
 
     // Premier chargement : les 50 derniers en ASC
+    // ⚡ EGRESS FIX : audio_data (base64) exclu du poll — chargé uniquement au tap
+    var _SELECT_FIELDS = 'id,couple_id,sender,text,message_type,seen,created_at,reply_to_id,reply_to_text,reply_to_sender,deleted,reaction_girl,reaction_boy,audio_duration,audio_mime,photo_url,edited';
     var url = SB2_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId
-            + '&order=created_at.desc&limit=' + _msgPageSize + '&select=*';
+            + '&order=created_at.desc&limit=' + _msgPageSize + '&select=' + _SELECT_FIELDS;
 
     fetch(url, {
       headers: sb2Headers()
@@ -1316,7 +1319,7 @@
       bbl.appendChild(rp);
     }
 
-    if(msg.message_type === 'audio' && msg.audio_data && !msg.deleted){
+    if(msg.message_type === 'audio' && !msg.deleted){
       var audioBubble = document.createElement('div');
       audioBubble.className = 'dm-audio-bubble';
       var durSecs = msg.audio_duration || 0;
@@ -1350,8 +1353,8 @@
 
       bbl.appendChild(audioBubble);
 
-      // Logique lecture + scrub
-      (function(ab, audioData, totalDurSecs, totalDurStr){
+      // ⚡ EGRESS FIX : audio_data chargé uniquement au premier tap (lazy load)
+      (function(ab, msgId, msgMime, totalDurSecs, totalDurStr){
         var playBtn  = ab.querySelector('.dm-audio-play');
         var waveform = ab.querySelector('.dm-audio-waveform');
         var bars     = ab.querySelectorAll('.dm-wv-bar');
@@ -1360,9 +1363,11 @@
         var aud      = null;
         var playing  = false;
         var dragging = false;
+        var audioData = null; // chargé au premier tap
 
         var ICON_PLAY  = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>';
         var ICON_PAUSE = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+        var ICON_SPIN  = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="animation:spin .8s linear infinite"><path d="M12 2a10 10 0 0 1 10 10h-2a8 8 0 0 0-8-8V2z"/></svg>';
 
         function updateVisuals(pct){
           var n = bars.length;
@@ -1401,13 +1406,64 @@
           aud.addEventListener('ended', stopAudio);
         }
 
+        // Récupère audio_data depuis Supabase si pas encore en cache
+        function loadAudioThenPlay(){
+          // Déjà chargé
+          if(audioData){
+            initAudio();
+            playing = true;
+            playBtn.innerHTML = ICON_PAUSE;
+            waveform.classList.add('active');
+            aud.play().catch(function(){ stopAudio(); });
+            return;
+          }
+          // Vérifier dans le cache mémoire
+          var cached = cache.find(function(m){ return m.id === msgId; });
+          if(cached && cached.audio_data){
+            audioData = 'data:' + (cached.audio_mime || msgMime || 'audio/webm') + ';base64,' + cached.audio_data;
+            initAudio();
+            playing = true;
+            playBtn.innerHTML = ICON_PAUSE;
+            waveform.classList.add('active');
+            aud.play().catch(function(){ stopAudio(); });
+            return;
+          }
+          // Fetch depuis Supabase
+          playBtn.innerHTML = ICON_SPIN;
+          playBtn.disabled = true;
+          var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
+          var coupleId = s && s.user ? s.user.couple_id : null;
+          fetch(SB2_URL + '/rest/v1/' + TABLE + '?id=eq.' + msgId + '&couple_id=eq.' + coupleId + '&select=id,audio_data,audio_mime', {
+            headers: sb2Headers()
+          })
+          .then(function(r){ return r.json(); })
+          .then(function(rows){
+            playBtn.disabled = false;
+            if(!rows || !rows[0] || !rows[0].audio_data){
+              playBtn.innerHTML = ICON_PLAY;
+              if(typeof showToast === 'function') showToast('Audio indisponible', 'error', 2000);
+              return;
+            }
+            var row = rows[0];
+            // Stocker dans le cache mémoire pour éviter re-fetch
+            if(cached) cached.audio_data = row.audio_data;
+            audioData = 'data:' + (row.audio_mime || msgMime || 'audio/webm') + ';base64,' + row.audio_data;
+            initAudio();
+            playing = true;
+            playBtn.innerHTML = ICON_PAUSE;
+            waveform.classList.add('active');
+            aud.play().catch(function(){ stopAudio(); });
+          })
+          .catch(function(){
+            playBtn.disabled = false;
+            playBtn.innerHTML = ICON_PLAY;
+            if(typeof showToast === 'function') showToast('Erreur chargement audio', 'error', 2000);
+          });
+        }
+
         playBtn.addEventListener('click', function(){
           if(playing){ stopAudio(); return; }
-          initAudio();
-          playing = true;
-          playBtn.innerHTML = ICON_PAUSE;
-          waveform.classList.add('active');
-          aud.play().catch(function(){ stopAudio(); });
+          loadAudioThenPlay();
         });
 
         function pctFromEvent(e){
@@ -1417,6 +1473,7 @@
         }
 
         function seekTo(pct){
+          if(!audioData){ loadAudioThenPlay(); return; }
           initAudio();
           var doSeek = function(){
             aud.currentTime = pct * aud.duration;
@@ -1451,7 +1508,7 @@
           seekTo(pctFromEvent(e));
         });
 
-      })(audioBubble, 'data:' + (msg.audio_mime || 'audio/webm') + ';base64,' + msg.audio_data, durSecs, durStr);
+      })(audioBubble, msg.id, msg.audio_mime, durSecs, durStr);
     } else {
       var txt = document.createElement('span');
       txt.className   = 'dm-bubble-text';
