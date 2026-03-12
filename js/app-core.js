@@ -22,7 +22,14 @@ var SB2_URL        = 'https://jstiwtbgkbedtldqjdhp.supabase.co';
 var SB2_KEY        = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdGl3dGJna2JlZHRsZHFqZGhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4OTI1NTgsImV4cCI6MjA4NzQ2ODU1OH0.3W1u55aIakQxW5EyF0Sahc6Pjak1JqWhcX1ZifePH98';
 var SB2_EDGE_AUTH  = SB2_URL + '/functions/v1/auth-v2';
 var SB2_EDGE_PUSH  = SB2_URL + '/functions/v1/push-notify';
-var SB2_APP_SECRET = 'Kx9mPvR3wLjN7qTnYc4Zd';
+// SB2_APP_SECRET supprimé — remplacé par token de session
+function _yamSessionToken(){
+  try {
+    var s = localStorage.getItem('yam_v2_session');
+    if(!s) return '';
+    return JSON.parse(s).token || '';
+  } catch(e){ return ''; }
+}
 
 // ── Helpers SB2 REST (utilisés dans tous les fichiers JS) ──
 function sb2Headers(extra){
@@ -229,7 +236,7 @@ function v2Auth(action, payload){
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-app-secret': SB2_APP_SECRET,
+      'x-app-secret': 'Kx9mPvR3wLjN7qTnYc4Zd',
       'Authorization': 'Bearer ' + SB2_KEY
     },
     body: JSON.stringify(Object.assign({ action: action }, payload))
@@ -541,7 +548,7 @@ async function _yamSendSubToServer(sub) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-app-secret': SB2_APP_SECRET,
+        'x-session-token': _yamSessionToken(),
         'Authorization': 'Bearer ' + SB2_KEY
       },
       body: JSON.stringify({
@@ -613,7 +620,7 @@ window.yamPushNotify = async function(opts) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-app-secret': SB2_APP_SECRET,
+        'x-session-token': _yamSessionToken(),
         'Authorization': 'Bearer ' + SB2_KEY
       },
       body: JSON.stringify({
