@@ -2191,11 +2191,76 @@ window.addEventListener('load', function(){
   if(get()) loadMoods();
   _moodFirstLoad = false;
   window._moodsPollIv = setInterval(function(){ if(get()) loadMoods(); }, 30000);
+  window._moodsRTActive = false;
 
   // Exposer le stop pour yamClearAllPolls (app-core.js)
   window._yamStopMoodsPoll = function(){
     if(window._moodsPollIv){ clearInterval(window._moodsPollIv); window._moodsPollIv = null; }
   };
+
+  // ✅ Realtime humeurs — remplace le poll 30s quand connecté — fallback si RT tombe
+  (function(){
+    var _moodsRTFallbackIv = null;
+
+    function _startMoodsFallback(){
+      if(_moodsRTFallbackIv) return;
+      _moodsRTFallbackIv = setInterval(function(){ if(get()) loadMoods(); }, 30000);
+      yamLog('[RT] humeurs fallback poll 30s activé');
+    }
+    function _stopMoodsFallback(){
+      if(_moodsRTFallbackIv){ clearInterval(_moodsRTFallbackIv); _moodsRTFallbackIv = null; }
+    }
+
+    function _initMoodsRealtime(){
+      if(!window._yamRT){ _startMoodsFallback(); return; }
+      var sess = JSON.parse(localStorage.getItem('yam_v2_session')||'null');
+      var cid = sess && sess.user ? sess.user.couple_id : null;
+      if(!cid){ _startMoodsFallback(); return; }
+      if(window._yamRTChannels && window._yamRTChannels['moods']) return;
+
+      var ch = window._yamRT
+        .channel('moods_' + cid)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'v2_moods',
+          filter: 'couple_id=eq.' + cid
+        }, function(){
+          if(get()) loadMoods();
+        })
+        .subscribe(function(status){
+          if(status === 'SUBSCRIBED'){
+            yamLog('[RT] humeurs connectées');
+            window._moodsRTActive = true;
+            // Stoppe le poll 30s
+            if(window._moodsPollIv){ clearInterval(window._moodsPollIv); window._moodsPollIv = null; }
+            _stopMoodsFallback();
+            if(get()) loadMoods();
+          } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
+            yamLog('[RT] humeurs ' + status + ' — fallback poll');
+            window._moodsRTActive = false;
+            if(window._yamRTChannels) delete window._yamRTChannels['moods'];
+            _startMoodsFallback();
+          }
+        });
+      if(window._yamRTChannels) window._yamRTChannels['moods'] = ch;
+    }
+
+    // Patch _yamStopMoodsPoll pour aussi stopper le fallback RT
+    var _origStop = window._yamStopMoodsPoll;
+    window._yamStopMoodsPoll = function(){
+      if(window._moodsPollIv){ clearInterval(window._moodsPollIv); window._moodsPollIv = null; }
+      _stopMoodsFallback();
+    };
+
+    setTimeout(function(){
+      if(window._yamRT) _initMoodsRealtime();
+    }, 2500);
+
+    document.addEventListener('yam:session_ready', function(){
+      setTimeout(_initMoodsRealtime, 1200);
+    });
+  })();
 
   // ── Réinitialisation à minuit ──
   function resetMoodsUI(){
