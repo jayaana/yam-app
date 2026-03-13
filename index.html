@@ -1724,7 +1724,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
   <div class="home-mascot-row fade-in">
     <div class="home-mascot-wrap">
       <img id="homeMascotImg"
-        src="https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_start.gif"
+        src="assets/images/yam_start.gif"
         alt="YAM" />
     </div>
     <div class="home-msg-bubble">
@@ -6326,8 +6326,8 @@ document.addEventListener('DOMContentLoaded', function(){
     var audioPlaying = window._yamCurrentAudio && !window._yamCurrentAudio.paused;
     var isPlaying = navPlaying || audioPlaying;
     var newSrc = isPlaying
-      ? 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_dance.gif'
-      : 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_start.gif';
+      ? 'assets/images/yam_dance.gif'
+      : 'assets/images/yam_start.gif';
     if(img.src !== newSrc) img.src = newSrc;
   }
 
