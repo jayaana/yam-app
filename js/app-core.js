@@ -84,6 +84,9 @@ window.yamClearAllPolls = function(){
   if(window._likesIv){ clearInterval(window._likesIv); window._likesIv = null; }
   // Poll bêtises (app-pranks.js)
   if(window._yamStopPrankPoll) window._yamStopPrankPoll();
+  // Poll partenaire + humeurs (app-account.js)
+  if(window._yamStopPartnerPoll) window._yamStopPartnerPoll();
+  if(window._yamStopMoodsPoll)   window._yamStopMoodsPoll();
 };
 
 // ── Intercepteur 401 : session expirée → purge + affichage login ──
