@@ -38,6 +38,15 @@
         if (window._checkUnread) window._checkUnread();
       })
       .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'v2_dm_messages',
+        filter: 'couple_id=eq.' + coupleId
+      }, function(payload) {
+        // ✅ Suppression + réactions en temps réel chez le partenaire
+        fetchMsgs();
+      })
+      .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'v2_dm_typing',
@@ -1341,8 +1350,10 @@
     // Soft delete Supabase
     fetch(SB2_URL + '/rest/v1/' + TABLE + '?id=eq.' + msg.id, {
       method: 'PATCH',
-      headers: sb2Headers(),
+      headers: sb2Headers({'Content-Type': 'application/json', 'Prefer': 'return=minimal'}),
       body: JSON.stringify({ deleted: true, text: 'Message supprimé' })
+    }).then(function(r){
+      if(!r.ok) r.text().then(function(t){ console.error('[DM] delete PATCH err:', r.status, t); });
     }).catch(function(err){ console.error('[DM] delete err:', err); });
 
     // ✅ Fix badge — message supprimé ne doit plus compter comme non-lu
