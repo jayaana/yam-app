@@ -899,7 +899,7 @@
       });
       if(added) scrollBottom();
 
-      // Mettre à jour les ticks "vu" et réactions
+      // Mettre à jour les ticks "vu", réactions et suppressions
       var seenChanged = false;
       rows.forEach(function(msg){
         if(msg.sender === identity && msg.seen){
@@ -913,6 +913,21 @@
           cached.reaction_boy  = msg.reaction_boy;
           var wrap = document.querySelector('[data-id="'+msg.id+'"]');
           if(wrap) renderReactions(cached, wrap);
+        }
+        // ✅ Fix — Sync deleted depuis serveur (partenaire supprime un message)
+        if(cached && !cached.deleted && msg.deleted){
+          cached.deleted = true;
+          cached.text = 'Message supprimé';
+          var wrap = document.querySelector('[data-id="'+msg.id+'"]');
+          if(wrap){
+            var bbl = wrap.querySelector('.dm-bubble');
+            var txt = wrap.querySelector('.dm-bubble-text');
+            if(txt) txt.textContent = 'Message supprimé';
+            if(bbl) bbl.classList.add('deleted');
+            var reactRow = wrap.querySelector('.dm-react-row');
+            if(reactRow) reactRow.remove();
+            wrap.classList.remove('has-reaction');
+          }
         }
         // Marquer comme lu si le chat est visible
         var chatScreen = document.getElementById('dmChatScreen');
@@ -1303,12 +1318,20 @@
     wrap.classList.remove('has-reaction');
 
     if(String(msg.id).indexOf('tmp_') === 0){ wrap.remove(); return; }
+
+    // ✅ Fix — Mettre à jour le cache immédiatement pour éviter réapparition au prochain fetchMsgs
+    var cached = cache.find(function(m){ return m.id === msg.id; });
+    if(cached){ cached.deleted = true; cached.text = 'Message supprimé'; }
+
     // Soft delete Supabase
     fetch(SB2_URL + '/rest/v1/' + TABLE + '?id=eq.' + msg.id, {
       method: 'PATCH',
       headers: sb2Headers(),
       body: JSON.stringify({ deleted: true, text: 'Message supprimé' })
     }).catch(function(err){ console.error('[DM] delete err:', err); });
+
+    // ✅ Fix badge — message supprimé ne doit plus compter comme non-lu
+    if(window._checkUnread) window._checkUnread();
   }
 
   /* ══ BULLE ══ */
