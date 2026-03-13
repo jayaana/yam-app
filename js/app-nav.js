@@ -1552,7 +1552,7 @@ setTimeout(function(){
      9. LOG
   ══════════════════════════════════════════════════════ */
   setTimeout(function(){
-    console.log(
+    window.yamLog(
       '⚡ Jayana Perf v3.8\n' +
       '  ✓ animP original désactivé dès le départ (pas de double RAF)\n' +
       '  ✓ 250ms mini player → event-driven\n' +
