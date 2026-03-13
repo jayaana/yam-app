@@ -306,10 +306,6 @@ function _nousInitAll() {
   );
 
   _nousLoadBadge();
-  if (!window._checkUnreadStarted) {
-    window._checkUnreadStarted = true;
-    _startLockBadgePolling();
-  }
   if (!window._likesIv) {
     window._likesIv = setInterval(loadLikeCounters, 5000);
   }
@@ -1271,49 +1267,6 @@ window.getAnnivPostitText = getAnnivPostitText;
 // ════════════════════════════════════════════════════════════════════
 // 9. BADGE MESSAGES NON-LUS (polling)
 // ════════════════════════════════════════════════════════════════════
-function _startLockBadgePolling(){
-  var _prevUnreadCount=-1;
-  function checkUnread(){
-    var hiddenPage=document.getElementById('hiddenPage'); var chatScreen=document.getElementById('dmChatScreen');
-    if(hiddenPage&&hiddenPage.classList.contains('active')&&chatScreen&&chatScreen.style.display!=='none') return;
-    var profile=getProfile(); if(!profile) return;
-    var other=profile==='girl'?'boy':'girl';
-    var coupleId=(typeof v2GetUser==='function'&&v2GetUser())?v2GetUser().couple_id:null; if(!coupleId) return;
-    fetch(SB2_URL+'/rest/v1/v2_dm_messages?couple_id=eq.'+coupleId+'&sender=eq.'+other+'&seen=eq.false&deleted=eq.false&order=created_at.desc&limit=99',{headers:sb2Headers()})
-    .then(function(r){ return r.json(); })
-    .then(function(rows){
-      if(!Array.isArray(rows)) return;
-      var unread=rows.length;
-      var lockBtn=document.getElementById('lockNavBtn'); var lockBadge=document.getElementById('lockUnreadBadge');
-      if(!lockBtn||!lockBadge) return;
-      if(unread>0){
-        lockBadge.textContent=unread>99?'99+':unread; lockBadge.classList.add('visible'); lockBtn.classList.add('has-unread');
-        if(_prevUnreadCount>=0&&unread>_prevUnreadCount&&window._currentTab!=='messages'){
-          var last=rows[0];
-          var avatarSrc=window.yamAvatarSrc?window.yamAvatarSrc(other):('assets/images/profil_'+other+'.png');
-          var name=(typeof v2GetDisplayName==='function'?v2GetDisplayName(other):(other==='girl'?'Elle':'Lui'));
-          var txt=(last&&last.text)?last.text:'Nouveau message';
-          if(window.showMsgHeaderPill) window.showMsgHeaderPill(avatarSrc,name,txt,true);
-        }
-      } else { lockBadge.classList.remove('visible'); lockBtn.classList.remove('has-unread'); }
-      _prevUnreadCount=unread;
-    }).catch(function(){});
-  }
-  window._checkUnread=checkUnread;
-  checkUnread();
-  var _unreadPollId = setInterval(checkUnread,8000);
-  window._yamStopUnreadPoll = function(){
-    if(_unreadPollId){ clearInterval(_unreadPollId); _unreadPollId = null; }
-  };
-  document.addEventListener('hiddenPageClosed',function(){ checkUnread(); });
-  // ✅ #38 — Relancer le poll unread après reconnexion
-  document.addEventListener('yam:session_ready', function(){
-    if(_unreadPollId) return; // déjà actif
-    checkUnread();
-    _unreadPollId = setInterval(checkUnread, 8000);
-  });
-}
-
 
 // ════════════════════════════════════════════════════════════════════
 // 10. LIKES CŒURS
@@ -1504,9 +1457,6 @@ document.addEventListener('yam:session_ready', function(){
   } else if (!window._likesIv) {
     window._likesIv = setInterval(loadLikeCounters, 5000);
   }
-  // Reset guard pour que _startLockBadgePolling puisse redémarrer
-  window._checkUnreadStarted = false;
-  if(typeof _startLockBadgePolling === 'function') _startLockBadgePolling();
 });
 
 
