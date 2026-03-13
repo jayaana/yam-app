@@ -2351,7 +2351,7 @@
       method: 'PATCH',
       headers: sb2Headers(),
       body: JSON.stringify({ seen: true })
-    }).catch(function(){});
+    }).then(function(){ if(window._checkUnread) window._checkUnread(); }).catch(function(){});
   }
 
   function updateSendBtn(){
@@ -2470,7 +2470,7 @@
     showConvScreen();
     // Re-poller le badge après que les markSeen soient partis en base
     setTimeout(function(){
-      if(typeof window._dmPollUnread === 'function') window._dmPollUnread();
+      if(typeof window._checkUnread === 'function') window._checkUnread();
     }, 1500);
   };
 
