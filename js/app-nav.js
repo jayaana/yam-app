@@ -1389,6 +1389,119 @@ setTimeout(function(){
     }, 500);
   });
 
+  /* ══════════════════════════════════════════════════════
+     4. REALTIME #79 — v2_now_listening
+        Remplace nlPoll quand connecté — fallback poll 8s si RT tombe
+     #81 — v2_song_plays
+        Remplace refreshPlays (30s) — fallback si RT tombe
+  ══════════════════════════════════════════════════════ */
+  (function(){
+    var _nlFallbackIv = null;
+    var _playsFallbackIv = null;
+
+    function _startNlFallback(){
+      if(_nlFallbackIv) return;
+      _nlFallbackIv = _SI(function(){ if(window.nlPoll) window.nlPoll(); }, 8000);
+      yamLog('[RT] #79 fallback nlPoll 8s activé');
+    }
+    function _stopNlFallback(){
+      if(_nlFallbackIv){ _CI(_nlFallbackIv); _nlFallbackIv = null; }
+    }
+
+    function _startPlaysFallback(){
+      if(_playsFallbackIv) return;
+      _playsFallbackIv = _SI(function(){ if(window.refreshPlays) window.refreshPlays(); }, 30000);
+      yamLog('[RT] #81 fallback refreshPlays 30s activé');
+    }
+    function _stopPlaysFallback(){
+      if(_playsFallbackIv){ _CI(_playsFallbackIv); _playsFallbackIv = null; }
+    }
+
+    function _initMusicRealtime(){
+      if(!window._yamRT){ _startNlFallback(); _startPlaysFallback(); return; }
+
+      var sess = JSON.parse(localStorage.getItem('yam_v2_session')||'null');
+      var cid = sess && sess.user ? sess.user.couple_id : null;
+      if(!cid){ _startNlFallback(); _startPlaysFallback(); return; }
+
+      // ── #79 — now_listening ──
+      if(!window._yamRTChannels['now_listening']){
+        var chNL = window._yamRT
+          .channel('now_listening_' + cid)
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'v2_now_listening',
+            filter: 'couple_id=eq.' + cid
+          }, function(){
+            if(window.nlPoll) window.nlPoll();
+          })
+          .subscribe(function(status){
+            if(status === 'SUBSCRIBED'){
+              yamLog('[RT] #79 now_listening connecté');
+              window._nlRTActive = true;
+              // Stoppe le poll adaptatif nl — Realtime prend le relais
+              if(_timers.nl){ _CI(_timers.nl); _timers.nl = null; }
+              if(window._nlIv != null){ _CI(window._nlIv); window._nlIv = null; }
+              _stopNlFallback();
+              if(window.nlPoll) window.nlPoll(); // appel initial
+            } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
+              yamLog('[RT] #79 now_listening ' + status + ' — fallback poll');
+              window._nlRTActive = false;
+              _startNlFallback();
+            }
+          });
+        window._yamRTChannels['now_listening'] = chNL;
+      }
+
+      // ── #81 — song_plays ──
+      if(!window._yamRTChannels['song_plays']){
+        var chSP = window._yamRT
+          .channel('song_plays_' + cid)
+          .on('postgres_changes', {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'v2_song_plays',
+            filter: 'couple_id=eq.' + cid
+          }, function(){
+            if(window.refreshPlays) window.refreshPlays();
+          })
+          .subscribe(function(status){
+            if(status === 'SUBSCRIBED'){
+              yamLog('[RT] #81 song_plays connecté');
+              window._playsRTActive = true;
+              // Stoppe le poll 30s
+              if(window._playsIv != null){ _CI(window._playsIv); window._playsIv = null; }
+              _stopPlaysFallback();
+            } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
+              yamLog('[RT] #81 song_plays ' + status + ' — fallback poll');
+              window._playsRTActive = false;
+              _startPlaysFallback();
+            }
+          });
+        window._yamRTChannels['song_plays'] = chSP;
+      }
+    }
+
+    // Init au chargement si déjà connecté, sinon attendre session_ready
+    setTimeout(function(){
+      if(window._yamRT) _initMusicRealtime();
+    }, 2000);
+
+    document.addEventListener('yam:session_ready', function(){
+      setTimeout(_initMusicRealtime, 1000);
+    });
+
+    // Relancer les polls adaptatifs nl seulement si RT inactif
+    var _origReschedAll = _reschedAll;
+    _reschedAll = function(){
+      _origReschedAll();
+      // Si RT nl actif, annule le poll nl que _reschedAll vient de créer
+      if(window._nlRTActive && _timers.nl){ _CI(_timers.nl); _timers.nl = null; }
+    };
+
+  })();
+
   document.addEventListener('visibilitychange', function(){
     _reschedAll();
     document.body.classList.toggle('perf-hidden', document.hidden);
