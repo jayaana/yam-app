@@ -15,6 +15,11 @@
   // ── Realtime (#27) ──────────────────────────────────────────
   var _rtChannel = null;
   var _rtConnected = false;
+  var _rtTypingExpiry = null;
+
+  function _clearTypingTimeout() {
+    if (_rtTypingExpiry) { clearTimeout(_rtTypingExpiry); _rtTypingExpiry = null; }
+  }
 
   function _startRealtime(coupleId) {
     if (!window._yamRT || !coupleId) return;
@@ -31,12 +36,31 @@
         fetchMsgs();
       })
       .on('postgres_changes', {
-        event: 'UPDATE',
+        event: '*',
         schema: 'public',
         table: 'v2_dm_typing',
         filter: 'couple_id=eq.' + coupleId
-      }, function() {
-        pollTyping();
+      }, function(payload) {
+        // Ignorer nos propres pings
+        var row = (payload.new && payload.new.sender) ? payload.new : (payload.old || {});
+        var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
+        var me = s && s.user ? (window.getProfile ? window.getProfile() : null) : null;
+        if (row.sender && row.sender === me) return;
+
+        if (payload.eventType === 'DELETE' || !payload.new || !payload.new.sender) {
+          // L'autre a arrêté de taper (DELETE)
+          _clearTypingTimeout();
+          hideTyping();
+        } else {
+          // L'autre tape — afficher + armer le timeout d'expiry
+          var other = me === 'girl' ? 'boy' : 'girl';
+          showTyping(other);
+          _clearTypingTimeout();
+          _rtTypingExpiry = setTimeout(function() {
+            hideTyping();
+            _rtTypingExpiry = null;
+          }, 4000); // 4s sans nouveau ping = indicateur caché
+        }
       })
       .subscribe(function(status) {
         if (status === 'SUBSCRIBED') {
@@ -59,6 +83,7 @@
   }
 
   function _stopRealtime() {
+    _clearTypingTimeout();
     if (_rtChannel && window._yamRT) {
       try { window._yamRT.removeChannel(_rtChannel); } catch(e) {}
       _rtChannel = null;
@@ -350,9 +375,19 @@
     var photoInput = $('dmPhotoInput');
 
     if(input){
-      input.addEventListener('input', function(){ updateSendBtn(); sendTypingPing(); });
+      input.addEventListener('input', function(){
+        updateSendBtn();
+        if(input.value.trim() === '') {
+          _sendTypingStop();
+        } else {
+          sendTypingPing();
+        }
+      });
       input.addEventListener('keydown', function(e){
         if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); doSend(); }
+      });
+      input.addEventListener('blur', function(){
+        _sendTypingStop();
       });
     }
     if(sendBtn) sendBtn.addEventListener('click', doSend);
@@ -578,6 +613,17 @@
           method: 'POST', headers: sb2Headers({'Prefer':'return=minimal'}), body: JSON.stringify(body)
         }).catch(function(){});
       }
+    }).catch(function(){});
+  }
+
+  // Signaler qu'on a arrêté de taper (DELETE la ligne)
+  function _sendTypingStop() {
+    myTypingTs = 0; // reset debounce pour le prochain ping
+    var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
+    var coupleId = s && s.user ? s.user.couple_id : null;
+    if (!coupleId) return;
+    fetch(SB2_URL + '/rest/v1/' + TYPING_TABLE + '?couple_id=eq.' + coupleId + '&sender=eq.' + identity, {
+      method: 'DELETE', headers: sb2Headers()
     }).catch(function(){});
   }
 
@@ -1652,6 +1698,7 @@
     // ✅ FIX iOS — setTimeout(0) obligatoire pour fermer le clavier sur iPhone/iPad
     setTimeout(function(){ input.blur(); }, 0);
     updateSendBtn();
+    _sendTypingStop(); // signaler qu'on a arrêté de taper
 
     // Récupérer couple_id
     var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
