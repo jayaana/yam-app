@@ -306,7 +306,6 @@ function _nousInitAll() {
   );
 
   _nousLoadBadge();
-  loadLikeCounters(); // chargement immédiat même avant le batch (rapide)
   if (!window._checkUnreadStarted) {
     window._checkUnreadStarted = true;
     _startLockBadgePolling();
