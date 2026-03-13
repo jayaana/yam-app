@@ -131,17 +131,17 @@
     var mascotteImg = document.querySelector('.yam-mascotte-zone img');
     if(mascotteImg){
       if(musicPlaying && tab === 'home'){
-        mascotteImg.src = 'assets/images/yam_dance.gif';
+        mascotteImg.src = 'assets/images/yam_dance.gif?t=' + Date.now();
       } else if(tab === 'home'){
-        mascotteImg.src = 'assets/images/yam_start.gif';
+        mascotteImg.src = 'assets/images/yam_start.gif?t=' + Date.now();
       }
     }
     // Nouvelle mascotte home v2
     var homeMascotImg = document.getElementById('homeMascotImg');
     if(homeMascotImg && tab === 'home'){
       homeMascotImg.src = musicPlaying
-        ? 'assets/images/yam_dance.gif'
-        : 'assets/images/yam_start.gif';
+        ? 'assets/images/yam_dance.gif?t=' + Date.now()
+        : 'assets/images/yam_start.gif?t=' + Date.now();
     }
     // Sync humeurs home au retour sur l'accueil
     if(tab === 'home'){
