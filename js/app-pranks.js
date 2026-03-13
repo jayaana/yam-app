@@ -145,6 +145,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   };
   window.closePrankMenu = function(){
     var menu = document.getElementById('prankMenu');
+    if (!menu) return; // pas encore injecté → rien à fermer
     var DUR = 300;
     menu.style.transition = 'transform '+DUR+'ms cubic-bezier(.4,0,.2,1)';
     menu.style.transform  = 'translateX(100%)';
@@ -269,7 +270,9 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   }
 
   window.closePrankMsg = function(){
-    document.getElementById('prankMsgModal').classList.remove('show');
+    var _pmm = document.getElementById('prankMsgModal');
+    if (!_pmm) return;
+    _pmm.classList.remove('show');
     // Rouvrir le menu avec scroll bloqué
     var scrollY = window.scrollY;
     document.body.style.position = 'fixed';
@@ -944,7 +947,9 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     document.getElementById('prankGotcha').classList.add('show');
   }
   window.closeGotcha = function(){
-    document.getElementById('prankGotcha').classList.remove('show');
+    var _gg = document.getElementById('prankGotcha');
+    if (!_gg) return;
+    _gg.classList.remove('show');
     // Ne pas délocker si une nouvelle bêtise est déjà en cours
     if(!_activePrank) _prankUnlockScroll();
   };
