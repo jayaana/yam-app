@@ -746,7 +746,7 @@
       var _editFilter = 'id=eq.' + msg.id + (_editCoupleId ? '&couple_id=eq.' + _editCoupleId : '');
       fetch(SB2_URL + '/rest/v1/' + TABLE + '?' + _editFilter, {
         method: 'PATCH',
-        headers: sb2Headers({'Content-Type':'application/json', 'Prefer':'return=minimal'}),
+        headers: sb2Headers({'Prefer':'return=minimal'}),
         body: JSON.stringify({ text: newText, edited: true })
       }).then(function(r){
         if(!r.ok) r.text().then(function(t){ console.error('[DM] edit err:', r.status, t); });
@@ -1321,7 +1321,7 @@
     _body[col] = reaction;
     fetch(SB2_URL + '/rest/v1/' + TABLE + '?' + _rf, {
       method: 'PATCH',
-      headers: sb2Headers({'Content-Type':'application/json', 'Prefer':'return=minimal'}),
+      headers: sb2Headers({'Prefer':'return=minimal'}),
       body: JSON.stringify(_body)
     }).then(function(r){
       if(!r.ok) r.text().then(function(t){ console.error('[DM] reaction err:', r.status, t); });
@@ -1331,14 +1331,31 @@
   /* ══ SUPPRESSION ══ */
   function deleteMsg(msg, wrap){
     if(msg.deleted) return; // ✅ Guard — déjà supprimé, ne pas re-PATCHer
-    // Soft delete UI
-    var bbl = wrap.querySelector('.dm-bubble');
-    var txt = wrap.querySelector('.dm-bubble-text');
-    if(txt) txt.textContent = 'Message supprimé';
-    if(bbl) bbl.classList.add('deleted');
-    var reactRow = wrap.querySelector('.dm-react-row');
-    if(reactRow) reactRow.remove();
-    wrap.classList.remove('has-reaction');
+
+    // ── Cas photo : photoWrap n'a pas de .dm-bubble — remplacer par bulle texte ──
+    if(msg.message_type === 'photo'){
+      var mineBubble = (msg.sender === identity);
+      var deletedWrap = document.createElement('div');
+      deletedWrap.className = 'dm-wrap' + (mineBubble ? ' mine' : '');
+      deletedWrap.dataset.id = msg.id;
+      var deletedBbl = document.createElement('div');
+      deletedBbl.className = 'dm-bubble deleted';
+      var deletedTxt = document.createElement('span');
+      deletedTxt.className = 'dm-bubble-text';
+      deletedTxt.textContent = 'Message supprimé';
+      deletedBbl.appendChild(deletedTxt);
+      deletedWrap.appendChild(deletedBbl);
+      if(wrap.parentNode) wrap.parentNode.replaceChild(deletedWrap, wrap);
+    } else {
+      // Soft delete UI — bulle texte ou vocal
+      var bbl = wrap.querySelector('.dm-bubble');
+      var txt = wrap.querySelector('.dm-bubble-text');
+      if(txt) txt.textContent = 'Message supprimé';
+      if(bbl) bbl.classList.add('deleted');
+      var reactRow = wrap.querySelector('.dm-react-row');
+      if(reactRow) reactRow.remove();
+      wrap.classList.remove('has-reaction');
+    }
 
     if(String(msg.id).indexOf('tmp_') === 0){ wrap.remove(); return; }
 
@@ -2299,7 +2316,7 @@
     if(!id || String(id).indexOf('tmp_') === 0) return;
     fetch(SB2_URL + '/rest/v1/' + TABLE + '?id=eq.' + id, {
       method: 'PATCH',
-      headers: sb2Headers({'Content-Type':'application/json'}),
+      headers: sb2Headers(),
       body: JSON.stringify({ seen: true })
     }).catch(function(){});
   }
