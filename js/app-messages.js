@@ -925,19 +925,44 @@
           var wrap = document.querySelector('[data-id="'+msg.id+'"]');
           if(wrap) renderReactions(cached, wrap);
         }
-        // ✅ Fix — Sync deleted depuis serveur (partenaire supprime un message)
+        // ✅ Fix — Sync deleted depuis serveur (photo/vocal/texte — même logique que deleteMsg)
         if(cached && !cached.deleted && msg.deleted){
           cached.deleted = true;
           cached.text = 'Message supprimé';
           var wrap = document.querySelector('[data-id="'+msg.id+'"]');
           if(wrap){
-            var bbl = wrap.querySelector('.dm-bubble');
-            var txt = wrap.querySelector('.dm-bubble-text');
-            if(txt) txt.textContent = 'Message supprimé';
-            if(bbl) bbl.classList.add('deleted');
-            var reactRow = wrap.querySelector('.dm-react-row');
-            if(reactRow) reactRow.remove();
-            wrap.classList.remove('has-reaction');
+            if(cached.message_type === 'photo'){
+              // Photo : photoWrap n'a pas de .dm-bubble — remplacer par bulle texte standard
+              var mineBubble = (cached.sender === identity);
+              var deletedWrap = document.createElement('div');
+              deletedWrap.className = 'dm-wrap' + (mineBubble ? ' mine' : '');
+              deletedWrap.dataset.id = cached.id;
+              var deletedBbl = document.createElement('div');
+              deletedBbl.className = 'dm-bubble deleted';
+              var deletedTxt = document.createElement('span');
+              deletedTxt.className = 'dm-bubble-text';
+              deletedTxt.textContent = 'Message supprimé';
+              deletedBbl.appendChild(deletedTxt);
+              deletedWrap.appendChild(deletedBbl);
+              if(wrap.parentNode) wrap.parentNode.replaceChild(deletedWrap, wrap);
+            } else {
+              // Texte ou vocal
+              var bbl = wrap.querySelector('.dm-bubble');
+              var txt = wrap.querySelector('.dm-bubble-text');
+              if(bbl) bbl.classList.add('deleted');
+              // Vocal : pas de .dm-bubble-text — vider audioBubble et insérer le texte
+              var audioBubble = wrap.querySelector('.dm-audio-bubble');
+              if(audioBubble){ audioBubble.remove(); txt = null; }
+              if(!txt){
+                txt = document.createElement('span');
+                txt.className = 'dm-bubble-text';
+                if(bbl) bbl.insertBefore(txt, bbl.firstChild);
+              }
+              txt.textContent = 'Message supprimé';
+              var reactRow = wrap.querySelector('.dm-react-row');
+              if(reactRow) reactRow.remove();
+              wrap.classList.remove('has-reaction');
+            }
           }
         }
         // Marquer comme lu si le chat est visible
