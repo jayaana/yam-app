@@ -1408,6 +1408,7 @@
   window._skyjoDeletePresence = function(){ if(_mp) _mp.deletePresence(); };
   window._skyjoUpsertPresence = function(){ if(_mp) _mp.upsertPresence(); };
   window._skyjoMarkAbsence    = function(){ if(_mp) _mp.markAbsence(); };
+  window._sjStopTimer         = function(){ if(typeof _sjStopTimer==='function') _sjStopTimer(); };
 
 })();
 
@@ -1432,7 +1433,7 @@
     document.body.classList.add('skyjo-bg-paused');
     document.querySelectorAll('.sj-fly-clone, .sj-particle').forEach(function(el){el.style.animationPlayState='paused';});
     // ✅ FIX v3.7 : stoppe le RAF du timer IA (évite 60fps en arrière-plan)
-    _sjStopTimer();
+    if(typeof window._sjStopTimer==='function') window._sjStopTimer();
     if(typeof window._skyjoDeletePresence==='function') window._skyjoDeletePresence();
     if(typeof window._skyjoRefreshRates==='function')   window._skyjoRefreshRates();
   }
