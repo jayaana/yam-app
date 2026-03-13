@@ -2957,6 +2957,8 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 
 
 
+<div id="quizView"></div>
+<template id="tpl-quiz">
 <div id="quizView">
   <div class="qz-header">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -2993,6 +2995,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     <button class="qz-retry-btn" onclick="startQuiz()">Recommencer 🔄</button>
   </div>
 </div>
+</template>
 
 <div class="bottom-nav">
   <div class="bottom-nav-inner">
@@ -3299,6 +3302,8 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 
 
 <!-- ════ VUE JEU DE MÉMOIRE ════ -->
+<div id="memoryView"></div>
+<template id="tpl-memory">
 <div id="memoryView">
   <div class="game-view-header">
     <div class="game-view-back" onclick="closeMemoryGame()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Retour aux jeux</div>
@@ -3390,9 +3395,12 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 
   </div>
 </div>
+</template>
 
 
 <!-- ════ VUE PENDU ════ -->
+<div id="penduView"></div>
+<template id="tpl-pendu">
 <div id="penduView">
   <div class="game-view-header">
     <div class="game-view-back" onclick="closePenduGame()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Retour aux jeux</div>
@@ -3444,8 +3452,11 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     </div>
   </div>
 </div>
+</template>
 
 <!-- ════ VUE PUZZLE ════ -->
+<div id="puzzleView"></div>
+<template id="tpl-puzzle">
 <div id="puzzleView">
   <div class="game-view-header">
     <div class="game-view-back" onclick="closePuzzleGame()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Retour aux jeux</div>
@@ -3497,8 +3508,11 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     </div>
   </div>
 </div>
+</template>
 
 <!-- ════ VUE SNAKE ════ -->
+<div id="snakeView"></div>
+<template id="tpl-snake">
 <div id="snakeView">
   <div class="game-view-header">
     <div class="game-view-back" onclick="closeSnakeGame()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Retour aux jeux</div>
@@ -3552,8 +3566,11 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     </div>
   </div>
 </div>
+</template>
 
 <!-- ════ VUE SKYJO ════ -->
+<div id="skyjoView"></div>
+<template id="tpl-skyjo">
 <div id="skyjoView">
   <div class="game-view-header">
     <div class="game-view-back" onclick="closeSkyjoGame()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Retour aux jeux</div>
@@ -3757,7 +3774,10 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 
   </div>
 </div>
+</template>
 
+<div id="prank-placeholder"></div>
+<template id="tpl-pranks">
 <div id="prankOverlay">
   <div class="prank-emoji">🤡👉</div>
   <div class="prank-text">Je t'ai prank c'est pas ça haha<br>bon je suis gentil je te donne un indice</div>
@@ -3964,6 +3984,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
   <button class="prank-lock-btn" onclick="prankCheckLock()">Valider</button>
   <div class="prank-lock-err" id="prankLockErr">❌ Non ! Essaie encore…</div>
 </div>
+</template>
 
 <!-- ══ SUGGESTION MODALS ══ -->
 <div id="sgAuthModal">
