@@ -34,6 +34,8 @@
         filter: 'couple_id=eq.' + coupleId
       }, function() {
         fetchMsgs();
+        // ✅ #75 — Mise à jour immédiate du badge via checkUnread (event-driven)
+        if (window._checkUnread) window._checkUnread();
       })
       .on('postgres_changes', {
         event: '*',
@@ -67,6 +69,8 @@
           _rtConnected = true;
           // Stopper le poll 3s — Realtime prend le relais
           if (pollId) { clearInterval(pollId); pollId = null; window._chatPollId = null; }
+          // ✅ #75 — Stopper le poll badge (Realtime prend le relais via callback INSERT)
+          if (window._dmStopBadgePoll) window._dmStopBadgePoll();
           console.log('[RT] Messages channel connecté — poll désactivé');
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           _rtConnected = false;
@@ -2411,83 +2415,90 @@
 
 
 /* ══════════════════════════════════════════
-   BADGE NON-LUS — poll indépendant au démarrage
-   Runs without needing to open hiddenPage first
+   BADGE NON-LUS — source unique (✅ #75 — migré depuis app-nous.js)
+   checkUnread() = fonction canonique pour le badge nav Messages
+   • Realtime connecté  → event-driven via callback INSERT canal 'dm'
+   • Realtime absent    → fallback poll 8s
 ══════════════════════════════════════════ */
-(function(){
-  var _bgSeenPillIds = {};
+function _startLockBadgePolling(){
+  var _prevUnreadCount = -1;
 
-  function _pollDmBadge(){
-    var s = null;
-    try{ s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null'); }catch(e){}
-    var coupleId = s && s.user ? s.user.couple_id : null;
+  function checkUnread(){
+    var hiddenPage = document.getElementById('hiddenPage');
+    var chatScreen = document.getElementById('dmChatScreen');
+    if(hiddenPage && hiddenPage.classList.contains('active') && chatScreen && chatScreen.style.display !== 'none') return;
+    var profile = (typeof getProfile === 'function') ? getProfile() : null;
+    if(!profile) return;
+    var other = profile === 'girl' ? 'boy' : 'girl';
+    var coupleId = (typeof v2GetUser === 'function' && v2GetUser()) ? v2GetUser().couple_id : null;
     if(!coupleId || typeof SB2_URL === 'undefined') return;
-    var myProfile = (typeof getProfile === 'function') ? getProfile() : null;
-    fetch(SB2_URL + '/rest/v1/v2_dm_messages?couple_id=eq.' + coupleId + '&seen=eq.false&select=id,sender,text&order=created_at.desc&limit=20', {
+    fetch(SB2_URL + '/rest/v1/v2_dm_messages?couple_id=eq.' + coupleId + '&sender=eq.' + other + '&seen=eq.false&deleted=eq.false&order=created_at.desc&limit=99', {
       headers: (typeof sb2Headers === 'function') ? sb2Headers() : {'apikey': SB2_KEY, 'Authorization': 'Bearer ' + SB2_KEY}
     })
     .then(function(r){ return r.json(); })
     .then(function(rows){
       if(!Array.isArray(rows)) return;
-
-      // — Badge non-lus —
-      var unread = myProfile
-        ? rows.filter(function(m){ return m.sender !== myProfile; }).length
-        : 0; // identité inconnue → on n'affiche rien plutôt que compter faux
+      var unread = rows.length;
       var lockBtn   = document.getElementById('lockNavBtn');
       var lockBadge = document.getElementById('lockUnreadBadge');
-      if(lockBtn){
-        if(unread > 0){ lockBtn.classList.add('has-unread'); }
-        else           { lockBtn.classList.remove('has-unread'); }
+      if(!lockBadge) return;
+      if(unread > 0){
+        lockBadge.textContent = unread > 99 ? '99+' : unread;
+        lockBadge.classList.add('visible');
+        if(lockBtn) lockBtn.classList.add('has-unread');
+        if(_prevUnreadCount >= 0 && unread > _prevUnreadCount && window._currentTab !== 'messages'){
+          var last = rows[0];
+          var avatarSrc = window.yamAvatarSrc ? window.yamAvatarSrc(other) : ('assets/images/profil_' + other + '.png');
+          var name = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName(other) : (other === 'girl' ? 'Elle' : 'Lui');
+          var txt = (last && last.text) ? last.text : 'Nouveau message';
+          if(window.showMsgHeaderPill) window.showMsgHeaderPill(avatarSrc, name, txt, true);
+        }
+      } else {
+        lockBadge.classList.remove('visible');
+        if(lockBtn) lockBtn.classList.remove('has-unread');
       }
-      if(lockBadge){
-        if(unread > 0){ lockBadge.textContent = unread > 99 ? '99+' : unread; lockBadge.classList.add('visible'); }
-        else           { lockBadge.classList.remove('visible'); }
-      }
-
-      // — Pilule notification (seulement hors onglet messages et hors chat actif) —
-      if(window._currentTab === 'messages') return;
-      if(window._chatPollId) return;
-      rows.forEach(function(msg){
-        if(!myProfile || msg.sender === myProfile) return;
-        if(_bgSeenPillIds[msg.id]) return;
-        _bgSeenPillIds[msg.id] = true;
-        var senderName = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName(msg.sender) : (msg.sender === 'girl' ? 'Elle' : 'Lui');
-        var senderSrc = window.yamAvatarSrc ? window.yamAvatarSrc(msg.sender) : ('assets/images/profil_' + msg.sender + '.png');
-        if(window.showMsgHeaderPill) window.showMsgHeaderPill(senderSrc, senderName, msg.text || '💬', true);
-      });
-    })
-    .catch(function(){});
+      _prevUnreadCount = unread;
+    }).catch(function(){});
   }
 
-  // Démarrer après que les autres modules sont prêts
-  var _badgePollId = null;
+  window._checkUnread = checkUnread;
 
-  function _startBadgePoll(){
+  // Démarrer le poll uniquement si Realtime absent
+  var _unreadPollId = null;
+  function _startPoll(){
     if(typeof SB2_URL === 'undefined' || typeof sb2Headers === 'undefined'){
-      setTimeout(_startBadgePoll, 500);
-      return;
+      setTimeout(_startPoll, 500); return;
     }
-    _pollDmBadge();
-    _badgePollId = setInterval(_pollDmBadge, 8000); // toutes les 8s
+    checkUnread();
+    // ✅ #75 — Si Realtime dm est SUBSCRIBED, le badge est mis à jour event-driven (callback INSERT)
+    if(window._yamRTChannels && window._yamRTChannels['dm']) return;
+    _unreadPollId = setInterval(checkUnread, 8000);
   }
 
-  window._dmPollUnread    = _pollDmBadge;
-  window._dmStopBadgePoll = function(){
-    if(_badgePollId){ clearInterval(_badgePollId); _badgePollId = null; }
+  window._yamStopUnreadPoll = function(){
+    if(_unreadPollId){ clearInterval(_unreadPollId); _unreadPollId = null; }
   };
-  // ✅ #38 — Relancer le badge poll après reconnexion
+  window._dmStopBadgePoll = window._yamStopUnreadPoll; // alias pour compatibilité #38
+
+  document.addEventListener('hiddenPageClosed', function(){ checkUnread(); });
+
+  // ✅ #38 — Relancer après reconnexion
   document.addEventListener('yam:session_ready', function(){
-    if(_badgePollId) return; // déjà actif
-    setTimeout(_startBadgePoll, 500);
+    if(_unreadPollId) return; // déjà actif
+    checkUnread();
+    if(!(window._yamRTChannels && window._yamRTChannels['dm'])){
+      _unreadPollId = setInterval(checkUnread, 8000);
+    }
   });
 
   if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', function(){ setTimeout(_startBadgePoll, 1500); });
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(_startPoll, 1500); });
   } else {
-    setTimeout(_startBadgePoll, 1500);
+    setTimeout(_startPoll, 1500);
   }
-})();
+}
+
+_startLockBadgePolling();
 
 /* ══════════════════════════════════════════
    NOTIF PILULE HEADER — nouveau message
