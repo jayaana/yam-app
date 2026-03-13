@@ -1153,9 +1153,20 @@
       var delItem = document.createElement('div');
       delItem.className = 'dm-ctx-item danger';
       delItem.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg> Supprimer';
+      // ✅ Fix iOS — touchend déclenche deleteMsg directement (le click synthétique iOS arrive
+      // 300ms après touchend, quand ctxOverlay est déjà retiré du DOM → click jamais reçu)
+      // Guard _delFired empêche le double appel si le click passe quand même (desktop/Android)
+      var _delFired = false;
+      function _doDelete(e){
+        e.stopPropagation();
+        if(_delFired) return;
+        _delFired = true;
+        deleteMsg(msg, wrap);
+        closeCtxMenu();
+      }
       delItem.addEventListener('touchstart', function(e){ e.stopPropagation(); }, {passive:true});
-      delItem.addEventListener('touchend', function(e){ e.stopPropagation(); }, {passive:true});
-      delItem.addEventListener('click', function(e){ e.stopPropagation(); deleteMsg(msg, wrap); closeCtxMenu(); });
+      delItem.addEventListener('touchend', function(e){ e.stopPropagation(); e.preventDefault(); _doDelete(e); });
+      delItem.addEventListener('click', _doDelete);
       ctxMenu.appendChild(delItem);
     }
 
@@ -1308,6 +1319,7 @@
 
   /* ══ SUPPRESSION ══ */
   function deleteMsg(msg, wrap){
+    if(msg.deleted) return; // ✅ Guard — déjà supprimé, ne pas re-PATCHer
     // Soft delete UI
     var bbl = wrap.querySelector('.dm-bubble');
     var txt = wrap.querySelector('.dm-bubble-text');
