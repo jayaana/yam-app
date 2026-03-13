@@ -78,8 +78,6 @@
           _rtConnected = true;
           // Stopper le poll 3s — Realtime prend le relais
           if (pollId) { clearInterval(pollId); pollId = null; window._chatPollId = null; }
-          // ✅ #75 — Stopper le poll badge (Realtime prend le relais via callback INSERT)
-          if (window._dmStopBadgePoll) window._dmStopBadgePoll();
           console.log('[RT] Messages channel connecté — poll désactivé');
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           _rtConnected = false;
@@ -2585,7 +2583,11 @@ function _startLockBadgePolling(){
   };
   window._dmStopBadgePoll = window._yamStopUnreadPoll; // alias pour compatibilité #38
 
-  document.addEventListener('hiddenPageClosed', function(){ checkUnread(); });
+  document.addEventListener('hiddenPageClosed', function(){
+    checkUnread();
+    setTimeout(checkUnread, 800);
+    setTimeout(checkUnread, 2000);
+  });
 
   // ✅ #38 — Relancer après reconnexion
   document.addEventListener('yam:session_ready', function(){
