@@ -69,6 +69,10 @@ function sb2Headers(extra){
 }
 
 // ── Arrêt global de tous les polls — appelé à la déconnexion / 401 ──
+// ── Logger debug — no-op en production, activer avec window._YAM_DEBUG = true dans la console ──
+window._YAM_DEBUG = false;
+window.yamLog = function(){ if(window._YAM_DEBUG) console.log.apply(console, arguments); };
+
 window.yamClearAllPolls = function(){
   // Présence (app-core.js — _heartbeatIv et _pollIv exposés via closure)
   if(window._yamStopPresence) window._yamStopPresence();
