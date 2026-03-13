@@ -147,33 +147,20 @@ body.splash-active {
   window._yamRealAvatars = { girl: null, boy: null };
 
   // Retourne l'URL réelle si disponible, sinon le défaut
-  // size (px) : si fourni et si URL Supabase Storage → ajoute resize (x2 Retina)
-  function getSrc(role, size){
-    var url = window._yamRealAvatars[role] || DEFAULTS[role] || DEFAULTS.girl;
-    if(size && url && url.indexOf('/storage/v1/object/public/') !== -1){
-      var px = size * 2; // x2 Retina
-      var base = url.split('?')[0];
-      url = base + '?width=' + px + '&height=' + px + '&resize=cover';
-    }
-    return url;
+  function getSrc(role){
+    return window._yamRealAvatars[role] || DEFAULTS[role] || DEFAULTS.girl;
   }
 
   // Retourne une balise <img> HTML prête à l'emploi
-  // sz : taille CSS (ex: '40px') — utilisé pour le style ET pour le resize Storage
   window.yamAvatarHTML = function(role, sz){
     sz = sz || '100%';
-    var pxVal = sz ? parseInt(sz, 10) : 0;
-    var src = (pxVal > 0) ? getSrc(role, pxVal) : getSrc(role);
-    var fallback = getSrc(role);
-    return '<img src="'+src+'" alt="" style="width:'+sz+';height:'+sz+';border-radius:50%;object-fit:cover;display:block;pointer-events:none;" onerror="this.onerror=null;this.src=\''+fallback+'\';">';
+    return '<img src="'+getSrc(role)+'" alt="" style="width:'+sz+';height:'+sz+';border-radius:50%;object-fit:cover;display:block;pointer-events:none;">';
   };
 
   // Injecte l'image dans un élément DOM
-  // size (px) optionnel — si fourni, active le resize Storage
-  window.yamSetAvatar = function(el, role, size){
+  window.yamSetAvatar = function(el, role){
     if(!el) return;
-    var src = getSrc(role, size || 48);
-    var fallback = getSrc(role);
+    var src = getSrc(role);
     var img = el.querySelector('img.yam-av-img');
     if(!img){
       el.textContent = '';
@@ -181,14 +168,13 @@ body.splash-active {
       img.className = 'yam-av-img';
       img.alt = '';
       img.style.cssText = 'width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;';
-      img.onerror = function(){ this.onerror=null; this.src=fallback; };
       el.appendChild(img);
     }
     img.src = src;
   };
 
-  // Retourne le src pour un rôle — size (px) optionnel pour resize Storage
-  window.yamAvatarSrc = function(role, size){ return getSrc(role, size); };
+  // Retourne le src pour un rôle
+  window.yamAvatarSrc = function(role){ return getSrc(role); };
 
   // Met à jour TOUS les éléments d'avatar visibles dans l'app pour un rôle donné
   window._yamSyncAllAvatarsForRole = function(role, url){
@@ -228,33 +214,31 @@ body.splash-active {
         '#skyjoFinalEmojiRight img'
       ];
     }
-    // URL resizée pour les éléments UI (48px x2 Retina = 96px) — fallback URL originale si Storage Transforms indisponible
-    var urlSmall = getSrc(role, 48);
     // On met à jour les éléments qui sont actuellement à la valeur par défaut ou déjà role=match
-    document.querySelectorAll('.dm-avatar-' + role + ' img').forEach(function(img){ img.src = urlSmall; });
+    document.querySelectorAll('.dm-avatar-' + role + ' img').forEach(function(img){ img.src = url; });
     // Header principal : mettre à jour selon le profil actif
     var profile = (typeof getProfile === 'function') ? getProfile() : null;
     // Moi
     if(profile === role){
-      var selfEl = document.getElementById('profileAvatarEmoji'); if(selfEl) selfEl.src = urlSmall;
+      var selfEl = document.getElementById('profileAvatarEmoji'); if(selfEl) selfEl.src = url;
       var selfMood = document.getElementById(role === 'girl' ? 'yamMoodElleAvatar' : 'yamMoodLuiAvatar');
-      if(selfMood){ var i = selfMood.querySelector('img'); if(i) i.src = urlSmall; }
-      var stickyS = document.getElementById('yamStickyAvatarSelfEmoji'); if(stickyS) stickyS.src = urlSmall;
-      var dmSelf = document.getElementById('dmHeaderAvatarSelf'); if(dmSelf){ var i2=dmSelf.querySelector('img'); if(i2) i2.src=urlSmall; }
+      if(selfMood){ var i = selfMood.querySelector('img'); if(i) i.src = url; }
+      var stickyS = document.getElementById('yamStickyAvatarSelfEmoji'); if(stickyS) stickyS.src = url;
+      var dmSelf = document.getElementById('dmHeaderAvatarSelf'); if(dmSelf){ var i2=dmSelf.querySelector('img'); if(i2) i2.src=url; }
     }
     // Partenaire
     if(profile && profile !== role){
-      var othEl = document.getElementById('profileAvatarOtherEmoji'); if(othEl) othEl.src = urlSmall;
+      var othEl = document.getElementById('profileAvatarOtherEmoji'); if(othEl) othEl.src = url;
       var otherMood = document.getElementById(role === 'girl' ? 'yamMoodElleAvatar' : 'yamMoodLuiAvatar');
-      if(otherMood){ var i3 = otherMood.querySelector('img'); if(i3) i3.src = urlSmall; }
-      var stickyO = document.getElementById('yamStickyAvatarOtherEmoji'); if(stickyO) stickyO.src = urlSmall;
-      var dmOther = document.getElementById('dmHeaderAvatarOther'); if(dmOther){ var i4=dmOther.querySelector('img'); if(i4) i4.src=urlSmall; }
+      if(otherMood){ var i3 = otherMood.querySelector('img'); if(i3) i3.src = url; }
+      var stickyO = document.getElementById('yamStickyAvatarOtherEmoji'); if(stickyO) stickyO.src = url;
+      var dmOther = document.getElementById('dmHeaderAvatarOther'); if(dmOther){ var i4=dmOther.querySelector('img'); if(i4) i4.src=url; }
       // mhpAvatar = partenaire qui envoie
-      var mhp = document.getElementById('mhpAvatar'); if(mhp){ var i5=mhp.querySelector('img'); if(i5) i5.src=urlSmall; }
+      var mhp = document.getElementById('mhpAvatar'); if(mhp){ var i5=mhp.querySelector('img'); if(i5) i5.src=url; }
     }
     // Bloc flamme — toujours mettre à jour girl et boy indépendamment du profil actif
-    var nousGirl = document.getElementById('nousProfilGirlAvatar'); if(nousGirl){ var ig=nousGirl.querySelector('img'); if(ig) ig.src = (role==='girl'?urlSmall:ig.src); }
-    var nousBoy  = document.getElementById('nousProfilBoyAvatar');  if(nousBoy){  var ib=nousBoy.querySelector('img');  if(ib) ib.src  = (role==='boy' ?urlSmall:ib.src);  }
+    var nousGirl = document.getElementById('nousProfilGirlAvatar'); if(nousGirl){ var ig=nousGirl.querySelector('img'); if(ig) ig.src = (role==='girl'?url:ig.src); }
+    var nousBoy  = document.getElementById('nousProfilBoyAvatar');  if(nousBoy){  var ib=nousBoy.querySelector('img');  if(ib) ib.src  = (role==='boy' ?url:ib.src);  }
   };
 })();
 </script>
