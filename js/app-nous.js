@@ -140,28 +140,173 @@ window._nousUnblockScroll = function() { _unblockBackgroundScroll(); };
 // ════════════════════════════════════════════════════════════════════
 // 1. INIT CENTRALE — appelée une seule fois au premier affichage
 // ════════════════════════════════════════════════════════════════════
+// ── Edge Function yam-init (#59) ─────────────────────────────────────────
+// URL construite localement (SB2_URL est global depuis app-core.js)
+var SB2_EDGE_YAM_INIT = null; // initialisé au premier appel (SB2_URL dispo)
+
+// Injecte les données batchées dans les structures existantes de l'app,
+// exactement comme si chaque fonction avait fait sa propre requête.
+function _nousApplyBatchData(d) {
+  var coupleId = (v2GetUser()||{}).couple_id;
+  if(!coupleId) return;
+
+  // 1. Titres sections
+  if(Array.isArray(d.sectionTitles)) {
+    d.sectionTitles.forEach(function(row) {
+      if(row.slot === 'elle_title' || row.slot === '0' || row.slot === 0) {
+        var el = document.getElementById('elleSectionTitle');
+        if(el && row.description) el.textContent = row.description;
+      } else if(row.slot === 'lui_title' || row.slot === '99' || row.slot === 99) {
+        var el2 = document.getElementById('luiSectionTitle');
+        if(el2 && row.description) el2.textContent = row.description;
+      }
+    });
+  }
+
+  // 2+3. Banners + descs Elle
+  if(Array.isArray(d.elleBanners)) {
+    d.elleBanners.forEach(function(row) {
+      var el = document.getElementById('elle-banner-'+row.slot);
+      if(el) el.textContent = row.description;
+      var lbl = document.querySelector('#elle-empty-'+row.slot+' .lui-img-empty-lbl');
+      if(lbl) lbl.textContent = row.description;
+    });
+  }
+  if(Array.isArray(d.elleDescs)) {
+    d.elleDescs.forEach(function(row) {
+      var el = document.getElementById('elle-desc-'+row.slot);
+      if(el) el.textContent = row.description;
+    });
+  }
+
+  // 4+5. Banners + descs Lui
+  if(Array.isArray(d.luiBanners)) {
+    d.luiBanners.forEach(function(row) {
+      var el = document.getElementById('lui-banner-'+row.slot);
+      if(el) el.textContent = row.description;
+      var lbl = document.querySelector('#lui-empty-'+row.slot+' .lui-img-empty-lbl');
+      if(lbl) lbl.textContent = row.description;
+    });
+  }
+  if(Array.isArray(d.luiDescs)) {
+    d.luiDescs.forEach(function(row) {
+      var el = document.getElementById('lui-desc-'+row.slot);
+      if(el) el.textContent = row.description;
+    });
+  }
+
+  // 6. Likes coeurs
+  if(Array.isArray(d.likeCounters)) {
+    var elGirl = document.getElementById('likeNumGirl');
+    var elBoy  = document.getElementById('likeNumBoy');
+    var foundGirl = false; var foundBoy = false;
+    d.likeCounters.forEach(function(r) {
+      if(r.profile==='girl'&&elGirl){ elGirl.textContent=fmtLikes(r.total); foundGirl=true; }
+      if(r.profile==='boy' &&elBoy) { elBoy.textContent =fmtLikes(r.total); foundBoy=true;  }
+    });
+    if(!foundGirl&&elGirl) elGirl.textContent='0';
+    if(!foundBoy &&elBoy)  elBoy.textContent ='0';
+  }
+
+  // 7. Petits mots
+  if(Array.isArray(d.petitsMots) && typeof window._petitsMotsApply === 'function') {
+    window._petitsMotsApply(d.petitsMots);
+  }
+
+  // 8+9. Mémo note + todos
+  if(typeof window._memoNoteApply === 'function')  window._memoNoteApply(d.memoNote  || []);
+  if(typeof window._memoTodosApply === 'function') window._memoTodosApply(d.memoTodos || []);
+
+  // 10. Souvenirs
+  if(Array.isArray(d.memories)) {
+    window._souvenirAllRows = d.memories;
+    if(typeof window._renderSouvenirRowsPublic === 'function') window._renderSouvenirRowsPublic(d.memories);
+  }
+
+  // 11. Activités
+  if(Array.isArray(d.activites)) {
+    window._activiteAllRows = d.activites;
+    if(typeof window._renderActivitesHomePublic === 'function') window._renderActivitesHomePublic();
+  }
+
+  // 12. Livres
+  if(Array.isArray(d.livres)) {
+    window._livresAllRows = d.livres;
+    if(typeof window._renderLivresSliderPublic === 'function') window._renderLivresSliderPublic();
+  }
+}
+
+// Tentative batch — si succès, skip les fetches individuels ; si échec, fallback classique.
+function _nousInitBatch(onSuccess, onFallback) {
+  var u = (typeof v2GetUser==='function') ? v2GetUser() : null;
+  if(!u || !u.couple_id) { onFallback(); return; }
+
+  if(!SB2_EDGE_YAM_INIT) SB2_EDGE_YAM_INIT = SB2_URL + '/functions/v1/yam-init';
+
+  var token = '';
+  try { token = JSON.parse(localStorage.getItem('yam_v2_session')||'null').token || ''; } catch(e){}
+  if(!token) { onFallback(); return; }
+
+  var profile = (typeof getProfile==='function') ? getProfile() : 'girl';
+
+  fetch(SB2_EDGE_YAM_INIT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-session-token': token },
+    body: JSON.stringify({ couple_id: u.couple_id, profile: profile })
+  })
+  .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+  .then(function(res) {
+    if(res && res.ok && res.data) {
+      _nousApplyBatchData(res.data);
+      onSuccess();
+    } else {
+      onFallback();
+    }
+  })
+  .catch(function() {
+    onFallback();
+  });
+}
+
 function _nousInitAll() {
   _nousLoadProfil();
+  // ── Images (Storage — pas batchable, pas de requête REST) ──
   elleLoadImages();
-  elleLoadDescs();
-  elleSyncSections();
   luiLoadImages();
-  luiLoadDescs();
-  luiSyncDescs();
-  if(typeof window._loadSectionTitles === 'function') window._loadSectionTitles();
-  var _niu = (typeof v2GetUser==='function')?v2GetUser():null;
-  var _nic = _niu?_niu.couple_id:null;
-  if(_nic){
-    if(typeof _loadElleBanners==='function') _loadElleBanners(_nic);
-    if(typeof _loadLuiBanners==='function') _loadLuiBanners(_nic);
-  }
+
+  // ── Batch yam-init (#59) : 12 fetches → 1 requête ──────────────
+  // Si la Edge Function répond → données injectées directement.
+  // Si elle échoue (cold start, erreur réseau) → fallback classique immédiat.
+  _nousInitBatch(
+    function() {
+      // Succès batch — uniquement ce que le batch ne couvre pas
+      console.log('[yam-init] Batch OK — 12 fetches remplacés par 1');
+    },
+    function() {
+      // Fallback — comportement original intact
+      console.warn('[yam-init] Fallback → fetches classiques');
+      elleLoadDescs();
+      elleSyncSections();
+      luiLoadDescs();
+      luiSyncDescs();
+      if(typeof window._loadSectionTitles === 'function') window._loadSectionTitles();
+      var _niu = (typeof v2GetUser==='function')?v2GetUser():null;
+      var _nic = _niu?_niu.couple_id:null;
+      if(_nic){
+        if(typeof _loadElleBanners==='function') _loadElleBanners(_nic);
+        if(typeof _loadLuiBanners==='function') _loadLuiBanners(_nic);
+      }
+      loadLikeCounters();
+      _petitsMotsLoad();
+      renderMemoCouple();
+      nousLoadSouvenirs();
+      nousLoadActivites();
+      livresLoad();
+    }
+  );
+
   _nousLoadBadge();
-  loadLikeCounters();
-  _petitsMotsLoad();
-  renderMemoCouple();
-  nousLoadSouvenirs();
-  nousLoadActivites();
-  livresLoad();
+  loadLikeCounters(); // chargement immédiat même avant le batch (rapide)
   if (!window._checkUnreadStarted) {
     window._checkUnreadStarted = true;
     _startLockBadgePolling();
@@ -911,6 +1056,15 @@ function _startReasonAuto(){
   }
   window._petitsMotsLoad = _petitsMotsLoad;
 
+  // Variante batch : injecter les données sans fetch
+  window._petitsMotsApply = function(rows) {
+    _stackData = Array.isArray(rows) ? rows : [];
+    _injectAnnivPostitIfNeeded();
+    _stackIndex = 0;
+    _buildPostitStack();
+    if(typeof window.yamRefreshNewBadges==='function') window.yamRefreshNewBadges();
+  };
+
   function _injectAnnivPostitIfNeeded(){
     var START = new Date(2024,9,29); var now = new Date();
     if(now.getDate()!==29) return;
@@ -1377,6 +1531,35 @@ document.addEventListener('yam:session_ready', function(){
   window.renderNotes = renderMemoCouple;
   window.renderTodos = renderMemoCouple;
 
+  // Variantes batch : injecter sans fetch
+  window._memoNoteApply = function(notes) {
+    var el = document.getElementById('memoNotePreview'); if(!el) return;
+    if(!Array.isArray(notes)||!notes.length){
+      el.innerHTML='<span style="color:var(--muted);font-size:12px;">Aucune note — appuie pour écrire</span>';
+      var dateEl=document.getElementById('memoNoteDate'); if(dateEl) dateEl.textContent=''; return;
+    }
+    var note=notes[0];
+    var prev=(note.text||'').substring(0,120)+((note.text||'').length>120?'…':'');
+    el.textContent=prev;
+    var modDate=note.updated_at||note.created_at;
+    var d=new Date(modDate);
+    var dateEl=document.getElementById('memoNoteDate');
+    var isUpd=note.updated_at&&note.updated_at!==note.created_at;
+    if(dateEl) dateEl.textContent=(isUpd?'Modifié ':'Créé ')+d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  };
+  window._memoTodosApply = function(items) {
+    var container=document.getElementById('memoTodoPreview'); if(!container) return;
+    container.innerHTML='';
+    if(!Array.isArray(items)||!items.length){
+      container.innerHTML='<span style="color:var(--muted);font-size:12px;">Liste vide — appuie pour ajouter</span>'; return;
+    }
+    items.forEach(function(item){
+      var row=document.createElement('div'); row.className='memo-todo-preview-row';
+      row.innerHTML='<span class="memo-todo-preview-check'+(item.done?' done':'')+'"></span><span class="memo-todo-preview-text'+(item.done?' done':'')+'">'+escHtml(item.text)+'</span>';
+      container.appendChild(row);
+    });
+  };
+
   // ── Aperçu de la note ──
   function _renderMemoPreview(){
     var el = document.getElementById('memoNotePreview'); if(!el) return;
@@ -1673,6 +1856,7 @@ document.addEventListener('yam:session_ready', function(){
       if(overlay&&overlay.classList.contains('open')){ _renderGestionList(); }
     }).catch(function(){ });
   };
+  window._renderSouvenirRowsPublic = function(rows) { _renderSouvenirRows(rows); };
 
   function _renderSouvenirRows(rows){
     var recentRow    = document.getElementById('souvenirsRecentRow');
@@ -2055,6 +2239,7 @@ document.addEventListener('yam:session_ready', function(){
       if(overlay&&overlay.classList.contains('open')){ _renderActiviteGestionList(); }
     }).catch(function(){ container.innerHTML='<div style="color:var(--muted);font-size:13px;padding:16px;">Erreur de chargement</div>'; });
   };
+  window._renderActivitesHomePublic = function() { _renderActivitesHome(); };
 
   // ── Rendu page principale : 2 cartes max, idée du jour, bouton créer ──
   function _renderActivitesHome(){
@@ -2785,6 +2970,7 @@ document.addEventListener('yam:session_ready', function(){
       if(overlay && overlay.classList.contains('open')) _renderLivresGestionList();
     }).catch(function(){});
   };
+  window._renderLivresSliderPublic = function() { _renderLivresSlider(); };
 
   // ── Rendu slider (5 premières pochettes) ──
   function _renderLivresSlider(){
