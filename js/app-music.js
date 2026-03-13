@@ -452,7 +452,9 @@ window._top50Iv = setInterval(updateTop50PlayBtn, 500);
       if(changed) updateTop50();
     }).catch(function(){});
   }
-  setInterval(refreshPlays, 30000);
+  window._playsRTActive = false;
+  window.refreshPlays = refreshPlays;
+  window._playsIv = setInterval(refreshPlays, 30000);
 })();
 
 // ── PARTICLES (déclaré pour compatibilité) ──
@@ -1006,7 +1008,7 @@ loadFavorites();
     fetch(SB2_URL+'/rest/v1/'+NL_TABLE,{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:_npId,sender:profile,song_file:normalized})}).catch(function(){});
   }
 
-  window.nlPoll=nlPoll; nlPoll(); window._nlIv=setInterval(nlPoll,5000);
+  window.nlPoll=nlPoll; window._nlRTActive=false; nlPoll(); window._nlIv=setInterval(nlPoll,5000);
 
   // Hook sur _gAudio directement — plus d'events DOM parasites
   _gAudio.addEventListener('play', function(){
