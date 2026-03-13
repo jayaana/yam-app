@@ -1,33 +1,18 @@
 // ═══════════════════════════════════════════════════════════
 // app-games.js — Memory · Pendu · Puzzle · Snake · Quiz
 
-// ── LAZY INJECTION DES VUES JEUX ──
-// Les vues sont stockées dans des <template> dans index.html et injectées
-// dans le DOM au premier appel de leur fonction d'ouverture.
-var _tplInjected = {};
-function _injectTpl(tplId, containerId) {
-  if (_tplInjected[tplId]) return;
-  var tpl = document.getElementById(tplId);
-  var container = document.getElementById(containerId);
-  if (!tpl || !container) return;
-  var clone = document.importNode(tpl.content, true);
-  container.parentNode.insertBefore(clone, container);
-  container.parentNode.removeChild(container);
-  _tplInjected[tplId] = true;
-}
-
-// ── GAMES — wrappers publics ──
+// ── GAMES — chargement direct (plus de lazy load) ──
 var _gamesLoaded = true;
 function _loadGames() {} // no-op conservé pour compat
-function openQuiz()        { _injectTpl('tpl-quiz',   'quizView');   _openQuiz(); }
+function openQuiz()        { _openQuiz(); }
 function closeQuiz()       { _closeQuiz(); }
 function startQuiz()       { _startQuiz(); }
 function renderQuestion()  { _renderQuestion(); }
-function openPenduGame()   { _injectTpl('tpl-pendu',  'penduView');  _openPenduGame(); }
+function openPenduGame()   { _openPenduGame(); }
 function closePenduGame()  { _closePenduGame(); }
-function openPuzzleGame()  { _injectTpl('tpl-puzzle', 'puzzleView'); _openPuzzleGame(); }
+function openPuzzleGame()  { _openPuzzleGame(); }
 function closePuzzleGame() { _closePuzzleGame(); }
-function openSnakeGame()   { _injectTpl('tpl-snake',  'snakeView');  _openSnakeGame(); }
+function openSnakeGame()   { _openSnakeGame(); }
 function closeSnakeGame()  { _closeSnakeGame(); }
 
 
@@ -1988,11 +1973,10 @@ function renderLb(elId, rows, detailFn){
    MEMORY — pause/resume quand page cachée (identique Skyjo v3.6)
 ══════════════════════════════════════════════════════════════ */
 (function() {
-  // Lazy lookup : memoryView peut ne pas être dans le DOM au chargement (lazy injection)
-  function _getMv() { return document.getElementById('memoryView'); }
+  var mv = document.getElementById('memoryView');
 
   function isMemoryActive() {
-    var mv = _getMv(); return mv ? mv.classList.contains('active') : false;
+    return mv ? mv.classList.contains('active') : false;
   }
 
   function pauseMemory() {
@@ -2014,27 +1998,3 @@ function renderLb(elId, rows, detailFn){
   window.addEventListener('blur',      function() { if (!isMemoryActive()) return; pauseMemory(); });
   window.addEventListener('focus',     function() { if (!isMemoryActive()) return; if (!document.hidden) resumeMemory(); });
 })();
-
-// ── EXPOSITION GLOBALE DE L'INJECTEUR ──
-// Permet à app-nav.js et app-skyjo.js d'appeler l'injection avant d'ouvrir une vue.
-window._yamInjectTpl = _injectTpl;
-
-// ── PATCH openMemoryGame + openSkyjoLock ──
-// app-nav.js et app-skyjo.js définissent ces fonctions EN DERNIER.
-// On enregistre un hook via window.addEventListener('load') pour les surcharger
-// une fois que tous les scripts sont chargés.
-window.addEventListener('load', function() {
-  // Patch openMemoryGame (défini dans app-nav.js)
-  var _origOpenMemory = window.openMemoryGame;
-  window.openMemoryGame = function() {
-    _injectTpl('tpl-memory', 'memoryView');
-    if (typeof _origOpenMemory === 'function') _origOpenMemory();
-  };
-
-  // Patch openSkyjoLock (défini dans app-skyjo.js)
-  var _origOpenSkyjo = window.openSkyjoLock;
-  window.openSkyjoLock = function() {
-    _injectTpl('tpl-skyjo', 'skyjoView');
-    if (typeof _origOpenSkyjo === 'function') _origOpenSkyjo();
-  };
-});
