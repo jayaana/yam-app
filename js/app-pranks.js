@@ -1,29 +1,6 @@
 // ═══════════════════════════════════════════════════════════
 // app-pranks.js — Système de bêtises interactives (13 types)
 
-// ─── LAZY INJECTION DES ÉLÉMENTS PRANK ───────────────────────────────────────
-// Les overlays bêtises sont stockés dans <template id="tpl-pranks"> dans index.html
-// et injectés dans le DOM au premier appel de openPrankMenu ou checkActivePrank.
-var _pranksInjected = false;
-function _injectPranks() {
-  if (_pranksInjected) return;
-  // Utiliser l'injecteur global si disponible (défini dans app-games.js)
-  if (typeof window._yamInjectTpl === 'function') {
-    window._yamInjectTpl('tpl-pranks', 'prank-placeholder');
-    _pranksInjected = true;
-    return;
-  }
-  // Fallback inline
-  var tpl = document.getElementById('tpl-pranks');
-  var container = document.getElementById('prank-placeholder');
-  if (!tpl || !container) { _pranksInjected = true; return; }
-  var clone = document.importNode(tpl.content, true);
-  container.parentNode.insertBefore(clone, container);
-  container.parentNode.removeChild(container);
-  _pranksInjected = true;
-}
-
-
 if(typeof _subviewIds !== 'undefined') {
   _subviewIds.forEach(function(id) {
     var el = document.getElementById(id);
@@ -112,7 +89,6 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
 
   /* ── Ouverture menu auteur ── */
   window.openPrankMenu = function(){
-    _injectPranks();
     var profile = getProfile();
     if(!profile){ showPrankToast('🔒 Connecte-toi d\'abord !'); return; }
     var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
@@ -145,7 +121,6 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   };
   window.closePrankMenu = function(){
     var menu = document.getElementById('prankMenu');
-    if (!menu) return; // pas encore injecté → rien à fermer
     var DUR = 300;
     menu.style.transition = 'transform '+DUR+'ms cubic-bezier(.4,0,.2,1)';
     menu.style.transform  = 'translateX(100%)';
@@ -270,9 +245,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   }
 
   window.closePrankMsg = function(){
-    var _pmm = document.getElementById('prankMsgModal');
-    if (!_pmm) return;
-    _pmm.classList.remove('show');
+    document.getElementById('prankMsgModal').classList.remove('show');
     // Rouvrir le menu avec scroll bloqué
     var scrollY = window.scrollY;
     document.body.style.position = 'fixed';
@@ -320,7 +293,6 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
 
   /* ── Vérification au login de la victime ── */
   window.checkActivePrank = function(profile){
-    _injectPranks();
     var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
     var coupleId = s && s.user ? s.user.couple_id : null;
     if(!coupleId) return;
@@ -947,9 +919,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     document.getElementById('prankGotcha').classList.add('show');
   }
   window.closeGotcha = function(){
-    var _gg = document.getElementById('prankGotcha');
-    if (!_gg) return;
-    _gg.classList.remove('show');
+    document.getElementById('prankGotcha').classList.remove('show');
     // Ne pas délocker si une nouvelle bêtise est déjà en cours
     if(!_activePrank) _prankUnlockScroll();
   };
