@@ -363,7 +363,12 @@
     }
 
     function _startRTChannel(){
-      if(!window._yamRT || !_gameId || _rtChannel) return;
+      if(!_gameId || _rtChannel) return;
+      if(!window._yamRT){
+        // _yamRT pas encore prêt — réessayer dans 1s
+        setTimeout(_startRTChannel, 1000);
+        return;
+      }
       _rtChannel = window._yamRT
         .channel('game_state_' + _gameId)
         .on('postgres_changes', {
