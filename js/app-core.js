@@ -839,8 +839,86 @@ window.yamPartnerOnlineCheck = async function() {
     if(_heartbeatIv) return; // déjà actif
     start();
   };
+
   // ✅ #38 — Relancer la présence quand la session est prête (reconnexion après 401)
   document.addEventListener('yam:session_ready', function(){
     window._yamStartPresence();
   });
+
+  // ✅ Realtime présence — remplace _pollIv (lecture) quand connecté — fallback poll si RT tombe
+  (function(){
+    var _presenceRTFallbackIv = null;
+
+    function _startPresenceFallback(){
+      if(_presenceRTFallbackIv) return;
+      _presenceRTFallbackIv = setInterval(presencePoll, POLL_MS);
+      yamLog('[RT] présence fallback poll activé');
+    }
+    function _stopPresenceFallback(){
+      if(_presenceRTFallbackIv){ clearInterval(_presenceRTFallbackIv); _presenceRTFallbackIv = null; }
+    }
+
+    function _initPresenceRealtime(){
+      if(!window._yamRT){ _startPresenceFallback(); return; }
+      var sess = JSON.parse(localStorage.getItem('yam_v2_session')||'null');
+      var cid = sess && sess.user ? sess.user.couple_id : null;
+      if(!cid){ _startPresenceFallback(); return; }
+      if(window._yamRTChannels['presence']) return; // déjà initialisé
+
+      var ch = window._yamRT
+        .channel('presence_' + cid)
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'v2_presence',
+          filter: 'couple_id=eq.' + cid
+        }, function(){
+          presencePoll();
+        })
+        .subscribe(function(status){
+          if(status === 'SUBSCRIBED'){
+            yamLog('[RT] présence connectée');
+            clearInterval(_pollIv); _pollIv = null;
+            _stopPresenceFallback();
+            presencePoll();
+          } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
+            yamLog('[RT] présence ' + status + ' — fallback poll');
+            delete window._yamRTChannels['presence'];
+            _startPresenceFallback();
+          }
+        });
+      window._yamRTChannels['presence'] = ch;
+    }
+
+    // Patch Skyjo suspend/resume pour ne pas relancer _pollIv si RT actif
+    window._corePresenceSuspend = function(){
+      window._skyjoPresenceActive = true;
+      clearInterval(_pollIv); _pollIv = null;
+      _stopPresenceFallback();
+    };
+    window._corePresenceResume = function(){
+      window._skyjoPresenceActive = false;
+      if(window._yamRTChannels['presence']) return; // RT actif, pas de poll
+      if(!_presenceRTFallbackIv){
+        presencePoll();
+        _presenceRTFallbackIv = setInterval(presencePoll, POLL_MS);
+      }
+    };
+
+    // Patch _yamStopPresence pour aussi stopper le fallback RT
+    window._yamStopPresence = function(){
+      clearInterval(_heartbeatIv); _heartbeatIv = null;
+      clearInterval(_pollIv);      _pollIv      = null;
+      _stopPresenceFallback();
+    };
+
+    setTimeout(function(){
+      if(window._yamRT) _initPresenceRealtime();
+    }, 2000);
+
+    document.addEventListener('yam:session_ready', function(){
+      setTimeout(_initPresenceRealtime, 1000);
+    });
+  })();
+
 })();
