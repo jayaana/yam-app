@@ -1639,6 +1639,9 @@ window.addEventListener('load', function(){
   
   // Si profil déjà choisi au chargement
   if(getProfile()) startPolling();
+
+  // Exposer stopPolling pour yamClearAllPolls (app-core.js)
+  window._yamStopPartnerPoll = stopPolling;
   
   // Pause si page cachée
   document.addEventListener('visibilitychange', function(){
@@ -2187,7 +2190,12 @@ window.addEventListener('load', function(){
   apply(get());
   if(get()) loadMoods();
   _moodFirstLoad = false;
-  setInterval(function(){ if(get()) loadMoods(); }, 30000);
+  window._moodsPollIv = setInterval(function(){ if(get()) loadMoods(); }, 30000);
+
+  // Exposer le stop pour yamClearAllPolls (app-core.js)
+  window._yamStopMoodsPoll = function(){
+    if(window._moodsPollIv){ clearInterval(window._moodsPollIv); window._moodsPollIv = null; }
+  };
 
   // ── Réinitialisation à minuit ──
   function resetMoodsUI(){
