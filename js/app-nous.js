@@ -2941,9 +2941,7 @@ document.addEventListener('yam:session_ready', function(){
     var card = document.createElement('div');
     card.className = 'album-card lui-card-wrap';
     card.style.position = 'relative';
-    var _baseUrl = SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/books/'+book.couple_id+'/'+book.id+'.jpg';
-    var photoUrl = book.has_image ? (_baseUrl+'?width=280&height=280&resize=cover') : '';
-    var photoUrlFull = book.has_image ? (_baseUrl+'?t='+Math.floor(Date.now()/60000)) : '';
+    var photoUrl = book.has_image ? (SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/books/'+book.couple_id+'/'+book.id+'.jpg?t='+Math.floor(Date.now()/60000)) : '';
     var editSVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
     // Badge NEW
     var isNew = window.yamIsNew ? window.yamIsNew('livre_'+book.id) : false;
@@ -2951,7 +2949,7 @@ document.addEventListener('yam:session_ready', function(){
     card.innerHTML =
       '<div class="album-image" style="position:relative;">'+newBadge+
         (photoUrl ?
-          '<img src="'+escHtml(photoUrl)+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px 10px 0 0;" loading="lazy" onerror="this.onerror=null;this.src=\''+escHtml(photoUrlFull)+'\';">' :
+          '<img src="'+escHtml(photoUrl)+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px 10px 0 0;" loading="lazy">' :
           '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;color:var(--muted);">📚</div>'
         )+
         '<div class="album-banner">'+escHtml(book.title||'Sans titre')+'</div>'+
@@ -3004,13 +3002,11 @@ document.addEventListener('yam:session_ready', function(){
     _livresAllRows.forEach(function(book){
       var row = document.createElement('div');
       row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;';
-      var _bUrl = SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/books/'+book.couple_id+'/'+book.id+'.jpg';
-      var photoUrl = book.has_image ? (_bUrl+'?width=96&height=128&resize=cover') : '';
-      var photoUrlFull = book.has_image ? (_bUrl+'?t='+Math.floor(Date.now()/60000)) : '';
+      var photoUrl = book.has_image ? (SB2_URL+'/storage/v1/object/public/'+SB_BUCKET+'/books/'+book.couple_id+'/'+book.id+'.jpg?t='+Math.floor(Date.now()/60000)) : '';
       var isNew = window.yamIsNew ? window.yamIsNew('livre_'+book.id) : false;
       row.innerHTML =
         '<div style="width:48px;height:64px;background:var(--s2);border-radius:8px;flex-shrink:0;overflow:hidden;position:relative;">'+
-          (photoUrl ? '<img src="'+escHtml(photoUrl)+'" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="this.onerror=null;this.src=\''+escHtml(photoUrlFull)+'\';">' : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;">📚</div>')+
+          (photoUrl ? '<img src="'+escHtml(photoUrl)+'" style="width:100%;height:100%;object-fit:cover;" loading="lazy">' : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;">📚</div>')+
           (isNew ? '<span style="position:absolute;top:2px;right:2px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-size:7px;font-weight:800;padding:1px 4px;border-radius:4px;">NEW</span>' : '')+
         '</div>'+
         '<div style="flex:1;min-width:0;">'+
