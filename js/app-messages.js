@@ -519,6 +519,8 @@
         for(var i=0; i<cache.length; i++){
           if(cache[i].id === tmpId){ cache[i] = real; break; }
         }
+        // ✅ Fix — propager le vrai id dans tmpMsg (capturé par la closure du listener long-press)
+        Object.assign(tmpMsg, real);
         // Mettre à jour le data-id dans le DOM
         var node = document.querySelector('[data-id="'+tmpId+'"]');
         if(node){
@@ -744,7 +746,7 @@
       var _editFilter = 'id=eq.' + msg.id + (_editCoupleId ? '&couple_id=eq.' + _editCoupleId : '');
       fetch(SB2_URL + '/rest/v1/' + TABLE + '?' + _editFilter, {
         method: 'PATCH',
-        headers: sb2Headers({'Prefer':'return=minimal'}),
+        headers: sb2Headers({'Content-Type':'application/json', 'Prefer':'return=minimal'}),
         body: JSON.stringify({ text: newText, edited: true })
       }).then(function(r){
         if(!r.ok) r.text().then(function(t){ console.error('[DM] edit err:', r.status, t); });
@@ -1319,7 +1321,7 @@
     _body[col] = reaction;
     fetch(SB2_URL + '/rest/v1/' + TABLE + '?' + _rf, {
       method: 'PATCH',
-      headers: sb2Headers({'Prefer':'return=minimal'}),
+      headers: sb2Headers({'Content-Type':'application/json', 'Prefer':'return=minimal'}),
       body: JSON.stringify(_body)
     }).then(function(r){
       if(!r.ok) r.text().then(function(t){ console.error('[DM] reaction err:', r.status, t); });
@@ -1795,6 +1797,8 @@
         for(var i = 0; i < cache.length; i++){
           if(cache[i].id === tmpId){ cache[i] = real; break; }
         }
+        // ✅ Fix — propager le vrai id dans tmpMsg (capturé par la closure du listener long-press)
+        Object.assign(tmpMsg, real);
         var node = document.querySelector('[data-id="'+tmpId+'"]');
         if(node) node.dataset.id = real.id;
       }
@@ -2169,6 +2173,8 @@
             for(var i=0;i<cache.length;i++){
               if(cache[i].id===tmpId){ cache[i]=real; break; }
             }
+            // ✅ Fix — propager le vrai id dans tmpMsg (capturé par la closure du listener long-press)
+            Object.assign(tmpMsg, real);
             var node = document.querySelector('[data-id="'+tmpId+'"]');
             if(node) node.dataset.id = real.id;
           }
@@ -2293,7 +2299,7 @@
     if(!id || String(id).indexOf('tmp_') === 0) return;
     fetch(SB2_URL + '/rest/v1/' + TABLE + '?id=eq.' + id, {
       method: 'PATCH',
-      headers: sb2Headers(),
+      headers: sb2Headers({'Content-Type':'application/json'}),
       body: JSON.stringify({ seen: true })
     }).catch(function(){});
   }
