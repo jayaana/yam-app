@@ -54,6 +54,7 @@
     var _presTimer     = null;
     var _lobbyTimer    = null;
     var _pollTimer     = null;
+    var _rtChannel     = null;  // channel Realtime game state
     var _oppGoneTimer  = null;
     var OPP_GRACE_MS   = 20000;
     var _presenceActive = false; // verrou : bloque upsertPresence après stopAll/leave
@@ -94,10 +95,12 @@
       if(_lobbyTimer) { clearInterval(_lobbyTimer);  _lobbyTimer  = null; }
       if(_pollTimer)  { clearInterval(_pollTimer);   _pollTimer   = null; }
       if(_oppGoneTimer){ clearTimeout(_oppGoneTimer); _oppGoneTimer = null; }
+      _stopRTChannel();
     }
 
     function stopPoll(){
       if(_pollTimer){ clearInterval(_pollTimer); _pollTimer = null; }
+      _stopRTChannel();
     }
 
     // ─── Présence ─────────────────────────────────────
@@ -356,6 +359,37 @@
       if(_pollTimer){ clearInterval(_pollTimer); _pollTimer = null; }
       var interval = document.hidden ? 15000 : 2000;
       _pollTimer = setInterval(fetchState, interval);
+      _startRTChannel();
+    }
+
+    function _startRTChannel(){
+      if(!window._yamRT || !_gameId || _rtChannel) return;
+      _rtChannel = window._yamRT
+        .channel('game_state_' + _gameId)
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: GAME_TABLE,
+          filter: 'id=eq.' + _gameId
+        }, function(){
+          if(!_saving) fetchState();
+        })
+        .subscribe(function(status){
+          yamLog('[RT] game_state ' + _gameId + ' ' + status);
+          if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
+            _rtChannel = null;
+            if(window._yamRTChannels) delete window._yamRTChannels['game_state_' + _gameId];
+          }
+        });
+      if(window._yamRTChannels) window._yamRTChannels['game_state_' + _gameId] = _rtChannel;
+    }
+
+    function _stopRTChannel(){
+      if(_rtChannel){
+        try{ if(window._yamRT) window._yamRT.removeChannel(_rtChannel); }catch(e){}
+        if(window._yamRTChannels) delete window._yamRTChannels['game_state_' + _gameId];
+        _rtChannel = null;
+      }
     }
 
     function fetchState(){
