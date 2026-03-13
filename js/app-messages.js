@@ -1350,8 +1350,16 @@
       // Soft delete UI — bulle texte ou vocal
       var bbl = wrap.querySelector('.dm-bubble');
       var txt = wrap.querySelector('.dm-bubble-text');
-      if(txt) txt.textContent = 'Message supprimé';
       if(bbl) bbl.classList.add('deleted');
+      // Vocal : pas de .dm-bubble-text — vider audioBubble et insérer le texte
+      var audioBubble = wrap.querySelector('.dm-audio-bubble');
+      if(audioBubble){ audioBubble.remove(); txt = null; }
+      if(!txt){
+        txt = document.createElement('span');
+        txt.className = 'dm-bubble-text';
+        if(bbl) bbl.insertBefore(txt, bbl.firstChild);
+      }
+      txt.textContent = 'Message supprimé';
       var reactRow = wrap.querySelector('.dm-react-row');
       if(reactRow) reactRow.remove();
       wrap.classList.remove('has-reaction');
