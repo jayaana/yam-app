@@ -1073,7 +1073,11 @@
     _sjStopTimer();
     _sjTimerFired  = false;
     _sjTimerTurnKey= _sjMakeTurnKey(state);
-    _sjTimerStart  = Date.now();
+    // ✅ FIX désync : utiliser ts_turn comme référence (comme _sjStartOppTimer)
+    // évite que le timer reparte à 100% quand on revient sur l'app
+    var refTs = (state.ts_turn || 0);
+    var lagMs = refTs ? Math.min(Date.now() - refTs, SJ_TIMER_DURATION) : 0;
+    _sjTimerStart = Date.now() - lagMs;
 
     var bar  = document.getElementById('sjTimerBar');
     var fill = document.getElementById('sjTimerBarFill');
