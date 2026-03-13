@@ -1319,7 +1319,10 @@
 
     if(String(msg.id).indexOf('tmp_') === 0){ wrap.remove(); return; }
 
-    // ✅ Fix — Mettre à jour le cache immédiatement pour éviter réapparition au prochain fetchMsgs
+    // ✅ Fix — Mettre à jour msg (objet capturé dans la closure du listener long-press)
+    // et le cache pour éviter réapparition au prochain fetchMsgs
+    msg.deleted = true;
+    msg.text = 'Message supprimé';
     var cached = cache.find(function(m){ return m.id === msg.id; });
     if(cached){ cached.deleted = true; cached.text = 'Message supprimé'; }
 
