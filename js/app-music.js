@@ -268,6 +268,9 @@ var prevRanks = (function(){
 
 var TOP_VISIBLE = 4, top50Expanded = false;
 
+// Init favoritesCache ici pour être disponible dès renderTop50
+var favoritesCache = {};
+
 function renderTop50(){
   var sorted = songsLove.slice().sort(function(a,b){ return b.plays - a.plays; });
   var newRanks = {};
@@ -911,7 +914,6 @@ var particleActive = false;
 // ════════════════════════════════════════════════════════════
 // FAVORIS (Coup de cœur)
 // ════════════════════════════════════════════════════════════
-var favoritesCache = {};
 
 function loadFavorites(){
   var _sf = yamGetUser ? {user: yamGetUser()} : null;
