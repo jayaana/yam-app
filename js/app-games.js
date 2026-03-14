@@ -730,8 +730,8 @@ function lbRender(rows) {
   list.innerHTML = top.map(function(row, i) {
     var rankClass   = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
     var rankDisplay = i < 3 ? rankIcons[i] : (i + 1);
-    var playerLabel = (typeof v2GetDisplayName==='function' ? v2GetDisplayName(row.player) : (row.player==='girl' ? 'Elle' : 'Lui'));
-    var dotClass    = row.player === 'girl' ? 'girl' : 'boy';
+    var playerLabel = (typeof v2GetDisplayName==='function' ? v2GetDisplayName(row.player_role) : (row.player_role==='girl' ? 'Elle' : 'Lui'));
+    var dotClass    = row.player_role === 'girl' ? 'girl' : 'boy';
     var m = Math.floor(parseInt(row.time_seconds||0) / 60), s = parseInt(row.time_seconds||0) % 60;
     var timeStr = m ? m + 'm' + String(s).padStart(2,'0') + 's' : s + 's';
     return '<div class="lb-row">' +
