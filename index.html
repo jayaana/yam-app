@@ -5842,7 +5842,7 @@ document.addEventListener('DOMContentLoaded', function(){
       }
       fetch(GROQ_EDGE,{
         method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+(yamGetAccessToken?yamGetAccessToken():SB2_KEY),'apikey':SB2_KEY},
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+(yamGetAccessToken?yamGetAccessToken():SB_ANON_KEY),'apikey':SB_ANON_KEY},
         body:JSON.stringify({prompt:prompts[i]})
       })
       .then(function(r){return r.json();})
@@ -6104,7 +6104,7 @@ document.addEventListener('DOMContentLoaded', function(){
         return;
       }
       fetch(GROQ,{method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+(yamGetAccessToken?yamGetAccessToken():SB2_KEY),'apikey':SB2_KEY},
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+(yamGetAccessToken?yamGetAccessToken():SB_ANON_KEY),'apikey':SB_ANON_KEY},
         body:JSON.stringify({prompt:prompts[i]})
       })
       .then(function(r){return r.json();})
