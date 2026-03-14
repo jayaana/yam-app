@@ -774,7 +774,7 @@
     }
     _afterBetaPending = false;
     _loadSavedPlaylist(); // charger la playlist du couple
-    fetch(SB_URL+'/rest/v1/'+TABLE+'?couple_id=eq.'+encodeURIComponent(_coupleId)+'&active=eq.true&order=created_at.desc&limit=1',{headers:sb2Headers()})
+    fetch(SB_URL+'/rest/v1/'+TABLE+'?couple_id=eq.'+encodeURIComponent(_coupleId)+'&active=eq.true&order=updated_at.desc&limit=1',{headers:sb2Headers()})
     .then(function(r){return r.json();})
     .then(function(rows){
       if(!rows||!rows.length||rows[0].host_role===_myRole){_sc('cwScLobby');}
