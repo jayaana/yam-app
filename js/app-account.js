@@ -2223,14 +2223,14 @@ window.addEventListener('load', function(){
         })
         .subscribe(function(status){
           if(status === 'SUBSCRIBED'){
-            yamLog('[RT] humeurs connectées');
+            yamLog('[RT] humeurs connectées'); console.warn('[RT] ✅ humeurs connectées — Realtime actif');
             window._moodsRTActive = true;
             // Stoppe le poll 30s
             if(window._moodsPollIv){ clearInterval(window._moodsPollIv); window._moodsPollIv = null; }
             _stopMoodsFallback();
             if(get()) loadMoods();
           } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
-            yamLog('[RT] humeurs ' + status + ' — fallback poll');
+            yamLog('[RT] humeurs ' + status + ' — fallback poll'); console.warn('[RT] ⚠️ humeurs ' + status + ' — fallback poll 30s');
             window._moodsRTActive = false;
             if(window._yamRTChannels) delete window._yamRTChannels['moods'];
             _startMoodsFallback();
