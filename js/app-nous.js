@@ -3887,8 +3887,8 @@ window.nousLoad = function(){
       music_together : 'Musique ensemble 🔥'
     };
 
-    // INSERT en base EN PREMIER — si 409 (doublon Supabase) ou erreur → pas d'incrément
-    fetch(SB_URL + '/rest/v1/flame_activities', {
+    // INSERT en base EN PREMIER — doublon ignoré silencieusement via on_conflict
+    fetch(SB_URL + '/rest/v1/flame_activities?on_conflict=couple_id,activity_type,activity_date', {
       method  : 'POST',
       headers : sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal,resolution=ignore-duplicates' }),
       body    : JSON.stringify({
@@ -3898,8 +3898,8 @@ window.nousLoad = function(){
       })
     })
     .then(function(r) {
-      if (r.status === 409 || r.status === 200) {
-        // 409 = doublon rejeté, 200 = doublon ignoré — pas d'incrément dans les deux cas
+      if (r.status === 200) {
+        // doublon ignoré — pas d'incrément
         return;
       }
       if (!r.ok) {
@@ -4022,7 +4022,7 @@ window.nousLoad = function(){
     if (!cid) return;
 
     fetch(SB_URL + '/rest/v1/game_scores?couple_id=eq.' + cid +
-      '&select=player,game_id,score&order=score.desc', { headers: sb2Headers() })
+      '&select=player_role,game_id,score&order=score.desc', { headers: sb2Headers() })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (scoreRows) {
         if (!Array.isArray(scoreRows)) return;
@@ -4032,7 +4032,7 @@ window.nousLoad = function(){
         var boyBest  = {};
 
         scoreRows.forEach(function (row) {
-          if (row.player === 'girl') {
+          if (row.player_role === 'girl') {
             if (!girlBest[row.game_id] || row.score > girlBest[row.game_id])
               girlBest[row.game_id] = row.score;
           } else {
@@ -4056,7 +4056,7 @@ window.nousLoad = function(){
     if (!cid) return;
 
     fetch(SB_URL + '/rest/v1/game_scores?couple_id=eq.' + cid +
-      '&select=player,game_id,score&order=score.desc', { headers: sb2Headers() })
+      '&select=player_role,game_id,score&order=score.desc', { headers: sb2Headers() })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (scoreRows) {
         if (!Array.isArray(scoreRows)) return;
@@ -4066,7 +4066,7 @@ window.nousLoad = function(){
         var boyBest  = {};
 
         scoreRows.forEach(function (row) {
-          if (row.player === 'girl') {
+          if (row.player_role === 'girl') {
             if (!girlBest[row.game_id] || row.score > girlBest[row.game_id])
               girlBest[row.game_id] = row.score;
           } else {
