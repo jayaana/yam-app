@@ -1280,10 +1280,11 @@ var _lastMilestone   = 0;
 
 // Cache journalier localStorage
 function _heartTodayKey(){
-  var u = (typeof v2GetUser==='function'&&v2GetUser()) ? v2GetUser().couple_id : 'x';
+  var user = (typeof yamGetUser==='function'&&yamGetUser()) ? yamGetUser() : null;
+  var uid = user ? user.id : ((typeof v2GetUser==='function'&&v2GetUser()) ? v2GetUser().id : 'x');
   var d = new Date();
   var dt = d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
-  return 'yam_hearts_day_'+u+'_'+dt;
+  return 'yam_hearts_day_'+uid+'_'+dt;
 }
 function _getDailyCount(){
   try{ return parseInt(localStorage.getItem(_heartTodayKey())||'0')||0; }catch(e){ return 0; }
