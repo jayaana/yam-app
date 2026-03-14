@@ -381,6 +381,7 @@ window.yamClearAllPolls = function() {
   if (window._yamStopPrankPoll)    window._yamStopPrankPoll();
   if (window._yamStopPartnerPoll)  window._yamStopPartnerPoll();
   if (window._yamStopMoodsPoll)    window._yamStopMoodsPoll();
+  if (window._yamStopPlaysIv)      window._yamStopPlaysIv();
 };
 
 
