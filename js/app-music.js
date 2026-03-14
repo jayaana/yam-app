@@ -435,15 +435,10 @@ window._top50Iv = setInterval(updateTop50PlayBtn, 500);
 
 // ── CHARGEMENT INITIAL ──
 (function(){
-  sb2Fetch('song_plays', 'select=song_file,plays').then(function(rows){
-    if(!Array.isArray(rows)){ renderTop50(); return; }
-    var map = {};
-    rows.forEach(function(r){ map[r.song_file] = r.plays || 0; });
-    songsLove.forEach(function(s){ s.plays = map[s.file] || 0; });
-    renderTop50();
-  }).catch(function(){ renderTop50(); });
-
   function refreshPlays(){
+    // Guard : ne rien faire sans utilisateur connecté
+    var _u = yamGetUser ? yamGetUser() : null;
+    if(!_u || !_u.couple_id) return;
     sb2Fetch('song_plays', 'select=song_file,plays').then(function(rows){
       if(!Array.isArray(rows)) return;
       var changed = false, map = {};
@@ -452,9 +447,35 @@ window._top50Iv = setInterval(updateTop50PlayBtn, 500);
       if(changed) updateTop50();
     }).catch(function(){});
   }
+
+  function startPlaysIv(){
+    if(window._playsIv) return;
+    window._playsIv = setInterval(refreshPlays, 30000);
+  }
+
+  // Chargement initial des plays (seulement si connecté)
+  var _u0 = yamGetUser ? yamGetUser() : null;
+  if(_u0 && _u0.couple_id){
+    sb2Fetch('song_plays', 'select=song_file,plays').then(function(rows){
+      if(!Array.isArray(rows)){ renderTop50(); return; }
+      var map = {};
+      rows.forEach(function(r){ map[r.song_file] = r.plays || 0; });
+      songsLove.forEach(function(s){ s.plays = map[s.file] || 0; });
+      renderTop50();
+    }).catch(function(){ renderTop50(); });
+    startPlaysIv();
+  } else {
+    renderTop50();
+  }
+
+  // Démarrer le poll au login
+  document.addEventListener('yam:session_ready', function(){
+    var _u1 = yamGetUser ? yamGetUser() : null;
+    if(_u1 && _u1.couple_id) startPlaysIv();
+  });
+
   window._playsRTActive = false;
   window.refreshPlays = refreshPlays;
-  window._playsIv = setInterval(refreshPlays, 30000);
 
   // Enregistrement dans le registre global yamClearAllPolls
   window._yamStopPlaysIv = function(){
