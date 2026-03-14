@@ -53,12 +53,12 @@
         filter: 'couple_id=eq.' + coupleId
       }, function(payload) {
         // Ignorer nos propres pings
-        var row = (payload.new && payload.new.sender) ? payload.new : (payload.old || {});
+        var row = (payload.new && payload.new.sender_role) ? payload.new : (payload.old || {});
         var s = yamGetUser ? {user: yamGetUser()} : null;
         var me = s && s.user ? (window.getProfile ? window.getProfile() : null) : null;
-        if (row.sender && row.sender === me) return;
+        if (row.sender_role && row.sender_role === me) return;
 
-        if (payload.eventType === 'DELETE' || !payload.new || !payload.new.sender) {
+        if (payload.eventType === 'DELETE' || !payload.new || !payload.new.sender_role) {
           // L'autre a arrêté de taper (DELETE)
           _clearTypingTimeout();
           hideTyping();
@@ -333,7 +333,7 @@
       }
     }
     // v2 : session active → pas de code demandé
-    if(typeof v2LoadSession === 'function' && v2LoadSession()){
+    if(typeof yamLoadSession === 'function' && yamLoadSession()){
       if(window._profileSave) window._profileSave(g);
       if(window._profileApply) window._profileApply(g);
       afterAuth();
@@ -480,7 +480,7 @@
     var tmpId  = 'tmp_photo_' + Date.now();
     var localUrl = URL.createObjectURL(blob);
     var tmpMsg = {
-      id: tmpId, sender: identity, message_type: 'photo',
+      id: tmpId, sender_role: identity, message_type: 'photo',
       photo_url: localUrl, text: '', seen: false,
       created_at: new Date().toISOString()
     };
@@ -503,7 +503,7 @@
         method: 'POST',
         headers: sb2Headers({'Prefer':'return=representation'}),
         body: JSON.stringify({
-          couple_id: coupleId, sender: identity,
+          couple_id: coupleId, sender_role: identity, sender_id: yamGetUser ? yamGetUser().id : null,
           text: '', message_type: 'photo', photo_url: publicUrl
         })
       });
@@ -616,7 +616,7 @@
     fetch(SB_URL + '/rest/v1/' + TYPING_TABLE + '?couple_id=eq.' + coupleId + '&sender_role=eq.' + identity, {
       method: 'GET', headers: sb2Headers()
     }).then(function(r){ return r.json(); }).then(function(rows){
-      var body = { couple_id: coupleId, sender: identity, updated_at: new Date().toISOString() };
+      var body = { couple_id: coupleId, sender_role: identity, user_id: yamGetUser ? yamGetUser().id : null, updated_at: new Date().toISOString() };
       if(Array.isArray(rows) && rows.length){
         fetch(SB_URL + '/rest/v1/' + TYPING_TABLE + '?couple_id=eq.' + coupleId + '&sender_role=eq.' + identity, {
           method: 'PATCH', headers: sb2Headers(), body: JSON.stringify(body)
@@ -673,7 +673,7 @@
     var bar  = $('dmReplyBar');
     var txt  = $('dmReplyBarText');
     if(!bar || !txt) return;
-    var who  = (typeof v2GetDisplayName==="function"?v2GetDisplayName(msg.sender):(msg.sender==="girl"?"Elle":"Lui"));
+    var who  = (typeof v2GetDisplayName==="function"?v2GetDisplayName(msg.sender_role):(msg.sender_role==="girl"?"Elle":"Lui"));
     var preview = msg.message_type === 'audio' ? '🎤 Vocal' : (msg.message_type === 'photo' ? '📷 Photo' : (msg.text || ''));
     if(preview.length > 40) preview = preview.slice(0,40) + '…';
     txt.textContent = who + ' : ' + preview;
@@ -745,7 +745,7 @@
       fetch(SB_URL + '/rest/v1/' + TABLE + '?' + _editFilter, {
         method: 'PATCH',
         headers: sb2Headers({'Prefer':'return=minimal'}),
-        body: JSON.stringify({ text: newText, edited: true })
+        body: JSON.stringify({ text: newText })
       }).then(function(r){
         if(!r.ok) r.text().then(function(t){ console.error('[DM] edit err:', r.status, t); });
       }).catch(function(err){ console.error('[DM] edit err:', err); });
@@ -772,7 +772,7 @@
     // Dernier message envoyé par moi qui est vu
     var lastSeen = null;
     for(var i = cache.length - 1; i >= 0; i--){
-      if(cache[i].sender === identity && cache[i].seen && !cache[i].deleted){
+      if(cache[i].sender_role === identity && cache[i].seen && !cache[i].deleted){
         lastSeen = cache[i]; break;
       }
     }
@@ -805,7 +805,7 @@
     // Ancre : created_at du plus vieux message en cache
     var oldest = cache[0];
     var anchor = oldest ? ('&created_at=lt.' + encodeURIComponent(oldest.created_at)) : '';
-    var _SEL = 'id,couple_id,sender,text,message_type,seen,created_at,reply_to_id,reply_to_text,reply_to_sender,deleted,reaction_girl,reaction_boy,audio_duration,audio_mime,photo_url,edited';
+    var _SEL = 'id,couple_id,sender_role,sender_id,text,message_type,seen,created_at,reply_to_id,deleted,reactions,audio_duration,audio_mime,photo_url';
     fetch(SB_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId + anchor
         + '&order=created_at.desc&limit=' + _msgPageSize + '&select=' + _SEL, {
       headers: sb2Headers()
@@ -859,7 +859,7 @@
 
     // Premier chargement : les 50 derniers en ASC
     // ⚡ EGRESS FIX : audio_data (base64) exclu du poll — chargé uniquement au tap
-    var _SELECT_FIELDS = 'id,couple_id,sender,text,message_type,seen,created_at,reply_to_id,reply_to_text,reply_to_sender,deleted,reaction_girl,reaction_boy,audio_duration,audio_mime,photo_url,edited';
+    var _SELECT_FIELDS = 'id,couple_id,sender_role,sender_id,text,message_type,seen,created_at,reply_to_id,deleted,reactions,audio_duration,audio_mime,photo_url';
     var url = SB_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId
             + '&order=created_at.desc&limit=' + _msgPageSize + '&select=' + _SELECT_FIELDS;
 
@@ -894,13 +894,13 @@
           appendBubble(msg, cache.length - 1, cache);
           added = true;
           // Notification visuelle + vibration si message de l'autre
-          if(msg.sender !== identity){
+          if(msg.sender_role !== identity){
             if(navigator.vibrate) navigator.vibrate([40, 30, 40]);
             flashNewMsg();
             // Pilule notif dans le header (seulement si pas sur onglet messages)
             if(window._currentTab !== 'messages'){
-              var senderName = (typeof v2GetDisplayName==="function"?v2GetDisplayName(msg.sender):(msg.sender==="girl"?"Elle":"Lui"));
-              var senderAvatarSrc = window.yamAvatarSrc ? window.yamAvatarSrc(msg.sender) : ('assets/images/profil_'+msg.sender+'.png');
+              var senderName = (typeof v2GetDisplayName==="function"?v2GetDisplayName(msg.sender_role):(msg.sender_role==="girl"?"Elle":"Lui"));
+              var senderAvatarSrc = window.yamAvatarSrc ? window.yamAvatarSrc(msg.sender_role) : ('assets/images/profil_'+msg.sender_role+'.png');
               showMsgHeaderPill(senderAvatarSrc, senderName, msg.text || '💬', true);
             }
           }
@@ -911,15 +911,14 @@
       // Mettre à jour les ticks "vu", réactions et suppressions
       var seenChanged = false;
       rows.forEach(function(msg){
-        if(msg.sender === identity && msg.seen){
+        if(msg.sender_role === identity && msg.seen){
           var cached = cache.find(function(m){ return m.id === msg.id; });
           if(cached && !cached.seen){ cached.seen = true; seenChanged = true; }
         }
         // Sync réactions depuis serveur (reaction_girl + reaction_boy)
         var cached = cache.find(function(m){ return m.id === msg.id; });
-        if(cached && (cached.reaction_girl !== msg.reaction_girl || cached.reaction_boy !== msg.reaction_boy)){
-          cached.reaction_girl = msg.reaction_girl;
-          cached.reaction_boy  = msg.reaction_boy;
+        if(cached && JSON.stringify(cached.reactions) !== JSON.stringify(msg.reactions)){
+          cached.reactions = msg.reactions || {};
           var wrap = document.querySelector('[data-id="'+msg.id+'"]');
           if(wrap) renderReactions(cached, wrap);
         }
@@ -931,7 +930,7 @@
           if(wrap){
             if(cached.message_type === 'photo'){
               // Photo : photoWrap n'a pas de .dm-bubble — remplacer par bulle texte standard
-              var mineBubble = (cached.sender === identity);
+              var mineBubble = (cached.sender_role === identity);
               var deletedWrap = document.createElement('div');
               deletedWrap.className = 'dm-wrap' + (mineBubble ? ' mine' : '');
               deletedWrap.dataset.id = cached.id;
@@ -966,7 +965,7 @@
         // Marquer comme lu si le chat est visible
         var chatScreen = document.getElementById('dmChatScreen');
         if(chatScreen && chatScreen.style.display !== 'none' &&
-           msg.sender !== identity && !msg.seen){
+           msg.sender_role !== identity && !msg.seen){
           markSeen(msg.id);
         }
       });
@@ -1017,7 +1016,7 @@
     // peut ne pas encore être posé au moment où renderAll() s'exécute (timing race).
     var chatScreen = document.getElementById('dmChatScreen');
     if(chatScreen && chatScreen.style.display !== 'none'){
-      var toMark = cache.filter(function(m){ return m.sender !== identity && !m.seen; });
+      var toMark = cache.filter(function(m){ return m.sender_role !== identity && !m.seen; });
       toMark.forEach(function(m){ markSeen(m.id); });
       // Si des messages ont été marqués lus, re-poller le badge immédiatement
       if(toMark.length > 0 && typeof window._dmPollUnread === 'function'){
@@ -1043,7 +1042,7 @@
 
   function openCtxMenu(e, msg, wrap, bbl){
     closeCtxMenu();
-    var mine = (msg.sender === identity);
+    var mine = (msg.sender_role === identity);
 
     // ── Overlay fond flou style Instagram ──
     ctxOverlay = document.createElement('div');
@@ -1095,7 +1094,7 @@
     emRow.className = 'dm-ctx-react-row';
     REACTIONS.forEach(function(em){
       var btn = document.createElement('span');
-      var _myReact = (identity === 'girl') ? msg.reaction_girl : msg.reaction_boy;
+      var _myReact = ((msg.reactions || {})[identity] || null);
       btn.className = 'dm-ctx-react-btn' + (_myReact === em ? ' active' : '');
       btn.textContent = em;
       var lp;
@@ -1109,7 +1108,7 @@
       }, {passive:true});
       btn.addEventListener('click', function(e2){
         e2.stopPropagation();
-        var _col = (identity === 'girl') ? 'reaction_girl' : 'reaction_boy';
+        // _col replaced by jsonb reactions patch
         var newReact = (msg[_col] === em) ? null : em;
         setReaction(msg, wrap, newReact); closeCtxMenu();
       });
@@ -1242,15 +1241,15 @@
     grid.innerHTML = '';
     ALL_EMOJI.forEach(function(em){
       var btn = document.createElement('span');
-      var _myR = (identity === 'girl') ? msg.reaction_girl : msg.reaction_boy;
+      var _myR = ((msg.reactions || {})[identity] || null);
       btn.className = 'dm-react-picker-em' + (_myR === em ? ' active' : '');
       btn.textContent = em;
       btn.addEventListener('touchstart', function(e){ e.stopPropagation(); }, {passive:true});
       btn.addEventListener('touchend', function(e){ e.stopPropagation(); }, {passive:true});
       btn.addEventListener('click', function(e){
         e.stopPropagation();
-        var _col2 = (identity === 'girl') ? 'reaction_girl' : 'reaction_boy';
-        var newReact = (msg[_col2] === em) ? null : em;
+        // reactions handled via jsonb patch
+        var newReact = ((msg.reactions||{})[identity] === em) ? null : em;
         setReaction(msg, wrap, newReact);
         closeEmojiPickerModal();
       });
@@ -1287,8 +1286,8 @@
     if(oldRow) oldRow.remove();
     wrap.classList.remove('has-reaction');
 
-    var rg = msg.reaction_girl;
-    var rb = msg.reaction_boy;
+    var rg = (msg.reactions || {})['girl'] || null;
+    var rb = (msg.reactions || {})['boy'] || null;
     if(!rg && !rb) return;
 
     var isMine = wrap.classList.contains('mine');
@@ -1331,7 +1330,7 @@
 
   function setReaction(msg, wrap, reaction){
     // Mettre à jour la réaction de l'utilisateur connecté
-    var col = (identity === 'girl') ? 'reaction_girl' : 'reaction_boy';
+    // col replaced by jsonb reactions — use msg.reactions
     msg[col] = reaction;
     renderReactions(msg, wrap);
 
@@ -1357,7 +1356,7 @@
 
     // ── Cas photo : photoWrap n'a pas de .dm-bubble — remplacer par bulle texte ──
     if(msg.message_type === 'photo'){
-      var mineBubble = (msg.sender === identity);
+      var mineBubble = (msg.sender_role === identity);
       var deletedWrap = document.createElement('div');
       deletedWrap.className = 'dm-wrap' + (mineBubble ? ' mine' : '');
       deletedWrap.dataset.id = msg.id;
@@ -1418,11 +1417,11 @@
     var emp = el.querySelector('.dm-empty');
     if(emp) emp.remove();
 
-    var mine     = (msg.sender === identity);
+    var mine     = (msg.sender_role === identity);
     var prev     = all[idx - 1];
     var next     = all[idx + 1];
-    var samePrev = prev && prev.sender === msg.sender;
-    var sameNext = next && next.sender === msg.sender;
+    var samePrev = prev && prev.sender_role === msg.sender_role;
+    var sameNext = next && next.sender_role === msg.sender_role;
 
     if(!samePrev && idx > 0){
       var sp = document.createElement('div');
@@ -1455,7 +1454,7 @@
       photoWrap.appendChild(inner);
 
       // Réactions existantes sur la photo (girl + boy)
-      if(msg.reaction_girl || msg.reaction_boy) renderReactions(msg, photoWrap);
+      if(msg.reactions && (msg.reactions['girl'] || msg.reactions['boy'])) renderReactions(msg, photoWrap);
 
       el.appendChild(photoWrap);
 
@@ -1514,9 +1513,9 @@
     // Avatar
     if(!mine){
       var av = document.createElement('div');
-      av.className   = 'dm-avatar dm-msg-avatar ' + (msg.sender === 'girl' ? 'dm-avatar-girl' : 'dm-avatar-boy');
+      av.className   = 'dm-avatar dm-msg-avatar ' + (msg.sender_role === 'girl' ? 'dm-avatar-girl' : 'dm-avatar-boy');
       // Avatar image dans les bulles
-      (function(){ if(window.yamSetAvatar) window.yamSetAvatar(av, msg.sender); else av.textContent = msg.sender === 'girl' ? 'E' : 'L'; })();
+      (function(){ if(window.yamSetAvatar) window.yamSetAvatar(av, msg.sender_role); else av.textContent = msg.sender_role === 'girl' ? 'E' : 'L'; })();
       av.style.fontSize = '16px';
       av.style.background = 'none';
       av.style.visibility = samePrev ? 'hidden' : 'visible';
@@ -1763,7 +1762,7 @@
     bbl.appendChild(meta);
 
     // Réactions existantes (girl + boy)
-    if(msg.reaction_girl || msg.reaction_boy) renderReactions(msg, wrap);
+    if(msg.reactions && (msg.reactions['girl'] || msg.reactions['boy'])) renderReactions(msg, wrap);
 
     wrap.appendChild(bbl);
     el.appendChild(wrap);
@@ -1819,16 +1818,16 @@
 
     // Optimistic
     var tmpId  = 'tmp_' + Date.now();
-    var tmpMsg = { id: tmpId, sender: identity, text: text, seen: false, created_at: new Date().toISOString(),
+    var tmpMsg = { id: tmpId, sender_role: identity, text: text, seen: false, created_at: new Date().toISOString(),
                    reply_to_id: replyId, reply_to_text: replyText, reply_to_sender: replySender };
     cache.push(tmpMsg);
     appendBubble(tmpMsg, cache.length - 1, cache);
     scrollBottom();
 
-    var body = { couple_id: coupleId, sender: identity, text: text };
+    var body = { couple_id: coupleId, sender_role: identity, sender_id: yamGetUser ? yamGetUser().id : null, text: text };
     if(replyId)   body.reply_to_id     = replyId;
-    if(replyText) body.reply_to_text   = replyText;
-    if(replySender) body.reply_to_sender = replySender;
+    // reply_to_text not in v3 schema — stored locally only
+    // reply_to_sender supprimé en v3 — reply_to_id suffit
 
     fetch(SB_URL + '/rest/v1/' + TABLE, {
       method: 'POST',
@@ -2196,7 +2195,7 @@
         var audioMime = blob.type || 'audio/webm';
         var tmpId  = 'tmp_' + Date.now();
         var tmpMsg = {
-          id: tmpId, sender: identity,
+          id: tmpId, sender_role: identity,
           message_type: 'audio', audio_data: b64,
           audio_mime: audioMime, audio_duration: duration,
           text: '', seen: false, created_at: new Date().toISOString()
@@ -2209,7 +2208,7 @@
           method: 'POST',
           headers: sb2Headers({'Prefer':'return=representation'}),
           body: JSON.stringify({
-            couple_id: coupleId, sender: identity, text: '',
+            couple_id: coupleId, sender_role: identity, sender_id: yamGetUser ? yamGetUser().id : null, text: '',
             message_type: 'audio', audio_data: b64,
             audio_mime: audioMime, audio_duration: Math.round(duration)
           })
@@ -2370,7 +2369,7 @@
     var coupleId = s && s.user ? s.user.couple_id : null;
     if(!coupleId) return;
     
-    fetch(SB_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId + '&order=created_at.desc&limit=50&select=id,sender,text,message_type,seen,created_at,reaction_girl,reaction_boy,deleted,audio_duration', {
+    fetch(SB_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId + '&order=created_at.desc&limit=50&select=id,sender_role,sender_id,text,message_type,seen,created_at,reactions,deleted,audio_duration', {
       headers: sb2Headers()
     })
     .then(function(r){ return r.json(); })
@@ -2387,7 +2386,7 @@
       var myId = identity || (typeof getProfile === 'function' ? getProfile() : null);
       var other = myId === 'girl' ? 'boy' : (myId === 'boy' ? 'girl' : null);
       var unread = other
-        ? rows.filter(function(m){ return !m.seen && m.sender === other && !m.deleted; }).length
+        ? rows.filter(function(m){ return !m.seen && m.sender_role === other && !m.deleted; }).length
         : 0; // si on ne connaît pas l'identité, on n'affiche rien plutôt que de compter faux
 
       var p = $('dmHomePreview');
@@ -2395,7 +2394,7 @@
       var b = $('dmHomeBadge');
 
       if(p && last){
-        var who = (typeof v2GetDisplayName==="function"?v2GetDisplayName(last.sender):(last.sender==="girl"?"Elle":"Lui"));
+        var who = (typeof v2GetDisplayName==="function"?v2GetDisplayName(last.sender_role):(last.sender_role==="girl"?"Elle":"Lui"));
         var txt = last.deleted ? '🚫 Message supprimé' : (last.message_type === 'audio' ? '🎤 Vocal' : (last.message_type === 'photo' ? '📷 Photo' : (last.text || '')));
         if(txt.length > 34) txt = txt.slice(0,34) + '…';
       }
