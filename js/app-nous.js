@@ -3773,8 +3773,10 @@ window.nousLoad = function(){
     var localMidnight = new Date();
     localMidnight.setHours(0, 0, 0, 0);
     var profile3 = _getProfile();
+    var _loadUid = (typeof yamGetUser === 'function' && yamGetUser()) ? yamGetUser().id : null;
     var actUrl = SB_URL + '/rest/v1/flame_activities?couple_id=eq.' + cid +
       '&activity_date=gte.' + new Date().toISOString().split('T')[0] +
+      (_loadUid ? '&user_id=eq.' + _loadUid : '') +
       '&select=activity_type';
     fetch(actUrl, { headers: sb2Headers() })
       .then(function (r) { return r.ok ? r.json() : []; })
