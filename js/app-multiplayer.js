@@ -412,17 +412,17 @@
         if(_saving) return;
         var rows    = results[0];
         var allPres = results[1];
-        var presRows  = Array.isArray(allPres) ? allPres.filter(function(p){ return p.profile===oppKey; }) : [];
-        var myPresRows= Array.isArray(allPres) ? allPres.filter(function(p){ return p.profile===_me;    }) : [];
+        var presRows  = Array.isArray(allPres) ? allPres.filter(function(p){ return p.role===oppKey; }) : [];
+        var myPresRows= Array.isArray(allPres) ? allPres.filter(function(p){ return p.role===_me;    }) : [];
 
         // Notifier le jeu de la présence adversaire
-        var isOnline = presRows[0] && (Date.now() - new Date(presRows[0].updated_at).getTime()) < 15000;
+        var isOnline = presRows[0] && (Date.now() - new Date(presRows[0].last_seen).getTime()) < 15000;
         if(cfg.onPresenceUpdate) cfg.onPresenceUpdate(isOnline);
 
         // ── Les DEUX joueurs absents depuis +40s ──────────
         var now = Date.now();
-        var myLastSeen  = myPresRows[0]  ? now - new Date(myPresRows[0].updated_at).getTime()  : 99999999;
-        var oppLastSeen = presRows[0]    ? now - new Date(presRows[0].updated_at).getTime()    : 99999999;
+        var myLastSeen  = myPresRows[0]  ? now - new Date(myPresRows[0].last_seen).getTime()  : 99999999;
+        var oppLastSeen = presRows[0]    ? now - new Date(presRows[0].last_seen).getTime()    : 99999999;
         var bothAbsent  = myLastSeen > BOTH_ABSENT_TIMEOUT_MS && oppLastSeen > BOTH_ABSENT_TIMEOUT_MS;
 
         if(bothAbsent && !_bothAbsentHandled && _launched){
