@@ -1483,13 +1483,18 @@ setTimeout(function(){
       }
     }
 
-    // Init au chargement si déjà connecté, sinon attendre session_ready
+    // Init au chargement si déjà connecté, sinon attendre session_ready ou rt_ready
     setTimeout(function(){
       if(window._yamRT) _initMusicRealtime();
     }, 2000);
 
     document.addEventListener('yam:session_ready', function(){
       setTimeout(_initMusicRealtime, 1000);
+    });
+
+    // ✅ FIX RT — Upgrade vers Realtime dès que _yamRT est prêt
+    document.addEventListener('yam:rt_ready', function(){
+      setTimeout(_initMusicRealtime, 200);
     });
 
     // Relancer les polls adaptatifs nl seulement si RT inactif
