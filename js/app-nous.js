@@ -4431,15 +4431,23 @@ window.nousLoad = function(){
     });
   };
 
-  // Ré-exécutable (retour sur l'onglet)
+  // Ré-exécutable (retour sur l'onglet) — lecture seule, pas de _checkStreak ni _saveFlame
   window.flammeRefresh = function () {
     var cid = _getCoupleId(); if (!cid) return;
-    _loadAll(function () {
-      _renderFlame();
-      _renderStreak();
-      _renderTrophies();
-      _renderCoupleSince();
-    });
+    fetch(SB_URL + '/rest/v1/flame?couple_id=eq.' + cid + '&limit=1', { headers: sb2Headers() })
+      .then(function(r){ return r.ok ? r.json() : []; })
+      .then(function(rows){
+        if (rows && rows[0]) {
+          _flame.points             = parseFloat(rows[0].points) || 0;
+          _flame.last_updated       = new Date(rows[0].last_updated);
+          _flame.rowId              = rows[0].id;
+          _flame.points_at_midnight = rows[0].points_at_midnight != null ? parseFloat(rows[0].points_at_midnight) : null;
+        }
+        _renderFlame();
+        _renderStreak();
+        _renderTrophies();
+        _renderCoupleSince();
+      }).catch(function(){});
   };
 
 })();
