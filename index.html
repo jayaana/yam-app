@@ -6464,7 +6464,7 @@ document.addEventListener('DOMContentLoaded', function(){
       if(!pill) return;
       if(!coupleId){ pill.style.display = 'none'; return; }
 
-      fetch(SB_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + encodeURIComponent(coupleId) + '&active=eq.true&order=created_at.desc&limit=1', { headers: sb2Headers() })
+      fetch(SB_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + encodeURIComponent(coupleId) + '&active=eq.true&order=updated_at.desc&limit=1', { headers: sb2Headers() })
       .then(function(r){ return r.json(); })
       .then(function(rows){
         // Session active ET c'est l'autre qui attend (host_role != mon rôle) OU moi qui attends
