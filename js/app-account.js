@@ -999,7 +999,7 @@ window.acSaveStartDate = function(){
 
   // Utiliser fetch direct avec service key n'est pas possible côté client.
   // On passe par l'Edge Function pour le PATCH avec privilèges.
-  v2Auth('save_start_date', { couple_id: u.couple_id, start_date: isoDate })
+  v3Auth('save_start_date', { couple_id: u.couple_id, start_date: isoDate })
   .then(function(res){
     if(res && res.error){
       msg.textContent = '❌ Erreur sauvegarde'; msg.style.color = '#e05555'; return;
@@ -1129,7 +1129,7 @@ window.acDoUnlink = function(){
   var u = v2GetUser();
   if(!u){ msg.textContent = '⚠️ Non connecté'; return; }
   msg.textContent = '⏳ Déliaison en cours...';
-  v2Auth('unlink_partner', { user_id: u.id })
+  v3Auth('unlink_partner', { user_id: u.id })
   .then(function(data){
     if(data && data.error){
       msg.textContent = '❌ ' + data.error;
@@ -1217,7 +1217,7 @@ window.acSavePseudo = function(){
   var u = v2GetUser();
   if(!u){ msg.textContent = '⚠️ Non connecté'; msg.style.color = '#e05555'; return; }
   msg.textContent = '⏳ Modification...'; msg.style.color = 'var(--muted)';
-  v2Auth('update_pseudo', { user_id: u.id, new_pseudo: newPseudo })
+  v3Auth('update_pseudo', { user_id: u.id, new_pseudo: newPseudo })
   .then(function(data){
     if(data && data.error){
       msg.textContent = '❌ ' + data.error; msg.style.color = '#e05555';
@@ -1423,7 +1423,7 @@ window.acDeleteAvatar = function(){
   if(!u) return;
   if(!confirm('Supprimer ta photo de profil ?')) return;
   // ✅ Passe par l'Edge Function auth-v2 (service_role requis pour supprimer du storage)
-  v2Auth('delete_avatar', { user_id: u.id })
+  v3Auth('delete_avatar', { user_id: u.id })
   .then(function(res){
     if(!res || res.error){ if(typeof showToast==='function') showToast('Erreur : ' + (res && res.error || 'inconnue'), 'error', 3000); return; }
     // Reset UI dans le modal
