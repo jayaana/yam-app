@@ -189,7 +189,7 @@ function _v2AfterLogin(result, msgId){
     window.v2ShowLogin = _realV2ShowLogin;
   }, 2000);
 
-  var u = v2GetUser();
+  var u = yamGetUser ? yamGetUser() : null;
   window.yamLog('[YAM DEBUG] v2GetUser=', u ? u.pseudo+'/'+u.role : 'NULL');
   if(u){
     localStorage.setItem('jayana_profile', u.role);
@@ -298,7 +298,7 @@ window.v2DoJoin = function(){
 // Au démarrage : si session active on s'assure que le login est fermé
 // Si pas de session : ne rien faire — c'est le splash + yamSplashOpen qui gèrent tout
 document.addEventListener('DOMContentLoaded', function(){
-  var u = v2GetUser();
+  var u = yamGetUser ? yamGetUser() : null;
   window.yamLog('[YAM DEBUG] DOMContentLoaded app-account - v2GetUser=', u ? u.pseudo+'/'+u.role : 'NULL');
   if(u){
     window.yamLog('[YAM DEBUG] DOMContentLoaded - session active, appel v2HideLogin');
@@ -322,7 +322,7 @@ window.YAM_COUPLE = {
 };
 
 function loadCoupleConfig(){
-  var u = v2GetUser();
+  var u = yamGetUser ? yamGetUser() : null;
   if(!u || !u.couple_id) return Promise.resolve(null);
   return fetch(SB_URL + '/rest/v1/couples?id=eq.' + encodeURIComponent(u.couple_id) + '&select=*', {
     headers: sb2Headers()
@@ -382,9 +382,9 @@ function applyYamCouple(){
 
 // Charger config couple après connexion
 document.addEventListener('DOMContentLoaded', function(){
-  if(v2GetUser()) loadCoupleConfig();
+  if(yamGetUser ? yamGetUser() : null) loadCoupleConfig();
   // Charger l'avatar photo dans la topbar si déjà connecté
-  var u = v2GetUser();
+  var u = yamGetUser ? yamGetUser() : null;
   if(u) setTimeout(function(){ if(window._acLoadAvatarTopbarOnStart) window._acLoadAvatarTopbarOnStart(u); }, 800);
 });
 
@@ -394,7 +394,7 @@ window.setProfile = function(g){
   setTimeout(loadCoupleConfig, 500);
   // Charger l'avatar photo dans la topbar après connexion
   setTimeout(function(){
-    var u = v2GetUser();
+    var u = yamGetUser ? yamGetUser() : null;
     if(u && window._acLoadAvatarTopbarOnStart) window._acLoadAvatarTopbarOnStart(u);
   }, 900);
 };
@@ -891,11 +891,11 @@ window.openAccountModal = function(){
   // Rafraîchir la session pour avoir les données les plus récentes
   if(window.v2RefreshSession){
     v2RefreshSession().then(function(u){
-      if(!u) u = v2GetUser();
+      if(!u) u = yamGetUser();
       _populateAccountModal(u);
     });
   } else {
-    var u = v2GetUser();
+    var u = yamGetUser ? yamGetUser() : null;
     _populateAccountModal(u);
   }
 };
@@ -991,7 +991,7 @@ window.acSaveStartDate = function(){
   var val = document.getElementById('acStartDate').value;
   var msg = document.getElementById('acStartDateMsg');
   if(!val){ msg.textContent = '⚠️ Choisis une date'; msg.style.color = '#e05555'; return; }
-  var u = v2GetUser();
+  var u = yamGetUser ? yamGetUser() : null;
   if(!u || !u.couple_id){ msg.textContent = '⚠️ Couple non lié'; msg.style.color = '#e05555'; return; }
 
   msg.textContent = '⏳ Enregistrement...'; msg.style.color = 'var(--muted)';
@@ -1034,7 +1034,7 @@ window.acChangePwd = function(){
   if(newPwd !== confirmPwd){
     msg.textContent = '⚠️ Les mots de passe ne correspondent pas'; msg.style.color = '#e05555'; return;
   }
-  var u = v2GetUser();
+  var u = yamGetUser ? yamGetUser() : null;
   if(!u){ msg.textContent = '⚠️ Non connecté'; msg.style.color = '#e05555'; return; }
 
   msg.textContent = '⏳ Modification en cours...'; msg.style.color = 'var(--muted)';
@@ -1064,7 +1064,7 @@ window.acLinkPartner = function(){
   var code = (document.getElementById('acLinkCode').value || '').trim().toUpperCase();
   var msg  = document.getElementById('acLinkMsg');
   if(!code){ msg.textContent = '⚠️ Entre le code couple'; msg.style.color = '#e05555'; return; }
-  var u = v2GetUser();
+  var u = yamGetUser ? yamGetUser() : null;
   if(!u){ msg.textContent = '⚠️ Non connecté'; msg.style.color = '#e05555'; return; }
   if(u.partner_pseudo){ msg.textContent = '✅ Déjà lié à ' + escHtml(u.partner_pseudo); msg.style.color = 'var(--green)'; return; }
 
@@ -1126,7 +1126,7 @@ window.acCancelUnlink = function(){
 };
 window.acDoUnlink = function(){
   var msg = document.getElementById('acUnlinkMsg');
-  var u = v2GetUser();
+  var u = yamGetUser ? yamGetUser() : null;
   if(!u){ msg.textContent = '⚠️ Non connecté'; return; }
   msg.textContent = '⏳ Déliaison en cours...';
   v3Auth('unlink_partner', { user_id: u.id })
@@ -1189,7 +1189,7 @@ window.acDoUnlink = function(){
 window.acToggleEditPseudo = function(){
   var row = document.getElementById('acEditPseudoRow');
   var inp = document.getElementById('acNewPseudoInput');
-  var u = v2GetUser();
+  var u = yamGetUser ? yamGetUser() : null;
   if(!row) return;
   if(row.style.display === 'none'){
     row.style.display = 'flex';
@@ -1214,7 +1214,7 @@ window.acSavePseudo = function(){
   if(newPseudo.length > 20){
     msg.textContent = '⚠️ Pseudo trop long (20 max)'; msg.style.color = '#e05555'; return;
   }
-  var u = v2GetUser();
+  var u = yamGetUser ? yamGetUser() : null;
   if(!u){ msg.textContent = '⚠️ Non connecté'; msg.style.color = '#e05555'; return; }
   msg.textContent = '⏳ Modification...'; msg.style.color = 'var(--muted)';
   v3Auth('update_pseudo', { user_id: u.id, new_pseudo: newPseudo })
@@ -1299,7 +1299,7 @@ function _acSyncAvatarTopbar(url, role){
 
 // ✅ FIX — Charge l'avatar du partenaire depuis Supabase Storage et propage partout
 window._acLoadPartnerAvatar = function(){
-  var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+  var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
   if(!u || !u.couple_id) return;
   fetch(SB_URL + '/rest/v1/profiles?couple_id=eq.' + u.couple_id + '&id=neq.' + u.id + '&select=id,role&limit=1',
     { headers: sb2Headers() })
@@ -1346,7 +1346,7 @@ window.acTriggerAvatarUpload = function(){
 window.acHandleAvatarUpload = function(input){
   if(!input.files || !input.files[0]) return;
   var file = input.files[0];
-  var u = v2GetUser();
+  var u = yamGetUser ? yamGetUser() : null;
   if(!u) return;
 
   // Détection HEIC avant tout
@@ -1419,7 +1419,7 @@ window.acHandleAvatarUpload = function(input){
 
 // ✅ Suppression de la photo de profil
 window.acDeleteAvatar = function(){
-  var u = v2GetUser();
+  var u = yamGetUser ? yamGetUser() : null;
   if(!u) return;
   if(!confirm('Supprimer ta photo de profil ?')) return;
   // ✅ Passe par l'Edge Function auth-v2 (service_role requis pour supprimer du storage)
@@ -1460,7 +1460,7 @@ window.acDeleteAvatar = function(){
     if(logoutBtn) pp.insertBefore(btn, logoutBtn);
     else pp.appendChild(btn);
     // Afficher seulement si connecté
-    btn.style.display = v2GetUser() ? '' : 'none';
+    btn.style.display = yamGetUser() ? '' : 'none';
   }
   if(document.readyState === 'loading'){
     document.addEventListener('DOMContentLoaded', injectAccountBtn);
@@ -1474,7 +1474,7 @@ window.acDeleteAvatar = function(){
     if(_origSetProfile3) _origSetProfile3.apply(this, arguments);
     setTimeout(function(){
       var btn = document.getElementById('ppBtnAccount');
-      if(btn) btn.style.display = v2GetUser() ? '' : 'none';
+      if(btn) btn.style.display = yamGetUser() ? '' : 'none';
     }, 200);
   };
 })();
@@ -1500,7 +1500,7 @@ window.addEventListener('load', function(){
   var _lastCoupleId = null;
   
   function pollPartnerChanges(){
-    var u = v2GetUser();
+    var u = yamGetUser ? yamGetUser() : null;
     if(!u || !u.couple_id) return;
     
     // Sauvegarder l'état actuel pour comparaison
@@ -1664,7 +1664,7 @@ window.addEventListener('load', function(){
     '😤':'Frustré','🥳':'En fête','😇':'Sage','🤗':'Affectueux','💪':'Énergique','😏':'Coquin'
   };
 
-  function get(){ return localStorage.getItem(KEY) || null; }
+  function get(){ var ls = localStorage.getItem(KEY); if(ls) return ls; var u = yamGetUser ? yamGetUser() : null; return u ? u.role : null; }
   function save(g){ localStorage.setItem(KEY, g); }
   window._profileSave = save;
   window._profileApply = function(g){ apply(g); };
@@ -1826,7 +1826,7 @@ window.addEventListener('load', function(){
       if(bb) bb.style.display = 'none';
 
       // Afficher le pseudo en couleur selon le genre (rose=girl, bleu=boy)
-      var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+      var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
       var displayName = u && u.pseudo ? u.pseudo : (gender === 'girl' ? 'Elle' : 'Lui');
       var pseudoColor = gender === 'girl' ? '#e879a0' : '#5b9cf6';
       if(ppLabel){
@@ -2180,7 +2180,8 @@ window.addEventListener('load', function(){
     // Plus besoin de sbLoadSession ici — app-core.js gère la session v2
   })();
   apply(get());
-  if(get()) loadMoods();
+  var _initProfile = get() || (yamGetUser ? (yamGetUser()||{}).role : null);
+  if(_initProfile) loadMoods();
   _moodFirstLoad = false;
   window._moodsPollIv = setInterval(function(){ if(get()) loadMoods(); }, 30000);
   window._moodsRTActive = false;
