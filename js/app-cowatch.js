@@ -681,8 +681,8 @@
       method:'PATCH',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
       body:JSON.stringify({active:false})
     }).then(function(){
-      return fetch(SB_URL+'/rest/v1/'+TABLE,{
-        method:'POST',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=representation'}),
+      return fetch(SB_URL+'/rest/v1/'+TABLE+'?on_conflict=couple_id',{
+        method:'POST',headers:sb2Headers({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=representation'}),
         body:JSON.stringify({couple_id:_coupleId,yt_id:firstId,host_role:_myRole,active:true,
           state:{playing:false,currentTime:0,ts:0,reactions:[],joined:false,currentYtId:firstId},
           chat:[],presence:{},playlist:allItems,playlist_index:0})
@@ -797,8 +797,8 @@
       method:'PATCH',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
       body:JSON.stringify({active:false})
     }).then(function(){
-      return fetch(SB_URL+'/rest/v1/'+TABLE,{
-        method:'POST',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=representation'}),
+      return fetch(SB_URL+'/rest/v1/'+TABLE+'?on_conflict=couple_id',{
+        method:'POST',headers:sb2Headers({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=representation'}),
         body:JSON.stringify({couple_id:_coupleId,yt_id:ytId,host_role:_myRole,active:true,
           state:{playing:false,currentTime:0,ts:0,reactions:[],joined:false,currentYtId:ytId},
           chat:[],presence:{},playlist:[{ytId:ytId}],playlist_index:0})
