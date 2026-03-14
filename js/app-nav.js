@@ -1387,6 +1387,17 @@ setTimeout(function(){
       // Relance
       _reschedAll();
     }, 500);
+
+    // Ouverture depuis une notification push — naviguer vers l'onglet cible
+    setTimeout(function(){
+      var params = new URLSearchParams(window.location.search);
+      var openTab = params.get('open_tab');
+      if(openTab && typeof window.yamSwitchTab === 'function'){
+        window.yamSwitchTab(openTab);
+        // Nettoyer l'URL sans recharger
+        try { window.history.replaceState({}, '', window.location.pathname); } catch(e){}
+      }
+    }, 600);
   });
 
   /* ══════════════════════════════════════════════════════
@@ -1470,11 +1481,9 @@ setTimeout(function(){
             if(status === 'SUBSCRIBED'){
               yamLog('[RT] #81 song_plays connecté');
               window._playsRTActive = true;
-              // NE PAS stopper le fallback — increment_play est une RPC qui ne
-              // déclenche pas postgres_changes, donc le RT ne reçoit rien.
-              // Le fallback poll 30s reste actif pour capter les mises à jour.
+              // Stoppe le poll 30s
               if(window._playsIv != null){ _CI(window._playsIv); window._playsIv = null; }
-              _startPlaysFallback();
+              _stopPlaysFallback();
             } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
               yamLog('[RT] #81 song_plays ' + status + ' — fallback poll');
               window._playsRTActive = false;
