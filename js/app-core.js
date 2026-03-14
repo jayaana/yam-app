@@ -296,7 +296,7 @@ async function yamLogout() {
 
 // Compat alias
 window.nativeLogout  = yamLogout;
-window.v2Auth        = function(action, payload) { return _authPostWithJwt(Object.assign({ action }, payload)); };
+window.v3Auth        = function(action, payload) { return _authPostWithJwt(Object.assign({ action }, payload)); };
 
 // Rafraîchit le profil complet depuis auth-v3 (ex: après join_couple ou update_pseudo)
 function v2RefreshSession() {
