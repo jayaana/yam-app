@@ -4412,6 +4412,7 @@ window.nousLoad = function(){
   var _flammeInited = false;
 
   window.flammeInit = function () {
+    if (_flammeInited) { window.flammeRefresh(); return; }
     _loadAll(function () {
       _renderFlame();
       _renderStreak();
@@ -4420,14 +4421,8 @@ window.nousLoad = function(){
       _loadTrophies();
       _checkStreak();
       _startTicks();
-
-      // first_login : une seule fois par session
-      // La contrainte UNIQUE Supabase (couple_id, user_id, activity_type, activity_date)
-      // bloque les doublons inter-sessions / cache vidé
-      if (!_flammeInited) {
-        _flammeInited = true;
-        window.yamFlameActivity('first_login');
-      }
+      _flammeInited = true;
+      window.yamFlameActivity('first_login');
     });
   };
 
