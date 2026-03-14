@@ -5618,7 +5618,7 @@ document.addEventListener('DOMContentLoaded', function(){
 <script>
 /* ══ HOME TAB — Mascotte IA (15 phrases/jour, rotation horaire auto) ══ */
 (function(){
-  var GROQ_EDGE  = SB2_URL + '/functions/v1/gemini-suggest';
+  var GROQ_EDGE  = SB_URL + '/functions/v1/gemini-suggest';
   var PER_SLOT   = 5;   // 5 phrases par slot horaire  →  15 au total
   var _phrases   = [];  // tableau[15] : [0-4]=matin  [5-9]=aprem  [10-14]=soir
   var _lastIdx   = -1;
@@ -5686,7 +5686,7 @@ document.addEventListener('DOMContentLoaded', function(){
     try{ localStorage.setItem(_lkey(uid),JSON.stringify({date:_today(),phrases:phrases})); }catch(e){}
   }
   function _loadSB(cid,role,cb){
-    fetch(SB2_URL+'/rest/v1/photo_descs?couple_id=eq.'+cid+'&category=eq.mascot&slot=eq.'+encodeURIComponent(_sbSlot(role))+'&select=description&limit=1',{headers:sb2Headers()})
+    fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+cid+'&category=eq.mascot&slot=eq.'+encodeURIComponent(_sbSlot(role))+'&select=description&limit=1',{headers:sb2Headers()})
     .then(function(r){return r.ok?r.json():[];})
     .then(function(rows){
       if(rows&&rows[0]&&rows[0].description){
@@ -5703,7 +5703,7 @@ document.addEventListener('DOMContentLoaded', function(){
     }).catch(function(){cb(null);});
   }
   function _saveSB(cid,role,phrases){
-    fetch(SB2_URL+'/rest/v1/photo_descs',{
+    fetch(SB_URL+'/rest/v1/photo_descs',{
       method:'POST',
       headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),
       body:JSON.stringify({couple_id:cid,category:'mascot',slot:_sbSlot(role),description:JSON.stringify(phrases)})
@@ -5894,7 +5894,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
 /* ══ HOME TAB — Rappels du jour (Supabase + Groq IA) ══ */
 (function(){
-  var GROQ  = SB2_URL + '/functions/v1/gemini-suggest';
+  var GROQ  = SB_URL + '/functions/v1/gemini-suggest';
   var CAT   = 'yam_rappels';
   var SLOT  = 'v1';
   var _data = [];        // [{id,text,done}]
@@ -5912,7 +5912,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function _load(cb){
     var cid=_cid(); if(!cid){cb([]);return;}
-    fetch(SB2_URL+'/rest/v1/photo_descs?couple_id=eq.'+cid+'&category=eq.'+CAT+'&slot=eq.'+SLOT+'&select=id,description&limit=1',{headers:sb2Headers()})
+    fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+cid+'&category=eq.'+CAT+'&slot=eq.'+SLOT+'&select=id,description&limit=1',{headers:sb2Headers()})
     .then(function(r){return r.ok?r.json():[];})
     .then(function(rows){
       if(rows&&rows[0]){
@@ -5926,13 +5926,13 @@ document.addEventListener('DOMContentLoaded', function(){
     var cid=_cid(); if(!cid)return;
     _lastHash=_hash(_data); // marquer nos propres changements comme "vus"
     if(_rowId){
-      fetch(SB2_URL+'/rest/v1/photo_descs?id=eq.'+_rowId,{
+      fetch(SB_URL+'/rest/v1/photo_descs?id=eq.'+_rowId,{
         method:'PATCH',
         headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
         body:JSON.stringify({description:JSON.stringify(_data)})
       }).catch(function(){});
     } else {
-      fetch(SB2_URL+'/rest/v1/photo_descs',{
+      fetch(SB_URL+'/rest/v1/photo_descs',{
         method:'POST',
         headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=representation'}),
         body:JSON.stringify({couple_id:cid,category:CAT,slot:SLOT,description:JSON.stringify(_data)})
@@ -6464,7 +6464,7 @@ document.addEventListener('DOMContentLoaded', function(){
       if(!pill) return;
       if(!coupleId){ pill.style.display = 'none'; return; }
 
-      fetch(SB2_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + encodeURIComponent(coupleId) + '&active=eq.true&order=created_at.desc&limit=1', { headers: sb2Headers() })
+      fetch(SB_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + encodeURIComponent(coupleId) + '&active=eq.true&order=created_at.desc&limit=1', { headers: sb2Headers() })
       .then(function(r){ return r.json(); })
       .then(function(rows){
         // Session active ET c'est l'autre qui attend (host_role != mon rôle) OU moi qui attends
