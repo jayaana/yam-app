@@ -1470,9 +1470,11 @@ setTimeout(function(){
             if(status === 'SUBSCRIBED'){
               yamLog('[RT] #81 song_plays connecté');
               window._playsRTActive = true;
-              // Stoppe le poll 30s
+              // NE PAS stopper le fallback — increment_play est une RPC qui ne
+              // déclenche pas postgres_changes, donc le RT ne reçoit rien.
+              // Le fallback poll 30s reste actif pour capter les mises à jour.
               if(window._playsIv != null){ _CI(window._playsIv); window._playsIv = null; }
-              _stopPlaysFallback();
+              _startPlaysFallback();
             } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
               yamLog('[RT] #81 song_plays ' + status + ' — fallback poll');
               window._playsRTActive = false;
