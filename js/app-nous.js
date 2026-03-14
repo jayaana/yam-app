@@ -4421,7 +4421,6 @@ window.nousLoad = function(){
       _renderTrophies();
       _renderCoupleSince();
       _loadTrophies();
-      _checkStreak();
       _startTicks();
       window.yamFlameActivity('first_login');
     });
