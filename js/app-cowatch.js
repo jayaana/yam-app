@@ -423,8 +423,9 @@
 
   // ── Piped Search ───────────────────────────────────────────────────
   function _pipedSearch(q,onResults,onError){
+    var _cwJwt = typeof _yamSessionToken === 'function' ? _yamSessionToken() : null;
     fetch(SB2_EDGE_PIPED+'?q='+encodeURIComponent(q),{
-      headers:sb2Headers({'x-app-secret':SB2_APP_SECRET})
+      headers:Object.assign({}, sb2Headers(), _cwJwt ? {'Authorization':'Bearer '+_cwJwt} : {})
     })
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
     .then(function(data){
