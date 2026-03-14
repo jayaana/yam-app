@@ -291,10 +291,11 @@ function memoryWinFn() {
   var scoreVal = memoryCalcScore(memMoves, memSeconds);
   var coupleId = _memGetCoupleId();
   if (profile && coupleId) {
-    sbPost('game_scores', {
+    sb2Post('game_scores', {
       couple_id: coupleId, game_id: 'memory',
-      player: profile, score: scoreVal,
-      moves: memMoves, time_seconds: memSeconds
+      player_role: profile, score: scoreVal,
+      moves: memMoves, time_seconds: memSeconds,
+      user_id: yamGetUser ? yamGetUser().id : null
     }).then(function() { _lbLoad(); if (typeof window.yamUpdateTrophies === 'function') window.yamUpdateTrophies(); }).catch(function() {});
   }
   // Flamme
@@ -637,10 +638,11 @@ function _memShowMultiResult(state) {
   var coupleId = _memGetCoupleId();
   if (coupleId && iWon && !isDraw) {
     var scoreVal = memoryCalcScore(memMoves, memSeconds);
-    sbPost('game_scores', {
+    sb2Post('game_scores', {
       couple_id: coupleId, game_id: 'memory',
-      player: profile, score: scoreVal,
-      moves: memMoves, time_seconds: memSeconds
+      player_role: profile, score: scoreVal,
+      moves: memMoves, time_seconds: memSeconds,
+      user_id: yamGetUser ? yamGetUser().id : null
     }).then(function() { _lbLoad(); if (typeof window.yamUpdateTrophies === 'function') window.yamUpdateTrophies(); }).catch(function() {});
   }
 
@@ -703,7 +705,7 @@ function _lbLoad() {
     list.innerHTML = '<div class="lb-empty">Session expirée — reconnectez-vous</div>';
     return;
   }
-  sbGet('game_scores', 'couple_id=eq.' + coupleId + '&game_id=eq.memory&order=score.desc&limit=50')
+  sb2Fetch('game_scores', 'couple_id=eq.' + coupleId + '&game_id=eq.memory&order=score.desc&limit=50')
     .then(function(rows) {
       lbCurrentData = Array.isArray(rows) ? rows : [];
       lbRender(lbCurrentData);
@@ -716,7 +718,7 @@ function _lbLoad() {
 function lbRender(rows) {
   var list = document.getElementById('lbList');
   if(!list) return;
-  var filtered = lbCurrentTab === 'all' ? rows : rows.filter(function(r){ return r.player === lbCurrentTab; });
+  var filtered = lbCurrentTab === 'all' ? rows : rows.filter(function(r){ return r.player_role === lbCurrentTab; });
   var top = filtered.slice(0, 10);
   if(!top.length) {
     list.innerHTML = '<div class="lb-empty">Aucun score encore — soyez les premiers ! 🎮</div>';
@@ -988,7 +990,7 @@ function penduEndGame(won){
     var s = ( yamGetUser ? {user: yamGetUser()} : null );
     var coupleId = s && s.user ? s.user.couple_id : null;
     if(coupleId) {
-      sbPost('game_scores',{couple_id:coupleId,game_id:'pendu',player:penduPlayer,score:penduScore,moves:penduErrors,time_seconds:0})
+      sb2Post('game_scores',{couple_id:coupleId,game_id:'pendu',player_role:penduPlayer,score:penduScore,moves:penduErrors,time_seconds:0,user_id:yamGetUser?yamGetUser().id:null})
         .then(function(){ plbLoad(); if (typeof window.yamUpdateTrophies === 'function') window.yamUpdateTrophies(); }).catch(function(){});
     }
   }
@@ -1012,12 +1014,12 @@ function plbLoad(){
     document.getElementById('plbList').innerHTML='<div class="lb-empty">Session expirée</div>';
     return;
   }
-  sbGet('game_scores','couple_id=eq.' + coupleId + '&game_id=eq.pendu&order=score.desc&limit=50').then(function(r){
+  sb2Fetch('game_scores','couple_id=eq.' + coupleId + '&game_id=eq.pendu&order=score.desc&limit=50').then(function(r){
     plbData=Array.isArray(r)?r:[];plbRender(plbData);
   }).catch(function(){ document.getElementById('plbList').innerHTML='<div class="lb-empty">❌ Erreur</div>'; });
 }
 function plbRender(rows){
-  renderLb('plbList', plbTab==='all'?rows:rows.filter(function(r){return r.player===plbTab;}), function(r){ return '<span>'+parseInt(r.score||0)+'pts</span> · '+parseInt(r.moves||0)+' erreurs'; });
+  renderLb('plbList', plbTab==='all'?rows:rows.filter(function(r){return r.player_role===plbTab;}), function(r){ return '<span>'+parseInt(r.score||0)+'pts</span> · '+parseInt(r.moves||0)+' erreurs'; });
 }
 
 // ══════════════════════════════════════════
@@ -1330,7 +1332,7 @@ function puzzleWin(){
     var s = ( yamGetUser ? {user: yamGetUser()} : null );
     var coupleId = s && s.user ? s.user.couple_id : null;
     if(coupleId) {
-      sbPost('game_scores',{couple_id:coupleId,game_id:'puzzle',player:puzzlePlayer,score:score,moves:puzzleMoveCount,time_seconds:0})
+      sb2Post('game_scores',{couple_id:coupleId,game_id:'puzzle',player_role:puzzlePlayer,score:score,moves:puzzleMoveCount,time_seconds:0,user_id:yamGetUser?yamGetUser().id:null})
         .then(function(){ zplbLoad(); if (typeof window.yamUpdateTrophies === 'function') window.yamUpdateTrophies(); }).catch(function(){});
     }
   }
@@ -1354,12 +1356,12 @@ function zplbLoad(){
     document.getElementById('zplbList').innerHTML='<div class="lb-empty">Session expirée</div>';
     return;
   }
-  sbGet('game_scores','couple_id=eq.' + coupleId + '&game_id=eq.puzzle&order=score.desc&limit=50').then(function(r){
+  sb2Fetch('game_scores','couple_id=eq.' + coupleId + '&game_id=eq.puzzle&order=score.desc&limit=50').then(function(r){
     zplbData=Array.isArray(r)?r:[];zplbRender(zplbData);
   }).catch(function(){ document.getElementById('zplbList').innerHTML='<div class="lb-empty">❌ Erreur</div>'; });
 }
 function zplbRender(rows){
-  renderLb('zplbList', zplbTab==='all'?rows:rows.filter(function(r){return r.player===zplbTab;}), function(r){ return '<span>'+parseInt(r.score||0)+'pts</span> · '+parseInt(r.moves||0)+' échanges'; });
+  renderLb('zplbList', zplbTab==='all'?rows:rows.filter(function(r){return r.player_role===zplbTab;}), function(r){ return '<span>'+parseInt(r.score||0)+'pts</span> · '+parseInt(r.moves||0)+' échanges'; });
 }
 
 // ══════════════════════════════════════════
@@ -1603,7 +1605,7 @@ function snakeGameOver(){
     var s = ( yamGetUser ? {user: yamGetUser()} : null );
     var coupleId = s && s.user ? s.user.couple_id : null;
     if(coupleId) {
-      sbPost('game_scores',{couple_id:coupleId,game_id:'snake',player:snakePlayer,score:snakeCurScore,moves:0,time_seconds:0})
+      sb2Post('game_scores',{couple_id:coupleId,game_id:'snake',player_role:snakePlayer,score:snakeCurScore,moves:0,time_seconds:0,user_id:yamGetUser?yamGetUser().id:null})
         .then(function(){ slbLoad(); if (typeof window.yamUpdateTrophies === 'function') window.yamUpdateTrophies(); }).catch(function(){});
     }
   }
@@ -1639,12 +1641,12 @@ function slbLoad(){
     document.getElementById('slbList').innerHTML='<div class="lb-empty">Session expirée</div>';
     return;
   }
-  sbGet('game_scores','couple_id=eq.' + coupleId + '&game_id=eq.snake&order=score.desc&limit=50').then(function(r){
+  sb2Fetch('game_scores','couple_id=eq.' + coupleId + '&game_id=eq.snake&order=score.desc&limit=50').then(function(r){
     slbData=Array.isArray(r)?r:[];slbRender(slbData);
   }).catch(function(){ document.getElementById('slbList').innerHTML='<div class="lb-empty">❌ Erreur</div>'; });
 }
 function slbRender(rows){
-  renderLb('slbList', slbTab==='all'?rows:rows.filter(function(r){return r.player===slbTab;}), function(r){ return '<span>'+parseInt(r.score||0)+'pts</span>'; });
+  renderLb('slbList', slbTab==='all'?rows:rows.filter(function(r){return r.player_role===slbTab;}), function(r){ return '<span>'+parseInt(r.score||0)+'pts</span>'; });
 }
 
 // ── Fonction commune de rendu leaderboard ──
@@ -1655,7 +1657,7 @@ function renderLb(elId, rows, detailFn){
   var icons=['🥇','🥈','🥉'];
   list.innerHTML=top.map(function(r,i){
     var rc=i===0?'gold':i===1?'silver':i===2?'bronze':'';
-    return '<div class="lb-row"><div class="lb-rank '+rc+'">'+(i<3?icons[i]:i+1)+'</div><div class="lb-dot '+(r.player==='girl'?'girl':'boy')+'"></div><div class="lb-name">'+(typeof v2GetDisplayName==="function"?v2GetDisplayName(r.player):(r.player==="girl"?"Elle":"Lui"))+'</div><div class="lb-score">'+detailFn(r)+'</div></div>';
+    return '<div class="lb-row"><div class="lb-rank '+rc+'">'+(i<3?icons[i]:i+1)+'</div><div class="lb-dot '+(r.player_role==='girl'?'girl':'boy')+'"></div><div class="lb-name">'+(typeof v2GetDisplayName==="function"?v2GetDisplayName(r.player_role):(r.player_role==="girl"?"Elle":"Lui"))+'</div><div class="lb-score">'+detailFn(r)+'</div></div>';
   }).join('');
 }
 
