@@ -354,7 +354,7 @@
     stopPoll();
 
     // ── Realtime (#27) : tenter le channel, fallback poll si indispo ──
-    var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+    var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
     var coupleId = u ? u.couple_id : null;
     if (window._yamRT && coupleId) {
       _startRealtime(coupleId);
@@ -534,7 +534,7 @@
       if(typeof window.yamPushNotify==='function'){
         window.yamPartnerOnlineCheck().then(function(online){
           if(!online){
-            var _me3 = v2GetUser && v2GetUser();
+            var _me3 = yamGetUser && yamGetUser();
             var pName = (_me3 && _me3.pseudo) || (v2GetPartnerPseudo && v2GetPartnerPseudo()) || 'Partenaire';
             window.yamPushNotify({ title: pName + ' 📷', body: 'T\'a envoyé une photo', tag: 'yam-message', data: { tab: 'messages' } });
           }
@@ -1829,9 +1829,11 @@
     scrollBottom();
 
     var body = { couple_id: coupleId, sender_role: identity, sender_id: yamGetUser ? yamGetUser().id : null, text: text };
-    if(replyId)   body.reply_to_id     = replyId;
-    // reply_to_text not in v3 schema — stored locally only
-    // reply_to_sender supprimé en v3 — reply_to_id suffit
+    if(replyId){
+      body.reply_to_id     = replyId;
+      body.reply_to_text   = replyText   || null;
+      body.reply_to_sender = replySender || null;
+    }
 
     fetch(SB_URL + '/rest/v1/' + TABLE, {
       method: 'POST',
@@ -1857,7 +1859,7 @@
       if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('first_message');
       // Push au partenaire uniquement s'il n'est pas déjà en ligne
       if(typeof window.yamPushNotify==='function'){
-        var _me = (typeof v2GetUser==='function' && v2GetUser());
+        var _me = (typeof yamGetUser==='function' && yamGetUser());
         var partnerName = (_me && _me.pseudo) || (typeof v2GetPartnerPseudo==='function' && v2GetPartnerPseudo()) || 'Partenaire';
         var preview = text.length > 60 ? text.slice(0, 57) + '...' : text;
         var _pushPayload = { title: partnerName + ' 💬', body: preview, tag: 'yam-message', data: { tab: 'messages' } };
@@ -2230,7 +2232,7 @@
             if(node) node.dataset.id = real.id;
           }
           if(typeof window.yamPushNotify==='function'){
-            var _me2 = (typeof v2GetUser==='function' && v2GetUser());
+            var _me2 = (typeof yamGetUser==='function' && yamGetUser());
             var partnerName = (_me2 && _me2.pseudo)||(typeof v2GetPartnerPseudo==='function' && v2GetPartnerPseudo())||'Partenaire';
             var _vPush = { title: partnerName+' 🎙️', body:"T'a envoyé un message vocal", tag:'yam-message', data:{tab:'messages'} };
             window.yamPartnerOnlineCheck().then(function(online){
@@ -2481,7 +2483,7 @@
   // ✅ FIX RT — Upgrade poll→Realtime si _yamRT devient dispo après le démarrage
   document.addEventListener('yam:rt_ready', function() {
     if (_rtChannel) return; // déjà connecté en Realtime
-    var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+    var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
     var coupleId = u ? u.couple_id : null;
     if (!window._yamRT || !coupleId) return;
     // Si le poll tourne (chat ouvert en fallback), on switche vers Realtime
@@ -2551,7 +2553,7 @@ function _startLockBadgePolling(){
     var profile = (typeof getProfile === 'function') ? getProfile() : null;
     if(!profile) return;
     var other = profile === 'girl' ? 'boy' : 'girl';
-    var coupleId = (typeof v2GetUser === 'function' && v2GetUser()) ? v2GetUser().couple_id : null;
+    var coupleId = (typeof yamGetUser === 'function' && yamGetUser()) ? yamGetUser().couple_id : null;
     if(!coupleId || typeof SB_URL === 'undefined') return;
     fetch(SB_URL + '/rest/v1/dm_messages?couple_id=eq.' + coupleId + '&sender_role=eq.' + other + '&seen=eq.false&deleted=eq.false&order=created_at.desc&limit=99', {
       headers: (typeof sb2Headers === 'function') ? sb2Headers() : {'apikey': SB_ANON_KEY, 'Authorization': 'Bearer ' + SB_ANON_KEY}
