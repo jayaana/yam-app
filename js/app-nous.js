@@ -147,7 +147,7 @@ var SB2_EDGE_YAM_INIT = null; // initialisé au premier appel (SB_URL dispo)
 // Injecte les données batchées dans les structures existantes de l'app,
 // exactement comme si chaque fonction avait fait sa propre requête.
 function _nousApplyBatchData(d) {
-  var coupleId = (v2GetUser()||{}).couple_id;
+  var coupleId = (yamGetUser()||{}).couple_id;
   if(!coupleId) return;
 
   // 1. Titres sections
@@ -238,7 +238,7 @@ function _nousApplyBatchData(d) {
 
 // Tentative batch — si succès, skip les fetches individuels ; si échec, fallback classique.
 function _nousInitBatch(onSuccess, onFallback) {
-  var u = (typeof v2GetUser==='function') ? v2GetUser() : null;
+  var u = (typeof yamGetUser==='function') ? yamGetUser() : null;
   if(!u || !u.couple_id) { onFallback(); return; }
 
   if(!SB2_EDGE_YAM_INIT) SB2_EDGE_YAM_INIT = SB_URL + '/functions/v1/yam-init';
@@ -290,7 +290,7 @@ function _nousInitAll() {
       luiLoadDescs();
       luiSyncDescs();
       if(typeof window._loadSectionTitles === 'function') window._loadSectionTitles();
-      var _niu = (typeof v2GetUser==='function')?v2GetUser():null;
+      var _niu = (typeof yamGetUser==='function')?yamGetUser():null;
       var _nic = _niu?_niu.couple_id:null;
       if(_nic){
         if(typeof _loadElleBanners==='function') _loadElleBanners(_nic);
@@ -314,7 +314,7 @@ function _nousInitAll() {
   });
   // Force fetch Supabase au 1er chargement — retry jusqu'à ce que couple_id soit dispo
   (function _tryRefreshBadges(attempts){
-    var u = (typeof v2GetUser==='function') ? v2GetUser() : null;
+    var u = (typeof yamGetUser==='function') ? yamGetUser() : null;
     if(u && u.couple_id){
       if(typeof window.yamForceRefreshNewBadges==='function') window.yamForceRefreshNewBadges();
     } else if(attempts > 0){
@@ -331,7 +331,7 @@ function _nousInitAll() {
 // 2. PROFIL COUPLE
 // ════════════════════════════════════════════════════════════════════
 function _nousLoadProfil() {
-  var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+  var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
   if (!u) return;
   var girlName = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName('girl') : 'Elle';
   var boyName  = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName('boy')  : 'Lui';
@@ -366,7 +366,7 @@ function _nousLoadProfil() {
   var _cacheLoadedAt = 0;    // timestamp du dernier fetch complet
   var CACHE_TTL      = 60 * 1000; // 1 min — recharge depuis Supabase si plus vieux
 
-  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
+  function _getCoupleId(){ var u=(typeof yamGetUser==='function')?yamGetUser():null; return u?u.couple_id:null; }
 
   // ── Charge tous les badges du couple depuis Supabase ──
   function _fetchAllBadges(callback){
@@ -502,7 +502,7 @@ window.nousSignalNew = function() {
 // boy édite le titre de ELLE — girl édite le titre de LUI
 // ════════════════════════════════════════════════════════════════════
 (function(){
-  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
+  function _getCoupleId(){ var u=(typeof yamGetUser==='function')?yamGetUser():null; return u?u.couple_id:null; }
 
   // Charger les titres depuis Supabase
   function _loadSectionTitles(){
@@ -590,7 +590,7 @@ window.nousSignalNew = function() {
   var SB_BUCKET = 'images';
   var SLOTS = ['animal','fleurs','personnage','saison','repas'];
 
-  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
+  function _getCoupleId(){ var u=(typeof yamGetUser==='function')?yamGetUser():null; return u?u.couple_id:null; }
   function _ellePath(cid,slot){ return 'uploads/'+cid+'/'+slot+'-elle.jpg'; }
   function _luiPath(cid,slot){ return 'uploads/'+cid+'/'+slot+'-lui.jpg'; }
 
@@ -1029,8 +1029,8 @@ function _startReasonAuto(){
   var _stackData = [];
   var _stackIndex = 0;
 
-  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
-  function _getProfile(){ return (typeof getProfile==='function')?getProfile():'girl'; }
+  function _getCoupleId(){ var u=(typeof yamGetUser==='function')?yamGetUser():null; return u?u.couple_id:null; }
+  function _getProfile(){ if(typeof getProfile==='function'){ var p=getProfile(); if(p) return p; } var u=(typeof yamGetUser==='function')?yamGetUser():null; return u?u.role:null; }
 
   // Charge les mots REÇUS (écrits par le partenaire)
   function _petitsMotsLoad(){
@@ -1281,7 +1281,7 @@ var _lastMilestone   = 0;
 // Cache journalier localStorage
 function _heartTodayKey(){
   var user = (typeof yamGetUser==='function'&&yamGetUser()) ? yamGetUser() : null;
-  var uid = user ? user.id : ((typeof v2GetUser==='function'&&v2GetUser()) ? v2GetUser().id : 'x');
+  var uid = user ? user.id : ((typeof yamGetUser==='function'&&yamGetUser()) ? yamGetUser().id : 'x');
   var d = new Date();
   var dt = d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
   return 'yam_hearts_day_'+uid+'_'+dt;
@@ -1344,7 +1344,7 @@ window._updateSpamBar = _updateSpamBar;
 
 function spawnHeart(){
   var profile=getProfile()||null; if(!profile) return;
-  var coupleId=(typeof v2GetUser==='function'&&v2GetUser())?v2GetUser().couple_id:null;
+  var coupleId=(typeof yamGetUser==='function'&&yamGetUser())?yamGetUser().couple_id:null;
   if(!coupleId) return;
 
   // Spawn depuis le bouton vers le haut
@@ -1385,7 +1385,7 @@ window.spawnHeart = spawnHeart;
 
 
 function loadLikeCounters(){
-  var coupleId=(typeof v2GetUser==='function'&&v2GetUser())?v2GetUser().couple_id:null; if(!coupleId) return;
+  var coupleId=(typeof yamGetUser==='function'&&yamGetUser())?yamGetUser().couple_id:null; if(!coupleId) return;
   fetch(SB_URL+'/rest/v1/like_counters?couple_id=eq.'+coupleId+'&select=role,total',{headers:sb2Headers()})
   .then(function(r){ return r.ok?r.json():[]; })
   .then(function(rows){
@@ -1438,7 +1438,7 @@ function _startLikesRealtime(coupleId) {
 
 // Lancer Realtime ou fallback poll selon disponibilité
 (function() {
-  var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+  var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
   var coupleId = u ? u.couple_id : null;
   if (window._yamRT && coupleId) {
     _startLikesRealtime(coupleId);
@@ -1449,7 +1449,7 @@ function _startLikesRealtime(coupleId) {
 
 // ✅ #38 — Relancer après reconnexion
 document.addEventListener('yam:session_ready', function(){
-  var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+  var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
   var coupleId = u ? u.couple_id : null;
   loadLikeCounters();
   if (window._yamRT && coupleId) {
@@ -1470,7 +1470,7 @@ document.addEventListener('yam:session_ready', function(){
 // ════════════════════════════════════════════════════════════════════
 (function(){
 
-  function _getSession(){ return (typeof v2GetUser==='function')?v2GetUser():null; }
+  function _getSession(){ return (typeof yamGetUser==='function')?yamGetUser():null; }
 
   // ── Rendu principal : aperçu note + todo côte à côte ──
   function renderMemoCouple(){
@@ -1791,7 +1791,7 @@ document.addEventListener('yam:session_ready', function(){
 // ════════════════════════════════════════════════════════════════════
 (function(){
 
-  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
+  function _getCoupleId(){ var u=(typeof yamGetUser==='function')?yamGetUser():null; return u?u.couple_id:null; }
 
   var _souvenirAllRows = [];
 
@@ -2135,7 +2135,7 @@ document.addEventListener('yam:session_ready', function(){
     {emoji:'💌',titre:'Échange de lettres',desc:'Écrire une lettre à l\'autre à la main',steps:['Trouver du papier et un stylo','Écrire la lettre','L\'offrir','Garder les lettres précieusement']}
   ];
 
-  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
+  function _getCoupleId(){ var u=(typeof yamGetUser==='function')?yamGetUser():null; return u?u.couple_id:null; }
 
   // Cache de toutes les activités (comme _souvenirAllRows pour les souvenirs)
   var _activiteAllRows = [];
@@ -2524,7 +2524,7 @@ document.addEventListener('yam:session_ready', function(){
     btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="spin-anim"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Génération...';
 
     var coupleId = _getCoupleId();
-    var u = (typeof v2GetUser==='function') ? v2GetUser() : null;
+    var u = (typeof yamGetUser==='function') ? yamGetUser() : null;
     var partnerName = u ? (u.partner_pseudo || 'ton partenaire') : 'ton partenaire';
     var daysTogether = 0;
     if(window.startDate){ daysTogether = Math.floor((Date.now()-new Date(window.startDate))/(1000*60*60*24)); }
@@ -2596,7 +2596,7 @@ document.addEventListener('yam:session_ready', function(){
 // ════════════════════════════════════════════════════════════════════
 (function(){
 
-  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
+  function _getCoupleId(){ var u=(typeof yamGetUser==='function')?yamGetUser():null; return u?u.couple_id:null; }
 
   var _histoireAllRows = [];
   var _histoireSelectedIndex = 0; // index du chapitre affiché dans la bulle
@@ -2874,7 +2874,7 @@ document.addEventListener('yam:session_ready', function(){
   var GROQ_EDGE = SB_URL + '/functions/v1/gemini-suggest';
   var MAX_VISIBLE = 5; // pochettes visibles dans le slider
 
-  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
+  function _getCoupleId(){ var u=(typeof yamGetUser==='function')?yamGetUser():null; return u?u.couple_id:null; }
 
   var _livresAllRows = [];
   var _livreFromGestion = false;
@@ -3394,7 +3394,7 @@ function _gearSVG(){
 // 16. EXPOSITION GLOBALE pour yamSwitchTab
 // ════════════════════════════════════════════════════════════════════
 window.nousLoad = function(){
-  var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+  var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
   if (!u || !u.couple_id) {
     // Session pas encore prête — setProfile() va relancer nousLoad via son hook
     // On marque quand même que l'onglet a été demandé
@@ -3431,7 +3431,7 @@ window.nousLoad = function(){
   var SLOTS_ELLE = ['animal','fleurs','personnage','saison','repas'];
   var SLOT_LABELS = { animal:'Animal 🐾', fleurs:'Fleurs 🌸', personnage:'Personnage 🧑', saison:'Saison 🍂', repas:'Repas 🍽️' };
 
-  function _getCoupleId(){ var u=(typeof v2GetUser==='function')?v2GetUser():null; return u?u.couple_id:null; }
+  function _getCoupleId(){ var u=(typeof yamGetUser==='function')?yamGetUser():null; return u?u.couple_id:null; }
   function _getWeekKey(){
     var d = new Date();
     var jan1 = new Date(d.getFullYear(), 0, 1);
@@ -3684,7 +3684,7 @@ window.nousLoad = function(){
 
   // ── Helpers session ─────────────────────────────────────────────
   function _getCoupleId () {
-    var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+    var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
     return u ? u.couple_id : null;
   }
   function _getProfile () {
