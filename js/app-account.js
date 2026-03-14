@@ -1694,7 +1694,7 @@ window.addEventListener('load', function(){
       fetch(SB_URL + '/rest/v1/' + MOOD_TABLE, {
         method: 'POST',
         headers: sb2Headers({'Prefer':'return=minimal'}),
-        body: JSON.stringify({ role: sender, emoji: emoji, mood_date: today, couple_id: coupleId, user_id: u3 ? u3.id : null })
+        body: JSON.stringify({ role: sender, emoji: emoji, mood_date: today, couple_id: coupleId, user_id: u3 ? u3.id : null, message: msg || null })
       }).then(function(){
         if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('mood_change');
       }).catch(function(){});
