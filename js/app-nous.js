@@ -3888,11 +3888,13 @@ window.nousLoad = function(){
     };
 
     // INSERT en base EN PREMIER — doublon ignoré silencieusement via on_conflict
-    fetch(SB_URL + '/rest/v1/flame_activities?on_conflict=couple_id,activity_type,activity_date', {
+    var _faUser = (typeof yamGetUser === 'function' && yamGetUser()) ? yamGetUser() : null;
+    fetch(SB_URL + '/rest/v1/flame_activities?on_conflict=couple_id,user_id,activity_type,activity_date', {
       method  : 'POST',
       headers : sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal,resolution=ignore-duplicates' }),
       body    : JSON.stringify({
         couple_id    : cid,
+        user_id      : _faUser ? _faUser.id : null,
         activity_type: activityType,
         activity_date: new Date().toISOString().split('T')[0]
       })
