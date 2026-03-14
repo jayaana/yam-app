@@ -215,6 +215,7 @@ function sb2Upsert(table, body, prefer) {
     'moods':             'couple_id,user_id,mood_date',
     'flame_activities':  'couple_id,activity_type,activity_date',
     'photo_descs':       'couple_id,category,slot',
+    'song_plays':        'couple_id,song_file',
     'new_badges':        'couple_id,section',
   };
   var onConflict = conflictMap[table];
