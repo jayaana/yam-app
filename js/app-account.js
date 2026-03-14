@@ -2206,8 +2206,8 @@ window.addEventListener('load', function(){
 
     function _initMoodsRealtime(){
       if(!window._yamRT){ _startMoodsFallback(); return; }
-      var sess = JSON.parse(localStorage.getItem('yam_session_v3')||'null');
-      var cid = sess && sess.user ? sess.user.couple_id : null;
+      var u = typeof yamGetUser === 'function' ? yamGetUser() : null;
+      var cid = u ? u.couple_id : null;
       if(!cid){ _startMoodsFallback(); return; }
       if(window._yamRTChannels && window._yamRTChannels['moods']) return;
 
