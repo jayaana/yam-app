@@ -1109,7 +1109,7 @@
       btn.addEventListener('click', function(e2){
         e2.stopPropagation();
         // _col replaced by jsonb reactions patch
-        var newReact = (msg[_col] === em) ? null : em;
+        var newReact = ((msg.reactions||{})[identity] === em) ? null : em;
         setReaction(msg, wrap, newReact); closeCtxMenu();
       });
       emRow.appendChild(btn);
