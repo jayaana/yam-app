@@ -986,7 +986,7 @@ loadFavorites();
   function nlPoll(){
     var _nl = yamGetUser ? {user: yamGetUser()} : null;
     var _nlId=_nl&&_nl.user?_nl.user.couple_id:null; if(!_nlId) return;
-    fetch(SB_URL+'/rest/v1/'+NL_TABLE+'?couple_id=eq.'+_nlId+'&select=sender,song_file&order=updated_at.desc',{headers:sb2Headers()})
+    fetch(SB_URL+'/rest/v1/'+NL_TABLE+'?couple_id=eq.'+_nlId+'&select=sender_role,song_file&order=updated_at.desc',{headers:sb2Headers()})
     .then(function(r){ return r.ok?r.json():null; })
     .then(function(rows){
       if(!Array.isArray(rows)) return;
