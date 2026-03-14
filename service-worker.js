@@ -2,7 +2,7 @@
 // Cache les assets statiques pour un chargement rapide
 // Ne met PAS en cache les requêtes Supabase (données toujours fraîches)
 
-var CACHE_NAME = 'yam-v30';
+var CACHE_NAME = 'yam-v31';
 
 // Assets à mettre en cache au premier chargement
 var STATIC_ASSETS = [
@@ -119,13 +119,12 @@ self.addEventListener('fetch', function(event) {
     caches.match(event.request).then(function(cached) {
       if (cached) {
         // Retourne le cache ET met à jour en arrière-plan (stale-while-revalidate)
-        var fetchPromise = fetch(event.request).then(function(network) {
+        fetch(event.request).then(function(network) {
           if (network && network.status === 200) {
             caches.open(CACHE_NAME).then(function(cache) {
-              cache.put(event.request, network.clone());
+              cache.put(event.request, network);
             });
           }
-          return network;
         }).catch(function() {});
         return cached;
       }
