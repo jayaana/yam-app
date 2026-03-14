@@ -3745,8 +3745,12 @@ window.nousLoad = function(){
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (rows) {
         if (rows && rows[0]) {
-          _flame.points             = parseFloat(rows[0].points) || 0;
-          _flame.last_updated       = new Date(rows[0].last_updated);
+          var remoteDate = new Date(rows[0].last_updated);
+          // Ne pas écraser si on a une valeur locale plus récente (RPC en cours)
+          if (!_flame.last_updated || remoteDate >= _flame.last_updated) {
+            _flame.points       = parseFloat(rows[0].points) || 0;
+            _flame.last_updated = remoteDate;
+          }
           _flame.rowId              = rows[0].id;
           _flame.points_at_midnight = (rows[0].points_at_midnight != null)
                                         ? parseFloat(rows[0].points_at_midnight)
