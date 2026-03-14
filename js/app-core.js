@@ -1,319 +1,433 @@
-// ═══════════════════════════════════════════════════════════
-// app-core.js — iOS init · Supabase · Auth · Thème · Utilitaires
+// ═══════════════════════════════════════════════════════════════════
+// app-core-v3.js — YAM v3
+// Supabase Auth natif · JWT · RLS via auth.uid() · Realtime propre
+// Remplace complètement app-core.js (auth UUID custom supprimé)
+// ═══════════════════════════════════════════════════════════════════
 
-// Fix clavier iOS — géré par app-ios-touch.js (_yamKeyboardUpdate / _dmUpdateVP)
-// Fix zoom iOS — supprimé (causait rebond navbar). Géré par font-size:16px en CSS.
-// Pull-to-refresh blocker — géré par app-ios-touch.js
+// ── Configuration Supabase ───────────────────────────────────────
+var SB_URL       = 'https://jstiwtbgkbedtldqjdhp.supabase.co';
+var SB_ANON_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdGl3dGJna2JlZHRsZHFqZGhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4OTI1NTgsImV4cCI6MjA4NzQ2ODU1OH0.3W1u55aIakQxW5EyF0Sahc6Pjak1JqWhcX1ZifePH98';
+var SB_EDGE_AUTH = SB_URL + '/functions/v1/auth-v3';
+var SB_EDGE_PUSH = SB_URL + '/functions/v1/push-notify';
 
-async function nativeLogout(){
-  // Purge session v2 + compat
-  localStorage.removeItem(V2_SESSION_KEY || 'yam_v2_session');
-  localStorage.removeItem('jayana_profile');
-  sessionStorage.clear(); // purge toutes les sessions stockées
-  location.reload();
-}
+// ── Clé localStorage ─────────────────────────────────────────────
+var YAM_SESSION_KEY = 'yam_session_v3';
 
+// ── Debug ─────────────────────────────────────────────────────────
+window._YAM_DEBUG = false;
+window.yamLog = function() { if (window._YAM_DEBUG) console.log.apply(console, arguments); };
 
-
-// ══════════════════════════════════════════════════════════
-// SUPABASE V2 — Projet actif (auth + données + storage)
-// ════════════════════════════════════════════
-var SB2_URL        = 'https://jstiwtbgkbedtldqjdhp.supabase.co';
-var SB2_KEY        = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdGl3dGJna2JlZHRsZHFqZGhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4OTI1NTgsImV4cCI6MjA4NzQ2ODU1OH0.3W1u55aIakQxW5EyF0Sahc6Pjak1JqWhcX1ZifePH98';
-var SB2_EDGE_AUTH  = SB2_URL + '/functions/v1/auth-v2';
-var SB2_EDGE_PUSH  = SB2_URL + '/functions/v1/push-notify';
-
-// ── Supabase Realtime client (#27) ──────────────────────────────────────────
-// Initialisé une seule fois — partagé par tous les modules via window._yamRT
-window._yamRT = null;
+// ── Realtime ──────────────────────────────────────────────────────
+window._yamRT         = null;
 window._yamRTChannels = {};
 
-function _yamInitRealtime() {
-  if (window._yamRT) return; // déjà initialisé
-  if (!window.supabase) { console.warn('[RT] supabase-js non chargé'); return; }
-  window._yamRT = window.supabase.createClient(SB2_URL, SB2_KEY);
-  console.log('[RT] Client Realtime initialisé');
+
+// ═════════════════════════════════════════════════════════════════
+// SESSION — Supabase Auth natif (JWT + refresh_token)
+// ═════════════════════════════════════════════════════════════════
+
+// Sauvegarde la session complète en localStorage
+function yamSaveSession(data) {
+  localStorage.setItem(YAM_SESSION_KEY, JSON.stringify({
+    access_token:  data.access_token,
+    refresh_token: data.refresh_token,
+    expires_at:    data.expires_at,
+    user:          data.user,
+  }));
 }
 
-// Exposer pour usage par les modules
-window._yamInitRealtime = _yamInitRealtime;
-
-// Fermer tous les channels Realtime (appelé à la déconnexion)
-window._yamRTCloseAll = function() {
-  if (!window._yamRT) return;
-  Object.keys(window._yamRTChannels).forEach(function(key) {
-    try { window._yamRT.removeChannel(window._yamRTChannels[key]); } catch(e) {}
-  });
-  window._yamRTChannels = {};
-  console.log('[RT] Tous les channels fermés');
-};
-// SB2_APP_SECRET supprimé — remplacé par token de session
-function _yamSessionToken(){
+// Charge la session depuis localStorage
+function yamLoadSession() {
   try {
-    var s = localStorage.getItem('yam_v2_session');
-    if(!s) return '';
-    return JSON.parse(s).token || '';
-  } catch(e){ return ''; }
+    var s = JSON.parse(localStorage.getItem(YAM_SESSION_KEY) || 'null');
+    if (s && s.access_token && s.user) return s;
+  } catch (e) {}
+  return null;
 }
 
-// ── Helpers SB2 REST (utilisés dans tous les fichiers JS) ──
-function sb2Headers(extra){
-  // ⚠️ FIX LIKES : Le token de session est un UUID, pas un JWT valide
-  // Supabase rejette les UUID avec "Expected 3 parts in JWT; got 1"
-  // Solution : utiliser UNIQUEMENT l'anon key, ignorer le token
+// Retourne true si le JWT est expiré (avec 60s de marge)
+function _jwtExpired(session) {
+  if (!session || !session.expires_at) return true;
+  return new Date(session.expires_at * 1000) < new Date(Date.now() + 60000);
+}
+
+// Rafraîchit le JWT via le refresh_token si nécessaire
+// Retourne la session fraîche ou null si impossible
+async function yamRefreshIfNeeded() {
+  var s = yamLoadSession();
+  if (!s) return null;
+
+  // JWT encore valide — pas besoin de refresh
+  if (!_jwtExpired(s)) return s;
+
+  // JWT expiré — on tente un refresh
+  if (!s.refresh_token) {
+    _yamHandleExpiredSession();
+    return null;
+  }
+
+  try {
+    var res = await fetch(SB_EDGE_AUTH, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'refresh_token', refresh_token: s.refresh_token }),
+    });
+    var data = await res.json();
+    if (!data.ok || data.error) {
+      _yamHandleExpiredSession();
+      return null;
+    }
+    yamSaveSession(data);
+    // Re-auth le client Realtime avec le nouveau JWT
+    if (window._yamRT) window._yamRT.realtime.setAuth(data.access_token);
+    return yamLoadSession();
+  } catch (e) {
+    console.error('[Auth] Refresh failed:', e);
+    _yamHandleExpiredSession();
+    return null;
+  }
+}
+
+// Session expirée → purge + affichage login
+function _yamHandleExpiredSession() {
+  window.yamClearAllPolls();
+  if (window._yamRTCloseAll) window._yamRTCloseAll();
+  localStorage.removeItem(YAM_SESSION_KEY);
+  localStorage.removeItem('jayana_profile'); // compat
+  if (window.v2ShowLogin) window.v2ShowLogin();
+  else location.reload();
+}
+
+// ── Accesseurs session ─────────────────────────────────────────────
+
+function yamGetSession()       { return yamLoadSession(); }
+function yamGetUser()          { var s = yamLoadSession(); return s ? s.user : null; }
+function yamGetAccessToken()   { var s = yamLoadSession(); return s ? s.access_token : ''; }
+function yamGetPseudo()        { var u = yamGetUser(); return u ? u.pseudo : null; }
+function yamGetPartnerPseudo() { var u = yamGetUser(); return u ? u.partner_pseudo : null; }
+function getProfile()          { var u = yamGetUser(); return u ? u.role : null; }
+
+function yamGetDisplayName(role) {
+  var u = yamGetUser();
+  if (u && u.role === role && u.pseudo)         return u.pseudo;
+  if (u && u.role !== role && u.partner_pseudo) return u.partner_pseudo;
+  return role === 'girl' ? 'Elle 👧' : 'Lui 👦';
+}
+
+// Compat aliases (utilisés par d'autres modules)
+window.v2GetUser          = yamGetUser;
+window.v2GetPseudo        = yamGetPseudo;
+window.v2GetPartnerPseudo = yamGetPartnerPseudo;
+window.v2GetDisplayName   = yamGetDisplayName;
+window.v2LoadSession      = yamLoadSession;
+
+
+// ═════════════════════════════════════════════════════════════════
+// HEADERS REST SUPABASE
+// Toutes les requêtes REST utilisent le JWT Supabase Auth natif.
+// RLS s'applique automatiquement via auth.uid().
+// ═════════════════════════════════════════════════════════════════
+
+function sb2Headers(extra) {
+  var token = yamGetAccessToken();
   return Object.assign({
-    'apikey': SB2_KEY,
-    'Authorization': 'Bearer ' + SB2_KEY,
-    'Content-Type': 'application/json'
+    'apikey':        SB_ANON_KEY,
+    'Authorization': 'Bearer ' + (token || SB_ANON_KEY),
+    'Content-Type':  'application/json',
   }, extra || {});
 }
 
-// ── Arrêt global de tous les polls — appelé à la déconnexion / 401 ──
-// ── Logger debug — no-op en production, activer avec window._YAM_DEBUG = true dans la console ──
-window._YAM_DEBUG = false;
-window.yamLog = function(){ if(window._YAM_DEBUG) console.log.apply(console, arguments); };
 
-window.yamClearAllPolls = function(){
-  // Présence (app-core.js — _heartbeatIv et _pollIv exposés via closure)
-  if(window._yamStopPresence) window._yamStopPresence();
-  // Likes + Now Listening adaptatifs (app-nav.js)
-  if(window._yamStopAdaptivePolls) window._yamStopAdaptivePolls();
-  // Poll messages + typing (app-messages.js)
-  if(window._dmStopPoll) window._dmStopPoll();
-  // Badge non-lus (app-messages.js)
-  if(window._dmStopBadgePoll) window._dmStopBadgePoll();
-  // Poll checkUnread 8s (app-nous.js)
-  if(window._yamStopUnreadPoll) window._yamStopUnreadPoll();
-  // Likes interval direct (app-nous.js — window._likesIv)
-  if(window._likesIv){ clearInterval(window._likesIv); window._likesIv = null; }
-  // Poll bêtises (app-pranks.js)
-  if(window._yamStopPrankPoll) window._yamStopPrankPoll();
-  // Poll partenaire + humeurs (app-account.js)
-  if(window._yamStopPartnerPoll) window._yamStopPartnerPoll();
-  if(window._yamStopMoodsPoll)   window._yamStopMoodsPoll();
-};
+// ═════════════════════════════════════════════════════════════════
+// INTERCEPTEUR 401 — JWT expiré mid-session
+// ═════════════════════════════════════════════════════════════════
 
-// ── Intercepteur 401 : session expirée → purge + affichage login ──
-function _sb2Handle401(response){
-  if(response.status === 401){
-    // Stoppe tous les polls avant de purger
-    window.yamClearAllPolls();
-    // Ferme les channels Realtime
-    if(window._yamRTCloseAll) window._yamRTCloseAll();
-    // Purge session expirée
-    localStorage.removeItem('yam_v2_session');
-    localStorage.removeItem('jayana_profile');
-    // Affiche le login si disponible, sinon reload
-    if(window.v2ShowLogin){
-      window.v2ShowLogin();
-    } else {
-      location.reload();
+async function _sb2Handle401(response) {
+  if (response.status === 401) {
+    // Tenter un refresh silencieux avant de déconnecter
+    var refreshed = await yamRefreshIfNeeded();
+    if (!refreshed) {
+      // Refresh impossible → déconnexion
+      _yamHandleExpiredSession();
     }
-    return Promise.reject(new Error('Session expirée — veuillez vous reconnecter.'));
+    return Promise.reject(new Error('401 — session rafraîchie ou expirée'));
   }
   return response;
 }
 
-function sb2Fetch(table, params){
-  var url = SB2_URL + '/rest/v1/' + table + '?' + (params || 'order=created_at.desc');
+
+// ═════════════════════════════════════════════════════════════════
+// HELPERS REST SB2 — identiques à app-core v2 pour compatibilité
+// ═════════════════════════════════════════════════════════════════
+
+function sb2Fetch(table, params) {
+  var url = SB_URL + '/rest/v1/' + table + '?' + (params || 'order=created_at.desc');
   return fetch(url, { headers: sb2Headers() })
     .then(_sb2Handle401)
-    .then(function(r){ return r.json(); });
+    .then(function(r) { return r.json(); })
+    .catch(function(e) { console.error('[sb2Fetch]', table, e); return []; });
 }
-function sb2Post(table, body, extra){
-  return fetch(SB2_URL + '/rest/v1/' + table, {
+
+function sb2Post(table, body, extra) {
+  return fetch(SB_URL + '/rest/v1/' + table, {
     method: 'POST',
     headers: sb2Headers(Object.assign({ 'Prefer': 'return=representation' }, extra || {})),
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
   })
   .then(_sb2Handle401)
-  .then(function(r){ return r.json(); });
+  .then(function(r) { return r.json(); });
 }
-function sb2Patch(table, filter, body){
-  return fetch(SB2_URL + '/rest/v1/' + table + '?' + filter, {
+
+function sb2Patch(table, filter, body) {
+  return fetch(SB_URL + '/rest/v1/' + table + '?' + filter, {
     method: 'PATCH',
     headers: sb2Headers({ 'Prefer': 'return=representation' }),
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
   })
   .then(_sb2Handle401)
-  .then(function(r){ return r.json(); });
+  .then(function(r) { return r.json(); });
 }
-function sb2Delete(table, filter){
-  return fetch(SB2_URL + '/rest/v1/' + table + '?' + filter, {
+
+function sb2Delete(table, filter) {
+  return fetch(SB_URL + '/rest/v1/' + table + '?' + filter, {
     method: 'DELETE',
-    headers: sb2Headers()
+    headers: sb2Headers(),
   })
   .then(_sb2Handle401)
-  .then(function(r){ return r.ok; });
+  .then(function(r) { return r.ok; });
 }
-function sb2Upsert(table, body, prefer){
-  return fetch(SB2_URL + '/rest/v1/' + table, {
+
+function sb2Upsert(table, body, prefer) {
+  return fetch(SB_URL + '/rest/v1/' + table, {
     method: 'POST',
     headers: sb2Headers({ 'Prefer': prefer || 'resolution=merge-duplicates,return=minimal' }),
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
   })
   .then(_sb2Handle401)
-  .then(function(r){ return r.ok; });
+  .then(function(r) { return r.ok; });
 }
 
-// Clé localStorage pour la session v2
-var V2_SESSION_KEY = 'yam_v2_session';
 
-// Sauvegarde session v2 dans localStorage
-function v2SaveSession(data){
-  localStorage.setItem(V2_SESSION_KEY, JSON.stringify({
-    token:     data.token,
-    expires_at: data.expires_at,
-    user:      data.user
-  }));
+// ═════════════════════════════════════════════════════════════════
+// AUTH — Register / Login / Logout
+// Délèguent à Edge Function auth-v3 qui utilise Supabase Auth Admin
+// ═════════════════════════════════════════════════════════════════
+
+function _authPost(payload) {
+  return fetch(SB_EDGE_AUTH, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).then(function(r) { return r.json(); });
 }
 
-// Charge session v2 depuis localStorage
-function v2LoadSession(){
-  try{
-    var s = JSON.parse(localStorage.getItem(V2_SESSION_KEY)||'null');
-    if(s && s.token && s.expires_at && new Date(s.expires_at) > new Date()) return s;
-  }catch(e){}
-  return null;
-}
-
-// Recharge les données utilisateur depuis le serveur et met à jour la session locale
-// Utile après unlink_partner, update_pseudo, ou join_couple
-function v2RefreshSession(){
-  var s = v2LoadSession();
-  if(!s || !s.user || !s.user.id) return Promise.resolve(null);
-  
-  return fetch(SB2_URL + '/rest/v1/v2_users?id=eq.' + s.user.id + '&select=id,pseudo,role,couple_id', {
-    headers: sb2Headers()
-  })
-  .then(function(r){ return r.ok ? r.json() : null; })
-  .then(function(rows){
-    if(!Array.isArray(rows) || !rows.length) return null;
-    var freshUser = rows[0];
-    
-    // Récupérer le partner_pseudo si couple_id existe
-    if(freshUser.couple_id){
-      return fetch(SB2_URL + '/rest/v1/v2_users?couple_id=eq.' + freshUser.couple_id + '&id=neq.' + freshUser.id + '&select=pseudo&limit=1', {
-        headers: sb2Headers()
-      })
-      .then(function(r){ return r.ok ? r.json() : null; })
-      .then(function(partnerRows){
-        freshUser.partner_pseudo = (Array.isArray(partnerRows) && partnerRows.length > 0) ? partnerRows[0].pseudo : null;
-        
-        // Récupérer le couple_code
-        return fetch(SB2_URL + '/rest/v1/v2_couples?id=eq.' + freshUser.couple_id + '&select=code&limit=1', {
-          headers: sb2Headers()
-        })
-        .then(function(r){ return r.ok ? r.json() : null; })
-        .then(function(coupleRows){
-          freshUser.couple_code = (Array.isArray(coupleRows) && coupleRows.length > 0) ? coupleRows[0].code : null;
-          
-          // Mettre à jour la session locale
-          s.user = freshUser;
-          localStorage.setItem(V2_SESSION_KEY, JSON.stringify(s));
-          return freshUser;
-        });
-      });
-    } else {
-      // Pas de couple — mettre à jour quand même
-      freshUser.partner_pseudo = null;
-      freshUser.couple_code = null;
-      s.user = freshUser;
-      localStorage.setItem(V2_SESSION_KEY, JSON.stringify(s));
-      return freshUser;
-    }
-  })
-  .catch(function(){ return null; });
-}
-
-// Retourne le profil courant (role: 'girl' ou 'boy') depuis la session v2
-// Fallback sur l'ancien système pour ne pas casser l'app actuelle
-function getProfile(){
-  var s = v2LoadSession();
-  if(s && s.user && (s.user.role === 'girl' || s.user.role === 'boy')) return s.user.role;
-  var v = localStorage.getItem('jayana_profile');
-  return (v === 'boy' || v === 'girl') ? v : null;
-}
-
-// Retourne l'objet user complet de la session v2
-function v2GetUser(){
-  var s = v2LoadSession();
-  return s ? s.user : null;
-}
-
-// Retourne le pseudo de l'utilisateur connecté (ou null)
-function v2GetPseudo(){
-  var u = v2GetUser();
-  return (u && u.pseudo) ? u.pseudo : null;
-}
-
-// Retourne le pseudo du partenaire (ou null)
-// Nécessite que le couple_id et les données partenaire soient stockés en session
-function v2GetPartnerPseudo(){
-  var u = v2GetUser();
-  return (u && u.partner_pseudo) ? u.partner_pseudo : null;
-}
-
-// Retourne le pseudo d'un profil — avec fallback sur "Zelda"/"Link"
-// Utiliser cette fonction partout où on affiche le nom d'un profil
-function v2GetDisplayName(role){
-  var u = v2GetUser();
-  if(u && u.role === role && u.pseudo) return u.pseudo;
-  if(u && u.role !== role && u.partner_pseudo) return u.partner_pseudo;
-  // Fallback : noms génériques selon le rôle
-  return role === 'girl' ? 'Elle 👧' : 'Lui 👦';
-}
-
-// Appel à l'Edge Function auth-v2
-function v2Auth(action, payload){
-  return fetch(SB2_EDGE_AUTH, {
+function _authPostWithJwt(payload) {
+  var token = yamGetAccessToken();
+  return fetch(SB_EDGE_AUTH, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'x-app-secret': 'Kx9mPvR3wLjN7qTnYc4Zd',
-      'Authorization': 'Bearer ' + SB2_KEY
+      'Content-Type':  'application/json',
+      'Authorization': 'Bearer ' + token,
     },
-    body: JSON.stringify(Object.assign({ action: action }, payload))
-  }).then(function(r){ return r.json(); });
+    body: JSON.stringify(payload),
+  }).then(function(r) { return r.json(); });
 }
 
-// Connexion : pseudo + password
-function v2Login(pseudo, password){
-  return v2Auth('login', { pseudo: pseudo, password: password })
-    .then(function(data){
-      if(data.error) return { ok: false, error: data.error };
-      v2SaveSession(data);
-      localStorage.setItem('jayana_profile', data.user.role); // compat ancien système
-      return { ok: true, data: data };
-    });
-}
-
-// Inscription : pseudo + password + role → génère un code couple
-function v2Register(pseudo, password, role){
-  return v2Auth('register', { pseudo: pseudo, password: password, role: role })
-    .then(function(data){
-      if(data.error) return { ok: false, error: data.error };
-      v2SaveSession(data);
+function yamRegister(email, password, pseudo, role) {
+  return _authPost({ action: 'register', email, password, pseudo, role })
+    .then(function(data) {
+      if (!data.ok) return { ok: false, error: data.error };
+      yamSaveSession(data);
       localStorage.setItem('jayana_profile', data.user.role);
       return { ok: true, data: data };
     });
 }
 
-// Rejoindre un couple : pseudo + password + role + code couple
-function v2Join(pseudo, password, role, coupleCode){
-  return v2Auth('join', { pseudo: pseudo, password: password, role: role, couple_code: coupleCode })
-    .then(function(data){
-      if(data.error) return { ok: false, error: data.error };
-      v2SaveSession(data);
+function yamLogin(email, password) {
+  return _authPost({ action: 'login', email, password })
+    .then(function(data) {
+      if (!data.ok) return { ok: false, error: data.error };
+      yamSaveSession(data);
       localStorage.setItem('jayana_profile', data.user.role);
       return { ok: true, data: data };
     });
 }
 
-// SÉCURITÉ — Fonction globale d'échappement HTML
-// À utiliser PARTOUT où des données Supabase sont injectées via innerHTML
-function escHtml(str){
-  if(str === null || str === undefined) return '';
+async function yamLogout() {
+  // Invalider le JWT côté Supabase Auth
+  try {
+    var token = yamGetAccessToken();
+    if (token) {
+      await fetch(SB_URL + '/auth/v1/logout', {
+        method: 'POST',
+        headers: { 'apikey': SB_ANON_KEY, 'Authorization': 'Bearer ' + token },
+      });
+    }
+  } catch (e) { /* silent */ }
+
+  window.yamClearAllPolls();
+  if (window._yamRTCloseAll) window._yamRTCloseAll();
+  localStorage.removeItem(YAM_SESSION_KEY);
+  localStorage.removeItem('jayana_profile');
+  location.reload();
+}
+
+// Compat alias
+window.nativeLogout  = yamLogout;
+window.v2Auth        = function(action, payload) { return _authPostWithJwt(Object.assign({ action }, payload)); };
+
+// Rafraîchit le profil complet depuis auth-v3 (ex: après join_couple ou update_pseudo)
+function v2RefreshSession() {
+  return _authPost({ action: 'refresh_token', refresh_token: (yamLoadSession() || {}).refresh_token })
+    .then(function(data) {
+      if (!data.ok || !data.user) return null;
+      yamSaveSession(data);
+      if (window._yamRT) window._yamRT.realtime.setAuth(data.access_token);
+      return data.user;
+    })
+    .catch(function() { return null; });
+}
+window.v2RefreshSession = v2RefreshSession;
+
+// Join couple via code
+function yamJoinCouple(coupleCode) {
+  return _authPostWithJwt({ action: 'join_couple', couple_code: coupleCode })
+    .then(function(data) {
+      if (!data.ok) return { ok: false, error: data.error };
+      // Mettre à jour le user dans la session locale
+      var s = yamLoadSession();
+      if (s) { s.user = data.user; localStorage.setItem(YAM_SESSION_KEY, JSON.stringify(s)); }
+      return { ok: true, data: data };
+    });
+}
+window.yamJoinCouple = yamJoinCouple;
+
+
+// ═════════════════════════════════════════════════════════════════
+// REALTIME — Client Supabase Auth natif
+// Le JWT est passé à setAuth() → auth.uid() disponible dans les policies
+// ═════════════════════════════════════════════════════════════════
+
+function _yamInitRealtime() {
+  if (window._yamRT) return;
+  if (!window.supabase) { console.warn('[RT] supabase-js non chargé'); return; }
+
+  window._yamRT = window.supabase.createClient(SB_URL, SB_ANON_KEY);
+
+  // ── CLEF : passer le JWT Supabase Auth natif au client Realtime
+  // Cela active auth.uid() dans les policies Realtime côté Supabase
+  var token = yamGetAccessToken();
+  if (token) {
+    window._yamRT.realtime.setAuth(token);
+    yamLog('[RT] setAuth JWT OK');
+  }
+
+  yamLog('[RT] Client Realtime initialisé');
+}
+window._yamInitRealtime = _yamInitRealtime;
+
+window._yamRTCloseAll = function() {
+  if (!window._yamRT) return;
+  Object.keys(window._yamRTChannels).forEach(function(key) {
+    try { window._yamRT.removeChannel(window._yamRTChannels[key]); } catch (e) {}
+  });
+  window._yamRTChannels = {};
+  yamLog('[RT] Tous les channels fermés');
+};
+
+// Quand le JWT est rafraîchi → re-auth le client Realtime
+window._yamRTReAuth = function() {
+  var token = yamGetAccessToken();
+  if (window._yamRT && token) {
+    window._yamRT.realtime.setAuth(token);
+    yamLog('[RT] setAuth rafraîchi');
+  }
+};
+
+
+// ═════════════════════════════════════════════════════════════════
+// STOP POLLS — Appelé à la déconnexion et au 401
+// ═════════════════════════════════════════════════════════════════
+
+window.yamClearAllPolls = function() {
+  if (window._yamStopPresence)     window._yamStopPresence();
+  if (window._yamStopAdaptivePolls) window._yamStopAdaptivePolls();
+  if (window._dmStopPoll)          window._dmStopPoll();
+  if (window._dmStopBadgePoll)     window._dmStopBadgePoll();
+  if (window._yamStopUnreadPoll)   window._yamStopUnreadPoll();
+  if (window._likesIv)             { clearInterval(window._likesIv); window._likesIv = null; }
+  if (window._yamStopPrankPoll)    window._yamStopPrankPoll();
+  if (window._yamStopPartnerPoll)  window._yamStopPartnerPoll();
+  if (window._yamStopMoodsPoll)    window._yamStopMoodsPoll();
+};
+
+
+// ═════════════════════════════════════════════════════════════════
+// INIT AU CHARGEMENT — Sync session + auto-refresh JWT
+// ═════════════════════════════════════════════════════════════════
+
+(function() {
+  var s = yamLoadSession();
+  if (!s || !s.user) return;
+
+  // Sync localStorage compat
+  localStorage.setItem('jayana_profile', s.user.role);
+
+  // Auto-refresh JWT si expiré dès le démarrage
+  if (_jwtExpired(s)) {
+    yamRefreshIfNeeded(); // async, ne bloque pas
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var u = yamGetUser();
+    if (!u) return;
+    var btnGirl = document.getElementById('ppBtnGirl');
+    var btnBoy  = document.getElementById('ppBtnBoy');
+    if (btnGirl) btnGirl.innerHTML = '<span class="profile-popup-dot girl"></span>' + escHtml(u.role === 'girl' ? (u.pseudo || 'Elle') : (u.partner_pseudo || 'Elle'));
+    if (btnBoy)  btnBoy.innerHTML  = '<span class="profile-popup-dot boy"></span>'  + escHtml(u.role === 'boy'  ? (u.pseudo || 'Lui')  : (u.partner_pseudo || 'Lui'));
+  });
+})();
+
+// Rafraîchir le JWT proactivement toutes les 50 minutes (expire après 60 min par défaut)
+setInterval(function() {
+  var s = yamLoadSession();
+  if (s && _jwtExpired(s)) yamRefreshIfNeeded();
+}, 50 * 60 * 1000);
+
+
+// ═════════════════════════════════════════════════════════════════
+// setProfile — Chargement du profil actif
+// ═════════════════════════════════════════════════════════════════
+
+window.setProfile = function(gender) {
+  var s = yamLoadSession();
+  if (!s || !s.user) {
+    if (window.v2ShowLogin) window.v2ShowLogin();
+    return;
+  }
+  localStorage.setItem('jayana_profile', gender);
+  if (window._profileApply)      window._profileApply(gender);
+  if (window._profileLoadMoods)  window._profileLoadMoods();
+  if (window._checkUnread)       window._checkUnread();
+
+  var u = yamGetUser();
+  var btnGirl = document.getElementById('ppBtnGirl');
+  var btnBoy  = document.getElementById('ppBtnBoy');
+  if (btnGirl && u) btnGirl.innerHTML = '<span class="profile-popup-dot girl"></span>' + escHtml(u.role === 'girl' ? (u.pseudo || 'Elle') : (u.partner_pseudo || 'Elle'));
+  if (btnBoy  && u) btnBoy.innerHTML  = '<span class="profile-popup-dot boy"></span>'  + escHtml(u.role === 'boy'  ? (u.pseudo || 'Lui')  : (u.partner_pseudo || 'Lui'));
+
+  var pp = document.getElementById('profilePopup');
+  if (pp) pp.classList.remove('open');
+  if (window._presencePush) window._presencePush();
+};
+
+
+// ═════════════════════════════════════════════════════════════════
+// ESCAPE HTML — sécurité XSS
+// ═════════════════════════════════════════════════════════════════
+
+function escHtml(str) {
+  if (str === null || str === undefined) return '';
   return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -321,247 +435,153 @@ function escHtml(str){
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
-// ── Toutes les images et uploads utilisent désormais SB2_URL uniquement (R4 — V1 purgé) ──
+window.escHtml = escHtml;
 
-/* ════════════════════════════════════════════
-   setProfile — NOUVEAU système v2 uniquement
-   Remplace l'ancienne logique éparpillée dans app-music.js
-   Appelé par index.html (v2DoLogin/Register/Join) et par app-nav.js
-════════════════════════════════════════════ */
-window.setProfile = function(gender){
-  var s = v2LoadSession();
-  if(!s || !s.user){
-    if(window.v2ShowLogin) window.v2ShowLogin();
-    return;
-  }
-  localStorage.setItem('jayana_profile', gender);
-  if(window._profileApply) window._profileApply(gender);
-  if(window._profileLoadMoods) window._profileLoadMoods();
-  if(window._checkUnread) window._checkUnread();
-  // Mettre à jour les noms dans le popup profil
-  var u = v2GetUser();
-  var btnGirl = document.getElementById('ppBtnGirl');
-  var btnBoy  = document.getElementById('ppBtnBoy');
-  if(btnGirl && u) btnGirl.innerHTML = '<span class="profile-popup-dot girl"></span>' + escHtml(u.role==='girl' ? (u.pseudo||'Elle') : (u.partner_pseudo||'Elle'));
-  if(btnBoy  && u) btnBoy.innerHTML  = '<span class="profile-popup-dot boy"></span>'  + escHtml(u.role==='boy'  ? (u.pseudo||'Lui')  : (u.partner_pseudo||'Lui'));
-  var pp = document.getElementById('profilePopup');
-  if(pp) pp.classList.remove('open');
-  if(window._presencePush) window._presencePush();
-};
 
-/* ════════════════════════════════════════════
-   Init au chargement : si session v2 active, sync localStorage
-════════════════════════════════════════════ */
-(function(){
-  var s = v2LoadSession();
-  if(!s || !s.user) return;
-  localStorage.setItem('jayana_profile', s.user.role);
-  document.addEventListener('DOMContentLoaded', function(){
-    var u = v2GetUser();
-    if(!u) return;
-    var btnGirl = document.getElementById('ppBtnGirl');
-    var btnBoy  = document.getElementById('ppBtnBoy');
-    if(btnGirl) btnGirl.innerHTML = '<span class="profile-popup-dot girl"></span>' + escHtml(u.role==='girl' ? (u.pseudo||'Elle') : (u.partner_pseudo||'Elle'));
-    if(btnBoy)  btnBoy.innerHTML  = '<span class="profile-popup-dot boy"></span>'  + escHtml(u.role==='boy'  ? (u.pseudo||'Lui')  : (u.partner_pseudo||'Lui'));
-  });
-})();
+// ═════════════════════════════════════════════════════════════════
+// COMPTEUR ANNIVERSAIRE
+// ═════════════════════════════════════════════════════════════════
 
-// ── COMPTEUR ──
-// startDate est sur window pour être modifiable depuis app-account.js (acSaveStartDate)
-// Valeur par défaut hardcodée — sera écrasée dès que loadCoupleConfig() charge la vraie date
 window.startDate = new Date('2024-10-29T00:00:00');
+
 function updateCounter() {
   var d = Math.floor((new Date() - window.startDate) / 1000);
-  document.getElementById('cnt-days').textContent  = Math.floor(d / 86400);
-  document.getElementById('cnt-hours').textContent = String(Math.floor((d % 86400) / 3600)).padStart(2,'0');
-  document.getElementById('cnt-mins').textContent  = String(Math.floor((d % 3600) / 60)).padStart(2,'0');
-  document.getElementById('cnt-secs').textContent  = String(d % 60).padStart(2,'0');
+  var el;
+  if ((el = document.getElementById('cnt-days')))  el.textContent = Math.floor(d / 86400);
+  if ((el = document.getElementById('cnt-hours'))) el.textContent = String(Math.floor((d % 86400) / 3600)).padStart(2, '0');
+  if ((el = document.getElementById('cnt-mins')))  el.textContent = String(Math.floor((d % 3600) / 60)).padStart(2, '0');
+  if ((el = document.getElementById('cnt-secs')))  el.textContent = String(d % 60).padStart(2, '0');
 }
-// ✅ OPT v3.8 : updateCounter smart — pause si page cachée ou Skyjo actif
-(function(){
+
+(function() {
   var _iv = null;
-  function startCounter(){
-    if(_iv) return;
-    updateCounter();
-    _iv = setInterval(updateCounter, 1000);
-  }
-  function stopCounter(){
-    if(!_iv) return;
-    clearInterval(_iv); _iv = null;
-  }
-  // Pause quand page cachée (écran noir, autre app)
-  document.addEventListener('visibilitychange', function(){
-    if(document.hidden){ stopCounter(); } else { startCounter(); }
-  });
-  // API pour Skyjo : suspend le counter pendant la partie (compteur hors écran)
-  window._counterSuspend = stopCounter;
-  window._counterResume  = startCounter;
-  // Démarrage
-  startCounter();
+  function start() { if (_iv) return; updateCounter(); _iv = setInterval(updateCounter, 1000); }
+  function stop()  { if (_iv) { clearInterval(_iv); _iv = null; } }
+  document.addEventListener('visibilitychange', function() { document.hidden ? stop() : start(); });
+  window._counterSuspend = stop;
+  window._counterResume  = start;
+  start();
 })();
 
-// ── THEME ── (version duo-theme — warm/dark avec data-theme + body.light compat)
+
+// ═════════════════════════════════════════════════════════════════
+// THÈME warm / dark
+// ═════════════════════════════════════════════════════════════════
+
 function applyThemeToggle() {
   var isLight = document.body.classList.contains('light');
-  var goWarm = !isLight; // toggle
+  var goWarm  = !isLight;
   document.body.classList.toggle('light', goWarm);
   document.documentElement.classList.toggle('light', goWarm);
   document.documentElement.setAttribute('data-theme', goWarm ? 'warm' : 'dark');
-  // Met à jour la couleur de la safe zone iOS instantanément
   var themeMeta = document.getElementById('themeColorMeta');
-  if(themeMeta) themeMeta.setAttribute('content', goWarm ? '#e2d9cf' : '#121212');
-  // Persistance
+  if (themeMeta) themeMeta.setAttribute('content', goWarm ? '#e2d9cf' : '#121212');
   localStorage.setItem('jayana_theme', goWarm ? 'light' : 'dark');
-  // Labels boutons principaux
   var t1 = document.getElementById('themeToggle');
   var t2 = document.getElementById('floatingThemeBtn');
-  if(t1) t1.textContent = goWarm ? '🌙' : '☀️';
-  if(t2) t2.textContent = goWarm ? '🌙' : '☀️';
-  // Sync icônes lune/soleil dans Quiz, Jeux, sous-jeux et Bêtises
-  ['qz','gv','dm','pm','home'].forEach(function(prefix){
-    var moon = document.getElementById(prefix+'ThemeIconMoon');
-    var sun  = document.getElementById(prefix+'ThemeIconSun');
-    if(moon) moon.style.display = goWarm ? 'none' : '';
-    if(sun)  sun.style.display  = goWarm ? ''     : 'none';
+  if (t1) t1.textContent = goWarm ? '🌙' : '☀️';
+  if (t2) t2.textContent = goWarm ? '🌙' : '☀️';
+  ['qz','gv','dm','pm','home'].forEach(function(prefix) {
+    var moon = document.getElementById(prefix + 'ThemeIconMoon');
+    var sun  = document.getElementById(prefix + 'ThemeIconSun');
+    if (moon) moon.style.display = goWarm ? 'none' : '';
+    if (sun)  sun.style.display  = goWarm ? ''     : 'none';
   });
-  document.querySelectorAll('.game-view-header .dm-topbar-theme svg').forEach(function(svg, i){
-    if(i % 2 === 0) svg.style.display = goWarm ? 'none' : ''; // lune
-    else            svg.style.display = goWarm ? ''     : 'none'; // soleil
-  });
-  // Haptic (si disponible — défini dans app-nav.js)
-  if(typeof haptic === 'function') haptic('light');
-  // Sync icône lune/soleil du bouton thème sur l'écran de connexion
-  var _v2Moon = document.getElementById('v2LoginIconMoon');
-  var _v2Sun  = document.getElementById('v2LoginIconSun');
-  if(_v2Moon) _v2Moon.style.display = goWarm ? 'none' : '';
-  if(_v2Sun)  _v2Sun.style.display  = goWarm ? ''     : 'none';
+  if (typeof haptic === 'function') haptic('light');
+  var lMoon = document.getElementById('v2LoginIconMoon');
+  var lSun  = document.getElementById('v2LoginIconSun');
+  if (lMoon) lMoon.style.display = goWarm ? 'none' : '';
+  if (lSun)  lSun.style.display  = goWarm ? ''     : 'none';
 }
 
-// ── Restauration du thème au chargement ──
-(function(){
-  var saved = localStorage.getItem('jayana_theme');
-  // Thème clair par défaut — dark seulement si explicitement sauvegardé
-  var goLight = (saved !== 'dark');
-
-  if(goLight){
+(function() {
+  var saved   = localStorage.getItem('jayana_theme');
+  var goLight = saved !== 'dark';
+  if (goLight) {
     document.body.classList.add('light');
     document.documentElement.classList.add('light');
     document.documentElement.setAttribute('data-theme', 'warm');
-    var themeMeta = document.getElementById('themeColorMeta');
-    if(themeMeta) themeMeta.setAttribute('content', '#e2d9cf');
-    document.addEventListener('DOMContentLoaded', function(){
+    var m = document.getElementById('themeColorMeta');
+    if (m) m.setAttribute('content', '#e2d9cf');
+    document.addEventListener('DOMContentLoaded', function() {
       var btn = document.getElementById('themeToggle');
-      if(btn) btn.textContent = '🌙';
+      if (btn) btn.textContent = '🌙';
       var fBtn = document.getElementById('floatingThemeBtn');
-      if(fBtn) fBtn.textContent = '🌙';
-      ['qz','gv','dm','pm','home'].forEach(function(prefix){
-        var moon = document.getElementById(prefix+'ThemeIconMoon');
-        var sun  = document.getElementById(prefix+'ThemeIconSun');
-        if(moon) moon.style.display = 'none';
-        if(sun)  sun.style.display  = '';
+      if (fBtn) fBtn.textContent = '🌙';
+      ['qz','gv','dm','pm','home'].forEach(function(prefix) {
+        var moon = document.getElementById(prefix + 'ThemeIconMoon');
+        var sun  = document.getElementById(prefix + 'ThemeIconSun');
+        if (moon) moon.style.display = 'none';
+        if (sun)  sun.style.display  = '';
       });
-      var _v2Moon = document.getElementById('v2LoginIconMoon');
-      var _v2Sun  = document.getElementById('v2LoginIconSun');
-      if(_v2Moon) _v2Moon.style.display = 'none';
-      if(_v2Sun)  _v2Sun.style.display  = '';
     });
   } else {
-    // Thème dark explicitement choisi
     document.documentElement.setAttribute('data-theme', 'dark');
   }
 })();
 
-document.getElementById('themeToggle').addEventListener('click', applyThemeToggle);
-document.getElementById('floatingThemeBtn').addEventListener('click', applyThemeToggle);
+document.getElementById('themeToggle')     && document.getElementById('themeToggle').addEventListener('click', applyThemeToggle);
+document.getElementById('floatingThemeBtn') && document.getElementById('floatingThemeBtn').addEventListener('click', applyThemeToggle);
 
-// Injecter le bouton thème dans les headers des sous-jeux
-(function(){
-  var MOON_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>';
-  var SUN_SVG  = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
-  document.querySelectorAll('.game-view-header').forEach(function(header){
+(function() {
+  var MOON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>';
+  var SUN  = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+  document.querySelectorAll('.game-view-header').forEach(function(header) {
     var btn = document.createElement('button');
     btn.className = 'dm-topbar-theme';
-    btn.title = 'Thème';
-    btn.innerHTML = MOON_SVG + SUN_SVG;
-    btn.onclick = function(){ applyThemeToggle(); };
+    btn.title     = 'Thème';
+    btn.innerHTML = MOON + SUN;
+    btn.onclick   = applyThemeToggle;
     header.appendChild(btn);
   });
 })();
 
-// ── IDs des sous-vues (partagé avec app-pranks.js pour les MutationObservers) ──
-var _subviewIds = ['gamesView','memoryView','penduView','puzzleView','snakeView','skyjoView','quizView','hiddenPage','prankMenu'];
 
-// Gestion de la visibilité du bouton flottant selon la vue active
-function updateFloatingThemeBtn() {
-  var subviews = _subviewIds;
-  var open = subviews.some(function(id) {
-    var el = document.getElementById(id);
-    return el && (el.classList.contains('active') || el.style.display === 'block');
-  });
-  document.body.classList.toggle('subview-open', open);
-}
-// Observer les changements de classe sur les sous-vues
+// ═════════════════════════════════════════════════════════════════
+// MODAL ÉDITION DESCRIPTION
+// ═════════════════════════════════════════════════════════════════
 
-
-
-// ── Modal édition description ──
 var _descEditCallback = null;
-function descEditOpen(currentVal, label, cb){
+
+function descEditOpen(currentVal, label, cb) {
   _descEditCallback = cb;
   var input = document.getElementById('descEditInput');
-  var lbl = document.getElementById('descEditLabel');
-  if(lbl) lbl.textContent = label || 'Modifier la description';
-  if(input){ input.value = currentVal || ''; }
-  // Bloquer le scroll arrière-plan
-  if(typeof window._nousBlockScroll === 'function') window._nousBlockScroll();
-  else {
-    var nousWrap = document.getElementById('nousContentWrapper');
-    if(nousWrap) nousWrap.style.overflow = 'hidden';
-    window._yamScrollLocked = true;
-  }
+  var lbl   = document.getElementById('descEditLabel');
+  if (lbl)   lbl.textContent = label || 'Modifier la description';
+  if (input) input.value = currentVal || '';
+  if (typeof window._nousBlockScroll === 'function') window._nousBlockScroll();
+  else window._yamScrollLocked = true;
   document.getElementById('descEditModal').classList.add('open');
-  setTimeout(function(){ if(input) input.focus(); }, 100);
+  setTimeout(function() { if (input) input.focus(); }, 100);
 }
-function descEditClose(){
+
+function descEditClose() {
   document.getElementById('descEditModal').classList.remove('open');
-  // Restaurer le scroll arrière-plan
-  if(typeof window._nousUnblockScroll === 'function') window._nousUnblockScroll();
-  else {
-    var nousWrap = document.getElementById('nousContentWrapper');
-    if(nousWrap) nousWrap.style.overflow = '';
-    window._yamScrollLocked = false;
-  }
+  if (typeof window._nousUnblockScroll === 'function') window._nousUnblockScroll();
+  else window._yamScrollLocked = false;
   _descEditCallback = null;
 }
-function descEditSave(){
+
+function descEditSave() {
   var val = document.getElementById('descEditInput').value.trim();
   document.getElementById('descEditModal').classList.remove('open');
-  // Restaurer le scroll arrière-plan (identique à descEditClose)
-  if(typeof window._nousUnblockScroll === 'function') window._nousUnblockScroll();
-  else {
-    var nousWrap = document.getElementById('nousContentWrapper');
-    if(nousWrap) nousWrap.style.overflow = '';
-    window._yamScrollLocked = false;
-  }
-  if(_descEditCallback){ _descEditCallback(val); _descEditCallback = null; }
+  if (typeof window._nousUnblockScroll === 'function') window._nousUnblockScroll();
+  else window._yamScrollLocked = false;
+  if (_descEditCallback) { _descEditCallback(val); _descEditCallback = null; }
 }
-document.addEventListener('DOMContentLoaded', function(){
-  var inp = document.getElementById('descEditInput');
+
+document.addEventListener('DOMContentLoaded', function() {
+  var inp   = document.getElementById('descEditInput');
   var modal = document.getElementById('descEditModal');
-  if(inp) inp.addEventListener('keydown', function(e){
-    if(e.key === 'Enter') descEditSave();
-    if(e.key === 'Escape') descEditClose();
-  });
-  if(modal) modal.addEventListener('click', function(e){
-    if(e.target === this) descEditClose();
-  });
+  if (inp)   inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') descEditSave(); if (e.key === 'Escape') descEditClose(); });
+  if (modal) modal.addEventListener('click', function(e) { if (e.target === this) descEditClose(); });
 });
 
 
+// ═════════════════════════════════════════════════════════════════
+// PUSH NOTIFICATIONS
+// ═════════════════════════════════════════════════════════════════
 
-
-
-// ── Push Notifications ─────────────────────────────────────────────────────
 var _VAPID_PUBLIC_KEY = 'BNZesKdT92j-aS0IIeuH6ea0sc927o3QjFve3Z2fIKFAB_TPaciM1MaUPFMTuYMOCrzJH3rrGbKvJsy0CReZvYU';
 
 function _urlBase64ToUint8Array(base64String) {
@@ -569,21 +589,21 @@ function _urlBase64ToUint8Array(base64String) {
   var base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
   var rawData = atob(base64);
   var output  = new Uint8Array(rawData.length);
-  for (var i = 0; i < rawData.length; i++) { output[i] = rawData.charCodeAt(i); }
+  for (var i = 0; i < rawData.length; i++) output[i] = rawData.charCodeAt(i);
   return output;
 }
 
 async function _yamSendSubToServer(sub) {
-  var user = v2GetUser();
-  if (!user) return;
+  var user  = yamGetUser();
+  var token = yamGetAccessToken();
+  if (!user || !token) return;
   var subJSON = sub.toJSON();
   try {
-    await fetch(SB2_EDGE_PUSH, {
+    await fetch(SB_EDGE_PUSH, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'x-session-token': _yamSessionToken(),
-        'Authorization': 'Bearer ' + SB2_KEY
+        'Content-Type':  'application/json',
+        'Authorization': 'Bearer ' + token,
       },
       body: JSON.stringify({
         action:    'subscribe',
@@ -599,16 +619,16 @@ async function _yamSendSubToServer(sub) {
       }),
     });
   } catch (e) {
-    console.error('[Push] _yamSendSubToServer error:', e);
+    console.error('[Push] sendSubToServer error:', e);
   }
 }
 
 window.yamRegisterPush = async function() {
   try {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-    var reg = await navigator.serviceWorker.ready;
-    var existingSub = await reg.pushManager.getSubscription();
-    if (existingSub) { await _yamSendSubToServer(existingSub); return; }
+    var reg  = await navigator.serviceWorker.ready;
+    var existing = await reg.pushManager.getSubscription();
+    if (existing) { await _yamSendSubToServer(existing); return; }
     var permission = await Notification.requestPermission();
     if (permission !== 'granted') return;
     var sub = await reg.pushManager.subscribe({
@@ -616,14 +636,12 @@ window.yamRegisterPush = async function() {
       applicationServerKey: _urlBase64ToUint8Array(_VAPID_PUBLIC_KEY),
     });
     await _yamSendSubToServer(sub);
-    console.log('[Push] Subscription enregistree');
+    yamLog('[Push] Subscription enregistrée');
   } catch (e) {
     console.error('[Push] yamRegisterPush error:', e);
   }
 };
 
-// Remet le badge icône PWA à zéro et ferme les notifs en attente
-// Gère le cas iOS où le SW controller n'est pas encore actif au démarrage
 window.yamClearAppBadge = function() {
   if (!('serviceWorker' in navigator)) return;
   function _send() {
@@ -631,31 +649,25 @@ window.yamClearAppBadge = function() {
       navigator.serviceWorker.controller.postMessage({ type: 'YAM_CLOSE_NOTIFICATIONS' });
     }
   }
-  if (navigator.serviceWorker.controller) {
-    _send();
-  } else {
-    navigator.serviceWorker.ready.then(function() { _send(); });
-  }
+  if (navigator.serviceWorker.controller) _send();
+  else navigator.serviceWorker.ready.then(_send);
 };
 
-// Reset badge dès que l'app revient au premier plan (depuis icône ou multitâche)
 document.addEventListener('visibilitychange', function() {
-  if (!document.hidden) {
-    window.yamClearAppBadge();
-  }
+  if (!document.hidden) window.yamClearAppBadge();
 });
 
 window.yamPushNotify = async function(opts) {
-  var user = v2GetUser();
-  if (!user) return;
+  var user  = yamGetUser();
+  var token = yamGetAccessToken();
+  if (!user || !token) return;
   var targetProfile = user.role === 'girl' ? 'boy' : 'girl';
   try {
-    await fetch(SB2_EDGE_PUSH, {
+    await fetch(SB_EDGE_PUSH, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'x-session-token': _yamSessionToken(),
-        'Authorization': 'Bearer ' + SB2_KEY
+        'Content-Type':  'application/json',
+        'Authorization': 'Bearer ' + token,
       },
       body: JSON.stringify({
         action:         'notify',
@@ -672,111 +684,78 @@ window.yamPushNotify = async function(opts) {
   }
 };
 
-/* ════════════════════════════════════════════
-   PRÉSENCE EN LIGNE
-   - Heartbeat toutes les 10s → table "presence"
-   - Poll toutes les 10s pour afficher l'état de l'autre
-   - Offline après 20s sans signal (60s si musique en cours)
-   - visibilitychange : pause heartbeat quand page cachée
-════════════════════════════════════════════ */
-(function(){
-  var PRESENCE_TABLE  = 'v2_presence';
-  var HEARTBEAT_MS    = 10000;   // envoyer toutes les 10s
-  var POLL_MS         = 10000;   // lire toutes les 10s
-  var OFFLINE_AFTER   = 20000;   // ms sans signal = offline
-  var OFFLINE_PLAYING = 60000;   // ms si is_playing = true
+
+// ═════════════════════════════════════════════════════════════════
+// PRÉSENCE EN LIGNE
+// Même logique qu'avant — tables et colonnes renommées (v2_ → sans préfixe)
+// ═════════════════════════════════════════════════════════════════
+
+(function() {
+  var PRESENCE_TABLE  = 'presence';
+  var HEARTBEAT_MS    = 10000;
+  var POLL_MS         = 10000;
+  var OFFLINE_AFTER   = 20000;
+  var OFFLINE_PLAYING = 60000;
 
   var _heartbeatIv = null;
   var _pollIv      = null;
   var _dot         = null;
-  var _lastPartnerSeen = 0; // timestamp ms du dernier heartbeat partenaire
 
   function isAudioPlaying() {
     var playing = false;
-    document.querySelectorAll('audio').forEach(function(a){ if(!a.paused) playing = true; });
+    document.querySelectorAll('audio').forEach(function(a) { if (!a.paused) playing = true; });
     return playing;
   }
 
-  /* Envoie mon heartbeat */
   function presencePush() {
-    var profile = getProfile();
-    if (!profile) return;
-    var coupleId = null;
-    try {
-      var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-      if (s && s.user) coupleId = s.user.couple_id;
-    } catch(e) {}
-    if (!coupleId) return;
-    fetch(SB2_URL + '/rest/v1/' + PRESENCE_TABLE, {
-      method: 'POST',
-      headers: sb2Headers({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
-      body: JSON.stringify({
-        player:     profile,
-        couple_id:  coupleId,
-        last_seen:  new Date().toISOString(),
-        is_playing: isAudioPlaying()
-      })
-    }).catch(function(){});
+    var u = yamGetUser();
+    if (!u || !u.couple_id) return;
+    sb2Upsert(PRESENCE_TABLE, {
+      user_id:    u.id,
+      couple_id:  u.couple_id,
+      role:       u.role,
+      last_seen:  new Date().toISOString(),
+      is_playing: isAudioPlaying(),
+    }, 'resolution=merge-duplicates,return=minimal');
   }
 
-  /* Lit l'état de l'autre et met à jour le point */
   function presencePoll() {
-    var profile = getProfile();
-    if (!profile) return;
-    var coupleId = null;
-    try {
-      var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-      if (s && s.user) coupleId = s.user.couple_id;
-    } catch(e) {}
-    if (!coupleId) return;
-    var other = profile === 'girl' ? 'boy' : 'girl';
-    fetch(SB2_URL + '/rest/v1/' + PRESENCE_TABLE + '?couple_id=eq.' + coupleId + '&player=eq.' + other + '&select=last_seen,is_playing', {
-      headers: sb2Headers()
-    })
-    .then(function(r){ return r.ok ? r.json() : null; })
-    .then(function(rows) {
-      if (!Array.isArray(rows) || !rows.length) { setDot(false); return; }
-      var row       = rows[0];
-      var lastSeen  = new Date(row.last_seen).getTime();
-      _lastPartnerSeen = lastSeen;
-      var elapsed   = Date.now() - lastSeen;
-      var threshold = row.is_playing ? OFFLINE_PLAYING : OFFLINE_AFTER;
-      setDot(elapsed < threshold);
-    }).catch(function(){ setDot(false); });
+    var u = yamGetUser();
+    if (!u || !u.couple_id) return;
+    var other = u.role === 'girl' ? 'boy' : 'girl';
+    sb2Fetch(PRESENCE_TABLE, 'couple_id=eq.' + u.couple_id + '&role=eq.' + other + '&select=last_seen,is_playing')
+      .then(function(rows) {
+        if (!Array.isArray(rows) || !rows.length) { setDot(false); return; }
+        var row       = rows[0];
+        var elapsed   = Date.now() - new Date(row.last_seen).getTime();
+        var threshold = row.is_playing ? OFFLINE_PLAYING : OFFLINE_AFTER;
+        setDot(elapsed < threshold);
+      }).catch(function() { setDot(false); });
   }
 
-// Vérifie en temps réel si le partenaire est en ligne avant d'envoyer un push
-// Retourne une Promise<bool>
-window.yamPartnerOnlineCheck = async function() {
-  try {
-    var user = v2GetUser();
-    if (!user) return false;
-    var other = user.role === 'girl' ? 'boy' : 'girl';
-    var r = await fetch(SB2_URL + '/rest/v1/v2_presence?couple_id=eq.' + user.couple_id
-      + '&player=eq.' + other + '&select=last_seen', { headers: sb2Headers() });
-    var rows = await r.json();
-    if (!Array.isArray(rows) || !rows.length) return false;
-    var elapsed = Date.now() - new Date(rows[0].last_seen).getTime();
-    return elapsed < 20000; // en ligne si heartbeat < 20s
-  } catch(e) { return false; }
-};
+  window.yamPartnerOnlineCheck = async function() {
+    try {
+      var u = yamGetUser();
+      if (!u || !u.couple_id) return false;
+      var other = u.role === 'girl' ? 'boy' : 'girl';
+      var rows  = await sb2Fetch(PRESENCE_TABLE, 'couple_id=eq.' + u.couple_id + '&role=eq.' + other + '&select=last_seen');
+      if (!Array.isArray(rows) || !rows.length) return false;
+      return Date.now() - new Date(rows[0].last_seen).getTime() < 20000;
+    } catch (e) { return false; }
+  };
 
-  /* Affiche ou cache le point vert */
   function setDot(online) {
     if (!_dot) _dot = document.getElementById('presenceDot');
     if (!_dot) return;
-    // Le point n'a de sens que si l'avatar de l'autre est visible
     var avOther = document.getElementById('profileAvatarOther');
     if (avOther && avOther.classList.contains('visible')) {
       _dot.classList.toggle('visible', online);
     } else {
       _dot.classList.remove('visible');
     }
-    // Synchroniser immédiatement le badge météo humeur
-    if(window.yamSyncMood) window.yamSyncMood();
+    if (window.yamSyncMood) window.yamSyncMood();
   }
 
-  /* Démarrage */
   function start() {
     if (_heartbeatIv) return;
     presencePush();
@@ -785,17 +764,13 @@ window.yamPartnerOnlineCheck = async function() {
     _pollIv = setInterval(presencePoll, POLL_MS);
   }
 
-  /* Pause heartbeat quand page cachée — le timeout fera le reste */
   document.addEventListener('visibilitychange', function() {
     if (document.hidden) {
       clearInterval(_heartbeatIv); _heartbeatIv = null;
-      // ✅ FIX v3.7 : aussi suspendre presencePoll quand page cachée
-      clearInterval(_pollIv); _pollIv = null;
+      clearInterval(_pollIv);      _pollIv      = null;
     } else {
-      presencePush(); // signal immédiat au retour
+      presencePush();
       _heartbeatIv = setInterval(presencePush, HEARTBEAT_MS);
-      // ✅ FIX v3.7 : reprendre presencePoll seulement si Skyjo n'est pas actif
-      // (pendant Skyjo, app-multiplayer.js gère la présence)
       if (!window._skyjoPresenceActive) {
         presencePoll();
         _pollIv = setInterval(presencePoll, POLL_MS);
@@ -803,122 +778,107 @@ window.yamPartnerOnlineCheck = async function() {
     }
   });
 
-  /* ✅ FIX v3.7 : Suspension du presencePoll de core pendant Skyjo
-     Pendant une partie Skyjo, app-multiplayer.js fait déjà des polls de présence
-     toutes les 4s → le poll core toutes les 10s est un doublon inutile */
   window._corePresenceSuspend = function() {
     window._skyjoPresenceActive = true;
     clearInterval(_pollIv); _pollIv = null;
   };
   window._corePresenceResume = function() {
     window._skyjoPresenceActive = false;
-    if (!_pollIv) {
-      presencePoll();
-      _pollIv = setInterval(presencePoll, POLL_MS);
-    }
+    if (!_pollIv) { presencePoll(); _pollIv = setInterval(presencePoll, POLL_MS); }
   };
 
-  /* Démarrer quand un profil est choisi */
   var _origSetProfile = window.setProfile;
   window.setProfile = function(g) {
     if (_origSetProfile) _origSetProfile.apply(this, arguments);
     setTimeout(start, 300);
   };
 
-  /* Si profil déjà choisi au chargement */
   if (getProfile()) start();
 
-  window._presencePoll = presencePoll;
-  window._presencePush = presencePush;
-  window._yamStopPresence = function(){
+  window._presencePoll  = presencePoll;
+  window._presencePush  = presencePush;
+
+  window._yamStopPresence = function() {
     clearInterval(_heartbeatIv); _heartbeatIv = null;
     clearInterval(_pollIv);      _pollIv      = null;
   };
-  // ✅ #38 — Exposer le démarrage pour relance après reconnexion
-  window._yamStartPresence = function(){
-    if(_heartbeatIv) return; // déjà actif
+
+  window._yamStartPresence = function() {
+    if (_heartbeatIv) return;
     start();
   };
 
-  // ✅ #38 — Relancer la présence quand la session est prête (reconnexion après 401)
-  document.addEventListener('yam:session_ready', function(){
+  document.addEventListener('yam:session_ready', function() {
     window._yamStartPresence();
   });
 
-  // ✅ Realtime présence — remplace _pollIv (lecture) quand connecté — fallback poll si RT tombe
-  (function(){
-    var _presenceRTFallbackIv = null;
+  // ── Realtime présence — remplace le poll quand connecté ──
+  (function() {
+    var _fallbackIv = null;
 
-    function _startPresenceFallback(){
-      if(_presenceRTFallbackIv) return;
-      _presenceRTFallbackIv = setInterval(presencePoll, POLL_MS);
-      yamLog('[RT] présence fallback poll activé');
+    function _startFallback() {
+      if (_fallbackIv) return;
+      _fallbackIv = setInterval(presencePoll, POLL_MS);
+      yamLog('[RT] présence fallback actif');
     }
-    function _stopPresenceFallback(){
-      if(_presenceRTFallbackIv){ clearInterval(_presenceRTFallbackIv); _presenceRTFallbackIv = null; }
+    function _stopFallback() {
+      if (_fallbackIv) { clearInterval(_fallbackIv); _fallbackIv = null; }
     }
 
-    function _initPresenceRealtime(){
-      if(!window._yamRT){ _startPresenceFallback(); return; }
-      var sess = JSON.parse(localStorage.getItem('yam_v2_session')||'null');
-      var cid = sess && sess.user ? sess.user.couple_id : null;
-      if(!cid){ _startPresenceFallback(); return; }
-      if(window._yamRTChannels['presence']) return; // déjà initialisé
+    function _initPresenceRT() {
+      if (!window._yamRT) { _startFallback(); return; }
+      var u = yamGetUser();
+      if (!u || !u.couple_id) { _startFallback(); return; }
+      if (window._yamRTChannels['presence']) return;
 
       var ch = window._yamRT
-        .channel('presence_' + cid)
+        .channel('presence_' + u.couple_id)
         .on('postgres_changes', {
-          event: 'UPDATE',
+          event:  'UPDATE',
           schema: 'public',
-          table: 'v2_presence',
-          filter: 'couple_id=eq.' + cid
-        }, function(){
-          presencePoll();
-        })
-        .subscribe(function(status){
-          if(status === 'SUBSCRIBED'){
+          table:  'presence',
+          filter: 'couple_id=eq.' + u.couple_id,
+        }, function() { presencePoll(); })
+        .subscribe(function(status) {
+          if (status === 'SUBSCRIBED') {
             yamLog('[RT] présence connectée');
             clearInterval(_pollIv); _pollIv = null;
-            _stopPresenceFallback();
+            _stopFallback();
             presencePoll();
-          } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
-            yamLog('[RT] présence ' + status + ' — fallback poll');
+          } else if (['CHANNEL_ERROR','TIMED_OUT','CLOSED'].includes(status)) {
+            yamLog('[RT] présence ' + status + ' — fallback');
             delete window._yamRTChannels['presence'];
-            _startPresenceFallback();
+            _startFallback();
           }
         });
       window._yamRTChannels['presence'] = ch;
     }
 
-    // Patch Skyjo suspend/resume pour ne pas relancer _pollIv si RT actif
-    window._corePresenceSuspend = function(){
-      window._skyjoPresenceActive = true;
-      clearInterval(_pollIv); _pollIv = null;
-      _stopPresenceFallback();
-    };
-    window._corePresenceResume = function(){
-      window._skyjoPresenceActive = false;
-      if(window._yamRTChannels['presence']) return; // RT actif, pas de poll
-      if(!_presenceRTFallbackIv){
-        presencePoll();
-        _presenceRTFallbackIv = setInterval(presencePoll, POLL_MS);
-      }
-    };
-
-    // Patch _yamStopPresence pour aussi stopper le fallback RT
-    window._yamStopPresence = function(){
+    // Patch stop pour aussi arrêter le fallback
+    window._yamStopPresence = function() {
       clearInterval(_heartbeatIv); _heartbeatIv = null;
       clearInterval(_pollIv);      _pollIv      = null;
-      _stopPresenceFallback();
+      _stopFallback();
     };
 
-    setTimeout(function(){
-      if(window._yamRT) _initPresenceRealtime();
-    }, 2000);
-
-    document.addEventListener('yam:session_ready', function(){
-      setTimeout(_initPresenceRealtime, 1000);
+    setTimeout(function() { if (window._yamRT) _initPresenceRT(); }, 2000);
+    document.addEventListener('yam:session_ready', function() {
+      setTimeout(_initPresenceRT, 1000);
     });
   })();
-
 })();
+
+
+// ═════════════════════════════════════════════════════════════════
+// Variables globales partagées (compat avec les autres modules)
+// ═════════════════════════════════════════════════════════════════
+
+var _subviewIds = ['gamesView','memoryView','penduView','puzzleView','snakeView','skyjoView','quizView','hiddenPage','prankMenu'];
+
+function updateFloatingThemeBtn() {
+  var open = _subviewIds.some(function(id) {
+    var el = document.getElementById(id);
+    return el && (el.classList.contains('active') || el.style.display === 'block');
+  });
+  document.body.classList.toggle('subview-open', open);
+}
