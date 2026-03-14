@@ -3687,7 +3687,12 @@ window.nousLoad = function(){
     return u ? u.couple_id : null;
   }
   function _getProfile () {
-    return (typeof getProfile === 'function') ? getProfile() : null;
+    if (typeof getProfile === 'function') {
+      var p = getProfile();
+      if (p) return p;
+    }
+    var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
+    return u ? u.role : null;
   }
 
   // ── État en mémoire ─────────────────────────────────────────────
@@ -4015,7 +4020,7 @@ window.nousLoad = function(){
         }).catch(function () {});
       }
       var currentPts = _currentPoints();
-      if (currentPts > 0) {
+      if (currentPts > 0 && _flame.rowId) {
         var afterMalus = Math.floor(currentPts * 0.5);
         _flame.points       = afterMalus;
         _flame.last_updated = new Date();
