@@ -1394,11 +1394,28 @@ setTimeout(function(){
       var openTab = params.get('open_tab');
       if(openTab && typeof window.yamSwitchTab === 'function'){
         window.yamSwitchTab(openTab);
-        // Nettoyer l'URL sans recharger
         try { window.history.replaceState({}, '', window.location.pathname); } catch(e){}
       }
     }, 600);
   });
+
+  // Même logique au chargement — cas où session déjà active (pas de yam:session_ready)
+  (function(){
+    var params = new URLSearchParams(window.location.search);
+    var openTab = params.get('open_tab');
+    if(!openTab) return;
+    // Attendre que l'app soit initialisée
+    var attempts = 0;
+    var iv = setInterval(function(){
+      attempts++;
+      if(typeof window.yamSwitchTab === 'function' && typeof window.yamGetUser === 'function' && window.yamGetUser()){
+        clearInterval(iv);
+        window.yamSwitchTab(openTab);
+        try { window.history.replaceState({}, '', window.location.pathname); } catch(e){}
+      }
+      if(attempts > 20) clearInterval(iv); // abandon après 4s
+    }, 200);
+  })();
 
   /* ══════════════════════════════════════════════════════
      4. REALTIME #79 — v2_now_listening
