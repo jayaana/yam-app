@@ -54,8 +54,8 @@
       }, function(payload) {
         // Ignorer nos propres pings
         var row = (payload.new && payload.new.sender_role) ? payload.new : (payload.old || {});
-        var s = yamGetUser ? {user: yamGetUser()} : null;
-        var me = s && s.user ? (window.getProfile ? window.getProfile() : null) : null;
+        var s = yamGetUser ? yamGetUser() : null;
+        var me = s ? (window.getProfile ? window.getProfile() : null) : null;
         if (row.sender_role && row.sender_role === me) return;
 
         if (payload.eventType === 'DELETE' || !payload.new || !payload.new.sender_role) {
@@ -468,8 +468,8 @@
 
   // Upload vers Supabase Storage + envoi du message
   function _dmSendPhoto(blob){
-    var s = yamGetUser ? {user: yamGetUser()} : null;
-    var coupleId = s && s.user ? s.user.couple_id : null;
+    var s = yamGetUser ? yamGetUser() : null;
+    var coupleId = s && s.couple_id ? s.couple_id : null;
     if(!coupleId || !identity) return;
 
     var uuid = 'dm_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
@@ -609,8 +609,8 @@
     myTypingTs = now;
     
     // Récupérer couple_id
-    var s = yamGetUser ? {user: yamGetUser()} : null;
-    var coupleId = s && s.user ? s.user.couple_id : null;
+    var s = yamGetUser ? yamGetUser() : null;
+    var coupleId = s && s.couple_id ? s.couple_id : null;
     if(!coupleId) return;
     
     fetch(SB_URL + '/rest/v1/' + TYPING_TABLE + '?couple_id=eq.' + coupleId + '&sender_role=eq.' + identity, {
@@ -632,8 +632,8 @@
   // Signaler qu'on a arrêté de taper (DELETE la ligne)
   function _sendTypingStop() {
     myTypingTs = 0; // reset debounce pour le prochain ping
-    var s = yamGetUser ? {user: yamGetUser()} : null;
-    var coupleId = s && s.user ? s.user.couple_id : null;
+    var s = yamGetUser ? yamGetUser() : null;
+    var coupleId = s && s.couple_id ? s.couple_id : null;
     if (!coupleId) return;
     fetch(SB_URL + '/rest/v1/' + TYPING_TABLE + '?couple_id=eq.' + coupleId + '&sender_role=eq.' + identity, {
       method: 'DELETE', headers: sb2Headers()
@@ -642,8 +642,8 @@
 
   // ✅ CORRECTION BUG #1c — Poll Typing avec couple_id
   function pollTyping(){
-    var s = yamGetUser ? {user: yamGetUser()} : null;
-    var coupleId = s && s.user ? s.user.couple_id : null;
+    var s = yamGetUser ? yamGetUser() : null;
+    var coupleId = s && s.couple_id ? s.couple_id : null;
     if(!coupleId) return;
     
     var other = identity === 'girl' ? 'boy' : 'girl';
@@ -739,8 +739,8 @@
       }
       if(meta) meta.style.display = '';
       if(String(msg.id).indexOf('tmp_') === 0) return;
-      var _editSession = yamGetUser ? {user: yamGetUser()} : null;
-      var _editCoupleId = _editSession&&_editSession.user?_editSession.user.couple_id:null;
+      var _editSession = yamGetUser ? yamGetUser() : null;
+      var _editCoupleId = _editSession ? _editSession.couple_id : null;
       var _editFilter = 'id=eq.' + msg.id + (_editCoupleId ? '&couple_id=eq.' + _editCoupleId : '');
       fetch(SB_URL + '/rest/v1/' + TABLE + '?' + _editFilter, {
         method: 'PATCH',
@@ -797,8 +797,8 @@
   // Charge les messages plus anciens (bouton "Voir plus")
   function loadOlderMsgs(){
     if(_msgLoadingOld || _msgOlderDone) return;
-    var s = yamGetUser ? {user: yamGetUser()} : null;
-    var coupleId = s && s.user ? s.user.couple_id : null;
+    var s = yamGetUser ? yamGetUser() : null;
+    var coupleId = s && s.couple_id ? s.couple_id : null;
     if(!coupleId) return;
     _msgLoadingOld = true;
 
@@ -850,8 +850,8 @@
 
   function fetchMsgs(){
     // Récupérer le couple_id depuis la session
-    var s = yamGetUser ? {user: yamGetUser()} : null;
-    var coupleId = s && s.user ? s.user.couple_id : null;
+    var s = yamGetUser ? yamGetUser() : null;
+    var coupleId = s && s.couple_id ? s.couple_id : null;
     if(!coupleId){
       console.warn('[DM] fetchMsgs: couple_id manquant');
       return;
@@ -1329,22 +1329,24 @@
   }
 
   function setReaction(msg, wrap, reaction){
-    // Mettre à jour la réaction de l'utilisateur connecté
-    // col replaced by jsonb reactions — use msg.reactions
-    msg[col] = reaction;
+    // Mettre à jour la réaction de l'utilisateur connecté dans reactions jsonb
+    if(!msg.reactions) msg.reactions = {};
+    if(reaction === null){
+      delete msg.reactions[identity];
+    } else {
+      msg.reactions[identity] = reaction;
+    }
     renderReactions(msg, wrap);
 
     // Persist Supabase
     if(String(msg.id).indexOf('tmp_') === 0) return;
-    var _rs = yamGetUser ? {user: yamGetUser()} : null;
-    var _rcid = _rs&&_rs.user?_rs.user.couple_id:null;
-    var _rf = 'id=eq.'+msg.id+(_rcid?'&couple_id=eq.'+_rcid:'');
-    var _body = {};
-    _body[col] = reaction;
+    var _rs = yamGetUser ? yamGetUser() : null;
+    var _rcid = _rs ? _rs.couple_id : null;
+    var _rf = 'id=eq.' + msg.id + (_rcid ? '&couple_id=eq.' + _rcid : '');
     fetch(SB_URL + '/rest/v1/' + TABLE + '?' + _rf, {
       method: 'PATCH',
-      headers: sb2Headers({'Prefer':'return=minimal'}),
-      body: JSON.stringify(_body)
+      headers: sb2Headers({'Prefer':'return=minimal', 'Content-Type':'application/json'}),
+      body: JSON.stringify({ reactions: msg.reactions })
     }).then(function(r){
       if(!r.ok) r.text().then(function(t){ console.error('[DM] reaction err:', r.status, t); });
     }).catch(function(err){ console.error('[DM] reaction err:', err); });
@@ -1397,7 +1399,9 @@
     if(cached){ cached.deleted = true; cached.text = 'Message supprimé'; }
 
     // Soft delete Supabase
-    fetch(SB_URL + '/rest/v1/' + TABLE + '?id=eq.' + msg.id, {
+    var _ds = yamGetUser ? yamGetUser() : null;
+    var _dcid = _ds ? _ds.couple_id : null;
+    fetch(SB_URL + '/rest/v1/' + TABLE + '?id=eq.' + msg.id + (_dcid ? '&couple_id=eq.' + _dcid : ''), {
       method: 'PATCH',
       headers: sb2Headers({'Content-Type': 'application/json', 'Prefer': 'return=minimal'}),
       body: JSON.stringify({ deleted: true, text: 'Message supprimé' })
@@ -1660,8 +1664,8 @@
           // Fetch depuis Supabase
           playBtn.innerHTML = ICON_SPIN;
           playBtn.disabled = true;
-          var s = yamGetUser ? {user: yamGetUser()} : null;
-          var coupleId = s && s.user ? s.user.couple_id : null;
+          var s = yamGetUser ? yamGetUser() : null;
+          var coupleId = s && s.couple_id ? s.couple_id : null;
           fetch(SB_URL + '/rest/v1/' + TABLE + '?id=eq.' + realId + '&couple_id=eq.' + coupleId + '&select=id,audio_data,audio_mime', {
             headers: sb2Headers()
           })
@@ -1803,8 +1807,8 @@
     _sendTypingStop(); // signaler qu'on a arrêté de taper
 
     // Récupérer couple_id
-    var s = yamGetUser ? {user: yamGetUser()} : null;
-    var coupleId = s && s.user ? s.user.couple_id : null;
+    var s = yamGetUser ? yamGetUser() : null;
+    var coupleId = s && s.couple_id ? s.couple_id : null;
     if(!coupleId){
       console.error('[DM] doSend: couple_id manquant');
       return;
@@ -2186,8 +2190,8 @@
     }
 
     function sendAudio(blob, duration){
-      var s = yamGetUser ? {user: yamGetUser()} : null;
-      var coupleId = s && s.user ? s.user.couple_id : null;
+      var s = yamGetUser ? yamGetUser() : null;
+      var coupleId = s && s.couple_id ? s.couple_id : null;
       if(!coupleId){ console.error('[DM] sendAudio: couple_id manquant'); return; }
       var reader = new FileReader();
       reader.onloadend = function(){
@@ -2344,9 +2348,12 @@
 
   function markSeen(id){
     if(!id || String(id).indexOf('tmp_') === 0) return;
-    fetch(SB_URL + '/rest/v1/' + TABLE + '?id=eq.' + id, {
+    var _ms = yamGetUser ? yamGetUser() : null;
+    var _mcid = _ms ? _ms.couple_id : null;
+    if(!_mcid) return;
+    fetch(SB_URL + '/rest/v1/' + TABLE + '?id=eq.' + id + '&couple_id=eq.' + _mcid, {
       method: 'PATCH',
-      headers: sb2Headers(),
+      headers: sb2Headers({'Prefer':'return=minimal'}),
       body: JSON.stringify({ seen: true })
     }).then(function(){ if(window._checkUnread) window._checkUnread(); }).catch(function(){});
   }
@@ -2365,8 +2372,8 @@
   /* ══ PREVIEW ACCUEIL ══ */
   // ✅ CORRECTION BUG #1f — loadHomePreview avec couple_id
   function loadHomePreview(){
-    var s = yamGetUser ? {user: yamGetUser()} : null;
-    var coupleId = s && s.user ? s.user.couple_id : null;
+    var s = yamGetUser ? yamGetUser() : null;
+    var coupleId = s && s.couple_id ? s.couple_id : null;
     if(!coupleId) return;
     
     fetch(SB_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId + '&order=created_at.desc&limit=50&select=id,sender_role,sender_id,text,message_type,seen,created_at,reactions,deleted,audio_duration', {
