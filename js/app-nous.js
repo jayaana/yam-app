@@ -4017,9 +4017,13 @@ window.nousLoad = function(){
 
     // ── MALUS MINUIT : -50% une fois par jour — APRÈS le streak ──────
     // Pénalité pour commencer le nouveau jour, appliquée après la récompense.
+    // CONDITION : on n'applique le malus QUE si points_at_midnight > 0.
+    // Si points_at_midnight est null ou 0, la flamme était déjà éteinte — pas de malus.
     if (_streak.last_malus_date !== today) {
+      var ptsAtMidnightForMalus = _flame.points_at_midnight;
+      // Si points_at_midnight null → pas encore de snapshot (premier jour ou cron pas tourné)
+      // → on marque last_malus_date pour ne pas re-tenter, mais on n'écrit rien dans flame
       _streak.last_malus_date = today;
-      // Persister en Supabase (source de vérité) + localStorage (fallback)
       try { localStorage.setItem('yam_malus_date', today); } catch(e) {}
       if (_streak.rowId) {
         fetch(SB_URL + '/rest/v1/streak?id=eq.' + _streak.rowId, {
@@ -4028,9 +4032,9 @@ window.nousLoad = function(){
           body: JSON.stringify({ last_malus_date: today, updated_at: new Date().toISOString() })
         }).catch(function () {});
       }
-      var currentPts = _currentPoints();
-      if (currentPts > 0 && _flame.rowId) {
-        var afterMalus = Math.floor(currentPts * 0.5);
+      // N'appliquer le malus que s'il y avait vraiment des points à minuit
+      if (ptsAtMidnightForMalus !== null && ptsAtMidnightForMalus > 0 && _flame.rowId) {
+        var afterMalus = Math.floor(ptsAtMidnightForMalus * 0.5);
         _flame.points       = afterMalus;
         _flame.last_updated = new Date();
         _saveFlame(afterMalus);
@@ -4398,11 +4402,11 @@ window.nousLoad = function(){
     }, MIDNIGHT_CHECK_MS);
   }
 
-  // Pause quand page cachée
+  // Retour en premier plan : juste re-render, pas de _checkStreak
+  // (_checkStreak tourne via _midnightIv — dangereux si _flame est en état intermédiaire)
   document.addEventListener('visibilitychange', function () {
     if (!document.hidden) {
       _renderFlame();
-      _checkStreak();
     }
   });
 
@@ -4421,6 +4425,7 @@ window.nousLoad = function(){
       _renderTrophies();
       _renderCoupleSince();
       _loadTrophies();
+      _checkStreak();
       _startTicks();
       window.yamFlameActivity('first_login');
     });
