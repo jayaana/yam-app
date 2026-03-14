@@ -3809,6 +3809,7 @@ window.nousLoad = function(){
   function _saveFlame (pts) {
     var cid = _getCoupleId();
     if (!cid) return;
+    console.warn('[FLAME] _saveFlame appelé avec pts=' + pts, new Error().stack);
     var now = new Date().toISOString();
 
     if (_flame.rowId) {
@@ -4433,8 +4434,14 @@ window.nousLoad = function(){
       .then(function(r){ return r.ok ? r.json() : []; })
       .then(function(rows){
         if (rows && rows[0]) {
-          _flame.points             = parseFloat(rows[0].points) || 0;
-          _flame.last_updated       = new Date(rows[0].last_updated);
+          var remoteDate   = new Date(rows[0].last_updated);
+          var remotePoints = parseFloat(rows[0].points) || 0;
+          var localIsNewer = _flame.last_updated && _flame.last_updated > remoteDate;
+          var localIsBetter = _flame.points > remotePoints;
+          if (!localIsNewer || !localIsBetter) {
+            _flame.points       = remotePoints;
+            _flame.last_updated = remoteDate;
+          }
           _flame.rowId              = rows[0].id;
           _flame.points_at_midnight = rows[0].points_at_midnight != null ? parseFloat(rows[0].points_at_midnight) : null;
         }
