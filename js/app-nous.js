@@ -4383,10 +4383,9 @@ window.nousLoad = function(){
   // INIT — Point d'entrée appelé par _nousInitAll()
   // ════════════════════════════════════════════════════════════════
 
+  var _flammeInited = false;
+
   window.flammeInit = function () {
-    // Garde : first_login ne se déclenche qu'une fois par jour, même après déco/reco
-    // On délègue entièrement au check localStorage+Supabase ci-dessous.
-    // flammeInit lui-même peut être rappelé — seul first_login est protégé.
     _loadAll(function () {
       _renderFlame();
       _renderStreak();
@@ -4396,8 +4395,13 @@ window.nousLoad = function(){
       _checkStreak();
       _startTicks();
 
-      // Activité "première connexion du jour" — yamFlameActivity gère le 409 Supabase
-      window.yamFlameActivity('first_login');
+      // first_login : une seule fois par session
+      // La contrainte UNIQUE Supabase (couple_id, user_id, activity_type, activity_date)
+      // bloque les doublons inter-sessions / cache vidé
+      if (!_flammeInited) {
+        _flammeInited = true;
+        window.yamFlameActivity('first_login');
+      }
     });
   };
 
