@@ -3838,7 +3838,9 @@ window.nousLoad = function(){
     })
     .then(function (r) {
       if (r.ok) {
-        return r.json().then(function (result) {
+        return r.json().then(function (raw) {
+          // La RPC Supabase retourne un tableau ou un objet direct
+          var result = Array.isArray(raw) ? raw[0] : raw;
           // La RPC retourne le nouveau score
           if (result && typeof result.new_points === 'number') {
             _flame.points       = result.new_points;
