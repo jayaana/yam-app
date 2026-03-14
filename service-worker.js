@@ -2,7 +2,7 @@
 // Cache les assets statiques pour un chargement rapide
 // Ne met PAS en cache les requêtes Supabase (données toujours fraîches)
 
-var CACHE_NAME = 'yam-v32';
+var CACHE_NAME = 'yam-v33';
 
 // Assets à mettre en cache au premier chargement
 var STATIC_ASSETS = [
@@ -209,7 +209,11 @@ self.addEventListener('notificationclick', function(event) {
           return;
         }
       }
-      if (clients.openWindow) return clients.openWindow(targetUrl);
+      // App fermée — ouvrir avec le tab dans l'URL
+      if (clients.openWindow) {
+        var openUrl = tab ? (targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'open_tab=' + tab) : targetUrl;
+        return clients.openWindow(openUrl);
+      }
     })
   );
 });
