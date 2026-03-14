@@ -3774,9 +3774,8 @@ window.nousLoad = function(){
     localMidnight.setHours(0, 0, 0, 0);
     var profile3 = _getProfile();
     var actUrl = SB_URL + '/rest/v1/flame_activities?couple_id=eq.' + cid +
-      '&triggered_at=gte.' + localMidnight.toISOString() +
+      '&activity_date=gte.' + new Date().toISOString().split('T')[0] +
       '&select=activity_type';
-    if (profile3) actUrl += '&triggered_by=eq.' + profile3;
     fetch(actUrl, { headers: sb2Headers() })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (rows) {
@@ -3895,8 +3894,7 @@ window.nousLoad = function(){
       body    : JSON.stringify({
         couple_id    : cid,
         activity_type: activityType,
-        triggered_by : profile,
-        triggered_at : new Date().toISOString()
+        activity_date: new Date().toISOString().split('T')[0]
       })
     })
     .then(function(r) {
