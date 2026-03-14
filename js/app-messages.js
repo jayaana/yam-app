@@ -805,7 +805,7 @@
     // Ancre : created_at du plus vieux message en cache
     var oldest = cache[0];
     var anchor = oldest ? ('&created_at=lt.' + encodeURIComponent(oldest.created_at)) : '';
-    var _SEL = 'id,couple_id,sender_role,sender_id,text,message_type,seen,created_at,reply_to_id,deleted,reactions,audio_duration,audio_mime,photo_url';
+    var _SEL = 'id,couple_id,sender_role,sender_id,text,message_type,seen,created_at,reply_to_id,reply_to_text,reply_to_sender,deleted,reactions,audio_duration,audio_mime,photo_url';
     fetch(SB_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId + anchor
         + '&order=created_at.desc&limit=' + _msgPageSize + '&select=' + _SEL, {
       headers: sb2Headers()
@@ -859,7 +859,7 @@
 
     // Premier chargement : les 50 derniers en ASC
     // ⚡ EGRESS FIX : audio_data (base64) exclu du poll — chargé uniquement au tap
-    var _SELECT_FIELDS = 'id,couple_id,sender_role,sender_id,text,message_type,seen,created_at,reply_to_id,deleted,reactions,audio_duration,audio_mime,photo_url';
+    var _SELECT_FIELDS = 'id,couple_id,sender_role,sender_id,text,message_type,seen,created_at,reply_to_id,reply_to_text,reply_to_sender,deleted,reactions,audio_duration,audio_mime,photo_url';
     var url = SB_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId
             + '&order=created_at.desc&limit=' + _msgPageSize + '&select=' + _SELECT_FIELDS;
 
@@ -1817,7 +1817,7 @@
     // Capture reply avant de le cancel
     var replyId   = _replyMsg ? _replyMsg.id   : null;
     var replyText = _replyMsg ? (_replyMsg.message_type === 'audio' ? '🎤 Vocal' : (_replyMsg.message_type === 'photo' ? '📷 Photo' : (_replyMsg.text || ''))) : null;
-    var replySender = _replyMsg ? _replyMsg.sender : null;
+    var replySender = _replyMsg ? (_replyMsg.sender_role || _replyMsg.sender) : null;
     window.dmCancelReply();
 
     // Optimistic
