@@ -423,7 +423,7 @@
 
   // ── Piped Search ───────────────────────────────────────────────────
   function _pipedSearch(q,onResults,onError){
-    var _cwJwt = typeof _yamSessionToken === 'function' ? _yamSessionToken() : null;
+    var _cwJwt = typeof yamGetAccessToken === 'function' ? yamGetAccessToken() : null;
     fetch(SB2_EDGE_PIPED+'?q='+encodeURIComponent(q),{
       headers:Object.assign({}, sb2Headers(), _cwJwt ? {'Authorization':'Bearer '+_cwJwt} : {})
     })
