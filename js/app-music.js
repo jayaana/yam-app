@@ -945,7 +945,7 @@ function toggleFavorite(file,btn){
     .then(function(){ delete favoritesCache[profile]; refreshAllHearts(); });
   } else {
     var doAdd=function(){
-      fetch(SB_URL+'/rest/v1/favorites',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:_tfId,role:profile,song_file:file,user_id:(yamGetUser?yamGetUser().id:null)})})
+      fetch(SB_URL+'/rest/v1/favorites?on_conflict=couple_id,user_id,song_file',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:_tfId,role:profile,song_file:file,user_id:(yamGetUser?yamGetUser().id:null)})})
       .then(function(){ favoritesCache[profile]=file; refreshAllHearts(); });
     };
     if(current){
@@ -1035,7 +1035,7 @@ loadFavorites();
     _nlLastPushRemote=normalized||'null';
     var _np = yamGetUser ? {user: yamGetUser()} : null;
     var _npId=_np&&_np.user?_np.user.couple_id:null; if(!_npId) return;
-    fetch(SB_URL+'/rest/v1/'+NL_TABLE,{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:_npId,sender_role:profile,song_file:normalized,user_id:(yamGetUser?yamGetUser().id:null)})}).catch(function(){});
+    fetch(SB_URL+'/rest/v1/'+NL_TABLE+'?on_conflict=couple_id,user_id',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:_npId,sender_role:profile,song_file:normalized,user_id:(yamGetUser?yamGetUser().id:null)})}).catch(function(){});
   }
 
   window.nlPoll=nlPoll; window._nlRTActive=false; nlPoll(); window._nlIv=setInterval(nlPoll,5000);
@@ -1063,7 +1063,7 @@ loadFavorites();
     var profile=getProfile(); if(!profile) return;
     var _bu = yamGetUser ? {user: yamGetUser()} : null;
     var _buId=_bu&&_bu.user?_bu.user.couple_id:null; if(!_buId) return;
-    fetch(SB_URL+'/rest/v1/'+NL_TABLE,{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:_buId,sender_role:profile,song_file:null,user_id:(yamGetUser?yamGetUser().id:null)}),keepalive:true}).catch(function(){});
+    fetch(SB_URL+'/rest/v1/'+NL_TABLE+'?on_conflict=couple_id,user_id',{method:'POST',headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({couple_id:_buId,sender_role:profile,song_file:null,user_id:(yamGetUser?yamGetUser().id:null)}),keepalive:true}).catch(function(){});
   });
   window._nlPush=nlPush;
 })();
