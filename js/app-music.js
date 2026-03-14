@@ -455,6 +455,13 @@ window._top50Iv = setInterval(updateTop50PlayBtn, 500);
   window._playsRTActive = false;
   window.refreshPlays = refreshPlays;
   window._playsIv = setInterval(refreshPlays, 30000);
+
+  // Enregistrement dans le registre global yamClearAllPolls
+  window._yamStopPlaysIv = function(){
+    if(window._playsIv){ clearInterval(window._playsIv); window._playsIv = null; }
+    if(window._top50Iv){ clearInterval(window._top50Iv); window._top50Iv = null; }
+    if(window._mpPollIv){ clearInterval(window._mpPollIv); window._mpPollIv = null; }
+  };
 })();
 
 // ── PARTICLES (déclaré pour compatibilité) ──
