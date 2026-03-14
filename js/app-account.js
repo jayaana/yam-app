@@ -81,24 +81,8 @@ window.compressImage = function(file, maxWidthPx, targetBytes){
    PATCH GLOBAL — Rediriger sbGet/sbPost/sbPatch/sbDelete
    vers les tables v2_ sur SB2
 ════════════════════════════════════════════ */
-var _V2_TABLE_MAP = {
-  'dm_messages':      'v2_dm_messages',
-  'dm_typing':        'v2_dm_typing',
-  'memo_notes':       'v2_memo_notes',
-  'memo_todos':       'v2_memo_todos',
-  'like_counters':    'v2_like_counters',
-  'presence':         'v2_presence',
-  'photo_descs':      'v2_photo_descs',
-  'song_plays':       'v2_song_plays',
-  'favorites':        'v2_favorites',
-  'moods':            'v2_moods',
-  'suggestion_songs': 'v2_suggestion_songs',
-  'game_scores':      'v2_game_scores',
-  'skyjo_games':      'v2_skyjo_games',
-  'skyjo_presence':   'v2_skyjo_presence',
-  'pranks':           'v2_pranks',
-  'now_listening':    'v2_now_listening'
-};
+// _V2_TABLE_MAP supprimé en v3 — toutes les tables utilisent leur nom direct (sans préfixe v2_)
+var _V2_TABLE_MAP = {};
 function _mapTable(name){ return _V2_TABLE_MAP[name] || name; }
 
 window.sbGet = function(table, params){
@@ -236,8 +220,8 @@ function _v2AfterLogin(result, msgId){
 }
 
 window.v2DoLogin = function(){
-  var pseudo   = (document.getElementById('v2LoginPseudo').value   || '').trim();
-  var password =  document.getElementById('v2LoginPassword').value  || '';
+  var email    = (document.getElementById('v2LoginEmail').value    || '').trim();
+  var password =  document.getElementById('v2LoginPassword').value || '';
   var msgId    = 'v2LoginMsg';
   // Créer/assurer le message div
   var msgEl = document.getElementById(msgId);
@@ -248,25 +232,26 @@ window.v2DoLogin = function(){
     var form = document.getElementById('v2FormLogin');
     if(form) form.appendChild(msgEl);
   }
-  if(!pseudo || !password){
+  if(!email || !password){
     _v2SetMsg(msgId, '⚠️ Remplis tous les champs', true); return;
   }
   _v2SetMsg(msgId, '⏳ Connexion...', false);
-  v2Login(pseudo, password).then(function(res){ _v2AfterLogin(res, msgId); });
+  yamLogin(email, password).then(function(res){ _v2AfterLogin(res, msgId); });
 };
 
 window.v2DoRegister = function(){
+  var email    = (document.getElementById('v2RegEmail').value    || '').trim();
   var pseudo   = (document.getElementById('v2RegPseudo').value   || '').trim();
-  var password =  document.getElementById('v2RegPassword').value  || '';
+  var password =  document.getElementById('v2RegPassword').value || '';
   var msgId    = 'v2RegInfo';
-  if(!pseudo || !password){
+  if(!email || !pseudo || !password){
     _v2SetMsg(msgId, '⚠️ Remplis tous les champs', true); return;
   }
   if(password.length < 6){
     _v2SetMsg(msgId, '⚠️ Mot de passe trop court (6 min)', true); return;
   }
   _v2SetMsg(msgId, '⏳ Création du compte...', false);
-  v2Register(pseudo, password, _v2Role).then(function(res){
+  yamRegister(email, password, pseudo, _v2Role).then(function(res){
     if(res.ok && res.data && res.data.user && res.data.user.couple_code){
       _v2SetMsg(msgId, '✅ Compte créé ! Ton code couple : ' + res.data.user.couple_code, false);
       setTimeout(function(){ _v2AfterLogin(res, msgId); }, 2000);
@@ -277,9 +262,10 @@ window.v2DoRegister = function(){
 };
 
 window.v2DoJoin = function(){
+  var email    = (document.getElementById('v2JoinEmail')    ? (document.getElementById('v2JoinEmail').value    || '').trim() : '');
   var pseudo   = (document.getElementById('v2JoinPseudo').value   || '').trim();
-  var password =  document.getElementById('v2JoinPassword').value  || '';
-  var code     = (document.getElementById('v2JoinCode').value      || '').trim().toUpperCase();
+  var password =  document.getElementById('v2JoinPassword').value || '';
+  var code     = (document.getElementById('v2JoinCode').value     || '').trim().toUpperCase();
   var msgId    = 'v2JoinMsg';
   // Créer/assurer le message div
   var msgEl = document.getElementById(msgId);
@@ -290,14 +276,23 @@ window.v2DoJoin = function(){
     var form = document.getElementById('v2FormJoin');
     if(form) form.appendChild(msgEl);
   }
-  if(!pseudo || !password || !code){
+  if(!email || !pseudo || !password || !code){
     _v2SetMsg(msgId, '⚠️ Remplis tous les champs', true); return;
   }
   if(password.length < 6){
     _v2SetMsg(msgId, '⚠️ Mot de passe trop court (6 min)', true); return;
   }
-  _v2SetMsg(msgId, '⏳ Connexion au couple...', false);
-  v2Join(pseudo, password, _v2Role, code).then(function(res){ _v2AfterLogin(res, msgId); });
+  _v2SetMsg(msgId, '⏳ Création du compte...', false);
+  // v3 : register d'abord, puis join_couple
+  yamRegister(email, password, pseudo, _v2Role).then(function(res){
+    if(!res.ok){ _v2AfterLogin(res, msgId); return; }
+    _v2SetMsg(msgId, '⏳ Connexion au couple...', false);
+    yamJoinCouple(code).then(function(joinRes){
+      if(!joinRes.ok){ _v2SetMsg(msgId, '❌ ' + (joinRes.error || 'Code couple invalide'), true); return; }
+      // Rafraîchir la session avec le nouveau couple_id
+      v2RefreshSession().then(function(){ _v2AfterLogin(res, msgId); });
+    });
+  });
 };
 
 // Au démarrage : si session active on s'assure que le login est fermé
@@ -329,7 +324,7 @@ window.YAM_COUPLE = {
 function loadCoupleConfig(){
   var u = v2GetUser();
   if(!u || !u.couple_id) return Promise.resolve(null);
-  return fetch(SB2_URL + '/rest/v1/v2_couples?id=eq.' + encodeURIComponent(u.couple_id) + '&select=*', {
+  return fetch(SB_URL + '/rest/v1/couples?id=eq.' + encodeURIComponent(u.couple_id) + '&select=*', {
     headers: sb2Headers()
   })
   .then(function(r){ return r.ok ? r.json() : []; })
@@ -845,19 +840,18 @@ body.settings-open header,body.settings-open #yamStickyHeader,body.settings-open
     });
     localStorage.setItem(_PREFS_KEY, JSON.stringify(prefs));
     // Aussi sauvegarder en Supabase pour le partenaire
-    var cid = null;
-    try{ var s = JSON.parse(localStorage.getItem('yam_v2_session')||'null'); cid = s && s.user ? s.user.couple_id : null; }catch(e){}
-    var role = null;
-    try{ var s2 = JSON.parse(localStorage.getItem('yam_v2_session')||'null'); role = s2 && s2.user ? s2.user.role : null; }catch(e){}
+    var u = yamGetUser ? yamGetUser() : null;
+    var cid = u ? u.couple_id : null;
+    var role = u ? u.role : null;
     if(cid && role){
       var key = 'prefs_' + role;
-      fetch(SB2_URL+'/rest/v1/v2_photo_descs?couple_id=eq.'+cid+'&category=eq.yam_prefs&slot=eq.'+key+'&select=id',{headers:sb2Headers()})
+      fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+cid+'&category=eq.yam_prefs&slot=eq.'+key+'&select=id',{headers:sb2Headers()})
       .then(function(r){return r.ok?r.json():[];})
       .then(function(rows){
         if(rows && rows[0]){
-          fetch(SB2_URL+'/rest/v1/v2_photo_descs?id=eq.'+rows[0].id,{method:'PATCH',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify({description:JSON.stringify(prefs)})});
+          fetch(SB_URL+'/rest/v1/photo_descs?id=eq.'+rows[0].id,{method:'PATCH',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify({description:JSON.stringify(prefs)})});
         } else {
-          fetch(SB2_URL+'/rest/v1/v2_photo_descs',{method:'POST',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify({couple_id:cid,category:'yam_prefs',slot:key,description:JSON.stringify(prefs)})});
+          fetch(SB_URL+'/rest/v1/photo_descs',{method:'POST',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify({couple_id:cid,category:'yam_prefs',slot:key,description:JSON.stringify(prefs)})});
         }
       }).catch(function(){});
     }
@@ -1045,15 +1039,15 @@ window.acChangePwd = function(){
 
   msg.textContent = '⏳ Modification en cours...'; msg.style.color = 'var(--muted)';
 
-  // Passer par l'Edge Function auth-v2 avec action change_password
-  v2Auth('change_password', {
-    pseudo: u.pseudo,
-    old_password: oldPwd,
-    new_password: newPwd
-  }).then(function(data){
+  // v3 : Supabase Auth natif — PATCH /auth/v1/user
+  var token = yamGetAccessToken ? yamGetAccessToken() : '';
+  fetch(SB_URL + '/auth/v1/user', {
+    method: 'PUT',
+    headers: { 'apikey': SB_ANON_KEY, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: newPwd })
+  }).then(function(r){ return r.json(); }).then(function(data){
     if(data && data.error){
-      msg.textContent = '❌ ' + (data.error || 'Mot de passe actuel incorrect');
-      msg.style.color = '#e05555';
+      msg.textContent = '❌ ' + (data.error || 'Erreur'); msg.style.color = '#e05555';
     } else {
       msg.textContent = '✅ Mot de passe changé !'; msg.style.color = 'var(--green)';
       ['acOldPwd','acNewPwd','acConfirmPwd'].forEach(function(id){
@@ -1076,7 +1070,7 @@ window.acLinkPartner = function(){
 
   msg.textContent = '⏳ Liaison en cours...'; msg.style.color = 'var(--muted)';
 
-  v2Auth('join_couple', { user_id: u.id, couple_code: code, token: (v2LoadSession()||{}).token })
+  yamJoinCouple(code)
   .then(function(data){
     if(data && data.error){
       msg.textContent = '❌ ' + data.error; msg.style.color = '#e05555';
@@ -1107,7 +1101,7 @@ window.acLinkPartner = function(){
         if(s && s.user){
           if(data.couple_id) s.user.couple_id = data.couple_id;
           if(data.partner_pseudo) s.user.partner_pseudo = data.partner_pseudo;
-          localStorage.setItem(typeof V2_SESSION_KEY !== 'undefined' ? V2_SESSION_KEY : 'yam_v2_session', JSON.stringify(s));
+          localStorage.setItem('yam_session_v3', JSON.stringify(s));
         }
         var el = document.getElementById('acPartnerName');
         if(el) el.textContent = data.partner_pseudo || '(lié)';
@@ -1174,7 +1168,7 @@ window.acDoUnlink = function(){
             var codeEl = document.getElementById('acCoupleCode');
             if(codeEl) codeEl.textContent = data.new_couple_code;
           }
-          localStorage.setItem('yam_v2_session', JSON.stringify(s));
+          localStorage.setItem('yam_session_v3', JSON.stringify(s));
         }
         var el = document.getElementById('acPartnerName');
         if(el) el.textContent = '(pas encore lié)';
@@ -1247,7 +1241,7 @@ window.acSavePseudo = function(){
       } else {
         // Fallback
         var s = v2LoadSession();
-        if(s && s.user){ s.user.pseudo = newPseudo; localStorage.setItem('yam_v2_session', JSON.stringify(s)); }
+        if(s && s.user){ s.user.pseudo = newPseudo; localStorage.setItem('yam_session_v3', JSON.stringify(s)); }
         var pseudoEl = document.getElementById('acPseudo');
         if(pseudoEl) pseudoEl.textContent = escHtml(newPseudo);
         var row = document.getElementById('acEditPseudoRow');
@@ -1307,7 +1301,7 @@ function _acSyncAvatarTopbar(url, role){
 window._acLoadPartnerAvatar = function(){
   var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
   if(!u || !u.couple_id) return;
-  fetch(SB2_URL + '/rest/v1/v2_users?couple_id=eq.' + u.couple_id + '&id=neq.' + u.id + '&select=id,role&limit=1',
+  fetch(SB_URL + '/rest/v1/profiles?couple_id=eq.' + u.couple_id + '&id=neq.' + u.id + '&select=id,role&limit=1',
     { headers: sb2Headers() })
   .then(function(r){ return r.ok ? r.json() : []; })
   .then(function(rows){
@@ -1514,7 +1508,7 @@ window.addEventListener('load', function(){
     if(_lastCoupleId === null) _lastCoupleId = u.couple_id;
     
     // Récupérer les données fraîches du partenaire
-    fetch(SB2_URL + '/rest/v1/v2_users?couple_id=eq.' + u.couple_id + '&id=neq.' + u.id + '&select=pseudo,couple_id&limit=1', {
+    fetch(SB_URL + '/rest/v1/profiles?couple_id=eq.' + u.couple_id + '&id=neq.' + u.id + '&select=pseudo,couple_id&limit=1', {
       headers: sb2Headers()
     })
     .then(function(r){ return r.ok ? r.json() : null; })
@@ -1524,7 +1518,7 @@ window.addEventListener('load', function(){
       // Cas 1 : Le partenaire n'existe plus (il s'est délié)
       if(rows.length === 0){
         // Vérifier si mon couple_id a changé côté serveur
-        return fetch(SB2_URL + '/rest/v1/v2_users?id=eq.' + u.id + '&select=couple_id&limit=1', {
+        return fetch(SB_URL + '/rest/v1/profiles?id=eq.' + u.id + '&select=couple_id&limit=1', {
           headers: sb2Headers()
         })
         .then(function(r){ return r.ok ? r.json() : null; })
@@ -1655,7 +1649,7 @@ window.addEventListener('load', function(){
 (function(){
   var KEY      = 'jayana_profile';
   var MOOD_KEY = 'jayana_mood';
-  var MOOD_TABLE = 'v2_moods';
+  var MOOD_TABLE = 'moods';
   var EMOJIS   = { neutral:'👤', girl:'👧', boy:'👦' };
   var OTHER    = { girl:'boy', boy:'girl' };
   var MOODS    = ['😊','😍','🥰','😴','😔','🥺','😂','🔥','😎','🤩','😤','🥳','😇','🤗','💪','😏'];
@@ -1684,11 +1678,8 @@ window.addEventListener('load', function(){
   }
 
   function getCoupleId(){
-    try {
-      var s = JSON.parse(localStorage.getItem('yam_v2_session') || 'null');
-      if (s && s.user) return s.user.couple_id;
-    } catch(e) {}
-    return null;
+    var u = yamGetUser ? yamGetUser() : null;
+    return u ? u.couple_id : null;
   }
 
   function saveMood(sender, emoji, message){
@@ -1696,13 +1687,14 @@ window.addEventListener('load', function(){
     var coupleId = getCoupleId();
     if (!coupleId) return;
     var msg = (typeof message === 'string') ? message.trim().slice(0, 120) : '';
-    fetch(SB2_URL + '/rest/v1/' + MOOD_TABLE + '?sender=eq.' + sender + '&date=eq.' + today, {
+    var u3 = yamGetUser ? yamGetUser() : null;
+    fetch(SB_URL + '/rest/v1/' + MOOD_TABLE + '?couple_id=eq.' + coupleId + '&role=eq.' + sender + '&mood_date=eq.' + today, {
       method: 'DELETE', headers: sb2Headers()
     }).then(function(){
-      fetch(SB2_URL + '/rest/v1/' + MOOD_TABLE, {
+      fetch(SB_URL + '/rest/v1/' + MOOD_TABLE, {
         method: 'POST',
         headers: sb2Headers({'Prefer':'return=minimal'}),
-        body: JSON.stringify({ sender: sender, emoji: emoji, date: today, couple_id: coupleId, message: msg })
+        body: JSON.stringify({ role: sender, emoji: emoji, mood_date: today, couple_id: coupleId, user_id: u3 ? u3.id : null })
       }).then(function(){
         if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('mood_change');
       }).catch(function(){});
@@ -1731,8 +1723,8 @@ window.addEventListener('load', function(){
   function loadMoods(){
     var today = getTodayStr();
     var coupleId = getCoupleId();
-    var filter = '?date=eq.' + today + (coupleId ? '&couple_id=eq.' + coupleId : '');
-    fetch(SB2_URL + '/rest/v1/' + MOOD_TABLE + filter, {
+    var filter = '?mood_date=eq.' + today + (coupleId ? '&couple_id=eq.' + coupleId : '');
+    fetch(SB_URL + '/rest/v1/' + MOOD_TABLE + filter, {
       headers: sb2Headers()
     })
     .then(function(r){ return r.json(); })
@@ -1743,14 +1735,14 @@ window.addEventListener('load', function(){
       var selfFound  = false;
       var otherFound = false;
       rows.forEach(function(row){
-        if(profile && row.sender === profile){
+        if(profile && row.role === profile){
           selfFound = true;
           updateMoodBadge('self', row.emoji);
           window._myMood = row.emoji;
           window._myMoodMessage = row.message || '';
           var ppIcon = document.getElementById('ppMoodIcon');
           if(ppIcon) ppIcon.textContent = row.emoji;
-        } else if(otherProfile && row.sender === otherProfile){
+        } else if(otherProfile && row.role === otherProfile){
           otherFound = true;
           window._otherMoodMessage = row.message || '';
           updateMoodBadge('other', row.emoji);
@@ -1852,7 +1844,7 @@ window.addEventListener('load', function(){
   // ── Picker humeur ──
   function deleteMood(sender){
     var today = getTodayStr();
-    fetch(SB2_URL + '/rest/v1/' + MOOD_TABLE + '?sender=eq.' + sender + '&date=eq.' + today, {
+    fetch(SB_URL + '/rest/v1/' + MOOD_TABLE + '?role=eq.' + sender + '&mood_date=eq.' + today, {
       method: 'DELETE', headers: sb2Headers()
     }).catch(function(){});
   }
@@ -2213,7 +2205,7 @@ window.addEventListener('load', function(){
 
     function _initMoodsRealtime(){
       if(!window._yamRT){ _startMoodsFallback(); return; }
-      var sess = JSON.parse(localStorage.getItem('yam_v2_session')||'null');
+      var sess = JSON.parse(localStorage.getItem('yam_session_v3')||'null');
       var cid = sess && sess.user ? sess.user.couple_id : null;
       if(!cid){ _startMoodsFallback(); return; }
       if(window._yamRTChannels && window._yamRTChannels['moods']) return;
@@ -2223,7 +2215,7 @@ window.addEventListener('load', function(){
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
-          table: 'v2_moods',
+          table: 'moods',
           filter: 'couple_id=eq.' + cid
         }, function(){
           if(get()) loadMoods();
