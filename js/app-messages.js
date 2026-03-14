@@ -2478,6 +2478,18 @@
     }, 1500);
   };
 
+  // ✅ FIX RT — Upgrade poll→Realtime si _yamRT devient dispo après le démarrage
+  document.addEventListener('yam:rt_ready', function() {
+    if (_rtChannel) return; // déjà connecté en Realtime
+    var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+    var coupleId = u ? u.couple_id : null;
+    if (!window._yamRT || !coupleId) return;
+    // Si le poll tourne (chat ouvert en fallback), on switche vers Realtime
+    if (pollId) { clearInterval(pollId); pollId = null; window._chatPollId = null; }
+    _startRealtime(coupleId);
+    yamLog('[RT] Messages upgradé poll→Realtime sur rt_ready');
+  });
+
   var _origClose = window.closeHiddenPage;
   window.closeHiddenPage = function(){
     stopPoll();
