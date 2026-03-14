@@ -757,14 +757,22 @@
     _afterBeta();
   };
 
+  var _afterBetaPending = false;
   function _afterBeta(){
     if(!_coupleId){_sc('cwScLobby');return;}
-    // Guard : attendre que le JWT soit disponible avant d'interroger RLS
-    var _tok = typeof yamGetAccessToken === 'function' ? yamGetAccessToken() : null;
-    if(!_tok || _tok === (typeof SB_ANON_KEY !== 'undefined' ? SB_ANON_KEY : '')) {
-      document.addEventListener('yam:session_ready', function _onReady(){ document.removeEventListener('yam:session_ready', _onReady); _afterBeta(); }, {once:true});
+    // Guard : vérifier que la session utilisateur est disponible (JWT prêt)
+    var _u = typeof yamGetUser === 'function' ? yamGetUser() : null;
+    if(!_u || !_u.id) {
+      if(_afterBetaPending) return; // évite l'empilement de listeners
+      _afterBetaPending = true;
+      document.addEventListener('yam:session_ready', function _onReady(){
+        document.removeEventListener('yam:session_ready', _onReady);
+        _afterBetaPending = false;
+        _afterBeta();
+      }, {once:true});
       return;
     }
+    _afterBetaPending = false;
     _loadSavedPlaylist(); // charger la playlist du couple
     fetch(SB_URL+'/rest/v1/'+TABLE+'?couple_id=eq.'+encodeURIComponent(_coupleId)+'&active=eq.true&order=created_at.desc&limit=1',{headers:sb2Headers()})
     .then(function(r){return r.json();})
