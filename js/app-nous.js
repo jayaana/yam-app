@@ -3745,10 +3745,14 @@ window.nousLoad = function(){
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (rows) {
         if (rows && rows[0]) {
-          var remoteDate = new Date(rows[0].last_updated);
-          // Ne pas écraser si on a une valeur locale plus récente (RPC en cours)
-          if (!_flame.last_updated || remoteDate >= _flame.last_updated) {
-            _flame.points       = parseFloat(rows[0].points) || 0;
+          var remoteDate   = new Date(rows[0].last_updated);
+          var remotePoints = parseFloat(rows[0].points) || 0;
+          // Ne pas écraser si on a une valeur locale plus récente ET plus haute
+          // (cas : RPC vient de tourner mais Supabase retourne encore l'ancienne valeur)
+          var localIsNewer = _flame.last_updated && _flame.last_updated > remoteDate;
+          var localIsBetter = _flame.points > remotePoints;
+          if (!localIsNewer || !localIsBetter) {
+            _flame.points       = remotePoints;
             _flame.last_updated = remoteDate;
           }
           _flame.rowId              = rows[0].id;
