@@ -296,7 +296,9 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     var s = yamGetUser ? {user: yamGetUser()} : null;
     var coupleId = s && s.user ? s.user.couple_id : null;
     if(!coupleId) return;
-    fetch(SB_URL+'/rest/v1/'+PRANK_TABLE+'?couple_id=eq.'+coupleId+'&active=eq.true&order=created_at.asc', {
+    var myRole = typeof getProfile === 'function' ? getProfile() : (yamGetUser ? (yamGetUser()||{}).role : null);
+    var prankFilter = myRole ? '&sender_role=neq.'+myRole : '';
+    fetch(SB_URL+'/rest/v1/'+PRANK_TABLE+'?couple_id=eq.'+coupleId+'&active=eq.true'+prankFilter+'&order=created_at.asc', {
       headers: sb2Headers()
     })
     .then(function(r){ return r.json(); })
@@ -1297,7 +1299,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     var gender = (typeof getProfile === 'function') ? getProfile() : null;
     if (!gender) return;
     setTimeout(function(){ window.checkActivePrank(gender); }, 500);
-    var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+    var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
     var coupleId = u ? u.couple_id : null;
     if (window._yamRT && coupleId) {
       _prankRTChannel = null;
@@ -1311,7 +1313,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   window.setProfile = function(gender){
     _origSetProfile(gender);
     setTimeout(function(){ window.checkActivePrank(gender); }, 1500);
-    var u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+    var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
     var coupleId = u ? u.couple_id : null;
     if (window._yamRT && coupleId) {
       _stopPrankRealtime();
@@ -1325,7 +1327,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   var _savedProfile = getProfile();
   if(_savedProfile){
     setTimeout(function(){ window.checkActivePrank(_savedProfile); }, 2000);
-    var _u = (typeof v2GetUser === 'function') ? v2GetUser() : null;
+    var _u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
     var _coupleId = _u ? _u.couple_id : null;
     if (window._yamRT && _coupleId) {
       _startPrankRealtime(_coupleId, _savedProfile);
