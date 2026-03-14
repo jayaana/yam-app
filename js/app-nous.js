@@ -4118,9 +4118,9 @@ window.nousLoad = function(){
                    : _trophies.boy  > _trophies.girl ? 'boy'
                    : 'draw';
 
-        fetch(SB_URL + '/rest/v1/crown', {
+        fetch(SB_URL + '/rest/v1/crown?on_conflict=couple_id,date', {
           method  : 'POST',
-          headers : Object.assign({}, sb2Headers(), { 'Prefer': 'resolution=merge-duplicates' }),
+          headers : Object.assign({}, sb2Headers(), { 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
           body: JSON.stringify({
             couple_id : cid,
             date      : today,
