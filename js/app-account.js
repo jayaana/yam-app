@@ -2253,6 +2253,11 @@ window.addEventListener('load', function(){
     document.addEventListener('yam:session_ready', function(){
       setTimeout(_initMoodsRealtime, 1200);
     });
+
+    // Upgrade vers RT dès que _yamRT est prêt
+    document.addEventListener('yam:rt_ready', function(){
+      setTimeout(_initMoodsRealtime, 200);
+    });
   })();
 
   // ── Réinitialisation à minuit ──
