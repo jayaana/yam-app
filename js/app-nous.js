@@ -281,6 +281,11 @@ function _nousInitAll() {
     function() {
       // Succès batch — uniquement ce que le batch ne couvre pas
       console.log('[yam-init] Batch OK — 12 fetches remplacés par 1');
+      _petitsMotsLoad();
+      renderMemoCouple();
+      nousLoadSouvenirs();
+      nousLoadActivites();
+      livresLoad();
     },
     function() {
       // Fallback — comportement original intact
