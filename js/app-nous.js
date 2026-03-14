@@ -3887,41 +3887,50 @@ window.nousLoad = function(){
       music_together : 'Musique ensemble 🔥'
     };
 
-    // INSERT en base EN PREMIER — doublon ignoré silencieusement via on_conflict
+    // GET d'abord : vérifie si l'activité existe déjà aujourd'hui pour ce user
     var _faUser = (typeof yamGetUser === 'function' && yamGetUser()) ? yamGetUser() : null;
-    fetch(SB_URL + '/rest/v1/flame_activities?on_conflict=couple_id,user_id,activity_type,activity_date', {
-      method  : 'POST',
-      headers : sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal,resolution=ignore-duplicates' }),
-      body    : JSON.stringify({
-        couple_id    : cid,
-        user_id      : _faUser ? _faUser.id : null,
-        activity_type: activityType,
-        activity_date: new Date().toISOString().split('T')[0]
+    var _faUid  = _faUser ? _faUser.id : null;
+    var _faDate = new Date().toISOString().split('T')[0];
+    var _faCheckUrl = SB_URL + '/rest/v1/flame_activities?couple_id=eq.' + cid
+      + '&activity_type=eq.' + activityType
+      + '&activity_date=eq.' + _faDate
+      + (_faUid ? '&user_id=eq.' + _faUid : '')
+      + '&select=id&limit=1';
+
+    fetch(_faCheckUrl, { headers: sb2Headers() })
+    .then(function(r) { return r.ok ? r.json() : []; })
+    .then(function(existing) {
+      if (existing && existing.length > 0) {
+        // Déjà enregistré aujourd'hui — pas d'incrément
+        return;
+      }
+      return fetch(SB_URL + '/rest/v1/flame_activities', {
+        method  : 'POST',
+        headers : sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
+        body    : JSON.stringify({
+          couple_id    : cid,
+          user_id      : _faUid,
+          activity_type: activityType,
+          activity_date: _faDate
+        })
       })
-    })
-    .then(function(r) {
-      if (r.status === 200) {
-        // doublon ignoré — pas d'incrément
-        return;
-      }
-      if (!r.ok) {
-        // Autre erreur — libérer la réservation pour permettre un retry
-        _activitiesToday[activityType] = false;
-        return;
-      }
-      // INSERT accepté (201) → incrémenter flamme locale + serveur + toast
-      var current = _currentPoints();
-      var newPts  = Math.min(FLAME_MAX, current + ACTIVITY_POINTS);
-      _flame.points       = newPts;
-      _flame.last_updated = new Date();
-      _renderFlame();
-      _incrementFlameAtomic(cid, ACTIVITY_POINTS, null);
-      if (typeof showToast === 'function') {
-        showToast(labels[activityType] || '🔥 +2 flamme !', 'success', 2200);
-      }
+      .then(function(r) {
+        if (!r.ok) {
+          _activitiesToday[activityType] = false;
+          return;
+        }
+        var current = _currentPoints();
+        var newPts  = Math.min(FLAME_MAX, current + ACTIVITY_POINTS);
+        _flame.points       = newPts;
+        _flame.last_updated = new Date();
+        _renderFlame();
+        _incrementFlameAtomic(cid, ACTIVITY_POINTS, null);
+        if (typeof showToast === 'function') {
+          showToast(labels[activityType] || '🔥 +2 flamme !', 'success', 2200);
+        }
+      });
     })
     .catch(function() {
-      // Réseau KO — libérer pour permettre retry
       _activitiesToday[activityType] = false;
     });
   };
