@@ -1376,7 +1376,7 @@ function spawnHeart(){
     numEl.textContent=fmtLikes(cur+1);
   }
 
-  fetch(SB_URL+'/rest/v1/rpc/increment_like_counter',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},sb2Headers()),body:JSON.stringify({p_role:profile,p_couple_id:coupleId})})
+  fetch(SB_URL+'/rest/v1/rpc/increment_like_counter',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},sb2Headers()),body:JSON.stringify({p_profile:profile,p_couple_id:coupleId})})
   .then(function(r){ if(!r.ok){ return r.text().then(function(){ loadLikeCounters(); }); } if(window.scheduleLikeSync) window.scheduleLikeSync(); })
   .catch(function(){ loadLikeCounters(); });
 }
