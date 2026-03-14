@@ -4413,6 +4413,7 @@ window.nousLoad = function(){
 
   window.flammeInit = function () {
     if (_flammeInited) { window.flammeRefresh(); return; }
+    _flammeInited = true;
     _loadAll(function () {
       _renderFlame();
       _renderStreak();
@@ -4421,7 +4422,6 @@ window.nousLoad = function(){
       _loadTrophies();
       _checkStreak();
       _startTicks();
-      _flammeInited = true;
       window.yamFlameActivity('first_login');
     });
   };
