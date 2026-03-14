@@ -348,6 +348,21 @@ function _yamInitRealtime() {
 }
 window._yamInitRealtime = _yamInitRealtime;
 
+// ✅ FIX RT — Init (ou re-auth) Realtime après chaque login
+document.addEventListener('yam:session_ready', function() {
+  if (!window._yamRT) {
+    _yamInitRealtime();
+    yamLog('[RT] Init Realtime sur session_ready');
+    document.dispatchEvent(new CustomEvent('yam:rt_ready'));
+  } else {
+    // Client déjà créé — juste re-auth avec le nouveau JWT
+    var token = yamGetAccessToken();
+    if (token) window._yamRT.realtime.setAuth(token);
+    yamLog('[RT] Re-auth Realtime sur session_ready');
+    document.dispatchEvent(new CustomEvent('yam:rt_ready'));
+  }
+});
+
 window._yamRTCloseAll = function() {
   if (!window._yamRT) return;
   Object.keys(window._yamRTChannels).forEach(function(key) {
@@ -408,6 +423,14 @@ window.yamClearAllPolls = function() {
     var btnBoy  = document.getElementById('ppBtnBoy');
     if (btnGirl) btnGirl.innerHTML = '<span class="profile-popup-dot girl"></span>' + escHtml(u.role === 'girl' ? (u.pseudo || 'Elle') : (u.partner_pseudo || 'Elle'));
     if (btnBoy)  btnBoy.innerHTML  = '<span class="profile-popup-dot boy"></span>'  + escHtml(u.role === 'boy'  ? (u.pseudo || 'Lui')  : (u.partner_pseudo || 'Lui'));
+
+    // ✅ FIX RT — Init Realtime au démarrage si session déjà active
+    // Sans ça, _yamRT reste null et tous les channels tombent en fallback poll
+    setTimeout(function() {
+      _yamInitRealtime();
+      yamLog('[RT] Init Realtime au démarrage (session active)');
+      document.dispatchEvent(new CustomEvent('yam:rt_ready'));
+    }, 300);
   });
 })();
 
