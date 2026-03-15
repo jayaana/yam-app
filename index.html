@@ -12,7 +12,7 @@
        Tous les handlers sont dans js/app-inline.js via addEventListener
      • style-src : 'unsafe-inline' conservé (552 attributs style= dans le HTML)
      • connect-src : uniquement le projet Supabase YAM (REST + Storage + Edge + Realtime WSS)
-     • img-src : blob: (photos DM) + GitHub raw (GIFs mascotte) + Supabase Storage
+     • img-src : blob: (photos DM) + GitHub raw (GIFs mascotte) + Supabase Storage + YouTube thumbnails (cowatch)
      • media-src : blob: + data: pour vocaux (aperçu local + base64 décodé)
      • frame-ancestors 'none' : bloque le clickjacking
      • Fichiers externalisés : js/app-inline.js (14 blocs) + js/app-realtime-init.js
@@ -22,7 +22,7 @@
   script-src 'self' cdn.jsdelivr.net;
   style-src 'self' 'unsafe-inline' fonts.googleapis.com;
   font-src 'self' fonts.gstatic.com;
-  img-src 'self' blob: data: raw.githubusercontent.com https://jstiwtbgkbedtldqjdhp.supabase.co;
+  img-src 'self' blob: data: raw.githubusercontent.com https://jstiwtbgkbedtldqjdhp.supabase.co https://img.youtube.com https://i.ytimg.com;
   media-src 'self' blob: data:;
   connect-src 'self' https://jstiwtbgkbedtldqjdhp.supabase.co wss://jstiwtbgkbedtldqjdhp.supabase.co;
   worker-src 'self';
