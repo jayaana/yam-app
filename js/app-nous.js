@@ -1805,17 +1805,50 @@ document.addEventListener('yam:session_ready', function(){
 
   var _souvenirAllRows = [];
 
-  window.nousLoadSouvenirs = function(){
+  var _souvenirOffset = 0;
+  var _souvenirPageSize = 20;
+  var _souvenirHasMore = false;
+
+  window.nousLoadSouvenirs = function(reset){
     var coupleId=_getCoupleId(); if(!coupleId) return;
-    fetch(SB_URL+'/rest/v1/memories?couple_id=eq.'+coupleId+'&order=created_at.desc&select=*',{headers:sb2Headers()})
+    if(reset !== false){ _souvenirOffset = 0; _souvenirAllRows = []; }
+    fetch(SB_URL+'/rest/v1/memories?couple_id=eq.'+coupleId+'&order=created_at.desc&select=*&limit='+(_souvenirPageSize+1)+'&offset='+_souvenirOffset,{headers:sb2Headers()})
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(rows){
-      _souvenirAllRows = Array.isArray(rows)?rows:[];
+      rows = Array.isArray(rows)?rows:[];
+      _souvenirHasMore = rows.length > _souvenirPageSize;
+      if(_souvenirHasMore) rows = rows.slice(0, _souvenirPageSize);
+      if(_souvenirOffset === 0){
+        _souvenirAllRows = rows;
+      } else {
+        _souvenirAllRows = _souvenirAllRows.concat(rows);
+      }
+      _souvenirOffset += rows.length;
       _renderSouvenirRows(_souvenirAllRows);
+      _updateSouvenirLoadMore();
       var overlay=document.getElementById('souvenirGestionOverlay');
       if(overlay&&overlay.classList.contains('open')){ _renderGestionList(); }
     }).catch(function(){ });
   };
+
+  function _updateSouvenirLoadMore(){
+    var existing = document.getElementById('souvenirLoadMoreBtn');
+    var recentRow = document.getElementById('souvenirsRecentRow');
+    if(!recentRow) return;
+    if(_souvenirHasMore){
+      if(!existing){
+        var btn = document.createElement('button');
+        btn.id = 'souvenirLoadMoreBtn';
+        btn.className = 'activite-new-btn';
+        btn.style.cssText = 'margin:8px auto;display:block;font-size:12px;';
+        btn.textContent = 'Charger plus (' + _souvenirPageSize + ' suivants)';
+        btn.addEventListener('click', function(){ window.nousLoadSouvenirs(false); });
+        recentRow.parentNode.insertBefore(btn, recentRow.nextSibling);
+      }
+    } else {
+      if(existing) existing.remove();
+    }
+  }
   window._renderSouvenirRowsPublic = function(rows) { _renderSouvenirRows(rows); };
 
   function _renderSouvenirRows(rows){
@@ -2189,14 +2222,51 @@ document.addEventListener('yam:session_ready', function(){
   // ════════════════════════════════════════════
   // CHARGEMENT PRINCIPAL
   // ════════════════════════════════════════════
-  window.nousLoadActivites=function(){
+  var _ACTIVITES_CACHE_TTL = 3600 * 1000; // 1h en ms
+
+  function _activitesCacheKey(coupleId){ return 'yam_activites_cache_' + coupleId; }
+
+  function _activitesGetCache(coupleId){
+    try {
+      var raw = localStorage.getItem(_activitesCacheKey(coupleId));
+      if(!raw) return null;
+      var obj = JSON.parse(raw);
+      if(Date.now() - obj.ts > _ACTIVITES_CACHE_TTL) { localStorage.removeItem(_activitesCacheKey(coupleId)); return null; }
+      return obj.data;
+    } catch(e){ return null; }
+  }
+
+  function _activitesSetCache(coupleId, data){
+    try { localStorage.setItem(_activitesCacheKey(coupleId), JSON.stringify({ ts: Date.now(), data: data })); } catch(e){}
+  }
+
+  window.nousInvalidateActivitesCache = function(){
+    var coupleId = _getCoupleId();
+    if(coupleId) localStorage.removeItem(_activitesCacheKey(coupleId));
+  };
+
+  window.nousLoadActivites=function(forceRefresh){
     var coupleId=_getCoupleId(); if(!coupleId) return;
     var container=document.getElementById('activitesContainer'); if(!container) return;
+
+    // Utiliser le cache si disponible et pas de forceRefresh
+    if(!forceRefresh){
+      var cached = _activitesGetCache(coupleId);
+      if(cached){
+        _activiteAllRows = cached;
+        _renderActivitesHome();
+        var overlayC=document.getElementById('activiteGestionOverlay');
+        if(overlayC&&overlayC.classList.contains('open')){ _renderActiviteGestionList(); }
+        return;
+      }
+    }
+
     container.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Chargement...</div>';
     fetch(SB_URL+'/rest/v1/activites?couple_id=eq.'+coupleId+'&order=created_at.desc&select=*',{headers:sb2Headers()})
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(rows){
       _activiteAllRows = Array.isArray(rows)?rows:[];
+      _activitesSetCache(coupleId, _activiteAllRows);
       _renderActivitesHome();
       // Si l'overlay gestion est ouvert, le rafraîchir aussi
       var overlay=document.getElementById('activiteGestionOverlay');
@@ -2395,7 +2465,7 @@ document.addEventListener('yam:session_ready', function(){
       var cached=_activiteAllRows.filter(function(x){return String(x.id)===String(actId);})[0];
       if(cached) cached.steps=JSON.stringify(steps);
       return fetch(SB_URL+'/rest/v1/activites?id=eq.'+actId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({steps:JSON.stringify(steps)})});
-    }).then(function(){ window.nousLoadActivites(); }).catch(function(){});
+    }).then(function(){ window.nousInvalidateActivitesCache(); window.nousLoadActivites(true); }).catch(function(){});
   };
 
   // ════════════════════════════════════════════
@@ -2600,7 +2670,7 @@ document.addEventListener('yam:session_ready', function(){
       _iaSuggCache = null;
       var card = document.getElementById('activiteIaSuggCard');
       if(card) card.style.display = 'none';
-      window.nousLoadActivites();
+      window.nousInvalidateActivitesCache(); window.nousLoadActivites(true);
     }).catch(function(){});
   };
 
