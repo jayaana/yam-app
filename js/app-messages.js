@@ -386,6 +386,7 @@
     var photoInput = $('dmPhotoInput');
 
     if(input){
+      input.maxLength = 2000;
       input.addEventListener('input', function(){
         updateSendBtn();
         if(input.value.trim() === '') {
@@ -1800,6 +1801,10 @@
     if(!input) return;
     var text = input.value.trim();
     if(!text) return;
+    if(text.length > 2000){
+      if(typeof showToast === 'function') showToast('Message trop long (2000 caractères max)', 'error', 3000);
+      return;
+    }
     input.value = '';
     // ✅ FIX iOS — setTimeout(0) obligatoire pour fermer le clavier sur iPhone/iPad
     setTimeout(function(){ input.blur(); }, 0);
@@ -2196,6 +2201,12 @@
       var coupleId = s && s.couple_id ? s.couple_id : null;
       if(!coupleId){ console.error('[DM] sendAudio: couple_id manquant'); return; }
       var reader = new FileReader();
+      // Vérification taille blob audio — 10 Mo max
+      var MAX_AUDIO_BYTES = 10 * 1024 * 1024;
+      if(blob.size > MAX_AUDIO_BYTES){
+        if(typeof showToast === 'function') showToast('Vocal trop lourd (10 Mo max)', 'error', 3000);
+        return;
+      }
       reader.onloadend = function(){
         var b64 = reader.result.split(',')[1];
         var audioMime = blob.type || 'audio/webm';
