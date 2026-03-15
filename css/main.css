@@ -1262,8 +1262,10 @@ body.light #loveBox .lb-label { color: rgba(231,90,124,0.65); }
   overscroll-behavior-y: contain;
   height: calc(100vh - var(--nav-height));
 }
-/* yamNousTab scrolle via le body (comme Home et Musique) — pas de scroll interne */
-#yamNousTab.active {
+/* yamNousTab et yamMusiqueTab scrollent via le body — pas de scroll interne */
+/* Le grand header scrolle avec le contenu, le sticky header apparaît progressivement */
+#yamNousTab.active,
+#yamMusiqueTab.active {
   overflow-y: visible;
   height: auto;
 }
