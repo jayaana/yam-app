@@ -2,7 +2,7 @@
 // Cache les assets statiques pour un chargement rapide
 // Ne met PAS en cache les requêtes Supabase (données toujours fraîches)
 
-var CACHE_NAME = 'yam-v33';
+var CACHE_NAME = 'yam-v34';
 
 // Assets à mettre en cache au premier chargement
 var STATIC_ASSETS = [
@@ -23,6 +23,8 @@ var STATIC_ASSETS = [
   '/yam-app/js/app-messages.js',
   '/yam-app/js/app-events.js',
   '/yam-app/js/app-nav.js',
+  '/yam-app/js/app-realtime-init.js',
+  '/yam-app/js/app-inline.js',
   '/yam-app/assets/icons/icon-192.png',
   '/yam-app/assets/icons/icon-512.png',
   '/yam-app/assets/images/reaction_1.png',
