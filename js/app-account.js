@@ -268,10 +268,17 @@ window.v2DoForgotPassword = function(){
   _v2SetMsg(msgId, '⏳ Envoi en cours...', false);
   _authPost({ action: 'forgot_password', email: identifier })
     .then(function(data){
-      _v2SetMsg(msgId, '✅ Si ce compte existe, un email de reset a été envoyé', false);
+      console.log('[forgot_password] réponse:', JSON.stringify(data));
+      if(data.ok === false && data.debug){
+        // Mode debug temporaire — affiche l'erreur Supabase réelle
+        _v2SetMsg(msgId, '❌ Erreur Supabase : ' + data.debug, true);
+      } else {
+        _v2SetMsg(msgId, '✅ Si ce compte existe, un email de reset a été envoyé', false);
+      }
     })
-    .catch(function(){
-      _v2SetMsg(msgId, '✅ Si ce compte existe, un email de reset a été envoyé', false);
+    .catch(function(err){
+      console.error('[forgot_password] erreur réseau:', err);
+      _v2SetMsg(msgId, '❌ Erreur réseau — vérifie ta connexion', true);
     });
 };
 
