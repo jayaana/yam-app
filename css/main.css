@@ -412,66 +412,6 @@ body.light #uxToast.success { border-color: rgba(231,90,124,0.3); color: var(--g
   align-items: flex-end;
 }
 
-/* Zone avatars à droite */
-#yamStickyAvatars {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  position: relative;
-  width: 56px;
-  height: 34px;
-  flex-shrink: 0;
-  padding-bottom: 0px;
-}
-
-/* Avatar principal (self) */
-#yamStickyAvatarSelf {
-  position: absolute;
-  right: 0;
-  width: 30px; height: 30px;
-  border-radius: 50%;
-  background: #1a2a4a;
-  border: 1.5px solid rgba(91,156,246,0.4);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px;
-  cursor: pointer;
-  z-index: 2;
-  transition: border-color 0.3s;
-}
-#yamStickyAvatarSelf.girl { border-color: var(--accent); }
-#yamStickyAvatarSelf.boy  { border-color: #5b9cf6; }
-body.light #yamStickyAvatarSelf { background: rgba(231,90,124,0.08); }
-
-/* Avatar secondaire (other) */
-#yamStickyAvatarOther {
-  position: absolute;
-  right: 20px;
-  width: 26px; height: 26px;
-  border-radius: 50%;
-  background: var(--s2);
-  border: 1.5px solid var(--border);
-  display: none;
-  align-items: center; justify-content: center;
-  font-size: 12px;
-  opacity: 0.6;
-  z-index: 1;
-}
-#yamStickyAvatarOther.visible { display: flex; }
-
-/* Point présence sur l'avatar sticky */
-#yamStickyPresenceDot {
-  display: none;
-  position: absolute;
-  /* Sur l'avatar du partenaire (other) — coin bas gauche */
-  bottom: -2px; left: -2px;
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: #22c55e;
-  border: 1.5px solid var(--bg);
-  z-index: 5;
-  animation: presencePulse 2s ease-in-out infinite;
-}
-#yamStickyPresenceDot.online { display: block; }
 #yamStickyHeaderTitle {
   font-family: 'Bricolage Grotesque', sans-serif;
   font-size: 15px;
