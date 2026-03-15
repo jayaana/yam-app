@@ -2209,7 +2209,7 @@ document.addEventListener('yam:session_ready', function(){
     if(!alreadyAdded){
       var suggCard=document.createElement('div'); suggCard.className='activite-sugg-card';
       suggCard.innerHTML='<div class="activite-sugg-badge">Idée du jour</div>'+
-        '<div class="activite-header"><span class="activite-emoji">'+todaySuggested.emoji+'</span>'+
+        '<div class="activite-header"><span class="activite-emoji">'+escHtml(todaySuggested.emoji||'✨')+'</span>'+
         '<div class="activite-info"><div class="activite-titre">'+escHtml(todaySuggested.titre)+'</div>'+
         '<div class="activite-desc">'+escHtml(todaySuggested.desc)+'</div></div></div>'+
         '<button class="activite-add-btn" onclick="nousAddSuggestedActivite()">Ajouter à nos activités</button>';
@@ -2249,7 +2249,7 @@ document.addEventListener('yam:session_ready', function(){
     });
     card.innerHTML=
       '<div class="activite-card-header">'+
-        '<span class="activite-emoji">'+(act.emoji||'✨')+'</span>'+
+        '<span class="activite-emoji">'+escHtml(act.emoji||'✨')+'</span>'+
         '<div class="activite-info">'+
           '<div class="activite-titre">'+escHtml(act.title||'Activité')+(isStarred?' <span style="font-size:11px;vertical-align:middle;opacity:0.85;">⭐</span>':'')+'</div>'+
           (act.description?'<div class="activite-desc">'+escHtml(act.description)+'</div>':'')+
@@ -2327,7 +2327,7 @@ document.addEventListener('yam:session_ready', function(){
 
       var row=document.createElement('div'); row.className='activite-gestion-row';
       row.innerHTML=
-        '<div class="activite-gestion-emoji">'+(act.emoji||'✨')+'</div>'+
+        '<div class="activite-gestion-emoji">'+escHtml(act.emoji||'✨')+'</div>'+
         '<div class="activite-gestion-info">'+
           '<div class="activite-gestion-title">'+escHtml(act.title||'Activité')+(isCompleted?' <span style="font-size:10px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">✓ Terminée</span>':'')+'</div>'+
           (act.description?'<div class="activite-gestion-meta">'+escHtml(act.description.substring(0,55))+(act.description.length>55?'…':'')+'</div>':'')+
@@ -2556,7 +2556,7 @@ document.addEventListener('yam:session_ready', function(){
       var parsed = JSON.parse(raw);
       _iaSuggCache = parsed;
       if(card) card.style.display = 'flex';
-      textEl.innerHTML = '<strong>'+(parsed.emoji||'✨')+' '+escHtml(parsed.title||'')+'</strong><br><span style="font-weight:400;">'+escHtml(parsed.description||'')+'</span>';
+      textEl.innerHTML = '<strong>'+escHtml(parsed.emoji||'✨')+' '+escHtml(parsed.title||'')+'</strong><br><span style="font-weight:400;">'+escHtml(parsed.description||'')+'</span>';
       if(parsed.steps && parsed.steps.length){
         textEl.innerHTML += '<ul style="margin:8px 0 0 0;padding-left:16px;font-size:12px;color:var(--muted);line-height:1.6;">';
         parsed.steps.forEach(function(s){ textEl.innerHTML += '<li>'+escHtml(s)+'</li>'; });
@@ -2784,7 +2784,7 @@ document.addEventListener('yam:session_ready', function(){
       var row = document.createElement('div');
       row.className = 'histoire-gestion-row';
       row.innerHTML =
-        '<div class="histoire-gestion-emoji">'+(item.emoji||'📅')+'</div>'+
+        '<div class="histoire-gestion-emoji">'+escHtml(item.emoji||'📅')+'</div>'+
         '<div class="histoire-gestion-info">'+
           '<div class="histoire-gestion-date">'+escHtml(item.date_label||'')+'</div>'+
           '<div class="histoire-gestion-title">'+escHtml(item.title||'')+'</div>'+
