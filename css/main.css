@@ -258,7 +258,7 @@ html {
   background: #1a1614; /* dark default - overridden by warm theme */
 }
 html[data-theme="warm"], html.light { background: var(--bg) !important; }
-body { overscroll-behavior: none !important; overscroll-behavior-y: none !important; -webkit-overflow-scrolling: touch; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+body { overscroll-behavior: none !important; overscroll-behavior-y: none !important; -webkit-overflow-scrolling: touch; touch-action: pan-y; overflow: hidden; -webkit-user-select: none; user-select: none; }
 /* touch-action:manipulation autorise tap/scroll sans bloquer la sélection de texte.
    pan-x pan-y bloquait le geste longpress + drag de sélection iOS → supprimé.
    Le pull-to-refresh est bloqué via app-ios-touch.js (touchmove preventDefault). */
@@ -1307,11 +1307,17 @@ body.light #loveBox .lb-label { color: rgba(231,90,124,0.65); }
 }
 .yam-tab-panel.active {
   display: block;
-  padding-bottom: var(--nav-height);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  height: calc(100vh - var(--nav-height));
 }
 #yamJeuxTab.active {
   display: block;
-  padding-bottom: var(--nav-height);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  height: calc(100vh - var(--nav-height));
 }
 
 /* ══ MESSAGES TAB ══ */
