@@ -52,8 +52,6 @@ window.compressImage = function(file, maxWidthPx, targetBytes){
           // Dernier recours : retourner le blob à la qualité minimale
           canvas.toBlob(function(blob){
             if(!blob){ reject(new Error('CANVAS_TO_BLOB_FAILED')); return; }
-            var MAX_PHOTO_BYTES = 5 * 1024 * 1024;
-            if(blob.size > MAX_PHOTO_BYTES){ reject(new Error('PHOTO_TOO_LARGE')); return; }
             resolve(blob);
           }, 'image/jpeg', 0.45);
           return;
@@ -61,9 +59,7 @@ window.compressImage = function(file, maxWidthPx, targetBytes){
         var q = qualities[idx++];
         canvas.toBlob(function(blob){
           if(!blob){ reject(new Error('CANVAS_TO_BLOB_FAILED')); return; }
-          var MAX_PHOTO_BYTES = 5 * 1024 * 1024;
           if(!targetBytes || blob.size <= targetBytes){
-            if(blob.size > MAX_PHOTO_BYTES){ reject(new Error('PHOTO_TOO_LARGE')); return; }
             resolve(blob);
           } else {
             tryQuality();
@@ -686,6 +682,14 @@ body.settings-open header,body.settings-open #yamStickyHeader,body.settings-open
         '<button class="stg-btn stg-btn-danger">🔓 Se déconnecter</button>' +
       '</div>' +
 
+      /* ── Admin monitoring — visible uniquement pour l'admin ── */
+      (u.id === 'debf2eff-24fb-4770-a18e-66ad4e1b2f92' ?
+        '<div style="margin-top:8px;padding:0 0 8px;">' +
+          '<button class="stg-btn" id="stgAdminErrorsBtn" style="background:rgba(100,100,100,.1);border:1.5px solid rgba(100,100,100,.3);color:var(--muted);font-size:11px;">🛠 Monitoring erreurs</button>' +
+        '</div>' +
+        '<div id="stgAdminErrorsPanel" style="display:none;margin-bottom:12px;"></div>'
+      : '') +
+
       '<div class="stg-version" id="stgVersionLabel">YAM — You And Me 💕</div>' +
 
     '</div>' + /* fin stg-scroll */
@@ -928,6 +932,45 @@ body.settings-open header,body.settings-open #yamStickyHeader,body.settings-open
     // Déconnexion
     if (t.closest && t.closest('.stg-btn-danger')) {
       window.nativeLogout && window.nativeLogout(); return;
+    }
+
+    // ── Admin monitoring #58 ──────────────────────────────────
+    if (t.id === 'stgAdminErrorsBtn') {
+      var panel = document.getElementById('stgAdminErrorsPanel');
+      if (!panel) return;
+      if (panel.style.display === 'block') { panel.style.display = 'none'; t.textContent = '🛠 Monitoring erreurs'; return; }
+      t.textContent = '⏳ Chargement...';
+      fetch(SB_URL + '/rest/v1/errors_log_recent?limit=20', {
+        headers: { 'apikey': SB_ANON_KEY, 'Authorization': 'Bearer ' + (yamGetAccessToken ? yamGetAccessToken() : '') }
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(rows){
+        t.textContent = '🛠 Monitoring erreurs (' + rows.length + ')';
+        if(!rows.length){
+          panel.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">Aucune erreur récente 🎉</div>';
+        } else {
+          panel.innerHTML = rows.map(function(e){
+            var d = new Date(e.created_at).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+            return '<div style="border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:6px;font-size:11px;">'+
+              '<div style="font-weight:700;color:var(--text);margin-bottom:2px;">'+escHtml(e.message||'')+'</div>'+
+              '<div style="color:var(--muted);">'+escHtml(e.context||'—')+' · '+d+'</div>'+
+              (e.stack_preview ? '<div style="color:var(--muted);font-size:10px;margin-top:2px;white-space:pre-wrap;opacity:.7;">'+escHtml(e.stack_preview.substring(0,120))+'</div>' : '')+
+            '</div>';
+          }).join('') +
+          '<button id="stgAdminErrClear" style="font-size:11px;color:#e05555;background:none;border:none;cursor:pointer;margin-top:4px;">🗑 Tout effacer</button>';
+        }
+        panel.style.display = 'block';
+        // Bouton effacer
+        var clearBtn = document.getElementById('stgAdminErrClear');
+        if(clearBtn) clearBtn.addEventListener('click', function(){
+          fetch(SB_URL + '/rest/v1/errors_log?user_id=eq.' + (yamGetUser ? yamGetUser().id : ''), {
+            method: 'DELETE',
+            headers: { 'apikey': SB_ANON_KEY, 'Authorization': 'Bearer ' + (yamGetAccessToken ? yamGetAccessToken() : ''), 'Prefer': 'return=minimal' }
+          }).then(function(){ panel.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">Erreurs effacées 🎉</div>'; });
+        });
+      })
+      .catch(function(){ t.textContent = '🛠 Monitoring erreurs'; panel.innerHTML = '<div style="font-size:12px;color:#e05555;padding:8px 0;">Erreur de chargement</div>'; panel.style.display = 'block'; });
+      return;
     }
     // Rows : ouvrir sous-pages (via data-sub ajouté dans le HTML)
     var row = t.closest && t.closest('.stg-row[data-sub]');
@@ -1253,55 +1296,27 @@ window.acChangePwd = function(){
   var u = yamGetUser ? yamGetUser() : null;
   if(!u){ msg.textContent = '⚠️ Non connecté'; msg.style.color = '#e05555'; return; }
 
-  msg.textContent = '⏳ Vérification en cours...'; msg.style.color = 'var(--muted)';
+  msg.textContent = '⏳ Modification en cours...'; msg.style.color = 'var(--muted)';
 
+  // v3 : Supabase Auth natif — PATCH /auth/v1/user
   var token = yamGetAccessToken ? yamGetAccessToken() : '';
-
-  // Étape 1 — Récupérer l'email depuis Supabase Auth (non stocké dans yam_session_v3)
   fetch(SB_URL + '/auth/v1/user', {
-    headers: { 'apikey': SB_ANON_KEY, 'Authorization': 'Bearer ' + token }
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(authUser){
-    var email = authUser && authUser.email;
-    if(!email){
-      msg.textContent = '❌ Impossible de récupérer le compte'; msg.style.color = '#e05555'; return;
-    }
-
-    // Étape 2 — Re-authentifier avec l'ancien mot de passe pour le vérifier
-    return fetch(SB_URL + '/auth/v1/token?grant_type=password', {
-      method: 'POST',
-      headers: { 'apikey': SB_ANON_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email, password: oldPwd })
-    })
-    .then(function(r){ return r.json(); })
-    .then(function(check){
-      if(check.error || !check.access_token){
-        msg.textContent = '❌ Mot de passe actuel incorrect'; msg.style.color = '#e05555'; return;
-      }
-
-      // Étape 3 — Ancien mdp vérifié → changer par le nouveau
-      msg.textContent = '⏳ Modification en cours...'; msg.style.color = 'var(--muted)';
-      return fetch(SB_URL + '/auth/v1/user', {
-        method: 'PUT',
-        headers: { 'apikey': SB_ANON_KEY, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: newPwd })
-      })
-      .then(function(r){ return r.json(); })
-      .then(function(data){
-        if(data && data.error){
-          msg.textContent = '❌ ' + (data.error || 'Erreur'); msg.style.color = '#e05555';
-        } else {
-          msg.textContent = '✅ Mot de passe changé !'; msg.style.color = 'var(--green)';
-          ['acOldPwd','acNewPwd','acConfirmPwd'].forEach(function(id){
-            var el = document.getElementById(id); if(el) el.value = '';
-          });
-          setTimeout(function(){ msg.textContent = ''; }, 4000);
-        }
+    method: 'PUT',
+    headers: { 'apikey': SB_ANON_KEY, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: newPwd })
+  }).then(function(r){ return r.json(); }).then(function(data){
+    if(data && data.error){
+      msg.textContent = '❌ ' + (data.error || 'Erreur'); msg.style.color = '#e05555';
+    } else {
+      msg.textContent = '✅ Mot de passe changé !'; msg.style.color = 'var(--green)';
+      ['acOldPwd','acNewPwd','acConfirmPwd'].forEach(function(id){
+        var el = document.getElementById(id); if(el) el.value = '';
       });
-    });
-  })
-  .catch(function(){ msg.textContent = '❌ Erreur réseau'; msg.style.color = '#e05555'; });
+      setTimeout(function(){ msg.textContent = ''; }, 4000);
+    }
+  }).catch(function(){
+    msg.textContent = '❌ Erreur réseau'; msg.style.color = '#e05555';
+  });
 };
 
 window.acLinkPartner = function(){
@@ -1645,8 +1660,6 @@ window.acHandleAvatarUpload = function(input){
     if(btn) btn.disabled = false;
     if(err && err.message === 'HEIC_NOT_SUPPORTED'){
       if(typeof showToast === 'function') showToast('Format HEIC non supporté — convertissez en JPG', 'error', 4000);
-    } else if(err && err.message === 'PHOTO_TOO_LARGE'){
-      if(typeof showToast === 'function') showToast('Photo trop lourde (5 Mo max après compression)', 'error', 4000);
     } else if(err && err.message === 'CANVAS_NOT_SUPPORTED'){
       // Fallback : uploader le fichier original sans compression
       var path = 'avatars/' + u.id + '.jpg';
