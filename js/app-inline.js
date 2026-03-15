@@ -368,17 +368,15 @@ function v2ApplyDynamicNames(){
   var _lastProgress = -1;
 
   function _getActiveScrollY() {
-    // Lire le scrollTop du panel actif (tous les panels scrollent en interne)
-    // Sauf Musique qui selon le build peut scroller via window.scrollY
+    // Lire le scrollTop du panel si scroll interne (overflow:auto + height fixe)
+    // sinon window.scrollY (body scroll — Home, Nous, Musique)
     var tabIds = { home: 'yamHomeTab', nous: 'yamNousTab', jeux: 'yamJeuxTab', musique: 'yamMusiqueTab' };
     var panelId = tabIds[currentTab];
     if (panelId) {
       var panel = document.getElementById(panelId);
       if (panel) {
-        // Si le panel a un scroll interne (overflow:auto + height fixe), utiliser scrollTop
-        // Sinon (overflow:visible), utiliser window.scrollY
-        var style = getComputedStyle(panel);
-        if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+        var cs = getComputedStyle(panel);
+        if (cs.overflowY === 'auto' || cs.overflowY === 'scroll') {
           return panel.scrollTop;
         }
       }
@@ -465,14 +463,15 @@ function v2ApplyDynamicNames(){
   }
 
   function setTab(tab) {
-    // Reset scrollTop du panel qu'on quitte si c'est un panel à scroll interne
+    // Reset scrollTop uniquement pour les panels à scroll interne (overflow:auto)
+    // Pour les panels body-scroll (Home, Nous, Musique), yamSwitchTab fait window.scrollTo(0,0)
     var tabIds = { home: 'yamHomeTab', nous: 'yamNousTab', jeux: 'yamJeuxTab', musique: 'yamMusiqueTab' };
     var prevPanelId = tabIds[currentTab];
     if (prevPanelId) {
       var prevPanel = document.getElementById(prevPanelId);
       if (prevPanel) {
-        var style = getComputedStyle(prevPanel);
-        if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+        var cs = getComputedStyle(prevPanel);
+        if (cs.overflowY === 'auto' || cs.overflowY === 'scroll') {
           prevPanel.scrollTop = 0;
         }
       }
