@@ -10,6 +10,7 @@
      Générée par audit complet Mars 2026
      • script-src : SANS 'unsafe-inline' — zéro bloc inline, zéro onclick= dans le HTML
        Tous les handlers sont dans js/app-inline.js via addEventListener
+       + www.youtube.com pour l'API YouTube iframe (cowatch)
      • style-src : 'unsafe-inline' conservé (552 attributs style= dans le HTML)
      • connect-src : uniquement le projet Supabase YAM (REST + Storage + Edge + Realtime WSS)
      • img-src : blob: (photos DM) + GitHub raw (GIFs mascotte) + Supabase Storage + YouTube thumbnails (cowatch)
@@ -19,7 +20,7 @@
 ════════════════════════════════════════════════ -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
-  script-src 'self' cdn.jsdelivr.net;
+  script-src 'self' cdn.jsdelivr.net https://www.youtube.com;
   style-src 'self' 'unsafe-inline' fonts.googleapis.com;
   font-src 'self' fonts.gstatic.com;
   img-src 'self' blob: data: raw.githubusercontent.com https://jstiwtbgkbedtldqjdhp.supabase.co https://img.youtube.com https://i.ytimg.com;
@@ -28,6 +29,7 @@
   worker-src 'self';
   manifest-src 'self';
   frame-ancestors 'none';
+  frame-src https://www.youtube.com https://www.youtube-nocookie.com;
   base-uri 'self';
   form-action 'self';
 ">
