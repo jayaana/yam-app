@@ -1391,7 +1391,7 @@ body.light .nav-item.nav-active svg {
 /* ══ JEUX TAB ══ */
 /* ── Safe-area pour le premier élément de l'onglet Nous ── */
 #nousProfilSection {
-  padding-top: calc(var(--safe-top) + 28px) !important;
+  padding-top: calc(var(--safe-top) + 58px) !important;
 }
 
 
@@ -2461,7 +2461,7 @@ body:has(#snakeView.active) #themeToggleHome { opacity: 0 !important; pointer-ev
 .mu-card-header {
   display: flex; flex-direction: column;
   gap: 4px;
-  margin: calc(var(--safe-top) + 14px) 16px 10px;
+  margin: calc(var(--safe-top) + 58px) 16px 10px;
   background: var(--s3);
   border: 1px solid var(--border);
   border-radius: 18px;
