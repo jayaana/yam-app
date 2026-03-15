@@ -275,6 +275,107 @@ window.v2DoForgotPassword = function(){
     });
 };
 
+// ── Reset mot de passe via lien Supabase ─────────────────────────
+// Détecte #access_token=...&type=recovery dans l'URL au chargement
+(function(){
+  var hash = window.location.hash;
+  if(!hash.includes('type=recovery')) return;
+
+  // Parser le fragment
+  var params = {};
+  hash.replace(/^#/, '').split('&').forEach(function(p){
+    var kv = p.split('=');
+    params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || '');
+  });
+
+  var token = params['access_token'];
+  if(!token) return;
+
+  // Stocker le token pour le submit
+  window._yamResetToken = token;
+
+  // Nettoyer l'URL (retirer le hash) sans recharger la page
+  history.replaceState(null, '', window.location.pathname + window.location.search);
+
+  // Afficher le formulaire reset dès que le DOM est prêt
+  function showResetForm(){
+    // Ouvrir l'overlay login
+    var overlay = document.getElementById('v2LoginOverlay');
+    if(overlay) overlay.classList.add('active');
+    // Cacher tous les autres formulaires et les onglets
+    ['v2FormLogin','v2FormForgot','v2FormRegister','v2FormJoin'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.style.display = 'none';
+    });
+    var tabs = document.getElementById('v2LoginTabs');
+    if(tabs) tabs.style.display = 'none';
+    // Afficher le formulaire reset
+    var resetForm = document.getElementById('v2FormReset');
+    if(resetForm) resetForm.style.display = '';
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', showResetForm);
+  } else {
+    showResetForm();
+  }
+})();
+
+window.v2DoResetPassword = function(){
+  var p1    = (document.getElementById('v2ResetPassword').value  || '');
+  var p2    = (document.getElementById('v2ResetPassword2').value || '');
+  var msgId = 'v2ResetMsg';
+
+  if(p1.length < 6){
+    _v2SetMsg(msgId, '⚠️ Mot de passe trop court (6 min)', true); return;
+  }
+  if(p1 !== p2){
+    _v2SetMsg(msgId, '⚠️ Les mots de passe ne correspondent pas', true); return;
+  }
+  if(!window._yamResetToken){
+    _v2SetMsg(msgId, '❌ Lien expiré — refais "Mot de passe oublié"', true); return;
+  }
+
+  _v2SetMsg(msgId, '⏳ Mise à jour...', false);
+
+  // Appel Supabase Auth PUT /user avec le token de recovery comme Bearer
+  fetch(SB_URL + '/auth/v1/user', {
+    method: 'PUT',
+    headers: {
+      'apikey':        SB_ANON_KEY,
+      'Authorization': 'Bearer ' + window._yamResetToken,
+      'Content-Type':  'application/json',
+    },
+    body: JSON.stringify({ password: p1 }),
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if(data.error || data.error_description){
+      _v2SetMsg(msgId, '❌ ' + (data.error_description || data.error || 'Erreur'), true);
+      return;
+    }
+    // Succès
+    window._yamResetToken = null;
+    _v2SetMsg(msgId, '✅ Mot de passe changé ! Tu peux te connecter.', false);
+    setTimeout(function(){
+      // Rétablir les onglets et afficher le formulaire de connexion
+      var tabs = document.getElementById('v2LoginTabs');
+      if(tabs) tabs.style.display = '';
+      var resetForm = document.getElementById('v2FormReset');
+      if(resetForm) resetForm.style.display = 'none';
+      var loginForm = document.getElementById('v2FormLogin');
+      if(loginForm) loginForm.style.display = '';
+      var tabLogin = document.getElementById('v2TabLogin');
+      if(tabLogin) tabLogin.classList.add('active');
+      var tabReg = document.getElementById('v2TabRegister');
+      if(tabReg) tabReg.classList.remove('active');
+    }, 2000);
+  })
+  .catch(function(){
+    _v2SetMsg(msgId, '❌ Erreur réseau — réessaie', true);
+  });
+};
+
 window.v2DoRegister = function(){
   var email    = (document.getElementById('v2RegEmail').value    || '').trim();
   var pseudo   = (document.getElementById('v2RegPseudo').value   || '').trim();
