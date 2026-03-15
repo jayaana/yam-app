@@ -1154,3 +1154,403 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
 });
+
+
+// ══════════════════════════════════════════════════════════════════
+// LIAISON DES EVENT LISTENERS — COMPLET
+// Remplace les 277 handlers inline retirés de index.html
+// ══════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function(){
+
+  function _on(id, event, fn) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener(event, fn);
+  }
+  function _onAll(selector, event, fn) {
+    document.querySelectorAll(selector).forEach(function(el) {
+      el.addEventListener(event, fn);
+    });
+  }
+
+  // ── Thème ──
+  _on('themeToggleLogin', 'click', function(){ window.applyThemeToggle && window.applyThemeToggle(); });
+  _on('themeToggleHome',  'click', function(){ window.applyThemeToggle && window.applyThemeToggle(); });
+  _on('themeToggleDm1',   'click', function(){ window.applyThemeToggle && window.applyThemeToggle(); });
+  _on('themeToggleDm2',   'click', function(){ window.applyThemeToggle && window.applyThemeToggle(); });
+  _on('themeToggleGames', 'click', function(){ window.applyThemeToggle && window.applyThemeToggle(); });
+  _on('themeTogglePranks','click', function(){ window.applyThemeToggle && window.applyThemeToggle(); });
+
+  // ── Login V2 ──
+  _on('v2BtnLogin',      'click', function(){ window.v2DoLogin && window.v2DoLogin(); });
+  _on('v2LinkForgot',    'click', function(){ window.v2ShowForgot && window.v2ShowForgot(); });
+  _on('v2BtnForgot',     'click', function(){ window.v2DoForgotPassword && window.v2DoForgotPassword(); });
+  _on('v2LinkBackLogin', 'click', function(){ window.v2ShowLoginForm && window.v2ShowLoginForm(); });
+  _on('v2BtnReset',      'click', function(){ window.v2DoResetPassword && window.v2DoResetPassword(); });
+  _on('v2BtnRegister',   'click', function(){ window.v2DoRegister && window.v2DoRegister(); });
+  _on('v2BtnJoin',       'click', function(){ window.v2DoJoin && window.v2DoJoin(); });
+  _on('v2TabLogin',    'click', function(){ window.v2SwitchTab && window.v2SwitchTab('login'); });
+  _on('v2TabRegister', 'click', function(){ window.v2SwitchTab && window.v2SwitchTab('register'); });
+  _on('v2TabJoin',     'click', function(){ window.v2SwitchTab && window.v2SwitchTab('join'); });
+  _on('v2RoleGirl', 'click', function(){ window.v2SelectRole && window.v2SelectRole('girl'); });
+  _on('v2RoleBoy',  'click', function(){ window.v2SelectRole && window.v2SelectRole('boy'); });
+
+  // ── Profil / Humeur ──
+  _on('profileAvatar',     'click', function(){ window.toggleProfilePopup && window.toggleProfilePopup(); });
+  _on('moodBandeau',       'click', function(){ window.triggerMoodBandeau && window.triggerMoodBandeau(); });
+  _on('ppBtnGirl',   'click', function(){ window.setProfile && window.setProfile('girl'); });
+  _on('ppBtnBoy',    'click', function(){ window.setProfile && window.setProfile('boy'); });
+  _on('ppBtnMood',   'click', function(e){ window.openMoodPicker && window.openMoodPicker(e); });
+  _on('ppBtnLogout', 'click', function(){ window.nativeLogout && window.nativeLogout(); });
+  _on('homeMoodElleEditBtn', 'click', function(e){ window.openMoodPicker && window.openMoodPicker(e); });
+  _on('homeMoodLuiEditBtn',  'click', function(e){ window.openMoodPicker && window.openMoodPicker(e); });
+  _on('moodPickerOverlay',   'click', function(){ window.closeMoodPicker && window.closeMoodPicker(); });
+  _on('homeSpamHeart', 'click', function(){ window.spawnHeart && window.spawnHeart(); });
+
+  // ── Navigation tabs ──
+  _on('navHome',     'click', function(){ window.yamSwitchTab && window.yamSwitchTab('home'); });
+  _on('navMessages', 'click', function(){ window.yamSwitchTab && window.yamSwitchTab('messages'); });
+  _on('navJeux',     'click', function(){ window.yamSwitchTab && window.yamSwitchTab('jeux'); });
+  _on('navMusique',  'click', function(){ window.yamSwitchTab && window.yamSwitchTab('musique'); });
+  _on('navNous',     'click', function(){ window.yamSwitchTab && window.yamSwitchTab('nous'); });
+
+  // ── Sticky header ──
+  _on('yamStickyAvatarSelf', 'click', function(){ window.yamStickyOpenProfile && window.yamStickyOpenProfile(); });
+  _on('yamStickyGearBtn',    'click', function(){ window.yamToggleAccountModal && window.yamToggleAccountModal(); });
+  _on('headerGearBtn',       'click', function(){ window.yamToggleAccountModal && window.yamToggleAccountModal(); });
+
+  // ── Splash / Login ──
+  _on('yamSplashBtn', 'click', function(){ window.yamSplashOpen && window.yamSplashOpen(); });
+
+  // ── Rappels ──
+  _on('rappelOverlay',  'click', function(){ window.closeRappelSheet && window.closeRappelSheet(); });
+  _onAll('.rsh-close',  'click', function(){ window.closeRappelSheet && window.closeRappelSheet(); });
+  _on('rshInput', 'keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); window.rappelAdd && window.rappelAdd(); } });
+  _onAll('.rsh-submit', 'click', function(){ window.rappelAdd && window.rappelAdd(); });
+  _onAll('.home-rappel-add-btn', 'click', function(){ window.openRappelSheet && window.openRappelSheet(); });
+  _onAll('.home-rappel-done',    'click', function(){ window.homeRappelDone && window.homeRappelDone(); });
+  _onAll('.home-rappel-later',   'click', function(){ window.homeRappelNext && window.homeRappelNext(); });
+  (function(){
+    var btns = document.querySelectorAll('.home-rappel-nav-btn');
+    if(btns[0]) btns[0].addEventListener('click', function(){ window.homeRappelPrev && window.homeRappelPrev(); });
+    if(btns[1]) btns[1].addEventListener('click', function(){ window.homeRappelNext && window.homeRappelNext(); });
+  })();
+
+  // ── Histoire ──
+  _on('histoireGestionBtn',       'click', function(){ window.histoireOpenGestion && window.histoireOpenGestion(); });
+  _on('histoireCloseChapterBtn',  'click', function(){ window.histoireCloseChapterModal && window.histoireCloseChapterModal(); });
+  _on('histoireBulle', 'click', function(){
+    var m = document.getElementById('histoireChapterModal');
+    if(m && m.style.display !== 'none'){ m.style.display='none'; }
+    else if(m){ m.style.display='flex'; }
+  });
+  _on('histoireNewItemBtn',       'click', function(){ window.histoireOpenItemModal && window.histoireOpenItemModal(null); });
+  _on('histoireCloseGestionBtn',  'click', function(){ window.histoireCloseGestion && window.histoireCloseGestion(); });
+  _on('histoireCloseItemModalBtn','click', function(){ window.histoireCloseItemModal && window.histoireCloseItemModal(); });
+  _on('histoireItemSaveBtn',   'click', function(){ window.histoireSaveItem && window.histoireSaveItem(); });
+  _on('histoireItemDeleteBtn', 'click', function(){ window.histoireDeleteItem && window.histoireDeleteItem(); });
+
+  // ── Semaine ──
+  _on('semaineToggleBtn',    'click', function(){ window.semaineToggle && window.semaineToggle(); });
+  _on('semaineGenBtn',       'click', function(){ window.semaineGenerate && window.semaineGenerate(); });
+  _on('semaineCloseSlotBtn', 'click', function(){ window.semaineCloseSlotModal && window.semaineCloseSlotModal(); });
+
+  // ── Mémo ──
+  _on('memoNoteViewCard',      'click', function(){ window.openMemoNoteView && window.openMemoNoteView(); });
+  _on('memoNoteStopProp',      'click', function(e){ e.stopPropagation(); });
+  _on('memoNoteEditBtn',       'click', function(){ window.openMemoNoteEdit && window.openMemoNoteEdit(); });
+  _on('memoTodoViewCard',      'click', function(){ window.openMemoTodoView && window.openMemoTodoView(); });
+  _on('memoTodoStopProp',      'click', function(e){ e.stopPropagation(); });
+  _on('memoTodoEditBtn',       'click', function(){ window.openMemoTodoEdit && window.openMemoTodoEdit(); });
+  _on('memoNoteViewCloseBtn',  'click', function(){ window.closeMemoNoteView && window.closeMemoNoteView(); });
+  _on('memoNoteViewBackBtn',   'click', function(){ window.closeMemoNoteView && window.closeMemoNoteView(); });
+  _on('memoNoteViewToEditBtn', 'click', function(){ window.memoNoteViewToEdit && window.memoNoteViewToEdit(); });
+  _on('memoTodoViewCloseBtn',  'click', function(){ window.closeMemoTodoView && window.closeMemoTodoView(); });
+  _on('memoTodoViewBackBtn',   'click', function(){ window.closeMemoTodoView && window.closeMemoTodoView(); });
+  _on('memoTodoViewToEditBtn', 'click', function(){ window.memoTodoViewToEdit && window.memoTodoViewToEdit(); });
+  _on('memoNoteEditCloseBtn',  'click', function(){ window.closeMemoNoteEdit && window.closeMemoNoteEdit(); });
+  _on('memoNoteEditCancelBtn', 'click', function(){ window.closeMemoNoteEdit && window.closeMemoNoteEdit(); });
+  _on('memoPopupSaveBtn',      'click', function(){ window.memoSaveNote && window.memoSaveNote(); });
+  _on('memoNoteEditSaveBtn2',  'click', function(){ window.memoSaveNote && window.memoSaveNote(); });
+  _on('memoTodoEditCloseBtn',  'click', function(){ window.closeMemoTodoEdit && window.closeMemoTodoEdit(); });
+  _on('memoAddTodoItemBtn',    'click', function(){ window.memoAddTodoItem && window.memoAddTodoItem(); });
+  _on('memoTodoEditCancelBtn', 'click', function(){ window.closeMemoTodoEdit && window.closeMemoTodoEdit(); });
+  _on('openMemoNoteEdit',      'click', function(){ window.openMemoNoteEdit && window.openMemoNoteEdit(); });
+  _on('openMemoTodoEdit',      'click', function(){ window.openMemoTodoEdit && window.openMemoTodoEdit(); });
+
+  // ── Petits mots ──
+  _on('openPetitsMotsBtn',       'click', function(){ window.openPetitsMotsGestion && window.openPetitsMotsGestion(); });
+  _on('closePetitsMotsGestionBtn','click', function(){ window.closePetitsMotsGestion && window.closePetitsMotsGestion(); });
+  _on('closePetitsMotsEditorBtn', 'click', function(){ window.closePetitsMotsEditor && window.closePetitsMotsEditor(); });
+  _on('petitsMotsSaveBtn',        'click', function(){ window.savePetitMot && window.savePetitMot(); });
+
+  // ── Slot elle/lui ──
+  _on('elleTitleEditBtn', 'click', function(){ window.elleEditSectionTitle && window.elleEditSectionTitle(); });
+  _on('elleGearBtn',      'click', function(){ window.elleToggleSection && window.elleToggleSection(); });
+  _on('elleFileInput',    'change', function(){ window.elleHandleFile && window.elleHandleFile(this); });
+  _on('luiTitleEditBtn',  'click', function(){ window.luiEditSectionTitle && window.luiEditSectionTitle(); });
+  _on('luiGearBtn',       'click', function(){ window.luiToggleSection && window.luiToggleSection(); });
+  _on('luiFileInput',     'change', function(){ window.luiHandleFile && window.luiHandleFile(this); });
+  // slotOpenEdit — délégation via data-slot sur les album-cards
+  document.querySelectorAll('.album-card.lui-card-wrap').forEach(function(card){
+    var slot = card.dataset.slot;
+    if(!slot) return;
+    var role = slot.startsWith('elle-') ? 'elle' : 'lui';
+    var slotName = slot.startsWith('elle-') ? slot.replace('elle-','') : slot;
+    var editBtn = card.querySelector('.lui-upload-btn');
+    if(editBtn) editBtn.addEventListener('click', function(){ window.slotOpenEdit && window.slotOpenEdit(role, slotName); });
+    var emptyDiv = card.querySelector('.lui-img-empty');
+    if(emptyDiv) emptyDiv.addEventListener('click', function(){ window.slotOpenEdit && window.slotOpenEdit(role, slotName); });
+    var bannerEditable = card.querySelector('.album-banner.editable');
+    if(bannerEditable) bannerEditable.addEventListener('click', function(){ window.slotOpenEdit && window.slotOpenEdit(role, slotName); });
+  });
+  _on('slotCloseEditBtn',  'click', function(){ window.slotCloseEdit && window.slotCloseEdit(); });
+  _on('slotEditPhoto',     'click', function(){ window.slotEditPhotoClick && window.slotEditPhotoClick(); });
+  _on('slotEditSaveBtn',   'click', function(){ window.slotEditSave && window.slotEditSave(); });
+
+  // ── Souvenirs ──
+  _on('openSouvenirGestionBtn',  'click', function(){ window.nousOpenSouvenirGestion && window.nousOpenSouvenirGestion(); });
+  _on('souvenirNewBtn',          'click', function(){ window.nousOpenSouvenirModal && window.nousOpenSouvenirModal(null); });
+  _on('closeSouvenirModalBtn',   'click', function(){ window.closeSouvenirModal && window.closeSouvenirModal(); });
+  _on('souvenirPhotoPreview',    'click', function(){ window.souvenirPhotoClick && window.souvenirPhotoClick(); });
+  _on('souvenirPhotoInput',      'change', function(){ window.souvenirHandlePhoto && window.souvenirHandlePhoto(this); });
+  _on('souvenirInputDate', 'change', function(){
+    var l = document.getElementById('souvenirDateLabel');
+    if(this.value){ if(l){l.style.color='var(--text)'; l.textContent=new Date(this.value+'T00:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});} }
+    else { if(l){l.style.color='var(--muted)'; l.textContent='Date (optionnel)';} }
+  });
+  _on('souvenirSaveBtn',        'click', function(){ window.souvenirSave && window.souvenirSave(); });
+  _on('souvenirModalDelBtn',    'click', function(){ window.souvenirDelete && window.souvenirDelete(); });
+  _on('souvenirGestionNewBtn',  'click', function(){ window._souvenirFromGestion=true; window.nousOpenSouvenirModal && window.nousOpenSouvenirModal(null); });
+  _on('closeSouvenirGestionBtn','click', function(){ window.nousCloseSouvenirGestion && window.nousCloseSouvenirGestion(); });
+
+  // ── Activités ──
+  _on('openActiviteGestionBtn',    'click', function(){ window.nousOpenActiviteGestion && window.nousOpenActiviteGestion(); });
+  _on('activiteIaBtn',             'click', function(){ window.activiteIaSuggest && window.activiteIaSuggest(); });
+  _on('activiteIaAddBtn',          'click', function(){ window.activiteIaAdd && window.activiteIaAdd(); });
+  _on('closeActiviteGestionBtn',   'click', function(){ window.nousCloseActiviteGestion && window.nousCloseActiviteGestion(); });
+  _on('closeActiviteModalBtn',     'click', function(){ window.closeActiviteModal && window.closeActiviteModal(); });
+  _on('activiteAddStepBtn',        'click', function(){ window.nousAddStep && window.nousAddStep(); });
+  _on('activiteSaveBtn',           'click', function(){ window.activiteSave && window.activiteSave(); });
+  _on('activiteDeleteBtn',         'click', function(){ window.activiteDelete && window.activiteDelete(); });
+
+  // ── Livres ──
+  _on('openLivresGestionBtn', 'click', function(){ window.livresOpenGestion && window.livresOpenGestion(); });
+  _on('livreIdeaBtn',         'click', function(){ window.livresIdeeDuJour && window.livresIdeeDuJour(); });
+  _on('livresNewBtn',         'click', function(){ window.livresOpenNew && window.livresOpenNew(); });
+  _on('livresAddIdeaBtn',     'click', function(){ window.livresAddFromIdea && window.livresAddFromIdea(); });
+  _on('livreIdeaCloseBtn',    'click', function(){ var c=document.getElementById('livreIdeaCard'); if(c) c.style.display='none'; });
+  _on('livreIdeaNextBtn',     'click', function(){ window.livresIdeeDuJour && window.livresIdeeDuJour(); });
+  _on('livresNewBtn2',        'click', function(){ window.livresOpenNew && window.livresOpenNew(); });
+  _on('livresCloseGestionBtn','click', function(){ window.livresCloseGestion && window.livresCloseGestion(); });
+  _on('livresCloseEditBtn',   'click', function(){ window.livresCloseEdit && window.livresCloseEdit(); });
+  _on('livreEditPhoto',       'click', function(){ window.livresPhotoClick && window.livresPhotoClick(); });
+  _on('livrePhotoInput',      'change', function(){ window.livresHandlePhoto && window.livresHandlePhoto(this); });
+  _on('livreEditSaveBtn',     'click', function(){ window.livresSave && window.livresSave(); });
+  _on('livreEditDelBtn',      'click', function(){ window.livresDelete && window.livresDelete(); });
+
+  // ── Suggestions musicales ──
+  _on('sgAddBtn',      'click', function(){ window.openSgModal && window.openSgModal(); });
+  _on('sgLockBadge',   'click', function(){ window.sgToggleLock && window.sgToggleLock(); });
+  _on('sgCheckAuthBtn','click', function(){ window.sgCheckAuth && window.sgCheckAuth(); });
+  _on('sgCancelAuthBtn','click', function(){ window.closeSgAuth && window.closeSgAuth(); });
+  _on('sgCloseManageBtn','click', function(){ window.closeSgManageModal && window.closeSgManageModal(); });
+  _on('sgCloseEditBtn', 'click', function(){ window.closeSgEditModal && window.closeSgEditModal(); });
+  _on('sgEditSaveBtn',  'click', function(){ window.sgEditSave && window.sgEditSave(); });
+  _on('sgCloseModalBtn','click', function(){ window.closeSgModal && window.closeSgModal(); });
+  _on('sgSaveBtn',      'click', function(){ window.sgSave && window.sgSave(); });
+  _on('sgManageOpenBtn','click', function(){ window.closeSgModal && window.closeSgModal(); window.openSgManageModal && window.openSgManageModal(); });
+
+  // ── Jeux — navigation ──
+  _on('jxQuizRow',   'click', function(){ var b=document.getElementById('quizBtn');   if(b)b.click(); });
+  _on('jxGamesMore', 'click', function(){ var b=document.getElementById('gamesBtn');  if(b)b.click(); });
+  _on('libItemMemo', 'click', function(){ window.goTo && window.goTo('memoCoupleSection'); });
+  _on('libItemLove', 'click', function(){ window.goTo && window.goTo('Love'); });
+  _on('libItemSugg', 'click', function(){ window.goTo && window.goTo('suggestionSection'); });
+  _on('libItemBooks','click', function(){ window.goTo && window.goTo('Books'); });
+  _on('lockSubmit',  'click', function(){ window.checkCode && window.checkCode(); });
+
+  // ── Jeux — accès rapide home ──
+  (function(){
+    var jxRows = document.querySelectorAll('.jx-row');
+    jxRows.forEach(function(row){
+      if(row.id) return; // déjà géré par id
+      // Fallback pour les jx-rows sans id (ne devrait plus exister après nos ajouts)
+    });
+  })();
+
+  // ── Jeux avec id ──
+  _on('skyjoCard',    'click', function(){ window.openSkyjoLock && window.openSkyjoLock(); });
+  (function(){
+    // Accès rapide depuis l'onglet jeux (jx-rows avec id connus)
+    var map = {
+      'openSkyjoLock': function(){ window.openSkyjoLock && window.openSkyjoLock(); },
+      'openMemoryGame': function(){ window.openMemoryGame && window.openMemoryGame(); },
+      'openPenduGame': function(){ window.openPenduGame && window.openPenduGame(); },
+      'openCowatchModal': function(){ window.openCowatchModal && window.openCowatchModal(); },
+      'openWheelModal': function(){ window.openWheelModal && window.openWheelModal(); },
+      'openPrankMenu': function(){ window.openPrankMenu && window.openPrankMenu(); },
+    };
+    document.querySelectorAll('.jx-row, .jx-wheel-btn').forEach(function(el){
+      if(el.id) return;
+      // Sans id — déterminer l'action par position dans le DOM
+    });
+  })();
+
+  // ── Accès rapide jeux (sans id, par data ou position) ──
+  // On identifie les jx-rows restants sans id par leur contenu
+  document.querySelectorAll('.jx-row:not([id])').forEach(function(row){
+    var txt = row.textContent;
+    if(txt.indexOf('Skyjo') !== -1 || row.querySelector('#skyjoCard'))
+      row.addEventListener('click', function(){ window.openSkyjoLock && window.openSkyjoLock(); });
+    else if(txt.indexOf('Memory') !== -1)
+      row.addEventListener('click', function(){ window.openMemoryGame && window.openMemoryGame(); });
+    else if(txt.indexOf('Pendu') !== -1)
+      row.addEventListener('click', function(){ window.openPenduGame && window.openPenduGame(); });
+    else if(txt.indexOf('Regarder') !== -1 || txt.indexOf('Watch') !== -1 || txt.indexOf('Co-watch') !== -1)
+      row.addEventListener('click', function(){ window.openCowatchModal && window.openCowatchModal(); });
+    else if(txt.indexOf('Bêtise') !== -1 || txt.indexOf('Prank') !== -1 || txt.indexOf('bêtise') !== -1)
+      row.addEventListener('click', function(){ window.openPrankMenu && window.openPrankMenu(); });
+  });
+  _onAll('.jx-wheel-btn:not([id])', 'click', function(){ window.openWheelModal && window.openWheelModal(); });
+
+  // ── Quiz ──
+  _on('quizBackBtn',    'click', function(){ window.closeQuiz && window.closeQuiz(); });
+  _on('quizRestartBtn', 'click', function(){ window.startQuiz && window.startQuiz(); });
+
+  // ── Recherche ──
+  _on('searchOverlay', 'click', function(e){ if(e.target === document.getElementById('searchOverlay')) window.closeSearch && window.closeSearch(); });
+  _on('searchInput',   'input', function(){ window.filterSongs && window.filterSongs(this.value); });
+  _on('searchCloseBtn','click', function(){ window.closeSearch && window.closeSearch(); });
+
+  // ── DM Messages ──
+  _on('dmHomeConv',            'click', function(){ window.dmOpenMessaging && window.dmOpenMessaging(); });
+  _on('dmConvProfileBtn',      'click', function(){ if(window.openAccountModal) window.openAccountModal(); else if(window.toggleProfilePopup) window.toggleProfilePopup(); });
+  _on('dmIdentityScreen',      'click', function(e){ window.dmCloseIdentityIfOutside && window.dmCloseIdentityIfOutside(e); });
+  _on('dmIdBtnGirl',           'click', function(){ window.dmSetIdentity && window.dmSetIdentity('girl'); });
+  _on('dmIdBtnBoy',            'click', function(){ window.dmSetIdentity && window.dmSetIdentity('boy'); });
+  _on('dmCancelReplyBtn',      'click', function(){ window.dmCancelReply && window.dmCancelReply(); });
+  _on('dmReactPickerCloseBtn', 'click', function(){ window.closeDmReactPicker && window.closeDmReactPicker(); });
+  _on('msgHeaderPill',         'click', function(){ window._hidePillAndOpenChat && window._hidePillAndOpenChat(); });
+
+  // ── Jeux — vues ──
+  _on('gamesBackBtn',  'click', function(){ window.closeGames && window.closeGames(); });
+  _on('gvMemoryCard',  'click', function(){ window.openMemoryGame && window.openMemoryGame(); });
+  _on('gvPenduCard',   'click', function(){ window.openPenduGame && window.openPenduGame(); });
+  _on('gvPuzzleCard',  'click', function(){ window.openPuzzleGame && window.openPuzzleGame(); });
+  _on('gvSnakeCard',   'click', function(){ window.openSnakeGame && window.openSnakeGame(); });
+
+  // ── Memory ──
+  _on('memoryBackBtn',       'click', function(){ window.closeMemoryGame && window.closeMemoryGame(); });
+  _on('memorySoloBtn',       'click', function(){ window.memoryChooseSolo && window.memoryChooseSolo(); });
+  _on('memoryMultiBtn',      'click', function(){ window.memoryChooseMulti && window.memoryChooseMulti(); });
+  _on('memoryMultiCancelBtn','click', function(){ window.memoryMultiCancel && window.memoryMultiCancel(); });
+  _on('memBtnRestart',       'click', function(){ window.memoryRestart && window.memoryRestart(); });
+  _on('memoryQuitBtn',       'click', function(){ window.memoryQuit && window.memoryQuit(); });
+  _on('memWinReplayBtn',     'click', function(){ window.memoryRestart && window.memoryRestart(); });
+  _on('lbTabAll',  'click', function(){ window.lbSetTab && window.lbSetTab('all'); });
+  _on('lbTabGirl', 'click', function(){ window.lbSetTab && window.lbSetTab('girl'); });
+  _on('lbTabBoy',  'click', function(){ window.lbSetTab && window.lbSetTab('boy'); });
+
+  // ── Pendu ──
+  _on('penduBackBtn',      'click', function(){ window.closePenduGame && window.closePenduGame(); });
+  _on('penduGenderGirl',   'click', function(){ window.penduSelectGender && window.penduSelectGender('girl'); });
+  _on('penduGenderBoy',    'click', function(){ window.penduSelectGender && window.penduSelectGender('boy'); });
+  _on('penduNextWordBtn',  'click', function(){ window.penduNextWord && window.penduNextWord(); });
+  _on('plbTabAll',  'click', function(){ window.plbSetTab && window.plbSetTab('all'); });
+  _on('plbTabGirl', 'click', function(){ window.plbSetTab && window.plbSetTab('girl'); });
+  _on('plbTabBoy',  'click', function(){ window.plbSetTab && window.plbSetTab('boy'); });
+
+  // ── Puzzle ──
+  _on('puzzleBackBtn',     'click', function(){ window.closePuzzleGame && window.closePuzzleGame(); });
+  _on('puzzleGenderGirl',  'click', function(){ window.puzzleSelectGender && window.puzzleSelectGender('girl'); });
+  _on('puzzleGenderBoy',   'click', function(){ window.puzzleSelectGender && window.puzzleSelectGender('boy'); });
+  _on('puzzleInitBtn',     'click', function(){ window.puzzleInit && window.puzzleInit(); });
+  _on('puzzlePreviewBtn',  'click', function(){ window.puzzleShowPreview && window.puzzleShowPreview(); });
+  _on('puzzleReplayBtn2',  'click', function(){ window.puzzleReplay && window.puzzleReplay(); });
+  (function(){
+    var sizeBtns = document.querySelectorAll('.puzzle-size-btn');
+    var sizes = [3, 4, 5];
+    sizeBtns.forEach(function(btn, idx){
+      (function(s, b){ b.addEventListener('click', function(){ window.puzzleSetSize && window.puzzleSetSize(s, b); }); })(sizes[idx] || 3, btn);
+    });
+    // puzzleReplay sur game-start-btn (multiple) — cibler par position
+    var startBtns = document.querySelectorAll('.game-start-btn');
+    startBtns.forEach(function(btn){
+      if(btn.id) return;
+      if(btn.textContent.indexOf('Rejouer') !== -1 || btn.textContent.indexOf('🔀') !== -1)
+        btn.addEventListener('click', function(){ window.puzzleReplay && window.puzzleReplay(); });
+    });
+  })();
+  _on('zplbTabAll',  'click', function(){ window.zplbSetTab && window.zplbSetTab('all'); });
+  _on('zplbTabGirl', 'click', function(){ window.zplbSetTab && window.zplbSetTab('girl'); });
+  _on('zplbTabBoy',  'click', function(){ window.zplbSetTab && window.zplbSetTab('boy'); });
+
+  // ── Snake ──
+  _on('snakeBackBtn',     'click', function(){ window.closeSnakeGame && window.closeSnakeGame(); });
+  _on('snakeGenderGirl',  'click', function(){ window.snakeSelectGender && window.snakeSelectGender('girl'); });
+  _on('snakeGenderBoy',   'click', function(){ window.snakeSelectGender && window.snakeSelectGender('boy'); });
+  _on('snakeStartBtn',    'click', function(){ window.snakeStart && window.snakeStart(); });
+  (function(){
+    var dirs = [[0,-1],[-1,0],[1,0],[0,1]];
+    var snakeBtns = document.querySelectorAll('.snake-btn');
+    snakeBtns.forEach(function(btn, idx){
+      var d = dirs[idx] || [0,0];
+      (function(dx, dy, b){
+        b.addEventListener('click', function(){ window.snakeDir && window.snakeDir(dx, dy); });
+        b.addEventListener('touchstart', function(e){ e.preventDefault(); window.snakeDir && window.snakeDir(dx, dy); }, { passive: false });
+      })(d[0], d[1], btn);
+    });
+  })();
+
+  // ── Skyjo ──
+  _on('skyjoBackBtn',       'click', function(){ window.closeSkyjoGame && window.closeSkyjoGame(); });
+  _on('skyjoAbandonBtn',    'click', function(){ window.skyjoAbandon && window.skyjoAbandon(); });
+  _on('skyjoLeaveWaitBtn',  'click', function(){ window.skyjoLeaveWait && window.skyjoLeaveWait(); });
+  _on('skyjoDiscardBtn',    'click', function(){ window.skyjoDiscardHeld && window.skyjoDiscardHeld(); });
+  _on('skyjoDeckCard',      'click', function(){ window.skyjoDrawFromDeck && window.skyjoDrawFromDeck(); });
+  _on('skyjoDiscardCard',   'click', function(){ window.skyjoDrawFromDiscard && window.skyjoDrawFromDiscard(); });
+  _on('sjReactBtn',         'click', function(e){ window.skyjoToggleReactionPicker && window.skyjoToggleReactionPicker(e); });
+  _on('skyjoNextRoundBtn',  'click', function(){ window.skyjoNextRound && window.skyjoNextRound(); });
+  _on('skyjoNewGameBtn',    'click', function(){ window.skyjoNewGame && window.skyjoNewGame(); });
+  _on('skyjoCloseBtn2',     'click', function(){ window.closeSkyjoGame && window.closeSkyjoGame(); });
+  _on('skyjoAuthGirl', 'click', function(){ window.skyjoAuthSelect && window.skyjoAuthSelect('girl'); });
+  _on('skyjoAuthBoy',  'click', function(){ window.skyjoAuthSelect && window.skyjoAuthSelect('boy'); });
+  _on('skyjoAuthCloseLink', 'click', function(){ window.skyjoAuthClose && window.skyjoAuthClose(); });
+  (function(){
+    var reacts = document.querySelectorAll('.sj-react-option');
+    reacts.forEach(function(btn, idx){
+      (function(n, b){ b.addEventListener('click', function(){ window.skyjoSendReaction && window.skyjoSendReaction(n); }); })(idx+1, btn);
+    });
+  })();
+
+  // ── Bêtises ──
+  _on('prankMenuBackBtn',   'click', function(){ window.closePrankMenu && window.closePrankMenu(); });
+  _on('themeTogglePranks',  'click', function(){ window.applyThemeToggle && window.applyThemeToggle(); });
+  _on('prankMenuCancelBtn', 'click', function(){ window.closePrankMenu && window.closePrankMenu(); });
+  _on('prankCancelAllBtn',  'click', function(){ window.prankCancelAll && window.prankCancelAll(); });
+  _on('prankSendBtn',       'click', function(){ window.prankSend && window.prankSend(); });
+  _on('prankMsgCancelBtn',  'click', function(){ window.closePrankMsg && window.closePrankMsg(); });
+  _on('prankCloseBtn',      'click', function(){ window.closePrank && window.closePrank(); });
+  _on('prankNotif',         'click', function(){ window.prankNotifDismiss && window.prankNotifDismiss(); });
+  _on('prankLockBtn2',      'click', function(){ window.prankCheckLock && window.prankCheckLock(); });
+  _on('gotchaCloseBtn',     'click', function(){ window.closeGotcha && window.closeGotcha(); });
+  // prankSelectType et prankToggleFav — délégation via data-prank-type
+  document.querySelectorAll('.prank-menu-item[data-prank-type]').forEach(function(el){
+    el.addEventListener('click', function(){ window.prankSelectType && window.prankSelectType(el.dataset.prankType); });
+  });
+  document.querySelectorAll('.prank-fav-btn[data-prank-type]').forEach(function(el){
+    el.addEventListener('click', function(e){ e.stopPropagation(); window.prankToggleFav && window.prankToggleFav(e, el.dataset.prankType); });
+  });
+
+  // ── Mini player musique ──
+  _on('mpModeBtn', 'click', function(){ window.mpCycleMode && window.mpCycleMode(); });
+  _on('mpPrevBtn', 'click', function(){ window.mpPrev && window.mpPrev(); });
+  _on('mpPlayBtn', 'click', function(){ window.mpToggle && window.mpToggle(); });
+  _on('mpNextBtn', 'click', function(){ window.mpNext && window.mpNext(); });
+  _on('mpStopBtn', 'click', function(){ window.mpStop && window.mpStop(); });
+
+  // ── Desc edit ──
+  _on('descEditCancelBtn', 'click', function(){ window.descEditClose && window.descEditClose(); });
+  _on('descEditSaveBtn',   'click', function(){ window.descEditSave && window.descEditSave(); });
+
+});
