@@ -368,16 +368,20 @@ function v2ApplyDynamicNames(){
   var _lastProgress = -1;
 
   function _getActiveScrollY() {
-    // Home et Jeux : overflow:auto + height fixe → scroll interne (panel.scrollTop)
-    // Nous et Musique : overflow:visible + height:auto → body scrolle (window.scrollY)
-    if (currentTab === 'nous' || currentTab === 'musique') {
-      return window.scrollY || window.pageYOffset || 0;
-    }
-    var tabIds = { home: 'yamHomeTab', jeux: 'yamJeuxTab' };
+    // Lire le scrollTop du panel actif (tous les panels scrollent en interne)
+    // Sauf Musique qui selon le build peut scroller via window.scrollY
+    var tabIds = { home: 'yamHomeTab', nous: 'yamNousTab', jeux: 'yamJeuxTab', musique: 'yamMusiqueTab' };
     var panelId = tabIds[currentTab];
     if (panelId) {
       var panel = document.getElementById(panelId);
-      if (panel) return panel.scrollTop;
+      if (panel) {
+        // Si le panel a un scroll interne (overflow:auto + height fixe), utiliser scrollTop
+        // Sinon (overflow:visible), utiliser window.scrollY
+        var style = getComputedStyle(panel);
+        if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+          return panel.scrollTop;
+        }
+      }
     }
     return window.scrollY || window.pageYOffset || 0;
   }
@@ -399,13 +403,19 @@ function v2ApplyDynamicNames(){
 
     // ── Grand header : fondu UNIQUEMENT (pas de transform/translateY) ──
     // Il reste dans le flow avec sa hauteur d'origine — le contenu ne bouge pas
-    // Sur Nous/Musique/Jeux : visibility:hidden à progress=1 pour masquer la "bande"
-    // (visibility garde la hauteur dans le flow contrairement à display:none)
+    // À progress=1 : height:0 + overflow:hidden pour supprimer la bande de 22px
+    // (le grand header ~66px dépasse sous le sticky ~44px)
     if (mainHeader) {
-      mainHeader.style.transition  = 'none';
-      mainHeader.style.opacity     = String(1 - progress);
-      mainHeader.style.visibility  = (progress >= 1 && currentTab !== 'home') ? 'hidden' : '';
+      mainHeader.style.transition   = 'none';
+      mainHeader.style.opacity      = String(1 - progress);
       mainHeader.style.pointerEvents = progress > 0.5 ? 'none' : '';
+      if (progress >= 1) {
+        mainHeader.style.height   = '0px';
+        mainHeader.style.overflow = 'hidden';
+      } else {
+        mainHeader.style.height   = '';
+        mainHeader.style.overflow = '';
+      }
     }
 
     // ── Classes CSS (seuil à 1) ──
@@ -432,6 +442,8 @@ function v2ApplyDynamicNames(){
       mainHeader.classList.remove('sticky-hidden');
       mainHeader.style.transition    = 'none';
       mainHeader.style.opacity       = '';
+      mainHeader.style.height        = '';
+      mainHeader.style.overflow      = '';
       mainHeader.style.visibility    = '';
       mainHeader.style.transform     = '';
       mainHeader.style.pointerEvents = '';
@@ -453,13 +465,17 @@ function v2ApplyDynamicNames(){
   }
 
   function setTab(tab) {
-    // Pour les panels à scroll interne (Home/Jeux), reset scrollTop au départ
-    // Pour Nous/Musique, c'est window.scrollTo(0,0) dans yamSwitchTab qui remet à 0
-    var internalScrollTabs = { home: 'yamHomeTab', jeux: 'yamJeuxTab' };
-    var prevPanelId = internalScrollTabs[currentTab];
+    // Reset scrollTop du panel qu'on quitte si c'est un panel à scroll interne
+    var tabIds = { home: 'yamHomeTab', nous: 'yamNousTab', jeux: 'yamJeuxTab', musique: 'yamMusiqueTab' };
+    var prevPanelId = tabIds[currentTab];
     if (prevPanelId) {
       var prevPanel = document.getElementById(prevPanelId);
-      if (prevPanel) prevPanel.scrollTop = 0;
+      if (prevPanel) {
+        var style = getComputedStyle(prevPanel);
+        if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+          prevPanel.scrollTop = 0;
+        }
+      }
     }
     currentTab = tab;
     resetToHidden();
