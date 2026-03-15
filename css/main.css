@@ -389,10 +389,11 @@ body.light #uxToast.success { border-color: rgba(231,90,124,0.3); color: var(--g
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 
-  /* Caché par défaut — progressif selon le scroll (géré en JS) */
+  /* Caché par défaut */
   transform: translateY(-110%);
   opacity: 0;
-  /* Pas de transition CSS : le JS applique les valeurs directement pour suivre le doigt */
+  /* Transition fluide CSS — suffisant pour un header, pas besoin de suivre le doigt */
+  transition: transform 0.28s cubic-bezier(.4,0,.2,1), opacity 0.28s ease;
   pointer-events: none;
   will-change: transform, opacity;
   /* Évite le subpixel bleed iOS (1-2px visibles quand translateY=-100%) */
@@ -400,7 +401,19 @@ body.light #uxToast.success { border-color: rgba(231,90,124,0.3); color: var(--g
   -webkit-backface-visibility: hidden;
 }
 #yamStickyHeader.visible {
+  transform: translateY(0);
+  opacity: 1;
   pointer-events: auto;
+}
+
+/* Grand header masqué quand le sticky est actif */
+#yamMainHeader.sticky-hidden {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+#yamMainHeader {
+  transition: opacity 0.22s ease;
 }
 
 /* Layout interne : titre centré + avatars à droite */
