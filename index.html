@@ -4250,8 +4250,8 @@ function v2ApplyDynamicNames(){
   // Popup profil
   var btnGirl = document.getElementById('ppBtnGirl');
   var btnBoy  = document.getElementById('ppBtnBoy');
-  if(btnGirl) btnGirl.innerHTML = '<span class="profile-popup-dot girl"></span>' + girlName;
-  if(btnBoy)  btnBoy.innerHTML  = '<span class="profile-popup-dot boy"></span>'  + boyName;
+  if(btnGirl) btnGirl.innerHTML = '<span class="profile-popup-dot girl"></span>' + (typeof escHtml==='function'?escHtml(girlName):girlName);
+  if(btnBoy)  btnBoy.innerHTML  = '<span class="profile-popup-dot boy"></span>'  + (typeof escHtml==='function'?escHtml(boyName):boyName);
 
   // Bloc météo humeur (onglet home)
   var elleEl = document.getElementById('yamMoodElleName');
