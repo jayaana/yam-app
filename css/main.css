@@ -248,6 +248,7 @@ html:not(.light) {
 html {
   scroll-behavior: smooth;
   overflow-x: hidden;
+  overflow-y: auto; /* Fix scroll souris Chrome desktop — overflow-x:hidden seul bloque wheel */
   -webkit-text-size-adjust: 100%;
   overscroll-behavior: none !important;
   overscroll-behavior-x: none !important;
@@ -578,6 +579,7 @@ body {
   background: var(--bg);
   color: var(--text);
   overflow-x: hidden;
+  overflow-y: auto; /* Fix scroll souris Chrome desktop */
   /* Évite que le contenu passe sous la bottom-nav (nav 64px + home indicator) */
   padding-bottom: var(--nav-height);
   transition: background 0.3s, color 0.3s;
