@@ -798,6 +798,11 @@ window.nousSignalNew = function() {
             if(photoDiv) photoDiv.innerHTML='';
             return;
           }
+          if(err && err.message === 'PHOTO_TOO_LARGE'){
+            if(typeof showToast==='function') showToast('Photo trop lourde (5 Mo max après compression)', 'error', 4000);
+            if(photoDiv) photoDiv.innerHTML='';
+            return;
+          }
           // Fallback : upload fichier original
           if(typeof showToast==='function') showToast('Compression impossible — envoi en l\'original', 'info', 2500);
           doUpload(file);
@@ -2057,7 +2062,11 @@ document.addEventListener('yam:session_ready', function(){
         .then(function(blob){
           doUpload(blob);
         })
-        .catch(function(){
+        .catch(function(err){
+          if(err && err.message === 'PHOTO_TOO_LARGE'){
+            if(typeof showToast==='function') showToast('Photo trop lourde (5 Mo max après compression)', 'error', 4000);
+            return;
+          }
           if(typeof showToast==='function') showToast('Compression impossible — envoi en l\'original', 'info', 2500);
           doUpload(file);
         });
@@ -3146,7 +3155,11 @@ document.addEventListener('yam:session_ready', function(){
         .then(function(blob){
           doUpload(blob);
         })
-        .catch(function(){
+        .catch(function(err){
+          if(err && err.message === 'PHOTO_TOO_LARGE'){
+            if(typeof showToast==='function') showToast('Photo trop lourde (5 Mo max après compression)', 'error', 4000);
+            return;
+          }
           if(typeof showToast==='function') showToast('Compression impossible — envoi en l\'original', 'info', 2500);
           doUpload(file);
         });
