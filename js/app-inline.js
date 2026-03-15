@@ -128,6 +128,9 @@ if ('serviceWorker' in navigator) {
 // BLOC 4 — Login page reload guard
 // ══════════════════════════════════════════════════════════════════
 (function(){
+  // Ne pas recharger si un token de reset est dans le hash — il serait perdu
+  var _h = window.location.hash || '';
+  if(_h.includes('type=recovery') || _h.includes('access_token')) return;
   if(!sessionStorage.getItem('yam_login_page_reloaded')){
     sessionStorage.setItem('yam_login_page_reloaded','1');
     location.reload();
