@@ -344,7 +344,8 @@ function v2ApplyDynamicNames(){
 
 // ══════════════════════════════════════════════════════════════════
 // BLOC 8 — Sticky header universel
-// Apparaît au scroll sur tous les onglets, masque le grand header
+// Animation PROPORTIONNELLE au scroll : fondu progressif 0→SCROLL_FULL px
+// Grand header s'efface / sticky apparaît en fonction de la position exacte
 // Engrenage à droite → ouvre Paramètres (yamToggleAccountModal)
 // ══════════════════════════════════════════════════════════════════
 (function(){
@@ -352,16 +353,19 @@ function v2ApplyDynamicNames(){
     home:    'Accueil',
     jeux:    'Jeux',
     musique: 'Musique',
-    nous:    'Nous',
+    nous:    'Nous ♥',
     messages: null
   };
 
-  var currentTab = 'home';
-  var stickyEl   = null;
-  var titleEl    = null;
-  var mainHeader = null;
-  var ticking    = false;
-  var isVisible  = false;
+  // Zone de transition : 0px → SCROLL_FULL → animation 100% terminée
+  var SCROLL_FULL = 60;
+
+  var currentTab    = 'home';
+  var stickyEl      = null;
+  var titleEl       = null;
+  var mainHeader    = null;
+  var ticking       = false;
+  var _lastProgress = -1;
 
   function _getActiveScrollY() {
     var tabIds = { home: 'yamHomeTab', musique: 'yamMusiqueTab', nous: 'yamNousTab', jeux: 'yamJeuxTab' };
@@ -377,34 +381,65 @@ function v2ApplyDynamicNames(){
     return window.scrollY || window.pageYOffset || 0;
   }
 
-  function showSticky() {
-    if (isVisible) return;
-    isVisible = true;
-    // Tout passe par les classes CSS — pas de styles inline pour ne pas écraser les transitions
-    stickyEl.classList.add('visible');
-    if (mainHeader) mainHeader.classList.add('sticky-hidden');
-    document.body.classList.add('sticky-visible');
+  function applyProgress(progress) {
+    // progress : 0.0 = grand header visible / 1.0 = sticky visible
+    if (Math.abs(progress - _lastProgress) < 0.005) return;
+    _lastProgress = progress;
+
+    var isNowVisible = progress >= 1;
+    var wasVisible   = stickyEl.classList.contains('visible');
+
+    // ── Sticky header : glisse depuis le haut + fondu proportionnel ──
+    stickyEl.style.transition = 'none';
+    stickyEl.style.opacity    = String(progress);
+    stickyEl.style.transform  = 'translateY(' + ((1 - progress) * -100) + '%)';
+    stickyEl.style.pointerEvents = progress > 0.5 ? 'auto' : 'none';
+
+    // ── Grand header : s'efface + léger recul vertical ──
+    if (mainHeader) {
+      mainHeader.style.transition  = 'none';
+      mainHeader.style.opacity     = String(1 - progress);
+      mainHeader.style.transform   = 'translateY(' + (progress * -12) + 'px) scale(' + (1 - progress * 0.03) + ')';
+      mainHeader.style.pointerEvents = progress > 0.5 ? 'none' : '';
+    }
+
+    // ── Classes pour le padding-top des panels (bascule au seuil 1) ──
+    if (isNowVisible && !wasVisible) {
+      stickyEl.classList.add('visible');
+      if (mainHeader) mainHeader.classList.add('sticky-hidden');
+      document.body.classList.add('sticky-visible');
+    } else if (!isNowVisible && wasVisible) {
+      stickyEl.classList.remove('visible');
+      if (mainHeader) mainHeader.classList.remove('sticky-hidden');
+      document.body.classList.remove('sticky-visible');
+    }
   }
 
-  function hideSticky() {
-    if (!isVisible) return;
-    isVisible = false;
+  function resetToHidden() {
+    _lastProgress = -1;
+    if (!stickyEl) return;
     stickyEl.classList.remove('visible');
-    if (mainHeader) mainHeader.classList.remove('sticky-hidden');
+    stickyEl.style.transition  = 'none';
+    stickyEl.style.opacity     = '0';
+    stickyEl.style.transform   = 'translateY(-100%)';
+    stickyEl.style.pointerEvents = 'none';
+    if (mainHeader) {
+      mainHeader.classList.remove('sticky-hidden');
+      mainHeader.style.transition  = 'none';
+      mainHeader.style.opacity     = '';
+      mainHeader.style.transform   = '';
+      mainHeader.style.pointerEvents = '';
+    }
     document.body.classList.remove('sticky-visible');
   }
 
   function updateSticky() {
     ticking = false;
     if (!stickyEl) return;
-    if (currentTab === 'messages') { hideSticky(); return; }
-    var scrollY = _getActiveScrollY();
-    var SCROLL_SHOW = 60;
-    if (scrollY >= SCROLL_SHOW) {
-      showSticky();
-    } else {
-      hideSticky();
-    }
+    if (currentTab === 'messages') { resetToHidden(); return; }
+    var scrollY  = _getActiveScrollY();
+    var progress = Math.min(1, Math.max(0, scrollY / SCROLL_FULL));
+    applyProgress(progress);
   }
 
   function onScroll() {
@@ -413,8 +448,7 @@ function v2ApplyDynamicNames(){
 
   function setTab(tab) {
     currentTab = tab;
-    // Reset sticky à chaque changement d'onglet
-    hideSticky();
+    resetToHidden();
     if (!titleEl) return;
     var title = TAB_TITLES[tab];
     if (title) titleEl.textContent = title;
@@ -426,7 +460,6 @@ function v2ApplyDynamicNames(){
     mainHeader = document.getElementById('yamMainHeader');
     if (!stickyEl || !titleEl) return;
 
-    // Écouter scroll sur window et sur chaque panel
     window.addEventListener('scroll', onScroll, { passive: true });
     document.querySelectorAll('.yam-tab-panel').forEach(function(panel) {
       panel.addEventListener('scroll', onScroll, { passive: true });
@@ -443,19 +476,19 @@ function v2ApplyDynamicNames(){
       }
     }, 1500);
 
-    // Patch yamSwitchTab pour mettre à jour le titre
     function patchTitle() {
       if (typeof window.yamSwitchTab !== 'function') { setTimeout(patchTitle, 150); return; }
       var _orig = window.yamSwitchTab;
       window.yamSwitchTab = function(tab) { _orig(tab); setTab(tab); };
     }
     patchTitle();
+
+    resetToHidden();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 
-  // Nettoyage : supprimer la classe nous-active si elle trainait
   document.body.classList.remove('nous-active');
 
 })();
