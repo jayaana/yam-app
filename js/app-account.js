@@ -265,7 +265,7 @@ window.v2DoLogin = function(){
 // Mot de passe oublié
 window.v2DoForgotPassword = function(){
   var identifier = (document.getElementById('v2ForgotIdentifier').value || '').trim();
-  var msgId = 'v2ForgotMsg';
+  var msgId = 'v2ForgotFormMsg';
   if(!identifier){
     _v2SetMsg(msgId, '⚠️ Saisis ton email ou pseudo', true); return;
   }
