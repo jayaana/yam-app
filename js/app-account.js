@@ -1249,27 +1249,55 @@ window.acChangePwd = function(){
   var u = yamGetUser ? yamGetUser() : null;
   if(!u){ msg.textContent = '⚠️ Non connecté'; msg.style.color = '#e05555'; return; }
 
-  msg.textContent = '⏳ Modification en cours...'; msg.style.color = 'var(--muted)';
+  msg.textContent = '⏳ Vérification en cours...'; msg.style.color = 'var(--muted)';
 
-  // v3 : Supabase Auth natif — PATCH /auth/v1/user
   var token = yamGetAccessToken ? yamGetAccessToken() : '';
+
+  // Étape 1 — Récupérer l'email depuis Supabase Auth (non stocké dans yam_session_v3)
   fetch(SB_URL + '/auth/v1/user', {
-    method: 'PUT',
-    headers: { 'apikey': SB_ANON_KEY, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password: newPwd })
-  }).then(function(r){ return r.json(); }).then(function(data){
-    if(data && data.error){
-      msg.textContent = '❌ ' + (data.error || 'Erreur'); msg.style.color = '#e05555';
-    } else {
-      msg.textContent = '✅ Mot de passe changé !'; msg.style.color = 'var(--green)';
-      ['acOldPwd','acNewPwd','acConfirmPwd'].forEach(function(id){
-        var el = document.getElementById(id); if(el) el.value = '';
-      });
-      setTimeout(function(){ msg.textContent = ''; }, 4000);
+    headers: { 'apikey': SB_ANON_KEY, 'Authorization': 'Bearer ' + token }
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(authUser){
+    var email = authUser && authUser.email;
+    if(!email){
+      msg.textContent = '❌ Impossible de récupérer le compte'; msg.style.color = '#e05555'; return;
     }
-  }).catch(function(){
-    msg.textContent = '❌ Erreur réseau'; msg.style.color = '#e05555';
-  });
+
+    // Étape 2 — Re-authentifier avec l'ancien mot de passe pour le vérifier
+    return fetch(SB_URL + '/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      headers: { 'apikey': SB_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, password: oldPwd })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(check){
+      if(check.error || !check.access_token){
+        msg.textContent = '❌ Mot de passe actuel incorrect'; msg.style.color = '#e05555'; return;
+      }
+
+      // Étape 3 — Ancien mdp vérifié → changer par le nouveau
+      msg.textContent = '⏳ Modification en cours...'; msg.style.color = 'var(--muted)';
+      return fetch(SB_URL + '/auth/v1/user', {
+        method: 'PUT',
+        headers: { 'apikey': SB_ANON_KEY, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: newPwd })
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(data && data.error){
+          msg.textContent = '❌ ' + (data.error || 'Erreur'); msg.style.color = '#e05555';
+        } else {
+          msg.textContent = '✅ Mot de passe changé !'; msg.style.color = 'var(--green)';
+          ['acOldPwd','acNewPwd','acConfirmPwd'].forEach(function(id){
+            var el = document.getElementById(id); if(el) el.value = '';
+          });
+          setTimeout(function(){ msg.textContent = ''; }, 4000);
+        }
+      });
+    });
+  })
+  .catch(function(){ msg.textContent = '❌ Erreur réseau'; msg.style.color = '#e05555'; });
 };
 
 window.acLinkPartner = function(){
