@@ -380,21 +380,31 @@ function v2ApplyDynamicNames(){
   function showSticky() {
     if (isVisible) return;
     isVisible = true;
+    stickyEl.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
     stickyEl.style.opacity = '1';
     stickyEl.style.transform = 'translateY(0)';
     stickyEl.style.pointerEvents = 'auto';
     stickyEl.classList.add('visible');
-    if (mainHeader) mainHeader.style.display = 'none';
+    if (mainHeader) {
+      mainHeader.style.transition = 'opacity 0.2s ease';
+      mainHeader.style.opacity = '0';
+      mainHeader.style.pointerEvents = 'none';
+    }
   }
 
   function hideSticky() {
     if (!isVisible) return;
     isVisible = false;
+    stickyEl.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
     stickyEl.style.opacity = '0';
     stickyEl.style.transform = 'translateY(-110%)';
     stickyEl.style.pointerEvents = 'none';
     stickyEl.classList.remove('visible');
-    if (mainHeader) mainHeader.style.display = '';
+    if (mainHeader) {
+      mainHeader.style.transition = 'opacity 0.2s ease';
+      mainHeader.style.opacity = '';
+      mainHeader.style.pointerEvents = '';
+    }
   }
 
   function updateSticky() {
@@ -435,14 +445,16 @@ function v2ApplyDynamicNames(){
       panel.addEventListener('scroll', onScroll, { passive: true });
     });
 
-    // Engrenage → ouvre Paramètres
-    var gearBtn = document.getElementById('yamStickyGearBtn');
-    if (gearBtn) {
-      gearBtn.addEventListener('click', function() {
-        if (typeof window.yamToggleAccountModal === 'function') window.yamToggleAccountModal();
-        else if (typeof window.openAccountModal === 'function') window.openAccountModal();
-      });
-    }
+    // Engrenage → ouvre Paramètres (setTimeout pour s'assurer qu'aucun autre code ne l'écrase)
+    setTimeout(function() {
+      var gearBtn = document.getElementById('yamStickyGearBtn');
+      if (gearBtn) {
+        gearBtn.onclick = function() {
+          if (typeof window.yamToggleAccountModal === 'function') window.yamToggleAccountModal();
+          else if (typeof window.openAccountModal === 'function') window.openAccountModal();
+        };
+      }
+    }, 1500);
 
     // Patch yamSwitchTab pour mettre à jour le titre
     function patchTitle() {
