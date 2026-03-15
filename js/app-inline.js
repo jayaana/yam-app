@@ -107,14 +107,12 @@ if ('serviceWorker' in navigator) {
       var selfEl = document.getElementById('profileAvatarEmoji'); if(selfEl) selfEl.src = url;
       var selfMood = document.getElementById(role === 'girl' ? 'yamMoodElleAvatar' : 'yamMoodLuiAvatar');
       if(selfMood){ var i = selfMood.querySelector('img'); if(i) i.src = url; }
-      var stickyS = document.getElementById('yamStickyAvatarSelfEmoji'); if(stickyS) stickyS.src = url;
       var dmSelf = document.getElementById('dmHeaderAvatarSelf'); if(dmSelf){ var i2=dmSelf.querySelector('img'); if(i2) i2.src=url; }
     }
     if(profile && profile !== role){
       var othEl = document.getElementById('profileAvatarOtherEmoji'); if(othEl) othEl.src = url;
       var otherMood = document.getElementById(role === 'girl' ? 'yamMoodElleAvatar' : 'yamMoodLuiAvatar');
       if(otherMood){ var i3 = otherMood.querySelector('img'); if(i3) i3.src = url; }
-      var stickyO = document.getElementById('yamStickyAvatarOtherEmoji'); if(stickyO) stickyO.src = url;
       var dmOther = document.getElementById('dmHeaderAvatarOther'); if(dmOther){ var i4=dmOther.querySelector('img'); if(i4) i4.src=url; }
       var mhp = document.getElementById('mhpAvatar'); if(mhp){ var i5=mhp.querySelector('img'); if(i5) i5.src=url; }
     }
@@ -345,72 +343,33 @@ function v2ApplyDynamicNames(){
 
 
 // ══════════════════════════════════════════════════════════════════
-// BLOC 8 — Sticky header / tabs / profil popup
-// Expose : window.yamStickyOpenProfile
+// BLOC 8 — Sticky header universel
+// Apparaît au scroll sur tous les onglets, masque le grand header
+// Engrenage à droite → ouvre Paramètres (yamToggleAccountModal)
 // ══════════════════════════════════════════════════════════════════
 (function(){
   var TAB_TITLES = {
     home:    'Accueil',
     jeux:    'Jeux',
     musique: 'Musique',
-    nous:    'Nous',
+    nous:    'Nous ♥',
     messages: null
   };
 
   var currentTab = 'home';
   var stickyEl   = null;
   var titleEl    = null;
+  var mainHeader = null;
   var ticking    = false;
-
-  function syncAvatars() {
-    var profile = (typeof getProfile === 'function') ? getProfile() : null;
-    var mainAvatar  = document.getElementById('profileAvatar');
-    var stickyAvSelf = document.getElementById('yamStickyAvatarSelf');
-    if (mainAvatar && stickyAvSelf) {
-      if (mainAvatar.classList.contains('girl')) { stickyAvSelf.classList.add('girl'); stickyAvSelf.classList.remove('boy'); }
-      else if (mainAvatar.classList.contains('boy')) { stickyAvSelf.classList.add('boy'); stickyAvSelf.classList.remove('girl'); }
-    }
-    var stickyImgSelf = document.getElementById('yamStickyAvatarSelfEmoji');
-    var mainImgSelf   = mainAvatar ? mainAvatar.querySelector('img.profile-photo, img:not(.yam-av-img)') : null;
-    var defaultSelf   = profile === 'boy' ? 'assets/images/profil_boy.png' : 'assets/images/profil_girl.png';
-    if (stickyImgSelf) {
-      stickyImgSelf.src = (mainImgSelf && mainImgSelf.src && !mainImgSelf.src.includes('profil_')) ? mainImgSelf.src : defaultSelf;
-    }
-    var mainOther    = document.getElementById('profileAvatarOther');
-    var stickyOther  = document.getElementById('yamStickyAvatarOther');
-    var otherProfile = profile === 'girl' ? 'boy' : 'girl';
-    if (mainOther && stickyOther) {
-      if (mainOther.classList.contains('visible')) stickyOther.classList.add('visible');
-      else stickyOther.classList.remove('visible');
-    }
-    var stickyImgOther = document.getElementById('yamStickyAvatarOtherEmoji');
-    var mainImgOther   = mainOther ? mainOther.querySelector('img.profile-photo, img:not(.yam-av-img)') : null;
-    var defaultOther   = otherProfile === 'boy' ? 'assets/images/profil_boy.png' : 'assets/images/profil_girl.png';
-    if (stickyImgOther) {
-      stickyImgOther.src = (mainImgOther && mainImgOther.src && !mainImgOther.src.includes('profil_')) ? mainImgOther.src : defaultOther;
-    }
-    var mainDot   = document.getElementById('presenceDot');
-    var stickyDot = document.getElementById('yamStickyPresenceDot');
-    if (mainDot && stickyDot) {
-      if (mainDot.classList.contains('visible')) stickyDot.classList.add('online');
-      else stickyDot.classList.remove('online');
-    }
-  }
-
-  function onScroll() {
-    if (!ticking) { window.requestAnimationFrame(updateSticky); ticking = true; }
-  }
+  var isVisible  = false;
 
   function _getActiveScrollY() {
-    // Le scroll se fait dans un .yam-tab-panel (overflow-y:auto/scroll)
-    // window.scrollY reste à 0 — on lit le scrollTop du panel actif
     var tabIds = { home: 'yamHomeTab', musique: 'yamMusiqueTab', nous: 'yamNousTab', jeux: 'yamJeuxTab' };
     var panelId = tabIds[currentTab];
     if (panelId) {
       var panel = document.getElementById(panelId);
       if (panel && panel.scrollTop > 0) return panel.scrollTop;
     }
-    // Fallback : chercher le premier panel scrollé
     var panels = document.querySelectorAll('.yam-tab-panel');
     for (var i = 0; i < panels.length; i++) {
       if (panels[i].scrollTop > 0) return panels[i].scrollTop;
@@ -418,67 +377,72 @@ function v2ApplyDynamicNames(){
     return window.scrollY || window.pageYOffset || 0;
   }
 
+  function showSticky() {
+    if (isVisible) return;
+    isVisible = true;
+    stickyEl.style.opacity = '1';
+    stickyEl.style.transform = 'translateY(0)';
+    stickyEl.classList.add('visible');
+    if (mainHeader) mainHeader.style.visibility = 'hidden';
+  }
+
+  function hideSticky() {
+    if (!isVisible) return;
+    isVisible = false;
+    stickyEl.style.opacity = '0';
+    stickyEl.style.transform = 'translateY(-110%)';
+    stickyEl.classList.remove('visible');
+    if (mainHeader) mainHeader.style.visibility = '';
+  }
+
   function updateSticky() {
     ticking = false;
     if (!stickyEl) return;
-    if (currentTab === 'messages') {
-      stickyEl.style.opacity = '0';
-      stickyEl.style.transform = 'translateY(-110%)';
-      stickyEl.classList.remove('visible');
-      return;
-    }
+    if (currentTab === 'messages') { hideSticky(); return; }
     var scrollY = _getActiveScrollY();
-    var SCROLL_START = 40;
-    var SCROLL_END   = 100;
-    if (scrollY <= SCROLL_START) {
-      stickyEl.style.opacity = '0'; stickyEl.style.transform = 'translateY(-110%)'; stickyEl.classList.remove('visible');
-    } else if (scrollY >= SCROLL_END) {
-      stickyEl.style.opacity = '1'; stickyEl.style.transform = 'translateY(0)'; stickyEl.classList.add('visible');
+    var SCROLL_SHOW = 60;
+    if (scrollY >= SCROLL_SHOW) {
+      showSticky();
     } else {
-      var progress = (scrollY - SCROLL_START) / (SCROLL_END - SCROLL_START);
-      stickyEl.style.opacity = String(progress);
-      stickyEl.style.transform = 'translateY(' + ((1 - progress) * -110) + '%)';
-      stickyEl.classList.add('visible');
+      hideSticky();
     }
+  }
+
+  function onScroll() {
+    if (!ticking) { window.requestAnimationFrame(updateSticky); ticking = true; }
   }
 
   function setTab(tab) {
     currentTab = tab;
+    // Reset sticky à chaque changement d'onglet
+    hideSticky();
     if (!titleEl) return;
     var title = TAB_TITLES[tab];
     if (title) titleEl.textContent = title;
-    if (stickyEl) {
-      stickyEl.style.opacity = '0'; stickyEl.style.transform = 'translateY(-110%)'; stickyEl.classList.remove('visible');
-    }
   }
-
-  function updateGearVisibility(tab) {
-    // nous-active : affiche l'engrenage dans le sticky header (Nous♥ uniquement)
-    if (tab === 'nous') {
-      document.body.classList.add('nous-active');
-    } else {
-      document.body.classList.remove('nous-active');
-      var modal = document.getElementById('settingsView');
-      if (modal && modal.classList.contains('active')) {
-        if (typeof window.closeAccountModal === 'function') window.closeAccountModal();
-      }
-    }
-  }
-
-  var _origSetTab = setTab;
-  setTab = function(tab) { _origSetTab(tab); updateGearVisibility(tab); };
 
   function init() {
-    stickyEl = document.getElementById('yamStickyHeader');
-    titleEl  = document.getElementById('yamStickyHeaderTitle');
+    stickyEl   = document.getElementById('yamStickyHeader');
+    titleEl    = document.getElementById('yamStickyHeaderTitle');
+    mainHeader = document.getElementById('yamMainHeader');
     if (!stickyEl || !titleEl) return;
+
+    // Écouter scroll sur window et sur chaque panel
     window.addEventListener('scroll', onScroll, { passive: true });
-    // Écouter aussi le scroll sur chaque panel (Chrome desktop scrolle dans les panels)
     document.querySelectorAll('.yam-tab-panel').forEach(function(panel) {
       panel.addEventListener('scroll', onScroll, { passive: true });
     });
-    syncAvatars();
-    setInterval(syncAvatars, 2000);
+
+    // Engrenage → ouvre Paramètres
+    var gearBtn = document.getElementById('yamStickyGearBtn');
+    if (gearBtn) {
+      gearBtn.addEventListener('click', function() {
+        if (typeof window.yamToggleAccountModal === 'function') window.yamToggleAccountModal();
+        else if (typeof window.openAccountModal === 'function') window.openAccountModal();
+      });
+    }
+
+    // Patch yamSwitchTab pour mettre à jour le titre
     function patchTitle() {
       if (typeof window.yamSwitchTab !== 'function') { setTimeout(patchTitle, 150); return; }
       var _orig = window.yamSwitchTab;
@@ -490,17 +454,9 @@ function v2ApplyDynamicNames(){
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 
-  window.yamStickyOpenProfile = function() {
-    // Sur musique : l'avatar sticky ouvre les paramètres
-    // Sur les autres onglets : ouvre le profil popup si dispo
-    var tab = window._currentTab || '';
-    if (tab === 'musique') {
-      if (typeof window.yamToggleAccountModal === 'function') window.yamToggleAccountModal();
-    } else {
-      if (typeof window.toggleProfilePopup === 'function') window.toggleProfilePopup();
-      else if (typeof window.yamToggleAccountModal === 'function') window.yamToggleAccountModal();
-    }
-  };
+  // Nettoyage : supprimer la classe nous-active si elle trainait
+  document.body.classList.remove('nous-active');
+
 })();
 
 
@@ -1129,14 +1085,6 @@ document.addEventListener('DOMContentLoaded', function(){
 // ══════════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', function(){
 
-  // — sticky header avatar → ouvrir profil
-  var stickyAv = document.getElementById('yamStickyAvatarSelf');
-  if(stickyAv) stickyAv.addEventListener('click', function(){ window.yamStickyOpenProfile && window.yamStickyOpenProfile(); });
-
-  // — bouton engrenage sticky header
-  var stickyGear = document.getElementById('yamStickyGearBtn');
-  if(stickyGear) stickyGear.addEventListener('click', function(){ window.yamToggleAccountModal && window.yamToggleAccountModal(); });
-
   // — bouton splash (écran de démarrage)
   var splashBtn = document.getElementById('yamSplashBtn');
   if(splashBtn) splashBtn.addEventListener('click', function(){ window.yamSplashOpen && window.yamSplashOpen(); });
@@ -1247,7 +1195,6 @@ document.addEventListener('DOMContentLoaded', function(){
   _on('navNous',     'click', function(){ window.yamSwitchTab && window.yamSwitchTab('nous'); });
 
   // ── Sticky header ──
-  _on('yamStickyAvatarSelf', 'click', function(){ window.yamStickyOpenProfile && window.yamStickyOpenProfile(); });
   _on('yamStickyGearBtn',    'click', function(){ window.yamToggleAccountModal && window.yamToggleAccountModal(); });
   _on('headerGearBtn',       'click', function(){ window.yamToggleAccountModal && window.yamToggleAccountModal(); });
 
