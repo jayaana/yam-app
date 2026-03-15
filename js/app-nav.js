@@ -63,16 +63,16 @@
 
     if(window.updateFloatingThemeBtn) window.updateFloatingThemeBtn();
 
-    // ── Ancre scroll à 0 pendant 150ms ──
-    // Neutralise les décalages DOM sans bloquer la molette souris Chrome desktop
-    var _scrollAnchor = function() { window.scrollTo(0, 0); };
-    document.addEventListener('scroll', _scrollAnchor, { passive: true });
-    setTimeout(function(){
-      document.removeEventListener('scroll', _scrollAnchor);
-      // Restaurer scroll-behavior normal
-      document.documentElement.style.scrollBehavior = '';
-      document.body.style.scrollBehavior = '';
-    }, 150);
+    // ── Ancre scroll à 0 via rAF ──
+    // Ne bloque PAS la molette souris Chrome desktop (pas de listener scroll)
+    requestAnimationFrame(function() {
+      window.scrollTo(0, 0);
+      requestAnimationFrame(function() {
+        window.scrollTo(0, 0);
+        document.documentElement.style.scrollBehavior = '';
+        document.body.style.scrollBehavior = '';
+      });
+    });
 
     setTimeout(function(){
       var fns = {
