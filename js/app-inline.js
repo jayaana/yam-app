@@ -357,8 +357,10 @@ function v2ApplyDynamicNames(){
     messages: null
   };
 
-  // Zone de transition : 0px → SCROLL_FULL → animation 100% terminée
-  var SCROLL_FULL = 60;
+  // SCROLL_FULL : sur Home, le grand header (~70px) est dans le panel → on attend qu'il soit sorti
+  // Sur les autres onglets : pas de grand header → sticky se déclenche très tôt
+  var SCROLL_FULL_HOME  = 80;  // px — header ~70px + marge
+  var SCROLL_FULL_OTHER = 30;  // px — sticky quasi immédiat sur Nous/Musique/Jeux
 
   var currentTab    = 'home';
   var stickyEl      = null;
@@ -439,8 +441,9 @@ function v2ApplyDynamicNames(){
     ticking = false;
     if (!stickyEl) return;
     if (currentTab === 'messages') { resetToHidden(); return; }
-    var scrollY  = _getActiveScrollY();
-    var progress = Math.min(1, Math.max(0, scrollY / SCROLL_FULL));
+    var scrollY    = _getActiveScrollY();
+    var scrollFull = (currentTab === 'home') ? SCROLL_FULL_HOME : SCROLL_FULL_OTHER;
+    var progress   = Math.min(1, Math.max(0, scrollY / scrollFull));
     applyProgress(progress);
   }
 
