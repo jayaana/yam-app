@@ -928,3 +928,83 @@ function updateFloatingThemeBtn() {
   });
   document.body.classList.toggle('subview-open', open);
 }
+
+
+// ═════════════════════════════════════════════════════════════════
+// #28 — Gestionnaire d'erreurs global
+// Capture window.onerror + unhandledrejection → POST errors_log
+// ═════════════════════════════════════════════════════════════════
+
+(function() {
+  'use strict';
+
+  // Rate-limit : max 5 erreurs loggées par session pour éviter le spam DB
+  var _errCount = 0;
+  var _ERR_MAX  = 5;
+
+  // Patterns à ignorer — erreurs bénignes / externes
+  var _IGNORE = [
+    'ResizeObserver loop',
+    'Non-Error promise rejection',
+    'Load failed',
+    'NetworkError',
+    'Failed to fetch',
+    'unsafe-eval',
+    'Script error.',
+    'Cannot read properties of null',
+  ];
+
+  function _shouldIgnore(msg) {
+    if (!msg) return true;
+    for (var i = 0; i < _IGNORE.length; i++) {
+      if (msg.indexOf(_IGNORE[i]) !== -1) return true;
+    }
+    return false;
+  }
+
+  // Envoyer l'erreur dans errors_log via Supabase REST
+  window.yamLogError = function(message, context, stack) {
+    if (_errCount >= _ERR_MAX) return;
+    if (_shouldIgnore(message)) return;
+
+    // Ne pas logger si l'utilisateur n'est pas connecté
+    var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
+    if (!u) return;
+
+    _errCount++;
+
+    var payload = {
+      user_id:    u.id        || null,
+      couple_id:  u.couple_id || null,
+      message:    (message || '').substring(0, 500),
+      stack:      (stack   || '').substring(0, 2000),
+      context:    (context || '').substring(0, 200),
+      url:        window.location.href.substring(0, 300),
+      created_at: new Date().toISOString(),
+    };
+
+    // Fire & forget
+    fetch(SB_URL + '/rest/v1/errors_log', {
+      method:  'POST',
+      headers: sb2Headers({ 'Prefer': 'return=minimal' }),
+      body:    JSON.stringify(payload),
+    }).catch(function() {});
+  };
+
+  // Capturer les erreurs JS non catchées
+  window.onerror = function(message, source, lineno, colno, error) {
+    var stack = error && error.stack ? error.stack : (source + ':' + lineno + ':' + colno);
+    var ctx   = source ? source.split('/').pop() + ':' + lineno : 'unknown';
+    window.yamLogError(String(message), ctx, stack);
+    return false;
+  };
+
+  // Capturer les Promises rejetées non catchées
+  window.addEventListener('unhandledrejection', function(e) {
+    var reason  = e.reason;
+    var message = reason ? (reason.message || String(reason)) : 'Unhandled promise rejection';
+    var stack   = reason && reason.stack ? reason.stack : '';
+    window.yamLogError(message, 'promise', stack);
+  });
+
+})();
