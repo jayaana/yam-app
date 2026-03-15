@@ -682,7 +682,7 @@ body.settings-open header,body.settings-open #yamStickyHeader,body.settings-open
         '<button class="stg-btn stg-btn-danger">🔓 Se déconnecter</button>' +
       '</div>' +
 
-      /* ── Admin monitoring — visible uniquement pour l'admin ── */
+      /* Admin monitoring — visible uniquement pour admin */
       (u.is_admin === true ?
         '<div style="margin-top:8px;padding:0 0 8px;">' +
           '<button class="stg-btn" id="stgAdminErrorsBtn" style="background:rgba(100,100,100,.1);border:1.5px solid rgba(100,100,100,.3);color:var(--muted);font-size:11px;">🛠 Monitoring erreurs</button>' +
