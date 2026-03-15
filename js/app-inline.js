@@ -357,10 +357,8 @@ function v2ApplyDynamicNames(){
     messages: null
   };
 
-  // SCROLL_FULL : sur Home, le grand header (~70px) est dans le panel → on attend qu'il soit sorti
-  // Sur les autres onglets : pas de grand header → sticky se déclenche très tôt
-  var SCROLL_FULL_HOME  = 80;  // px — header ~70px + marge
-  var SCROLL_FULL_OTHER = 30;  // px — sticky quasi immédiat sur Nous/Musique/Jeux
+  // Zone de transition : le sticky apparaît progressivement sur les 60 premiers px de scroll
+  var SCROLL_FULL = 60;
 
   var currentTab    = 'home';
   var stickyEl      = null;
@@ -400,10 +398,12 @@ function v2ApplyDynamicNames(){
 
     // ── Grand header : fondu UNIQUEMENT (pas de transform/translateY) ──
     // Il reste dans le flow avec sa hauteur d'origine — le contenu ne bouge pas
+    // Sur Nous/Musique/Jeux : visibility:hidden à progress=1 pour masquer la "bande"
+    // (visibility garde la hauteur dans le flow contrairement à display:none)
     if (mainHeader) {
       mainHeader.style.transition  = 'none';
       mainHeader.style.opacity     = String(1 - progress);
-      // Pas de transform — on ne veut pas décaler le contenu en-dessous
+      mainHeader.style.visibility  = (progress >= 1 && currentTab !== 'home') ? 'hidden' : '';
       mainHeader.style.pointerEvents = progress > 0.5 ? 'none' : '';
     }
 
@@ -431,6 +431,7 @@ function v2ApplyDynamicNames(){
       mainHeader.classList.remove('sticky-hidden');
       mainHeader.style.transition    = 'none';
       mainHeader.style.opacity       = '';
+      mainHeader.style.visibility    = '';
       mainHeader.style.transform     = '';
       mainHeader.style.pointerEvents = '';
     }
@@ -442,8 +443,7 @@ function v2ApplyDynamicNames(){
     if (!stickyEl) return;
     if (currentTab === 'messages') { resetToHidden(); return; }
     var scrollY    = _getActiveScrollY();
-    var scrollFull = (currentTab === 'home') ? SCROLL_FULL_HOME : SCROLL_FULL_OTHER;
-    var progress   = Math.min(1, Math.max(0, scrollY / scrollFull));
+    var progress   = Math.min(1, Math.max(0, scrollY / SCROLL_FULL));
     applyProgress(progress);
   }
 
