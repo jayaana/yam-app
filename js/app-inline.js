@@ -401,6 +401,23 @@ function v2ApplyDynamicNames(){
     if (!ticking) { window.requestAnimationFrame(updateSticky); ticking = true; }
   }
 
+  function _getActiveScrollY() {
+    // Le scroll se fait dans un .yam-tab-panel (overflow-y:auto/scroll)
+    // window.scrollY reste à 0 — on lit le scrollTop du panel actif
+    var tabIds = { home: 'yamHomeTab', musique: 'yamMusiqueTab', nous: 'yamNousTab', jeux: 'yamJeuxTab' };
+    var panelId = tabIds[currentTab];
+    if (panelId) {
+      var panel = document.getElementById(panelId);
+      if (panel && panel.scrollTop > 0) return panel.scrollTop;
+    }
+    // Fallback : chercher le premier panel scrollé
+    var panels = document.querySelectorAll('.yam-tab-panel');
+    for (var i = 0; i < panels.length; i++) {
+      if (panels[i].scrollTop > 0) return panels[i].scrollTop;
+    }
+    return window.scrollY || window.pageYOffset || 0;
+  }
+
   function updateSticky() {
     ticking = false;
     if (!stickyEl) return;
@@ -410,7 +427,7 @@ function v2ApplyDynamicNames(){
       stickyEl.classList.remove('visible');
       return;
     }
-    var scrollY = window.scrollY || window.pageYOffset;
+    var scrollY = _getActiveScrollY();
     var SCROLL_START = 40;
     var SCROLL_END   = 100;
     if (scrollY <= SCROLL_START) {
@@ -455,6 +472,10 @@ function v2ApplyDynamicNames(){
     titleEl  = document.getElementById('yamStickyHeaderTitle');
     if (!stickyEl || !titleEl) return;
     window.addEventListener('scroll', onScroll, { passive: true });
+    // Écouter aussi le scroll sur chaque panel (Chrome desktop scrolle dans les panels)
+    document.querySelectorAll('.yam-tab-panel').forEach(function(panel) {
+      panel.addEventListener('scroll', onScroll, { passive: true });
+    });
     syncAvatars();
     setInterval(syncAvatars, 2000);
     function patchTitle() {
