@@ -52,6 +52,8 @@ window.compressImage = function(file, maxWidthPx, targetBytes){
           // Dernier recours : retourner le blob à la qualité minimale
           canvas.toBlob(function(blob){
             if(!blob){ reject(new Error('CANVAS_TO_BLOB_FAILED')); return; }
+            var MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+            if(blob.size > MAX_PHOTO_BYTES){ reject(new Error('PHOTO_TOO_LARGE')); return; }
             resolve(blob);
           }, 'image/jpeg', 0.45);
           return;
@@ -59,7 +61,9 @@ window.compressImage = function(file, maxWidthPx, targetBytes){
         var q = qualities[idx++];
         canvas.toBlob(function(blob){
           if(!blob){ reject(new Error('CANVAS_TO_BLOB_FAILED')); return; }
+          var MAX_PHOTO_BYTES = 5 * 1024 * 1024;
           if(!targetBytes || blob.size <= targetBytes){
+            if(blob.size > MAX_PHOTO_BYTES){ reject(new Error('PHOTO_TOO_LARGE')); return; }
             resolve(blob);
           } else {
             tryQuality();
@@ -1641,6 +1645,8 @@ window.acHandleAvatarUpload = function(input){
     if(btn) btn.disabled = false;
     if(err && err.message === 'HEIC_NOT_SUPPORTED'){
       if(typeof showToast === 'function') showToast('Format HEIC non supporté — convertissez en JPG', 'error', 4000);
+    } else if(err && err.message === 'PHOTO_TOO_LARGE'){
+      if(typeof showToast === 'function') showToast('Photo trop lourde (5 Mo max après compression)', 'error', 4000);
     } else if(err && err.message === 'CANVAS_NOT_SUPPORTED'){
       // Fallback : uploader le fichier original sans compression
       var path = 'avatars/' + u.id + '.jpg';
