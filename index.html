@@ -1292,7 +1292,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       <div id="v2ForgotFormMsg" style="font-size:13px;margin-top:8px;text-align:center;"></div>
     </div>
 
-    <!-- Formulaire Nouveau mot de passe (arrivée depuis lien email reset) -->
+    <!-- Formulaire Nouveau mot de passe (arrivée depuis lien email Supabase) -->
     <div id="v2FormReset" class="v2-form" style="display:none;">
       <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:12px;">🔐 Choisis ton nouveau mot de passe</div>
       <div class="v2-input-wrap">
@@ -4334,7 +4334,34 @@ function v2ApplyDynamicNames(){
     }catch(e){}
     return false;
   }
-  if(!checkV2Session()){
+
+  // ── Détection lien reset mot de passe ──────────────────────────
+  // Supabase envoie #access_token=...&type=recovery
+  // On intercepte ici AVANT tout affichage pour ne pas montrer le splash
+  var _hash = window.location.hash || '';
+  var _isReset = _hash.includes('type=recovery');
+  if(_isReset){
+    // Extraire le token
+    var _params = {};
+    _hash.replace(/^#/,'').split('&').forEach(function(p){
+      var kv = p.split('='); _params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]||'');
+    });
+    window._yamResetToken = _params['access_token'] || null;
+    // Nettoyer l'URL
+    history.replaceState(null,'', window.location.pathname + window.location.search);
+    // Afficher l'overlay login avec le formulaire reset au lieu du splash
+    window.addEventListener('load', function(){
+      var overlay = document.getElementById('v2LoginOverlay');
+      if(overlay) overlay.classList.add('active');
+      ['v2FormLogin','v2FormForgot','v2FormRegister','v2FormJoin'].forEach(function(id){
+        var el = document.getElementById(id); if(el) el.style.display='none';
+      });
+      var tabs = document.getElementById('v2LoginTabs');
+      if(tabs) tabs.style.display = 'none';
+      var resetForm = document.getElementById('v2FormReset');
+      if(resetForm) resetForm.style.display = '';
+    });
+  } else if(!checkV2Session()){
       var _sp = document.getElementById('yamSplashScreen');
       if(_sp) _sp.style.display = 'block';
       document.body.classList.add('splash-active');
