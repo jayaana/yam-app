@@ -963,7 +963,8 @@ body.settings-open header,body.settings-open #yamStickyHeader,body.settings-open
         // Bouton effacer
         var clearBtn = document.getElementById('stgAdminErrClear');
         if(clearBtn) clearBtn.addEventListener('click', function(){
-          fetch(SB_URL + '/rest/v1/errors_log?user_id=eq.' + (yamGetUser ? yamGetUser().id : ''), {
+          var _u = yamGetUser ? yamGetUser() : null;
+          fetch(SB_URL + '/rest/v1/errors_log?couple_id=eq.' + (_u ? _u.couple_id : ''), {
             method: 'DELETE',
             headers: { 'apikey': SB_ANON_KEY, 'Authorization': 'Bearer ' + (yamGetAccessToken ? yamGetAccessToken() : ''), 'Prefer': 'return=minimal' }
           }).then(function(){ panel.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">Erreurs effacées 🎉</div>'; });
