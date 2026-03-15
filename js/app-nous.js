@@ -1325,11 +1325,11 @@ function _triggerMilestone(n){
   overlay.innerHTML='<div style="text-align:center;animation:milestonePop 1.5s ease forwards;">'
     +'<div style="font-size:54px;line-height:1;">🩷</div>'
     +'<div style="font-size:21px;font-weight:900;color:#fff;text-shadow:0 2px 14px rgba(220,80,130,0.9);margin-top:8px;">'
-    +n+' cœurs aujourd\'hui !</div>'
+    +parseInt(n)+' cœurs aujourd\'hui !</div>'
     +'</div>';
   document.body.appendChild(overlay);
   setTimeout(function(){ overlay.remove(); },1600);
-  if(typeof showToast==='function') showToast(n+' cœurs envoyés aujourd\'hui 🩷','success');
+  if(typeof showToast==='function') showToast(parseInt(n)+' cœurs envoyés aujourd\'hui 🩷','success');
   // Flamme — palier cœur atteint
   if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('heart_milestone');
 }
