@@ -352,7 +352,7 @@ function v2ApplyDynamicNames(){
     home:    'Accueil',
     jeux:    'Jeux',
     musique: 'Musique',
-    nous:    'Nous ♥',
+    nous:    'Nous',
     messages: null
   };
 
@@ -382,8 +382,9 @@ function v2ApplyDynamicNames(){
     isVisible = true;
     stickyEl.style.opacity = '1';
     stickyEl.style.transform = 'translateY(0)';
+    stickyEl.style.pointerEvents = 'auto';
     stickyEl.classList.add('visible');
-    if (mainHeader) mainHeader.style.visibility = 'hidden';
+    if (mainHeader) mainHeader.style.display = 'none';
   }
 
   function hideSticky() {
@@ -391,8 +392,9 @@ function v2ApplyDynamicNames(){
     isVisible = false;
     stickyEl.style.opacity = '0';
     stickyEl.style.transform = 'translateY(-110%)';
+    stickyEl.style.pointerEvents = 'none';
     stickyEl.classList.remove('visible');
-    if (mainHeader) mainHeader.style.visibility = '';
+    if (mainHeader) mainHeader.style.display = '';
   }
 
   function updateSticky() {
