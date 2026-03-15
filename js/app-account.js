@@ -152,6 +152,29 @@ window.v2SwitchTab = function(tab){
     if(form) form.style.display = (t === tab) ? '' : 'none';
     if(btn)  btn.classList.toggle('active', t === tab);
   });
+  // Cacher la section forgot password si on change d'onglet
+  var forgot = document.getElementById('v2FormForgot');
+  if(forgot) forgot.style.display = 'none';
+  if(tab === 'login'){
+    var loginForm = document.getElementById('v2FormLogin');
+    if(loginForm) loginForm.style.display = '';
+  }
+};
+
+window.v2ShowForgot = function(){
+  var loginForm = document.getElementById('v2FormLogin');
+  var forgotForm = document.getElementById('v2FormForgot');
+  if(loginForm) loginForm.style.display = 'none';
+  if(forgotForm) forgotForm.style.display = '';
+  var el = document.getElementById('v2ForgotIdentifier');
+  if(el){ el.value = (document.getElementById('v2LoginEmail').value || ''); el.focus(); }
+};
+
+window.v2ShowLogin = function(){
+  var loginForm = document.getElementById('v2FormLogin');
+  var forgotForm = document.getElementById('v2FormForgot');
+  if(forgotForm) forgotForm.style.display = 'none';
+  if(loginForm) loginForm.style.display = '';
 };
 
 window.v2SelectRole = function(role){
@@ -220,10 +243,9 @@ function _v2AfterLogin(result, msgId){
 }
 
 window.v2DoLogin = function(){
-  var email    = (document.getElementById('v2LoginEmail').value    || '').trim();
-  var password =  document.getElementById('v2LoginPassword').value || '';
-  var msgId    = 'v2LoginMsg';
-  // Créer/assurer le message div
+  var identifier = (document.getElementById('v2LoginEmail').value || '').trim();
+  var password   =  document.getElementById('v2LoginPassword').value || '';
+  var msgId      = 'v2LoginMsg';
   var msgEl = document.getElementById(msgId);
   if(!msgEl){
     msgEl = document.createElement('div');
@@ -232,11 +254,29 @@ window.v2DoLogin = function(){
     var form = document.getElementById('v2FormLogin');
     if(form) form.appendChild(msgEl);
   }
-  if(!email || !password){
+  if(!identifier || !password){
     _v2SetMsg(msgId, '⚠️ Remplis tous les champs', true); return;
   }
   _v2SetMsg(msgId, '⏳ Connexion...', false);
-  yamLogin(email, password).then(function(res){ _v2AfterLogin(res, msgId); });
+  // Passer l'identifiant tel quel — auth-v3 résout pseudo → email si pas d'@
+  yamLogin(identifier, password).then(function(res){ _v2AfterLogin(res, msgId); });
+};
+
+// Mot de passe oublié
+window.v2DoForgotPassword = function(){
+  var identifier = (document.getElementById('v2ForgotIdentifier').value || '').trim();
+  var msgId = 'v2ForgotMsg';
+  if(!identifier){
+    _v2SetMsg(msgId, '⚠️ Saisis ton email ou pseudo', true); return;
+  }
+  _v2SetMsg(msgId, '⏳ Envoi en cours...', false);
+  _authPost({ action: 'forgot_password', email: identifier })
+    .then(function(data){
+      _v2SetMsg(msgId, '✅ Si ce compte existe, un email de reset a été envoyé', false);
+    })
+    .catch(function(){
+      _v2SetMsg(msgId, '✅ Si ce compte existe, un email de reset a été envoyé', false);
+    });
 };
 
 window.v2DoRegister = function(){
