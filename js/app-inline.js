@@ -380,31 +380,18 @@ function v2ApplyDynamicNames(){
   function showSticky() {
     if (isVisible) return;
     isVisible = true;
-    stickyEl.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
-    stickyEl.style.opacity = '1';
-    stickyEl.style.transform = 'translateY(0)';
-    stickyEl.style.pointerEvents = 'auto';
+    // Tout passe par les classes CSS — pas de styles inline pour ne pas écraser les transitions
     stickyEl.classList.add('visible');
-    if (mainHeader) {
-      mainHeader.style.transition = 'opacity 0.2s ease';
-      mainHeader.style.opacity = '0';
-      mainHeader.style.pointerEvents = 'none';
-    }
+    if (mainHeader) mainHeader.classList.add('sticky-hidden');
+    document.body.classList.add('sticky-visible');
   }
 
   function hideSticky() {
     if (!isVisible) return;
     isVisible = false;
-    stickyEl.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
-    stickyEl.style.opacity = '0';
-    stickyEl.style.transform = 'translateY(-110%)';
-    stickyEl.style.pointerEvents = 'none';
     stickyEl.classList.remove('visible');
-    if (mainHeader) {
-      mainHeader.style.transition = 'opacity 0.2s ease';
-      mainHeader.style.opacity = '';
-      mainHeader.style.pointerEvents = '';
-    }
+    if (mainHeader) mainHeader.classList.remove('sticky-hidden');
+    document.body.classList.remove('sticky-visible');
   }
 
   function updateSticky() {
@@ -1208,8 +1195,8 @@ document.addEventListener('DOMContentLoaded', function(){
   _on('navMusique',  'click', function(){ window.yamSwitchTab && window.yamSwitchTab('musique'); });
   _on('navNous',     'click', function(){ window.yamSwitchTab && window.yamSwitchTab('nous'); });
 
-  // ── Sticky header ──
-  _on('yamStickyGearBtn',    'click', function(){ window.yamToggleAccountModal && window.yamToggleAccountModal(); });
+  // ── Sticky header — géré par le setTimeout dans BLOC 8 ──
+  // yamStickyGearBtn : handler posé par app-inline BLOC 8 (setTimeout 1500ms) — ne pas dupliquer ici
   _on('headerGearBtn',       'click', function(){ window.yamToggleAccountModal && window.yamToggleAccountModal(); });
 
   // ── Splash / Login ──
