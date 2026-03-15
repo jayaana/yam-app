@@ -453,10 +453,13 @@ function v2ApplyDynamicNames(){
   }
 
   function updateGearVisibility(tab) {
-    if (tab === 'nous') {
-      document.body.classList.add('nous-active');
-    } else {
-      document.body.classList.remove('nous-active');
+    // Retirer toutes les classes d'onglet
+    document.body.classList.remove('nous-active', 'musique-active', 'home-active', 'jeux-active', 'messages-active');
+    // Ajouter la classe correspondante
+    var tabClassMap = { nous: 'nous-active', musique: 'musique-active', home: 'home-active', jeux: 'jeux-active', messages: 'messages-active' };
+    if (tabClassMap[tab]) document.body.classList.add(tabClassMap[tab]);
+    // Fermer les paramètres si on quitte un onglet avec gear
+    if (tab === 'messages') {
       var modal = document.getElementById('settingsView');
       if (modal && modal.classList.contains('active')) {
         if (typeof window.closeAccountModal === 'function') window.closeAccountModal();
