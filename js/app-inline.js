@@ -368,15 +368,16 @@ function v2ApplyDynamicNames(){
   var _lastProgress = -1;
 
   function _getActiveScrollY() {
-    var tabIds = { home: 'yamHomeTab', musique: 'yamMusiqueTab', nous: 'yamNousTab', jeux: 'yamJeuxTab' };
+    // Home et Jeux : overflow:auto + height fixe → scroll interne (panel.scrollTop)
+    // Nous et Musique : overflow:visible + height:auto → body scrolle (window.scrollY)
+    if (currentTab === 'nous' || currentTab === 'musique') {
+      return window.scrollY || window.pageYOffset || 0;
+    }
+    var tabIds = { home: 'yamHomeTab', jeux: 'yamJeuxTab' };
     var panelId = tabIds[currentTab];
     if (panelId) {
       var panel = document.getElementById(panelId);
-      if (panel && panel.scrollTop > 0) return panel.scrollTop;
-    }
-    var panels = document.querySelectorAll('.yam-tab-panel');
-    for (var i = 0; i < panels.length; i++) {
-      if (panels[i].scrollTop > 0) return panels[i].scrollTop;
+      if (panel) return panel.scrollTop;
     }
     return window.scrollY || window.pageYOffset || 0;
   }
@@ -452,9 +453,10 @@ function v2ApplyDynamicNames(){
   }
 
   function setTab(tab) {
-    // Reset scrollTop du panel qu'on quitte pour que _getActiveScrollY() retourne 0 au retour
-    var tabIds = { home: 'yamHomeTab', musique: 'yamMusiqueTab', nous: 'yamNousTab', jeux: 'yamJeuxTab' };
-    var prevPanelId = tabIds[currentTab];
+    // Pour les panels à scroll interne (Home/Jeux), reset scrollTop au départ
+    // Pour Nous/Musique, c'est window.scrollTo(0,0) dans yamSwitchTab qui remet à 0
+    var internalScrollTabs = { home: 'yamHomeTab', jeux: 'yamJeuxTab' };
+    var prevPanelId = internalScrollTabs[currentTab];
     if (prevPanelId) {
       var prevPanel = document.getElementById(prevPanelId);
       if (prevPanel) prevPanel.scrollTop = 0;
