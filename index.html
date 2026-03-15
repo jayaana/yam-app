@@ -1292,6 +1292,21 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       <div id="v2ForgotFormMsg" style="font-size:13px;margin-top:8px;text-align:center;"></div>
     </div>
 
+    <!-- Formulaire Nouveau mot de passe (arrivée depuis lien email reset) -->
+    <div id="v2FormReset" class="v2-form" style="display:none;">
+      <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:12px;">🔐 Choisis ton nouveau mot de passe</div>
+      <div class="v2-input-wrap">
+        <svg class="v2-input-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <input class="v2-input" id="v2ResetPassword" type="password" placeholder="Nouveau mot de passe" autocomplete="new-password" />
+      </div>
+      <div class="v2-input-wrap">
+        <svg class="v2-input-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <input class="v2-input" id="v2ResetPassword2" type="password" placeholder="Confirme le mot de passe" autocomplete="new-password" />
+      </div>
+      <button class="v2-btn" onclick="v2DoResetPassword()">Changer le mot de passe</button>
+      <div id="v2ResetMsg" style="font-size:13px;margin-top:8px;text-align:center;"></div>
+    </div>
+
     <!-- Formulaire Inscription -->
     <div id="v2FormRegister" class="v2-form" style="display:none;">
       <div class="v2-input-wrap">
