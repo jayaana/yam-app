@@ -453,13 +453,11 @@ function v2ApplyDynamicNames(){
   }
 
   function updateGearVisibility(tab) {
-    // Retirer toutes les classes d'onglet
-    document.body.classList.remove('nous-active', 'musique-active', 'home-active', 'jeux-active', 'messages-active');
-    // Ajouter la classe correspondante
-    var tabClassMap = { nous: 'nous-active', musique: 'musique-active', home: 'home-active', jeux: 'jeux-active', messages: 'messages-active' };
-    if (tabClassMap[tab]) document.body.classList.add(tabClassMap[tab]);
-    // Fermer les paramètres si on quitte un onglet avec gear
-    if (tab === 'messages') {
+    // nous-active : affiche l'engrenage dans le sticky header (Nous♥ uniquement)
+    if (tab === 'nous') {
+      document.body.classList.add('nous-active');
+    } else {
+      document.body.classList.remove('nous-active');
       var modal = document.getElementById('settingsView');
       if (modal && modal.classList.contains('active')) {
         if (typeof window.closeAccountModal === 'function') window.closeAccountModal();
@@ -493,7 +491,15 @@ function v2ApplyDynamicNames(){
   else init();
 
   window.yamStickyOpenProfile = function() {
-    if (typeof window.toggleProfilePopup === 'function') window.toggleProfilePopup();
+    // Sur musique : l'avatar sticky ouvre les paramètres
+    // Sur les autres onglets : ouvre le profil popup si dispo
+    var tab = window._currentTab || '';
+    if (tab === 'musique') {
+      if (typeof window.yamToggleAccountModal === 'function') window.yamToggleAccountModal();
+    } else {
+      if (typeof window.toggleProfilePopup === 'function') window.toggleProfilePopup();
+      else if (typeof window.yamToggleAccountModal === 'function') window.yamToggleAccountModal();
+    }
   };
 })();
 
