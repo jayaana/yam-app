@@ -63,8 +63,8 @@
 
     if(window.updateFloatingThemeBtn) window.updateFloatingThemeBtn();
 
-    // ── Ancre scroll à 0 pendant 600ms ──
-    // Neutralise les décalages causés par les fonctions de refresh qui modifient le DOM
+    // ── Ancre scroll à 0 pendant 150ms ──
+    // Neutralise les décalages DOM sans bloquer la molette souris Chrome desktop
     var _scrollAnchor = function() { window.scrollTo(0, 0); };
     document.addEventListener('scroll', _scrollAnchor, { passive: true });
     setTimeout(function(){
@@ -72,7 +72,7 @@
       // Restaurer scroll-behavior normal
       document.documentElement.style.scrollBehavior = '';
       document.body.style.scrollBehavior = '';
-    }, 600);
+    }, 150);
 
     setTimeout(function(){
       var fns = {
