@@ -389,44 +389,47 @@ body.light #uxToast.success { border-color: rgba(231,90,124,0.3); color: var(--g
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 
-  /* Caché par défaut — glisse depuis le haut */
+  /* État initial — piloté par JS via styles inline proportionnels au scroll (rAF) */
+  /* Pas de transition CSS ici : le JS écrit transform/opacity directement à chaque frame */
   transform: translateY(-100%);
   opacity: 0;
-  transition:
-    transform 0.32s cubic-bezier(0.4, 0, 0.2, 1),
-    opacity   0.24s ease;
   pointer-events: none;
   will-change: transform, opacity;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
+/* .visible = seuil atteint (progress=1) — utilisé uniquement pour déclencher le padding-top des panels */
 #yamStickyHeader.visible {
-  transform: translateY(0);
-  opacity: 1;
   pointer-events: auto;
 }
 
-/* Grand header — glisse vers le haut et s'efface quand le sticky arrive */
+/* Grand header — piloté par JS inline proportionnel */
 #yamMainHeader {
-  transition:
-    opacity   0.28s ease,
-    transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
-  transform: translateY(0);
   transform-origin: top center;
   will-change: opacity, transform;
 }
+/* .sticky-hidden = seuil atteint — désactive pointer-events */
 #yamMainHeader.sticky-hidden {
-  opacity: 0;
-  transform: translateY(-12px) scale(0.97);
   pointer-events: none;
 }
 
 /* Padding-top des panels quand le sticky est visible — évite le contenu sous le header */
-body.sticky-visible .yam-tab-panel.active {
-  padding-top: calc(env(safe-area-inset-top, 0px) + 44px);
+/* Uniquement sur les panels qui n'ont PAS leur propre padding-top natif */
+body.sticky-visible #yamHomeTab.active,
+body.sticky-visible #yamMusiqueTab.active,
+body.sticky-visible #yamJeuxTab.active {
+  padding-top: 44px;
   transition: padding-top 0.32s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.yam-tab-panel.active {
+#yamHomeTab.active,
+#yamMusiqueTab.active,
+#yamJeuxTab.active {
+  transition: padding-top 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* yamNousTab : nousProfilSection a déjà son propre padding-top — pas de doublon */
+/* On compense uniquement la hauteur du sticky (44px) sans la safe-area déjà présente */
+body.sticky-visible #yamNousTab.active #nousProfilSection {
+  padding-top: calc(var(--safe-top, 0px) + 28px + 44px) !important;
   transition: padding-top 0.32s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
