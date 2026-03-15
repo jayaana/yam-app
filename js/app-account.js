@@ -763,6 +763,13 @@ body.settings-open header,body.settings-open #yamStickyHeader,body.settings-open
       '<div class="stg-title">Sécurité</div>' +
     '</div>' +
     '<div style="padding:0 16px 80px;">' +
+      '<div class="stg-group-label" style="margin-top:20px;">Compte</div>' +
+      '<div class="stg-group">' +
+        '<div class="stg-field" style="pointer-events:none;">' +
+          '<label>Email</label>' +
+          '<div id="acEmailDisplay" style="font-size:14px;color:var(--muted);padding:10px 0;letter-spacing:0.5px;">chargement...</div>' +
+        '</div>' +
+      '</div>' +
       '<div class="stg-group-label" style="margin-top:20px;">Changer le mot de passe</div>' +
       '<div class="stg-group">' +
         '<div class="stg-field"><label>Mot de passe actuel</label><input type="password" id="acOldPwd" placeholder="••••••" autocomplete="current-password" /></div>' +
@@ -895,7 +902,38 @@ body.settings-open header,body.settings-open #yamStickyHeader,body.settings-open
     if(id === 'stgSubAppearance') _stgSyncTheme();
     // Sync préférences tags
     if(id === 'stgSubPrefs') _stgLoadPrefs();
+    // Charger l'email tronqué dans la page sécurité
+    if(id === 'stgSubSecurity') _stgLoadEmail();
   };
+
+  function _maskEmail(email){
+    var parts = email.split('@');
+    if(!parts[0] || !parts[1]) return email;
+    var local = parts[0];
+    var visible = local.length > 3 ? local.slice(0,3) : local.slice(0,1);
+    return visible + '•••••@' + parts[1];
+  }
+
+  function _stgLoadEmail(){
+    var el = document.getElementById('acEmailDisplay');
+    if(!el) return;
+    // Appel Supabase Auth pour récupérer l'email réel
+    fetch(SB_URL + '/auth/v1/user', {
+      headers: {
+        'apikey': SB_ANON_KEY,
+        'Authorization': 'Bearer ' + (yamGetAccessToken ? yamGetAccessToken() : ''),
+      }
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(data && data.email){
+        el.textContent = _maskEmail(data.email);
+      } else {
+        el.textContent = '—';
+      }
+    })
+    .catch(function(){ el.textContent = '—'; });
+  }
   window.stgCloseSub = function(id){
     var el = document.getElementById(id);
     if(el) el.classList.remove('active');
