@@ -509,7 +509,7 @@ window.setProfile = function(g){
 #settingsView{display:none;position:fixed;inset:0;z-index:3000;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;font-family:"Bricolage Grotesque",sans-serif;}\
 #settingsView.active{display:block;}\
 body.settings-open{overflow:hidden!important;}\
-body.settings-open header,body.settings-open #yamStickyHeader,body.settings-open .bottom-nav{display:none!important;}\
+body.settings-open header,body.settings-open .bottom-nav{display:none!important;}\
 .stg-safe-top{height:env(safe-area-inset-top,0px);}\
 .stg-header{position:sticky;top:0;z-index:10;display:flex;align-items:center;padding:12px 16px;background:var(--bg);border-bottom:1px solid var(--border);gap:12px;}\
 .stg-back{width:36px;height:36px;border-radius:50%;background:var(--s2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:transform .15s;-webkit-tap-highlight-color:transparent;}\
@@ -901,6 +901,9 @@ body.settings-open header,body.settings-open #yamStickyHeader,body.settings-open
 
   /* ── Injection ── */
   document.body.insertAdjacentHTML('beforeend', mainHTML + subCouple + subSecurity + subAbonnement + subPrefs + subAppearance + subNotifs);
+  // Safety: s'assurer que settingsView démarre fermé
+  var _sv = document.getElementById('settingsView');
+  if (_sv) { _sv.classList.remove('active'); document.body.classList.remove('settings-open'); }
 
   /* ── Event delegation — remplace tous les onclick= retirés des strings HTML (#89 CSP) ── */
   document.body.addEventListener('click', function(e) {
