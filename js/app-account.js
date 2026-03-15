@@ -275,52 +275,8 @@ window.v2DoForgotPassword = function(){
     });
 };
 
-// ── Reset mot de passe via lien Supabase ─────────────────────────
-// Détecte #access_token=...&type=recovery dans l'URL au chargement
-(function(){
-  var hash = window.location.hash;
-  if(!hash.includes('type=recovery')) return;
-
-  // Parser le fragment
-  var params = {};
-  hash.replace(/^#/, '').split('&').forEach(function(p){
-    var kv = p.split('=');
-    params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || '');
-  });
-
-  var token = params['access_token'];
-  if(!token) return;
-
-  // Stocker le token pour le submit
-  window._yamResetToken = token;
-
-  // Nettoyer l'URL (retirer le hash) sans recharger la page
-  history.replaceState(null, '', window.location.pathname + window.location.search);
-
-  // Afficher le formulaire reset dès que le DOM est prêt
-  function showResetForm(){
-    // Ouvrir l'overlay login
-    var overlay = document.getElementById('v2LoginOverlay');
-    if(overlay) overlay.classList.add('active');
-    // Cacher tous les autres formulaires et les onglets
-    ['v2FormLogin','v2FormForgot','v2FormRegister','v2FormJoin'].forEach(function(id){
-      var el = document.getElementById(id);
-      if(el) el.style.display = 'none';
-    });
-    var tabs = document.getElementById('v2LoginTabs');
-    if(tabs) tabs.style.display = 'none';
-    // Afficher le formulaire reset
-    var resetForm = document.getElementById('v2FormReset');
-    if(resetForm) resetForm.style.display = '';
-  }
-
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', showResetForm);
-  } else {
-    showResetForm();
-  }
-})();
-
+// ── Changer le mot de passe depuis le lien de reset ──────────────
+// Le token window._yamResetToken est injecté par le bloc splash dans index.html
 window.v2DoResetPassword = function(){
   var p1    = (document.getElementById('v2ResetPassword').value  || '');
   var p2    = (document.getElementById('v2ResetPassword2').value || '');
@@ -338,7 +294,6 @@ window.v2DoResetPassword = function(){
 
   _v2SetMsg(msgId, '⏳ Mise à jour...', false);
 
-  // Appel Supabase Auth PUT /user avec le token de recovery comme Bearer
   fetch(SB_URL + '/auth/v1/user', {
     method: 'PUT',
     headers: {
@@ -354,11 +309,10 @@ window.v2DoResetPassword = function(){
       _v2SetMsg(msgId, '❌ ' + (data.error_description || data.error || 'Erreur'), true);
       return;
     }
-    // Succès
     window._yamResetToken = null;
-    _v2SetMsg(msgId, '✅ Mot de passe changé ! Tu peux te connecter.', false);
+    _v2SetMsg(msgId, '✅ Mot de passe changé ! Connecte-toi.', false);
     setTimeout(function(){
-      // Rétablir les onglets et afficher le formulaire de connexion
+      // Réafficher les onglets + formulaire connexion
       var tabs = document.getElementById('v2LoginTabs');
       if(tabs) tabs.style.display = '';
       var resetForm = document.getElementById('v2FormReset');
