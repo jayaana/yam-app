@@ -384,19 +384,19 @@ body.light #uxToast.success { border-color: rgba(231,90,124,0.3); color: var(--g
   padding-bottom: 10px;
 
   /* Fond flouté comme iOS */
-  background: rgba(18, 18, 18, 0.82); /* dark */
+  background: rgba(18, 18, 18, 0.82);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 
-  /* Caché par défaut */
-  transform: translateY(-110%);
+  /* Caché par défaut — glisse depuis le haut */
+  transform: translateY(-100%);
   opacity: 0;
-  /* Transition fluide CSS — suffisant pour un header, pas besoin de suivre le doigt */
-  transition: transform 0.28s cubic-bezier(.4,0,.2,1), opacity 0.28s ease;
+  transition:
+    transform 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity   0.24s ease;
   pointer-events: none;
   will-change: transform, opacity;
-  /* Évite le subpixel bleed iOS (1-2px visibles quand translateY=-100%) */
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
@@ -406,14 +406,28 @@ body.light #uxToast.success { border-color: rgba(231,90,124,0.3); color: var(--g
   pointer-events: auto;
 }
 
-/* Grand header masqué quand le sticky est actif */
+/* Grand header — glisse vers le haut et s'efface quand le sticky arrive */
+#yamMainHeader {
+  transition:
+    opacity   0.28s ease,
+    transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(0);
+  transform-origin: top center;
+  will-change: opacity, transform;
+}
 #yamMainHeader.sticky-hidden {
   opacity: 0;
+  transform: translateY(-12px) scale(0.97);
   pointer-events: none;
-  transition: opacity 0.22s ease;
 }
-#yamMainHeader {
-  transition: opacity 0.22s ease;
+
+/* Padding-top des panels quand le sticky est visible — évite le contenu sous le header */
+body.sticky-visible .yam-tab-panel.active {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 44px);
+  transition: padding-top 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.yam-tab-panel.active {
+  transition: padding-top 0.32s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Layout interne : titre centré + avatars à droite */
