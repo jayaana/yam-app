@@ -1675,7 +1675,16 @@
             playBtn.disabled = false;
             if(!rows || !rows[0] || !rows[0].audio_data){
               playBtn.innerHTML = ICON_PLAY;
-              if(typeof showToast === 'function') showToast('Audio indisponible', 'error', 2000);
+              playBtn.disabled = true;
+              // Indicateur visuel permanent — vocal expiré (#92)
+              var expiredLabel = audioBubble.querySelector('.dm-audio-expired');
+              if(!expiredLabel){
+                expiredLabel = document.createElement('div');
+                expiredLabel.className = 'dm-audio-expired';
+                expiredLabel.textContent = '\uD83D\uDD07 Vocal expiré (30j)';
+                expiredLabel.style.cssText = 'font-size:10px;color:var(--muted);margin-top:3px;text-align:center;';
+                audioBubble.appendChild(expiredLabel);
+              }
               return;
             }
             var row = rows[0];
