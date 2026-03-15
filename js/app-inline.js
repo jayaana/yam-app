@@ -358,7 +358,10 @@ function v2ApplyDynamicNames(){
   };
 
   // Zone de transition : le sticky apparaît progressivement sur les 60 premiers px de scroll
-  var SCROLL_FULL = 60;
+  // SCROLL_FULL : distance de scroll pour que l'animation soit complète
+  // = hauteur du grand header (mesuré au runtime pour coller à la réalité)
+  var SCROLL_FULL = 60; // valeur par défaut, écrasée au init()
+  var _mainHeaderH = 60; // hauteur mesurée du grand header
 
   var currentTab    = 'home';
   var stickyEl      = null;
@@ -399,21 +402,15 @@ function v2ApplyDynamicNames(){
     stickyEl.style.transform  = 'translateY(' + ((1 - progress) * -100) + '%)';
     stickyEl.style.pointerEvents = progress > 0.5 ? 'auto' : 'none';
 
-    // ── Grand header : fondu UNIQUEMENT (pas de transform/translateY) ──
-    // Il reste dans le flow avec sa hauteur d'origine — le contenu ne bouge pas
-    // À progress=1 : height:0 + overflow:hidden pour supprimer la bande de 22px
-    // (le grand header ~66px dépasse sous le sticky ~44px)
+    // ── Grand header : glisse vers le haut proportionnellement au scroll ──
+    // translateY = -progress × hauteur du header → sort progressivement hors écran
+    // height/overflow ne changent JAMAIS → aucun saut dans le flow du body
     if (mainHeader) {
-      mainHeader.style.transition   = 'none';
-      mainHeader.style.opacity      = String(1 - progress);
+      var translateY = -progress * _mainHeaderH;
+      mainHeader.style.transition    = 'none';
+      mainHeader.style.opacity       = String(1 - progress);
+      mainHeader.style.transform     = 'translateY(' + translateY + 'px)';
       mainHeader.style.pointerEvents = progress > 0.5 ? 'none' : '';
-      if (progress >= 1) {
-        mainHeader.style.height   = '0px';
-        mainHeader.style.overflow = 'hidden';
-      } else {
-        mainHeader.style.height   = '';
-        mainHeader.style.overflow = '';
-      }
     }
 
     // ── Classes CSS (seuil à 1) ──
@@ -440,10 +437,10 @@ function v2ApplyDynamicNames(){
       mainHeader.classList.remove('sticky-hidden');
       mainHeader.style.transition    = 'none';
       mainHeader.style.opacity       = '';
+      mainHeader.style.transform     = '';
       mainHeader.style.height        = '';
       mainHeader.style.overflow      = '';
       mainHeader.style.visibility    = '';
-      mainHeader.style.transform     = '';
       mainHeader.style.pointerEvents = '';
     }
     document.body.classList.remove('sticky-visible');
@@ -488,6 +485,17 @@ function v2ApplyDynamicNames(){
     titleEl    = document.getElementById('yamStickyHeaderTitle');
     mainHeader = document.getElementById('yamMainHeader');
     if (!stickyEl || !titleEl) return;
+
+    // Mesurer la hauteur réelle du grand header pour que SCROLL_FULL soit exact
+    // → progress atteint 1.0 exactement quand le header est sorti du viewport
+    function measureHeader() {
+      if (mainHeader && mainHeader.offsetHeight > 0) {
+        _mainHeaderH = mainHeader.offsetHeight;
+        SCROLL_FULL  = _mainHeaderH;
+      }
+    }
+    measureHeader();
+    window.addEventListener('load', measureHeader, { once: true });
 
     window.addEventListener('scroll', onScroll, { passive: true });
     document.querySelectorAll('.yam-tab-panel').forEach(function(panel) {
