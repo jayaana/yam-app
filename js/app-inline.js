@@ -390,20 +390,22 @@ function v2ApplyDynamicNames(){
     var wasVisible   = stickyEl.classList.contains('visible');
 
     // ── Sticky header : glisse depuis le haut + fondu proportionnel ──
+    // Le sticky est fixed → il recouvre le contenu sans rien pousser
     stickyEl.style.transition = 'none';
     stickyEl.style.opacity    = String(progress);
     stickyEl.style.transform  = 'translateY(' + ((1 - progress) * -100) + '%)';
     stickyEl.style.pointerEvents = progress > 0.5 ? 'auto' : 'none';
 
-    // ── Grand header : s'efface + léger recul vertical ──
+    // ── Grand header : fondu UNIQUEMENT (pas de transform/translateY) ──
+    // Il reste dans le flow avec sa hauteur d'origine — le contenu ne bouge pas
     if (mainHeader) {
       mainHeader.style.transition  = 'none';
       mainHeader.style.opacity     = String(1 - progress);
-      mainHeader.style.transform   = 'translateY(' + (progress * -12) + 'px) scale(' + (1 - progress * 0.03) + ')';
+      // Pas de transform — on ne veut pas décaler le contenu en-dessous
       mainHeader.style.pointerEvents = progress > 0.5 ? 'none' : '';
     }
 
-    // ── Classes pour le padding-top des panels (bascule au seuil 1) ──
+    // ── Classes CSS (seuil à 1) ──
     if (isNowVisible && !wasVisible) {
       stickyEl.classList.add('visible');
       if (mainHeader) mainHeader.classList.add('sticky-hidden');
@@ -419,15 +421,15 @@ function v2ApplyDynamicNames(){
     _lastProgress = -1;
     if (!stickyEl) return;
     stickyEl.classList.remove('visible');
-    stickyEl.style.transition  = 'none';
-    stickyEl.style.opacity     = '0';
-    stickyEl.style.transform   = 'translateY(-100%)';
+    stickyEl.style.transition    = 'none';
+    stickyEl.style.opacity       = '0';
+    stickyEl.style.transform     = 'translateY(-100%)';
     stickyEl.style.pointerEvents = 'none';
     if (mainHeader) {
       mainHeader.classList.remove('sticky-hidden');
-      mainHeader.style.transition  = 'none';
-      mainHeader.style.opacity     = '';
-      mainHeader.style.transform   = '';
+      mainHeader.style.transition    = 'none';
+      mainHeader.style.opacity       = '';
+      mainHeader.style.transform     = '';
       mainHeader.style.pointerEvents = '';
     }
     document.body.classList.remove('sticky-visible');
@@ -447,6 +449,13 @@ function v2ApplyDynamicNames(){
   }
 
   function setTab(tab) {
+    // Reset scrollTop du panel qu'on quitte pour que _getActiveScrollY() retourne 0 au retour
+    var tabIds = { home: 'yamHomeTab', musique: 'yamMusiqueTab', nous: 'yamNousTab', jeux: 'yamJeuxTab' };
+    var prevPanelId = tabIds[currentTab];
+    if (prevPanelId) {
+      var prevPanel = document.getElementById(prevPanelId);
+      if (prevPanel) prevPanel.scrollTop = 0;
+    }
     currentTab = tab;
     resetToHidden();
     if (!titleEl) return;
