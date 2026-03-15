@@ -155,10 +155,6 @@ window.v2SwitchTab = function(tab){
   // Cacher la section forgot password si on change d'onglet
   var forgot = document.getElementById('v2FormForgot');
   if(forgot) forgot.style.display = 'none';
-  if(tab === 'login'){
-    var loginForm = document.getElementById('v2FormLogin');
-    if(loginForm) loginForm.style.display = '';
-  }
 };
 
 window.v2ShowForgot = function(){
@@ -167,10 +163,10 @@ window.v2ShowForgot = function(){
   if(loginForm) loginForm.style.display = 'none';
   if(forgotForm) forgotForm.style.display = '';
   var el = document.getElementById('v2ForgotIdentifier');
-  if(el){ el.value = (document.getElementById('v2LoginEmail').value || ''); el.focus(); }
+  if(el){ el.value = (document.getElementById('v2LoginEmail') ? document.getElementById('v2LoginEmail').value : ''); el.focus(); }
 };
 
-window.v2ShowLogin = function(){
+window.v2ShowLoginForm = function(){
   var loginForm = document.getElementById('v2FormLogin');
   var forgotForm = document.getElementById('v2FormForgot');
   if(forgotForm) forgotForm.style.display = 'none';
