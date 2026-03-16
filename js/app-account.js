@@ -1805,25 +1805,22 @@ body.settings-open{overflow:hidden!important;}\
       _mfaActiveClient   = sc;
       _mfaActiveFactorId = data.id;
       if(enrollSec) enrollSec.dataset.factorId = data.id;
-      // qrImg est un <div> conteneur — injection SVG directe
+      // qrImg est un <div> conteneur — on crée une vraie img avec la data URI
+      // C'est la méthode la plus fiable pour que Google Authenticator puisse scanner
       if(qrImg && data.totp && data.totp.qr_code){
         var raw = data.totp.qr_code;
-        // Supabase retourne "data:image/svg+xml;utf-8,<svg...>"
-        // On extrait le SVG brut depuis la data URI
-        var svgStr = raw;
-        if(raw.indexOf('data:') === 0){
-          var commaIdx = raw.indexOf(',');
-          if(commaIdx !== -1){
-            svgStr = decodeURIComponent(raw.slice(commaIdx + 1));
-          }
+        // Supabase retourne déjà une data URI complète — on l'utilise directement comme src
+        var dataUri = raw;
+        if(raw.indexOf('data:') !== 0){
+          // Si c'est du SVG brut, on le ré-encode proprement
+          dataUri = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(raw);
         }
-        qrImg.innerHTML = svgStr;
-        var svgEl = qrImg.querySelector('svg');
-        if(svgEl){
-          svgEl.setAttribute('width', '176');
-          svgEl.setAttribute('height', '176');
-          svgEl.style.cssText = 'display:block;width:176px;height:176px;';
-        }
+        qrImg.innerHTML = '';
+        var img = document.createElement('img');
+        img.src = dataUri;
+        img.style.cssText = 'width:176px;height:176px;display:block;image-rendering:pixelated;';
+        img.alt = 'QR Code 2FA';
+        qrImg.appendChild(img);
       }
       // Secret : data.totp.secret prioritaire, sinon extrait du totp_uri
       if(secretEl){
