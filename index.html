@@ -22,15 +22,30 @@
   default-src 'self';
   script-src 'self' cdn.jsdelivr.net https://www.youtube.com;
   style-src 'self' 'unsafe-inline' fonts.googleapis.com;
-  font-src 'self' fonts.gstatic.com;
-  img-src 'self' blob: data: raw.githubusercontent.com https://jstiwtbgkbedtldqjdhp.supabase.co https://img.youtube.com https://i.ytimg.com;
+  font-src 'self' fonts.gstatic.com data:;
+  img-src 'self' blob: data: raw.githubusercontent.com https://jstiwtbgkbedtldqjdhp.supabase.co https://img.youtube.com https://i.ytimg.com https://lh3.googleusercontent.com;
   media-src 'self' blob: data:;
-  connect-src 'self' https://jstiwtbgkbedtldqjdhp.supabase.co wss://jstiwtbgkbedtldqjdhp.supabase.co;
+  connect-src 'self'
+    https://jstiwtbgkbedtldqjdhp.supabase.co
+    wss://jstiwtbgkbedtldqjdhp.supabase.co
+    https://cdn.jsdelivr.net
+    https://api.groq.com
+    https://piped.video
+    https://iv.ggtyler.dev
+    https://invidious.snopyta.org
+    https://invidious.kavin.rocks
+    https://y.com.sb
+    https://invidious.nerdvpn.de
+    https://invidious.privacyredirect.com
+    https://invidious.slipfox.xyz
+    https://watch.thekitty.zone
+    https://inv.riverside.rocks
+    https://fcm.googleapis.com;
   worker-src 'self';
   manifest-src 'self';
   frame-src https://www.youtube.com https://www.youtube-nocookie.com;
   base-uri 'self';
-  form-action 'self';
+  form-action 'self' mailto:;
 ">
 
 <!-- Referrer minimal — ne pas leaker l'URL vers les ressources externes -->
