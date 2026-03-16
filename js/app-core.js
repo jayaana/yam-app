@@ -497,6 +497,21 @@ window.escHtml = escHtml;
 window.startDate = new Date('2024-10-29T00:00:00');
 
 function updateCounter() {
+  var u = yamGetUser ? yamGetUser() : null;
+  var hasPartner = u && u.partner_pseudo;
+  var labelEl = document.querySelector('.home-counter-label');
+  var numsEl  = document.querySelector('.home-counter-nums');
+
+  if (!hasPartner) {
+    // Pas de partenaire — masquer les chiffres, afficher message incitatif
+    if (numsEl)  numsEl.style.display  = 'none';
+    if (labelEl) labelEl.textContent = '💑 Rejoins ton partenaire pour voir votre compteur !';
+    return;
+  }
+
+  // Partenaire lié — affichage normal
+  if (numsEl)  numsEl.style.display  = '';
+  if (labelEl) labelEl.textContent = 'Nombre de jours ensemble';
   var d = Math.floor((new Date() - window.startDate) / 1000);
   var el;
   if ((el = document.getElementById('cnt-days')))  el.textContent = Math.floor(d / 86400);
