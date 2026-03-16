@@ -1740,35 +1740,27 @@ body.settings-open{overflow:hidden!important;}\
     var isActive = btn && btn.dataset.mfaActive === '1';
 
     if(isActive){
-      // Déjà actif → montrer section désactiver
       var dis = document.getElementById('stg2FADisableSection');
       if(dis){ dis.style.display = dis.style.display === 'block' ? 'none' : 'block'; }
       return;
     }
 
-    var enrollSec = document.getElementById('stg2FAEnrollSection');
-    var qrImg     = document.getElementById('stg2FAQrImg');
-    var secretEl  = document.getElementById('stg2FASecret');
+    var enrollSec   = document.getElementById('stg2FAEnrollSection');
+    var qrImg       = document.getElementById('stg2FAQrImg');
+    var secretEl    = document.getElementById('stg2FASecret');
     var verifyInput = document.getElementById('stg2FAVerifyInput');
+    var enrollMsg   = document.getElementById('stg2FAEnrollMsg');
 
     if(enrollSec) enrollSec.style.display = 'block';
     if(verifyInput) verifyInput.value = '';
-    var enrollMsg = document.getElementById('stg2FAEnrollMsg');
-    if(enrollMsg) enrollMsg.textContent = '⏳ Génération du QR code...';
+    if(enrollMsg){ enrollMsg.textContent = '\u23f3 G\u00e9n\u00e9ration du QR code...'; enrollMsg.style.color = 'var(--muted)'; }
 
     var sc = _getSupabaseClient();
-    if(!sc){ if(enrollMsg){ enrollMsg.textContent = '❌ Client non disponible'; enrollMsg.style.color='#e05555'; } return; }
+    if(!sc){ if(enrollMsg){ enrollMsg.textContent = '\u274c Client non disponible'; enrollMsg.style.color='#e05555'; } return; }
 
-    sc.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'YAM App' }).then(function(res){
-      if(res.error){
-        if(enrollMsg){ enrollMsg.textContent = '❌ ' + res.error.message; enrollMsg.style.color = '#e05555'; }
-        return;
-      }
-      var data = res.data;
+    function _showQR(data){
       if(enrollMsg) enrollMsg.textContent = '';
-      // Stocker l'ID du factor pour la vérification
       if(enrollSec) enrollSec.dataset.factorId = data.id;
-      // QR code SVG → data URL
       if(qrImg && data.totp && data.totp.qr_code){
         var svg = data.totp.qr_code;
         qrImg.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
@@ -1776,8 +1768,42 @@ body.settings-open{overflow:hidden!important;}\
       if(secretEl && data.totp && data.totp.secret){
         secretEl.textContent = data.totp.secret;
       }
+    }
+
+    sc.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'YAM App' }).then(function(res){
+      if(res.error){
+        // Factor non verifie existant → le supprimer et reessayer
+        if(res.error.message && res.error.message.includes('already exists')){
+          if(enrollMsg){ enrollMsg.textContent = '\u23f3 R\u00e9initialisation...'; }
+          sc.auth.mfa.listFactors().then(function(listRes){
+            if(listRes.error || !listRes.data) return;
+            var unverified = (listRes.data.all || []).filter(function(f){
+              return f.factor_type === 'totp' && f.status === 'unverified';
+            });
+            if(!unverified.length){
+              if(enrollMsg){ enrollMsg.textContent = '\u274c ' + res.error.message; enrollMsg.style.color='#e05555'; }
+              return;
+            }
+            sc.auth.mfa.unenroll({ factorId: unverified[0].id }).then(function(){
+              return sc.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'YAM App' });
+            }).then(function(res2){
+              if(res2.error){
+                if(enrollMsg){ enrollMsg.textContent = '\u274c ' + res2.error.message; enrollMsg.style.color='#e05555'; }
+                return;
+              }
+              _showQR(res2.data);
+            }).catch(function(err){
+              if(enrollMsg){ enrollMsg.textContent = '\u274c ' + (err.message||'Erreur'); enrollMsg.style.color='#e05555'; }
+            });
+          });
+        } else {
+          if(enrollMsg){ enrollMsg.textContent = '\u274c ' + res.error.message; enrollMsg.style.color = '#e05555'; }
+        }
+        return;
+      }
+      _showQR(res.data);
     }).catch(function(err){
-      if(enrollMsg){ enrollMsg.textContent = '❌ Erreur : ' + (err.message||'inconnue'); enrollMsg.style.color='#e05555'; }
+      if(enrollMsg){ enrollMsg.textContent = '\u274c Erreur : ' + (err.message||'inconnue'); enrollMsg.style.color='#e05555'; }
     });
   }
 
