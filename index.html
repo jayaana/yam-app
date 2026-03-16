@@ -4745,6 +4745,8 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 .home-rappel-text {
   font-size: 11px; font-weight: 600;
   color: var(--text); line-height: 1.3;
+  word-break: break-word; overflow-wrap: break-word;
+  overflow: hidden;
 }
 .home-rappel-actions { display: flex; gap: 5px; }
 .home-rappel-done {
@@ -4919,7 +4921,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
   box-shadow: 0 1px 4px rgba(180,100,120,0.12) !important;
   font-size: 11px !important;
 }
-.home-rappel-text { font-size: 11.5px !important; font-weight: 700 !important; padding-left: 2px; line-height: 1.3 !important; }
+.home-rappel-text { font-size: 11.5px !important; font-weight: 700 !important; padding-left: 2px; line-height: 1.3 !important; word-break: break-word !important; overflow-wrap: break-word !important; overflow: hidden !important; }
 .home-rappel-actions { gap: 7px !important; align-items: center !important; justify-content: center !important; }
 .home-rappel-done {
   flex: unset !important; padding: 5px 12px !important;
