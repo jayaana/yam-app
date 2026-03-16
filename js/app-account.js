@@ -195,6 +195,13 @@ function _v2AfterLogin(result, msgId){
     _v2SetMsg(msgId, '❌ ' + (result.error || 'Erreur'), true);
     return;
   }
+
+  // ── MFA requis — afficher l'écran TOTP avant de donner accès ──
+  if(result.mfa_required){
+    _v2ShowMfaStep(result.mfa_access_token, msgId);
+    return;
+  }
+
   window.yamLog('[YAM DEBUG] connexion OK - appel v2HideLogin');
   window.v2HideLogin();
 
@@ -236,6 +243,81 @@ function _v2AfterLogin(result, msgId){
     // ✅ #38 — Relancer tous les polls après reconnexion
     document.dispatchEvent(new CustomEvent('yam:session_ready'));
   }, 350);
+}
+
+
+/* ════════════════════════════════════════════
+   MFA — Écran TOTP après login
+   Affiché quand le serveur retourne mfa_required:true
+════════════════════════════════════════════ */
+function _v2ShowMfaStep(mfaAccessToken, msgId){
+  // Remplacer le contenu de l'overlay de login par un écran TOTP minimaliste
+  var overlay = document.getElementById('v2LoginOverlay');
+  if(!overlay) return;
+
+  // Sauvegarder le contenu original pour pouvoir revenir en arrière
+  var originalContent = overlay.innerHTML;
+
+  overlay.innerHTML =
+    '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 24px;gap:20px;">' +
+      '<div style="font-size:48px;">🔐</div>' +
+      '<div style="font-size:20px;font-weight:700;color:var(--text);text-align:center;">Double authentification</div>' +
+      '<div style="font-size:14px;color:var(--muted);text-align:center;max-width:280px;">Ouvre Google Authenticator et entre le code à 6 chiffres pour YAM.</div>' +
+      '<input id="v2MfaCodeInput" type="text" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code" ' +
+        'style="font-size:32px;letter-spacing:10px;font-weight:700;text-align:center;width:220px;padding:14px 10px;border-radius:14px;border:2px solid var(--border);background:var(--s1);color:var(--text);" />' +
+      '<button id="v2MfaSubmitBtn" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:var(--accent);color:#fff;font-size:16px;font-weight:700;border:none;cursor:pointer;">Vérifier</button>' +
+      '<div id="v2MfaMsg" style="font-size:13px;color:#e05555;min-height:18px;text-align:center;"></div>' +
+      '<button id="v2MfaBackBtn" style="font-size:13px;color:var(--muted);background:none;border:none;cursor:pointer;padding:8px;">← Retour</button>' +
+    '</div>';
+
+  var input  = document.getElementById('v2MfaCodeInput');
+  var submit = document.getElementById('v2MfaSubmitBtn');
+  var msgEl  = document.getElementById('v2MfaMsg');
+  var back   = document.getElementById('v2MfaBackBtn');
+
+  // Focus auto
+  if(input) setTimeout(function(){ input.focus(); }, 100);
+
+  // Soumettre quand 6 chiffres saisis
+  if(input){
+    input.addEventListener('input', function(){
+      if(input.value.length === 6) submit && submit.click();
+    });
+  }
+
+  function doVerify(){
+    var code = input ? input.value.trim() : '';
+    if(code.length !== 6){
+      if(msgEl) msgEl.textContent = '⚠️ Code à 6 chiffres requis';
+      return;
+    }
+    if(submit){ submit.disabled = true; submit.textContent = '⏳ Vérification...'; }
+    if(msgEl) msgEl.textContent = '';
+
+    _authPost({ action: 'mfa_verify', mfa_access_token: mfaAccessToken, totp_code: code })
+      .then(function(res){
+        if(!res.ok){
+          if(msgEl) msgEl.textContent = '❌ ' + (res.error || 'Code incorrect');
+          if(submit){ submit.disabled = false; submit.textContent = 'Vérifier'; }
+          if(input){ input.value = ''; input.focus(); }
+          return;
+        }
+        // MFA validé — restaurer l'overlay et finir le login normalement
+        overlay.innerHTML = originalContent;
+        _v2AfterLogin(res, msgId);
+      })
+      .catch(function(){
+        if(msgEl) msgEl.textContent = '❌ Erreur réseau';
+        if(submit){ submit.disabled = false; submit.textContent = 'Vérifier'; }
+      });
+  }
+
+  if(submit) submit.addEventListener('click', doVerify);
+  if(back){
+    back.addEventListener('click', function(){
+      overlay.innerHTML = originalContent;
+    });
+  }
 }
 
 window.v2DoLogin = function(){
