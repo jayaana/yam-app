@@ -584,7 +584,15 @@ function v2ApplyDynamicNames(){
   function patchPrankMenu() {
     if (typeof window.openPrankMenu === 'function' && !window._prankPatched) {
       var _origOpen = window.openPrankMenu;
-      window.openPrankMenu = function() { _origOpen.apply(this, arguments); document.body.classList.add('subview-active'); };
+      window.openPrankMenu = function() {
+        // Vérifier si le partenaire existe AVANT d'activer subview-active
+        // pour ne pas bloquer la nav quand l'original bail out avec un toast
+        var u = typeof yamGetUser === 'function' ? yamGetUser() : null;
+        var hasPartner = u && u.partner_pseudo;
+        _origOpen.apply(this, arguments);
+        // N'activer subview-active que si le menu va vraiment s'ouvrir
+        if (hasPartner) document.body.classList.add('subview-active');
+      };
       var _origClose = window.closePrankMenu;
       if (typeof _origClose === 'function') {
         window.closePrankMenu = function() { _origClose.apply(this, arguments); setTimeout(updateSubviewState, 50); };
