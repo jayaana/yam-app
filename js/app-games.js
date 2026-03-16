@@ -292,7 +292,8 @@ function memoryWinFn() {
   // Sauvegarder score
   var scoreVal = memoryCalcScore(memMoves, memSeconds);
   var coupleId = _memGetCoupleId();
-  if (profile && coupleId) {
+  var _uSave = yamGetUser ? yamGetUser() : null;
+  if (profile && coupleId && _uSave && _uSave.partner_pseudo) {
     sb2Post('game_scores', {
       couple_id: coupleId, game_id: 'memory',
       player_role: profile, score: scoreVal,
@@ -638,7 +639,8 @@ function _memShowMultiResult(state) {
 
   // Sauvegarder le score du gagnant
   var coupleId = _memGetCoupleId();
-  if (coupleId && iWon && !isDraw) {
+  var _uSaveM = yamGetUser ? yamGetUser() : null;
+  if (coupleId && iWon && !isDraw && _uSaveM && _uSaveM.partner_pseudo) {
     var scoreVal = memoryCalcScore(memMoves, memSeconds);
     sb2Post('game_scores', {
       couple_id: coupleId, game_id: 'memory',
@@ -707,6 +709,10 @@ function _lbLoad() {
     list.innerHTML = '<div class="lb-empty">Session expirée — reconnectez-vous</div>';
     return;
   }
+  if(!(s && s.user && s.user.partner_pseudo)) {
+    list.innerHTML = '<div class="lb-empty">Lie-toi à un partenaire pour débloquer le classement 👩‍❤️‍👨</div>';
+    return;
+  }
   sb2Fetch('game_scores', 'couple_id=eq.' + coupleId + '&game_id=eq.memory&order=score.desc&limit=50')
     .then(function(rows) {
       lbCurrentData = Array.isArray(rows) ? rows : [];
@@ -730,14 +736,15 @@ function lbRender(rows) {
   list.innerHTML = top.map(function(row, i) {
     var rankClass   = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
     var rankDisplay = i < 3 ? rankIcons[i] : (i + 1);
-    var playerLabel = (typeof v2GetDisplayName==='function' ? v2GetDisplayName(row.player_role) : (row.player_role==='girl' ? 'Elle' : 'Lui'));
-    var dotClass    = row.player_role === 'girl' ? 'girl' : 'boy';
+    var playerLabel = (typeof v2GetDisplayName==='function' ? v2GetDisplayName(row.player_role) : (row.player_role==='girl' ? 'Moi' : 'Toi'));
+    var roleImg = row.player_role === 'girl'
+      ? '<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iI2U4NDA2YSIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4=" width="16" height="16" style="border-radius:50%;vertical-align:middle;flex-shrink:0;">'
+      : '<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iIzBmNGRiMCIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4=" width="16" height="16" style="border-radius:50%;vertical-align:middle;flex-shrink:0;">';
     var m = Math.floor(parseInt(row.time_seconds||0) / 60), s = parseInt(row.time_seconds||0) % 60;
     var timeStr = m ? m + 'm' + String(s).padStart(2,'0') + 's' : s + 's';
     return '<div class="lb-row">' +
       '<div class="lb-rank ' + rankClass + '">' + rankDisplay + '</div>' +
-      '<div class="lb-dot ' + dotClass + '"></div>' +
-      '<div class="lb-name">' + playerLabel + '</div>' +
+      '<div class="lb-name" style="display:flex;align-items:center;gap:5px;">' + roleImg + escHtml(playerLabel) + '</div>' +
       '<div class="lb-score"><span>' + parseInt(row.score||0) + 'pts</span> · ' + parseInt(row.moves||0) + ' coups · ' + timeStr + '</div>' +
     '</div>';
   }).join('');
@@ -847,10 +854,10 @@ function showResult(){
 // ── PENDU ──
 // ══════════════════════════════════════════
 var PENDU_WORDS = [
-  {w:'amour',h:'Un sentiment fort entre deux personnes',t:'💑 Couple'},
-  {w:'bisou',h:'Un petit geste de tendresse sur les lèvres',t:'💑 Couple'},
-  {w:'calin',h:'On se serre fort dans les bras',t:'💑 Couple'},
-  {w:'coeur',h:'Symbole de l\'amour ❤️',t:'💑 Couple'},
+  {w:'amour',h:'Un sentiment fort entre deux personnes',t:'👩‍❤️‍👨 Couple'},
+  {w:'bisou',h:'Un petit geste de tendresse sur les lèvres',t:'👩‍❤️‍👨 Couple'},
+  {w:'calin',h:'On se serre fort dans les bras',t:'👩‍❤️‍👨 Couple'},
+  {w:'coeur',h:'Symbole de l\'amour ❤️',t:'👩‍❤️‍👨 Couple'},
   {w:'douceur',h:'Une qualité précieuse chez quelqu\'un de gentil',t:'✨ Sentiment'},
   {w:'etoile',h:'Elle brille la nuit dans le ciel',t:'🌙 Nature'},
   {w:'fleur',h:'Souvent offerte pour la Saint-Valentin',t:'🌸 Nature'},
@@ -867,7 +874,7 @@ var PENDU_WORDS = [
   {w:'quartz',h:'Une pierre précieuse rose',t:'💎 Bijou'},
   {w:'rose',h:'La fleur de l\'amour par excellence',t:'🌸 Nature'},
   {w:'soleil',h:'Il réchauffe comme un sourire',t:'🌙 Nature'},
-  {w:'tendre',h:'Quelqu\'un de doux et affectueux',t:'💑 Couple'},
+  {w:'tendre',h:'Quelqu\'un de doux et affectueux',t:'👩‍❤️‍👨 Couple'},
   {w:'univers',h:'Tout ce qui existe autour de nous',t:'✨ Sentiment'},
   {w:'voyage',h:'Partir découvrir de nouveaux endroits',t:'✈️ Voyage'},
   {w:'week-end',h:'Les deux jours qu\'on attend toute la semaine',t:'🎉 Vie'},
@@ -991,7 +998,8 @@ function penduEndGame(won){
     // ✅ FIX: Ajouter couple_id pour isoler les scores par couple
     var s = ( yamGetUser ? {user: yamGetUser()} : null );
     var coupleId = s && s.user ? s.user.couple_id : null;
-    if(coupleId) {
+    var _uPendu = yamGetUser ? yamGetUser() : null;
+    if(coupleId && _uPendu && _uPendu.partner_pseudo) {
       sb2Post('game_scores',{couple_id:coupleId,game_id:'pendu',player_role:penduPlayer,score:penduScore,moves:penduErrors,time_seconds:0,user_id:yamGetUser?yamGetUser().id:null})
         .then(function(){ plbLoad(); if (typeof window.yamUpdateTrophies === 'function') window.yamUpdateTrophies(); }).catch(function(){});
     }
@@ -1014,6 +1022,10 @@ function plbLoad(){
   var coupleId = s && s.user ? s.user.couple_id : null;
   if(!coupleId) {
     document.getElementById('plbList').innerHTML='<div class="lb-empty">Session expirée</div>';
+    return;
+  }
+  if(!(s && s.user && s.user.partner_pseudo)) {
+    document.getElementById('plbList').innerHTML='<div class="lb-empty">Lie-toi à un partenaire pour débloquer le classement 👩‍❤️‍👨</div>';
     return;
   }
   sb2Fetch('game_scores','couple_id=eq.' + coupleId + '&game_id=eq.pendu&order=score.desc&limit=50').then(function(r){
@@ -1337,7 +1349,8 @@ function puzzleWin(){
     // ✅ FIX: Ajouter couple_id pour isoler les scores par couple
     var s = ( yamGetUser ? {user: yamGetUser()} : null );
     var coupleId = s && s.user ? s.user.couple_id : null;
-    if(coupleId) {
+    var _uPuzzle = yamGetUser ? yamGetUser() : null;
+    if(coupleId && _uPuzzle && _uPuzzle.partner_pseudo) {
       sb2Post('game_scores',{couple_id:coupleId,game_id:'puzzle',player_role:puzzlePlayer,score:score,moves:puzzleMoveCount,time_seconds:0,user_id:yamGetUser?yamGetUser().id:null})
         .then(function(){ zplbLoad(); if (typeof window.yamUpdateTrophies === 'function') window.yamUpdateTrophies(); }).catch(function(){});
     }
@@ -1360,6 +1373,10 @@ function zplbLoad(){
   var coupleId = s && s.user ? s.user.couple_id : null;
   if(!coupleId) {
     document.getElementById('zplbList').innerHTML='<div class="lb-empty">Session expirée</div>';
+    return;
+  }
+  if(!(s && s.user && s.user.partner_pseudo)) {
+    document.getElementById('zplbList').innerHTML='<div class="lb-empty">Lie-toi à un partenaire pour débloquer le classement 👩‍❤️‍👨</div>';
     return;
   }
   sb2Fetch('game_scores','couple_id=eq.' + coupleId + '&game_id=eq.puzzle&order=score.desc&limit=50').then(function(r){
@@ -1610,7 +1627,8 @@ function snakeGameOver(){
     // ✅ FIX: Ajouter couple_id pour isoler les scores par couple
     var s = ( yamGetUser ? {user: yamGetUser()} : null );
     var coupleId = s && s.user ? s.user.couple_id : null;
-    if(coupleId) {
+    var _uSnake = yamGetUser ? yamGetUser() : null;
+    if(coupleId && _uSnake && _uSnake.partner_pseudo) {
       sb2Post('game_scores',{couple_id:coupleId,game_id:'snake',player_role:snakePlayer,score:snakeCurScore,moves:0,time_seconds:0,user_id:yamGetUser?yamGetUser().id:null})
         .then(function(){ slbLoad(); if (typeof window.yamUpdateTrophies === 'function') window.yamUpdateTrophies(); }).catch(function(){});
     }
@@ -1647,6 +1665,10 @@ function slbLoad(){
     document.getElementById('slbList').innerHTML='<div class="lb-empty">Session expirée</div>';
     return;
   }
+  if(!(s && s.user && s.user.partner_pseudo)) {
+    document.getElementById('slbList').innerHTML='<div class="lb-empty">Lie-toi à un partenaire pour débloquer le classement 👩‍❤️‍👨</div>';
+    return;
+  }
   sb2Fetch('game_scores','couple_id=eq.' + coupleId + '&game_id=eq.snake&order=score.desc&limit=50').then(function(r){
     slbData=Array.isArray(r)?r:[];slbRender(slbData);
   }).catch(function(){ document.getElementById('slbList').innerHTML='<div class="lb-empty">❌ Erreur</div>'; });
@@ -1663,7 +1685,11 @@ function renderLb(elId, rows, detailFn){
   var icons=['🥇','🥈','🥉'];
   list.innerHTML=top.map(function(r,i){
     var rc=i===0?'gold':i===1?'silver':i===2?'bronze':'';
-    return '<div class="lb-row"><div class="lb-rank '+rc+'">'+(i<3?icons[i]:i+1)+'</div><div class="lb-dot '+(r.player_role==='girl'?'girl':'boy')+'"></div><div class="lb-name">'+(typeof v2GetDisplayName==="function"?v2GetDisplayName(r.player_role):(r.player_role==="girl"?"Elle":"Lui"))+'</div><div class="lb-score">'+detailFn(r)+'</div></div>';
+    var _rImg = r.player_role === 'girl'
+      ? '<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iI2U4NDA2YSIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4=" width="16" height="16" style="border-radius:50%;vertical-align:middle;flex-shrink:0;">'
+      : '<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iIzBmNGRiMCIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4=" width="16" height="16" style="border-radius:50%;vertical-align:middle;flex-shrink:0;">';
+    var _rLbl = (typeof v2GetDisplayName==='function') ? v2GetDisplayName(r.player_role) : (r.player_role==='girl' ? 'Moi' : 'Toi');
+    return '<div class="lb-row"><div class="lb-rank '+rc+'">'+(i<3?icons[i]:i+1)+'</div><div class="lb-name" style="display:flex;align-items:center;gap:5px;">'+_rImg+(typeof escHtml==='function'?escHtml(_rLbl):_rLbl)+'</div><div class="lb-score">'+detailFn(r)+'</div></div>';
   }).join('');
 }
 
