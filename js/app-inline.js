@@ -1215,8 +1215,8 @@ document.addEventListener('DOMContentLoaded', function(){
   // — boutons nav rappels (‹ et ›)
   var navBtns = document.querySelectorAll('.home-rappel-nav-btn');
   if(navBtns.length >= 2){
-    navBtns[0].addEventListener('click', function(){ window.homeRappelPrev && window.homeRappelPrev(); });
-    navBtns[1].addEventListener('click', function(){ window.homeRappelNext && window.homeRappelNext(); });
+    navBtns[0].addEventListener('click', function(){ window.homeRappelNext && window.homeRappelNext(); });
+    navBtns[1].addEventListener('click', function(){ window.homeRappelPrev && window.homeRappelPrev(); });
   }
 
 });
@@ -1296,8 +1296,8 @@ document.addEventListener('DOMContentLoaded', function(){
   _onAll('.home-rappel-later',   'click', function(){ window.homeRappelNext && window.homeRappelNext(); });
   (function(){
     var btns = document.querySelectorAll('.home-rappel-nav-btn');
-    if(btns[0]) btns[0].addEventListener('click', function(){ window.homeRappelPrev && window.homeRappelPrev(); });
-    if(btns[1]) btns[1].addEventListener('click', function(){ window.homeRappelNext && window.homeRappelNext(); });
+    if(btns[0]) btns[0].addEventListener('click', function(){ window.homeRappelNext && window.homeRappelNext(); });
+    if(btns[1]) btns[1].addEventListener('click', function(){ window.homeRappelPrev && window.homeRappelPrev(); });
   })();
 
   // ── Histoire ──
