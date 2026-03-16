@@ -1647,6 +1647,59 @@ document.addEventListener('keydown',function(e){
   if(map[e.key]){ e.preventDefault(); snakeDir(map[e.key][0],map[e.key][1]); }
 });
 
+// Boutons dpad (restaurés depuis inline CSP migration)
+(function(){
+  function _bindBtn(id, dx, dy){
+    var el = document.getElementById(id);
+    if(!el) return;
+    // touchstart pour réactivité immédiate sur mobile, click pour desktop
+    el.addEventListener('touchstart', function(e){
+      e.preventDefault(); // empêche le scroll et le ghost-click
+      snakeDir(dx, dy);
+    }, { passive: false });
+    el.addEventListener('click', function(){ snakeDir(dx, dy); });
+  }
+  // Attendre que le DOM soit prêt (les boutons sont dans snakeView)
+  function _initDpad(){
+    _bindBtn('snakeBtnUp',    0, -1);
+    _bindBtn('snakeBtnDown',  0,  1);
+    _bindBtn('snakeBtnLeft', -1,  0);
+    _bindBtn('snakeBtnRight', 1,  0);
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _initDpad);
+  else _initDpad();
+})();
+
+// Swipe tactile sur le canvas snake
+(function(){
+  var _tx = 0, _ty = 0;
+  function _onTouchStart(e){
+    if(e.touches.length !== 1) return;
+    _tx = e.touches[0].clientX;
+    _ty = e.touches[0].clientY;
+  }
+  function _onTouchEnd(e){
+    if(!snakeRunning) return;
+    var dx = e.changedTouches[0].clientX - _tx;
+    var dy = e.changedTouches[0].clientY - _ty;
+    if(Math.abs(dx) < 20 && Math.abs(dy) < 20) return; // trop petit
+    if(Math.abs(dx) > Math.abs(dy)){
+      snakeDir(dx > 0 ? 1 : -1, 0);
+    } else {
+      snakeDir(0, dy > 0 ? 1 : -1);
+    }
+    e.preventDefault();
+  }
+  function _initSwipe(){
+    var cvs = document.getElementById('snakeCanvas');
+    if(!cvs) return;
+    cvs.addEventListener('touchstart', _onTouchStart, { passive: true });
+    cvs.addEventListener('touchend',   _onTouchEnd,   { passive: false });
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _initSwipe);
+  else _initSwipe();
+})();
+
 // Classement Snake
 var slbTab='all', slbData=[];
 function slbSetTab(t){
