@@ -304,7 +304,16 @@ function v2ApplyDynamicNames(){
 
   window.yamSplashOpen = function(){
     console.log('[YAM DEBUG] yamSplashOpen - ouverture modal login');
-    if(window.v2ShowLogin) window.v2ShowLogin();
+    if(window.v2ShowLogin){
+      window.v2ShowLogin();
+    } else {
+      // v2ShowLogin pas encore chargé — retry jusqu'à disponibilité
+      var _retry = 0;
+      var _iv = setInterval(function(){
+        if(window.v2ShowLogin){ clearInterval(_iv); window.v2ShowLogin(); }
+        else if(++_retry > 20){ clearInterval(_iv); } // abandon après 2s
+      }, 100);
+    }
   };
 })();
 
