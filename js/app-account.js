@@ -2184,7 +2184,8 @@ window.openAccountModal = function(){
 function _populateAccountModal(u){
   if(!u) return;
 
-  document.getElementById('acAvatarEmoji').textContent = u.role === 'girl' ? '👧' : '👦';
+  var emojiEl = document.getElementById('acAvatarEmoji');
+  if(emojiEl){ emojiEl.textContent = ''; emojiEl.style.cssText = 'width:100%;height:100%;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;'; emojiEl.innerHTML = u.role === 'girl' ? '<img src="assets/images/profil_girl.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;">' : '<img src="assets/images/profil_boy.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;">'; }
   document.getElementById('acPseudo').textContent      = escHtml(u.pseudo || '—');
 
   var badge = document.getElementById('acRoleBadge');
@@ -2594,7 +2595,7 @@ function _acLoadAvatarPhoto(u){
   };
   probe.onerror = function(){
     img.style.display = 'none';
-    if(emoji){ emoji.style.display = ''; emoji.textContent = u.role === 'girl' ? '👧' : '👦'; }
+    if(emoji){ emoji.style.display = ''; emoji.innerHTML = u.role === 'girl' ? '<img src="assets/images/profil_girl.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;">' : '<img src="assets/images/profil_boy.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;">'; }
     // Pas de photo → cacher le bouton suppression
     var delBtn = document.getElementById('acDeleteAvatarBtn');
     if(delBtn) delBtn.style.display = 'none';
@@ -2966,7 +2967,7 @@ window.addEventListener('load', function(){
   var KEY      = 'jayana_profile';
   var MOOD_KEY = 'jayana_mood';
   var MOOD_TABLE = 'moods';
-  var EMOJIS   = { neutral:'👤', girl:'👧', boy:'👦' };
+  var EMOJIS   = { neutral:'👤', girl:'🩷', boy:'🩵' };
   var OTHER    = { girl:'boy', boy:'girl' };
   var MOODS    = ['😊','😍','🥰','😴','😔','🥺','😂','🔥','😎','🤩','😤','🥳','😇','🤗','💪','😏'];
   var MOOD_LABELS = window.MOOD_LABELS = {
