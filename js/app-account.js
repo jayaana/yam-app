@@ -913,9 +913,9 @@ body.settings-open{overflow:hidden!important;}\
           '<label>Pseudo</label>' +
           '<input type="text" id="acMonComptePseudo" maxlength="20" placeholder="Ton pseudo" autocomplete="off" />' +
         '</div>' +
-        '<div class="stg-field">' +
-          '<label>Genre</label>' +
-          '<div id="acMonCompteGenre" style="font-size:14px;color:var(--muted);padding:2px 0;"></div>' +
+        '<div class="stg-field" id="acGenreField">' +
+          '<label>Profil couleur <span id="acGenreHint" style="font-size:11px;color:var(--muted);font-weight:400;"></span></label>' +
+          '<div id="acMonCompteGenre" style="padding:4px 0;"></div>' +
         '</div>' +
         '<div class="stg-field">' +
           '<label>Date de naissance</label>' +
@@ -1619,8 +1619,26 @@ body.settings-open{overflow:hidden!important;}\
     var genreEl  = document.getElementById('acMonCompteGenre');
     var birthEl  = document.getElementById('acMonCompteBirth');
     if(pseudoEl) pseudoEl.value = u.pseudo || '';
-    // Genre : lecture seule, déduit du role choisi à l'inscription
-    if(genreEl) genreEl.textContent = u.role === 'girl' ? 'Femme' : 'Homme';
+    // Profil couleur : modifiable si pas encore lié, lecture seule sinon
+    if(genreEl) {
+      var hasPartner = !!u.partner_pseudo;
+      var hintEl = document.getElementById('acGenreHint');
+      if(hasPartner) {
+        // Lecture seule
+        genreEl.innerHTML = u.role === 'girl'
+          ? '<span style="color:var(--accent);">🌸 Rose</span>'
+          : '<span style="color:#5b9cf6;">🌊 Bleu</span>';
+        if(hintEl) hintEl.textContent = '(non modifiable une fois lié)';
+      } else {
+        // Boutons de sélection
+        if(hintEl) hintEl.textContent = '(modifiable tant que tu n\'es pas lié)';
+        genreEl.innerHTML =
+          '<div style="display:flex;gap:8px;margin-top:4px;">' +
+            '<button id="acRoleBtnGirl" onclick="window._acSelectRole(\'girl\')" style="flex:1;padding:10px;border-radius:10px;border:2px solid ' + (u.role==='girl'?'var(--accent)':'var(--border)') + ';background:' + (u.role==='girl'?'rgba(232,90,124,0.1)':'var(--s2)') + ';color:var(--text);font-size:13px;font-weight:600;cursor:pointer;">🌸 Rose</button>' +
+            '<button id="acRoleBtnBoy" onclick="window._acSelectRole(\'boy\')" style="flex:1;padding:10px;border-radius:10px;border:2px solid ' + (u.role==='boy'?'#5b9cf6':'var(--border)') + ';background:' + (u.role==='boy'?'rgba(91,156,246,0.1)':'var(--s2)') + ';color:var(--text);font-size:13px;font-weight:600;cursor:pointer;">🌊 Bleu</button>' +
+          '</div>';
+      }
+    }
     // Date de naissance stockée dans user_metadata
     fetch(SB_URL + '/auth/v1/user', {
       headers: { 'apikey': SB_ANON_KEY, 'Authorization': 'Bearer ' + (yamGetAccessToken ? yamGetAccessToken() : '') }
@@ -1633,6 +1651,16 @@ body.settings-open{overflow:hidden!important;}\
     })
     .catch(function(){});
   }
+
+  // Sélection role en temps réel (visuel uniquement, sauvegardé via Enregistrer)
+  var _pendingRole = null;
+  window._acSelectRole = function(role) {
+    _pendingRole = role;
+    var btnGirl = document.getElementById('acRoleBtnGirl');
+    var btnBoy  = document.getElementById('acRoleBtnBoy');
+    if(btnGirl) { btnGirl.style.border = role==='girl' ? '2px solid var(--accent)' : '2px solid var(--border)'; btnGirl.style.background = role==='girl' ? 'rgba(232,90,124,0.1)' : 'var(--s2)'; }
+    if(btnBoy)  { btnBoy.style.border  = role==='boy'  ? '2px solid #5b9cf6'       : '2px solid var(--border)'; btnBoy.style.background  = role==='boy'  ? 'rgba(91,156,246,0.1)'  : 'var(--s2)'; }
+  };
 
   function _saveMonCompte(){
     var u = yamGetUser ? yamGetUser() : null;
@@ -1659,17 +1687,25 @@ body.settings-open{overflow:hidden!important;}\
     .then(function(r){ return r.json(); })
     .then(function(){
       // Mettre à jour le pseudo si changé
+      var steps = [];
       if(newPseudo !== u.pseudo){
-        return window.v3Auth ? window.v3Auth('update_pseudo', { user_id: u.id, new_pseudo: newPseudo }) : Promise.resolve({ ok: true });
+        steps.push(window.v3Auth ? window.v3Auth('update_pseudo', { user_id: u.id, new_pseudo: newPseudo }) : Promise.resolve({ ok: true }));
       }
-      return Promise.resolve({ ok: true });
+      // Mettre à jour le role si changé (seulement si pas encore lié)
+      if(_pendingRole && _pendingRole !== u.role && !u.partner_pseudo){
+        steps.push(window.v3Auth ? window.v3Auth('update_role', { new_role: _pendingRole }) : Promise.resolve({ ok: true }));
+      }
+      return steps.length ? Promise.all(steps) : Promise.resolve([{ ok: true }]);
     })
-    .then(function(res){
-      if(res && res.error){
-        if(msg){ msg.textContent = '❌ ' + res.error; msg.style.color = '#e05555'; }
+    .then(function(results){
+      var allOk = !results || results.every(function(r){ return !r || !r.error; });
+      if(!allOk){
+        var firstErr = results.find(function(r){ return r && r.error; });
+        if(msg){ msg.textContent = '❌ ' + (firstErr ? firstErr.error : 'Erreur'); msg.style.color = '#e05555'; }
       } else {
+        _pendingRole = null;
         if(msg){ msg.textContent = '✅ Informations enregistrées !'; msg.style.color = 'var(--green)'; }
-        if(window.v2RefreshSession) window.v2RefreshSession();
+        if(window.v2RefreshSession) window.v2RefreshSession().then(function(){ if(window.v2ApplyDynamicNames) v2ApplyDynamicNames(); });
         setTimeout(function(){ if(msg) msg.textContent = ''; }, 3000);
       }
     })
