@@ -761,7 +761,7 @@ body.settings-open{overflow:hidden!important;}\
         '<div class="stg-profile-info">' +
           '<div class="stg-pseudo-row">' +
             '<div class="stg-pseudo" id="acPseudo">—</div>' +
-            '<button class="stg-pseudo-edit-btn" id="acEditPseudoBtn" title="Modifier">✏️</button>' +
+            
           '</div>' +
           '<div id="acEditPseudoRow" style="display:none;margin-top:6px;">' +
             '<input type="text" id="acNewPseudoInput" maxlength="20" placeholder="Nouveau pseudo" style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:13px;outline:none;width:100%;box-sizing:border-box;font-family:inherit;margin-bottom:4px;" />' +
@@ -772,7 +772,7 @@ body.settings-open{overflow:hidden!important;}\
             '<div id="acPseudoMsg" class="stg-field-msg" style="color:var(--green);"></div>' +
           '</div>' +
           '<div class="stg-role-badge" id="acRoleBadge">—</div>' +
-          '<div class="stg-couple-inline" id="acCoupleInline">💑 <span id="acCoupleInlineText">—</span></div>' +
+          '<div class="stg-couple-inline" id="acCoupleInline">👩‍❤️‍👨 <span id="acCoupleInlineText">—</span></div>' +
         '</div>' +
       '</div>' +
 
@@ -1419,9 +1419,7 @@ body.settings-open{overflow:hidden!important;}\
       window.acDeleteAvatar && window.acDeleteAvatar(); return;
     }
     // Pseudo : éditer
-    if (t.id === 'acEditPseudoBtn' || (t.closest && t.closest('#acEditPseudoBtn'))) {
-      window.acToggleEditPseudo && window.acToggleEditPseudo(); return;
-    }
+    // Bouton crayon supprimé
     // Pseudo : sauvegarder
     if (t.closest && t.closest('#acEditPseudoRow') && t.tagName === 'BUTTON' && t.textContent.trim() === '\u2713') {
       window.acSavePseudo && window.acSavePseudo(); return;
@@ -2390,7 +2388,11 @@ window.acLinkPartner = function(){
   yamJoinCouple(code)
   .then(function(data){
     if(data && data.error){
-      msg.textContent = '❌ ' + data.error; msg.style.color = '#e05555';
+      // Remplacer les emojis profil dans le message d'erreur
+      var errTxt = data.error || 'Erreur';
+      errTxt = errTxt.replace('🌸 Rose', '<img src="' + 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iI2U4NDA2YSIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4='" style='width:14px;height:14px;border-radius:50%;vertical-align:middle;margin:0 2px;'> Rose');
+      errTxt = errTxt.replace('🌊 Bleu', '<img src="' + 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iIzBmNGRiMCIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4='" style='width:14px;height:14px;border-radius:50%;vertical-align:middle;margin:0 2px;'> Bleu');
+      msg.innerHTML = '❌ ' + errTxt; msg.style.color = '#e05555';
     } else {
       msg.textContent = '✅ Compte lié avec succès !'; msg.style.color = 'var(--green)';
       
@@ -2537,7 +2539,11 @@ window.acSavePseudo = function(){
   v3Auth('update_pseudo', { user_id: u.id, new_pseudo: newPseudo })
   .then(function(data){
     if(data && data.error){
-      msg.textContent = '❌ ' + data.error; msg.style.color = '#e05555';
+      // Remplacer les emojis profil dans le message d'erreur
+      var errTxt = data.error || 'Erreur';
+      errTxt = errTxt.replace('🌸 Rose', '<img src="' + 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iI2U4NDA2YSIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4='" style='width:14px;height:14px;border-radius:50%;vertical-align:middle;margin:0 2px;'> Rose');
+      errTxt = errTxt.replace('🌊 Bleu', '<img src="' + 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iIzBmNGRiMCIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4='" style='width:14px;height:14px;border-radius:50%;vertical-align:middle;margin:0 2px;'> Bleu');
+      msg.innerHTML = '❌ ' + errTxt; msg.style.color = '#e05555';
     } else {
       msg.textContent = '✅ Pseudo mis à jour !'; msg.style.color = 'var(--green)';
       
