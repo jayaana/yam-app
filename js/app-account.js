@@ -1634,9 +1634,14 @@ body.settings-open{overflow:hidden!important;}\
         if(hintEl) hintEl.textContent = '(modifiable tant que tu n\'es pas lié)';
         genreEl.innerHTML =
           '<div style="display:flex;gap:8px;margin-top:4px;">' +
-            '<button id="acRoleBtnGirl" onclick="window._acSelectRole(\'girl\')" style="flex:1;padding:10px;border-radius:10px;border:2px solid ' + (u.role==='girl'?'var(--accent)':'var(--border)') + ';background:' + (u.role==='girl'?'rgba(232,90,124,0.1)':'var(--s2)') + ';color:var(--text);font-size:13px;font-weight:600;cursor:pointer;">🌸 Rose</button>' +
-            '<button id="acRoleBtnBoy" onclick="window._acSelectRole(\'boy\')" style="flex:1;padding:10px;border-radius:10px;border:2px solid ' + (u.role==='boy'?'#5b9cf6':'var(--border)') + ';background:' + (u.role==='boy'?'rgba(91,156,246,0.1)':'var(--s2)') + ';color:var(--text);font-size:13px;font-weight:600;cursor:pointer;">🌊 Bleu</button>' +
+            '<button id="acRoleBtnGirl" style="flex:1;padding:10px;border-radius:10px;border:2px solid ' + (u.role==='girl'?'var(--accent)':'var(--border)') + ';background:' + (u.role==='girl'?'rgba(232,90,124,0.1)':'var(--s2)') + ';color:var(--text);font-size:13px;font-weight:600;cursor:pointer;">🌸 Rose</button>' +
+            '<button id="acRoleBtnBoy" style="flex:1;padding:10px;border-radius:10px;border:2px solid ' + (u.role==='boy'?'#5b9cf6':'var(--border)') + ';background:' + (u.role==='boy'?'rgba(91,156,246,0.1)':'var(--s2)') + ';color:var(--text);font-size:13px;font-weight:600;cursor:pointer;">🌊 Bleu</button>' +
           '</div>';
+        // Attacher les listeners APRÈS injection dans le DOM (CSP : pas de onclick inline)
+        var bg = document.getElementById('acRoleBtnGirl');
+        var bb = document.getElementById('acRoleBtnBoy');
+        if(bg) bg.addEventListener('click', function(){ window._acSelectRole('girl'); });
+        if(bb) bb.addEventListener('click', function(){ window._acSelectRole('boy'); });
       }
     }
     // Date de naissance stockée dans user_metadata
