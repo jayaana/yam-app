@@ -69,7 +69,11 @@ async function yamRefreshIfNeeded() {
   try {
     var res = await fetch(SB_EDGE_AUTH, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type':  'application/json',
+        'apikey':        SB_ANON_KEY,
+        'Authorization': 'Bearer ' + SB_ANON_KEY,
+      },
       body: JSON.stringify({ action: 'refresh_token', refresh_token: s.refresh_token }),
     });
     var data = await res.json();
@@ -238,7 +242,11 @@ function sb2Upsert(table, body, prefer) {
 function _authPost(payload) {
   return fetch(SB_EDGE_AUTH, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type':  'application/json',
+      'apikey':        SB_ANON_KEY,
+      'Authorization': 'Bearer ' + SB_ANON_KEY,
+    },
     body: JSON.stringify(payload),
   }).then(function(r) { return r.json(); });
 }
@@ -249,6 +257,7 @@ function _authPostWithJwt(payload) {
     method: 'POST',
     headers: {
       'Content-Type':  'application/json',
+      'apikey':        SB_ANON_KEY,
       'Authorization': 'Bearer ' + token,
     },
     body: JSON.stringify(payload),
