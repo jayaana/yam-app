@@ -494,7 +494,7 @@ window.escHtml = escHtml;
 // COMPTEUR ANNIVERSAIRE
 // ═════════════════════════════════════════════════════════════════
 
-window.startDate = new Date('2024-10-29T00:00:00');
+window.startDate = null; // défini dynamiquement via YAM_COUPLE.start_date
 
 function updateCounter() {
   var u = yamGetUser ? yamGetUser() : null;
@@ -503,13 +503,20 @@ function updateCounter() {
   var numsEl  = document.querySelector('.home-counter-nums');
 
   if (!hasPartner) {
-    // Pas de partenaire — masquer les chiffres, afficher message incitatif
     if (numsEl)  numsEl.style.display  = 'none';
-    if (labelEl) labelEl.textContent = '💑 Rejoins ton partenaire pour voir votre compteur !';
+    if (labelEl) labelEl.textContent = '💑 Lie ton partenaire !';
     return;
   }
 
-  // Partenaire lié — affichage normal
+  // Partenaire lié mais pas de date définie
+  var hasDate = window.YAM_COUPLE && window.YAM_COUPLE.start_date;
+  if (!hasDate) {
+    if (numsEl)  numsEl.style.display  = 'none';
+    if (labelEl) labelEl.textContent = '📅 En attente de votre date…';
+    return;
+  }
+
+  // Tout est OK — affichage normal
   if (numsEl)  numsEl.style.display  = '';
   if (labelEl) labelEl.textContent = 'Nombre de jours ensemble';
   var d = Math.floor((new Date() - window.startDate) / 1000);
