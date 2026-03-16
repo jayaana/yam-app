@@ -986,7 +986,7 @@ body.settings-open{overflow:hidden!important;}\
       '</div>' +
 
       '<div id="acLinkSection">' +
-        '<div class="stg-group-label">Lier un partenaire</div>' +
+        '<div class="stg-group-label" id="acLinkSectionLabel">Lier un partenaire</div>' +
         '<div class="stg-group">' +
           '<div class="stg-field" style="border:none;">' +
             '<div style="display:flex;gap:8px;align-items:center;">' +
@@ -1576,6 +1576,11 @@ body.settings-open{overflow:hidden!important;}\
     if(id === 'stgSubPrefs') _stgLoadPrefs();
     if(id === 'stgSubSecurity') { _stgLoadEmail(); _2faCheckStatus(); }
     if(id === 'stgSubMonCompte') { _stgLoadEmail(); _loadMonCompte(); }
+    if(id === 'stgSubCouple') {
+      var u0 = yamGetUser ? yamGetUser() : null;
+      var lbl = document.getElementById('acLinkSectionLabel');
+      if(lbl) lbl.textContent = (u0 && u0.role === 'boy') ? 'Lier une partenaire' : 'Lier un partenaire';
+    }
   };
 
   window.stgCloseSub = function(id){
@@ -2201,7 +2206,8 @@ function _populateAccountModal(u){
       soloNote = document.createElement('div');
       soloNote.id = 'acStartDateSoloNote';
       soloNote.style.cssText = 'font-size:13px;color:var(--muted);padding:10px 16px 14px;';
-      soloNote.textContent = '\u2764\uFE0F Lie ton partenaire pour definir votre date de debut ensemble.';
+      var u0 = yamGetUser ? yamGetUser() : null;
+      soloNote.textContent = (u0 && u0.role === 'boy') ? '\u2764\uFE0F Lie ta partenaire pour définir votre date de début ensemble.' : '\u2764\uFE0F Lie ton partenaire pour définir votre date de début ensemble.';
       if(startDateLabel) startDateLabel.after(soloNote);
     }
     soloNote.style.display = '';
