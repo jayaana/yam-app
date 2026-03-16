@@ -1594,17 +1594,9 @@ document.addEventListener('DOMContentLoaded', function(){
   _on('snakeGenderGirl',  'click', function(){ window.snakeSelectGender && window.snakeSelectGender('girl'); });
   _on('snakeGenderBoy',   'click', function(){ window.snakeSelectGender && window.snakeSelectGender('boy'); });
   _on('snakeStartBtn',    'click', function(){ window.snakeStart && window.snakeStart(); });
-  (function(){
-    var dirs = [[0,-1],[-1,0],[1,0],[0,1]];
-    var snakeBtns = document.querySelectorAll('.snake-btn');
-    snakeBtns.forEach(function(btn, idx){
-      var d = dirs[idx] || [0,0];
-      (function(dx, dy, b){
-        b.addEventListener('click', function(){ window.snakeDir && window.snakeDir(dx, dy); });
-        b.addEventListener('touchstart', function(e){ e.preventDefault(); window.snakeDir && window.snakeDir(dx, dy); }, { passive: false });
-      })(d[0], d[1], btn);
-    });
-  })();
+  // NOTE: Les boutons dpad (snakeBtnUp/Down/Left/Right) sont bindés par ID dans app-games.js
+  // — NE PAS les rebinder ici par querySelectorAll(.snake-btn) car le bouton centre (.snake-btn-center)
+  // décale les index et provoque des directions erronées (bas → game over, droite → bas).
 
   // ── Skyjo ──
   _on('skyjoBackBtn',       'click', function(){ window.closeSkyjoGame && window.closeSkyjoGame(); });
