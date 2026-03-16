@@ -71,7 +71,6 @@ async function yamRefreshIfNeeded() {
       method: 'POST',
       headers: {
         'Content-Type':  'application/json',
-        'apikey':        SB_ANON_KEY,
         'Authorization': 'Bearer ' + SB_ANON_KEY,
       },
       body: JSON.stringify({ action: 'refresh_token', refresh_token: s.refresh_token }),
@@ -244,7 +243,6 @@ function _authPost(payload) {
     method: 'POST',
     headers: {
       'Content-Type':  'application/json',
-      'apikey':        SB_ANON_KEY,
       'Authorization': 'Bearer ' + SB_ANON_KEY,
     },
     body: JSON.stringify(payload),
@@ -257,7 +255,6 @@ function _authPostWithJwt(payload) {
     method: 'POST',
     headers: {
       'Content-Type':  'application/json',
-      'apikey':        SB_ANON_KEY,
       'Authorization': 'Bearer ' + token,
     },
     body: JSON.stringify(payload),
