@@ -338,8 +338,9 @@ function _nousInitAll() {
 function _nousLoadProfil() {
   var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
   if (!u) return;
-  var girlName = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName('girl') : 'Elle';
-  var boyName  = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName('boy')  : 'Lui';
+  var myRole   = u.role;
+  var girlName = myRole === 'girl' ? 'Moi' : 'Toi';
+  var boyName  = myRole === 'boy'  ? 'Moi' : 'Toi';
   var el = document.getElementById('nousProfilGirlName');
   var bl = document.getElementById('nousProfilBoyName');
   if (el) el.textContent = girlName;
