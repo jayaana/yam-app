@@ -539,14 +539,25 @@ function loadCoupleConfig(){
     window.YAM_COUPLE._raw = cfg;
 
     // Mettre à jour le compteur
-    // Toujours mettre à jour window.startDate (déclaré dans app-core.js)
-    window.startDate = new Date(window.YAM_COUPLE.start_date);
-    if(typeof updateCounter === 'function') updateCounter();
-    // Mettre à jour le texte "Depuis le..."
+    var u2 = yamGetUser ? yamGetUser() : null;
+    var hasPartner = u2 && u2.partner_pseudo;
     var sinceEl = document.querySelector('.counter-since');
-    if(sinceEl && cfg.start_date){
-      var d = new Date(cfg.start_date);
-      sinceEl.textContent = '💑 Depuis le ' + d.toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+    if(!hasPartner) {
+      // Pas de partenaire — message incitatif à la place du compteur
+      if(sinceEl) sinceEl.textContent = '\u{1F496} Rejoignez votre partenaire pour afficher votre compteur !';
+      if(typeof updateCounter === 'function') {
+        var counterEl = document.querySelector('.counter-days, #counterDays, .yam-counter');
+        if(counterEl) counterEl.textContent = '—';
+      }
+    } else {
+      // Toujours mettre à jour window.startDate (déclaré dans app-core.js)
+      window.startDate = new Date(window.YAM_COUPLE.start_date);
+      if(typeof updateCounter === 'function') updateCounter();
+      // Mettre à jour le texte "Depuis le..."
+      if(sinceEl && cfg.start_date){
+        var d = new Date(cfg.start_date);
+        sinceEl.textContent = '\u{1F491} Depuis le ' + d.toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+      }
     }
     if(cfg.timeline && Array.isArray(cfg.timeline)) renderTimeline(cfg.timeline);
     return cfg;
@@ -904,12 +915,7 @@ body.settings-open{overflow:hidden!important;}\
         '</div>' +
         '<div class="stg-field">' +
           '<label>Genre</label>' +
-          '<select id="acMonCompteGenre" style="background:transparent;border:none;outline:none;font-size:14px;color:var(--text);font-family:inherit;width:100%;padding:2px 0;">' +
-            '<option value="">Non précisé</option>' +
-            '<option value="homme">Homme</option>' +
-            '<option value="femme">Femme</option>' +
-            '<option value="autre">Autre / Non binaire</option>' +
-          '</select>' +
+          '<div id="acMonCompteGenre" style="font-size:14px;color:var(--muted);padding:2px 0;"></div>' +
         '</div>' +
         '<div class="stg-field">' +
           '<label>Date de naissance</label>' +
@@ -1612,14 +1618,15 @@ body.settings-open{overflow:hidden!important;}\
     var genreEl  = document.getElementById('acMonCompteGenre');
     var birthEl  = document.getElementById('acMonCompteBirth');
     if(pseudoEl) pseudoEl.value = u.pseudo || '';
-    // Genre et naissance stockés dans user_metadata
+    // Genre : lecture seule, déduit du role choisi à l'inscription
+    if(genreEl) genreEl.textContent = u.role === 'girl' ? 'Femme' : 'Homme';
+    // Date de naissance stockée dans user_metadata
     fetch(SB_URL + '/auth/v1/user', {
       headers: { 'apikey': SB_ANON_KEY, 'Authorization': 'Bearer ' + (yamGetAccessToken ? yamGetAccessToken() : '') }
     })
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(data && data.user_metadata){
-        if(genreEl && data.user_metadata.genre) genreEl.value = data.user_metadata.genre;
         if(birthEl && data.user_metadata.birth_date) birthEl.value = data.user_metadata.birth_date;
       }
     })
@@ -1634,7 +1641,6 @@ body.settings-open{overflow:hidden!important;}\
     var birthEl  = document.getElementById('acMonCompteBirth');
     var msg      = document.getElementById('acMonCompteMsg');
     var newPseudo = pseudoEl ? pseudoEl.value.trim() : '';
-    var genre     = genreEl ? genreEl.value : '';
     var birth     = birthEl ? birthEl.value : '';
 
     if(!newPseudo || newPseudo.length < 2){
@@ -1647,7 +1653,7 @@ body.settings-open{overflow:hidden!important;}\
     fetch(SB_URL + '/auth/v1/user', {
       method: 'PUT',
       headers: { 'apikey': SB_ANON_KEY, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data: { genre: genre, birth_date: birth } })
+      body: JSON.stringify({ data: { birth_date: birth } })
     })
     .then(function(r){ return r.json(); })
     .then(function(){
@@ -2141,11 +2147,11 @@ function _populateAccountModal(u){
 
   var badge = document.getElementById('acRoleBadge');
   if(u.role === 'girl'){
-    badge.textContent = '👧 Elle';
+    badge.textContent = 'Femme';
     badge.style.background = 'rgba(232,121,160,0.15)';
     badge.style.color = '#e879a0';
   } else {
-    badge.textContent = '👦 Lui';
+    badge.textContent = 'Homme';
     badge.style.background = 'rgba(91,156,246,0.15)';
     badge.style.color = '#5b9cf6';
   }
@@ -2185,8 +2191,27 @@ function _populateAccountModal(u){
   var code = u.couple_code || u.couple_id || '—';
   document.getElementById('acCoupleCode').textContent = code;
 
-  var dateVal = (window.YAM_COUPLE && window.YAM_COUPLE.start_date) || '2024-10-29T00:00:00';
-  document.getElementById('acStartDate').value = dateVal.split('T')[0];
+  var startDateField = document.getElementById('acStartDate');
+  var startDateGroup = startDateField ? startDateField.closest('.stg-group') : null;
+  var startDateLabel = startDateGroup ? startDateGroup.previousElementSibling : null;
+  if(!partnerPseudo) {
+    if(startDateGroup) startDateGroup.style.display = 'none';
+    var soloNote = document.getElementById('acStartDateSoloNote');
+    if(!soloNote) {
+      soloNote = document.createElement('div');
+      soloNote.id = 'acStartDateSoloNote';
+      soloNote.style.cssText = 'font-size:13px;color:var(--muted);padding:10px 16px 14px;';
+      soloNote.textContent = '\u2764\uFE0F Lie ton partenaire pour definir votre date de debut ensemble.';
+      if(startDateLabel) startDateLabel.after(soloNote);
+    }
+    soloNote.style.display = '';
+  } else {
+    if(startDateGroup) startDateGroup.style.display = '';
+    var soloNote2 = document.getElementById('acStartDateSoloNote');
+    if(soloNote2) soloNote2.style.display = 'none';
+    var dateVal = (window.YAM_COUPLE && window.YAM_COUPLE.start_date) || '2024-10-29T00:00:00';
+    if(startDateField) startDateField.value = dateVal.split('T')[0];
+  }
 
   ['acOldPwd','acNewPwd','acConfirmPwd'].forEach(function(id){
     var el = document.getElementById(id); if(el) el.value = '';
