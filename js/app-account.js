@@ -1689,24 +1689,28 @@ body.settings-open{overflow:hidden!important;}\
   ────────────────────────────────────────── */
   var _supabaseAuth = null;
   // Réinitialiser le client si la session change (reconnexion / changement de compte)
-  document.addEventListener('yam:session_ready', function(){ _supabaseAuth = null; });
+  // ─── Client Supabase SDK pour MFA ────────────────────────────────
+  // Une seule instance globale — jamais réinitialisée pour éviter
+  // "Multiple GoTrueClient instances detected"
+  var _supabaseAuth = null;
 
   function _getSupabaseClient(){
     if(_supabaseAuth) return _supabaseAuth;
     if(window.supabase && window.supabase.createClient){
       _supabaseAuth = window.supabase.createClient(SB_URL, SB_ANON_KEY, {
         auth: {
-          storage: localStorage,
-          autoRefreshToken: true,
-          persistSession: true,
+          storage:          localStorage,
+          autoRefreshToken: false,  // on gère nous-mêmes la session
+          persistSession:   false,  // évite les conflits avec yam_session_v3
+          detectSessionInUrl: false,
         }
       });
     }
     return _supabaseAuth;
   }
 
-  // Version async — injecte la session AVANT de retourner le client
-  // Obligatoire pour que mfa.enroll/listFactors/challengeAndVerify fonctionnent
+  // Injecte la session courante dans le SDK puis retourne le client
+  // Appelé systématiquement avant tout appel mfa.*
   function _getSupabaseClientReady(){
     var sc = _getSupabaseClient();
     if(!sc) return Promise.resolve(null);
@@ -1720,6 +1724,20 @@ body.settings-open{overflow:hidden!important;}\
       }
     } catch(_e){}
     return Promise.resolve(sc);
+  }
+
+  // Supprime TOUS les factors TOTP non-vérifiés pour éviter le 422 "already exists"
+  function _2faCleanUnverified(sc){
+    return sc.auth.mfa.listFactors().then(function(listRes){
+      if(listRes.error || !listRes.data) return Promise.resolve();
+      var unverified = (listRes.data.all || []).filter(function(f){
+        return f.factor_type === 'totp' && f.status === 'unverified';
+      });
+      if(!unverified.length) return Promise.resolve();
+      return Promise.all(unverified.map(function(f){
+        return sc.auth.mfa.unenroll({ factorId: f.id }).catch(function(){});
+      }));
+    });
   }
 
   function _2faCheckStatus(){
@@ -1781,7 +1799,7 @@ body.settings-open{overflow:hidden!important;}\
     function _showQR(data){
       if(enrollMsg) enrollMsg.textContent = '';
       if(enrollSec) enrollSec.dataset.factorId = data.id;
-      // qrImg est maintenant un <div> conteneur — on injecte le SVG directement
+      // qrImg est un <div> conteneur — injection SVG directe
       if(qrImg && data.totp && data.totp.qr_code){
         var svg = data.totp.qr_code;
         qrImg.innerHTML = svg;
@@ -1792,46 +1810,25 @@ body.settings-open{overflow:hidden!important;}\
           svgEl.style.cssText = 'display:block;width:176px;height:176px;';
         }
       }
-      // Secret : priorité data.totp.secret, sinon extrait du totp_uri
+      // Secret : data.totp.secret prioritaire, sinon extrait du totp_uri
       if(secretEl){
         var secret = (data.totp && data.totp.secret) ? data.totp.secret : null;
         if(!secret && data.totp && data.totp.uri){
           var m = data.totp.uri.match(/[?&]secret=([A-Z2-7a-z]+)/);
           if(m) secret = m[1].toUpperCase();
         }
-        secretEl.textContent = secret || '—';
+        secretEl.textContent = secret || '\u2014';
       }
     }
 
-    sc.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'YAM App' }).then(function(res){
+    // Nettoyer TOUS les factors non-vérifiés AVANT d'enroller
+    // Évite le 422 "already exists" quelle que soit sa formulation
+    if(enrollMsg){ enrollMsg.textContent = '\u23f3 Pr\u00e9paration...'; enrollMsg.style.color='var(--muted)'; }
+    _2faCleanUnverified(sc).then(function(){
+      return sc.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'YAM App' });
+    }).then(function(res){
       if(res.error){
-        // Factor non verifie existant → le supprimer et reessayer
-        if(res.error.message && res.error.message.includes('already exists')){
-          if(enrollMsg){ enrollMsg.textContent = '\u23f3 R\u00e9initialisation...'; }
-          sc.auth.mfa.listFactors().then(function(listRes){
-            if(listRes.error || !listRes.data) return;
-            var unverified = (listRes.data.all || []).filter(function(f){
-              return f.factor_type === 'totp' && f.status === 'unverified';
-            });
-            if(!unverified.length){
-              if(enrollMsg){ enrollMsg.textContent = '\u274c ' + res.error.message; enrollMsg.style.color='#e05555'; }
-              return;
-            }
-            sc.auth.mfa.unenroll({ factorId: unverified[0].id }).then(function(){
-              return sc.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'YAM App' });
-            }).then(function(res2){
-              if(res2.error){
-                if(enrollMsg){ enrollMsg.textContent = '\u274c ' + res2.error.message; enrollMsg.style.color='#e05555'; }
-                return;
-              }
-              _showQR(res2.data);
-            }).catch(function(err){
-              if(enrollMsg){ enrollMsg.textContent = '\u274c ' + (err.message||'Erreur'); enrollMsg.style.color='#e05555'; }
-            });
-          });
-        } else {
-          if(enrollMsg){ enrollMsg.textContent = '\u274c ' + res.error.message; enrollMsg.style.color = '#e05555'; }
-        }
+        if(enrollMsg){ enrollMsg.textContent = '\u274c ' + (res.error.message || 'Erreur enrollment'); enrollMsg.style.color='#e05555'; }
         return;
       }
       _showQR(res.data);
