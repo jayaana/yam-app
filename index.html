@@ -1223,13 +1223,20 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
         <svg class="v2-input-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         <input class="v2-input" id="v2RegPassword" type="password" placeholder="Mot de passe" autocomplete="new-password" />
       </div>
-      <div id="v2RoleSelect">
-        <button class="v2-role-btn" id="v2RoleGirl">
-          <span class="v2-role-emoji">👧</span> Femme
-        </button>
-        <button class="v2-role-btn" id="v2RoleBoy">
-          <span class="v2-role-emoji">👦</span> Homme
-        </button>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div id="v2RoleSelect" style="flex:1;display:flex;gap:8px;">
+          <button class="v2-role-btn" id="v2RoleGirl">
+            <span class="v2-role-emoji">🌸</span> Rose
+          </button>
+          <button class="v2-role-btn" id="v2RoleBoy">
+            <span class="v2-role-emoji">🌊</span> Bleu
+          </button>
+        </div>
+        <button id="v2RoleInfoBtn" type="button" style="width:26px;height:26px;border-radius:50%;border:1.5px solid var(--border);background:var(--s2);color:var(--sub);font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">?</button>
+      </div>
+      <div id="v2RoleInfoBox" style="display:none;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--sub);line-height:1.5;margin-top:2px;">
+        🌸 Rose et 🌊 Bleu sont des <strong>profils de couleur</strong>, pas des genres.<br>
+        Choisis celui qui te plaît — ton/ta partenaire devra simplement choisir l'autre couleur pour pouvoir se lier à toi.
       </div>
       <button id="v2BtnRegister" class="v2-btn">Créer mon compte</button>
       <div id="v2RegInfo" class="v2-info" style="display:none;"></div>
@@ -1249,13 +1256,20 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
         <svg class="v2-input-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         <input class="v2-input" id="v2JoinCode" type="text" placeholder="Code couple (ex: YAM-4X9K)" autocomplete="off" style="text-transform:uppercase;letter-spacing:2px;" />
       </div>
-      <div id="v2JoinRoleSelect">
-        <button class="v2-role-btn" id="v2JoinRoleGirl">
-          <span class="v2-role-emoji">👧</span> Femme
-        </button>
-        <button class="v2-role-btn" id="v2JoinRoleBoy">
-          <span class="v2-role-emoji">👦</span> Homme
-        </button>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div id="v2JoinRoleSelect" style="flex:1;display:flex;gap:8px;">
+          <button class="v2-role-btn" id="v2JoinRoleGirl">
+            <span class="v2-role-emoji">🌸</span> Rose
+          </button>
+          <button class="v2-role-btn" id="v2JoinRoleBoy">
+            <span class="v2-role-emoji">🌊</span> Bleu
+          </button>
+        </div>
+        <button id="v2JoinRoleInfoBtn" type="button" style="width:26px;height:26px;border-radius:50%;border:1.5px solid var(--border);background:var(--s2);color:var(--sub);font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">?</button>
+      </div>
+      <div id="v2JoinRoleInfoBox" style="display:none;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--sub);line-height:1.5;margin-top:2px;">
+        🌸 Rose et 🌊 Bleu sont des <strong>profils de couleur</strong>, pas des genres.<br>
+        Choisis celui qui te plaît — ton/ta partenaire devra simplement choisir l'autre couleur pour pouvoir se lier à toi.
       </div>
       <button id="v2BtnJoin" class="v2-btn">Rejoindre</button>
     </div>
