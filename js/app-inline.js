@@ -304,7 +304,7 @@ function v2ApplyDynamicNames(){
 
   window.yamSplashOpen = function(){
     console.log('[YAM DEBUG] yamSplashOpen - ouverture modal login');
-    v2ShowLogin();
+    if(window.v2ShowLogin) window.v2ShowLogin();
   };
 })();
 
