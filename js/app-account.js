@@ -338,21 +338,22 @@ window.v2DoLogin = function(){
     _v2SetMsg(msgId, '⚠️ Remplis tous les champs', true); return;
   }
   _v2SetMsg(msgId, '⏳ Connexion...', false);
-  // Appel direct à _authPost pour intercepter mfa_required avant que yamLogin ne traite la réponse
-  _authPost({ action: 'login', email: identifier, password: password })
-    .then(function(res){
-      if(res && res.mfa_required){
-        // Intercepter ici — ne pas passer par yamLogin
-        _v2ShowMfaStep(res.mfa_access_token, msgId);
-        return;
-      }
-      // Login normal — passer par yamLogin pour stocker la session
-      yamLogin(identifier, password).then(function(res2){ _v2AfterLogin(res2, msgId); });
-    })
-    .catch(function(){
-      // Fallback si _authPost échoue
-      yamLogin(identifier, password).then(function(res){ _v2AfterLogin(res, msgId); });
-    });
+  // yamLogin appelle auth-v3 et retourne la réponse brute avant de stocker la session
+  // On intercepte mfa_required directement dans son .then()
+  yamLogin(identifier, password).then(function(res){
+    if(res && res.mfa_required){
+      // yamLogin a peut-être stocké un token "__MFA_PENDING__" — on le supprime immédiatement
+      try {
+        var sess = JSON.parse(localStorage.getItem('yam_session_v3') || '{}');
+        if(sess && sess.access_token === '__MFA_PENDING__'){
+          localStorage.removeItem('yam_session_v3');
+        }
+      } catch(_e){}
+      _v2ShowMfaStep(res.mfa_access_token, msgId);
+      return;
+    }
+    _v2AfterLogin(res, msgId);
+  });
 };
 
 // Mot de passe oublié
