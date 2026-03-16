@@ -1626,16 +1626,16 @@ body.settings-open{overflow:hidden!important;}\
       if(hasPartner) {
         // Lecture seule
         genreEl.innerHTML = u.role === 'girl'
-          ? '<span style="color:var(--accent);">🌸 Rose</span>'
-          : '<span style="color:#5b9cf6;">🌊 Bleu</span>';
+          ? '<span style="color:var(--accent);">Rose</span>'
+          : '<span style="color:#5b9cf6;">Bleu</span>';
         if(hintEl) hintEl.textContent = '(non modifiable une fois lié)';
       } else {
         // Boutons de sélection
         if(hintEl) hintEl.textContent = '(modifiable tant que tu n\'es pas lié)';
         genreEl.innerHTML =
           '<div style="display:flex;gap:8px;margin-top:4px;">' +
-            '<button id="acRoleBtnGirl" style="flex:1;padding:10px;border-radius:10px;border:2px solid ' + (u.role==='girl'?'var(--accent)':'var(--border)') + ';background:' + (u.role==='girl'?'rgba(232,90,124,0.1)':'var(--s2)') + ';color:var(--text);font-size:13px;font-weight:600;cursor:pointer;">🌸 Rose</button>' +
-            '<button id="acRoleBtnBoy" style="flex:1;padding:10px;border-radius:10px;border:2px solid ' + (u.role==='boy'?'#5b9cf6':'var(--border)') + ';background:' + (u.role==='boy'?'rgba(91,156,246,0.1)':'var(--s2)') + ';color:var(--text);font-size:13px;font-weight:600;cursor:pointer;">🌊 Bleu</button>' +
+            '<button id="acRoleBtnGirl" style="flex:1;padding:10px;border-radius:10px;border:2px solid ' + (u.role==='girl'?'var(--accent)':'var(--border)') + ';background:' + (u.role==='girl'?'rgba(232,90,124,0.1)':'var(--s2)') + ';color:var(--text);font-size:13px;font-weight:600;cursor:pointer;">Rose</button>' +
+            '<button id="acRoleBtnBoy" style="flex:1;padding:10px;border-radius:10px;border:2px solid ' + (u.role==='boy'?'#5b9cf6':'var(--border)') + ';background:' + (u.role==='boy'?'rgba(91,156,246,0.1)':'var(--s2)') + ';color:var(--text);font-size:13px;font-weight:600;cursor:pointer;">Bleu</button>' +
           '</div>';
         // Attacher les listeners APRÈS injection dans le DOM (CSP : pas de onclick inline)
         var bg = document.getElementById('acRoleBtnGirl');
@@ -2189,11 +2189,11 @@ function _populateAccountModal(u){
 
   var badge = document.getElementById('acRoleBadge');
   if(u.role === 'girl'){
-    badge.textContent = 'Femme';
+    badge.textContent = 'Rose';
     badge.style.background = 'rgba(232,121,160,0.15)';
     badge.style.color = '#e879a0';
   } else {
-    badge.textContent = 'Homme';
+    badge.textContent = 'Bleu';
     badge.style.background = 'rgba(91,156,246,0.15)';
     badge.style.color = '#5b9cf6';
   }
