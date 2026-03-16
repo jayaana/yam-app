@@ -1688,6 +1688,8 @@ body.settings-open{overflow:hidden!important;}\
      2FA TOTP — Supabase Auth MFA
   ────────────────────────────────────────── */
   var _supabaseAuth = null;
+  // Réinitialiser le client si la session change (reconnexion / changement de compte)
+  document.addEventListener('yam:session_ready', function(){ _supabaseAuth = null; });
 
   function _getSupabaseClient(){
     if(_supabaseAuth) return _supabaseAuth;
@@ -1696,21 +1698,28 @@ body.settings-open{overflow:hidden!important;}\
         auth: {
           storage: localStorage,
           autoRefreshToken: true,
-          persistSession: false,
+          persistSession: true,
         }
       });
-      // Injecter la session YAM dans le SDK — nécessaire pour que mfa.* fonctionne
-      try {
-        var _sess = JSON.parse(localStorage.getItem('yam_session_v3') || '{}');
-        if(_sess.access_token && _sess.refresh_token){
-          _supabaseAuth.auth.setSession({
-            access_token:  _sess.access_token,
-            refresh_token: _sess.refresh_token
-          });
-        }
-      } catch(_e) {}
     }
     return _supabaseAuth;
+  }
+
+  // Version async — injecte la session AVANT de retourner le client
+  // Obligatoire pour que mfa.enroll/listFactors/challengeAndVerify fonctionnent
+  function _getSupabaseClientReady(){
+    var sc = _getSupabaseClient();
+    if(!sc) return Promise.resolve(null);
+    try {
+      var _sess = JSON.parse(localStorage.getItem('yam_session_v3') || '{}');
+      if(_sess.access_token && _sess.refresh_token){
+        return sc.auth.setSession({
+          access_token:  _sess.access_token,
+          refresh_token: _sess.refresh_token
+        }).then(function(){ return sc; }).catch(function(){ return sc; });
+      }
+    } catch(_e){}
+    return Promise.resolve(sc);
   }
 
   function _2faCheckStatus(){
@@ -1721,7 +1730,7 @@ body.settings-open{overflow:hidden!important;}\
     var enrollSec = document.getElementById('stg2FAEnrollSection');
     var disableSec= document.getElementById('stg2FADisableSection');
 
-    var sc = _getSupabaseClient();
+    _getSupabaseClientReady().then(function(sc){
     if(!sc){ return; }
 
     sc.auth.mfa.listFactors().then(function(res){
@@ -1743,6 +1752,7 @@ body.settings-open{overflow:hidden!important;}\
       // Stocker si actif pour le toggle btn
       if(toggleBtn) toggleBtn.dataset.mfaActive = isActive ? '1' : '0';
     }).catch(function(){});
+    }); // fin _getSupabaseClientReady
   }
 
   function _2faStartEnroll(){
@@ -1765,18 +1775,35 @@ body.settings-open{overflow:hidden!important;}\
     if(verifyInput) verifyInput.value = '';
     if(enrollMsg){ enrollMsg.textContent = '\u23f3 G\u00e9n\u00e9ration du QR code...'; enrollMsg.style.color = 'var(--muted)'; }
 
-    var sc = _getSupabaseClient();
+    _getSupabaseClientReady().then(function(sc){
     if(!sc){ if(enrollMsg){ enrollMsg.textContent = '\u274c Client non disponible'; enrollMsg.style.color='#e05555'; } return; }
 
     function _showQR(data){
       if(enrollMsg) enrollMsg.textContent = '';
       if(enrollSec) enrollSec.dataset.factorId = data.id;
+      // Affichage QR : inline SVG direct (plus fiable que data URI base64)
       if(qrImg && data.totp && data.totp.qr_code){
         var svg = data.totp.qr_code;
-        qrImg.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+        var wrapper = qrImg.parentNode;
+        qrImg.style.display = 'none';
+        var existing = wrapper && wrapper.querySelector('.stg-qr-svg-inline');
+        if(existing) existing.remove();
+        var svgDiv = document.createElement('div');
+        svgDiv.className = 'stg-qr-svg-inline';
+        svgDiv.style.cssText = 'width:180px;height:180px;border-radius:12px;border:2px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;';
+        svgDiv.innerHTML = svg;
+        var svgEl = svgDiv.querySelector('svg');
+        if(svgEl){ svgEl.setAttribute('width','176'); svgEl.setAttribute('height','176'); svgEl.style.display='block'; }
+        if(wrapper) wrapper.insertBefore(svgDiv, qrImg);
       }
-      if(secretEl && data.totp && data.totp.secret){
-        secretEl.textContent = data.totp.secret;
+      // Secret : priorité data.totp.secret, sinon extrait du totp_uri
+      if(secretEl){
+        var secret = (data.totp && data.totp.secret) ? data.totp.secret : null;
+        if(!secret && data.totp && data.totp.uri){
+          var m = data.totp.uri.match(/[?&]secret=([A-Z2-7a-z]+)/);
+          if(m) secret = m[1].toUpperCase();
+        }
+        secretEl.textContent = secret || '—';
       }
     }
 
@@ -1815,6 +1842,7 @@ body.settings-open{overflow:hidden!important;}\
     }).catch(function(err){
       if(enrollMsg){ enrollMsg.textContent = '\u274c Erreur : ' + (err.message||'inconnue'); enrollMsg.style.color='#e05555'; }
     });
+    }); // fin _getSupabaseClientReady
   }
 
   function _2faVerify(){
@@ -1828,7 +1856,8 @@ body.settings-open{overflow:hidden!important;}\
     if(!code || code.length !== 6){ if(enrollMsg){ enrollMsg.textContent = '⚠️ Code à 6 chiffres requis'; enrollMsg.style.color='#e05555'; } return; }
     if(enrollMsg){ enrollMsg.textContent = '⏳ Vérification...'; enrollMsg.style.color='var(--muted)'; }
 
-    var sc = _getSupabaseClient();
+    _getSupabaseClientReady().then(function(sc){
+    if(!sc){ if(enrollMsg){ enrollMsg.textContent = '❌ Client non disponible'; enrollMsg.style.color='#e05555'; } return; }
     sc.auth.mfa.challengeAndVerify({ factorId: factorId, code: code }).then(function(res){
       if(res.error){
         if(enrollMsg){ enrollMsg.textContent = '❌ Code incorrect — réessaie'; enrollMsg.style.color='#e05555'; }
@@ -1840,6 +1869,7 @@ body.settings-open{overflow:hidden!important;}\
     }).catch(function(err){
       if(enrollMsg){ enrollMsg.textContent = '❌ ' + (err.message||'Erreur'); enrollMsg.style.color='#e05555'; }
     });
+    }); // fin _getSupabaseClientReady
   }
 
   function _2faDisable(){
@@ -1850,7 +1880,8 @@ body.settings-open{overflow:hidden!important;}\
     if(!code || code.length !== 6){ if(disableMsg){ disableMsg.textContent = '⚠️ Code à 6 chiffres requis'; disableMsg.style.color='#e05555'; } return; }
     if(disableMsg){ disableMsg.textContent = '⏳ Désactivation...'; disableMsg.style.color='var(--muted)'; }
 
-    var sc = _getSupabaseClient();
+    _getSupabaseClientReady().then(function(sc){
+    if(!sc){ if(disableMsg){ disableMsg.textContent = '❌ Client non disponible'; disableMsg.style.color='#e05555'; } return; }
     sc.auth.mfa.listFactors().then(function(res){
       if(res.error) throw res.error;
       var totpFactors = (res.data && res.data.totp) ? res.data.totp : [];
@@ -1869,6 +1900,7 @@ body.settings-open{overflow:hidden!important;}\
     }).catch(function(err){
       if(disableMsg){ disableMsg.textContent = '❌ ' + (err.message||'Code incorrect'); disableMsg.style.color='#e05555'; }
     });
+    }); // fin _getSupabaseClientReady
   }
 
   /* ──────────────────────────────────────────
