@@ -936,7 +936,7 @@ body.settings-open{overflow:hidden!important;}\
         '<div class="stg-group">' +
           '<div class="stg-qr-wrap" style="padding:20px 16px;">' +
             '<div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:12px;">Scanne ce QR code avec Google Authenticator ou Authy</div>' +
-            '<img id="stg2FAQrImg" src="" alt="QR Code 2FA" />' +
+            '<div id="stg2FAQrImg" style="width:180px;height:180px;border-radius:12px;border:2px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;"></div>' +
             '<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">Ou entre manuellement le code secret :</div>' +
             '<div id="stg2FASecret" style="font-size:12px;font-weight:700;letter-spacing:2px;color:var(--text);background:var(--s2);padding:8px 14px;border-radius:8px;word-break:break-all;text-align:center;"></div>' +
           '</div>' +
@@ -1781,20 +1781,16 @@ body.settings-open{overflow:hidden!important;}\
     function _showQR(data){
       if(enrollMsg) enrollMsg.textContent = '';
       if(enrollSec) enrollSec.dataset.factorId = data.id;
-      // Affichage QR : inline SVG direct (plus fiable que data URI base64)
+      // qrImg est maintenant un <div> conteneur — on injecte le SVG directement
       if(qrImg && data.totp && data.totp.qr_code){
         var svg = data.totp.qr_code;
-        var wrapper = qrImg.parentNode;
-        qrImg.style.display = 'none';
-        var existing = wrapper && wrapper.querySelector('.stg-qr-svg-inline');
-        if(existing) existing.remove();
-        var svgDiv = document.createElement('div');
-        svgDiv.className = 'stg-qr-svg-inline';
-        svgDiv.style.cssText = 'width:180px;height:180px;border-radius:12px;border:2px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;';
-        svgDiv.innerHTML = svg;
-        var svgEl = svgDiv.querySelector('svg');
-        if(svgEl){ svgEl.setAttribute('width','176'); svgEl.setAttribute('height','176'); svgEl.style.display='block'; }
-        if(wrapper) wrapper.insertBefore(svgDiv, qrImg);
+        qrImg.innerHTML = svg;
+        var svgEl = qrImg.querySelector('svg');
+        if(svgEl){
+          svgEl.setAttribute('width', '176');
+          svgEl.setAttribute('height', '176');
+          svgEl.style.cssText = 'display:block;width:176px;height:176px;';
+        }
       }
       // Secret : priorité data.totp.secret, sinon extrait du totp_uri
       if(secretEl){
