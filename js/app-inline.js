@@ -196,8 +196,8 @@ function v2ApplyDynamicNames(){
   var u = v2GetUser();
   if(!u) return;
 
-  var girlName = u.role === 'girl' ? (u.pseudo||'Elle') : (u.partner_pseudo||'Elle');
-  var boyName  = u.role === 'boy'  ? (u.pseudo||'Lui')  : (u.partner_pseudo||'Lui');
+  var girlName = u.role === 'girl' ? (u.pseudo||'Moi') : (u.partner_pseudo||'Toi');
+  var boyName  = u.role === 'boy'  ? (u.pseudo||'Moi')  : (u.partner_pseudo||'Toi');
 
   var btnGirl = document.getElementById('ppBtnGirl');
   var btnBoy  = document.getElementById('ppBtnBoy');
@@ -261,7 +261,8 @@ function v2ApplyDynamicNames(){
   var sgBoy  = document.getElementById('sgBtnBoyName');  if(sgBoy)  sgBoy.textContent  = boyName;
 
   var prankLockTitle = document.getElementById('prankLockTitle');
-  if(prankLockTitle) prankLockTitle.textContent = 'Accès bloqué par ' + boyName;
+  var partnerName = u.partner_pseudo || 'ton partenaire';
+  if(prankLockTitle) prankLockTitle.textContent = 'Accès bloqué par ' + partnerName;
 }
 
 (function(){
@@ -1028,7 +1029,7 @@ document.addEventListener('DOMContentLoaded', function(){
     var profile=window.getProfile?window.getProfile():(typeof v2GetUser==='function'?(v2GetUser()?(v2GetUser().role||null):null):null);
     var user=typeof v2GetUser==='function'?v2GetUser():null;
     if(user){
-      var selfName=user.pseudo||(profile==='girl'?'Elle':'Lui'), partName=user.partner_pseudo||(profile==='girl'?'Lui':'Elle');
+      var selfName=user.pseudo||'Moi', partName=user.partner_pseudo||'Toi';
       if(profile==='girl'){ var n=document.getElementById('homeMoodElleName');if(n)n.textContent=selfName; var m=document.getElementById('homeMoodLuiName');if(m)m.textContent=partName; }
       else if(profile==='boy'){ var n=document.getElementById('homeMoodLuiName');if(n)n.textContent=selfName; var m=document.getElementById('homeMoodElleName');if(m)m.textContent=partName; }
     }
