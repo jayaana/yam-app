@@ -582,7 +582,7 @@ body.settings-open{overflow:hidden!important;}\
 .stg-2fa-dot.on{background:var(--green);box-shadow:0 0 6px var(--green);}\
 .stg-2fa-dot.off{background:var(--muted);}\
 .stg-qr-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px 0;}\
-.stg-qr-wrap img{width:180px;height:180px;border-radius:12px;border:2px solid var(--border);background:#fff;}\
+.stg-qr-wrap img{width:200px;height:200px;border-radius:12px;border:2px solid var(--border);background:#fff;}\
 .stg-accordion-header{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;}\
 .stg-accordion-header:active{background:var(--s2);}\
 .stg-accordion-title{font-size:14px;font-weight:600;color:var(--text);}\
@@ -1687,15 +1687,25 @@ body.settings-open{overflow:hidden!important;}\
   /* ──────────────────────────────────────────
      2FA TOTP — Supabase Auth MFA
   ────────────────────────────────────────── */
-  var _supabaseAuth = null;
-  // Réinitialiser le client si la session change (reconnexion / changement de compte)
   // ─── Client Supabase SDK pour MFA ────────────────────────────────
   // Une seule instance globale — jamais réinitialisée pour éviter
   // "Multiple GoTrueClient instances detected"
   var _supabaseAuth = null;
   // Client et factorId actifs pendant un enrollment en cours
-  var _mfaActiveClient = null;
+  var _mfaActiveClient   = null;
   var _mfaActiveFactorId = null;
+
+  // Charge qrcode.js une seule fois, retourne une Promise
+  function _loadQRLib(){
+    if(window.QRCode) return Promise.resolve();
+    return new Promise(function(resolve, reject){
+      var s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+      s.onload  = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
 
   function _getSupabaseClient(){
     if(_supabaseAuth) return _supabaseAuth;
@@ -1805,31 +1815,47 @@ body.settings-open{overflow:hidden!important;}\
       _mfaActiveClient   = sc;
       _mfaActiveFactorId = data.id;
       if(enrollSec) enrollSec.dataset.factorId = data.id;
-      // qrImg est un <div> conteneur — on crée une vraie img avec la data URI
-      // C'est la méthode la plus fiable pour que Google Authenticator puisse scanner
-      if(qrImg && data.totp && data.totp.qr_code){
-        var raw = data.totp.qr_code;
-        // Supabase retourne déjà une data URI complète — on l'utilise directement comme src
-        var dataUri = raw;
-        if(raw.indexOf('data:') !== 0){
-          // Si c'est du SVG brut, on le ré-encode proprement
-          dataUri = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(raw);
-        }
-        qrImg.innerHTML = '';
-        var img = document.createElement('img');
-        img.src = dataUri;
-        img.style.cssText = 'width:176px;height:176px;display:block;image-rendering:pixelated;';
-        img.alt = 'QR Code 2FA';
-        qrImg.appendChild(img);
+
+      // Extraire le secret depuis data.totp.secret ou depuis le totp_uri
+      var secret = (data.totp && data.totp.secret) ? data.totp.secret : null;
+      if(!secret && data.totp && data.totp.uri){
+        var m = data.totp.uri.match(/[?&]secret=([A-Z2-7]+)/i);
+        if(m) secret = m[1].toUpperCase();
       }
-      // Secret : data.totp.secret prioritaire, sinon extrait du totp_uri
-      if(secretEl){
-        var secret = (data.totp && data.totp.secret) ? data.totp.secret : null;
-        if(!secret && data.totp && data.totp.uri){
-          var m = data.totp.uri.match(/[?&]secret=([A-Z2-7a-z]+)/);
-          if(m) secret = m[1].toUpperCase();
-        }
-        secretEl.textContent = secret || '\u2014';
+      if(secretEl){ secretEl.textContent = secret || '\u2014'; }
+
+      // Générer le QR code avec qrcode.js depuis le totp_uri
+      // On n'utilise PAS le SVG/image de Supabase (rogné, mal encodé)
+      var totpUri = (data.totp && data.totp.uri) ? data.totp.uri : null;
+      if(qrImg && totpUri){
+        qrImg.innerHTML = '';
+        _loadQRLib().then(function(){
+          try {
+            new window.QRCode(qrImg, {
+              text:         totpUri,
+              width:        200,
+              height:       200,
+              colorDark:    '#000000',
+              colorLight:   '#ffffff',
+              correctLevel: window.QRCode.CorrectLevel.M
+            });
+          } catch(e){
+            // Fallback : data URI Supabase si qrcode.js échoue
+            if(data.totp && data.totp.qr_code){
+              var img = document.createElement('img');
+              img.src = data.totp.qr_code;
+              img.style.cssText = 'width:200px;height:200px;display:block;';
+              qrImg.appendChild(img);
+            }
+          }
+        }).catch(function(){
+          if(data.totp && data.totp.qr_code){
+            var img = document.createElement('img');
+            img.src = data.totp.qr_code;
+            img.style.cssText = 'width:200px;height:200px;display:block;';
+            qrImg.appendChild(img);
+          }
+        });
       }
     }
 
