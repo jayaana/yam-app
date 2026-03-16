@@ -114,7 +114,8 @@ function yamGetDisplayName(role) {
   var u = yamGetUser();
   if (u && u.role === role && u.pseudo)         return u.pseudo;
   if (u && u.role !== role && u.partner_pseudo) return u.partner_pseudo;
-  return role === 'girl' ? 'Elle 👧' : 'Lui 👦';
+  if (u && u.role === role) return 'Moi';
+  return 'Toi';
 }
 
 // Compat aliases (utilisés par d'autres modules)
