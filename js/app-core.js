@@ -504,7 +504,7 @@ function updateCounter() {
 
   if (!hasPartner) {
     if (numsEl)  numsEl.style.display  = 'none';
-    if (labelEl) labelEl.textContent = u && u.role === 'girl' ? '💑 Lie ton partenaire !' : '💑 Lie ta partenaire !';
+    if (labelEl) labelEl.textContent = u && u.role === 'girl' ? '👩‍❤️‍👨 Lie ton partenaire !' : '👩‍❤️‍👨 Lie ta partenaire !';
     return;
   }
 
