@@ -2390,9 +2390,11 @@ window.acLinkPartner = function(){
     if(data && data.error){
       // Remplacer les emojis profil dans le message d'erreur
       var errTxt = data.error || 'Erreur';
-      errTxt = errTxt.replace('🌸 Rose', '<img src="' + 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iI2U4NDA2YSIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4='" style='width:14px;height:14px;border-radius:50%;vertical-align:middle;margin:0 2px;'> Rose');
-      errTxt = errTxt.replace('🌊 Bleu', '<img src="' + 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iIzBmNGRiMCIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4='" style='width:14px;height:14px;border-radius:50%;vertical-align:middle;margin:0 2px;'> Bleu');
-      msg.innerHTML = '❌ ' + errTxt; msg.style.color = '#e05555';
+      var _imgSt = "width:14px;height:14px;border-radius:50%;vertical-align:middle;margin:0 2px;";
+      var _gI = '<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iI2U4NDA2YSIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4=" style="' + _imgSt + '">';
+      var _bI = '<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iIzBmNGRiMCIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4=" style="' + _imgSt + '">';
+      errTxt = errTxt.replace('Rose', _gI + ' Rose').replace('Bleu', _bI + ' Bleu');
+      msg.innerHTML = '\u274C ' + errTxt; msg.style.color = '#e05555';
     } else {
       msg.textContent = '✅ Compte lié avec succès !'; msg.style.color = 'var(--green)';
       
@@ -2541,9 +2543,11 @@ window.acSavePseudo = function(){
     if(data && data.error){
       // Remplacer les emojis profil dans le message d'erreur
       var errTxt = data.error || 'Erreur';
-      errTxt = errTxt.replace('🌸 Rose', '<img src="' + 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iI2U4NDA2YSIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4='" style='width:14px;height:14px;border-radius:50%;vertical-align:middle;margin:0 2px;'> Rose');
-      errTxt = errTxt.replace('🌊 Bleu', '<img src="' + 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iIzBmNGRiMCIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4='" style='width:14px;height:14px;border-radius:50%;vertical-align:middle;margin:0 2px;'> Bleu');
-      msg.innerHTML = '❌ ' + errTxt; msg.style.color = '#e05555';
+      var _imgSt = "width:14px;height:14px;border-radius:50%;vertical-align:middle;margin:0 2px;";
+      var _gI = '<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iI2U4NDA2YSIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4=" style="' + _imgSt + '">';
+      var _bI = '<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iIzBmNGRiMCIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4=" style="' + _imgSt + '">';
+      errTxt = errTxt.replace('Rose', _gI + ' Rose').replace('Bleu', _bI + ' Bleu');
+      msg.innerHTML = '\u274C ' + errTxt; msg.style.color = '#e05555';
     } else {
       msg.textContent = '✅ Pseudo mis à jour !'; msg.style.color = 'var(--green)';
       
