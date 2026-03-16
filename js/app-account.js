@@ -195,8 +195,12 @@ function _v2AfterLogin(result, msgId){
   // ── MFA requis — intercepter AVANT le check ok/error ──
   // Sans ok:true pour ne pas déclencher le stockage de session dans yamLogin
   var _raw = (result && result.data) ? result.data : result;
-  if(_raw && _raw.mfa_required){
-    _v2ShowMfaStep(_raw.mfa_access_token, msgId);
+  var _errMsg = (_raw && _raw.error) || (result && result.error) || '';
+  if((_raw && _raw.mfa_required) || _errMsg.indexOf('MFA_REQUIRED:') === 0){
+    var _mfaToken = _errMsg.indexOf('MFA_REQUIRED:') === 0
+      ? _errMsg.slice('MFA_REQUIRED:'.length)
+      : (_raw && _raw.mfa_access_token);
+    _v2ShowMfaStep(_mfaToken, msgId);
     return;
   }
 
@@ -340,21 +344,13 @@ window.v2DoLogin = function(){
   }
   _v2SetMsg(msgId, '⏳ Connexion...', false);
   yamLogin(identifier, password).then(function(res){
-    // yamLogin retourne { ok: true, data: rawResponse } ou { ok: false, error: ... }
+    // yamLogin retourne { ok:false, error:"MFA_REQUIRED:TOKEN" } si 2FA requis
+    // → yamSaveSession n'est PAS appelé, aucun poll ne démarre
     var raw = (res && res.data) ? res.data : res;
-    if(raw && raw.mfa_required){
-      // yamLogin a stocké __MFA_PENDING__ en session — le supprimer immédiatement
-      try {
-        var sess = JSON.parse(localStorage.getItem('yam_session_v3') || '{}');
-        if(sess && sess.access_token === '__MFA_PENDING__'){
-          localStorage.removeItem('yam_session_v3');
-          localStorage.removeItem('jayana_profile');
-          // Stopper tous les polls qui auraient démarré avec le token corrompu
-          if(window.yamClearAllPolls) window.yamClearAllPolls();
-          if(window._yamRTCloseAll) window._yamRTCloseAll();
-        }
-      } catch(_e){}
-      _v2ShowMfaStep(raw.mfa_access_token, msgId);
+    var errMsg = raw.error || res.error || '';
+    if(errMsg && errMsg.indexOf('MFA_REQUIRED:') === 0){
+      var mfaToken = errMsg.slice('MFA_REQUIRED:'.length);
+      _v2ShowMfaStep(mfaToken, msgId);
       return;
     }
     _v2AfterLogin(res, msgId);
