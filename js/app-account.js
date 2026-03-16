@@ -1696,9 +1696,19 @@ body.settings-open{overflow:hidden!important;}\
         auth: {
           storage: localStorage,
           autoRefreshToken: true,
-          persistSession: true,
+          persistSession: false,
         }
       });
+      // Injecter la session YAM dans le SDK — nécessaire pour que mfa.* fonctionne
+      try {
+        var _sess = JSON.parse(localStorage.getItem('yam_session_v3') || '{}');
+        if(_sess.access_token && _sess.refresh_token){
+          _supabaseAuth.auth.setSession({
+            access_token:  _sess.access_token,
+            refresh_token: _sess.refresh_token
+          });
+        }
+      } catch(_e) {}
     }
     return _supabaseAuth;
   }
