@@ -194,8 +194,9 @@ function _v2AfterLogin(result, msgId){
 
   // ── MFA requis — intercepter AVANT le check ok/error ──
   // Sans ok:true pour ne pas déclencher le stockage de session dans yamLogin
-  if(result && result.mfa_required){
-    _v2ShowMfaStep(result.mfa_access_token, msgId);
+  var _raw = (result && result.data) ? result.data : result;
+  if(_raw && _raw.mfa_required){
+    _v2ShowMfaStep(_raw.mfa_access_token, msgId);
     return;
   }
 
@@ -338,18 +339,22 @@ window.v2DoLogin = function(){
     _v2SetMsg(msgId, '⚠️ Remplis tous les champs', true); return;
   }
   _v2SetMsg(msgId, '⏳ Connexion...', false);
-  // yamLogin appelle auth-v3 et retourne la réponse brute avant de stocker la session
-  // On intercepte mfa_required directement dans son .then()
   yamLogin(identifier, password).then(function(res){
-    if(res && res.mfa_required){
-      // yamLogin a peut-être stocké un token "__MFA_PENDING__" — on le supprime immédiatement
+    // yamLogin retourne { ok: true, data: rawResponse } ou { ok: false, error: ... }
+    var raw = (res && res.data) ? res.data : res;
+    if(raw && raw.mfa_required){
+      // yamLogin a stocké __MFA_PENDING__ en session — le supprimer immédiatement
       try {
         var sess = JSON.parse(localStorage.getItem('yam_session_v3') || '{}');
         if(sess && sess.access_token === '__MFA_PENDING__'){
           localStorage.removeItem('yam_session_v3');
+          localStorage.removeItem('jayana_profile');
+          // Stopper tous les polls qui auraient démarré avec le token corrompu
+          if(window.yamClearAllPolls) window.yamClearAllPolls();
+          if(window._yamRTCloseAll) window._yamRTCloseAll();
         }
       } catch(_e){}
-      _v2ShowMfaStep(res.mfa_access_token, msgId);
+      _v2ShowMfaStep(raw.mfa_access_token, msgId);
       return;
     }
     _v2AfterLogin(res, msgId);
