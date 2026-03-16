@@ -338,8 +338,21 @@ window.v2DoLogin = function(){
     _v2SetMsg(msgId, '⚠️ Remplis tous les champs', true); return;
   }
   _v2SetMsg(msgId, '⏳ Connexion...', false);
-  // Passer l'identifiant tel quel — auth-v3 résout pseudo → email si pas d'@
-  yamLogin(identifier, password).then(function(res){ _v2AfterLogin(res, msgId); });
+  // Appel direct à _authPost pour intercepter mfa_required avant que yamLogin ne traite la réponse
+  _authPost({ action: 'login', email: identifier, password: password })
+    .then(function(res){
+      if(res && res.mfa_required){
+        // Intercepter ici — ne pas passer par yamLogin
+        _v2ShowMfaStep(res.mfa_access_token, msgId);
+        return;
+      }
+      // Login normal — passer par yamLogin pour stocker la session
+      yamLogin(identifier, password).then(function(res2){ _v2AfterLogin(res2, msgId); });
+    })
+    .catch(function(){
+      // Fallback si _authPost échoue
+      yamLogin(identifier, password).then(function(res){ _v2AfterLogin(res, msgId); });
+    });
 };
 
 // Mot de passe oublié
