@@ -1270,6 +1270,18 @@ body.light #loveBox .lb-label { color: rgba(231,90,124,0.65); }
   overflow-y: visible;
   height: auto;
 }
+
+/* Espace en bas de Nous et Musique pour voir tout le contenu sans coupure */
+#yamNousTab.active,
+#yamMusiqueTab.active {
+  padding-bottom: calc(var(--nav-height) + 48px);
+}
+
+/* Page paramètres : passe au-dessus du grand header et du sticky header */
+body.settings-open #yamMainHeader,
+body.settings-open #yamStickyHeader {
+  display: none !important;
+}
 #yamJeuxTab.active {
   display: block;
   overflow-y: auto;
