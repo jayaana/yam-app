@@ -339,8 +339,12 @@ function _nousLoadProfil() {
   var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
   if (!u) return;
   var myRole   = u.role;
-  var girlName = myRole === 'girl' ? 'Moi' : 'Toi';
-  var boyName  = myRole === 'boy'  ? 'Moi' : 'Toi';
+  // Pseudos réels si disponibles, sinon Moi/Toi selon le rôle
+  var girlName = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName('girl') : (myRole === 'girl' ? 'Moi' : 'Toi');
+  var boyName  = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName('boy')  : (myRole === 'boy'  ? 'Moi' : 'Toi');
+  // v2GetDisplayName retourne 'Elle'/'Lui' quand le pseudo n'est pas connu → remplacer par Moi/Toi
+  if (girlName === 'Elle' || girlName === 'Lui') girlName = (myRole === 'girl' ? 'Moi' : 'Toi');
+  if (boyName  === 'Elle' || boyName  === 'Lui') boyName  = (myRole === 'boy'  ? 'Moi' : 'Toi');
   var el = document.getElementById('nousProfilGirlName');
   var bl = document.getElementById('nousProfilBoyName');
   if (el) el.textContent = girlName;
