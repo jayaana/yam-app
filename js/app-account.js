@@ -191,14 +191,16 @@ function _v2SetMsg(id, text, isError){
 
 function _v2AfterLogin(result, msgId){
   window.yamLog('[YAM DEBUG] _v2AfterLogin appelé, ok=', result.ok, result.error||'');
-  if(!result.ok){
-    _v2SetMsg(msgId, '❌ ' + (result.error || 'Erreur'), true);
+
+  // ── MFA requis — intercepter AVANT le check ok/error ──
+  // Sans ok:true pour ne pas déclencher le stockage de session dans yamLogin
+  if(result && result.mfa_required){
+    _v2ShowMfaStep(result.mfa_access_token, msgId);
     return;
   }
 
-  // ── MFA requis — afficher l'écran TOTP avant de donner accès ──
-  if(result.mfa_required){
-    _v2ShowMfaStep(result.mfa_access_token, msgId);
+  if(!result.ok){
+    _v2SetMsg(msgId, '❌ ' + (result.error || 'Erreur'), true);
     return;
   }
 
