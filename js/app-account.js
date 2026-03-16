@@ -385,7 +385,9 @@ window.v2DoForgotPassword = function(){
 };
 
 // ── Changer le mot de passe depuis le lien de reset ──────────────
-// Le token window._yamResetToken est injecté par le bloc splash dans index.html
+// Supporte deux formats Supabase :
+//   - Ancien : #access_token=xxx&type=recovery → window._yamResetToken
+//   - Nouveau : ?token_hash=xxx&type=recovery  → window._yamResetTokenHash (échange requis)
 window.v2DoResetPassword = function(){
   var p1    = (document.getElementById('v2ResetPassword').value  || '');
   var p2    = (document.getElementById('v2ResetPassword2').value || '');
@@ -397,42 +399,68 @@ window.v2DoResetPassword = function(){
   if(p1 !== p2){
     _v2SetMsg(msgId, '⚠️ Les mots de passe ne correspondent pas', true); return;
   }
-  if(!window._yamResetToken){
+  if(!window._yamResetToken && !window._yamResetTokenHash){
     _v2SetMsg(msgId, '❌ Lien expiré — refais "Mot de passe oublié"', true); return;
   }
 
   _v2SetMsg(msgId, '⏳ Mise à jour...', false);
 
-  fetch(SB_URL + '/auth/v1/user', {
-    method: 'PUT',
-    headers: {
-      'apikey':        SB_ANON_KEY,
-      'Authorization': 'Bearer ' + window._yamResetToken,
-      'Content-Type':  'application/json',
-    },
-    body: JSON.stringify({ password: p1 }),
+  // Nouveau format Supabase : token_hash → échange contre access_token via /auth/v1/verify
+  var _doUpdate = function(accessToken){
+    fetch(SB_URL + '/auth/v1/user', {
+      method: 'PUT',
+      headers: {
+        'apikey':        SB_ANON_KEY,
+        'Authorization': 'Bearer ' + accessToken,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({ password: p1 }),
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(data.error || data.error_description){
+        _v2SetMsg(msgId, '❌ ' + (data.error_description || data.error || 'Erreur'), true);
+        return;
+      }
+      window._yamResetToken = null;
+      window._yamResetTokenHash = null;
+      _v2SetMsg(msgId, '✅ Mot de passe changé ! Connecte-toi.', false);
+      setTimeout(function(){
+        var tabs = document.getElementById('v2LoginTabs');
+        if(tabs) tabs.style.display = '';
+        var resetForm = document.getElementById('v2FormReset');
+        if(resetForm) resetForm.style.display = 'none';
+        var loginForm = document.getElementById('v2FormLogin');
+        if(loginForm) loginForm.style.display = '';
+        var tabLogin = document.getElementById('v2TabLogin');
+        if(tabLogin) tabLogin.classList.add('active');
+        var tabReg = document.getElementById('v2TabRegister');
+        if(tabReg) tabReg.classList.remove('active');
+      }, 2000);
+    })
+    .catch(function(){
+      _v2SetMsg(msgId, '❌ Erreur réseau — réessaie', true);
+    });
+  };
+
+  if(window._yamResetToken){
+    // Ancien format : access_token directement disponible
+    _doUpdate(window._yamResetToken);
+    return;
+  }
+
+  // Nouveau format : échanger token_hash contre access_token
+  fetch(SB_URL + '/auth/v1/verify', {
+    method: 'POST',
+    headers: { 'apikey': SB_ANON_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token_hash: window._yamResetTokenHash, type: 'recovery' }),
   })
   .then(function(r){ return r.json(); })
   .then(function(data){
-    if(data.error || data.error_description){
-      _v2SetMsg(msgId, '❌ ' + (data.error_description || data.error || 'Erreur'), true);
-      return;
+    if(!data.access_token){
+      _v2SetMsg(msgId, '❌ Lien expiré — refais "Mot de passe oublié"', true); return;
     }
-    window._yamResetToken = null;
-    _v2SetMsg(msgId, '✅ Mot de passe changé ! Connecte-toi.', false);
-    setTimeout(function(){
-      // Réafficher les onglets + formulaire connexion
-      var tabs = document.getElementById('v2LoginTabs');
-      if(tabs) tabs.style.display = '';
-      var resetForm = document.getElementById('v2FormReset');
-      if(resetForm) resetForm.style.display = 'none';
-      var loginForm = document.getElementById('v2FormLogin');
-      if(loginForm) loginForm.style.display = '';
-      var tabLogin = document.getElementById('v2TabLogin');
-      if(tabLogin) tabLogin.classList.add('active');
-      var tabReg = document.getElementById('v2TabRegister');
-      if(tabReg) tabReg.classList.remove('active');
-    }, 2000);
+    _doUpdate(data.access_token);
   })
   .catch(function(){
     _v2SetMsg(msgId, '❌ Erreur réseau — réessaie', true);
