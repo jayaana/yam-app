@@ -69,7 +69,7 @@ if ('serviceWorker' in navigator) {
 // ══════════════════════════════════════════════════════════════════
 (function(){
   var BASE = 'assets/images/';
-  var DEFAULTS = { girl: BASE+'profil_girl.png', boy: BASE+'profil_boy.png' };
+  var DEFAULTS = { girl: 'assets/images/profil_girl.png', boy: 'assets/images/profil_boy.png' };
 
   window._yamRealAvatars = { girl: null, boy: null };
 
@@ -1047,7 +1047,7 @@ document.addEventListener('DOMContentLoaded', function(){
     var selfMessage=window._myMoodMessage||'', otherMessage=window._otherMoodMessage||'';
     function setMoodCard(cardId,emojiId,labelId,quoteId,emoji,label,message){
       var emojiEl=document.getElementById(emojiId), labelEl=document.getElementById(labelId), quoteEl=document.getElementById(quoteId);
-      if(emojiEl) emojiEl.textContent=emoji||(labelId.indexOf('Elle')!==-1?'🌸':'🌊');
+      if(emojiEl) emojiEl.textContent=emoji||'';
       if(labelEl) labelEl.textContent=label||(emoji?'':'Humeur');
       if(quoteEl){ if(message&&message.trim()){quoteEl.textContent=message.trim();quoteEl.style.fontStyle='italic';}else if(emoji){quoteEl.textContent=label||emoji;quoteEl.style.fontStyle='normal';}else{quoteEl.textContent='—';quoteEl.style.fontStyle='normal';} }
     }
