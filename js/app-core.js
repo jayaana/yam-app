@@ -202,7 +202,7 @@ function sb2Delete(table, filter) {
 
 function sb2Upsert(table, body, prefer) {
   var conflictMap = {
-    'presence':          'couple_id,role',
+    'presence':          'user_id,couple_id',
     'now_listening':     'couple_id,user_id',
     'dm_typing':         'couple_id,user_id',
     'like_counters':     'couple_id,role',
