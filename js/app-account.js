@@ -1801,8 +1801,17 @@ body.settings-open{overflow:hidden!important;}\
       if(enrollSec) enrollSec.dataset.factorId = data.id;
       // qrImg est un <div> conteneur — injection SVG directe
       if(qrImg && data.totp && data.totp.qr_code){
-        var svg = data.totp.qr_code;
-        qrImg.innerHTML = svg;
+        var raw = data.totp.qr_code;
+        // Supabase retourne "data:image/svg+xml;utf-8,<svg...>"
+        // On extrait le SVG brut depuis la data URI
+        var svgStr = raw;
+        if(raw.indexOf('data:') === 0){
+          var commaIdx = raw.indexOf(',');
+          if(commaIdx !== -1){
+            svgStr = decodeURIComponent(raw.slice(commaIdx + 1));
+          }
+        }
+        qrImg.innerHTML = svgStr;
         var svgEl = qrImg.querySelector('svg');
         if(svgEl){
           svgEl.setAttribute('width', '176');
