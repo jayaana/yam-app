@@ -498,8 +498,9 @@ window.setProfile = function(g){
 };
 
 
+
 /* ════════════════════════════════════════════
-   PARAMÈTRES — Vue plein écran style iOS Settings
+   PARAMÈTRES — Vue plein écran refonte complète
 ════════════════════════════════════════════ */
 (function(){
 
@@ -509,29 +510,26 @@ window.setProfile = function(g){
 #settingsView{display:none;position:fixed;inset:0;z-index:3000;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;font-family:"Bricolage Grotesque",sans-serif;}\
 #settingsView.active{display:block;}\
 body.settings-open{overflow:hidden!important;}\
-body.settings-open header,body.settings-open .bottom-nav{display:none!important;}\
 .stg-safe-top{height:env(safe-area-inset-top,0px);}\
 .stg-header{position:sticky;top:0;z-index:10;display:flex;align-items:center;padding:12px 16px;background:var(--bg);border-bottom:1px solid var(--border);gap:12px;}\
 .stg-back{width:36px;height:36px;border-radius:50%;background:var(--s2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:transform .15s;-webkit-tap-highlight-color:transparent;}\
 .stg-back:active{transform:scale(.9);}\
 .stg-back svg{color:var(--text);}\
-.stg-title{font-size:18px;font-weight:700;color:var(--text);}\
-.stg-scroll{padding:0 16px 120px;}\
-\
-/* Carte profil */\
-.stg-profile-card{display:flex;align-items:center;gap:14px;background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:16px;margin:20px 0 24px;}\
-.stg-avatar-wrap{position:relative;flex-shrink:0;}\
-.stg-avatar{width:60px;height:60px;background:var(--s2);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--border);overflow:hidden;cursor:pointer;}\
+.stg-title{font-size:17px;font-weight:700;color:var(--text);flex:1;}\
+.stg-scroll{padding:0 16px calc(env(safe-area-inset-bottom,0px) + 32px);}\
+.stg-profile-card{display:flex;align-items:center;gap:14px;padding:20px 0 16px;}\
+.stg-avatar-wrap{position:relative;flex-shrink:0;cursor:pointer;}\
+.stg-avatar{width:72px;height:72px;border-radius:50%;background:var(--s2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;}\
 .stg-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}\
-.stg-avatar-cam{position:absolute;bottom:-2px;right:-2px;width:22px;height:22px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;border:2px solid var(--s1);cursor:pointer;}\
-.stg-avatar-del{display:none;position:absolute;top:-3px;left:-3px;width:18px;height:18px;background:#e05555;border-radius:50%;align-items:center;justify-content:center;font-size:9px;border:1.5px solid var(--s1);cursor:pointer;color:#fff;}\
+.stg-avatar-cam{position:absolute;bottom:0;right:0;width:22px;height:22px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;border:2px solid var(--bg);}\
+.stg-avatar-del{position:absolute;top:-2px;right:-2px;width:18px;height:18px;border-radius:50%;background:#e05555;color:#fff;font-size:9px;display:none;align-items:center;justify-content:center;cursor:pointer;border:2px solid var(--bg);font-weight:700;}\
+.stg-avatar-wrap:hover .stg-avatar-del,.stg-avatar-wrap:focus .stg-avatar-del{display:flex;}\
 .stg-profile-info{flex:1;min-width:0;}\
 .stg-pseudo-row{display:flex;align-items:center;gap:6px;}\
-.stg-pseudo{font-size:17px;font-weight:700;color:var(--text);}\
+.stg-pseudo{font-size:18px;font-weight:700;color:var(--text);}\
 .stg-pseudo-edit-btn{background:none;border:none;cursor:pointer;padding:2px 4px;color:var(--muted);font-size:13px;}\
-.stg-role-badge{font-size:11px;font-weight:600;margin-top:3px;padding:3px 9px;border-radius:20px;display:inline-block;}\
-\
-/* Groupes iOS */\
+.stg-role-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--sub);margin-top:3px;}\
+.stg-couple-inline{font-size:11px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:5px;}\
 .stg-group-label{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;padding:0 4px 7px;margin-top:24px;}\
 .stg-group{background:var(--s1);border:1px solid var(--border);border-radius:14px;overflow:hidden;}\
 .stg-row{display:flex;align-items:center;padding:13px 16px;gap:12px;cursor:pointer;transition:background .12s;-webkit-tap-highlight-color:transparent;position:relative;}\
@@ -540,66 +538,103 @@ body.settings-open header,body.settings-open .bottom-nav{display:none!important;
 .stg-row-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}\
 .stg-row-body{flex:1;min-width:0;}\
 .stg-row-title{font-size:14px;font-weight:600;color:var(--text);}\
+.stg-row-title.danger{color:#e05555;}\
 .stg-row-sub{font-size:11px;color:var(--muted);margin-top:1px;}\
 .stg-row-right{font-size:12px;color:var(--muted);flex-shrink:0;display:flex;align-items:center;gap:4px;}\
 .stg-row-chevron{width:7px;height:12px;stroke:var(--muted);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;}\
 .stg-row-value{font-size:13px;color:var(--sub);}\
 .stg-row.no-chevron{cursor:default;}\
 .stg-row.no-chevron:active{background:transparent;}\
-\
-/* Sous-pages */\
-.stg-subpage{display:none;position:fixed;inset:0;z-index:3001;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;}\
+.stg-row-toggle{width:44px;height:26px;border-radius:13px;background:var(--border);position:relative;transition:background .2s;flex-shrink:0;cursor:pointer;border:none;}\
+.stg-row-toggle.on{background:var(--green);}\
+.stg-row-toggle::after{content:"";position:absolute;width:20px;height:20px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}\
+.stg-row-toggle.on::after{transform:translateX(18px);}\
+.stg-subpage{display:none;position:fixed;inset:0;z-index:3001;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;font-family:"Bricolage Grotesque",sans-serif;}\
 .stg-subpage.active{display:block;}\
-\
-/* Champs dans sous-pages */\
-.stg-field{padding:14px 16px;}\
-.stg-field label{display:block;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;}\
-.stg-field input,.stg-field select{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;color:var(--text);font-size:15px;font-family:"Bricolage Grotesque",sans-serif;outline:none;box-sizing:border-box;}\
-.stg-field input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(201,120,96,.12);}\
-.stg-field-msg{font-size:11px;margin-top:5px;min-height:15px;}\
-.stg-btn{width:100%;padding:13px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:"Bricolage Grotesque",sans-serif;transition:transform .12s,opacity .12s;-webkit-tap-highlight-color:transparent;}\
-.stg-btn:active{transform:scale(.97);opacity:.85;}\
-.stg-btn-primary{background:var(--green);color:#fff;}\
-.stg-btn-danger{background:rgba(224,85,85,.1);border:1.5px solid rgba(224,85,85,.4);color:#e05555;}\
-.stg-confirm-box{margin:12px 16px;background:rgba(224,85,85,.06);border:1px solid rgba(224,85,85,.25);border-radius:12px;padding:14px;}\
-.stg-confirm-box p{font-size:13px;color:var(--text);margin:0 0 10px;font-weight:600;}\
+.stg-field{padding:10px 16px;border-bottom:1px solid var(--border);}\
+.stg-field:last-child{border-bottom:none;}\
+.stg-field label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}\
+.stg-field input,.stg-field select{width:100%;background:transparent;border:none;outline:none;font-size:14px;color:var(--text);font-family:inherit;padding:2px 0;}\
+.stg-field input::placeholder{color:var(--muted);}\
+.stg-field-msg{font-size:12px;padding:4px 16px;min-height:18px;}\
+.stg-btn{width:100%;padding:14px;border-radius:12px;border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s,transform .1s;}\
+.stg-btn:active{transform:scale(.98);opacity:.85;}\
+.stg-btn-primary{background:var(--accent);color:#fff;}\
+.stg-btn-danger{background:rgba(224,85,85,.1);border:1.5px solid rgba(224,85,85,.35);color:#e05555;}\
+.stg-btn-ghost{background:var(--s2);color:var(--text);border:1px solid var(--border);}\
+.stg-version{text-align:center;font-size:11px;color:var(--muted);padding:24px 0 8px;}\
+.stg-empty-state{text-align:center;padding:40px 20px;}\
+.stg-empty-icon{font-size:40px;margin-bottom:12px;}\
+.stg-empty-text{font-size:13px;color:var(--muted);line-height:1.5;}\
+.stg-tags{display:flex;flex-wrap:wrap;gap:8px;padding:12px 0 4px;}\
+.stg-tag{padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;background:var(--s2);border:1px solid var(--border);color:var(--sub);cursor:pointer;transition:background .12s,border-color .12s,color .12s;-webkit-tap-highlight-color:transparent;}\
+.stg-tag.on{background:rgba(231,90,124,.12);border-color:rgba(231,90,124,.5);color:var(--accent);}\
+.stg-theme-pills{display:flex;gap:8px;}\
+.stg-theme-pill{flex:1;padding:10px;border-radius:10px;text-align:center;font-size:13px;font-weight:600;background:var(--s2);border:1.5px solid var(--border);color:var(--sub);cursor:pointer;transition:background .12s,border-color .12s,color .12s;}\
+.stg-theme-pill.active{background:rgba(231,90,124,.12);border-color:var(--accent);color:var(--accent);}\
+.stg-confirm-box{background:rgba(224,85,85,.06);border:1px solid rgba(224,85,85,.3);border-radius:12px;padding:14px;margin-top:8px;}\
+.stg-confirm-box p{font-size:14px;font-weight:700;color:#e05555;margin:0 0 4px;}\
 .stg-confirm-box span{font-size:12px;color:var(--muted);display:block;margin-bottom:12px;}\
 .stg-confirm-btns{display:flex;gap:8px;}\
-.stg-confirm-btns button{flex:1;padding:10px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:"Bricolage Grotesque",sans-serif;border:none;}\
-\
-/* Tags préférences */\
-.stg-tags{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;}\
-.stg-tag{padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;border:1.5px solid var(--border);background:var(--s2);color:var(--text);-webkit-tap-highlight-color:transparent;}\
-.stg-tag.on{background:var(--green);color:#fff;border-color:var(--green);}\
-.stg-tag:active{transform:scale(.95);}\
-\
-/* Thème toggle dans paramètres */\
-.stg-theme-pills{display:flex;gap:0;background:var(--s2);border-radius:10px;overflow:hidden;border:1px solid var(--border);}\
-.stg-theme-pill{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);transition:all .2s;}\
-.stg-theme-pill.active{background:var(--green);color:#fff;}\
-\
-/* Version */\
-.stg-version{text-align:center;padding:24px 0 16px;font-size:11px;color:var(--muted);}\
-.stg-empty-state{text-align:center;padding:32px 16px;}\
-.stg-empty-state .stg-empty-icon{font-size:40px;margin-bottom:8px;}\
-.stg-empty-state .stg-empty-text{font-size:13px;color:var(--muted);line-height:1.5;}\
+.stg-confirm-btns button{flex:1;padding:10px;border-radius:8px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}\
+.stg-2fa-status{display:flex;align-items:center;gap:10px;padding:14px 16px;}\
+.stg-2fa-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}\
+.stg-2fa-dot.on{background:var(--green);box-shadow:0 0 6px var(--green);}\
+.stg-2fa-dot.off{background:var(--muted);}\
+.stg-qr-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px 0;}\
+.stg-qr-wrap img{width:180px;height:180px;border-radius:12px;border:2px solid var(--border);background:#fff;}\
+.stg-accordion-header{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;}\
+.stg-accordion-header:active{background:var(--s2);}\
+.stg-accordion-title{font-size:14px;font-weight:600;color:var(--text);}\
+.stg-accordion-arrow{width:16px;height:16px;transition:transform .2s;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}\
+.stg-accordion-arrow.open{transform:rotate(180deg);}\
+.stg-accordion-body{display:none;border-top:1px solid var(--border);}\
+.stg-accordion-body.open{display:block;}\
+.stg-bug-overlay{display:none;position:fixed;inset:0;z-index:3100;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);align-items:flex-end;}\
+.stg-bug-overlay.open{display:flex;}\
+.stg-bug-sheet{background:var(--bg);border-radius:20px 20px 0 0;padding:0 0 calc(env(safe-area-inset-bottom,0px) + 20px);width:100%;max-height:92vh;overflow-y:auto;}\
+.stg-bug-handle{width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 4px;}\
+.stg-bug-title{font-size:16px;font-weight:800;color:var(--text);padding:12px 20px 8px;}\
+.stg-bug-cats{display:flex;flex-direction:column;gap:0;margin:4px 16px;border-radius:12px;overflow:hidden;border:1px solid var(--border);}\
+.stg-bug-cat{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;background:var(--s1);transition:background .12s;-webkit-tap-highlight-color:transparent;}\
+.stg-bug-cat:not(:last-child){border-bottom:1px solid var(--border);}\
+.stg-bug-cat:active{background:var(--s2);}\
+.stg-bug-cat.selected{background:rgba(231,90,124,.08);border-color:rgba(231,90,124,.3);}\
+.stg-bug-cat-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}\
+.stg-bug-cat-label{font-size:14px;font-weight:600;color:var(--text);}\
+.stg-bug-cat-check{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);margin-left:auto;flex-shrink:0;display:flex;align-items:center;justify-content:center;}\
+.stg-bug-cat.selected .stg-bug-cat-check{background:var(--accent);border-color:var(--accent);}\
+.stg-bug-desc-wrap{margin:12px 16px 0;}\
+.stg-bug-desc{width:100%;min-height:80px;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:12px;font-size:13px;color:var(--text);font-family:"Bricolage Grotesque",sans-serif;outline:none;resize:none;box-sizing:border-box;}\
+.stg-bug-desc::placeholder{color:var(--muted);}\
+.stg-bug-send{margin:12px 16px 0;}\
+.stg-legal-content{padding:16px 20px 40px;font-size:13px;color:var(--text);line-height:1.65;}\
+.stg-legal-content h2{font-size:15px;font-weight:800;margin:24px 0 8px;color:var(--text);}\
+.stg-legal-content h3{font-size:13px;font-weight:700;margin:16px 0 6px;color:var(--text);}\
+.stg-legal-content p{margin:0 0 10px;color:var(--sub);}\
+.stg-legal-content ul{padding-left:18px;margin:0 0 10px;}\
+.stg-legal-content li{margin-bottom:5px;color:var(--sub);}\
+.stg-legal-content strong{color:var(--text);}\
 ';
   document.head.appendChild(settingsCSS);
 
-  /* ── HTML principal ── */
+  var CHV = '<svg class="stg-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg>';
+  var BCK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+  var ARR = '<svg class="stg-accordion-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>';
+
+  /* ──────────────────────────────────────────
+     HTML PRINCIPAL
+  ────────────────────────────────────────── */
   var mainHTML =
   '<div id="settingsView">' +
     '<div class="stg-safe-top"></div>' +
     '<div class="stg-header">' +
-      '<div class="stg-back" aria-label="Retour">' +
-        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>' +
-      '</div>' +
+      '<div class="stg-back" aria-label="Retour">' + BCK + '</div>' +
       '<div class="stg-title">Paramètres</div>' +
     '</div>' +
-
     '<div class="stg-scroll">' +
 
-      /* ── Carte profil ── */
+      /* ── Carte profil + couple ── */
       '<div class="stg-profile-card">' +
         '<div class="stg-avatar-wrap">' +
           '<div class="stg-avatar" id="acAvatarWrap">' +
@@ -624,65 +659,114 @@ body.settings-open header,body.settings-open .bottom-nav{display:none!important;
             '<div id="acPseudoMsg" class="stg-field-msg" style="color:var(--green);"></div>' +
           '</div>' +
           '<div class="stg-role-badge" id="acRoleBadge">—</div>' +
+          '<div class="stg-couple-inline" id="acCoupleInline">💑 <span id="acCoupleInlineText">—</span></div>' +
         '</div>' +
       '</div>' +
 
-      /* ── Groupe : Compte ── */
-      '<div class="stg-group-label">Compte</div>' +
+      /* ── Mon compte ── */
+      '<div class="stg-group-label">Mon compte</div>' +
       '<div class="stg-group">' +
+        '<div class="stg-row" data-sub="stgSubMonCompte">' +
+          '<div class="stg-row-icon" style="background:rgba(124,106,247,.12);">👤</div>' +
+          '<div class="stg-row-body"><div class="stg-row-title">Informations personnelles</div><div class="stg-row-sub">Email, pseudo, genre, date de naissance</div></div>' +
+          '<div class="stg-row-right">' + CHV + '</div>' +
+        '</div>' +
         '<div class="stg-row" data-sub="stgSubCouple">' +
           '<div class="stg-row-icon" style="background:rgba(201,120,96,.12);">💑</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Couple</div><div class="stg-row-sub">Code, partenaire, date anniversaire</div></div>' +
-          '<div class="stg-row-right"><svg class="stg-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg></div>' +
-        '</div>' +
-        '<div class="stg-row" data-sub="stgSubSecurity">' +
-          '<div class="stg-row-icon" style="background:rgba(124,106,247,.12);">🔒</div>' +
-          '<div class="stg-row-body"><div class="stg-row-title">Sécurité</div><div class="stg-row-sub">Mot de passe</div></div>' +
-          '<div class="stg-row-right"><svg class="stg-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg></div>' +
+          '<div class="stg-row-right">' + CHV + '</div>' +
         '</div>' +
         '<div class="stg-row" data-sub="stgSubAbonnement">' +
           '<div class="stg-row-icon" style="background:rgba(231,90,124,.12);">✨</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Abonnement</div><div class="stg-row-sub">Gérer ton offre YAM</div></div>' +
-          '<div class="stg-row-right"><span class="stg-row-value">Gratuit</span><svg class="stg-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg></div>' +
+          '<div class="stg-row-right"><span class="stg-row-value">Gratuit</span>' + CHV + '</div>' +
         '</div>' +
       '</div>' +
 
-      /* ── Groupe : Personnalisation ── */
+      /* ── Sécurité ── */
+      '<div class="stg-group-label">Sécurité</div>' +
+      '<div class="stg-group">' +
+        '<div class="stg-row" data-sub="stgSubSecurity">' +
+          '<div class="stg-row-icon" style="background:rgba(34,197,94,.12);">🔐</div>' +
+          '<div class="stg-row-body"><div class="stg-row-title">Double authentification</div><div class="stg-row-sub" id="stg2FAStatusLabel">Désactivée</div></div>' +
+          '<div class="stg-row-right">' + CHV + '</div>' +
+        '</div>' +
+      '</div>' +
+
+      /* ── Personnalisation ── */
       '<div class="stg-group-label">Personnalisation</div>' +
       '<div class="stg-group">' +
         '<div class="stg-row" data-sub="stgSubPrefs">' +
           '<div class="stg-row-icon" style="background:rgba(110,148,132,.12);">🎯</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Préférences</div><div class="stg-row-sub">Centres d\'intérêt, goûts, idées cadeaux</div></div>' +
-          '<div class="stg-row-right"><svg class="stg-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg></div>' +
+          '<div class="stg-row-right">' + CHV + '</div>' +
         '</div>' +
         '<div class="stg-row" data-sub="stgSubAppearance">' +
           '<div class="stg-row-icon" style="background:rgba(185,153,112,.12);">🎨</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Apparence</div><div class="stg-row-sub">Thème sombre ou clair</div></div>' +
-          '<div class="stg-row-right"><span id="stgThemeLabel" class="stg-row-value">Sombre</span><svg class="stg-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg></div>' +
+          '<div class="stg-row-right"><span id="stgThemeLabel" class="stg-row-value">Sombre</span>' + CHV + '</div>' +
         '</div>' +
       '</div>' +
 
-      /* ── Groupe : Application ── */
+      /* ── Application ── */
       '<div class="stg-group-label">Application</div>' +
       '<div class="stg-group">' +
         '<div class="stg-row" data-sub="stgSubNotifs">' +
           '<div class="stg-row-icon" style="background:rgba(240,102,136,.12);">🔔</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Notifications</div><div class="stg-row-sub">Gérer les alertes</div></div>' +
-          '<div class="stg-row-right"><svg class="stg-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg></div>' +
+          '<div class="stg-row-right">' + CHV + '</div>' +
+        '</div>' +
+        '<div class="stg-row no-chevron" id="stgClearCacheBtn">' +
+          '<div class="stg-row-icon" style="background:rgba(124,106,247,.12);">🗑️</div>' +
+          '<div class="stg-row-body"><div class="stg-row-title">Vider le cache</div><div class="stg-row-sub">Libère l\'espace et force le rechargement</div></div>' +
+          '<div class="stg-row-right" id="stgClearCacheStatus"></div>' +
         '</div>' +
         '<div class="stg-row no-chevron">' +
-          '<div class="stg-row-icon" style="background:rgba(124,106,247,.12);">🌐</div>' +
+          '<div class="stg-row-icon" style="background:rgba(60,180,255,.12);">🌐</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Langue</div><div class="stg-row-sub">Seul le français est disponible</div></div>' +
           '<div class="stg-row-right"><span class="stg-row-value">Français</span></div>' +
         '</div>' +
       '</div>' +
 
-      /* ── Déconnexion ── */
-      '<div style="margin-top:32px;padding:0 0 8px;">' +
-        '<button class="stg-btn stg-btn-danger">🔓 Se déconnecter</button>' +
+      /* ── Aide ── */
+      '<div class="stg-group-label">Aide</div>' +
+      '<div class="stg-group">' +
+        '<div class="stg-row no-chevron" id="stgContactSupportBtn">' +
+          '<div class="stg-row-icon" style="background:rgba(60,180,255,.12);">💬</div>' +
+          '<div class="stg-row-body"><div class="stg-row-title">Contacter le support</div><div class="stg-row-sub">support@yam-app.fr</div></div>' +
+        '</div>' +
+        '<div class="stg-row no-chevron" id="stgReportBugBtn">' +
+          '<div class="stg-row-icon" style="background:rgba(255,160,50,.12);">🐛</div>' +
+          '<div class="stg-row-body"><div class="stg-row-title">Signaler un bug</div><div class="stg-row-sub">Aide-nous à améliorer YAM</div></div>' +
+        '</div>' +
       '</div>' +
 
-      /* ── Admin monitoring — visible uniquement pour l'admin ── */
+      /* ── Confidentialité ── */
+      '<div class="stg-group-label">Confidentialité et mentions légales</div>' +
+      '<div class="stg-group">' +
+        '<div class="stg-row" data-sub="stgSubCGU">' +
+          '<div class="stg-row-icon" style="background:rgba(124,106,247,.12);">📋</div>' +
+          '<div class="stg-row-body"><div class="stg-row-title">Conditions Générales d\'Utilisation</div></div>' +
+          '<div class="stg-row-right">' + CHV + '</div>' +
+        '</div>' +
+        '<div class="stg-row" data-sub="stgSubPrivacy">' +
+          '<div class="stg-row-icon" style="background:rgba(34,197,94,.12);">🔒</div>' +
+          '<div class="stg-row-body"><div class="stg-row-title">Politique de Confidentialité</div></div>' +
+          '<div class="stg-row-right">' + CHV + '</div>' +
+        '</div>' +
+        '<div class="stg-row" data-sub="stgSubMentions">' +
+          '<div class="stg-row-icon" style="background:rgba(185,153,112,.12);">⚖️</div>' +
+          '<div class="stg-row-body"><div class="stg-row-title">Mentions légales</div></div>' +
+          '<div class="stg-row-right">' + CHV + '</div>' +
+        '</div>' +
+      '</div>' +
+
+      /* ── Déconnexion ── */
+      '<div style="margin-top:28px;padding:0 0 8px;">' +
+        '<button class="stg-btn stg-btn-danger" id="stgLogoutBtn">🔓 Se déconnecter</button>' +
+      '</div>' +
+
+      /* ── Admin monitoring ── */
       ((typeof yamGetUser === 'function' && yamGetUser() && yamGetUser().is_admin === true) ?
         '<div style="margin-top:8px;padding:0 0 8px;">' +
           '<button class="stg-btn" id="stgAdminErrorsBtn" style="background:rgba(100,100,100,.1);border:1.5px solid rgba(100,100,100,.3);color:var(--muted);font-size:11px;">🛠 Monitoring erreurs</button>' +
@@ -691,21 +775,82 @@ body.settings-open header,body.settings-open .bottom-nav{display:none!important;
       : '') +
 
       '<div class="stg-version" id="stgVersionLabel">YAM — You And Me 💕</div>' +
+    '</div>' +
+  '</div>';
 
-    '</div>' + /* fin stg-scroll */
-  '</div>';   /* fin settingsView */
+  /* ──────────────────────────────────────────
+     SOUS-PAGE : MON COMPTE
+  ────────────────────────────────────────── */
+  var subMonCompte =
+  '<div id="stgSubMonCompte" class="stg-subpage">' +
+    '<div class="stg-safe-top"></div>' +
+    '<div class="stg-header">' +
+      '<div class="stg-back">' + BCK + '</div>' +
+      '<div class="stg-title">Informations personnelles</div>' +
+    '</div>' +
+    '<div style="padding:0 16px 80px;">' +
 
-  /* ── Sous-page COUPLE ── */
+      '<div class="stg-group-label" style="margin-top:20px;">Identité</div>' +
+      '<div class="stg-group">' +
+        '<div class="stg-field">' +
+          '<label>Email</label>' +
+          '<div id="acEmailDisplay" style="font-size:14px;color:var(--muted);padding:2px 0;letter-spacing:0.5px;">chargement...</div>' +
+        '</div>' +
+        '<div class="stg-field">' +
+          '<label>Pseudo</label>' +
+          '<input type="text" id="acMonComptePseudo" maxlength="20" placeholder="Ton pseudo" autocomplete="off" />' +
+        '</div>' +
+        '<div class="stg-field">' +
+          '<label>Genre</label>' +
+          '<select id="acMonCompteGenre" style="background:transparent;border:none;outline:none;font-size:14px;color:var(--text);font-family:inherit;width:100%;padding:2px 0;">' +
+            '<option value="">Non précisé</option>' +
+            '<option value="homme">Homme</option>' +
+            '<option value="femme">Femme</option>' +
+            '<option value="autre">Autre / Non binaire</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="stg-field">' +
+          '<label>Date de naissance</label>' +
+          '<input type="date" id="acMonCompteBirth" />' +
+        '</div>' +
+      '</div>' +
+      '<div style="padding:16px 0 4px;">' +
+        '<button class="stg-btn stg-btn-primary" id="acSaveMonCompteBtn">Enregistrer</button>' +
+      '</div>' +
+      '<div id="acMonCompteMsg" class="stg-field-msg" style="text-align:center;color:var(--green);"></div>' +
+
+      /* ── Supprimer le compte ── */
+      '<div class="stg-group-label" style="margin-top:28px;">Zone de danger</div>' +
+      '<div class="stg-group">' +
+        '<div class="stg-row no-chevron" id="acDeleteAccountBtn">' +
+          '<div class="stg-row-icon" style="background:rgba(224,85,85,.12);">🗑️</div>' +
+          '<div class="stg-row-body"><div class="stg-row-title danger">Supprimer mon compte</div><div class="stg-row-sub">Action irréversible — toutes tes données seront effacées</div></div>' +
+        '</div>' +
+      '</div>' +
+      '<div id="acDeleteAccountConfirm" class="stg-confirm-box" style="display:none;margin-top:8px;">' +
+        '<p>⚠️ Supprimer définitivement ton compte ?</p>' +
+        '<span>Toutes tes données (messages, souvenirs, photos) seront supprimées. Cette action est irréversible.</span>' +
+        '<div class="stg-confirm-btns">' +
+          '<button style="background:#e05555;color:#fff;" id="acDeleteAccountConfirmYes">Oui, supprimer</button>' +
+          '<button style="background:var(--s2);color:var(--muted);border:1px solid var(--border);" id="acDeleteAccountConfirmNo">Annuler</button>' +
+        '</div>' +
+      '</div>' +
+      '<div id="acDeleteAccountMsg" class="stg-field-msg" style="color:#e05555;padding:6px 0;"></div>' +
+
+    '</div>' +
+  '</div>';
+
+  /* ──────────────────────────────────────────
+     SOUS-PAGE : COUPLE
+  ────────────────────────────────────────── */
   var subCouple =
   '<div id="stgSubCouple" class="stg-subpage">' +
     '<div class="stg-safe-top"></div>' +
     '<div class="stg-header">' +
-      '<div class="stg-back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>' +
+      '<div class="stg-back">' + BCK + '</div>' +
       '<div class="stg-title">Couple</div>' +
     '</div>' +
     '<div style="padding:0 16px 80px;">' +
-
-      /* Code couple */
       '<div class="stg-group-label" style="margin-top:20px;">Code couple</div>' +
       '<div class="stg-group">' +
         '<div class="stg-row no-chevron" style="cursor:default;">' +
@@ -715,7 +860,6 @@ body.settings-open header,body.settings-open .bottom-nav{display:none!important;
       '</div>' +
       '<div style="font-size:11px;color:var(--muted);padding:5px 4px 0;">Partage ce code à ton/ta partenaire pour lier vos comptes</div>' +
 
-      /* Partenaire */
       '<div class="stg-group-label">Partenaire</div>' +
       '<div class="stg-group">' +
         '<div class="stg-row no-chevron" style="cursor:default;">' +
@@ -733,7 +877,6 @@ body.settings-open header,body.settings-open .bottom-nav{display:none!important;
         '</div>' +
       '</div>' +
 
-      /* Lier partenaire */
       '<div id="acLinkSection">' +
         '<div class="stg-group-label">Lier un partenaire</div>' +
         '<div class="stg-group">' +
@@ -747,7 +890,6 @@ body.settings-open header,body.settings-open .bottom-nav{display:none!important;
         '</div>' +
       '</div>' +
 
-      /* Date anniversaire */
       '<div class="stg-group-label">Date de début du couple</div>' +
       '<div class="stg-group">' +
         '<div class="stg-field" style="border:none;">' +
@@ -758,65 +900,124 @@ body.settings-open header,body.settings-open .bottom-nav{display:none!important;
           '<div id="acStartDateMsg" class="stg-field-msg" style="color:var(--green);"></div>' +
         '</div>' +
       '</div>' +
-
     '</div>' +
   '</div>';
 
-  /* ── Sous-page SÉCURITÉ ── */
+  /* ──────────────────────────────────────────
+     SOUS-PAGE : SÉCURITÉ (2FA + MDP)
+  ────────────────────────────────────────── */
   var subSecurity =
   '<div id="stgSubSecurity" class="stg-subpage">' +
     '<div class="stg-safe-top"></div>' +
     '<div class="stg-header">' +
-      '<div class="stg-back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>' +
+      '<div class="stg-back">' + BCK + '</div>' +
       '<div class="stg-title">Sécurité</div>' +
     '</div>' +
     '<div style="padding:0 16px 80px;">' +
-      '<div class="stg-group-label" style="margin-top:20px;">Compte</div>' +
+
+      /* Double authentification */
+      '<div class="stg-group-label" style="margin-top:20px;">Double authentification (2FA)</div>' +
       '<div class="stg-group">' +
-        '<div class="stg-field" style="pointer-events:none;">' +
-          '<label>Email</label>' +
-          '<div id="acEmailDisplay" style="font-size:14px;color:var(--muted);padding:10px 0;letter-spacing:0.5px;">chargement...</div>' +
+        '<div class="stg-2fa-status">' +
+          '<div class="stg-2fa-dot off" id="stg2FADot"></div>' +
+          '<div style="flex:1;">' +
+            '<div style="font-size:14px;font-weight:600;color:var(--text);" id="stg2FALabel">Non activée</div>' +
+            '<div style="font-size:11px;color:var(--muted);">Protège ton compte avec Google Authenticator</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="padding:0 16px 14px;">' +
+          '<button class="stg-btn stg-btn-primary" id="stg2FAToggleBtn">Activer la double authentification</button>' +
         '</div>' +
       '</div>' +
-      '<div class="stg-group-label" style="margin-top:20px;">Changer le mot de passe</div>' +
-      '<div class="stg-group">' +
-        '<div class="stg-field"><label>Mot de passe actuel</label><input type="password" id="acOldPwd" placeholder="••••••" autocomplete="current-password" /></div>' +
-        '<div class="stg-field"><label>Nouveau mot de passe</label><input type="password" id="acNewPwd" placeholder="6 caractères min." autocomplete="new-password" /></div>' +
-        '<div class="stg-field"><label>Confirmer</label><input type="password" id="acConfirmPwd" placeholder="••••••" autocomplete="new-password" /></div>' +
+
+      /* Enrollement 2FA (caché par défaut) */
+      '<div id="stg2FAEnrollSection" style="display:none;">' +
+        '<div class="stg-group-label" style="margin-top:20px;">Configuration</div>' +
+        '<div class="stg-group">' +
+          '<div class="stg-qr-wrap" style="padding:20px 16px;">' +
+            '<div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:12px;">Scanne ce QR code avec Google Authenticator ou Authy</div>' +
+            '<img id="stg2FAQrImg" src="" alt="QR Code 2FA" />' +
+            '<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">Ou entre manuellement le code secret :</div>' +
+            '<div id="stg2FASecret" style="font-size:12px;font-weight:700;letter-spacing:2px;color:var(--text);background:var(--s2);padding:8px 14px;border-radius:8px;word-break:break-all;text-align:center;"></div>' +
+          '</div>' +
+          '<div class="stg-field">' +
+            '<label>Code de vérification (6 chiffres)</label>' +
+            '<input type="text" id="stg2FAVerifyInput" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code" style="font-size:22px;letter-spacing:6px;font-weight:700;text-align:center;" />' +
+          '</div>' +
+          '<div style="padding:12px 16px 14px;">' +
+            '<button class="stg-btn stg-btn-primary" id="stg2FAVerifyBtn">Confirmer et activer</button>' +
+          '</div>' +
+          '<div id="stg2FAEnrollMsg" class="stg-field-msg" style="text-align:center;color:var(--green);padding:0 16px 12px;"></div>' +
+        '</div>' +
       '</div>' +
-      '<div style="padding:12px 0;"><button class="stg-btn stg-btn-primary">Changer le mot de passe</button></div>' +
-      '<div id="acPwdMsg" class="stg-field-msg" style="text-align:center;color:var(--green);padding:0 4px;"></div>' +
+
+      /* Désactiver 2FA (caché par défaut) */
+      '<div id="stg2FADisableSection" style="display:none;">' +
+        '<div class="stg-group-label" style="margin-top:20px;">Désactiver</div>' +
+        '<div class="stg-group">' +
+          '<div class="stg-field">' +
+            '<label>Code de vérification actuel</label>' +
+            '<input type="text" id="stg2FADisableInput" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code" style="font-size:22px;letter-spacing:6px;font-weight:700;text-align:center;" />' +
+          '</div>' +
+          '<div style="padding:12px 16px 14px;">' +
+            '<button class="stg-btn stg-btn-danger" id="stg2FADisableBtn">Désactiver la double authentification</button>' +
+          '</div>' +
+          '<div id="stg2FADisableMsg" class="stg-field-msg" style="text-align:center;padding:0 16px 12px;"></div>' +
+        '</div>' +
+      '</div>' +
+
+      /* Changer le mot de passe — accordéon */
+      '<div class="stg-group-label" style="margin-top:24px;">Mot de passe</div>' +
+      '<div class="stg-group">' +
+        '<div class="stg-accordion-header" id="stgPwdAccordionHeader">' +
+          '<div class="stg-accordion-title">Modifier le mot de passe</div>' +
+          '<svg class="stg-accordion-arrow" id="stgPwdAccordionArrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>' +
+        '</div>' +
+        '<div class="stg-accordion-body" id="stgPwdAccordionBody">' +
+          '<div class="stg-field"><label>Mot de passe actuel</label><input type="password" id="acOldPwd" placeholder="••••••" autocomplete="current-password" /></div>' +
+          '<div class="stg-field"><label>Nouveau mot de passe</label><input type="password" id="acNewPwd" placeholder="6 caractères minimum" autocomplete="new-password" /></div>' +
+          '<div class="stg-field"><label>Confirmer</label><input type="password" id="acConfirmPwd" placeholder="••••••" autocomplete="new-password" /></div>' +
+          '<div style="padding:12px 16px 14px;">' +
+            '<button class="stg-btn stg-btn-primary" id="acChangePwdBtn">Changer le mot de passe</button>' +
+          '</div>' +
+          '<div id="acPwdMsg" class="stg-field-msg" style="text-align:center;color:var(--green);padding:0 16px 12px;"></div>' +
+        '</div>' +
+      '</div>' +
+
     '</div>' +
   '</div>';
 
-  /* ── Sous-page ABONNEMENT ── */
+  /* ──────────────────────────────────────────
+     SOUS-PAGE : ABONNEMENT
+  ────────────────────────────────────────── */
   var subAbonnement =
   '<div id="stgSubAbonnement" class="stg-subpage">' +
     '<div class="stg-safe-top"></div>' +
     '<div class="stg-header">' +
-      '<div class="stg-back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>' +
+      '<div class="stg-back">' + BCK + '</div>' +
       '<div class="stg-title">Abonnement</div>' +
     '</div>' +
     '<div style="padding:0 16px 80px;">' +
       '<div class="stg-empty-state" style="margin-top:60px;">' +
         '<div class="stg-empty-icon">✨</div>' +
         '<div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px;">Plan Gratuit</div>' +
-        '<div class="stg-empty-text">Tu profites de toutes les fonctionnalités de YAM gratuitement.<br><br>Des offres premium arriveront bientôt avec des fonctionnalités exclusives 💕</div>' +
+        '<div class="stg-empty-text">Tu profites de toutes les fonctionnalités de YAM gratuitement.<br><br>Des offres premium arrivent bientôt : cosmétiques pour la mascotte YAM, jeux exclusifs, stickers personnalisés et bien plus 💕</div>' +
       '</div>' +
     '</div>' +
   '</div>';
 
-  /* ── Sous-page PRÉFÉRENCES ── */
+  /* ──────────────────────────────────────────
+     SOUS-PAGE : PRÉFÉRENCES
+  ────────────────────────────────────────── */
   var subPrefs =
   '<div id="stgSubPrefs" class="stg-subpage">' +
     '<div class="stg-safe-top"></div>' +
     '<div class="stg-header">' +
-      '<div class="stg-back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>' +
+      '<div class="stg-back">' + BCK + '</div>' +
       '<div class="stg-title">Préférences</div>' +
     '</div>' +
     '<div style="padding:0 16px 80px;">' +
       '<div style="font-size:12px;color:var(--muted);padding:20px 4px 4px;">Sélectionne tes centres d\'intérêt pour que YAM puisse te suggérer des idées cadeaux et activités personnalisées.</div>' +
-
       '<div class="stg-group-label">Loisirs & activités</div>' +
       '<div class="stg-tags" id="stgPrefsLoisirs">' +
         '<div class="stg-tag" data-pref="cuisine">🍳 Cuisine</div>' +
@@ -830,7 +1031,6 @@ body.settings-open header,body.settings-open .bottom-nav{display:none!important;
         '<div class="stg-tag" data-pref="photo">📷 Photo</div>' +
         '<div class="stg-tag" data-pref="art">🎨 Art & créa</div>' +
       '</div>' +
-
       '<div class="stg-group-label">Style cadeaux</div>' +
       '<div class="stg-tags" id="stgPrefsGifts">' +
         '<div class="stg-tag" data-pref="fait-main">🎁 Fait main</div>' +
@@ -842,7 +1042,6 @@ body.settings-open header,body.settings-open .bottom-nav{display:none!important;
         '<div class="stg-tag" data-pref="deco">🏠 Déco maison</div>' +
         '<div class="stg-tag" data-pref="livres">📖 Livres</div>' +
       '</div>' +
-
       '<div class="stg-group-label">Types de sorties</div>' +
       '<div class="stg-tags" id="stgPrefsSorties">' +
         '<div class="stg-tag" data-pref="restaurant">🍽️ Restaurant</div>' +
@@ -854,18 +1053,18 @@ body.settings-open header,body.settings-open .bottom-nav{display:none!important;
         '<div class="stg-tag" data-pref="parc">🎢 Parcs & attractions</div>' +
         '<div class="stg-tag" data-pref="marche">🛍️ Marchés & brocantes</div>' +
       '</div>' +
-
       '<div id="stgPrefsSaveMsg" class="stg-field-msg" style="text-align:center;color:var(--green);padding:8px;"></div>' +
-
     '</div>' +
   '</div>';
 
-  /* ── Sous-page APPARENCE ── */
+  /* ──────────────────────────────────────────
+     SOUS-PAGE : APPARENCE
+  ────────────────────────────────────────── */
   var subAppearance =
   '<div id="stgSubAppearance" class="stg-subpage">' +
     '<div class="stg-safe-top"></div>' +
     '<div class="stg-header">' +
-      '<div class="stg-back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>' +
+      '<div class="stg-back">' + BCK + '</div>' +
       '<div class="stg-title">Apparence</div>' +
     '</div>' +
     '<div style="padding:0 16px 80px;">' +
@@ -882,33 +1081,224 @@ body.settings-open header,body.settings-open .bottom-nav{display:none!important;
     '</div>' +
   '</div>';
 
-  /* ── Sous-page NOTIFICATIONS ── */
+  /* ──────────────────────────────────────────
+     SOUS-PAGE : NOTIFICATIONS
+  ────────────────────────────────────────── */
   var subNotifs =
   '<div id="stgSubNotifs" class="stg-subpage">' +
     '<div class="stg-safe-top"></div>' +
     '<div class="stg-header">' +
-      '<div class="stg-back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>' +
+      '<div class="stg-back">' + BCK + '</div>' +
       '<div class="stg-title">Notifications</div>' +
     '</div>' +
     '<div style="padding:0 16px 80px;">' +
       '<div class="stg-empty-state" style="margin-top:60px;">' +
         '<div class="stg-empty-icon">🔔</div>' +
         '<div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px;">Bientôt disponible</div>' +
-        '<div class="stg-empty-text">Les notifications push arriveront dans une prochaine mise à jour.<br><br>Tu pourras choisir de recevoir des alertes pour les messages, bêtises et rappels du jour.</div>' +
+        '<div class="stg-empty-text">Les paramètres de notifications arrivent dans une prochaine mise à jour.<br><br>Tu pourras choisir de recevoir des alertes pour les messages, bêtises et rappels du jour.</div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+  /* ──────────────────────────────────────────
+     SOUS-PAGE : CGU
+  ────────────────────────────────────────── */
+  var subCGU =
+  '<div id="stgSubCGU" class="stg-subpage">' +
+    '<div class="stg-safe-top"></div>' +
+    '<div class="stg-header">' +
+      '<div class="stg-back">' + BCK + '</div>' +
+      '<div class="stg-title">CGU</div>' +
+    '</div>' +
+    '<div class="stg-legal-content">' +
+      '<p style="font-size:12px;color:var(--muted);">Dernière mise à jour : mars 2026 — Version bêta</p>' +
+      '<h2>1. Présentation de l\'application</h2>' +
+      '<p>YAM (You And Me) est une application mobile de couple disponible sur iOS et Android, développée et éditée par Jayaana. L\'application est actuellement en phase bêta (accès restreint à 200 utilisateurs) avant son ouverture au grand public.</p>' +
+      '<h2>2. Acceptation des conditions</h2>' +
+      '<p>En créant un compte ou en utilisant YAM, vous acceptez sans réserve les présentes Conditions Générales d\'Utilisation. Si vous n\'acceptez pas ces conditions, vous ne pouvez pas utiliser l\'application.</p>' +
+      '<h2>3. Accès et compte utilisateur</h2>' +
+      '<h3>3.1 Création de compte</h3>' +
+      '<p>Pour utiliser YAM, vous devez créer un compte avec une adresse e-mail valide et un mot de passe. Vous êtes responsable de la confidentialité de vos identifiants. Toute utilisation frauduleuse doit être signalée immédiatement.</p>' +
+      '<h3>3.2 Âge minimum</h3>' +
+      '<p>L\'utilisation de YAM est réservée aux personnes âgées de 13 ans ou plus. En dessous de 16 ans, le consentement parental est requis conformément au RGPD.</p>' +
+      '<h3>3.3 Couple</h3>' +
+      '<p>YAM est conçu pour être utilisé en couple. Chaque utilisateur peut être lié à un seul partenaire à la fois via un code couple. La liaison est volontaire et révocable à tout moment.</p>' +
+      '<h2>4. Contenu utilisateur</h2>' +
+      '<p>Vous restez propriétaire de tout contenu que vous publiez sur YAM (messages, photos, souvenirs). En publiant du contenu, vous accordez à Jayaana une licence limitée, non exclusive, pour l\'hébergement et la transmission technique de ce contenu à votre partenaire.</p>' +
+      '<p>Il est interdit de publier tout contenu illicite, offensant, menaçant, ou portant atteinte aux droits d\'autrui.</p>' +
+      '<h2>5. Fonctionnalités et abonnements</h2>' +
+      '<h3>5.1 Version gratuite</h3>' +
+      '<p>YAM propose une version gratuite donnant accès aux fonctionnalités de base : messagerie, souvenirs, jeux, musique partagée, flamme de couple et bêtises.</p>' +
+      '<h3>5.2 Fonctionnalités premium (à venir)</h3>' +
+      '<p>Des fonctionnalités payantes seront proposées, notamment : cosmétiques pour la mascotte YAM, jeux premium, stickers exclusifs et thèmes personnalisés. Les tarifs seront communiqués lors du lancement. Les achats in-app sont non remboursables sauf obligation légale.</p>' +
+      '<h2>6. Propriété intellectuelle</h2>' +
+      '<p>YAM, son logo, sa mascotte, son design et tous ses contenus sont la propriété exclusive de Jayaana. Toute reproduction ou utilisation sans autorisation est interdite.</p>' +
+      '<h2>7. Responsabilité</h2>' +
+      '<p>YAM est fourni "tel quel", en phase bêta. Jayaana ne garantit pas une disponibilité continue du service. Jayaana ne peut être tenu responsable des pertes de données ou préjudices indirects résultant de l\'utilisation de l\'application.</p>' +
+      '<h2>8. Résiliation</h2>' +
+      '<p>Vous pouvez supprimer votre compte à tout moment depuis les paramètres de l\'application. Jayaana se réserve le droit de suspendre ou supprimer un compte en cas de violation des présentes CGU.</p>' +
+      '<h2>9. Modifications</h2>' +
+      '<p>Ces CGU peuvent être modifiées. Les utilisateurs seront informés par notification dans l\'application. La poursuite de l\'utilisation après modification vaut acceptation.</p>' +
+      '<h2>10. Droit applicable</h2>' +
+      '<p>Les présentes CGU sont soumises au droit français. Tout litige relève des tribunaux compétents de Paris.</p>' +
+      '<h2>11. Contact</h2>' +
+      '<p>Pour toute question concernant ces CGU : <strong>jacoob.jr22@gmail.com</strong></p>' +
+    '</div>' +
+  '</div>';
+
+  /* ──────────────────────────────────────────
+     SOUS-PAGE : POLITIQUE DE CONFIDENTIALITÉ
+  ────────────────────────────────────────── */
+  var subPrivacy =
+  '<div id="stgSubPrivacy" class="stg-subpage">' +
+    '<div class="stg-safe-top"></div>' +
+    '<div class="stg-header">' +
+      '<div class="stg-back">' + BCK + '</div>' +
+      '<div class="stg-title">Confidentialité</div>' +
+    '</div>' +
+    '<div class="stg-legal-content">' +
+      '<p style="font-size:12px;color:var(--muted);">Dernière mise à jour : mars 2026 — Conforme RGPD</p>' +
+      '<h2>1. Responsable du traitement</h2>' +
+      '<p>Jayaana, joignable à : <strong>jacoob.jr22@gmail.com</strong></p>' +
+      '<h2>2. Données collectées</h2>' +
+      '<h3>Données que vous nous fournissez</h3>' +
+      '<ul><li>Adresse e-mail et mot de passe (chiffré)</li><li>Pseudo et rôle dans le couple</li><li>Genre et date de naissance (optionnels)</li><li>Photo de profil (optionnelle)</li><li>Contenu que vous créez : messages, souvenirs, humeurs, rappels, activités</li></ul>' +
+      '<h3>Données collectées automatiquement</h3>' +
+      '<ul><li>Logs de connexion (date, appareil)</li><li>Données techniques d\'utilisation (crashs, erreurs)</li></ul>' +
+      '<h2>3. Finalités du traitement</h2>' +
+      '<ul><li>Fourniture du service YAM et ses fonctionnalités</li><li>Authentification et sécurité du compte</li><li>Personnalisation des suggestions (IA)</li><li>Envoi de notifications push (avec consentement)</li><li>Amélioration de l\'application</li></ul>' +
+      '<h2>4. Base légale</h2>' +
+      '<p>Le traitement est fondé sur l\'exécution du contrat (CGU) pour les données nécessaires au service, et sur le consentement pour les données optionnelles (notifications, centres d\'intérêt).</p>' +
+      '<h2>5. Conservation des données</h2>' +
+      '<p>Vos données sont conservées pendant toute la durée de vie de votre compte. À la suppression du compte, toutes les données personnelles sont effacées dans un délai de 30 jours.</p>' +
+      '<h2>6. Sécurité</h2>' +
+      '<p>Vos données sont hébergées sur Supabase (infrastructure AWS, Union Européenne). Les communications sont chiffrées TLS. Les mots de passe sont hachés (bcrypt). Nous proposons la double authentification (2FA) pour renforcer la sécurité de votre compte.</p>' +
+      '<h2>7. Partage des données</h2>' +
+      '<p>Vos données personnelles ne sont jamais vendues. Elles sont partagées uniquement :</p>' +
+      '<ul><li>Avec votre partenaire lié (contenu du couple)</li><li>Avec Supabase (hébergement technique)</li><li>Avec Groq (génération de suggestions IA — données anonymisées)</li></ul>' +
+      '<h2>8. Vos droits (RGPD)</h2>' +
+      '<p>Vous disposez des droits suivants :</p>' +
+      '<ul><li><strong>Accès</strong> : obtenir une copie de vos données</li><li><strong>Rectification</strong> : corriger vos informations</li><li><strong>Effacement</strong> : supprimer votre compte depuis les paramètres</li><li><strong>Portabilité</strong> : recevoir vos données dans un format structuré</li><li><strong>Opposition</strong> : vous opposer à certains traitements</li></ul>' +
+      '<p>Pour exercer ces droits : <strong>jacoob.jr22@gmail.com</strong></p>' +
+      '<h2>9. Cookies et stockage local</h2>' +
+      '<p>YAM utilise le stockage local (localStorage) pour maintenir votre session et vos préférences. Aucun cookie de tracking publicitaire n\'est utilisé.</p>' +
+      '<h2>10. Contact DPO</h2>' +
+      '<p>Pour toute question relative à la protection de vos données : <strong>jacoob.jr22@gmail.com</strong></p>' +
+    '</div>' +
+  '</div>';
+
+  /* ──────────────────────────────────────────
+     SOUS-PAGE : MENTIONS LÉGALES
+  ────────────────────────────────────────── */
+  var subMentions =
+  '<div id="stgSubMentions" class="stg-subpage">' +
+    '<div class="stg-safe-top"></div>' +
+    '<div class="stg-header">' +
+      '<div class="stg-back">' + BCK + '</div>' +
+      '<div class="stg-title">Mentions légales</div>' +
+    '</div>' +
+    '<div class="stg-legal-content">' +
+      '<h2>Éditeur de l\'application</h2>' +
+      '<p><strong>Jayaana</strong><br>Application YAM — You And Me<br>Contact : jacoob.jr22@gmail.com</p>' +
+      '<h2>Hébergement</h2>' +
+      '<p><strong>Supabase Inc.</strong><br>970 Toa Payoh North #07-04, Singapore 318992<br>Infrastructure : Amazon Web Services (AWS), région Europe<br>Site : supabase.com</p>' +
+      '<h2>Distribution</h2>' +
+      '<p>Application distribuée via GitHub Pages (version web) et prochainement via l\'App Store (Apple) et Google Play (Google).</p>' +
+      '<h2>Propriété intellectuelle</h2>' +
+      '<p>L\'ensemble des éléments constituant l\'application YAM (code source, design, mascotte, logo, textes) est protégé par le droit d\'auteur et appartient à Jayaana. Toute reproduction, représentation ou diffusion sans autorisation expresse est interdite.</p>' +
+      '<h2>Données personnelles</h2>' +
+      '<p>Conformément au Règlement Général sur la Protection des Données (RGPD — UE 2016/679), vous disposez d\'un droit d\'accès, de rectification et de suppression de vos données. Voir la Politique de Confidentialité pour plus de détails.</p>' +
+      '<h2>Responsabilité</h2>' +
+      '<p>L\'application est proposée en phase bêta. Jayaana s\'efforce d\'assurer la disponibilité et l\'exactitude des informations mais ne peut garantir l\'absence d\'interruptions ou d\'erreurs.</p>' +
+      '<h2>Droit applicable</h2>' +
+      '<p>Les présentes mentions légales sont soumises au droit français. Tout litige relève de la compétence exclusive des tribunaux français.</p>' +
+      '<p style="margin-top:24px;font-size:11px;color:var(--muted);">© 2026 Jayaana — Tous droits réservés</p>' +
+    '</div>' +
+  '</div>';
+
+  /* ──────────────────────────────────────────
+     MODALE SIGNALER UN BUG
+  ────────────────────────────────────────── */
+  var bugModal =
+  '<div id="stgBugOverlay" class="stg-bug-overlay">' +
+    '<div class="stg-bug-sheet">' +
+      '<div class="stg-bug-handle"></div>' +
+      '<div class="stg-bug-title">🐛 Signaler un bug</div>' +
+      '<div style="font-size:12px;color:var(--muted);padding:0 20px 12px;">Sélectionne la catégorie qui correspond le mieux au bug rencontré</div>' +
+
+      '<div class="stg-bug-cats">' +
+        '<div class="stg-bug-cat" data-cat="ui">' +
+          '<div class="stg-bug-cat-icon" style="background:rgba(124,106,247,.12);">🎨</div>' +
+          '<div class="stg-bug-cat-label">Affichage / Interface</div>' +
+          '<div class="stg-bug-cat-check"></div>' +
+        '</div>' +
+        '<div class="stg-bug-cat" data-cat="messages">' +
+          '<div class="stg-bug-cat-icon" style="background:rgba(60,180,255,.12);">💬</div>' +
+          '<div class="stg-bug-cat-label">Messages / Chat</div>' +
+          '<div class="stg-bug-cat-check"></div>' +
+        '</div>' +
+        '<div class="stg-bug-cat" data-cat="jeux">' +
+          '<div class="stg-bug-cat-icon" style="background:rgba(110,148,132,.12);">🎮</div>' +
+          '<div class="stg-bug-cat-label">Jeux</div>' +
+          '<div class="stg-bug-cat-check"></div>' +
+        '</div>' +
+        '<div class="stg-bug-cat" data-cat="musique">' +
+          '<div class="stg-bug-cat-icon" style="background:rgba(231,90,124,.12);">🎵</div>' +
+          '<div class="stg-bug-cat-label">Musique</div>' +
+          '<div class="stg-bug-cat-check"></div>' +
+        '</div>' +
+        '<div class="stg-bug-cat" data-cat="nous">' +
+          '<div class="stg-bug-cat-icon" style="background:rgba(255,160,50,.12);">❤️</div>' +
+          '<div class="stg-bug-cat-label">Section Nous</div>' +
+          '<div class="stg-bug-cat-check"></div>' +
+        '</div>' +
+        '<div class="stg-bug-cat" data-cat="notifs">' +
+          '<div class="stg-bug-cat-icon" style="background:rgba(240,102,136,.12);">🔔</div>' +
+          '<div class="stg-bug-cat-label">Notifications</div>' +
+          '<div class="stg-bug-cat-check"></div>' +
+        '</div>' +
+        '<div class="stg-bug-cat" data-cat="auth">' +
+          '<div class="stg-bug-cat-icon" style="background:rgba(34,197,94,.12);">🔐</div>' +
+          '<div class="stg-bug-cat-label">Connexion / Compte</div>' +
+          '<div class="stg-bug-cat-check"></div>' +
+        '</div>' +
+        '<div class="stg-bug-cat" data-cat="autre">' +
+          '<div class="stg-bug-cat-icon" style="background:rgba(185,153,112,.12);">🔧</div>' +
+          '<div class="stg-bug-cat-label">Autre</div>' +
+          '<div class="stg-bug-cat-check"></div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="stg-bug-desc-wrap">' +
+        '<textarea id="stgBugDesc" class="stg-bug-desc" placeholder="Décris le bug en détail : que faisais-tu ? que s\'est-il passé ? (optionnel)"></textarea>' +
+      '</div>' +
+      '<div class="stg-bug-send">' +
+        '<button class="stg-btn stg-btn-primary" id="stgBugSendBtn">Envoyer le signalement</button>' +
+      '</div>' +
+      '<div id="stgBugMsg" style="font-size:12px;text-align:center;padding:8px 20px 4px;min-height:20px;color:var(--green);"></div>' +
+      '<div style="padding:0 20px 8px;">' +
+        '<button class="stg-btn stg-btn-ghost" id="stgBugCancelBtn">Annuler</button>' +
       '</div>' +
     '</div>' +
   '</div>';
 
   /* ── Injection ── */
-  document.body.insertAdjacentHTML('beforeend', mainHTML + subCouple + subSecurity + subAbonnement + subPrefs + subAppearance + subNotifs);
-  // Safety: s'assurer que settingsView démarre fermé
+  document.body.insertAdjacentHTML('beforeend',
+    mainHTML + subMonCompte + subCouple + subSecurity + subAbonnement +
+    subPrefs + subAppearance + subNotifs +
+    subCGU + subPrivacy + subMentions + bugModal
+  );
+
   var _sv = document.getElementById('settingsView');
   if (_sv) { _sv.classList.remove('active'); document.body.classList.remove('settings-open'); }
 
-  /* ── Event delegation — remplace tous les onclick= retirés des strings HTML (#89 CSP) ── */
+  /* ──────────────────────────────────────────
+     EVENT DELEGATION
+  ────────────────────────────────────────── */
   document.body.addEventListener('click', function(e) {
     var t = e.target;
-    // stg-back : fermer le modal principal
+
+    // stg-back principal
     if (t.closest && t.closest('#settingsView > .stg-header .stg-back')) {
       window.closeAccountModal && window.closeAccountModal(); return;
     }
@@ -924,20 +1314,81 @@ body.settings-open header,body.settings-open .bottom-nav{display:none!important;
     if (t.id === 'acEditPseudoBtn' || (t.closest && t.closest('#acEditPseudoBtn'))) {
       window.acToggleEditPseudo && window.acToggleEditPseudo(); return;
     }
-    // Pseudo : sauvegarder (bouton \u2713 dans acEditPseudoRow)
+    // Pseudo : sauvegarder
     if (t.closest && t.closest('#acEditPseudoRow') && t.tagName === 'BUTTON' && t.textContent.trim() === '\u2713') {
       window.acSavePseudo && window.acSavePseudo(); return;
     }
-    // Pseudo : annuler (bouton \u2715 dans acEditPseudoRow)
+    // Pseudo : annuler
     if (t.closest && t.closest('#acEditPseudoRow') && t.tagName === 'BUTTON' && t.textContent.trim() === '\u2715') {
       window.acCancelEditPseudo && window.acCancelEditPseudo(); return;
     }
+
     // Déconnexion
-    if (t.closest && t.closest('.stg-btn-danger')) {
+    if (t.id === 'stgLogoutBtn' || (t.closest && t.closest('#stgLogoutBtn'))) {
       window.nativeLogout && window.nativeLogout(); return;
     }
 
-    // ── Admin monitoring #58 ──────────────────────────────────
+    // Vider cache
+    if (t.id === 'stgClearCacheBtn' || (t.closest && t.closest('#stgClearCacheBtn'))) {
+      _clearCache(); return;
+    }
+
+    // Contacter le support
+    if (t.id === 'stgContactSupportBtn' || (t.closest && t.closest('#stgContactSupportBtn'))) {
+      window.location.href = 'mailto:jacoob.jr22@gmail.com?subject=Support YAM&body=Version : ' + (document.getElementById('stgVersionLabel') ? document.getElementById('stgVersionLabel').textContent : 'YAM');
+      return;
+    }
+
+    // Signaler un bug : ouvrir modale
+    if (t.id === 'stgReportBugBtn' || (t.closest && t.closest('#stgReportBugBtn'))) {
+      _openBugModal(); return;
+    }
+
+    // Bug modal : sélection catégorie
+    var bugCat = t.closest && t.closest('.stg-bug-cat');
+    if (bugCat) {
+      document.querySelectorAll('.stg-bug-cat').forEach(function(c){ c.classList.remove('selected'); });
+      bugCat.classList.add('selected');
+      return;
+    }
+
+    // Bug modal : envoyer
+    if (t.id === 'stgBugSendBtn') { _sendBugReport(); return; }
+
+    // Bug modal : annuler / fermer overlay
+    if (t.id === 'stgBugCancelBtn') { _closeBugModal(); return; }
+    if (t.id === 'stgBugOverlay' && t === document.getElementById('stgBugOverlay')) { _closeBugModal(); return; }
+
+    // Accordion MDP
+    if (t.id === 'stgPwdAccordionHeader' || (t.closest && t.closest('#stgPwdAccordionHeader'))) {
+      _togglePwdAccordion(); return;
+    }
+
+    // Changer MDP
+    if (t.id === 'acChangePwdBtn') { window.acChangePwd && window.acChangePwd(); return; }
+
+    // Mon compte : enregistrer
+    if (t.id === 'acSaveMonCompteBtn') { _saveMonCompte(); return; }
+
+    // Supprimer compte : afficher confirm
+    if (t.id === 'acDeleteAccountBtn' || (t.closest && t.closest('#acDeleteAccountBtn'))) {
+      var dc = document.getElementById('acDeleteAccountConfirm');
+      if (dc) dc.style.display = dc.style.display === 'none' ? 'block' : 'none';
+      return;
+    }
+    if (t.id === 'acDeleteAccountConfirmYes') { _deleteAccount(); return; }
+    if (t.id === 'acDeleteAccountConfirmNo') {
+      var dc2 = document.getElementById('acDeleteAccountConfirm');
+      if (dc2) dc2.style.display = 'none';
+      return;
+    }
+
+    // 2FA : toggle btn
+    if (t.id === 'stg2FAToggleBtn') { _2faStartEnroll(); return; }
+    if (t.id === 'stg2FAVerifyBtn') { _2faVerify(); return; }
+    if (t.id === 'stg2FADisableBtn') { _2faDisable(); return; }
+
+    // Admin monitoring
     if (t.id === 'stgAdminErrorsBtn') {
       var panel = document.getElementById('stgAdminErrorsPanel');
       if (!panel) return;
@@ -952,87 +1403,81 @@ body.settings-open header,body.settings-open .bottom-nav{display:none!important;
         if(!rows.length){
           panel.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">Aucune erreur récente 🎉</div>';
         } else {
-          panel.innerHTML = rows.map(function(e){
-            var d = new Date(e.created_at).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+          panel.innerHTML = rows.map(function(err){
+            var d = new Date(err.created_at).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
             return '<div style="border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:6px;font-size:11px;">'+
-              '<div style="font-weight:700;color:var(--text);margin-bottom:2px;">'+escHtml(e.message||'')+'</div>'+
-              '<div style="color:var(--muted);">'+escHtml(e.context||'—')+' · '+d+'</div>'+
-              (e.stack_preview ? '<div style="color:var(--muted);font-size:10px;margin-top:2px;white-space:pre-wrap;opacity:.7;">'+escHtml(e.stack_preview.substring(0,120))+'</div>' : '')+
+              '<div style="font-weight:700;color:var(--text);margin-bottom:2px;">'+(err.message||'')+'</div>'+
+              '<div style="color:var(--muted);">'+(err.context||'—')+' · '+d+'</div>'+
             '</div>';
-          }).join('') +
-          '<button id="stgAdminErrClear" style="font-size:11px;color:#e05555;background:none;border:none;cursor:pointer;margin-top:4px;">🗑 Tout effacer</button>';
+          }).join('');
         }
         panel.style.display = 'block';
-        // Bouton effacer
-        var clearBtn = document.getElementById('stgAdminErrClear');
-        if(clearBtn) clearBtn.addEventListener('click', function(){
-          var _u = yamGetUser ? yamGetUser() : null;
-          fetch(SB_URL + '/rest/v1/errors_log?couple_id=eq.' + (_u ? _u.couple_id : ''), {
-            method: 'DELETE',
-            headers: { 'apikey': SB_ANON_KEY, 'Authorization': 'Bearer ' + (yamGetAccessToken ? yamGetAccessToken() : ''), 'Prefer': 'return=minimal' }
-          }).then(function(){ panel.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">Erreurs effacées 🎉</div>'; });
-        });
       })
-      .catch(function(){ t.textContent = '🛠 Monitoring erreurs'; panel.innerHTML = '<div style="font-size:12px;color:#e05555;padding:8px 0;">Erreur de chargement</div>'; panel.style.display = 'block'; });
+      .catch(function(){ t.textContent = '🛠 Monitoring erreurs'; panel.style.display = 'block'; });
       return;
     }
-    // Rows : ouvrir sous-pages (via data-sub ajouté dans le HTML)
+
+    // Rows data-sub
     var row = t.closest && t.closest('.stg-row[data-sub]');
     if (row) { window.stgOpenSub && window.stgOpenSub(row.dataset.sub); return; }
-    // stg-back dans sous-pages : fermer sous-page
+
+    // stg-back dans sous-pages
     var backInSub = t.closest && t.closest('.stg-subpage .stg-back');
     if (backInSub) {
       var subPage = backInSub.closest('.stg-subpage');
       if (subPage) window.stgCloseSub && window.stgCloseSub(subPage.id); return;
     }
-    // Copier code couple
+
+    // Couple actions
     if (t.id === 'acCopyBtn') { window.acCopyCode && window.acCopyCode(); return; }
-    // Délier partenaire
     if (t.id === 'acUnlinkBtn') { window.acConfirmUnlink && window.acConfirmUnlink(); return; }
-    // Confirmer délier
     if (t.closest && t.closest('#acUnlinkConfirm')) {
       var btns = document.querySelectorAll('#acUnlinkConfirm button');
       if (t === btns[0]) { window.acDoUnlink && window.acDoUnlink(); return; }
       if (t === btns[1]) { window.acCancelUnlink && window.acCancelUnlink(); return; }
     }
-    // Lier partenaire
     if (t.closest && t.closest('#acLinkSection') && t.tagName === 'BUTTON') {
       window.acLinkPartner && window.acLinkPartner(); return;
     }
-    // Enregistrer date anniversaire
     if (t.closest && t.closest('#stgSubCouple') && t.tagName === 'BUTTON' && t.textContent.indexOf('Enregistrer') !== -1) {
       window.acSaveStartDate && window.acSaveStartDate(); return;
     }
-    // Changer mot de passe
-    if (t.closest && t.closest('#stgSubSecurity') && t.tagName === 'BUTTON' && t.textContent.indexOf('Changer') !== -1) {
-      window.acChangePwd && window.acChangePwd(); return;
-    }
+
     // Thème pills
     if (t.id === 'stgThemeDark')  { window.stgSetTheme && window.stgSetTheme('dark');  return; }
     if (t.id === 'stgThemeLight') { window.stgSetTheme && window.stgSetTheme('light'); return; }
+
+    // Prefs tags
+    var tag = t.closest && t.closest('.stg-tag[data-pref]');
+    if (tag) { tag.classList.toggle('on'); _stgSavePrefs(); return; }
   });
 
-  // onchange avatar input
   document.body.addEventListener('change', function(e) {
     if (e.target && e.target.id === 'acAvatarInput') {
       window.acHandleAvatarUpload && window.acHandleAvatarUpload(e.target);
     }
   });
 
-
-
-  /* ── Navigation sous-pages ── */
+  /* ──────────────────────────────────────────
+     NAVIGATION SOUS-PAGES
+  ────────────────────────────────────────── */
   window.stgOpenSub = function(id){
     var el = document.getElementById(id);
     if(el) el.classList.add('active');
-    // Sync thème pills
     if(id === 'stgSubAppearance') _stgSyncTheme();
-    // Sync préférences tags
     if(id === 'stgSubPrefs') _stgLoadPrefs();
-    // Charger l'email tronqué dans la page sécurité
-    if(id === 'stgSubSecurity') _stgLoadEmail();
+    if(id === 'stgSubSecurity') { _stgLoadEmail(); _2faCheckStatus(); }
+    if(id === 'stgSubMonCompte') { _stgLoadEmail(); _loadMonCompte(); }
   };
 
+  window.stgCloseSub = function(id){
+    var el = document.getElementById(id);
+    if(el) el.classList.remove('active');
+  };
+
+  /* ──────────────────────────────────────────
+     EMAIL MASQUÉ
+  ────────────────────────────────────────── */
   function _maskEmail(email){
     var parts = email.split('@');
     if(!parts[0] || !parts[1]) return email;
@@ -1044,29 +1489,355 @@ body.settings-open header,body.settings-open .bottom-nav{display:none!important;
   function _stgLoadEmail(){
     var el = document.getElementById('acEmailDisplay');
     if(!el) return;
-    // Appel Supabase Auth pour récupérer l'email réel
     fetch(SB_URL + '/auth/v1/user', {
-      headers: {
-        'apikey': SB_ANON_KEY,
-        'Authorization': 'Bearer ' + (yamGetAccessToken ? yamGetAccessToken() : ''),
-      }
+      headers: { 'apikey': SB_ANON_KEY, 'Authorization': 'Bearer ' + (yamGetAccessToken ? yamGetAccessToken() : '') }
     })
     .then(function(r){ return r.json(); })
     .then(function(data){
-      if(data && data.email){
-        el.textContent = _maskEmail(data.email);
-      } else {
-        el.textContent = '—';
-      }
+      if(data && data.email){ el.textContent = _maskEmail(data.email); }
+      else { el.textContent = '—'; }
     })
     .catch(function(){ el.textContent = '—'; });
   }
-  window.stgCloseSub = function(id){
-    var el = document.getElementById(id);
-    if(el) el.classList.remove('active');
-  };
 
-  /* ── Thème ── */
+  /* ──────────────────────────────────────────
+     MON COMPTE — charger / enregistrer
+  ────────────────────────────────────────── */
+  function _loadMonCompte(){
+    var u = yamGetUser ? yamGetUser() : null;
+    if(!u) return;
+    var pseudoEl = document.getElementById('acMonComptePseudo');
+    var genreEl  = document.getElementById('acMonCompteGenre');
+    var birthEl  = document.getElementById('acMonCompteBirth');
+    if(pseudoEl) pseudoEl.value = u.pseudo || '';
+    // Genre et naissance stockés dans user_metadata
+    fetch(SB_URL + '/auth/v1/user', {
+      headers: { 'apikey': SB_ANON_KEY, 'Authorization': 'Bearer ' + (yamGetAccessToken ? yamGetAccessToken() : '') }
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(data && data.user_metadata){
+        if(genreEl && data.user_metadata.genre) genreEl.value = data.user_metadata.genre;
+        if(birthEl && data.user_metadata.birth_date) birthEl.value = data.user_metadata.birth_date;
+      }
+    })
+    .catch(function(){});
+  }
+
+  function _saveMonCompte(){
+    var u = yamGetUser ? yamGetUser() : null;
+    if(!u) return;
+    var pseudoEl = document.getElementById('acMonComptePseudo');
+    var genreEl  = document.getElementById('acMonCompteGenre');
+    var birthEl  = document.getElementById('acMonCompteBirth');
+    var msg      = document.getElementById('acMonCompteMsg');
+    var newPseudo = pseudoEl ? pseudoEl.value.trim() : '';
+    var genre     = genreEl ? genreEl.value : '';
+    var birth     = birthEl ? birthEl.value : '';
+
+    if(!newPseudo || newPseudo.length < 2){
+      if(msg){ msg.textContent = '⚠️ Pseudo trop court (2 min)'; msg.style.color = '#e05555'; } return;
+    }
+    if(msg){ msg.textContent = '⏳ Enregistrement...'; msg.style.color = 'var(--muted)'; }
+
+    var token = yamGetAccessToken ? yamGetAccessToken() : '';
+    // Mettre à jour user_metadata (genre + naissance) via Supabase Auth
+    fetch(SB_URL + '/auth/v1/user', {
+      method: 'PUT',
+      headers: { 'apikey': SB_ANON_KEY, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: { genre: genre, birth_date: birth } })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(){
+      // Mettre à jour le pseudo si changé
+      if(newPseudo !== u.pseudo){
+        return window.v3Auth ? window.v3Auth('update_pseudo', { user_id: u.id, new_pseudo: newPseudo }) : Promise.resolve({ ok: true });
+      }
+      return Promise.resolve({ ok: true });
+    })
+    .then(function(res){
+      if(res && res.error){
+        if(msg){ msg.textContent = '❌ ' + res.error; msg.style.color = '#e05555'; }
+      } else {
+        if(msg){ msg.textContent = '✅ Informations enregistrées !'; msg.style.color = 'var(--green)'; }
+        if(window.v2RefreshSession) window.v2RefreshSession();
+        setTimeout(function(){ if(msg) msg.textContent = ''; }, 3000);
+      }
+    })
+    .catch(function(){
+      if(msg){ msg.textContent = '❌ Erreur réseau'; msg.style.color = '#e05555'; }
+    });
+  }
+
+  /* ──────────────────────────────────────────
+     SUPPRIMER COMPTE
+  ────────────────────────────────────────── */
+  function _deleteAccount(){
+    var u = yamGetUser ? yamGetUser() : null;
+    var msg = document.getElementById('acDeleteAccountMsg');
+    if(!u){ if(msg){ msg.textContent = '⚠️ Non connecté'; } return; }
+    if(msg){ msg.textContent = '⏳ Suppression en cours...'; }
+
+    window.v3Auth('delete_account', { user_id: u.id })
+    .then(function(res){
+      if(res && res.error){
+        if(msg){ msg.textContent = '❌ ' + res.error; }
+      } else {
+        if(msg){ msg.textContent = '✅ Compte supprimé. Au revoir 👋'; }
+        setTimeout(function(){ window.nativeLogout && window.nativeLogout(); }, 2000);
+      }
+    })
+    .catch(function(){
+      if(msg){ msg.textContent = '❌ Erreur réseau'; }
+    });
+  }
+
+  /* ──────────────────────────────────────────
+     ACCORDÉON MDP
+  ────────────────────────────────────────── */
+  function _togglePwdAccordion(){
+    var body  = document.getElementById('stgPwdAccordionBody');
+    var arrow = document.getElementById('stgPwdAccordionArrow');
+    if(!body) return;
+    var open = body.classList.toggle('open');
+    if(arrow) arrow.classList.toggle('open', open);
+  }
+
+  /* ──────────────────────────────────────────
+     VIDER LE CACHE
+  ────────────────────────────────────────── */
+  function _clearCache(){
+    var status = document.getElementById('stgClearCacheStatus');
+    if(status) status.textContent = '⏳';
+    if('caches' in window){
+      caches.keys().then(function(keys){
+        return Promise.all(keys.map(function(k){ return caches.delete(k); }));
+      }).then(function(){
+        if(status) status.textContent = '✅';
+        setTimeout(function(){ location.reload(); }, 800);
+      }).catch(function(){
+        if(status) status.textContent = '❌';
+      });
+    } else {
+      if(status) status.textContent = '✅';
+      setTimeout(function(){ location.reload(); }, 500);
+    }
+  }
+
+  /* ──────────────────────────────────────────
+     SIGNALER UN BUG
+  ────────────────────────────────────────── */
+  function _openBugModal(){
+    var ov = document.getElementById('stgBugOverlay');
+    if(ov) ov.classList.add('open');
+    document.querySelectorAll('.stg-bug-cat').forEach(function(c){ c.classList.remove('selected'); });
+    var desc = document.getElementById('stgBugDesc');
+    if(desc) desc.value = '';
+    var msg = document.getElementById('stgBugMsg');
+    if(msg) msg.textContent = '';
+  }
+
+  function _closeBugModal(){
+    var ov = document.getElementById('stgBugOverlay');
+    if(ov) ov.classList.remove('open');
+  }
+
+  function _sendBugReport(){
+    var selected = document.querySelector('.stg-bug-cat.selected');
+    var desc     = document.getElementById('stgBugDesc');
+    var msg      = document.getElementById('stgBugMsg');
+    var btn      = document.getElementById('stgBugSendBtn');
+
+    if(!selected){
+      if(msg){ msg.textContent = '⚠️ Sélectionne une catégorie'; msg.style.color = '#e05555'; }
+      return;
+    }
+
+    var cat       = selected.dataset.cat;
+    var catLabel  = selected.querySelector('.stg-bug-cat-label').textContent;
+    var descText  = desc ? desc.value.trim() : '';
+    var u         = yamGetUser ? yamGetUser() : null;
+    var userInfo  = u ? u.pseudo + ' (' + u.role + ')' : 'inconnu';
+    var version   = document.getElementById('stgVersionLabel') ? document.getElementById('stgVersionLabel').textContent : 'YAM';
+
+    var body = 'Catégorie : ' + catLabel + '\n' +
+               'Utilisateur : ' + userInfo + '\n' +
+               'Version : ' + version + '\n' +
+               'Description : ' + (descText || '(non renseignée)');
+
+    if(msg){ msg.textContent = '⏳ Envoi...'; msg.style.color = 'var(--muted)'; }
+    if(btn) btn.disabled = true;
+
+    // Envoyer via mailto (fallback universel) + log en base si possible
+    var mailto = 'mailto:jacoob.jr22@gmail.com?subject=' + encodeURIComponent('[YAM Bug] ' + catLabel) + '&body=' + encodeURIComponent(body);
+    window.location.href = mailto;
+
+    // Log en base
+    if(typeof sb2Post === 'function'){
+      sb2Post('errors_log', { message: '[BUG SIGNALÉ] ' + catLabel, context: descText, couple_id: u ? u.couple_id : null }).catch(function(){});
+    }
+
+    setTimeout(function(){
+      if(msg){ msg.textContent = '✅ Merci pour ton signalement !'; msg.style.color = 'var(--green)'; }
+      if(btn) btn.disabled = false;
+      setTimeout(_closeBugModal, 2000);
+    }, 1000);
+  }
+
+  /* ──────────────────────────────────────────
+     2FA TOTP — Supabase Auth MFA
+  ────────────────────────────────────────── */
+  var _supabaseAuth = null;
+
+  function _getSupabaseClient(){
+    if(_supabaseAuth) return _supabaseAuth;
+    if(window.supabase && window.supabase.createClient){
+      _supabaseAuth = window.supabase.createClient(SB_URL, SB_ANON_KEY, {
+        auth: {
+          storage: localStorage,
+          autoRefreshToken: true,
+          persistSession: true,
+        }
+      });
+    }
+    return _supabaseAuth;
+  }
+
+  function _2faCheckStatus(){
+    var dot   = document.getElementById('stg2FADot');
+    var label = document.getElementById('stg2FALabel');
+    var mainLabel = document.getElementById('stg2FAStatusLabel');
+    var toggleBtn = document.getElementById('stg2FAToggleBtn');
+    var enrollSec = document.getElementById('stg2FAEnrollSection');
+    var disableSec= document.getElementById('stg2FADisableSection');
+
+    var sc = _getSupabaseClient();
+    if(!sc){ return; }
+
+    sc.auth.mfa.listFactors().then(function(res){
+      if(res.error){ return; }
+      var totpFactors = (res.data && res.data.totp) ? res.data.totp : [];
+      var verified    = totpFactors.filter(function(f){ return f.factor_type === 'totp' && f.status === 'verified'; });
+      var isActive    = verified.length > 0;
+
+      if(dot){ dot.className = 'stg-2fa-dot ' + (isActive ? 'on' : 'off'); }
+      if(label){ label.textContent = isActive ? 'Activée ✅' : 'Non activée'; }
+      if(mainLabel){ mainLabel.textContent = isActive ? 'Activée' : 'Désactivée'; }
+      if(toggleBtn){
+        toggleBtn.textContent = isActive ? 'Désactiver' : 'Activer la double authentification';
+        toggleBtn.className = 'stg-btn ' + (isActive ? 'stg-btn-danger' : 'stg-btn-primary');
+      }
+      if(enrollSec)  enrollSec.style.display  = 'none';
+      if(disableSec) disableSec.style.display  = isActive ? 'block' : 'none';
+
+      // Stocker si actif pour le toggle btn
+      if(toggleBtn) toggleBtn.dataset.mfaActive = isActive ? '1' : '0';
+    }).catch(function(){});
+  }
+
+  function _2faStartEnroll(){
+    var btn = document.getElementById('stg2FAToggleBtn');
+    var isActive = btn && btn.dataset.mfaActive === '1';
+
+    if(isActive){
+      // Déjà actif → montrer section désactiver
+      var dis = document.getElementById('stg2FADisableSection');
+      if(dis){ dis.style.display = dis.style.display === 'block' ? 'none' : 'block'; }
+      return;
+    }
+
+    var enrollSec = document.getElementById('stg2FAEnrollSection');
+    var qrImg     = document.getElementById('stg2FAQrImg');
+    var secretEl  = document.getElementById('stg2FASecret');
+    var verifyInput = document.getElementById('stg2FAVerifyInput');
+
+    if(enrollSec) enrollSec.style.display = 'block';
+    if(verifyInput) verifyInput.value = '';
+    var enrollMsg = document.getElementById('stg2FAEnrollMsg');
+    if(enrollMsg) enrollMsg.textContent = '⏳ Génération du QR code...';
+
+    var sc = _getSupabaseClient();
+    if(!sc){ if(enrollMsg){ enrollMsg.textContent = '❌ Client non disponible'; enrollMsg.style.color='#e05555'; } return; }
+
+    sc.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'YAM App' }).then(function(res){
+      if(res.error){
+        if(enrollMsg){ enrollMsg.textContent = '❌ ' + res.error.message; enrollMsg.style.color = '#e05555'; }
+        return;
+      }
+      var data = res.data;
+      if(enrollMsg) enrollMsg.textContent = '';
+      // Stocker l'ID du factor pour la vérification
+      if(enrollSec) enrollSec.dataset.factorId = data.id;
+      // QR code SVG → data URL
+      if(qrImg && data.totp && data.totp.qr_code){
+        var svg = data.totp.qr_code;
+        qrImg.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+      }
+      if(secretEl && data.totp && data.totp.secret){
+        secretEl.textContent = data.totp.secret;
+      }
+    }).catch(function(err){
+      if(enrollMsg){ enrollMsg.textContent = '❌ Erreur : ' + (err.message||'inconnue'); enrollMsg.style.color='#e05555'; }
+    });
+  }
+
+  function _2faVerify(){
+    var enrollSec   = document.getElementById('stg2FAEnrollSection');
+    var verifyInput = document.getElementById('stg2FAVerifyInput');
+    var enrollMsg   = document.getElementById('stg2FAEnrollMsg');
+    var factorId    = enrollSec ? enrollSec.dataset.factorId : null;
+    var code        = verifyInput ? verifyInput.value.trim() : '';
+
+    if(!factorId){ if(enrollMsg){ enrollMsg.textContent = '⚠️ Lance d\'abord l\'enrollment'; enrollMsg.style.color='#e05555'; } return; }
+    if(!code || code.length !== 6){ if(enrollMsg){ enrollMsg.textContent = '⚠️ Code à 6 chiffres requis'; enrollMsg.style.color='#e05555'; } return; }
+    if(enrollMsg){ enrollMsg.textContent = '⏳ Vérification...'; enrollMsg.style.color='var(--muted)'; }
+
+    var sc = _getSupabaseClient();
+    sc.auth.mfa.challengeAndVerify({ factorId: factorId, code: code }).then(function(res){
+      if(res.error){
+        if(enrollMsg){ enrollMsg.textContent = '❌ Code incorrect — réessaie'; enrollMsg.style.color='#e05555'; }
+        return;
+      }
+      if(enrollMsg){ enrollMsg.textContent = '✅ Double authentification activée !'; enrollMsg.style.color='var(--green)'; }
+      if(enrollSec) enrollSec.style.display = 'none';
+      setTimeout(function(){ _2faCheckStatus(); }, 500);
+    }).catch(function(err){
+      if(enrollMsg){ enrollMsg.textContent = '❌ ' + (err.message||'Erreur'); enrollMsg.style.color='#e05555'; }
+    });
+  }
+
+  function _2faDisable(){
+    var disableInput = document.getElementById('stg2FADisableInput');
+    var disableMsg   = document.getElementById('stg2FADisableMsg');
+    var code = disableInput ? disableInput.value.trim() : '';
+
+    if(!code || code.length !== 6){ if(disableMsg){ disableMsg.textContent = '⚠️ Code à 6 chiffres requis'; disableMsg.style.color='#e05555'; } return; }
+    if(disableMsg){ disableMsg.textContent = '⏳ Désactivation...'; disableMsg.style.color='var(--muted)'; }
+
+    var sc = _getSupabaseClient();
+    sc.auth.mfa.listFactors().then(function(res){
+      if(res.error) throw res.error;
+      var totpFactors = (res.data && res.data.totp) ? res.data.totp : [];
+      var factor = totpFactors.find(function(f){ return f.status === 'verified'; });
+      if(!factor) throw new Error('Aucun facteur 2FA actif');
+      // Vérifier d'abord le code avant de désinscrire
+      return sc.auth.mfa.challengeAndVerify({ factorId: factor.id, code: code }).then(function(verRes){
+        if(verRes.error) throw verRes.error;
+        return sc.auth.mfa.unenroll({ factorId: factor.id });
+      });
+    }).then(function(unenrollRes){
+      if(unenrollRes && unenrollRes.error) throw unenrollRes.error;
+      if(disableMsg){ disableMsg.textContent = '✅ Double authentification désactivée'; disableMsg.style.color='var(--green)'; }
+      if(disableInput) disableInput.value = '';
+      setTimeout(function(){ _2faCheckStatus(); }, 500);
+    }).catch(function(err){
+      if(disableMsg){ disableMsg.textContent = '❌ ' + (err.message||'Code incorrect'); disableMsg.style.color='#e05555'; }
+    });
+  }
+
+  /* ──────────────────────────────────────────
+     THÈME
+  ────────────────────────────────────────── */
   function _stgSyncTheme(){
     var isLight = document.body.classList.contains('light') || document.documentElement.classList.contains('light');
     var d = document.getElementById('stgThemeDark');
@@ -1076,19 +1847,20 @@ body.settings-open header,body.settings-open .bottom-nav{display:none!important;
     var lbl = document.getElementById('stgThemeLabel');
     if(lbl) lbl.textContent = isLight ? 'Clair' : 'Sombre';
   }
+
   window.stgSetTheme = function(theme){
     if(typeof applyThemeToggle === 'function'){
-      // applyThemeToggle bascule le thème — on vérifie si on doit toggler
       var isLight = document.body.classList.contains('light') || document.documentElement.classList.contains('light');
-      if((theme === 'light' && !isLight) || (theme === 'dark' && isLight)){
-        applyThemeToggle();
-      }
+      if((theme === 'light' && !isLight) || (theme === 'dark' && isLight)){ applyThemeToggle(); }
     }
     setTimeout(_stgSyncTheme, 100);
   };
 
-  /* ── Préférences (localStorage) ── */
+  /* ──────────────────────────────────────────
+     PRÉFÉRENCES
+  ────────────────────────────────────────── */
   var _PREFS_KEY = 'yam_user_prefs';
+
   function _stgLoadPrefs(){
     var saved = {};
     try{ saved = JSON.parse(localStorage.getItem(_PREFS_KEY) || '{}'); }catch(e){}
@@ -1096,39 +1868,30 @@ body.settings-open header,body.settings-open .bottom-nav{display:none!important;
       tag.classList.toggle('on', !!saved[tag.dataset.pref]);
     });
   }
+
   function _stgSavePrefs(){
     var prefs = {};
-    document.querySelectorAll('.stg-tag.on[data-pref]').forEach(function(tag){
+    document.querySelectorAll('.stg-tag[data-pref].on').forEach(function(tag){
       prefs[tag.dataset.pref] = true;
     });
     localStorage.setItem(_PREFS_KEY, JSON.stringify(prefs));
-    // Aussi sauvegarder en Supabase pour le partenaire
-    var u = yamGetUser ? yamGetUser() : null;
-    var cid = u ? u.couple_id : null;
-    var role = u ? u.role : null;
-    if(cid && role){
-      var key = 'prefs_' + role;
-      fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+cid+'&category=eq.yam_prefs&slot=eq.'+key+'&select=id',{headers:sb2Headers()})
-      .then(function(r){return r.ok?r.json():[];})
-      .then(function(rows){
-        if(rows && rows[0]){
-          fetch(SB_URL+'/rest/v1/photo_descs?id=eq.'+rows[0].id,{method:'PATCH',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify({description:JSON.stringify(prefs)})});
-        } else {
-          fetch(SB_URL+'/rest/v1/photo_descs',{method:'POST',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify({couple_id:cid,category:'yam_prefs',slot:key,description:JSON.stringify(prefs)})});
-        }
-      }).catch(function(){});
-    }
     var msg = document.getElementById('stgPrefsSaveMsg');
-    if(msg){ msg.textContent = '✅ Préférences enregistrées'; setTimeout(function(){ msg.textContent = ''; }, 2000); }
+    if(msg){ msg.textContent = '✅ Sauvegardé'; setTimeout(function(){ msg.textContent=''; }, 2000); }
   }
 
-  /* Clic sur les tags */
-  document.addEventListener('click', function(e){
-    var tag = e.target.closest('.stg-tag[data-pref]');
-    if(!tag) return;
-    tag.classList.toggle('on');
-    _stgSavePrefs();
-  });
+  /* ──────────────────────────────────────────
+     SYNC COUPLE INLINE (carte profil)
+  ────────────────────────────────────────── */
+  window._stgSyncCoupleInline = function(){
+    var u = yamGetUser ? yamGetUser() : null;
+    var el = document.getElementById('acCoupleInlineText');
+    if(!el) return;
+    if(u && u.partner_pseudo){
+      el.textContent = 'Avec ' + u.partner_pseudo;
+    } else {
+      el.textContent = 'Pas encore lié';
+    }
+  };
 
 })();
 
@@ -1185,6 +1948,9 @@ function _populateAccountModal(u){
   document.getElementById('acPartnerName').textContent = partnerPseudo
     ? escHtml(partnerPseudo)
     : '(pas encore lié)';
+
+  // Sync couple inline sur la carte profil
+  if(window._stgSyncCoupleInline) window._stgSyncCoupleInline();
 
   // Bouton délier : visible seulement si partenaire lié
   var unlinkBtn = document.getElementById('acUnlinkBtn');
