@@ -1260,6 +1260,14 @@ document.addEventListener('DOMContentLoaded', function(){
   _on('v2TabJoin',     'click', function(){ window.v2SwitchTab && window.v2SwitchTab('join'); });
   _on('v2RoleGirl', 'click', function(){ window.v2SelectRole && window.v2SelectRole('girl'); });
   _on('v2RoleBoy',  'click', function(){ window.v2SelectRole && window.v2SelectRole('boy'); });
+  _on('v2RoleInfoBtn', 'click', function(){
+    var box = document.getElementById('v2RoleInfoBox');
+    if(box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+  });
+  _on('v2JoinRoleInfoBtn', 'click', function(){
+    var box = document.getElementById('v2JoinRoleInfoBox');
+    if(box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+  });
 
   // ── Profil / Humeur ──
   _on('profileAvatar',     'click', function(){ window.toggleProfilePopup && window.toggleProfilePopup(); });
