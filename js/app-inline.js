@@ -126,9 +126,10 @@ if ('serviceWorker' in navigator) {
 // BLOC 4 — Login page reload guard
 // ══════════════════════════════════════════════════════════════════
 (function(){
-  // Ne pas recharger si un token de reset est dans le hash — il serait perdu
+  // Ne pas recharger si un token de reset est dans le hash ou la query string — il serait perdu
   var _h = window.location.hash || '';
-  if(_h.includes('type=recovery') || _h.includes('access_token')) return;
+  var _q = window.location.search || '';
+  if(_h.includes('type=recovery') || _h.includes('access_token') || _q.includes('type=recovery') || _q.includes('token_hash')) return;
   if(!sessionStorage.getItem('yam_login_page_reloaded')){
     sessionStorage.setItem('yam_login_page_reloaded','1');
     location.reload();
@@ -275,14 +276,26 @@ function v2ApplyDynamicNames(){
   }
 
   var _hash = window.location.hash || '';
-  var _isReset = _hash.includes('type=recovery');
+  var _search = window.location.search || '';
+  var _isReset = _hash.includes('type=recovery') || _search.includes('type=recovery') || _search.includes('token_hash');
   if(_isReset){
     var _params = {};
-    _hash.replace(/^#/,'').split('&').forEach(function(p){
-      var kv = p.split('='); _params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]||'');
+    // Lire d'abord la query string (nouveau format Supabase)
+    _search.replace(/^\?/,'').split('&').forEach(function(p){
+      var kv = p.split('='); if(kv[0]) _params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]||'');
     });
-    window._yamResetToken = _params['access_token'] || null;
-    history.replaceState(null,'', window.location.pathname + window.location.search);
+    // Lire aussi le hash (ancien format, compatibilité)
+    _hash.replace(/^#/,'').split('&').forEach(function(p){
+      var kv = p.split('='); if(kv[0]) _params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]||'');
+    });
+    // Nouveau format : token_hash + type=recovery → échange contre un access_token via Supabase
+    if(_params['token_hash'] && !_params['access_token']){
+      window._yamResetTokenHash = _params['token_hash'];
+      window._yamResetToken = null; // sera résolu après l'échange
+    } else {
+      window._yamResetToken = _params['access_token'] || null;
+    }
+    history.replaceState(null,'', window.location.pathname);
     window.addEventListener('load', function(){
       var overlay = document.getElementById('v2LoginOverlay');
       if(overlay) overlay.classList.add('active');
