@@ -309,6 +309,9 @@ function _v2ShowMfaStep(mfaAccessToken, msgId){
           if(input){ input.value = ''; input.focus(); }
           return;
         }
+        // ✅ FIX — Sauvegarder la session (yamLogin ne l'a pas fait car MFA était requis)
+        if(typeof yamSaveSession === 'function') yamSaveSession(res);
+        if(res.user && res.user.role) localStorage.setItem('jayana_profile', res.user.role);
         // MFA validé — restaurer l'overlay et finir le login normalement
         overlay.innerHTML = originalContent;
         _v2AfterLogin(res, msgId);
