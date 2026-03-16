@@ -1693,6 +1693,9 @@ body.settings-open{overflow:hidden!important;}\
   // Une seule instance globale — jamais réinitialisée pour éviter
   // "Multiple GoTrueClient instances detected"
   var _supabaseAuth = null;
+  // Client et factorId actifs pendant un enrollment en cours
+  var _mfaActiveClient = null;
+  var _mfaActiveFactorId = null;
 
   function _getSupabaseClient(){
     if(_supabaseAuth) return _supabaseAuth;
@@ -1798,6 +1801,9 @@ body.settings-open{overflow:hidden!important;}\
 
     function _showQR(data){
       if(enrollMsg) enrollMsg.textContent = '';
+      // Stocker le client ET le factorId pour _2faVerify — ne pas rappeler setSession entre les deux
+      _mfaActiveClient   = sc;
+      _mfaActiveFactorId = data.id;
       if(enrollSec) enrollSec.dataset.factorId = data.id;
       // qrImg est un <div> conteneur — injection SVG directe
       if(qrImg && data.totp && data.totp.qr_code){
@@ -1851,15 +1857,19 @@ body.settings-open{overflow:hidden!important;}\
     var enrollSec   = document.getElementById('stg2FAEnrollSection');
     var verifyInput = document.getElementById('stg2FAVerifyInput');
     var enrollMsg   = document.getElementById('stg2FAEnrollMsg');
-    var factorId    = enrollSec ? enrollSec.dataset.factorId : null;
-    var code        = verifyInput ? verifyInput.value.trim() : '';
+    // Réutiliser le factorId et client stockés lors de l'enrollment — pas de setSession supplémentaire
+    var factorId = _mfaActiveFactorId || (enrollSec ? enrollSec.dataset.factorId : null);
+    var code     = verifyInput ? verifyInput.value.trim() : '';
 
     if(!factorId){ if(enrollMsg){ enrollMsg.textContent = '⚠️ Lance d\'abord l\'enrollment'; enrollMsg.style.color='#e05555'; } return; }
     if(!code || code.length !== 6){ if(enrollMsg){ enrollMsg.textContent = '⚠️ Code à 6 chiffres requis'; enrollMsg.style.color='#e05555'; } return; }
     if(enrollMsg){ enrollMsg.textContent = '⏳ Vérification...'; enrollMsg.style.color='var(--muted)'; }
 
-    _getSupabaseClientReady().then(function(sc){
-    if(!sc){ if(enrollMsg){ enrollMsg.textContent = '❌ Client non disponible'; enrollMsg.style.color='#e05555'; } return; }
+    var sc = _mfaActiveClient;
+    if(!sc){
+      if(enrollMsg){ enrollMsg.textContent = '❌ Session expirée — clique à nouveau sur Activer'; enrollMsg.style.color='#e05555'; }
+      return;
+    }
     sc.auth.mfa.challengeAndVerify({ factorId: factorId, code: code }).then(function(res){
       if(res.error){
         if(enrollMsg){ enrollMsg.textContent = '❌ Code incorrect — réessaie'; enrollMsg.style.color='#e05555'; }
@@ -1867,11 +1877,12 @@ body.settings-open{overflow:hidden!important;}\
       }
       if(enrollMsg){ enrollMsg.textContent = '✅ Double authentification activée !'; enrollMsg.style.color='var(--green)'; }
       if(enrollSec) enrollSec.style.display = 'none';
+      _mfaActiveClient   = null;
+      _mfaActiveFactorId = null;
       setTimeout(function(){ _2faCheckStatus(); }, 500);
     }).catch(function(err){
       if(enrollMsg){ enrollMsg.textContent = '❌ ' + (err.message||'Erreur'); enrollMsg.style.color='#e05555'; }
     });
-    }); // fin _getSupabaseClientReady
   }
 
   function _2faDisable(){
