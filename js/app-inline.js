@@ -605,6 +605,20 @@ window.yamToggleAccountModal = function() {
   }
 };
 
+// Patcher closeAccountModal pour revenir sur l'accueil après fermeture
+(function() {
+  function patchClose() {
+    if (typeof window.closeAccountModal !== 'function') { setTimeout(patchClose, 200); return; }
+    var _orig = window.closeAccountModal;
+    window.closeAccountModal = function() {
+      _orig.apply(this, arguments);
+      // Toujours revenir sur l'accueil après fermeture des paramètres
+      if (typeof window.yamSwitchTab === 'function') window.yamSwitchTab('home');
+    };
+  }
+  patchClose();
+})();
+
 
 // ══════════════════════════════════════════════════════════════════
 // BLOC 10 — DM online status observer
