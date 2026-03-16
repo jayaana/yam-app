@@ -2259,6 +2259,22 @@ function _populateAccountModal(u){
   });
   document.getElementById('acPwdMsg').textContent = '';
   document.getElementById('acStartDateMsg').textContent = '';
+
+  // Bouton admin -- injecte dynamiquement si is_admin=true
+  // Le HTML est genere au chargement avant que la session soit dispo,
+  // donc is_admin est false a ce moment -> bouton absent du DOM.
+  // On l'injecte ici au premier openAccountModal avec session valide.
+  if (u.is_admin === true && !document.getElementById('stgAdminErrorsBtn')) {
+    var logoutBtn = document.getElementById('stgLogoutBtn');
+    if (logoutBtn && logoutBtn.parentElement) {
+      var adminWrap = document.createElement('div');
+      adminWrap.style.cssText = 'margin-top:8px;padding:0 0 8px;';
+      adminWrap.innerHTML =
+        '<button class="stg-btn" id="stgAdminErrorsBtn" style="background:rgba(100,100,100,.1);border:1.5px solid rgba(100,100,100,.3);color:var(--muted);font-size:11px;">🛠 Monitoring erreurs</button>' +
+        '<div id="stgAdminErrorsPanel" style="display:none;margin-bottom:12px;"></div>';
+      logoutBtn.parentElement.insertAdjacentElement('afterend', adminWrap);
+    }
+  }
 }
 
 window.closeAccountModal = function(){
