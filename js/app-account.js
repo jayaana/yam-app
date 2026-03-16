@@ -1626,16 +1626,16 @@ body.settings-open{overflow:hidden!important;}\
       if(hasPartner) {
         // Lecture seule
         genreEl.innerHTML = u.role === 'girl'
-          ? '<span style="color:var(--accent);">Rose</span>'
-          : '<span style="color:#5b9cf6;">Bleu</span>';
+          ? '<span style="display:inline-flex;align-items:center;gap:5px;color:var(--accent);"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iI2U4NDA2YSIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4=" width="16" height="16" style="border-radius:50%;"> Rose</span>'
+          : '<span style="display:inline-flex;align-items:center;gap:5px;color:#5b9cf6;"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iIzBmNGRiMCIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4=" width="16" height="16" style="border-radius:50%;"> Bleu</span>';
         if(hintEl) hintEl.textContent = '(non modifiable une fois lié)';
       } else {
         // Boutons de sélection
         if(hintEl) hintEl.textContent = '(modifiable tant que tu n\'es pas lié)';
         genreEl.innerHTML =
           '<div style="display:flex;gap:8px;margin-top:4px;">' +
-            '<button id="acRoleBtnGirl" style="flex:1;padding:10px;border-radius:10px;border:2px solid ' + (u.role==='girl'?'var(--accent)':'var(--border)') + ';background:' + (u.role==='girl'?'rgba(232,90,124,0.1)':'var(--s2)') + ';color:var(--text);font-size:13px;font-weight:600;cursor:pointer;">Rose</button>' +
-            '<button id="acRoleBtnBoy" style="flex:1;padding:10px;border-radius:10px;border:2px solid ' + (u.role==='boy'?'#5b9cf6':'var(--border)') + ';background:' + (u.role==='boy'?'rgba(91,156,246,0.1)':'var(--s2)') + ';color:var(--text);font-size:13px;font-weight:600;cursor:pointer;">Bleu</button>' +
+            '<button id="acRoleBtnGirl" style="flex:1;padding:10px;border-radius:10px;border:2px solid ' + (u.role==='girl'?'var(--accent)':'var(--border)') + ';background:' + (u.role==='girl'?'rgba(232,90,124,0.1)':'var(--s2)') + ';color:var(--text);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;"><img src=\"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iI2U4NDA2YSIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4=\" width=\"18\" height=\"18\" style=\"flex-shrink:0;border-radius:50%;vertical-align:middle;\"> Rose</button>' +
+            '<button id="acRoleBtnBoy" style="flex:1;padding:10px;border-radius:10px;border:2px solid ' + (u.role==='boy'?'#5b9cf6':'var(--border)') + ';background:' + (u.role==='boy'?'rgba(91,156,246,0.1)':'var(--s2)') + ';color:var(--text);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;"><img src=\"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iIzBmNGRiMCIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4=\" width=\"18\" height=\"18\" style=\"flex-shrink:0;border-radius:50%;vertical-align:middle;\"> Bleu</button>' +
           '</div>';
         // Attacher les listeners APRÈS injection dans le DOM (CSP : pas de onclick inline)
         var bg = document.getElementById('acRoleBtnGirl');
@@ -2190,11 +2190,11 @@ function _populateAccountModal(u){
 
   var badge = document.getElementById('acRoleBadge');
   if(u.role === 'girl'){
-    badge.textContent = 'Rose';
+    badge.innerHTML = '<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iI2U4NDA2YSIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4=" width="14" height="14" style="border-radius:50%;vertical-align:middle;margin-right:4px;">Rose';
     badge.style.background = 'rgba(232,121,160,0.15)';
     badge.style.color = '#e879a0';
   } else {
-    badge.textContent = 'Bleu';
+    badge.innerHTML = '<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iIzBmNGRiMCIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4=" width="14" height="14" style="border-radius:50%;vertical-align:middle;margin-right:4px;">Bleu';
     badge.style.background = 'rgba(91,156,246,0.15)';
     badge.style.color = '#5b9cf6';
   }
