@@ -3122,13 +3122,6 @@ body.light .suggestion-lock-badge.unlocked { background: rgba(231,90,124,0.07); 
 }
 .skyjo-card svg { width: 100%; height: 100%; display: block; }
 
-/* Dos de carte — plus de cœur, juste YAM */
-.skyjo-card-back,
-.skyjo-card.skyjo-card-hidden {
-  background: linear-gradient(135deg, #1a2050 0%, #0e1438 50%, #1a1040 100%);
-  border: 1.5px solid rgba(255,255,255,0.10);
-}
-
 /* Carte retirée (colonne complète) */
 .skyjo-col-complete {
   background: transparent !important;
