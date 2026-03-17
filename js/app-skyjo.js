@@ -181,7 +181,7 @@
         var otherName=(typeof v2GetDisplayName==='function'?v2GetDisplayName(other):(me==='girl'?'Lui':'Elle'));
         showScreen('skyjoWaitScreen');
         document.getElementById('skyjoWaitMsg').innerHTML=
-          'Connecté en tant que <strong>'+myName+'</strong>.<br>En attente que <strong>'+otherName+'</strong> rejoigne…';
+          'Connecté en tant que <strong>'+escHtml(myName)+'</strong>.<br>En attente que <strong>'+escHtml(otherName)+'</strong> rejoigne…';
       },
 
       // Tick lobby — mise à jour des points de présence
