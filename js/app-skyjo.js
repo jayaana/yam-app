@@ -16,6 +16,75 @@
   var SKYJO_TABLE    = 'skyjo_games';
   var SKYJO_PRESENCE = 'skyjo_presence';
 
+  // ─── Rendu SVG des cartes (nouveau visuel) ────────────
+  var _SJ_CARD_COLORS = {
+    '-2': {bg:['#4a6ae8','#2240b8','#14288a'], txt:'#0e1c70'},
+    '-1': {bg:['#4a6ae8','#2240b8','#14288a'], txt:'#0e1c70'},
+    '0':  {bg:['#38b2f0','#1a8acc','#0e6898'], txt:'#052844'},
+    '1':  {bg:['#28bc60','#189848','#0e7030'], txt:'#053818'},
+    '2':  {bg:['#28bc60','#189848','#0e7030'], txt:'#053818'},
+    '3':  {bg:['#28bc60','#189848','#0e7030'], txt:'#053818'},
+    '4':  {bg:['#28bc60','#189848','#0e7030'], txt:'#053818'},
+    '5':  {bg:['#f09820','#c87800','#985800'], txt:'#4a2800'},
+    '6':  {bg:['#f09820','#c87800','#985800'], txt:'#4a2800'},
+    '7':  {bg:['#f09820','#c87800','#985800'], txt:'#4a2800'},
+    '8':  {bg:['#f09820','#c87800','#985800'], txt:'#4a2800'},
+    '9':  {bg:['#f04040','#c82020','#981010'], txt:'#780808'},
+    '10': {bg:['#f04040','#c82020','#981010'], txt:'#780808'},
+    '11': {bg:['#f04040','#c82020','#981010'], txt:'#780808'},
+    '12': {bg:['#f04040','#c82020','#981010'], txt:'#780808'}
+  };
+  var _SJ_POLYS = 'points="3,3 33,3 43,12 33,35 16,14 3,23"|points="33,3 67,3 80,12 67,16 43,12"|points="67,3 80,3 80,25 67,16"|points="3,23 16,14 33,35 25,60 12,47 3,47"|points="16,14 43,12 60,30 50,55 33,35"|points="43,12 67,16 77,45 60,30"|points="3,47 12,47 25,60 17,83 3,73"|points="12,47 33,35 50,55 45,70 27,47"|points="33,35 60,30 73,67 63,53 45,70 27,47"|points="3,73 17,83 33,100 19,106 3,100"|points="17,83 27,47 45,70 55,85 33,100"|points="45,70 63,53 73,67 67,105 55,85"|points="3,100 19,106 33,100 23,122 3,122"|points="33,100 55,85 67,105 39,113 23,122"|points="67,105 80,98 80,122 43,122 39,113"'.split('|');
+  var _sjCardUID = 0;
+
+  function _sjPolyStr() {
+    return _SJ_POLYS.map(function(p,i){
+      return '<polygon '+p+' fill="rgba('+(i%2===0?'255,255,255':'0,0,0')+',0.04)" stroke="rgba(255,255,255,0.09)" stroke-width="0.5"/>';
+    }).join('');
+  }
+
+  function sjCardSVG(val) {
+    _sjCardUID++;
+    var id = 'sj'+_sjCardUID;
+    var k = String(val);
+    var c = _SJ_CARD_COLORS[k] || _SJ_CARD_COLORS['0'];
+    var fs = (val === -2 || val === -1 || val >= 10) ? 22 : 26;
+    var fsm = (val === -2 || val === -1 || val >= 10) ? 10 : 12;
+    return '<svg viewBox="0 0 80 122" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block;">'
+      +'<defs>'
+      +'<linearGradient id="sbg'+id+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="'+c.bg[0]+'"/><stop offset="55%" stop-color="'+c.bg[1]+'"/><stop offset="100%" stop-color="'+c.bg[2]+'"/></linearGradient>'
+      +'<radialGradient id="sbub'+id+'" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fff" stop-opacity="0.82"/><stop offset="52%" stop-color="#fff" stop-opacity="0.78"/><stop offset="74%" stop-color="#fff" stop-opacity="0.42"/><stop offset="90%" stop-color="#fff" stop-opacity="0.1"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></radialGradient>'
+      +'<radialGradient id="sbs'+id+'" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fff" stop-opacity="0.95"/><stop offset="62%" stop-color="#fff" stop-opacity="0.72"/><stop offset="88%" stop-color="#fff" stop-opacity="0.2"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></radialGradient>'
+      +'<clipPath id="scl'+id+'"><rect x="3" y="3" width="74" height="116" rx="8"/></clipPath>'
+      +'</defs>'
+      +'<rect width="80" height="122" rx="10" fill="#fff"/>'
+      +'<rect x="3" y="3" width="74" height="116" rx="8" fill="url(#sbg'+id+')"/>'
+      +_sjPolyStr()
+      +'<g clip-path="url(#scl'+id+')">'
+      +'<ellipse cx="40" cy="62" rx="33" ry="33" fill="url(#sbub'+id+')"/>'
+      +'<text x="40" y="63" text-anchor="middle" dominant-baseline="central" font-family="Arial Black,Arial" font-weight="900" font-size="'+fs+'" fill="'+c.txt+'" paint-order="stroke" stroke="rgba(255,255,255,0.5)" stroke-width="2.5" letter-spacing="-1">'+val+'</text>'
+      +'<ellipse cx="17" cy="17" rx="12" ry="10" fill="url(#sbs'+id+')"/>'
+      +'<text x="17" y="17" text-anchor="middle" dominant-baseline="central" font-family="Arial Black,Arial" font-weight="900" font-size="'+fsm+'" fill="'+c.txt+'">'+val+'</text>'
+      +'<ellipse cx="63" cy="105" rx="12" ry="10" fill="url(#sbs'+id+')"/>'
+      +'<text x="63" y="105" text-anchor="middle" dominant-baseline="central" font-family="Arial Black,Arial" font-weight="900" font-size="'+fsm+'" fill="'+c.txt+'" transform="rotate(180 63 105)">'+val+'</text>'
+      +'</g>'
+      +'</svg>';
+  }
+
+  function sjCardBackSVG() {
+    _sjCardUID++;
+    var id = 'sj'+_sjCardUID;
+    return '<svg viewBox="0 0 80 122" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block;">'
+      +'<defs><linearGradient id="sbbk'+id+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1a2050"/><stop offset="50%" stop-color="#0e1438"/><stop offset="100%" stop-color="#1a1040"/></linearGradient></defs>'
+      +'<rect width="80" height="122" rx="10" fill="#fff"/>'
+      +'<rect x="3" y="3" width="74" height="116" rx="8" fill="url(#sbbk'+id+')"/>'
+      +_sjPolyStr()
+      +'<rect x="9" y="9" width="62" height="104" rx="5" fill="none" stroke="rgba(255,255,255,0.13)" stroke-width="1"/>'
+      +'<text x="40" y="108" text-anchor="middle" dominant-baseline="central" font-family="Arial Black,Arial" font-weight="900" font-size="11" fill="rgba(255,255,255,0.55)" letter-spacing="3">YAM</text>'
+      +'</svg>';
+  }
+  // ─────────────────────────────────────────────────────
+
   // ─── Moteur multijoueur ───────────────────────────────
   var _mp = null;  // instance YAMMultiplayer — initialisée dans _openSkyjoWithProfile
 
@@ -181,7 +250,7 @@
         var otherName=(typeof v2GetDisplayName==='function'?v2GetDisplayName(other):(me==='girl'?'Lui':'Elle'));
         showScreen('skyjoWaitScreen');
         document.getElementById('skyjoWaitMsg').innerHTML=
-          'Connecté en tant que <strong>'+escHtml(myName)+'</strong>.<br>En attente que <strong>'+escHtml(otherName)+'</strong> rejoigne…';
+          'Connecté en tant que <strong>'+myName+'</strong>.<br>En attente que <strong>'+otherName+'</strong> rejoigne…';
       },
 
       // Tick lobby — mise à jour des points de présence
@@ -200,6 +269,9 @@
         // ✅ OPT v3.8 : suspend le compteur d'amour (hors écran pendant Skyjo)
         if(typeof window._counterSuspend==='function') window._counterSuspend();
         showScreen('skyjoGameArea');
+        // Injecter le SVG dos de carte sur la pioche au démarrage
+        var _dk=document.getElementById('skyjoDeckCard');
+        if(_dk&&!_dk.querySelector('svg')) _dk.innerHTML=sjCardBackSVG();
         var btn=document.getElementById('skyjoAbandonBtn');
         if(btn) btn.style.display='block';
         renderState(gameRow);
@@ -420,7 +492,7 @@
     var discardEl=document.getElementById('skyjoDiscardCard');
     var top=state.discard&&state.discard.length>0?state.discard[state.discard.length-1]:null;
     if(top!==null&&top!==undefined){
-      discardEl.innerHTML='<div class="sj-pip-top">'+top+'</div><span class="sj-num">'+top+'</span><div class="sj-pip-bot">'+top+'</div>';
+      discardEl.innerHTML=sjCardSVG(top);
       discardEl.setAttribute('data-val',top);discardEl.classList.remove('skyjo-card-back');
       if(discardChanged){
         discardEl.classList.remove('sj-discard-slide');void discardEl.offsetWidth;
@@ -470,7 +542,7 @@
       } else if(lv.action==='replace'){
         var sR2pre=null,usingFallbackPre=true;
         if(oppHeldEl&&oppHeldWrap&&oppHeldWrap.classList.contains('sj-held-visible')){
-          oppHeldEl.innerHTML='<div class="sj-pip-top">'+lv.val+'</div><span class="sj-num">'+lv.val+'</span><div class="sj-pip-bot">'+lv.val+'</div>';
+          oppHeldEl.innerHTML=sjCardSVG(lv.val);
           oppHeldEl.setAttribute('data-val',lv.val);
           sR2pre=oppHeldEl.getBoundingClientRect();
           if(sR2pre&&sR2pre.width>0) usingFallbackPre=false;
@@ -503,7 +575,7 @@
 
     if(!isNewLive&&oppHoldsCard&&oppHeldWrap&&oppHeldEl){
       if(!oppHeldWrap.classList.contains('sj-held-visible')){
-        oppHeldEl.innerHTML='<div class="sj-pip-top">'+state.held_card.value+'</div><span class="sj-num">'+state.held_card.value+'</span><div class="sj-pip-bot">'+state.held_card.value+'</div>';
+        oppHeldEl.innerHTML=sjCardSVG(state.held_card.value);
         oppHeldEl.setAttribute('data-val',state.held_card.value);
         oppHeldWrap.classList.add('sj-held-visible');
       }
@@ -527,7 +599,7 @@
             if(!_gameState) return;
             var liveHeld=_gameState.held_card;
             if(liveHeld&&liveHeld.holder===oppKey2){
-              oppHeldEl.innerHTML='<div class="sj-pip-top">'+liveHeld.value+'</div><span class="sj-num">'+liveHeld.value+'</span><div class="sj-pip-bot">'+liveHeld.value+'</div>';
+              oppHeldEl.innerHTML=sjCardSVG(liveHeld.value);
               oppHeldEl.setAttribute('data-val',liveHeld.value);
             }
             oppHeldWrap.classList.add('sj-held-visible');
@@ -560,7 +632,7 @@
     var discardBtn=document.getElementById('skyjoDiscardBtn');
     if(iHoldCard){
       heldWrap.classList.add('sj-held-visible');
-      heldEl.innerHTML='<div class="sj-pip-top">'+state.held_card.value+'</div><span class="sj-num">'+state.held_card.value+'</span><div class="sj-pip-bot">'+state.held_card.value+'</div>';
+      heldEl.innerHTML=sjCardSVG(state.held_card.value);
       heldEl.setAttribute('data-val',state.held_card.value);
       if(discardBtn){discardBtn.disabled=false;discardBtn.style.opacity='';discardBtn.style.pointerEvents='';}
       if(newHeld){
@@ -622,7 +694,7 @@
         }
       } else if(card.revealed){
         el.setAttribute('data-val',card.value);
-        el.innerHTML='<div class="sj-pip-top">'+card.value+'</div><span class="sj-num">'+card.value+'</span><div class="sj-pip-bot">'+card.value+'</div>';
+        el.innerHTML=sjCardSVG(card.value);
         // Ne pas rejouer le flip si l'animation live 'replace' l'a déjà géré pour cet index
         if(prev.hidden&&!isFirstRender&&!isMe&&idx!==skipFlipIdx){
           var _elRef=el,_val=card.value,_delay=idx*55+80;
@@ -631,6 +703,7 @@
         if(canReplaceAny){el.classList.add('skyjo-card-clickable');el.onclick=function(){skyjoReplaceCard(idx);};}
       } else {
         el.classList.add('skyjo-card-hidden');
+        el.innerHTML=sjCardBackSVG();
         if(canFlipInit){el.classList.add('skyjo-card-clickable');el.onclick=function(){skyjoFlipInit(idx);};}
         else if(canReplaceAny){el.classList.add('skyjo-card-clickable');el.onclick=function(){skyjoReplaceCard(idx);};}
         else if(mustFlipHidden){el.classList.add('skyjo-card-clickable');el.onclick=function(){skyjoFlipReveal(idx);};}
@@ -649,8 +722,8 @@
     var card=document.createElement('div');
     card.className='skyjo-card sj-fly-clone';
     card.style.cssText=['position:fixed','left:'+srcRect.left+'px','top:'+srcRect.top+'px','width:'+srcRect.width+'px','height:'+srcRect.height+'px','z-index:9999','pointer-events:none','will-change:transform,opacity','transform-origin:center center','transform-style:preserve-3d'].join(';');
-    if(cardVal!==null&&cardVal!==undefined){card.innerHTML='<span class="sj-num">'+cardVal+'</span>';card.setAttribute('data-val',cardVal);}
-    else{card.classList.add('skyjo-card-back');}
+    if(cardVal!==null&&cardVal!==undefined){card.innerHTML=sjCardSVG(cardVal);card.setAttribute('data-val',cardVal);}
+    else{card.innerHTML=sjCardBackSVG();}
     document.body.appendChild(card);
     var dx=(destRect.left+destRect.width/2)-(srcRect.left+srcRect.width/2);
     var dy=(destRect.top+destRect.height/2)-(srcRect.top+srcRect.height/2);
@@ -663,7 +736,7 @@
         {transform:'translate('+dx*0.7+'px,'+dy*0.6+'px) scale(1.1) rotateZ(1deg) rotateY(0deg)',opacity:1,offset:0.6},
         {transform:'translate('+dx+'px,'+dy+'px) scale('+scaleX+','+scaleY+') rotateZ(0deg) rotateY(0deg)',opacity:0.1,offset:1}
       ];
-      setTimeout(function(){if(!card.parentNode)return;card.classList.remove('skyjo-card-back');if(cardVal!==null&&cardVal!==undefined){card.innerHTML='<span class="sj-num">'+cardVal+'</span>';card.setAttribute('data-val',cardVal);}},delay+dur*0.35);
+      setTimeout(function(){if(!card.parentNode)return;card.innerHTML=sjCardSVG(cardVal);card.setAttribute('data-val',cardVal);},delay+dur*0.35);
     } else {
       keyframes=[
         {transform:'translate(0,0) scale(1) rotateZ(-5deg)',opacity:1,offset:0},
@@ -684,6 +757,7 @@
     card.className='skyjo-card';
     card.style.cssText=['position:fixed','left:'+rect.left+'px','top:'+rect.top+'px','width:'+rect.width+'px','height:'+rect.height+'px','z-index:9999','pointer-events:none','will-change:transform,opacity','transform-origin:center center','transform-style:preserve-3d','perspective:500px'].join(';');
     card.classList.add('skyjo-card-hidden');
+    card.innerHTML=sjCardBackSVG();
     document.body.appendChild(card);
     targetEl.style.visibility='hidden';
     var dur=540;
@@ -695,7 +769,7 @@
       {transform:'rotateY(3deg) scale(1.01)',filter:'brightness(1.1)',offset:0.87},
       {transform:'rotateY(0deg) scale(1)',filter:'brightness(1)',offset:1}
     ],{duration:dur,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});
-    setTimeout(function(){if(!card.parentNode)return;card.classList.remove('skyjo-card-hidden');if(newVal!==null&&newVal!==undefined){card.innerHTML='<span class="sj-num">'+newVal+'</span>';card.setAttribute('data-val',newVal);}},dur*0.37);
+    setTimeout(function(){if(!card.parentNode)return;card.classList.remove('skyjo-card-hidden');if(newVal!==null&&newVal!==undefined){card.innerHTML=sjCardSVG(newVal);card.setAttribute('data-val',newVal);}},dur*0.37);
     anim.onfinish=function(){targetEl.style.visibility='';if(card.parentNode)card.parentNode.removeChild(card);sjPlaceGlow(targetEl);if(onDone)onDone();};
   }
 
@@ -734,7 +808,7 @@
     var card=document.createElement('div');
     card.className='skyjo-card';
     card.style.cssText='position:fixed;left:'+srcRect.left+'px;top:'+srcRect.top+'px;width:'+srcRect.width+'px;height:'+srcRect.height+'px;z-index:9999;pointer-events:none;will-change:transform,opacity;transform-style:preserve-3d;';
-    card.innerHTML='<span class="sj-num">'+heldVal+'</span>';card.setAttribute('data-val',heldVal);
+    card.innerHTML=sjCardSVG(heldVal);card.setAttribute('data-val',heldVal);
     document.body.appendChild(card);
     var anim=card.animate([
       {transform:'translate(0,0) scale(1) rotateZ(0deg) rotateY(0deg)',opacity:1,offset:0},
