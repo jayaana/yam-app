@@ -189,6 +189,11 @@
         return;
       }
 
+      // Nettoyer les lignes abandonnées avant de chercher une partie
+      fetch(SB_URL+'/rest/v1/'+GAME_TABLE+'?couple_id=eq.'+coupleId+'&status=eq.abandoned', {
+        method:'DELETE', headers:sb2Headers()
+      }).catch(function(){});
+
       Promise.all([
         fetch(SB_URL+'/rest/v1/'+GAME_TABLE+'?couple_id=eq.'+coupleId+'&status=eq.playing&order=created_at.desc&limit=1&select=id,status,state,created_by,updated_at', {headers:sb2Headers()}).then(function(r){return r.json();}),
         fetch(SB_URL+'/rest/v1/'+PRESENCE_TABLE+'?couple_id=eq.'+coupleId+'&select=role', {headers:sb2Headers()}).then(function(r){return r.json();})
@@ -548,16 +553,13 @@
           deletePresence();
           if(_gameId){
             var gid = _gameId;
-            // PATCH status=abandoned — l'adversaire le détecte via poll (2s) ou Realtime
+            // PATCH status=abandoned — le Realtime notifie l'adversaire instantanément
+            // Pas de DELETE ici — enterLobby() des deux côtés nettoie les lignes abandonnées
             fetch(SB_URL+'/rest/v1/'+GAME_TABLE+'?id=eq.'+gid, {
               method:'PATCH',
               headers: sb2Headers({'Prefer':'return=minimal'}),
               body: JSON.stringify({status:'abandoned'})
             }).catch(function(){});
-            // DELETE après 10s — laisse le temps au poll adversaire (2s) de voir status=abandoned
-            setTimeout(function(){
-              fetch(SB_URL+'/rest/v1/'+GAME_TABLE+'?id=eq.'+gid, {method:'DELETE', headers:sb2Headers()}).catch(function(){});
-            }, 10000);
           }
           resetState();
           if(onConfirm) onConfirm();
