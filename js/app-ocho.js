@@ -528,72 +528,37 @@
   }
 
   // ─── Avatars réels ────────────────────────────────────
-  var _avatarCache={};  // { girl: url, boy: url }
-
-  function _getAvatarUrl(role){
-    if(_avatarCache[role])return _avatarCache[role];
-    return 'assets/images/profil_'+role+'.png';
-  }
-
-  // Construit l'URL Supabase Storage — même logique que app-account.js
-  function _buildStorageUrl(userId){
-    return SB_URL+'/storage/v1/object/public/images/avatars/'+userId+'.jpg?t='+Date.now();
-  }
-
-  // Fetch profiles (id + role), probe l'URL Storage, remplit _avatarCache
-  // Identique à _acLoadAvatarTopbarOnStart + _acLoadPartnerAvatar dans app-account.js
-  function _loadAvatarCache(cb){
-    try{
-      var sess=JSON.parse(localStorage.getItem('yam_session_v3')||'null');
-      if(!sess||!sess.user||!sess.user.couple_id){if(cb)cb();return;}
-      var coupleId=sess.user.couple_id;
-      fetch(SB_URL+'/rest/v1/profiles?couple_id=eq.'+coupleId+'&select=id,role',
-        {headers:sb2Headers()})
-        .then(function(r){return r.ok?r.json():[];})
-        .then(function(rows){
-          if(!Array.isArray(rows)||!rows.length){if(cb)cb();return;}
-          var pending=rows.length;
-          function done(){pending--;if(pending<=0&&cb)cb();}
-          rows.forEach(function(p){
-            if(!p.id||!p.role){done();return;}
-            var url=_buildStorageUrl(p.id);
-            var probe=new Image();
-            probe.onload=function(){_avatarCache[p.role]=url;done();};
-            probe.onerror=function(){
-              _avatarCache[p.role]='assets/images/profil_'+p.role+'.png';
-              done();
-            };
-            probe.src=url;
-          });
-        })
-        .catch(function(){if(cb)cb();});
-    }catch(e){if(cb)cb();}
-  }
-
-  function _applyAvatars(){
-    if(!_me)return;
-    var myUrl=_getAvatarUrl(_me), opUrl=_getAvatarUrl(_other);
-    var meEl=document.getElementById('ochoMeAvatarImg');
-    var opEl=document.getElementById('ochoOppAvatarImg');
-    if(meEl)meEl.src=myUrl;
-    if(opEl)opEl.src=opUrl;
-    var wG=document.getElementById('ochoWaitAvGirl'),wB=document.getElementById('ochoWaitAvBoy');
-    if(wG)wG.src=_getAvatarUrl('girl');if(wB)wB.src=_getAvatarUrl('boy');
-    var rL=document.getElementById('ochoRoundAvLeftImg'),rR=document.getElementById('ochoRoundAvRightImg');
-    var fL=document.getElementById('ochoFinalAvLeftImg'),fR=document.getElementById('ochoFinalAvRightImg');
-    var gUrl=_getAvatarUrl('girl'),bUrl=_getAvatarUrl('boy');
-    if(rL)rL.src=(_me==='girl')?gUrl:bUrl; if(rR)rR.src=(_me==='girl')?bUrl:gUrl;
-    if(fL)fL.src=(_me==='girl')?gUrl:bUrl; if(fR)fR.src=(_me==='girl')?bUrl:gUrl;
+  // Charge l'avatar : URL Storage + fallback avatar.png si pas de photo
+  function _setAvatar(elId, userId, role){
+    var el=document.getElementById(elId);if(!el)return;
+    var url=SB_URL+'/storage/v1/object/public/images/avatars/'+userId+'.jpg';
+    var img=new Image();
+    img.onload=function(){el.src=url;};
+    img.onerror=function(){el.src='assets/images/profil_'+role+'.png';};
+    img.src=url;
   }
 
   function _loadAvatars(){
     if(!_me)return;
-    // Si cache vide, recharger d'abord puis appliquer
-    if(!_avatarCache[_me]||!_avatarCache[_other]){
-      _loadAvatarCache(function(){_applyAvatars();});
-    }else{
-      _applyAvatars();
-    }
+    try{
+      var sess=JSON.parse(localStorage.getItem('yam_session_v3')||'null');
+      if(!sess||!sess.user||!sess.user.couple_id)return;
+      fetch(SB_URL+'/rest/v1/profiles?couple_id=eq.'+sess.user.couple_id+'&select=id,role',
+        {headers:sb2Headers()})
+        .then(function(r){return r.ok?r.json():[];})
+        .then(function(rows){
+          if(!Array.isArray(rows))return;
+          rows.forEach(function(p){
+            if(!p.id||!p.role)return;
+            var isMe=p.role===_me;
+            _setAvatar(isMe?'ochoMeAvatarImg':'ochoOppAvatarImg',p.id,p.role);
+            _setAvatar(p.role==='girl'?'ochoWaitAvGirl':'ochoWaitAvBoy',p.id,p.role);
+            _setAvatar(p.role==='girl'?'ochoRoundAvLeftImg':'ochoRoundAvRightImg',p.id,p.role);
+            _setAvatar(p.role==='girl'?'ochoFinalAvLeftImg':'ochoFinalAvRightImg',p.id,p.role);
+          });
+        })
+        .catch(function(){});
+    }catch(e){}
   }
 
   // ─── Ouverture ────────────────────────────────────────
@@ -613,8 +578,7 @@
     else{ov.classList.add('active');ov.style.display='block';}
     var nav=document.querySelector('.bottom-nav');if(nav)nav.style.display='none';
     if(typeof _subviewIds!=='undefined'&&Array.isArray(_subviewIds)&&_subviewIds.indexOf('ochoView')===-1)_subviewIds.push('ochoView');
-    // Charger le cache avatars d'abord (async), puis afficher
-    _loadAvatarCache(function(){_loadAvatars();});
+    _loadAvatars();
 
     _mp=YAMMultiplayer.init({
       gameTable:OCHO_TABLE,presenceTable:OCHO_PRESENCE,
@@ -670,7 +634,6 @@
     _state=null;_stopTimer();_stopSafetyPoll();_timerFired=false;_reactCooldown=false;
     _lastReactTs=0;_ochoAuraOn=false;_selectedCard=null;
     _drawnThisTurn=false;_passAvailable=false;
-    _avatarCache={};
     var aura=document.getElementById('ochoAura');if(aura)aura.classList.remove('active');
     var pass=document.getElementById('ochoPassBtn');if(pass)pass.classList.remove('visible');
     if(typeof window._corePresenceSuspend==='function')window._corePresenceSuspend();
