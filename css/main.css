@@ -3059,11 +3059,11 @@ body.light .suggestion-lock-badge.unlocked { background: rgba(231,90,124,0.07); 
 }
 #skyjoHeldCard {
   animation: sjHeldFloat 2s ease-in-out infinite;
-  position: relative; overflow: hidden;
+  position: relative; overflow: visible;
 }
 @keyframes sjHeldFloat {
-  0%,100% { transform: translateY(0) rotateZ(-0.5deg); box-shadow: 0 3px 12px rgba(212,137,110,0.3), var(--sj-shadow); }
-  50%     { transform: translateY(-2px) rotateZ(0.5deg); box-shadow: 0 6px 18px rgba(212,137,110,0.4), var(--sj-shadow); }
+  0%,100% { transform: translateY(0) rotateZ(-0.5deg); filter: drop-shadow(0 3px 6px rgba(212,137,110,0.4)); }
+  50%     { transform: translateY(-2px) rotateZ(0.5deg); filter: drop-shadow(0 6px 12px rgba(212,137,110,0.6)); }
 }
 #skyjoHeldLabel {
   font-size: 8px; font-weight: 800; color: var(--muted);
@@ -3133,11 +3133,11 @@ body.light .suggestion-lock-badge.unlocked { background: rgba(231,90,124,0.07); 
 
 /* Carte cliquable — drop-shadow suit les contours arrondis du SVG */
 .skyjo-card.skyjo-card-clickable {
-  animation: sjCardClickable 1.4s ease-in-out infinite;
+  animation: sjCardClickable 1.6s ease-in-out infinite;
 }
 @keyframes sjCardClickable {
   0%,100% { filter: drop-shadow(0 0 0px rgba(245,240,235,0)); }
-  50%     { filter: drop-shadow(0 0 6px rgba(245,240,235,0.9)) brightness(1.08); }
+  50%     { filter: drop-shadow(0 0 7px rgba(245,240,235,1)) brightness(1.08); }
 }
 
 /* Le SVG remplit la carte entièrement */
@@ -3472,6 +3472,54 @@ body.light .skyjo-player-zone.zone-opp.active-zone .skyjo-player-score-badge {
 }
 body.light #skyjoPhaseMsg { color: var(--muted); }
 /* light theme — SVG gère le rendu des cartes, pas de surcharge nécessaire */
+
+/* ── Light theme : pulses adaptés (fond clair → couleurs foncées visibles) ── */
+
+/* Cartes cliquables en thème clair : halo sombre au lieu de blanc */
+body.light .skyjo-card.skyjo-card-clickable {
+  animation: sjCardClickableLt 1.6s ease-in-out infinite;
+}
+@keyframes sjCardClickableLt {
+  0%,100% { filter: drop-shadow(0 0 0px rgba(80,80,80,0)); }
+  50%     { filter: drop-shadow(0 0 6px rgba(60,60,80,0.7)) brightness(1.06); }
+}
+
+/* Pioche sélectionnable en thème clair */
+body.light #skyjoDeckCard.sj-selectable {
+  animation: sjPileSelectableLt 1.6s ease-in-out infinite;
+}
+@keyframes sjPileSelectableLt {
+  0%,100% { filter: drop-shadow(0 0 0px rgba(180,90,50,0)); }
+  50%     { filter: drop-shadow(0 0 7px rgba(180,90,50,0.8)) brightness(1.06); }
+}
+
+/* Défausse sélectionnable en thème clair */
+body.light #skyjoDiscardCard.sj-selectable {
+  animation: sjDiscardSelectableLt 1.6s ease-in-out infinite;
+}
+@keyframes sjDiscardSelectableLt {
+  0%,100% { filter: drop-shadow(0 0 0px rgba(160,120,0,0)); }
+  50%     { filter: drop-shadow(0 0 7px rgba(160,120,0,0.75)) brightness(1.06); }
+}
+
+/* Carte en main en thème clair */
+body.light #skyjoHeldCard {
+  animation: sjHeldFloatLt 2s ease-in-out infinite;
+}
+@keyframes sjHeldFloatLt {
+  0%,100% { transform: translateY(0) rotateZ(-0.5deg); filter: drop-shadow(0 3px 6px rgba(150,80,30,0.35)); }
+  50%     { transform: translateY(-2px) rotateZ(0.5deg); filter: drop-shadow(0 6px 12px rgba(150,80,30,0.55)); }
+}
+
+/* Zone active en thème clair */
+body.light .skyjo-player-zone.zone-me.active-zone {
+  background: rgba(231,90,124,0.06);
+  border-top: 2px solid rgba(231,90,124,0.45);
+}
+body.light .skyjo-player-zone.zone-opp.active-zone {
+  background: rgba(79,70,229,0.05);
+  border-bottom: 1px solid rgba(79,70,229,0.35);
+}
 
 .pendu-svg{display:block;margin:0 auto 8px;}
 .pendu-word{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin:14px 0;}
