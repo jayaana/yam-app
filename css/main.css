@@ -3505,150 +3505,230 @@ body.light .skyjo-turn-banner.their-turn {
   color: rgba(79,70,229,0.6);
   border-bottom: 1px solid rgba(79,70,229,0.18);
 }
-body.light .skyjo-player-zone.zone-opp {
-  background: rgba(0,0,0,0.01);
-  border-bottom: 1px solid var(--border);
+/* zones, pulses, timers, textes light → voir bloc FOND BOIS ci-dessous */
+
+/* ══════════════════════════════════════════════
+   SKYJO — FOND BOIS (light + dark)
+   ══════════════════════════════════════════════ */
+
+/* ── Safe area : étendre le fond bois sous la Dynamic Island ── */
+body.light #skyjoView,
+body:not(.light) #skyjoView {
+  background-attachment: fixed;
 }
-body.light .skyjo-player-zone.zone-opp.active-zone {
-  background: rgba(79,70,229,0.05);
-  border-bottom: 1px solid rgba(79,70,229,0.30);
+/* Le background-color couvre la safe area top sous le header glass */
+
+/* ══ THÈME CLAIR — bois clair skyjo-home.png ══ */
+
+/* Header glass frosté */
+body.light #skyjoView .game-view-header {
+  background: rgba(240,225,205,0.78);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(160,110,55,0.20);
+}
+
+/* Zones joueur au repos : très translucides */
+body.light .skyjo-player-zone.zone-opp {
+  background: rgba(240,220,185,0.18);
+  border-bottom: 1px solid rgba(140,95,40,0.18);
 }
 body.light .skyjo-player-zone.zone-me {
-  background: rgba(0,0,0,0.01);
-  border-top: 1px solid var(--border);
+  background: rgba(240,220,185,0.18);
+  border-top: 1px solid rgba(140,95,40,0.18);
 }
+
+/* Zones actives : halo ambre/doré — s'harmonise avec le bois */
 body.light .skyjo-player-zone.zone-me.active-zone {
-  background: rgba(231,90,124,0.06);
-  border-top: 1px solid rgba(231,90,124,0.35);
+  background: rgba(180,110,20,0.10);
+  border-top: 2px solid rgba(200,130,30,0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: sjZoneMeBreathLt 2.2s ease-in-out infinite;
 }
-body.light .sj-total-badge { background: var(--s1); border-color: var(--border); color: var(--text); }
-body.light #skyjoMidZone { background: linear-gradient(135deg, var(--s1) 0%, var(--s2) 100%); }
-body.light .skyjo-pile-label { color: rgba(0,0,0,0.5); }
-body.light #skyjoDrawPileCount { color: rgba(0,0,0,0.45); }
-body.light #sjTimerBarFill { background: rgba(231,90,124,0.5); }
-body.light #sjTimerBar.danger #sjTimerBarFill { background: rgba(239,83,80,0.7); }
-body.light .skyjo-player-zone .skyjo-player-name { color: rgba(0,0,0,0.7); }
-body.light .skyjo-player-zone.active-zone .skyjo-player-name { color: rgba(0,0,0,0.9); }
-body.light .skyjo-player-score-badge { background: var(--s2); border-color: var(--border); color: var(--sub); }
-body.light .skyjo-player-zone.zone-me.active-zone .skyjo-player-score-badge {
-  background: rgba(231,90,124,0.14); border-color: rgba(231,90,124,0.38); color: var(--text);
+@keyframes sjZoneMeBreathLt {
+  0%,100% { background: rgba(180,110,20,0.08); box-shadow: inset 0 0 50px rgba(200,130,30,0.10); }
+  50%     { background: rgba(180,110,20,0.18); box-shadow: inset 0 0 80px rgba(200,130,30,0.22); }
 }
-body.light .skyjo-player-zone.zone-opp.active-zone .skyjo-player-score-badge {
-  background: rgba(79,70,229,0.12); border-color: rgba(79,70,229,0.38); color: var(--text);
+body.light .skyjo-player-zone.zone-opp.active-zone {
+  background: rgba(60,100,200,0.08);
+  border-bottom: 2px solid rgba(80,120,220,0.40);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: sjZoneOppBreathLt 2.2s ease-in-out infinite;
 }
-body.light #skyjoPhaseMsg { color: var(--muted); }
-/* light theme — SVG gère le rendu des cartes, pas de surcharge nécessaire */
+@keyframes sjZoneOppBreathLt {
+  0%,100% { background: rgba(60,100,200,0.06); box-shadow: inset 0 0 50px rgba(80,120,220,0.08); }
+  50%     { background: rgba(60,100,200,0.14); box-shadow: inset 0 0 80px rgba(80,120,220,0.16); }
+}
 
-/* ── Light theme : pulses adaptés (fond clair → couleurs foncées visibles) ── */
+/* Mid zone pioche : glass chaud */
+body.light #skyjoMidZone {
+  background: rgba(235,210,175,0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(140,95,40,0.20);
+  border-bottom: 1px solid rgba(140,95,40,0.20);
+  box-shadow: none;
+}
 
-/* Cartes cliquables en thème clair : halo sombre au lieu de blanc */
+/* Bannière de tour : glass sur bois */
+body.light #skyjoTurnBanner {
+  background: rgba(240,225,200,0.65) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+body.light .skyjo-turn-banner.my-turn {
+  background: rgba(180,110,20,0.18) !important;
+  color: rgba(100,55,0,1);
+  border-bottom: 2px solid rgba(180,120,20,0.45);
+}
+body.light .skyjo-turn-banner.their-turn {
+  background: rgba(235,215,185,0.55) !important;
+  color: rgba(80,50,15,0.70);
+  border-bottom: 1px solid rgba(140,95,40,0.15);
+  font-style: italic;
+}
+
+/* Timer bar : ton ambre/brun sur bois */
+body.light #sjTimerBarFill { background: rgba(160,100,20,0.55); }
+body.light #sjTimerBar.danger #sjTimerBarFill { background: rgba(200,60,40,0.75); }
+
+/* Pulses cartes jouables : halo brun foncé fort sur bois clair */
 body.light .skyjo-card.skyjo-card-clickable {
-  animation: sjCardClickableLt 0.8s ease-in-out infinite alternate;
+  animation: sjCardClickableLt 0.75s ease-in-out infinite alternate;
 }
 @keyframes sjCardClickableLt {
-  from { filter: drop-shadow(0 0 0px rgba(180,90,50,0)); }
-  to   { filter: drop-shadow(0 0 7px rgba(180,90,50,0.85)); }
+  from { filter: drop-shadow(0 0 0px rgba(120,60,10,0)); }
+  to   { filter: drop-shadow(0 0 9px rgba(120,60,10,1)) drop-shadow(0 0 4px rgba(255,180,60,0.6)); }
 }
-
-/* Pioche sélectionnable en thème clair */
 body.light #skyjoDeckCard.sj-selectable {
-  animation: sjPileSelectableLt 0.8s ease-in-out infinite alternate;
+  animation: sjPileSelectableLt 0.75s ease-in-out infinite alternate;
 }
 @keyframes sjPileSelectableLt {
-  from { filter: drop-shadow(0 0 0px rgba(180,90,50,0)); }
-  to   { filter: drop-shadow(0 0 7px rgba(180,90,50,0.85)); }
+  from { filter: drop-shadow(0 0 0px rgba(120,60,10,0)); }
+  to   { filter: drop-shadow(0 0 9px rgba(120,60,10,1)) drop-shadow(0 0 4px rgba(255,180,60,0.6)); }
 }
-
-/* Défausse sélectionnable en thème clair */
 body.light #skyjoDiscardCard.sj-selectable {
-  animation: sjDiscardSelectableLt 0.8s ease-in-out infinite alternate;
+  animation: sjDiscardSelectableLt 0.75s ease-in-out infinite alternate;
 }
 @keyframes sjDiscardSelectableLt {
-  from { filter: drop-shadow(0 0 0px rgba(160,120,0,0)); }
-  to   { filter: drop-shadow(0 0 7px rgba(160,120,0,0.8)); }
+  from { filter: drop-shadow(0 0 0px rgba(100,70,0,0)); }
+  to   { filter: drop-shadow(0 0 9px rgba(100,70,0,0.9)) drop-shadow(0 0 4px rgba(255,200,50,0.7)); }
 }
 
-/* Carte en main en thème clair */
+/* Carte en main : ombre chaude bois */
 body.light #skyjoHeldCard {
   animation: sjHeldFloatLt 2s ease-in-out infinite;
 }
 @keyframes sjHeldFloatLt {
-  0%,100% { transform: translateY(0) rotateZ(-0.5deg); filter: drop-shadow(0 3px 6px rgba(150,80,30,0.35)); }
-  50%     { transform: translateY(-2px) rotateZ(0.5deg); filter: drop-shadow(0 6px 12px rgba(150,80,30,0.55)); }
+  0%,100% { transform: translateY(0) rotateZ(-0.5deg); filter: drop-shadow(0 3px 7px rgba(100,55,10,0.45)); }
+  50%     { transform: translateY(-2px) rotateZ(0.5deg); filter: drop-shadow(0 6px 14px rgba(100,55,10,0.65)); }
 }
 
-/* Zone active en thème clair */
-body.light .skyjo-player-zone.zone-me.active-zone {
-  background: rgba(0,0,0,0.04);
-  border-top: 1px solid rgba(0,0,0,0.18);
+/* Textes : brun lisible sur bois clair */
+body.light .skyjo-pile-label { color: rgba(80,45,10,0.75); }
+body.light #skyjoDrawPileCount { color: rgba(80,45,10,0.65); }
+body.light .skyjo-player-zone .skyjo-player-name {
+  color: rgba(55,25,5,0.90);
+  text-shadow: 0 1px 3px rgba(255,240,210,0.70);
 }
-body.light .skyjo-player-zone.zone-opp.active-zone {
-  background: rgba(79,70,229,0.05);
-  border-bottom: 1px solid rgba(79,70,229,0.35);
+body.light .skyjo-player-zone.active-zone .skyjo-player-name { color: rgba(40,15,0,1); }
+body.light .skyjo-player-score-badge { background: rgba(240,220,185,0.75); border-color: rgba(140,95,40,0.30); color: rgba(60,30,5,0.90); }
+body.light .skyjo-player-zone.zone-me.active-zone .skyjo-player-score-badge {
+  background: rgba(180,110,20,0.18); border-color: rgba(180,120,20,0.45); color: rgba(60,30,0,1);
+}
+body.light .skyjo-player-zone.zone-opp.active-zone .skyjo-player-score-badge {
+  background: rgba(60,100,200,0.14); border-color: rgba(80,120,220,0.40); color: rgba(20,30,80,1);
+}
+body.light #skyjoPhaseMsg { color: rgba(80,45,10,0.70); }
+
+/* ══ THÈME SOMBRE — bois sombre skyjo-home2.png ══ */
+
+body:not(.light) #skyjoView {
+  background-image: url('../assets/images/skyjo-home2.png');
+  background-color: #2a1a0e;
 }
 
-/* ── Fond bois — thème clair ── */
-
-/* Header : glass frosté sur le bois */
-body.light #skyjoView .game-view-header {
-  background: rgba(255,248,238,0.72);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(180,130,80,0.18);
+/* Header glass sombre sur bois foncé */
+body:not(.light) #skyjoView .game-view-header {
+  background: rgba(30,18,8,0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(120,80,30,0.25);
 }
 
-/* Zones joueur au repos : transparentes → bois visible */
-body.light .skyjo-player-zone.zone-opp {
-  background: rgba(255,248,238,0.30);
-  border-bottom: 1px solid rgba(160,110,60,0.15);
+/* Zones au repos : très translucides sur bois sombre */
+body:not(.light) .skyjo-player-zone.zone-opp {
+  background: rgba(0,0,0,0.18);
+  border-bottom: 1px solid rgba(120,80,30,0.20);
 }
-body.light .skyjo-player-zone.zone-me {
-  background: rgba(255,248,238,0.30);
-  border-top: 1px solid rgba(160,110,60,0.15);
-}
-
-/* Zones actives : halo coloré fort, backdrop pour lisibilité des cartes */
-body.light .skyjo-player-zone.zone-me.active-zone {
-  background: rgba(231,90,124,0.13);
-  border-top: 2px solid rgba(231,90,124,0.55);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  animation: sjZoneMeBreathLt 2s ease-in-out infinite;
-}
-@keyframes sjZoneMeBreathLt {
-  0%,100% { background: rgba(231,90,124,0.10); box-shadow: inset 0 0 50px rgba(231,90,124,0.12); }
-  50%     { background: rgba(231,90,124,0.20); box-shadow: inset 0 0 80px rgba(231,90,124,0.20); }
-}
-body.light .skyjo-player-zone.zone-opp.active-zone {
-  background: rgba(79,70,229,0.10);
-  border-bottom: 2px solid rgba(79,70,229,0.45);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  animation: sjZoneOppBreathLt 2s ease-in-out infinite;
-}
-@keyframes sjZoneOppBreathLt {
-  0%,100% { background: rgba(79,70,229,0.08); box-shadow: inset 0 0 50px rgba(79,70,229,0.10); }
-  50%     { background: rgba(79,70,229,0.18); box-shadow: inset 0 0 80px rgba(79,70,229,0.18); }
+body:not(.light) .skyjo-player-zone.zone-me {
+  background: rgba(0,0,0,0.18);
+  border-top: 1px solid rgba(120,80,30,0.20);
 }
 
-/* Zone centrale pioche/défausse : glass neutre */
-body.light #skyjoMidZone {
-  background: rgba(255,248,238,0.50);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(160,110,60,0.18);
-  border-bottom: 1px solid rgba(160,110,60,0.18);
+/* Zones actives dark : ambre chaud */
+body:not(.light) .skyjo-player-zone.zone-me.active-zone {
+  background: rgba(200,130,30,0.12);
+  border-top: 2px solid rgba(220,150,40,0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: sjZoneMeBreathDk 2.2s ease-in-out infinite;
+}
+@keyframes sjZoneMeBreathDk {
+  0%,100% { background: rgba(200,130,30,0.10); box-shadow: inset 0 0 50px rgba(220,150,40,0.10); }
+  50%     { background: rgba(200,130,30,0.20); box-shadow: inset 0 0 80px rgba(220,150,40,0.20); }
+}
+body:not(.light) .skyjo-player-zone.zone-opp.active-zone {
+  background: rgba(100,130,255,0.10);
+  border-bottom: 2px solid rgba(120,150,255,0.40);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: sjZoneOppBreathDk 2.2s ease-in-out infinite;
+}
+@keyframes sjZoneOppBreathDk {
+  0%,100% { background: rgba(100,130,255,0.08); box-shadow: inset 0 0 50px rgba(120,150,255,0.08); }
+  50%     { background: rgba(100,130,255,0.18); box-shadow: inset 0 0 80px rgba(120,150,255,0.18); }
+}
+
+/* Mid zone dark */
+body:not(.light) #skyjoMidZone {
+  background: rgba(20,10,4,0.60);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(120,80,30,0.22);
+  border-bottom: 1px solid rgba(120,80,30,0.22);
   box-shadow: none;
 }
 
-/* Labels texte : ton brun lisible sur bois clair */
-body.light .skyjo-pile-label { color: rgba(100,60,20,0.70); }
-body.light #skyjoDrawPileCount { color: rgba(100,60,20,0.60); }
-body.light .skyjo-player-zone .skyjo-player-name {
-  color: rgba(60,30,10,0.80);
-  text-shadow: 0 1px 2px rgba(255,255,255,0.50);
+/* Bannière dark */
+body:not(.light) #skyjoTurnBanner.skyjo-turn-banner.my-turn {
+  background: rgba(200,130,30,0.18) !important;
+  color: rgba(255,210,120,1);
+  border-bottom: 2px solid rgba(200,140,30,0.45);
 }
-body.light .skyjo-player-zone.active-zone .skyjo-player-name { color: rgba(30,10,0,0.95); }
+body:not(.light) #skyjoTurnBanner.skyjo-turn-banner.their-turn {
+  background: rgba(20,10,4,0.50) !important;
+  color: rgba(200,170,120,0.75);
+  border-bottom: 1px solid rgba(120,80,30,0.20);
+}
+
+/* Timer dark */
+body:not(.light) #sjTimerBarFill { background: rgba(220,160,40,0.65); }
+body:not(.light) #sjTimerBar.danger #sjTimerBarFill { background: rgba(220,70,50,0.80); }
+
+/* Textes dark sur bois sombre */
+body:not(.light) .skyjo-pile-label { color: rgba(220,185,130,0.75); }
+body:not(.light) #skyjoDrawPileCount { color: rgba(210,175,120,0.65); }
+body:not(.light) .skyjo-player-zone .skyjo-player-name {
+  color: rgba(240,210,160,0.90);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.70);
+}
+body:not(.light) .skyjo-player-zone.active-zone .skyjo-player-name { color: rgba(255,230,180,1); }
+body:not(.light) .skyjo-player-score-badge { background: rgba(30,18,8,0.65); border-color: rgba(120,80,30,0.35); color: rgba(230,200,140,0.90); }
+
+
 
 .pendu-svg{display:block;margin:0 auto 8px;}
 .pendu-word{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin:14px 0;}
