@@ -73,6 +73,14 @@
     ns.discard.push(card);
     ns.current_color=(card.suit==='wild'||card.suit==='swap')?(chosenColor||'heart'):card.suit;
     ns.draw_penalty=null;
+    // Vérifier victoire AVANT effets spéciaux — main du joueur après retrait de la carte
+    var handAfterPlay=player==='girl'?ns.girl_hand:ns.boy_hand;
+    if(handAfterPlay.length===0){
+      ns.phase='round_end';ns.round_winner=player;ns.wins[player]=(ns.wins[player]||0)+1;
+      ns.ts_turn=Date.now();ns.ocho_declared=null;
+      return ns;
+    }
+    // Appliquer effets spéciaux seulement si pas de victoire
     if(card.value==='+1'){ns.draw_penalty={target:other,count:1};ns.turn=other;}
     else if(card.value==='+2'){ns.draw_penalty={target:other,count:2};ns.turn=other;}
     else if(card.value==='block'){ns.turn=player;}
@@ -80,8 +88,6 @@
     else if(card.value==='swap'){var tmp=ns.girl_hand;ns.girl_hand=ns.boy_hand;ns.boy_hand=tmp;ns.turn=other;}
     else{ns.turn=other;}
     ns.ts_turn=Date.now();ns.ocho_declared=null;
-    var mha=player==='girl'?ns.girl_hand:ns.boy_hand;
-    if(mha.length===0){ns.phase='round_end';ns.round_winner=player;ns.wins[player]=(ns.wins[player]||0)+1;}
     return ns;
   }
 
@@ -314,7 +320,7 @@
 '#ochoBotArc{position:relative;width:300px;height:95px;margin:0 auto;}'+
 /* Vraie carte dans l'arc */
 '.oc-card{position:absolute;width:52px;height:73px;border-radius:9px;border:2.5px solid #F2E8D4;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,0.5);cursor:pointer;transition:box-shadow 0.15s;}'+
-'.oc-card.playable{box-shadow:0 0 0 2.5px #FFD700,0 4px 16px rgba(255,210,0,0.35)!important;}'+
+'.oc-card.playable{}'+
 '.oc-card.selected{box-shadow:0 0 0 3px #FFD700,0 8px 24px rgba(255,215,0,0.55)!important;}'+
 '.oc-card.unplayable{filter:brightness(0.45) saturate(0.4);}'+
 '.oc-hint-suit{font-size:14px;line-height:1;}'+
@@ -535,36 +541,27 @@
     return 'assets/images/profil_'+role+'.png';
   }
 
-  // Construit l'URL Supabase Storage — même logique que app-account.js
-  function _buildStorageUrl(userId){
-    return SB_URL+'/storage/v1/object/public/images/avatars/'+userId+'.jpg?t='+Date.now();
-  }
-
-  // Fetch profiles (id + role), probe l'URL Storage, remplit _avatarCache
-  // Identique à _acLoadAvatarTopbarOnStart + _acLoadPartnerAvatar dans app-account.js
+  // Charge les avatars : URL Storage directe depuis user.id, sans probe
+  // Le navigateur affiche le fallback naturellement si l'image n'existe pas
   function _loadAvatarCache(cb){
     try{
       var sess=JSON.parse(localStorage.getItem('yam_session_v3')||'null');
       if(!sess||!sess.user||!sess.user.couple_id){if(cb)cb();return;}
-      var coupleId=sess.user.couple_id;
-      fetch(SB_URL+'/rest/v1/profiles?couple_id=eq.'+coupleId+'&select=id,role',
+      var me=sess.user;
+      var coupleId=me.couple_id;
+      // Mon avatar : depuis mon user.id directement
+      var myUrl=SB_URL+'/storage/v1/object/public/images/avatars/'+me.id+'.jpg?t='+Date.now();
+      _avatarCache[me.role]=myUrl;
+      // Avatar partenaire : fetch profiles pour avoir son id
+      fetch(SB_URL+'/rest/v1/profiles?couple_id=eq.'+coupleId+'&id=neq.'+me.id+'&select=id,role&limit=1',
         {headers:sb2Headers()})
         .then(function(r){return r.ok?r.json():[];})
         .then(function(rows){
-          if(!Array.isArray(rows)||!rows.length){if(cb)cb();return;}
-          var pending=rows.length;
-          function done(){pending--;if(pending<=0&&cb)cb();}
-          rows.forEach(function(p){
-            if(!p.id||!p.role){done();return;}
-            var url=_buildStorageUrl(p.id);
-            var probe=new Image();
-            probe.onload=function(){_avatarCache[p.role]=url;done();};
-            probe.onerror=function(){
-              _avatarCache[p.role]='assets/images/profil_'+p.role+'.png';
-              done();
-            };
-            probe.src=url;
-          });
+          if(Array.isArray(rows)&&rows.length&&rows[0].id){
+            var p=rows[0];
+            _avatarCache[p.role]=SB_URL+'/storage/v1/object/public/images/avatars/'+p.id+'.jpg?t='+Date.now();
+          }
+          if(cb)cb();
         })
         .catch(function(){if(cb)cb();});
     }catch(e){if(cb)cb();}
