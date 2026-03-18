@@ -189,11 +189,6 @@
         return;
       }
 
-      // Nettoyer les lignes abandonnées avant de chercher une partie
-      fetch(SB_URL+'/rest/v1/'+GAME_TABLE+'?couple_id=eq.'+coupleId+'&status=eq.abandoned', {
-        method:'DELETE', headers:sb2Headers()
-      }).catch(function(){});
-
       Promise.all([
         fetch(SB_URL+'/rest/v1/'+GAME_TABLE+'?couple_id=eq.'+coupleId+'&status=eq.playing&order=created_at.desc&limit=1&select=id,status,state,created_by,updated_at', {headers:sb2Headers()}).then(function(r){return r.json();}),
         fetch(SB_URL+'/rest/v1/'+PRESENCE_TABLE+'?couple_id=eq.'+coupleId+'&select=role', {headers:sb2Headers()}).then(function(r){return r.json();})
@@ -480,7 +475,7 @@
         }
 
         // ── Abandon volontaire de l'adversaire ────────────
-        if(Array.isArray(rows) && rows[0] && rows[0].status==='abandoned'){
+        if(Array.isArray(rows) && rows[0] && rows[0].state && rows[0].state.abandoned===true){
           stopPoll();
           stopReconnectWait();
           _waitingForReconnect = false;
@@ -553,13 +548,18 @@
           deletePresence();
           if(_gameId){
             var gid = _gameId;
-            // PATCH status=abandoned — le Realtime notifie l'adversaire instantanément
-            // Pas de DELETE ici — enterLobby() des deux côtés nettoie les lignes abandonnées
+            // Écrire abandoned:true dans le state JSON — status n'accepte que waiting/playing
+            // Le Realtime notifie l'adversaire instantanément via l'UPDATE
+            var abandonedState = Object.assign({}, _gameState||{}, {abandoned:true, abandonedBy:_me});
             fetch(SB_URL+'/rest/v1/'+GAME_TABLE+'?id=eq.'+gid, {
               method:'PATCH',
               headers: sb2Headers({'Prefer':'return=minimal'}),
-              body: JSON.stringify({status:'abandoned'})
+              body: JSON.stringify({state: abandonedState})
             }).catch(function(){});
+            // Supprimer après 5s — l'adversaire reçoit le Realtime bien avant
+            setTimeout(function(){
+              fetch(SB_URL+'/rest/v1/'+GAME_TABLE+'?id=eq.'+gid, {method:'DELETE', headers:sb2Headers()}).catch(function(){});
+            }, 5000);
           }
           resetState();
           if(onConfirm) onConfirm();
