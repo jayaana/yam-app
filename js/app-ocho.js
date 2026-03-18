@@ -179,11 +179,12 @@
     var subMarginTop = isBlocked ? 4 : 1;
     var valMarginTop = isBlocked ? -4 : 0;
     var valStroke    = isBlocked ? '2.5px' : '1px';
+    var valWeight    = isBlocked ? '400'   : '900';
 
     return '<div style="position:absolute;inset:0;background:'+bg+';">'+
       _suitBgBI(suit, small)+
       '<div style="position:absolute;top:4px;left:6px;display:flex;flex-direction:column;align-items:center;z-index:2;">'+
-        '<div style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:14px;font-weight:900;line-height:1;letter-spacing:-0.08em;-webkit-text-stroke:'+valStroke+' '+dark+';paint-order:stroke fill;color:'+dark+';margin-top:'+valMarginTop+'px;">'+displayVal+'</div>'+
+        '<div style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:14px;font-weight:'+valWeight+';line-height:1;letter-spacing:-0.08em;-webkit-text-stroke:'+valStroke+' '+dark+';paint-order:stroke fill;color:'+dark+';margin-top:'+valMarginTop+'px;">'+displayVal+'</div>'+
         '<div style="display:flex;align-items:center;gap:0;margin-top:'+subMarginTop+'px;color:'+dark+';">'+subHtml+'</div>'+
       '</div>'+
     '</div>';
@@ -272,8 +273,8 @@
 '.oc-av-wrap svg{position:absolute;inset:0;transform:rotate(-90deg);width:100%;height:100%;}'+
 '.oc-av-face{position:absolute;inset:8px;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;}'+
 '.oc-av-face img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;}'+
-'.oc-av-partner{background:linear-gradient(135deg,#c87840,#7a4020);}'+
-'.oc-av-me{background:linear-gradient(135deg,#7040b0,#402880);}'+
+'.oc-av-partner{background:transparent;}'+
+'.oc-av-me{background:transparent;}'+
 '.oc-p-name{font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:20px;font-weight:900;color:#F2E8D4;line-height:1;}'+
 '.oc-p-sub{font-size:13px;color:rgba(242,232,212,0.45);font-weight:600;margin-top:4px;letter-spacing:0.03em;}'+
 '#ochoOppPresenceDot{position:absolute;bottom:6px;right:6px;width:12px;height:12px;border-radius:50%;background:#555;border:2px solid rgba(0,0,0,0.4);transition:background 0.3s;}'+
@@ -306,14 +307,14 @@
 '#ochoMeTurnPill{display:none;margin-top:3px;align-items:center;gap:5px;background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.35);border-radius:20px;padding:4px 11px;font-size:12px;font-weight:700;color:#FFD700;}'+
 '#ochoMeTurnPill.visible{display:inline-flex;}'+
 '.oc-turn-dot{width:7px;height:7px;border-radius:50%;background:#FFD700;box-shadow:0 0 5px 2px rgba(255,215,0,0.7);}'+
-'#ochoPassBtn{display:none;margin:0 auto 6px;padding:7px 22px;background:rgba(255,255,255,0.12);color:#F2E8D4;border:1px solid rgba(255,255,255,0.3);border-radius:20px;font-size:12px;font-weight:700;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;backdrop-filter:blur(8px);}'+
+'#ochoPassBtn{display:none;margin:0 auto 2px;padding:6px 20px;background:rgba(255,255,255,0.12);color:#F2E8D4;border:1px solid rgba(255,255,255,0.3);border-radius:20px;font-size:12px;font-weight:700;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;backdrop-filter:blur(8px);}'+
 '#ochoPassBtn.visible{display:block;}'+
 '#ochoBotArc{position:relative;width:300px;height:95px;margin:0 auto;}'+
 /* Vraie carte dans l'arc */
 '.oc-card{position:absolute;width:52px;height:73px;border-radius:9px;border:2.5px solid #F2E8D4;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,0.5);cursor:pointer;transition:box-shadow 0.15s;}'+
 '.oc-card.playable{box-shadow:0 0 0 2.5px #FFD700,0 4px 16px rgba(255,210,0,0.35)!important;}'+
 '.oc-card.selected{box-shadow:0 0 0 3px #FFD700,0 8px 24px rgba(255,215,0,0.55)!important;}'+
-'.oc-card.unplayable{opacity:0.32;filter:saturate(0.2);}'+
+'.oc-card.unplayable{opacity:0.55;filter:saturate(0.35);}'+
 '#ochoHint{display:inline-flex;align-items:center;gap:6px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:5px 14px;margin-top:6px;backdrop-filter:blur(8px);}'+
 '.oc-hint-suit{font-size:14px;line-height:1;}'+
 '.oc-hint-text{font-size:11px;font-weight:700;color:rgba(242,232,212,0.7);letter-spacing:0.03em;}'+
@@ -707,9 +708,17 @@
     c.innerHTML='';if(hand.length===0)return;
     var n=hand.length;
     var totalW=Math.min(c.offsetWidth||300,340);
-    var spread=Math.min(46,(totalW-52)/Math.max(n-1,1));
-    var startX=(totalW-(spread*(n-1)+52))/2;
-    var maxAngle=Math.min(22,n*3);
+
+    // Éventail : toutes les cartes pivotent depuis un point bas commun
+    // spread angulaire total selon nombre de cartes
+    var maxSpread=Math.min(44,n*5);
+    // Point d'origine de rotation : centre bas de l'arc, très bas
+    var originX=totalW/2;
+    var originY=380; // plus c'est grand, plus l'arc est doux
+    // Position de base de chaque carte : centrée horizontalement, en bas
+    var cardW=52,cardH=73;
+    var baseX=originX-cardW/2;
+    var baseY=c.offsetHeight-cardH-4;
 
     hand.forEach(function(card,i){
       var el=document.createElement('div');el.className='oc-card';
@@ -720,11 +729,18 @@
       else if(isMyTurn)el.classList.add('unplayable');
       if(isSelected)el.classList.add('selected');
 
-      var angle=n>1?(i/(n-1)-0.5)*maxAngle*2:0;
-      var lift=n>1?-Math.abs(i/(n-1)-0.5)*8:0;
+      // Angle : de -maxSpread/2 à +maxSpread/2
+      var t=n>1?i/(n-1):0.5;
+      var angle=(t-0.5)*maxSpread;
+      // translateY vers le haut pour les cartes du milieu (effet arc)
+      var lift=n>1?-Math.cos((t-0.5)*Math.PI)*6:0;
+      var selectedLift=isSelected?-14:0;
 
-      el.style.cssText='left:'+(startX+i*spread)+'px;bottom:4px;'+
-        'transform:rotate('+angle+'deg) translateY('+lift+(isSelected?-12:0)+'px);'+
+      el.style.cssText=
+        'left:'+baseX+'px;'+
+        'bottom:4px;'+
+        'transform-origin:center '+(originY)+'px;'+
+        'transform:rotate('+angle+'deg) translateY('+(lift+selectedLift)+'px);'+
         'z-index:'+(isSelected?99:(i+1))+';';
 
       el.innerHTML=_cardInner(card,false);
