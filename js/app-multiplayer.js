@@ -454,7 +454,7 @@
             if(!_launched || _waitingForReconnect) return;
             if(document.getElementById(cfg.waitModalId||'yamWaitModal') ||
                document.getElementById(cfg.countdownModalId||'yamCountdownModal')) return;
-            var oppName = (typeof v2GetDisplayName==='function' ? v2GetDisplayName(_me==='girl'?'boy':'girl') : (_me==='girl'?'Lui':'Elle'));
+            var oppName = (typeof v2GetDisplayName==='function' ? v2GetDisplayName(_me==='girl'?'boy':'girl') : (_me==='girl'?'Bleu':'Rose'));
             if(cfg.onOpponentOffline){
               cfg.onOpponentOffline(oppName);
             } else {
