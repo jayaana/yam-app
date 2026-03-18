@@ -3166,13 +3166,13 @@ body.light .sj-their-turn-badge {
 }
 .skyjo-card:hover { transform: translateY(-3px) scale(1.05); filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)); }
 
-/* Carte cliquable — drop-shadow suit les contours arrondis du SVG */
+/* Carte cliquable — exactement le même pulse que la pioche/défausse */
 .skyjo-card.skyjo-card-clickable {
   animation: sjCardClickable 0.8s ease-in-out infinite alternate;
 }
 @keyframes sjCardClickable {
-  from { filter: drop-shadow(0 0 0px rgba(245,240,235,0)); }
-  to   { filter: drop-shadow(0 0 7px rgba(245,240,235,0.95)); }
+  from { filter: drop-shadow(0 0 0px rgba(212,137,110,0)); }
+  to   { filter: drop-shadow(0 0 7px rgba(212,137,110,1)); }
 }
 
 /* Le SVG remplit la carte entièrement */
@@ -3515,8 +3515,8 @@ body.light .skyjo-card.skyjo-card-clickable {
   animation: sjCardClickableLt 0.8s ease-in-out infinite alternate;
 }
 @keyframes sjCardClickableLt {
-  from { filter: drop-shadow(0 0 0px rgba(60,60,80,0)); }
-  to   { filter: drop-shadow(0 0 6px rgba(60,60,80,0.75)); }
+  from { filter: drop-shadow(0 0 0px rgba(180,90,50,0)); }
+  to   { filter: drop-shadow(0 0 7px rgba(180,90,50,0.85)); }
 }
 
 /* Pioche sélectionnable en thème clair */
