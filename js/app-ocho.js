@@ -111,55 +111,12 @@
   var SUIT_COLORS ={heart:'#E04E3E',club:'#4CB8A0',spade:'#5070B8',diamond:'#E89030'};
   var SUIT_BG_DARK={heart:'#8B1A10',club:'#145A38',spade:'#162060',diamond:'#7A3A00'};
   var SUIT_DARK   ={heart:'#bf3020',club:'#3A9E88',spade:'#3A58A0',diamond:'#C07010'};
+  var SUIT_ICONS  ={heart:'bi-suit-heart-fill',club:'bi-suit-club-fill',spade:'bi-suit-spade-fill',diamond:'bi-suit-diamond-fill'};
   var SUIT_SYMS   ={heart:'\u2665',club:'\u2663',spade:'\u2660',diamond:'\u2666'};
-
-  // ─── SVG inline des 4 symboles (remplace Bootstrap Icons) ────
-  // Chaque fonction retourne un SVG string à la taille voulue
-  var _SUIT_SVG = {
-    heart: function(sz,col){
-      return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 16 16" fill="'+col+'" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;">'+
-        '<path d="M8 14.25l-.35-.3C3.4 10.15 1 8.02 1 5.5 1 3.42 2.62 2 4.5 2c1.03 0 2.04.5 2.68 1.3L8 4.48l.82-.18C9.46 2.5 10.47 2 11.5 2 13.38 2 15 3.42 15 5.5c0 2.52-2.4 4.65-6.65 8.45L8 14.25z"/>'+
-      '</svg>';
-    },
-    diamond: function(sz,col){
-      return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 16 16" fill="'+col+'" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;">'+
-        '<path d="M8 1l7 7-7 7L1 8z"/>'+
-      '</svg>';
-    },
-    club: function(sz,col){
-      return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 16 16" fill="'+col+'" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;">'+
-        '<path d="M8 1a3 3 0 0 0-2.83 4.02A3 3 0 1 0 8 11.5a3 3 0 1 0 2.83-6.48A3 3 0 0 0 8 1zm0 10.5c-.55 0-1.05.1-1.5.28V13h3v-1.22A4 4 0 0 1 8 11.5z"/>'+
-      '</svg>';
-    },
-    spade: function(sz,col){
-      return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 16 16" fill="'+col+'" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;">'+
-        '<path d="M8 1L1 8a4 4 0 0 0 5.5 5.8C6.19 14.4 6 15 6 15h4s-.19-.6-.5-1.2A4 4 0 0 0 15 8z"/>'+
-      '</svg>';
-    }
-  };
-
-  // Icône SVG grosse (fond de carte)
-  function _suitBgSVG(suit, color, small) {
-    var sz = small ? 68 : 72;
-    var fn = _SUIT_SVG[suit];
-    if (!fn) return '';
-    var top  = small ? -16 : -18;
-    var left = small ? -18 : -14;
-    return '<div style="position:absolute;top:'+top+'px;left:'+left+'px;pointer-events:none;opacity:1;line-height:0;">'+
-      fn(sz, color)+
-    '</div>';
-  }
-
-  // Icône SVG petite (sous-label)
-  function _suitSmSVG(suit, color, sz) {
-    var fn = _SUIT_SVG[suit];
-    return fn ? fn(sz, color) : '';
-  }
 
   // ─── Rendu d'une vraie carte ──────────────────────────
   function _cardInner(card, small) {
-    var fs  = small ? 13 : 16;
-    var sub = small ? 8  : 10;
+    // small=true → taille défausse 50×70 ; false → main 52×73
     var suit = card.suit, val = card.value;
 
     if (val === '8')    return _card8Inner(null, small);
@@ -167,23 +124,44 @@
 
     var bg   = SUIT_COLORS[suit]||'#888';
     var dark = SUIT_DARK[suit]||'#555';
+    var icon = SUIT_ICONS[suit]||'bi-suit-spade-fill';
 
-    var displayVal = val==='block' ? '\u2298' : val;
-    var subHtml;
-    if (val==='+1')
-      subHtml='<span style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:'+sub+'px;font-weight:900;color:'+dark+'">Q</span>'+_suitSmSVG(suit,dark,sub);
-    else if (val==='+2')
-      subHtml='<span style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:'+sub+'px;font-weight:900;color:'+dark+'">K</span>'+_suitSmSVG(suit,dark,sub);
-    else if (val==='block')
-      subHtml='<span style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:'+sub+'px;font-weight:900;color:'+dark+'">J</span>'+_suitSmSVG(suit,dark,sub);
-    else
-      subHtml=_suitSmSVG(suit,dark,sub+3);
+    // Dimensions adaptées selon taille (référence: ocho_all_cardsx.html)
+    var symFontSize = small ? '68px' : '86px';
+    var symTop = small ? '-17px' : '-22px';
+    var symLeft = suit === 'heart' ? (small ? '-21px' : '-26px') : (small ? '-21px' : '-26px');
+    var valFontSize = small ? '13.5px' : '17px';
+    var valTop = small ? '4px' : '5px';
+    var valLeft = small ? '5.5px' : '7px';
+    var subFontSize = small ? '8.5px' : '11px';
+    var subMarginTop = small ? '1px' : '2px';
+
+    // Valeur affichée
+    var displayVal = val==='block' ? '⊘' : val;
+    var valueExtraClass = val==='block' ? 'style="margin-top:-4px;-webkit-text-stroke:1.5px currentColor;"' : 'style=""';
+    
+    // Sous-texte (K pour +1/+2, J pour block)
+    var subHtml = '';
+    var subMarginTopBlock = val==='block' ? (small ? '4px' : '5px') : subMarginTop;
+    
+    if (val==='+1') {
+      subHtml = '<span style="font-family:\'Arial Rounded MT Bold\',\'Arial Black\',sans-serif;font-size:'+subFontSize+';font-weight:900;-webkit-text-stroke:0.6px currentColor;paint-order:stroke fill;letter-spacing:-0.05em;line-height:1;color:'+dark+';">K</span>' +
+                '<i class="bi '+icon+'" style="font-size:'+subFontSize+';line-height:1;color:'+dark+';"></i>';
+    } else if (val==='+2') {
+      subHtml = '<span style="font-family:\'Arial Rounded MT Bold\',\'Arial Black\',sans-serif;font-size:'+subFontSize+';font-weight:900;-webkit-text-stroke:0.6px currentColor;paint-order:stroke fill;letter-spacing:-0.05em;line-height:1;color:'+dark+';">K</span>' +
+                '<i class="bi '+icon+'" style="font-size:'+subFontSize+';line-height:1;color:'+dark+';"></i>';
+    } else if (val==='block') {
+      subHtml = '<span style="font-family:\'Arial Rounded MT Bold\',\'Arial Black\',sans-serif;font-size:'+subFontSize+';font-weight:900;-webkit-text-stroke:0.6px currentColor;paint-order:stroke fill;letter-spacing:-0.05em;line-height:1;color:'+dark+';">J</span>' +
+                '<i class="bi '+icon+'" style="font-size:'+subFontSize+';line-height:1;color:'+dark+';"></i>';
+    } else {
+      subHtml = '<i class="bi '+icon+'" style="font-size:'+subFontSize+';line-height:1;color:'+dark+';"></i>';
+    }
 
     return '<div style="position:absolute;inset:0;background:'+bg+';">'+
-      _suitBgSVG(suit,'#F2E8D4',small)+
-      '<div style="position:absolute;top:'+(small?4:5)+'px;left:'+(small?5:7)+'px;display:flex;flex-direction:column;align-items:center;z-index:2;">'+
-        '<div style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:'+fs+'px;font-weight:900;line-height:1;letter-spacing:-0.06em;color:'+dark+';">'+displayVal+'</div>'+
-        '<div style="display:flex;align-items:center;gap:1px;margin-top:1px;">'+subHtml+'</div>'+
+      '<i class="bi '+icon+'" style="position:absolute;top:'+symTop+';left:'+symLeft+';font-size:'+symFontSize+';line-height:1;color:#F2E8D4;filter:drop-shadow(3px 5px 0px rgba(0,0,0,0.2));pointer-events:none;"></i>'+
+      '<div style="position:absolute;top:'+valTop+';left:'+valLeft+';display:flex;flex-direction:column;align-items:center;z-index:2;">'+
+        '<div '+valueExtraClass+' style="font-family:\'Arial Rounded MT Bold\',\'Arial Black\',sans-serif;font-size:'+valFontSize+';font-weight:900;line-height:1;-webkit-text-stroke:0.6px currentColor;paint-order:stroke fill;letter-spacing:-0.08em;color:'+dark+';">'+displayVal+'</div>'+
+        '<div style="display:flex;align-items:center;gap:0;margin-top:'+(val==='block'?subMarginTopBlock:subMarginTop)+';">'+subHtml+'</div>'+
       '</div>'+
     '</div>';
   }
@@ -204,7 +182,7 @@
     }
     inner += '<svg style="position:absolute;top:-2px;left:-2px;width:calc(100% + 4px);height:calc(100% + 4px);overflow:visible;" viewBox="0 0 '+w+' '+h+'" xmlns="http://www.w3.org/2000/svg">'+
       '<text x="'+(w/2)+'" y="'+(h*0.945)+'" text-anchor="middle" '+
-      'font-family="Arial Rounded MT Bold,Arial Black,system-ui,sans-serif" font-weight="900" font-size="'+(h*1.23)+'" '+
+      'font-family="Nunito,Arial Black,sans-serif" font-weight="900" font-size="'+(h*1.23)+'" '+
       'fill="#F2E8D4" opacity="0.95" transform="rotate(8,'+(w/2)+','+(h*0.945)+')" '+
       'dominant-baseline="auto">8</text></svg>';
     return '<div style="position:absolute;inset:0;">'+inner+'</div>';
@@ -233,8 +211,9 @@
     if(document.getElementById('ochoStyles'))return;
     var s=document.createElement('style');s.id='ochoStyles';
     s.textContent=
-/* Pas d'import CDN externe — SVG inline + police système */
-'#ochoView{display:none;position:fixed;inset:0;z-index:200;overflow:hidden;font-family:Bricolage Grotesque,system-ui,sans-serif;}'+
+'@import url(\'https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap\');'+
+'@import url(\'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css\');'+
+'#ochoView{display:none;position:fixed;inset:0;z-index:200;overflow:hidden;font-family:\'Nunito\',sans-serif;}'+
 '#ochoView.active{display:block!important;}'+
 '#ochoBg{position:absolute;inset:0;background:linear-gradient(180deg,#f2a890 0%,#eaa078 16%,#c87850 32%,#b06838 52%,#985828 68%,#804818 82%,#6a3c14 100%);}'+
 '#ochoSky{position:absolute;top:0;left:0;right:0;height:36%;background:linear-gradient(180deg,#f0a490 0%,#e8b898 38%,#bcd4c8 76%,#a8c8ba 100%);}'+
@@ -247,7 +226,7 @@
 '#ochoAura.active{animation:ochoAuraAnim 1.2s ease-in-out infinite;opacity:1;}'+
 '@keyframes ochoAuraAnim{0%{box-shadow:inset 0 0 0px 0px rgba(220,60,40,0);}40%{box-shadow:inset 0 0 60px 20px rgba(220,60,40,0.45),inset 0 0 120px 40px rgba(220,60,40,0.2);}100%{box-shadow:inset 0 0 0px 0px rgba(220,60,40,0);}}'+
 '#ochoAnimZone{position:absolute;top:46px;left:0;right:0;height:130px;display:flex;align-items:center;justify-content:center;z-index:20;pointer-events:none;overflow:hidden;}'+
-'#ochoAnimText{font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:48px;font-weight:900;color:#F2E8D4;text-shadow:0 4px 20px rgba(0,0,0,0.4);opacity:0;letter-spacing:-1px;}'+
+'#ochoAnimText{font-family:\'Nunito\',sans-serif;font-size:48px;font-weight:900;color:#F2E8D4;text-shadow:0 4px 20px rgba(0,0,0,0.4);opacity:0;letter-spacing:-1px;}'+
 '@keyframes ochoPopIn{0%{opacity:0;transform:scale(0.4) rotate(-8deg);}60%{opacity:1;transform:scale(1.15) rotate(3deg);}80%{transform:scale(0.95) rotate(-1deg);}100%{opacity:1;transform:scale(1) rotate(0);}}'+
 '@keyframes ochoPopOut{0%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(1.3);}}'+
 '.oc-anim-show{animation:ochoPopIn 0.5s cubic-bezier(.34,1.56,.64,1) forwards;}'+
@@ -264,9 +243,9 @@
 '.oc-av-wrap svg{position:absolute;inset:0;transform:rotate(-90deg);width:100%;height:100%;}'+
 '.oc-av-face{position:absolute;inset:8px;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;}'+
 '.oc-av-face img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;}'+
-'.oc-av-partner{background:linear-gradient(135deg,#c87840,#7a4020);}'+
-'.oc-av-me{background:linear-gradient(135deg,#7040b0,#402880);}'+
-'.oc-p-name{font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:20px;font-weight:900;color:#F2E8D4;line-height:1;}'+
+'.oc-av-partner{background:transparent;}'+
+'.oc-av-me{background:transparent;}'+
+'.oc-p-name{font-family:\'Nunito\',sans-serif;font-size:20px;font-weight:900;color:#F2E8D4;line-height:1;}'+
 '.oc-p-sub{font-size:13px;color:rgba(242,232,212,0.45);font-weight:600;margin-top:4px;letter-spacing:0.03em;}'+
 '#ochoOppPresenceDot{position:absolute;bottom:6px;right:6px;width:12px;height:12px;border-radius:50%;background:#555;border:2px solid rgba(0,0,0,0.4);transition:background 0.3s;}'+
 '#ochoOppPresenceDot.online{background:#22c55e!important;box-shadow:0 0 5px rgba(34,197,94,0.7)!important;}'+
@@ -294,18 +273,18 @@
 '#ochoMeBlock{display:flex;flex-direction:column;align-items:center;gap:0;margin-top:4px;}'+
 '#ochoMeRow{display:flex;align-items:center;gap:0;align-self:stretch;margin-bottom:10px;}'+
 '#ochoMeProfile{display:flex;align-items:center;gap:12px;}'+
-'#ochoBtn{margin-left:auto;background:linear-gradient(135deg,#c83020,#e04535);color:#F2E8D4;border:2px solid rgba(242,232,212,0.75);border-radius:18px;padding:8px 16px;font-size:13px;font-weight:900;font-family:Bricolage Grotesque,system-ui,sans-serif;letter-spacing:0.04em;box-shadow:0 3px 12px rgba(200,50,30,0.4);cursor:pointer;white-space:nowrap;}'+
+'#ochoBtn{margin-left:auto;background:linear-gradient(135deg,#c83020,#e04535);color:#F2E8D4;border:2px solid rgba(242,232,212,0.75);border-radius:18px;padding:8px 16px;font-size:13px;font-weight:900;font-family:\'Nunito\',sans-serif;letter-spacing:0.04em;box-shadow:0 3px 12px rgba(200,50,30,0.4);cursor:pointer;white-space:nowrap;}'+
 '#ochoMeTurnPill{display:none;margin-top:3px;align-items:center;gap:5px;background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.35);border-radius:20px;padding:4px 11px;font-size:12px;font-weight:700;color:#FFD700;}'+
 '#ochoMeTurnPill.visible{display:inline-flex;}'+
 '.oc-turn-dot{width:7px;height:7px;border-radius:50%;background:#FFD700;box-shadow:0 0 5px 2px rgba(255,215,0,0.7);}'+
-'#ochoPassBtn{display:none;margin:0 auto 6px;padding:7px 22px;background:rgba(255,255,255,0.12);color:#F2E8D4;border:1px solid rgba(255,255,255,0.3);border-radius:20px;font-size:12px;font-weight:700;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;backdrop-filter:blur(8px);}'+
+'#ochoPassBtn{display:none;margin:0 auto 6px;padding:7px 22px;background:rgba(255,255,255,0.12);color:#F2E8D4;border:1px solid rgba(255,255,255,0.3);border-radius:20px;font-size:12px;font-weight:700;font-family:\'Nunito\',sans-serif;cursor:pointer;backdrop-filter:blur(8px);}'+
 '#ochoPassBtn.visible{display:block;}'+
 '#ochoBotArc{position:relative;width:300px;height:95px;margin:0 auto;}'+
 /* Vraie carte dans l'arc */
 '.oc-card{position:absolute;width:52px;height:73px;border-radius:9px;border:2.5px solid #F2E8D4;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,0.5);cursor:pointer;transition:box-shadow 0.15s;}'+
 '.oc-card.playable{box-shadow:0 0 0 2.5px #FFD700,0 4px 16px rgba(255,210,0,0.35)!important;}'+
 '.oc-card.selected{box-shadow:0 0 0 3px #FFD700,0 8px 24px rgba(255,215,0,0.55)!important;}'+
-'.oc-card.unplayable{opacity:0.32;filter:saturate(0.2);}'+
+'.oc-card.unplayable{opacity:0.55;filter:saturate(0.5);}'+
 '#ochoHint{display:inline-flex;align-items:center;gap:6px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:5px 14px;margin-top:6px;backdrop-filter:blur(8px);}'+
 '.oc-hint-suit{font-size:14px;line-height:1;}'+
 '.oc-hint-text{font-size:11px;font-weight:700;color:rgba(242,232,212,0.7);letter-spacing:0.03em;}'+
@@ -356,14 +335,14 @@
     '<div id="ochoAura"></div>'+
     '<div id="ochoAnimZone"><div id="ochoAnimText"></div></div>'+
     '<div id="ochoHeader" style="position:absolute;top:0;left:0;right:0;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:100;">'+
-      '<button id="ochoBackBtn" style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:6px 14px;color:#F2E8D4;font-size:13px;font-weight:700;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;backdrop-filter:blur(8px);">'+
+      '<button id="ochoBackBtn" style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:6px 14px;color:#F2E8D4;font-size:13px;font-weight:700;font-family:Nunito,sans-serif;cursor:pointer;backdrop-filter:blur(8px);">'+
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Retour</button>'+
-      '<div style="font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:17px;font-weight:900;color:#F2E8D4;text-shadow:0 1px 4px rgba(0,0,0,0.4);">Ocho \uD83C\uDCCF</div>'+
-      '<button id="ochoAbandonBtn" style="display:none;background:rgba(239,83,80,0.18);color:#ef5350;border:1px solid rgba(239,83,80,0.4);border-radius:14px;padding:5px 12px;font-size:12px;font-weight:700;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;">Abandon</button>'+
+      '<div style="font-family:Nunito,sans-serif;font-size:17px;font-weight:900;color:#F2E8D4;text-shadow:0 1px 4px rgba(0,0,0,0.4);">Ocho \uD83C\uDCCF</div>'+
+      '<button id="ochoAbandonBtn" style="display:none;background:rgba(239,83,80,0.18);color:#ef5350;border:1px solid rgba(239,83,80,0.4);border-radius:14px;padding:5px 12px;font-size:12px;font-weight:700;font-family:Nunito,sans-serif;cursor:pointer;">Abandon</button>'+
     '</div>'+
     '<div id="ochoWaitScreen">'+
       '<div style="font-size:52px;">\u23F3</div>'+
-      '<div style="font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:20px;font-weight:900;color:#F2E8D4;">En attente\u2026</div>'+
+      '<div style="font-family:Nunito,sans-serif;font-size:20px;font-weight:900;color:#F2E8D4;">En attente\u2026</div>'+
       '<div id="ochoWaitMsg" style="font-size:14px;color:rgba(242,232,212,0.7);max-width:280px;line-height:1.6;"></div>'+
       '<div style="display:flex;gap:12px;align-items:center;margin-top:4px;">'+
         '<div class="oc-wait-bubble">'+
@@ -379,7 +358,7 @@
           '<div class="oc-pres-dot" id="ochoPresenceBoy"></div></div>'+
       '</div>'+
       '<div style="font-size:11px;color:rgba(242,232,212,0.5);margin-top:4px;">La partie se lance automatiquement \uD83C\uDFAE</div>'+
-      '<button id="ochoLeaveWaitBtn" style="margin-top:8px;padding:10px 24px;background:rgba(0,0,0,0.3);color:rgba(242,232,212,0.7);border:1px solid rgba(255,255,255,0.15);border-radius:50px;font-size:13px;font-weight:600;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;backdrop-filter:blur(8px);">Annuler</button>'+
+      '<button id="ochoLeaveWaitBtn" style="margin-top:8px;padding:10px 24px;background:rgba(0,0,0,0.3);color:rgba(242,232,212,0.7);border:1px solid rgba(255,255,255,0.15);border-radius:50px;font-size:13px;font-weight:600;font-family:Nunito,sans-serif;cursor:pointer;backdrop-filter:blur(8px);">Annuler</button>'+
     '</div>'+
     '<div id="ochoLayout">'+
       '<div id="ochoOppBlock">'+
@@ -434,7 +413,7 @@
     '<div id="ochoHomeBar"></div>'+
     '<div id="ochoRoundEnd">'+
       '<div id="ochoRoundEndEmoji" style="font-size:52px;">\uD83C\uDFC6</div>'+
-      '<div id="ochoRoundEndTitle" style="font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:22px;font-weight:900;color:#F2E8D4;line-height:1.3;"></div>'+
+      '<div id="ochoRoundEndTitle" style="font-family:Nunito,sans-serif;font-size:22px;font-weight:900;color:#F2E8D4;line-height:1.3;"></div>'+
       '<div id="ochoRoundEndSub" style="font-size:12px;color:rgba(242,232,212,0.55);font-weight:600;"></div>'+
       '<div style="display:flex;gap:12px;width:100%;max-width:280px;">'+
         '<div style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:16px 12px;text-align:center;">'+
@@ -452,13 +431,13 @@
       '</div>'+
       '<div id="ochoRoundProgress" style="font-size:11px;color:rgba(242,232,212,0.5);font-weight:600;"></div>'+
       '<div id="ochoNextRoundWrap" style="display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;max-width:280px;">'+
-        '<button id="ochoNextRoundBtn" style="width:100%;padding:14px 0;background:#FFD700;color:#000;font-weight:900;font-size:15px;font-family:Bricolage Grotesque,system-ui,sans-serif;border:none;border-radius:50px;cursor:pointer;">Manche suivante \u2192</button>'+
+        '<button id="ochoNextRoundBtn" style="width:100%;padding:14px 0;background:#FFD700;color:#000;font-weight:900;font-size:15px;font-family:Nunito,sans-serif;border:none;border-radius:50px;cursor:pointer;">Manche suivante \u2192</button>'+
         '<div id="ochoWaitNextMsg" style="display:none;font-size:12px;color:rgba(242,232,212,0.5);font-weight:600;">\u23F3 En attente que l\'autre lance\u2026</div>'+
       '</div>'+
     '</div>'+
     '<div id="ochoGameEnd">'+
       '<div id="ochoGameEndEmoji" style="font-size:72px;">\uD83C\uDFC6</div>'+
-      '<div id="ochoGameEndTitle" style="font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:24px;font-weight:900;color:#F2E8D4;"></div>'+
+      '<div id="ochoGameEndTitle" style="font-family:Nunito,sans-serif;font-size:24px;font-weight:900;color:#F2E8D4;"></div>'+
       '<div id="ochoGameEndSub" style="font-size:13px;color:rgba(242,232,212,0.55);"></div>'+
       '<div style="display:flex;gap:12px;width:100%;max-width:280px;">'+
         '<div style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:16px 12px;text-align:center;">'+
@@ -475,12 +454,12 @@
         '</div>'+
       '</div>'+
       '<div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:280px;">'+
-        '<button id="ochoNewGameBtn" style="width:100%;padding:14px 0;background:#FFD700;color:#000;font-weight:900;font-size:15px;font-family:Bricolage Grotesque,system-ui,sans-serif;border:none;border-radius:50px;cursor:pointer;">Rejouer \uD83D\uDD04</button>'+
-        '<button id="ochoCloseEndBtn" style="width:100%;padding:12px 0;background:rgba(0,0,0,0.3);color:rgba(242,232,212,0.7);border:1px solid rgba(255,255,255,0.15);border-radius:50px;font-size:13px;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;">Retour aux jeux</button>'+
+        '<button id="ochoNewGameBtn" style="width:100%;padding:14px 0;background:#FFD700;color:#000;font-weight:900;font-size:15px;font-family:Nunito,sans-serif;border:none;border-radius:50px;cursor:pointer;">Rejouer \uD83D\uDD04</button>'+
+        '<button id="ochoCloseEndBtn" style="width:100%;padding:12px 0;background:rgba(0,0,0,0.3);color:rgba(242,232,212,0.7);border:1px solid rgba(255,255,255,0.15);border-radius:50px;font-size:13px;font-family:Nunito,sans-serif;cursor:pointer;">Retour aux jeux</button>'+
       '</div>'+
     '</div>'+
     '<div id="ochoColorPicker">'+
-      '<div style="font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:18px;font-weight:900;color:#F2E8D4;">Choisir une couleur</div>'+
+      '<div style="font-family:Nunito,sans-serif;font-size:18px;font-weight:900;color:#F2E8D4;">Choisir une couleur</div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">'+
         '<button class="oc-color-btn" data-color="heart"   style="background:#E04E3E;">\u2665</button>'+
         '<button class="oc-color-btn" data-color="club"    style="background:#4CB8A0;">\u2663</button>'+
