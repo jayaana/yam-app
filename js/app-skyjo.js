@@ -246,8 +246,8 @@
 
       // Salle d'attente
       onWaiting: function(me, other){
-        var myName=(typeof v2GetDisplayName==='function'?v2GetDisplayName(me):(me==='girl'?'Elle':'Lui'));
-        var otherName=(typeof v2GetDisplayName==='function'?v2GetDisplayName(other):(me==='girl'?'Lui':'Elle'));
+        var myName=(typeof v2GetDisplayName==='function'?v2GetDisplayName(me):(me==='girl'?'Rose':'Bleu'));
+        var otherName=(typeof v2GetDisplayName==='function'?v2GetDisplayName(other):(me==='girl'?'Bleu':'Rose'));
         showScreen('skyjoWaitScreen');
         document.getElementById('skyjoWaitMsg').innerHTML=
           'Connecté en tant que <strong>'+myName+'</strong>.<br>En attente que <strong>'+otherName+'</strong> rejoigne…';
@@ -391,8 +391,8 @@
 
     var myCards  =_me==='girl'?state.girl_cards:state.boy_cards;
     var oppCards =_me==='girl'?state.boy_cards:state.girl_cards;
-    var myName   =(typeof v2GetDisplayName==='function'?v2GetDisplayName(_me):(_me==='girl'?'Elle':'Lui'));
-    var oppName  =(typeof v2GetDisplayName==='function'?v2GetDisplayName(_me==='girl'?'boy':'girl'):(_me==='girl'?'Lui':'Elle'));
+    var myName   =(typeof v2GetDisplayName==='function'?v2GetDisplayName(_me):(_me==='girl'?'Rose':'Bleu'));
+    var oppName  =(typeof v2GetDisplayName==='function'?v2GetDisplayName(_me==='girl'?'boy':'girl'):(_me==='girl'?'Bleu':'Rose'));
     var isMyTurn =state.turn===_me;
     var iHoldCard=state.held_card&&state.held_card.holder===_me;
 
@@ -1084,14 +1084,14 @@
     [myTotEl,oppTotEl].forEach(function(el){if(el){el.style.width='';el.style.height='';el.style.fontSize='';}});
     var rg=state.round_scores?state.round_scores.girl:0,rb=state.round_scores?state.round_scores.boy:0;
     var tg=state.scores?state.scores.girl:0,tb=state.scores?state.scores.boy:0;
-    var winner=rg<rb?(typeof v2GetDisplayName==='function'?v2GetDisplayName('girl')+' 👧':'Elle 👧'):(rb<rg?(typeof v2GetDisplayName==='function'?v2GetDisplayName('boy')+' 👦':'Lui 👦'):null);
+    var winner=rg<rb?(typeof v2GetDisplayName==='function'?v2GetDisplayName('girl')+' 👧':'Rose 👧'):(rb<rg?(typeof v2GetDisplayName==='function'?v2GetDisplayName('boy')+' 👦':'Bleu 👦'):null);
     document.getElementById('skyjoRoundEndEmoji').textContent=!winner?'🤝':'🏆';
     document.getElementById('skyjoRoundEndTitle').textContent=!winner?'Manche nulle !':(winner+' gagne la manche !');
     document.getElementById('skyjoRoundEndSub').textContent='Manche '+(state.round||1);
     var myR=_me==='girl'?rg:rb,oppR=_me==='girl'?rb:rg;
     var myT=_me==='girl'?tg:tb,oppT=_me==='girl'?tb:tg;
-    var myName2=(typeof v2GetDisplayName==='function'?'👧 '+v2GetDisplayName('girl'):'👧 Elle');
-    var oppName2=(typeof v2GetDisplayName==='function'?'👦 '+v2GetDisplayName('boy'):'👦 Lui');
+    var myName2=(typeof v2GetDisplayName==='function'?'👧 '+v2GetDisplayName('girl'):'👧 Rose');
+    var oppName2=(typeof v2GetDisplayName==='function'?'👦 '+v2GetDisplayName('boy'):'👦 Bleu');
     var lblLeft=document.getElementById('skyjoRoundLabelLeft'),lblRight=document.getElementById('skyjoRoundLabelRight');
     if(lblLeft)lblLeft.textContent=myName2;if(lblRight)lblRight.textContent=oppName2;
     document.getElementById('skyjoRoundScoreGirl').textContent='+'+myR;
@@ -1454,13 +1454,13 @@
     var gg=state.scores.girl,gb=state.scores.boy;
     var isDraw=gg===gb,girlWins=gg<gb;
     document.getElementById('skyjoGameEndEmoji').textContent=isDraw?'🤝':(girlWins?'👧':'👦');
-    document.getElementById('skyjoGameEndTitle').textContent=isDraw?'Égalité !':(girlWins?(typeof v2GetDisplayName==='function'?v2GetDisplayName('girl')+' 👧':'Elle 👧'):(typeof v2GetDisplayName==='function'?v2GetDisplayName('boy')+' 👦':'Lui 👦'))+' gagne la partie !';
+    document.getElementById('skyjoGameEndTitle').textContent=isDraw?'Égalité !':(girlWins?(typeof v2GetDisplayName==='function'?v2GetDisplayName('girl')+' 👧':'Rose 👧'):(typeof v2GetDisplayName==='function'?v2GetDisplayName('boy')+' 👦':'Bleu 👦'))+' gagne la partie !';
     var myFinal=_me==='girl'?gg:gb,oppFinal=_me==='girl'?gb:gg;
     document.getElementById('skyjoFinalScoreGirl').textContent=myFinal;
     document.getElementById('skyjoFinalScoreBoy').textContent=oppFinal;
     var fLblLeft=document.getElementById('skyjoFinalLabelLeft'),fLblRight=document.getElementById('skyjoFinalLabelRight');
-    if(fLblLeft)fLblLeft.textContent=(typeof v2GetDisplayName==='function'?v2GetDisplayName(_me):(_me==='girl'?'Elle':'Lui'));
-    if(fLblRight)fLblRight.textContent=(typeof v2GetDisplayName==='function'?v2GetDisplayName(_me==='girl'?'boy':'girl'):(_me==='girl'?'Lui':'Elle'));
+    if(fLblLeft)fLblLeft.textContent=(typeof v2GetDisplayName==='function'?v2GetDisplayName(_me):(_me==='girl'?'Rose':'Bleu'));
+    if(fLblRight)fLblRight.textContent=(typeof v2GetDisplayName==='function'?v2GetDisplayName(_me==='girl'?'boy':'girl'):(_me==='girl'?'Bleu':'Rose'));
     var fEmoLeft=document.getElementById('skyjoFinalEmojiLeft'),fEmoRight=document.getElementById('skyjoFinalEmojiRight');
     if(fEmoLeft)fEmoLeft.textContent=_me==='girl'?'👧':'👦';
     if(fEmoRight)fEmoRight.textContent=_me==='girl'?'👦':'👧';
