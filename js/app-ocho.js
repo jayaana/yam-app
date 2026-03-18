@@ -255,7 +255,7 @@
 '#ochoAura{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:5;}'+
 '#ochoAura.active{animation:ochoAuraAnim 1.2s ease-in-out infinite;opacity:1;}'+
 '@keyframes ochoAuraAnim{0%{box-shadow:inset 0 0 0px 0px rgba(220,60,40,0);}40%{box-shadow:inset 0 0 60px 20px rgba(220,60,40,0.45),inset 0 0 120px 40px rgba(220,60,40,0.2);}100%{box-shadow:inset 0 0 0px 0px rgba(220,60,40,0);}}'+
-'#ochoAnimZone{position:absolute;top:46px;left:0;right:0;height:180px;display:flex;align-items:center;justify-content:center;z-index:20;pointer-events:none;overflow:hidden;}'+
+'#ochoAnimZone{position:absolute;top:46px;left:0;right:0;height:90px;display:flex;align-items:center;justify-content:center;z-index:20;pointer-events:none;overflow:hidden;}'+
 '#ochoAnimText{font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:48px;font-weight:900;color:#F2E8D4;text-shadow:0 4px 20px rgba(0,0,0,0.4);opacity:0;letter-spacing:-1px;}'+
 '@keyframes ochoPopIn{0%{opacity:0;transform:scale(0.4) rotate(-8deg);}60%{opacity:1;transform:scale(1.15) rotate(3deg);}80%{transform:scale(0.95) rotate(-1deg);}100%{opacity:1;transform:scale(1) rotate(0);}}'+
 '@keyframes ochoPopOut{0%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(1.3);}}'+
