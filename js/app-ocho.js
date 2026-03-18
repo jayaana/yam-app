@@ -348,8 +348,10 @@
 '.oc-pres-dot.online{background:#22c55e;box-shadow:0 0 5px rgba(34,197,94,0.7);}'+
 '#ochoRoundEnd,#ochoGameEnd{display:none;position:absolute;inset:0;z-index:150;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;background:rgba(0,0,0,0.88);backdrop-filter:blur(10px);}'+
 '#ochoColorPicker{display:none;position:absolute;inset:0;z-index:140;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);}'+
-'.oc-color-btn{width:80px;height:80px;border-radius:16px;border:3px solid rgba(242,232,212,0.7);font-size:36px;cursor:pointer;transition:transform 0.12s;}'+
+'.oc-color-btn{width:100px;height:100px;border-radius:20px;border:none;cursor:pointer;transition:transform 0.12s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 16px rgba(0,0,0,0.4);}'+
 '.oc-color-btn:active{transform:scale(0.9);}'+
+'.oc-color-btn i{font-size:38px;color:#F2E8D4;}'+
+'.oc-color-btn span{font-size:11px;font-weight:900;color:#F2E8D4;font-family:Bricolage Grotesque,system-ui,sans-serif;letter-spacing:0.04em;}'+
 '.oc-flying-card{position:fixed;z-index:500;pointer-events:none;border-radius:9px;border:2.5px solid #F2E8D4;box-shadow:0 6px 20px rgba(0,0,0,0.5);}'+
 '#ochoView.active ~ .bottom-nav{display:none!important;}';
     document.head.appendChild(s);
@@ -503,10 +505,10 @@
     '<div id="ochoColorPicker">'+
       '<div style="font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:18px;font-weight:900;color:#F2E8D4;">Choisir une couleur</div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">'+
-        '<button class="oc-color-btn" data-color="heart"   style="background:#E04E3E;">\u2665</button>'+
-        '<button class="oc-color-btn" data-color="club"    style="background:#4CB8A0;">\u2663</button>'+
-        '<button class="oc-color-btn" data-color="spade"   style="background:#5070B8;">\u2660</button>'+
-        '<button class="oc-color-btn" data-color="diamond" style="background:#E89030;">\u2666</button>'+
+        '<button class="oc-color-btn" data-color="heart"   style="background:#E04E3E;"><i class="bi bi-suit-heart-fill"></i><span>Cœur</span></button>'+
+        '<button class="oc-color-btn" data-color="club"    style="background:#4CB8A0;"><i class="bi bi-suit-club-fill"></i><span>Trèfle</span></button>'+
+        '<button class="oc-color-btn" data-color="spade"   style="background:#5070B8;"><i class="bi bi-suit-spade-fill"></i><span>Pique</span></button>'+
+        '<button class="oc-color-btn" data-color="diamond" style="background:#E89030;"><i class="bi bi-suit-diamond-fill"></i><span>Carreau</span></button>'+
       '</div>'+
     '</div>'+
     '</div>';
@@ -662,6 +664,9 @@
     if(state.phase==='round_end'){_showRoundEnd(state);return;}
     if(state.phase==='game_end'){_showGameEnd(state);return;}
     var re=document.getElementById('ochoRoundEnd'),ge=document.getElementById('ochoGameEnd');
+    // Ne pas cacher si déjà visible (évite que onStateUpdate cache l'écran de fin)
+    if(re&&re.style.display==='flex')return;
+    if(ge&&ge.style.display==='flex')return;
     if(re)re.style.display='none';if(ge)ge.style.display='none';
     var isMyTurn=state.turn===_me;
     var myHand=_me==='girl'?state.girl_hand:state.boy_hand;
@@ -853,25 +858,26 @@
   // ─── Pioche et passe ──────────────────────────────────
   function _onDrawCard(){
     if(!_state||_mp.isSaving()||_state.turn!==_me)return;
-    if(_drawnThisTurn&&_passAvailable){_onPassTurn();return;}
-    if(_drawnThisTurn)return;
+    // Déjà pioché : reclique sur le deck = passer le tour
+    if(_drawnThisTurn){_onPassTurn();return;}
 
     var ns=_drawCard(_state,_me);
     _drawnThisTurn=true;
 
-    var newHand=_me==='girl'?ns.girl_hand:ns.boy_hand;
-    var newCard=newHand[newHand.length-1];
-    var canPlay=newCard&&_isPlayable(newCard,ns);
+    // Vérifier si on a AU MOINS UNE carte jouable dans toute la main (pas juste la carte piochée)
+    var fullHand=_me==='girl'?ns.girl_hand:ns.boy_hand;
+    var hasPlayable=_playableCards(fullHand,ns).length>0;
 
-    if(canPlay){
+    if(hasPlayable){
+      // Garder le tour, montrer le bouton passer
       _passAvailable=true;
-      // Garder le tour à nous mais reset le ts pour éviter la re-pioche par timer
       ns.turn=_me;ns.ts_turn=Date.now();
       _mp.saveState(ns);
       var pb=document.getElementById('ochoPassBtn');if(pb)pb.classList.add('visible');
       _animateDrawCard(function(){});
       if(typeof haptic==='function')haptic('light');
     }else{
+      // Aucune carte jouable : passer direct
       _passAvailable=false;
       ns.turn=_other;ns.ts_turn=Date.now();
       _mp.saveState(ns);
