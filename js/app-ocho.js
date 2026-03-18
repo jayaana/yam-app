@@ -283,7 +283,7 @@
 '#ochoTable{width:240px;height:150px;border-radius:50%;position:relative;'+
 'background:radial-gradient(ellipse at 32% 30%,rgba(80,52,30,0.55) 0%,transparent 58%),radial-gradient(ellipse at 72% 74%,rgba(15,8,4,0.5) 0%,transparent 55%),linear-gradient(150deg,#382010 0%,#241208 45%,#180c06 100%);'+
 'border:1.5px solid rgba(140,90,35,0.3);box-shadow:0 10px 44px rgba(0,0,0,0.75),inset 0 1px 0 rgba(255,255,255,0.035);}'+
-'#ochoTableRound{position:absolute;top:10px;right:14px;color:rgba(200,140,50,0.5);font-size:11px;font-weight:700;}'+
+'#ochoTableRound{position:absolute;top:10px;right:14px;color:rgba(242,232,212,0.85);font-size:11px;font-weight:700;}'+
 '#ochoPiles{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:16px;}'+
 '.oc-pile-wrap{position:relative;width:50px;height:70px;}'+
 '.oc-slot{position:absolute;inset:0;border-radius:8px;background:rgba(0,0,0,0.38);box-shadow:inset 0 2px 6px rgba(0,0,0,0.65);}'+
@@ -307,20 +307,21 @@
 '#ochoMeTurnPill{display:none;margin-top:3px;align-items:center;gap:5px;background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.35);border-radius:20px;padding:4px 11px;font-size:12px;font-weight:700;color:#FFD700;}'+
 '#ochoMeTurnPill.visible{display:inline-flex;}'+
 '.oc-turn-dot{width:7px;height:7px;border-radius:50%;background:#FFD700;box-shadow:0 0 5px 2px rgba(255,215,0,0.7);}'+
-'#ochoPassBtn{display:none;margin:0 auto 2px;padding:6px 20px;background:rgba(255,255,255,0.12);color:#F2E8D4;border:1px solid rgba(255,255,255,0.3);border-radius:20px;font-size:12px;font-weight:700;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;backdrop-filter:blur(8px);}'+
+'#ochoSafeZone{position:absolute;bottom:0;left:0;right:0;height:80px;display:flex;align-items:center;justify-content:space-between;padding:0 16px 64px;z-index:50;}'+
+'#ochoSafeMsg{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:0 8px;}'+
+'#ochoPassBtn{display:none;padding:8px 18px;background:linear-gradient(135deg,rgba(30,20,10,0.75),rgba(20,12,6,0.85));color:#F2E8D4;border:1.5px solid rgba(242,232,212,0.35);border-radius:22px;font-size:12px;font-weight:700;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;backdrop-filter:blur(14px);box-shadow:0 2px 12px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.08);letter-spacing:0.02em;}'+
 '#ochoPassBtn.visible{display:block;}'+
+'#ochoHint{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,rgba(30,20,10,0.75),rgba(20,12,6,0.85));border:1.5px solid rgba(242,232,212,0.2);border-radius:22px;padding:6px 14px;backdrop-filter:blur(14px);box-shadow:0 2px 12px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.06);}'+
 '#ochoBotArc{position:relative;width:300px;height:95px;margin:0 auto;}'+
 /* Vraie carte dans l'arc */
 '.oc-card{position:absolute;width:52px;height:73px;border-radius:9px;border:2.5px solid #F2E8D4;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,0.5);cursor:pointer;transition:box-shadow 0.15s;}'+
 '.oc-card.playable{box-shadow:0 0 0 2.5px #FFD700,0 4px 16px rgba(255,210,0,0.35)!important;}'+
 '.oc-card.selected{box-shadow:0 0 0 3px #FFD700,0 8px 24px rgba(255,215,0,0.55)!important;}'+
-'.oc-card.unplayable{opacity:0.55;filter:saturate(0.35);}'+
-'#ochoHint{display:inline-flex;align-items:center;gap:6px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:5px 14px;margin-top:6px;backdrop-filter:blur(8px);}'+
+'.oc-card.unplayable{opacity:0.65;filter:saturate(0.45);}'+
 '.oc-hint-suit{font-size:14px;line-height:1;}'+
 '.oc-hint-text{font-size:11px;font-weight:700;color:rgba(242,232,212,0.7);letter-spacing:0.03em;}'+
 '.oc-hint-badge{color:#F2E8D4;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:900;font-family:Arial Black,sans-serif;}'+
 '.oc-hint-badge.heart{background:#E04E3E;}.oc-hint-badge.club{background:#4CB8A0;}.oc-hint-badge.spade{background:#5070B8;}.oc-hint-badge.diamond{background:#E89030;}'+
-'#ochoSafeZone{position:absolute;bottom:0;left:0;right:0;height:80px;display:flex;align-items:center;justify-content:space-between;padding:0 24px 64px;z-index:50;}'+
 '.oc-btn-round{width:46px;height:46px;border-radius:50%;background:rgba(0,0,0,0.35);border:1.5px solid rgba(255,255,255,0.15);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;transition:transform 0.15s;-webkit-tap-highlight-color:transparent;}'+
 '.oc-btn-round:active{transform:scale(0.9);}'+
 '#ochoEmojiWrap{position:relative;display:flex;align-items:center;}'+
@@ -430,13 +431,16 @@
         '</div>'+
         '<button id="ochoPassBtn">Passer mon tour \u2192</button>'+
         '<div id="ochoBotArc"></div>'+
-        '<div id="ochoHint"><span class="oc-hint-suit" id="ochoHintSuit"></span><span class="oc-hint-text" id="ochoHintText"></span><span class="oc-hint-badge" id="ochoHintBadge"></span></div>'+
       '</div>'+
     '</div>'+
     '<div id="ochoSafeZone">'+
       '<div id="ochoEmojiWrap">'+
         '<div id="ochoEmojiPill"></div>'+
         '<button id="ochoEmojiBtn" class="oc-btn-round">\uD83D\uDE04</button>'+
+      '</div>'+
+      '<div id="ochoSafeMsg">'+
+        '<button id="ochoPassBtn">Passer mon tour \u2192</button>'+
+        '<div id="ochoHint"><span class="oc-hint-suit" id="ochoHintSuit"></span><span class="oc-hint-text" id="ochoHintText"></span><span class="oc-hint-badge" id="ochoHintBadge"></span></div>'+
       '</div>'+
       '<button id="ochoHeartBtn" class="oc-btn-round">\uD83E\uDD0D</button>'+
     '</div>'+
@@ -447,13 +451,13 @@
       '<div id="ochoRoundEndSub" style="font-size:12px;color:rgba(242,232,212,0.55);font-weight:600;"></div>'+
       '<div style="display:flex;gap:12px;width:100%;max-width:280px;">'+
         '<div style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:16px 12px;text-align:center;">'+
-          '<div id="ochoRoundAvLeft" style="width:40px;height:40px;border-radius:50%;overflow:hidden;margin:0 auto 6px;"><img src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div>'+
+          '<div id="ochoRoundAvLeft" style="width:40px;height:40px;border-radius:50%;overflow:hidden;margin:0 auto 6px;"><img id="ochoRoundAvLeftImg" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div>'+
           '<div id="ochoRoundLabelLeft" style="font-size:12px;font-weight:700;color:#F2E8D4;margin-bottom:4px;"></div>'+
           '<div style="font-size:11px;color:rgba(242,232,212,0.5);margin-bottom:2px;">Manches</div>'+
           '<div id="ochoRoundWinsLeft" style="font-size:28px;font-weight:900;color:#F2E8D4;">0</div>'+
         '</div>'+
         '<div style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:16px 12px;text-align:center;">'+
-          '<div id="ochoRoundAvRight" style="width:40px;height:40px;border-radius:50%;overflow:hidden;margin:0 auto 6px;"><img src="assets/images/profil_boy.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div>'+
+          '<div id="ochoRoundAvRight" style="width:40px;height:40px;border-radius:50%;overflow:hidden;margin:0 auto 6px;"><img id="ochoRoundAvRightImg" src="assets/images/profil_boy.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div>'+
           '<div id="ochoRoundLabelRight" style="font-size:12px;font-weight:700;color:#F2E8D4;margin-bottom:4px;"></div>'+
           '<div style="font-size:11px;color:rgba(242,232,212,0.5);margin-bottom:2px;">Manches</div>'+
           '<div id="ochoRoundWinsRight" style="font-size:28px;font-weight:900;color:#F2E8D4;">0</div>'+
@@ -471,13 +475,13 @@
       '<div id="ochoGameEndSub" style="font-size:13px;color:rgba(242,232,212,0.55);"></div>'+
       '<div style="display:flex;gap:12px;width:100%;max-width:280px;">'+
         '<div style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:16px 12px;text-align:center;">'+
-          '<div id="ochoFinalAvLeft" style="width:36px;height:36px;border-radius:50%;overflow:hidden;margin:0 auto 4px;"><img src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div>'+
+          '<div id="ochoFinalAvLeft" style="width:36px;height:36px;border-radius:50%;overflow:hidden;margin:0 auto 4px;"><img id="ochoFinalAvLeftImg" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div>'+
           '<div id="ochoFinalLabelLeft" style="font-size:13px;font-weight:700;color:#F2E8D4;margin-bottom:6px;"></div>'+
           '<div id="ochoFinalScoreLeft" style="font-size:36px;font-weight:900;color:#F2E8D4;">0</div>'+
           '<div style="font-size:10px;color:rgba(242,232,212,0.5);margin-top:2px;">manches</div>'+
         '</div>'+
         '<div style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:16px 12px;text-align:center;">'+
-          '<div id="ochoFinalAvRight" style="width:36px;height:36px;border-radius:50%;overflow:hidden;margin:0 auto 4px;"><img src="assets/images/profil_boy.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div>'+
+          '<div id="ochoFinalAvRight" style="width:36px;height:36px;border-radius:50%;overflow:hidden;margin:0 auto 4px;"><img id="ochoFinalAvRightImg" src="assets/images/profil_boy.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div>'+
           '<div id="ochoFinalLabelRight" style="font-size:13px;font-weight:700;color:#F2E8D4;margin-bottom:6px;"></div>'+
           '<div id="ochoFinalScoreRight" style="font-size:36px;font-weight:900;color:#F2E8D4;">0</div>'+
           '<div style="font-size:10px;color:rgba(242,232,212,0.5);margin-top:2px;">manches</div>'+
@@ -592,7 +596,7 @@
         if(db)db.className='oc-pres-dot'+(boyOk?' online':'');
       },
       onMatchFound:function(gameRow){
-        _resetLocalState();_showScreen('ochoLayout');
+        _resetLocalState();_showScreen('ochoLayout');_startSafetyPoll();
         var btn=document.getElementById('ochoAbandonBtn');if(btn)btn.style.display='block';
         _renderState(gameRow);
       },
@@ -623,7 +627,7 @@
   }
 
   function _resetLocalState(){
-    _state=null;_stopTimer();_timerFired=false;_reactCooldown=false;
+    _state=null;_stopTimer();_stopSafetyPoll();_timerFired=false;_reactCooldown=false;
     _lastReactTs=0;_ochoAuraOn=false;_selectedCard=null;
     _drawnThisTurn=false;_passAvailable=false;
     var aura=document.getElementById('ochoAura');if(aura)aura.classList.remove('active');
@@ -977,9 +981,9 @@
 
     if(isMyTurn){
       _setArc('ochoMeTimerArc',remaining/TURN_DURATION,color);
-      _setArc('ochoOppTimerArc',0,'rgba(180,120,40,0.3)');
+      _setArc('ochoOppTimerArc',0,'rgba(255,255,255,0.1)');
     }else{
-      _setArc('ochoOppTimerArc',remaining/TURN_DURATION,'rgba(180,120,40,0.8)');
+      _setArc('ochoOppTimerArc',remaining/TURN_DURATION,color);
       _setArc('ochoMeTimerArc',1,'rgba(255,255,255,0.1)');
     }
 
@@ -997,9 +1001,26 @@
 
   function _stopTimer(){if(_timerRAF){cancelAnimationFrame(_timerRAF);_timerRAF=null;}}
 
+  // Poll de sécurité : vérifie toutes les 2s si le timer a expiré sans que le RAF l'ait capté
+  var _safetyPollIv=null;
+  function _startSafetyPoll(){
+    if(_safetyPollIv)return;
+    _safetyPollIv=setInterval(function(){
+      if(!_state||_state.phase!=='playing'||_state.turn!==_me||_timerFired||_mp.isSaving())return;
+      var elapsed=(Date.now()-(_state.ts_turn||Date.now()))/1000;
+      if(elapsed>=TURN_DURATION){_timerFired=true;_autoDrawOnTimeout();}
+    },2000);
+  }
+  function _stopSafetyPoll(){if(_safetyPollIv){clearInterval(_safetyPollIv);_safetyPollIv=null;}}
+
   function _autoDrawOnTimeout(){
     if(!_state||_mp.isSaving()||_state.turn!==_me)return;
-    var ns=_drawCard(_state,_me);ns.turn=_other;ns.ts_turn=Date.now();
+    // Toujours piocher ET passer le tour, même si une carte est jouable
+    var ns=_drawCard(_state,_me);
+    ns.turn=_other;ns.ts_turn=Date.now();
+    ns.draw_penalty=null;
+    _drawnThisTurn=false;_passAvailable=false;_selectedCard=null;
+    var pb=document.getElementById('ochoPassBtn');if(pb)pb.classList.remove('visible');
     _mp.saveState(ns);
     if(typeof showToast==='function')showToast('\u23F0 Temps \u00e9coul\u00e9 \u2014 pioche automatique');
   }
@@ -1023,8 +1044,8 @@
     var btn=document.getElementById('ochoNextRoundBtn'),wm=document.getElementById('ochoWaitNextMsg');
     if(btn)btn.style.display=canL?'block':'none';
     if(wm)wm.style.display=canL?'none':'block';
-    // Avatars récap
-    var rL=document.querySelector('#ochoRoundAvLeft img'),rR=document.querySelector('#ochoRoundAvRight img');
+    // Avatars récap — vrais avatars si disponibles
+    var rL=document.getElementById('ochoRoundAvLeftImg'),rR=document.getElementById('ochoRoundAvRightImg');
     if(rL)rL.src=_getAvatarUrl(_me);if(rR)rR.src=_getAvatarUrl(_other);
     document.getElementById('ochoRoundEnd').style.display='flex';
   }
@@ -1057,7 +1078,7 @@
     document.getElementById('ochoFinalScoreRight').textContent=_me==='girl'?ow:mw;
     document.getElementById('ochoFinalLabelLeft').textContent=typeof v2GetDisplayName==='function'?v2GetDisplayName(_me):'Moi';
     document.getElementById('ochoFinalLabelRight').textContent=typeof v2GetDisplayName==='function'?v2GetDisplayName(_other):'L\'autre';
-    var fL=document.querySelector('#ochoFinalAvLeft img'),fR=document.querySelector('#ochoFinalAvRight img');
+    var fL=document.getElementById('ochoFinalAvLeftImg'),fR=document.getElementById('ochoFinalAvRightImg');
     if(fL)fL.src=_getAvatarUrl(_me);if(fR)fR.src=_getAvatarUrl(_other);
     var cL=document.getElementById('ochoFinalScoreLeft').parentElement;
     var cR=document.getElementById('ochoFinalScoreRight').parentElement;
@@ -1170,8 +1191,7 @@
       function cl(sel){var el=t;while(el){if(el.matches&&el.matches(sel))return el;el=el.parentElement;}return null;}
       if(cl('#ochoLeaveWaitBtn')){if(_mp)_mp.leave();_resetLocalState();_leaveOchoView();return;}
       if(cl('#ochoBackBtn')){
-        if(_mp&&_mp.isLaunched())_mp.abandon(function(){_resetLocalState();_leaveOchoView();});
-        else{if(_mp)_mp.leave();_resetLocalState();_leaveOchoView();}
+        if(_mp)_mp.leave();_resetLocalState();_leaveOchoView();
         return;
       }
       if(cl('#ochoAbandonBtn')){
