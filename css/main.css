@@ -3518,6 +3518,31 @@ body:not(.light) #skyjoView {
 }
 /* Le background-color couvre la safe area top sous le header glass */
 
+/* ── Écrans fin de manche / fin de partie : fond bois assorti ── */
+#skyjoRoundEnd,
+#skyjoGameEnd {
+  background: rgba(20,12,4,0.82);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+body.light #skyjoRoundEnd,
+body.light #skyjoGameEnd {
+  background: rgba(235,215,175,0.90);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+/* Cartes de score intérieures */
+body.light #skyjoRoundEnd [style*="background:var(--s1)"],
+body.light #skyjoGameEnd  [style*="background:var(--s1)"] {
+  background: rgba(255,248,230,0.80) !important;
+  border-color: rgba(160,110,50,0.30) !important;
+}
+body:not(.light) #skyjoRoundEnd [style*="background:var(--s1)"],
+body:not(.light) #skyjoGameEnd  [style*="background:var(--s1)"] {
+  background: rgba(35,20,8,0.75) !important;
+  border-color: rgba(130,85,30,0.35) !important;
+}
+
 /* ══ THÈME CLAIR — bois clair skyjo-home.png ══ */
 
 /* Header glass frosté */
