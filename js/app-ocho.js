@@ -308,20 +308,24 @@
 '#ochoMeTurnPill.visible{display:inline-flex;}'+
 '.oc-turn-dot{width:7px;height:7px;border-radius:50%;background:#FFD700;box-shadow:0 0 5px 2px rgba(255,215,0,0.7);}'+
 '#ochoSafeZone{position:absolute;bottom:0;left:0;right:0;height:80px;display:flex;align-items:center;justify-content:space-between;padding:0 16px 64px;z-index:50;}'+
-'#ochoSafeMsg{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:0 8px;}'+
-'#ochoPassBtn{display:none;padding:8px 18px;background:linear-gradient(135deg,rgba(30,20,10,0.75),rgba(20,12,6,0.85));color:#F2E8D4;border:1.5px solid rgba(242,232,212,0.35);border-radius:22px;font-size:12px;font-weight:700;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;backdrop-filter:blur(14px);box-shadow:0 2px 12px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.08);letter-spacing:0.02em;}'+
+'#ochoPassBtn{display:none;margin:0 auto 4px;padding:7px 22px;background:rgba(255,255,255,0.12);color:#F2E8D4;border:1px solid rgba(255,255,255,0.3);border-radius:20px;font-size:12px;font-weight:700;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;backdrop-filter:blur(8px);}'+
 '#ochoPassBtn.visible{display:block;}'+
-'#ochoHint{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,rgba(30,20,10,0.75),rgba(20,12,6,0.85));border:1.5px solid rgba(242,232,212,0.2);border-radius:22px;padding:6px 14px;backdrop-filter:blur(14px);box-shadow:0 2px 12px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.06);}'+
+'#ochoHint{display:inline-flex;align-items:center;gap:6px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:5px 14px;margin-top:4px;backdrop-filter:blur(8px);}'+
 '#ochoBotArc{position:relative;width:300px;height:95px;margin:0 auto;}'+
 /* Vraie carte dans l'arc */
 '.oc-card{position:absolute;width:52px;height:73px;border-radius:9px;border:2.5px solid #F2E8D4;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,0.5);cursor:pointer;transition:box-shadow 0.15s;}'+
 '.oc-card.playable{box-shadow:0 0 0 2.5px #FFD700,0 4px 16px rgba(255,210,0,0.35)!important;}'+
 '.oc-card.selected{box-shadow:0 0 0 3px #FFD700,0 8px 24px rgba(255,215,0,0.55)!important;}'+
-'.oc-card.unplayable{opacity:0.65;filter:saturate(0.45);}'+
+'.oc-card.unplayable{opacity:0.75;filter:saturate(0.55);}'+
 '.oc-hint-suit{font-size:14px;line-height:1;}'+
 '.oc-hint-text{font-size:11px;font-weight:700;color:rgba(242,232,212,0.7);letter-spacing:0.03em;}'+
 '.oc-hint-badge{color:#F2E8D4;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:900;font-family:Arial Black,sans-serif;}'+
 '.oc-hint-badge.heart{background:#E04E3E;}.oc-hint-badge.club{background:#4CB8A0;}.oc-hint-badge.spade{background:#5070B8;}.oc-hint-badge.diamond{background:#E89030;}'+
+'#ochoGameMsg{flex:1;display:flex;align-items:center;justify-content:center;pointer-events:none;}'+
+'#ochoGameMsgBubble{display:none;align-items:center;gap:8px;padding:9px 16px;background:linear-gradient(135deg,rgba(20,12,6,0.92),rgba(35,20,10,0.95));border:1.5px solid rgba(242,232,212,0.28);border-radius:24px;backdrop-filter:blur(16px);box-shadow:0 4px 20px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.08);max-width:220px;}'+
+'#ochoGameMsgBubble.visible{display:flex;}'+
+'#ochoGameMsgBubble .oc-msg-icon{font-size:16px;flex-shrink:0;}'+
+'#ochoGameMsgBubble .oc-msg-text{font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:12px;font-weight:700;color:#F2E8D4;line-height:1.3;letter-spacing:0.01em;}'+
 '.oc-btn-round{width:46px;height:46px;border-radius:50%;background:rgba(0,0,0,0.35);border:1.5px solid rgba(255,255,255,0.15);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;transition:transform 0.15s;-webkit-tap-highlight-color:transparent;}'+
 '.oc-btn-round:active{transform:scale(0.9);}'+
 '#ochoEmojiWrap{position:relative;display:flex;align-items:center;}'+
@@ -431,6 +435,7 @@
         '</div>'+
         '<button id="ochoPassBtn">Passer mon tour \u2192</button>'+
         '<div id="ochoBotArc"></div>'+
+        '<div id="ochoHint"><span class="oc-hint-suit" id="ochoHintSuit"></span><span class="oc-hint-text" id="ochoHintText"></span><span class="oc-hint-badge" id="ochoHintBadge"></span></div>'+
       '</div>'+
     '</div>'+
     '<div id="ochoSafeZone">'+
@@ -438,10 +443,7 @@
         '<div id="ochoEmojiPill"></div>'+
         '<button id="ochoEmojiBtn" class="oc-btn-round">\uD83D\uDE04</button>'+
       '</div>'+
-      '<div id="ochoSafeMsg">'+
-        '<button id="ochoPassBtn">Passer mon tour \u2192</button>'+
-        '<div id="ochoHint"><span class="oc-hint-suit" id="ochoHintSuit"></span><span class="oc-hint-text" id="ochoHintText"></span><span class="oc-hint-badge" id="ochoHintBadge"></span></div>'+
-      '</div>'+
+      '<div id="ochoGameMsg"></div>'+
       '<button id="ochoHeartBtn" class="oc-btn-round">\uD83E\uDD0D</button>'+
     '</div>'+
     '<div id="ochoHomeBar"></div>'+
@@ -752,7 +754,7 @@
       el.addEventListener('click',(function(cc){return function(e){
         e.stopPropagation();
         if(!isMyTurn||!_mp||!_mp.isLaunched())return;
-        if(!isPlay){if(typeof showToast==='function')showToast('Carte non jouable \u26A0\uFE0F');return;}
+        if(!isPlay){_showGameMsg('\u26A0\uFE0F','Carte non jouable');return;}
         if(_selectedCard&&_selectedCard.id===cc.id){
           _playCardFromUI(cc);
         }else{
@@ -817,6 +819,23 @@
     if(mnh.length===1&&ns.phase!=='round_end')_flashOchoReminder();
   }
 
+
+  // ─── Message bulle in-game (safe zone) ───────────────
+  var _gameMsgTimer=null;
+  function _showGameMsg(icon, text, duration){
+    var bubble=document.getElementById('ochoGameMsgBubble');
+    if(!bubble){
+      bubble=document.createElement('div');bubble.id='ochoGameMsgBubble';
+      bubble.innerHTML='<span class="oc-msg-icon"></span><span class="oc-msg-text"></span>';
+      var zone=document.getElementById('ochoGameMsg');if(zone)zone.appendChild(bubble);
+    }
+    bubble.querySelector('.oc-msg-icon').textContent=icon||'';
+    bubble.querySelector('.oc-msg-text').textContent=text||'';
+    bubble.classList.add('visible');
+    if(_gameMsgTimer)clearTimeout(_gameMsgTimer);
+    _gameMsgTimer=setTimeout(function(){bubble.classList.remove('visible');},duration||2800);
+  }
+
   function _flashOchoReminder(){
     var btn=document.getElementById('ochoBtn');if(!btn)return;
     btn.style.background='#FFD700';btn.style.color='#000';
@@ -850,7 +869,7 @@
       _mp.saveState(ns);
       _animateDrawCard(function(){});
       if(typeof haptic==='function')haptic('light');
-      if(typeof showToast==='function')showToast('Pas de carte jouable \u2014 tour pass\u00e9');
+      _showGameMsg('\uD83C\uDCCF','Pas de carte jouable — tour passé');
     }
   }
 
@@ -881,7 +900,7 @@
       var pc=ns2.deck.pop();
       if(pc){if(_other==='girl')ns2.girl_hand.push(pc);else ns2.boy_hand.push(pc);}
       ns2.ocho_declared=_me+'_caught';_mp.saveState(ns2);
-      if(typeof showToast==='function')showToast('\uD83D\uDCA5 Ocho rat\u00e9\u00a0! L\'adversaire pioche\u00a0!');return;
+      _showGameMsg('\uD83D\uDCA5','Ocho raté ! L\'adversaire pioche !');return;
     }
     if(mh.length>1){
       if(_mp.isSaving())return;
@@ -889,7 +908,7 @@
       var pc2=ns3.deck.pop();
       if(pc2){if(_me==='girl')ns3.girl_hand.push(pc2);else ns3.boy_hand.push(pc2);}
       _mp.saveState(ns3);
-      if(typeof showToast==='function')showToast('Trop t\u00f4t\u00a0! Tu pioches une carte\u2026');
+      _showGameMsg('\u26A0\uFE0F','Trop tôt ! Tu pioches une carte…');
     }
   }
 
@@ -987,7 +1006,7 @@
       _setArc('ochoMeTimerArc',1,'rgba(255,255,255,0.1)');
     }
 
-    if(!isMyTurn||_timerFired)return;
+    if(!isMyTurn)return;
     _timerFired=false;
     var deadline=(state.ts_turn||Date.now())+TURN_DURATION*1000;
     function _tick(){
@@ -1022,7 +1041,7 @@
     _drawnThisTurn=false;_passAvailable=false;_selectedCard=null;
     var pb=document.getElementById('ochoPassBtn');if(pb)pb.classList.remove('visible');
     _mp.saveState(ns);
-    if(typeof showToast==='function')showToast('\u23F0 Temps \u00e9coul\u00e9 \u2014 pioche automatique');
+    _showGameMsg('\u23F0','Temps écoulé — pioche automatique');
   }
 
   // ─── Fin de manche ────────────────────────────────────
