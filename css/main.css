@@ -3542,8 +3542,6 @@ body.light .skyjo-player-zone.zone-me {
 body.light .skyjo-player-zone.zone-me.active-zone {
   background: rgba(180,110,20,0.10);
   border-top: 2px solid rgba(200,130,30,0.55);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
   animation: sjZoneMeBreathLt 2.2s ease-in-out infinite;
 }
 @keyframes sjZoneMeBreathLt {
@@ -3553,8 +3551,6 @@ body.light .skyjo-player-zone.zone-me.active-zone {
 body.light .skyjo-player-zone.zone-opp.active-zone {
   background: rgba(60,100,200,0.08);
   border-bottom: 2px solid rgba(80,120,220,0.40);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
   animation: sjZoneOppBreathLt 2.2s ease-in-out infinite;
 }
 @keyframes sjZoneOppBreathLt {
@@ -3672,8 +3668,6 @@ body:not(.light) .skyjo-player-zone.zone-me {
 body:not(.light) .skyjo-player-zone.zone-me.active-zone {
   background: rgba(200,130,30,0.12);
   border-top: 2px solid rgba(220,150,40,0.55);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
   animation: sjZoneMeBreathDk 2.2s ease-in-out infinite;
 }
 @keyframes sjZoneMeBreathDk {
@@ -3683,8 +3677,6 @@ body:not(.light) .skyjo-player-zone.zone-me.active-zone {
 body:not(.light) .skyjo-player-zone.zone-opp.active-zone {
   background: rgba(100,130,255,0.10);
   border-bottom: 2px solid rgba(120,150,255,0.40);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
   animation: sjZoneOppBreathDk 2.2s ease-in-out infinite;
 }
 @keyframes sjZoneOppBreathDk {
