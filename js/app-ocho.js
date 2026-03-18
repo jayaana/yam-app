@@ -528,21 +528,46 @@
   }
 
   // ─── Avatars réels ────────────────────────────────────
+  var _avatarCache={};  // { girl: url, boy: url }
+
   function _getAvatarUrl(role){
-    // 1. YAM_COUPLE (chargé par app-account)
-    if(window.YAM_COUPLE){
-      var m=window.YAM_COUPLE[role];
-      if(m&&m.avatar_url)return m.avatar_url;
-    }
-    // 2. Session localStorage
+    if(_avatarCache[role])return _avatarCache[role];
+    return 'assets/images/profil_'+role+'.png';
+  }
+
+  // Construit l'URL Supabase Storage — même logique que app-account.js
+  function _buildStorageUrl(userId){
+    return SB_URL+'/storage/v1/object/public/images/avatars/'+userId+'.jpg?t='+Date.now();
+  }
+
+  // Fetch profiles (id + role), probe l'URL Storage, remplit _avatarCache
+  // Identique à _acLoadAvatarTopbarOnStart + _acLoadPartnerAvatar dans app-account.js
+  function _loadAvatarCache(cb){
     try{
       var sess=JSON.parse(localStorage.getItem('yam_session_v3')||'null');
-      if(sess&&sess.user){
-        var myRole=(typeof getProfile==='function'?getProfile():null)||(sess.user&&sess.user.role);
-        if(role===myRole&&sess.user.avatar_url)return sess.user.avatar_url;
-      }
-    }catch(e){}
-    return 'assets/images/profil_'+role+'.png';
+      if(!sess||!sess.user||!sess.user.couple_id){if(cb)cb();return;}
+      var coupleId=sess.user.couple_id;
+      fetch(SB_URL+'/rest/v1/profiles?couple_id=eq.'+coupleId+'&select=id,role',
+        {headers:sb2Headers()})
+        .then(function(r){return r.ok?r.json():[];})
+        .then(function(rows){
+          if(!Array.isArray(rows)||!rows.length){if(cb)cb();return;}
+          var pending=rows.length;
+          function done(){pending--;if(pending<=0&&cb)cb();}
+          rows.forEach(function(p){
+            if(!p.id||!p.role){done();return;}
+            var url=_buildStorageUrl(p.id);
+            var probe=new Image();
+            probe.onload=function(){_avatarCache[p.role]=url;done();};
+            probe.onerror=function(){
+              _avatarCache[p.role]='assets/images/profil_'+p.role+'.png';
+              done();
+            };
+            probe.src=url;
+          });
+        })
+        .catch(function(){if(cb)cb();});
+    }catch(e){if(cb)cb();}
   }
 
   function _loadAvatars(){
