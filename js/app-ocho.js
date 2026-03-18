@@ -300,7 +300,7 @@
 '.oc-suit-dot{position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);width:18px;height:18px;border-radius:50%;border:2px solid rgba(242,232,212,0.75);display:flex;align-items:center;justify-content:center;font-size:9px;color:rgba(242,232,212,0.9);box-shadow:0 2px 6px rgba(0,0,0,0.5);z-index:10;}'+
 '#ochoTimerBar{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,0.08);border-radius:0 0 50% 50%;overflow:hidden;}'+
 '#ochoTimerFill{height:100%;width:100%;background:#FFD700;transform-origin:left;}'+
-'#ochoMeBlock{display:flex;flex-direction:column;align-items:center;gap:0;margin-top:4px;}'+
+'#ochoMeBlock{display:flex;flex-direction:column;align-items:center;gap:0;margin-top:4px;margin-bottom:12px;}'+
 '#ochoMeRow{display:flex;align-items:center;gap:0;align-self:stretch;margin-bottom:10px;}'+
 '#ochoMeProfile{display:flex;align-items:center;gap:12px;}'+
 '#ochoBtn{margin-left:auto;background:linear-gradient(135deg,#c83020,#e04535);color:#F2E8D4;border:2px solid rgba(242,232,212,0.75);border-radius:18px;padding:8px 16px;font-size:13px;font-weight:900;font-family:Bricolage Grotesque,system-ui,sans-serif;letter-spacing:0.04em;box-shadow:0 3px 12px rgba(200,50,30,0.4);cursor:pointer;white-space:nowrap;}'+
@@ -316,7 +316,7 @@
 '.oc-card{position:absolute;width:52px;height:73px;border-radius:9px;border:2.5px solid #F2E8D4;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,0.5);cursor:pointer;transition:box-shadow 0.15s;}'+
 '.oc-card.playable{box-shadow:0 0 0 2.5px #FFD700,0 4px 16px rgba(255,210,0,0.35)!important;}'+
 '.oc-card.selected{box-shadow:0 0 0 3px #FFD700,0 8px 24px rgba(255,215,0,0.55)!important;}'+
-'.oc-card.unplayable{opacity:0.75;filter:saturate(0.55);}'+
+'.oc-card.unplayable{opacity:0.875;filter:saturate(0.75);}'+
 '.oc-hint-suit{font-size:14px;line-height:1;}'+
 '.oc-hint-text{font-size:11px;font-weight:700;color:rgba(242,232,212,0.7);letter-spacing:0.03em;}'+
 '.oc-hint-badge{color:#F2E8D4;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:900;font-family:Arial Black,sans-serif;}'+
