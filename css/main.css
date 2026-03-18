@@ -2836,10 +2836,12 @@ body.light .suggestion-lock-badge.unlocked { background: rgba(231,90,124,0.07); 
 #skyjoView {
   display: none; position: fixed !important; inset: 0 !important;
   z-index: 600; overflow: hidden !important;
-  flex-direction: column; background: var(--bg);
-  background-image: url('assets/images/skyjo-home.png');
+  flex-direction: column;
+  background-color: var(--bg);
+  background-image: url('../assets/images/skyjo-home.png');
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
   font-family: 'Bricolage Grotesque', sans-serif;
   touch-action: none;
   overscroll-behavior: none;
