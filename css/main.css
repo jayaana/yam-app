@@ -3165,6 +3165,8 @@ body.light .sj-their-turn-badge {
   -webkit-tap-highlight-color: transparent;
 }
 .skyjo-card:hover { transform: translateY(-3px) scale(1.05); filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)); }
+/* Pas de hover transform sur carte cliquable — évite le sticky hover iOS qui crée un sautillement */
+.skyjo-card.skyjo-card-clickable:hover { transform: none; filter: none; }
 
 /* Carte cliquable — exactement le même pulse que la pioche/défausse */
 .skyjo-card.skyjo-card-clickable {
