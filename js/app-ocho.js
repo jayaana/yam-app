@@ -255,7 +255,7 @@
 '#ochoAura{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:5;}'+
 '#ochoAura.active{animation:ochoAuraAnim 1.2s ease-in-out infinite;opacity:1;}'+
 '@keyframes ochoAuraAnim{0%{box-shadow:inset 0 0 0px 0px rgba(220,60,40,0);}40%{box-shadow:inset 0 0 60px 20px rgba(220,60,40,0.45),inset 0 0 120px 40px rgba(220,60,40,0.2);}100%{box-shadow:inset 0 0 0px 0px rgba(220,60,40,0);}}'+
-'#ochoAnimZone{position:absolute;top:46px;left:0;right:0;height:130px;display:flex;align-items:center;justify-content:center;z-index:20;pointer-events:none;overflow:hidden;}'+
+'#ochoAnimZone{position:absolute;top:46px;left:0;right:0;height:180px;display:flex;align-items:center;justify-content:center;z-index:20;pointer-events:none;overflow:hidden;}'+
 '#ochoAnimText{font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:48px;font-weight:900;color:#F2E8D4;text-shadow:0 4px 20px rgba(0,0,0,0.4);opacity:0;letter-spacing:-1px;}'+
 '@keyframes ochoPopIn{0%{opacity:0;transform:scale(0.4) rotate(-8deg);}60%{opacity:1;transform:scale(1.15) rotate(3deg);}80%{transform:scale(0.95) rotate(-1deg);}100%{opacity:1;transform:scale(1) rotate(0);}}'+
 '@keyframes ochoPopOut{0%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(1.3);}}'+
@@ -316,7 +316,7 @@
 '.oc-card{position:absolute;width:52px;height:73px;border-radius:9px;border:2.5px solid #F2E8D4;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,0.5);cursor:pointer;transition:box-shadow 0.15s;}'+
 '.oc-card.playable{box-shadow:0 0 0 2.5px #FFD700,0 4px 16px rgba(255,210,0,0.35)!important;}'+
 '.oc-card.selected{box-shadow:0 0 0 3px #FFD700,0 8px 24px rgba(255,215,0,0.55)!important;}'+
-'.oc-card.unplayable{opacity:0.875;filter:saturate(0.75);}'+
+'.oc-card.unplayable{filter:brightness(0.45) saturate(0.4);}'+
 '.oc-hint-suit{font-size:14px;line-height:1;}'+
 '.oc-hint-text{font-size:11px;font-weight:700;color:rgba(242,232,212,0.7);letter-spacing:0.03em;}'+
 '.oc-hint-badge{color:#F2E8D4;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:900;font-family:Arial Black,sans-serif;}'+
@@ -576,10 +576,10 @@
     var imgs={ochoMeAvatarImg:myUrl, ochoOppAvatarImg:opUrl,
               ochoWaitAvGirl:_getAvatarUrl('girl'), ochoWaitAvBoy:_getAvatarUrl('boy')};
     Object.keys(imgs).forEach(function(id){
-      var el=document.getElementById(id);if(el&&el.src!==imgs[id])el.src=imgs[id];
+      var el=document.getElementById(id);if(el)el.src=imgs[id];
     });
-    var rL=document.querySelector('#ochoRoundAvLeft img'),rR=document.querySelector('#ochoRoundAvRight img');
-    var fL=document.querySelector('#ochoFinalAvLeft img'),fR=document.querySelector('#ochoFinalAvRight img');
+    var rL=document.getElementById('ochoRoundAvLeftImg'),rR=document.getElementById('ochoRoundAvRightImg');
+    var fL=document.getElementById('ochoFinalAvLeftImg'),fR=document.getElementById('ochoFinalAvRightImg');
     var gUrl=_getAvatarUrl('girl'),bUrl=_getAvatarUrl('boy');
     if(rL)rL.src=(_me==='girl')?gUrl:bUrl; if(rR)rR.src=(_me==='girl')?bUrl:gUrl;
     if(fL)fL.src=(_me==='girl')?gUrl:bUrl; if(fR)fR.src=(_me==='girl')?bUrl:gUrl;
@@ -626,6 +626,7 @@
       onMatchFound:function(gameRow){
         _resetLocalState();_showScreen('ochoLayout');_startSafetyPoll();
         var btn=document.getElementById('ochoAbandonBtn');if(btn)btn.style.display='block';
+        _loadAvatars();
         _renderState(gameRow);
       },
       onStateUpdate:function(gameRow){_renderState(gameRow);},
