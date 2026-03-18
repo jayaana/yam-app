@@ -113,47 +113,34 @@
   var SUIT_DARK   ={heart:'#bf3020',club:'#3A9E88',spade:'#3A58A0',diamond:'#C07010'};
   var SUIT_SYMS   ={heart:'\u2665',club:'\u2663',spade:'\u2660',diamond:'\u2666'};
 
-  // ─── SVG inline des 4 symboles (remplace Bootstrap Icons) ────
-  // Chaque fonction retourne un SVG string à la taille voulue
-  var _SUIT_SVG = {
-    heart: function(sz,col){
-      return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 16 16" fill="'+col+'" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;">'+
-        '<path d="M8 14.25l-.35-.3C3.4 10.15 1 8.02 1 5.5 1 3.42 2.62 2 4.5 2c1.03 0 2.04.5 2.68 1.3L8 4.48l.82-.18C9.46 2.5 10.47 2 11.5 2 13.38 2 15 3.42 15 5.5c0 2.52-2.4 4.65-6.65 8.45L8 14.25z"/>'+
-      '</svg>';
-    },
-    diamond: function(sz,col){
-      return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 16 16" fill="'+col+'" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;">'+
-        '<path d="M8 1l7 7-7 7L1 8z"/>'+
-      '</svg>';
-    },
-    club: function(sz,col){
-      return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 16 16" fill="'+col+'" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;">'+
-        '<path d="M8 1a3 3 0 0 0-2.83 4.02A3 3 0 1 0 8 11.5a3 3 0 1 0 2.83-6.48A3 3 0 0 0 8 1zm0 10.5c-.55 0-1.05.1-1.5.28V13h3v-1.22A4 4 0 0 1 8 11.5z"/>'+
-      '</svg>';
-    },
-    spade: function(sz,col){
-      return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 16 16" fill="'+col+'" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;">'+
-        '<path d="M8 1L1 8a4 4 0 0 0 5.5 5.8C6.19 14.4 6 15 6 15h4s-.19-.6-.5-1.2A4 4 0 0 0 15 8z"/>'+
-      '</svg>';
-    }
+  // ─── Bootstrap Icons — noms des classes par suit ─────
+  var _SUIT_BI = {
+    heart:   'bi-suit-heart-fill',
+    club:    'bi-suit-club-fill',
+    spade:   'bi-suit-spade-fill',
+    diamond: 'bi-suit-diamond-fill'
   };
 
-  // Icône SVG grosse (fond de carte)
-  function _suitBgSVG(suit, color, small) {
-    var sz = small ? 68 : 72;
-    var fn = _SUIT_SVG[suit];
-    if (!fn) return '';
-    var top  = small ? -16 : -18;
-    var left = small ? -18 : -14;
-    return '<div style="position:absolute;top:'+top+'px;left:'+left+'px;pointer-events:none;opacity:1;line-height:0;">'+
-      fn(sz, color)+
-    '</div>';
+  // Icône Bootstrap grosse (fond de carte) — placement identique à la maquette
+  // maquette : position:absolute;top:-35px;left:-42px;font-size:136px (carte 100px)
+  // oc-card : 52px wide → on scale proportionnellement (~52% de 100px)
+  // small=true  → défausse 50px   : top:-18px left:-22px font-size:70px
+  // small=false → main  52px      : top:-19px left:-22px font-size:72px
+  function _suitBgBI(suit, small) {
+    var cls = _SUIT_BI[suit];
+    if (!cls) return '';
+    var top  = small ? -18 : -19;
+    var left = small ? -22 : -22;
+    var fs   = small ? 70  : 72;
+    // heart a un font-size légèrement différent dans la maquette
+    if (suit === 'heart') fs = small ? 65 : 67;
+    return '<i class="bi '+cls+'" style="position:absolute;top:'+top+'px;left:'+left+'px;font-size:'+fs+'px;line-height:1;color:#F2E8D4;filter:drop-shadow(3px 5px 0px rgba(0,0,0,0.2));pointer-events:none;"></i>';
   }
 
-  // Icône SVG petite (sous-label)
-  function _suitSmSVG(suit, color, sz) {
-    var fn = _SUIT_SVG[suit];
-    return fn ? fn(sz, color) : '';
+  // Icône Bootstrap petite (sous la valeur) — identique à .suit-small i de la maquette
+  function _suitSmBI(suit, fs) {
+    var cls = _SUIT_BI[suit];
+    return cls ? '<i class="bi '+cls+'" style="font-size:'+fs+'px;line-height:1;"></i>' : '';
   }
 
   // ─── Rendu d'une vraie carte ──────────────────────────
@@ -168,22 +155,39 @@
     var bg   = SUIT_COLORS[suit]||'#888';
     var dark = SUIT_DARK[suit]||'#555';
 
+    // Maquette : valeur + sous-label en haut à gauche, identique à .card .info
+    // small (défausse 50×70) : top:4px left:5px  val:13px  sub:8px
+    // large (main    52×73)  : top:5px left:7px  val:16px  sub:10px
+    var topPx  = small ? 4  : 5;
+    var leftPx = small ? 5  : 7;
+
     var displayVal = val==='block' ? '\u2298' : val;
+    var isSpecial  = (val==='+1'||val==='+2'||val==='block');
+    var isBlocked  = (val==='block');
+
+    // Lettre avant le symbole : Q pour +1, K pour +2, J pour blocage
+    var letterMap = {'+1':'Q', '+2':'K', 'block':'J'};
     var subHtml;
-    if (val==='+1')
-      subHtml='<span style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:'+sub+'px;font-weight:900;color:'+dark+'">Q</span>'+_suitSmSVG(suit,dark,sub);
-    else if (val==='+2')
-      subHtml='<span style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:'+sub+'px;font-weight:900;color:'+dark+'">K</span>'+_suitSmSVG(suit,dark,sub);
-    else if (val==='block')
-      subHtml='<span style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:'+sub+'px;font-weight:900;color:'+dark+'">J</span>'+_suitSmSVG(suit,dark,sub);
-    else
-      subHtml=_suitSmSVG(suit,dark,sub+3);
+    if (isSpecial) {
+      var ltr = letterMap[val];
+      // Maquette .suit-small : span (lettre) + i (icône), même font-size
+      subHtml = '<span style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:'+sub+'px;font-weight:900;-webkit-text-stroke:1px '+dark+';paint-order:stroke fill;letter-spacing:-0.05em;line-height:1;color:'+dark+';">'+ltr+'</span>'+
+                _suitSmBI(suit, sub);
+    } else {
+      // Juste l'icône Bootstrap, légèrement plus grande (maquette : 17px sur carte 100px → ~9px sur 52px)
+      subHtml = _suitSmBI(suit, sub + 2);
+    }
+
+    // margin-top du sous-label : blocage a margin-top:8px dans la maquette (.suit-small-blocked)
+    var subMargin = isBlocked ? (small ? 6 : 8) : (small ? 1 : 2);
+    // Valeur bloquée a -webkit-text-stroke plus épais dans la maquette (.value.blocked)
+    var valStroke = isBlocked ? '2.5px' : '1px';
 
     return '<div style="position:absolute;inset:0;background:'+bg+';">'+
-      _suitBgSVG(suit,'#F2E8D4',small)+
-      '<div style="position:absolute;top:'+(small?4:5)+'px;left:'+(small?5:7)+'px;display:flex;flex-direction:column;align-items:center;z-index:2;">'+
-        '<div style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:'+fs+'px;font-weight:900;line-height:1;letter-spacing:-0.06em;color:'+dark+';">'+displayVal+'</div>'+
-        '<div style="display:flex;align-items:center;gap:1px;margin-top:1px;">'+subHtml+'</div>'+
+      _suitBgBI(suit, small)+
+      '<div style="position:absolute;top:'+topPx+'px;left:'+leftPx+'px;display:flex;flex-direction:column;align-items:center;z-index:2;">'+
+        '<div style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:'+fs+'px;font-weight:900;line-height:1;letter-spacing:-0.08em;-webkit-text-stroke:'+valStroke+' '+dark+';paint-order:stroke fill;color:'+dark+(isBlocked?';margin-top:-'+(small?4:5)+'px':'')+';">'+displayVal+'</div>'+
+        '<div style="display:flex;align-items:center;gap:0;margin-top:'+subMargin+'px;color:'+dark+';">'+subHtml+'</div>'+
       '</div>'+
     '</div>';
   }
@@ -231,9 +235,16 @@
   // ─── CSS ─────────────────────────────────────────────
   function _injectCSS(){
     if(document.getElementById('ochoStyles'))return;
+    // Bootstrap Icons — requis pour les symboles de cartes (identique a la maquette)
+    if(!document.getElementById('ochoBootstrapIcons')){
+      var biLink=document.createElement('link');
+      biLink.id='ochoBootstrapIcons';biLink.rel='stylesheet';
+      biLink.href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css';
+      document.head.appendChild(biLink);
+    }
     var s=document.createElement('style');s.id='ochoStyles';
     s.textContent=
-/* Pas d'import CDN externe — SVG inline + police système */
+/* Bootstrap Icons utilises pour les symboles — identique a la maquette */
 '#ochoView{display:none;position:fixed;inset:0;z-index:200;overflow:hidden;font-family:Bricolage Grotesque,system-ui,sans-serif;}'+
 '#ochoView.active{display:block!important;}'+
 '#ochoBg{position:absolute;inset:0;background:linear-gradient(180deg,#f2a890 0%,#eaa078 16%,#c87850 32%,#b06838 52%,#985828 68%,#804818 82%,#6a3c14 100%);}'+
@@ -674,16 +685,8 @@
     }else if(card.value==='swap'){
       el.innerHTML=_cardSwapInner(true);
     }else{
-      var sClass={heart:'h',club:'c',spade:'s',diamond:'d'}[card.suit]||'';
-      if(sClass)el.classList.add(sClass);
-      var bg2=document.createElement('div');bg2.className='oc-mc-sym';
-      bg2.textContent=SUIT_SYMS[card.suit]||'';el.appendChild(bg2);
-      var vd=card.value==='block'?'\u2298':card.value;
-      var ve=document.createElement('div');ve.className='oc-mc-val';ve.textContent=vd;el.appendChild(ve);
-      if(card.value==='+1'||card.value==='+2'||card.value==='block'){
-        var ltr=card.value==='+1'?'Q':card.value==='+2'?'K':'J';
-        var sub=document.createElement('div');sub.className='oc-mc-sub';sub.textContent=ltr;el.appendChild(sub);
-      }
+      // Utilise _cardInner pour la défausse — identique aux cartes de la main
+      el.innerHTML=_cardInner(card,true);
     }
   }
 
