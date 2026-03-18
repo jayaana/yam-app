@@ -3141,10 +3141,32 @@ body.light .sj-their-turn-badge {
 
 /* Total badges */
 .sj-total-badge {
-  font-size: 10px; font-weight: 700; color: var(--muted);
-  background: var(--s2); border: 1px solid var(--border);
-  border-radius: 20px; padding: 2px 8px; white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  font-size: 14px; font-weight: 800; color: var(--text);
+  background: var(--s1);
+  border: 1.5px solid var(--border);
+  border-radius: 50px;
+  white-space: nowrap;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  transition: transform 0.15s, box-shadow 0.15s;
 }
+
+/* Animation pop en fin de manche */
+.sj-score-pop {
+  animation: sjScorePop 0.55s cubic-bezier(.17,.89,.32,1.28) forwards;
+}
+@keyframes sjScorePop {
+  0%   { transform: scale(1);    box-shadow: 0 2px 8px rgba(0,0,0,0.10); }
+  30%  { transform: scale(1.55); box-shadow: 0 6px 22px rgba(231,90,124,0.35); border-color: var(--accent); }
+  60%  { transform: scale(1.35); }
+  80%  { transform: scale(1.48); }
+  100% { transform: scale(1.4);  box-shadow: 0 4px 18px rgba(231,90,124,0.25); border-color: var(--accent); }
 
 /* Phase msg */
 #skyjoPhaseMsg {
@@ -3492,7 +3514,7 @@ body.light .skyjo-player-zone.zone-me.active-zone {
   background: rgba(231,90,124,0.06);
   border-top: 1px solid rgba(231,90,124,0.35);
 }
-body.light .sj-total-badge { background: var(--s2); border-color: var(--border); color: var(--muted); }
+body.light .sj-total-badge { background: var(--s1); border-color: var(--border); color: var(--text); }
 body.light #skyjoMidZone { background: linear-gradient(135deg, var(--s1) 0%, var(--s2) 100%); }
 body.light .skyjo-pile-label { color: rgba(0,0,0,0.5); }
 body.light #skyjoDrawPileCount { color: rgba(0,0,0,0.45); }
