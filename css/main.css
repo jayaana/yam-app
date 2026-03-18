@@ -2966,7 +2966,48 @@ body.light .suggestion-lock-badge.unlocked { background: rgba(231,90,124,0.07); 
 .skyjo-player-zone.zone-me.active-zone::before { opacity: 1; }
 
 /* ─── Badge de tour — supprimé, remplacé par animation sur le nom ─── */
-#skyjoTurnBadgeSlot { display: none; }
+#skyjoTurnBadgeSlot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Badge tour — photo de profil dans un cercle */
+.sj-your-turn-badge,
+.sj-their-turn-badge {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  overflow: hidden;
+  pointer-events: none;
+  flex-shrink: 0;
+  display: block;
+}
+.sj-your-turn-badge {
+  outline: 2.5px solid rgba(245,240,235,0.9);
+  outline-offset: 2px;
+  animation: sjYourTurnBadge 0.8s ease-in-out infinite alternate;
+}
+@keyframes sjYourTurnBadge {
+  from { outline-color: rgba(245,240,235,0.45); filter: drop-shadow(0 0 0px rgba(245,240,235,0)); }
+  to   { outline-color: rgba(245,240,235,1);    filter: drop-shadow(0 0 6px rgba(245,240,235,0.65)); }
+}
+.sj-their-turn-badge {
+  outline: 1.5px solid rgba(245,240,235,0.22);
+  outline-offset: 2px;
+  opacity: 0.45;
+}
+body.light .sj-your-turn-badge {
+  outline-color: rgba(60,60,80,0.8);
+  animation: sjYourTurnBadgeLt 0.8s ease-in-out infinite alternate;
+}
+@keyframes sjYourTurnBadgeLt {
+  from { outline-color: rgba(60,60,80,0.35); filter: drop-shadow(0 0 0px rgba(60,60,80,0)); }
+  to   { outline-color: rgba(60,60,80,0.85); filter: drop-shadow(0 0 5px rgba(60,60,80,0.5)); }
+}
+body.light .sj-their-turn-badge {
+  outline-color: rgba(60,60,80,0.2);
+}
 
 /* Infos joueur — ligne compacte */
 .skyjo-player-info { display: flex; align-items: center; gap: 6px; }
@@ -3127,11 +3168,11 @@ body.light .suggestion-lock-badge.unlocked { background: rgba(231,90,124,0.07); 
 
 /* Carte cliquable — drop-shadow suit les contours arrondis du SVG */
 .skyjo-card.skyjo-card-clickable {
-  animation: sjCardClickable 1.6s ease-in-out infinite;
+  animation: sjCardClickable 0.8s ease-in-out infinite alternate;
 }
 @keyframes sjCardClickable {
-  0%,100% { filter: drop-shadow(0 0 0px rgba(245,240,235,0)); }
-  50%     { filter: drop-shadow(0 0 7px rgba(245,240,235,0.95)); }
+  from { filter: drop-shadow(0 0 0px rgba(245,240,235,0)); }
+  to   { filter: drop-shadow(0 0 7px rgba(245,240,235,0.95)); }
 }
 
 /* Le SVG remplit la carte entièrement */
@@ -3357,15 +3398,15 @@ body.light .suggestion-lock-badge.unlocked { background: rgba(231,90,124,0.07); 
 #skyjoDiscardCard:active { transform: scale(0.96); filter: none; }
 
 @keyframes sjPileSelectable {
-  0%,100% { filter: drop-shadow(0 0 0px rgba(212,137,110,0)); }
-  50%     { filter: drop-shadow(0 0 7px rgba(212,137,110,1)) brightness(1.06); }
+  from { filter: drop-shadow(0 0 0px rgba(212,137,110,0)); }
+  to   { filter: drop-shadow(0 0 7px rgba(212,137,110,1)); }
 }
 @keyframes sjDiscardSelectable {
-  0%,100% { filter: drop-shadow(0 0 0px rgba(255,200,80,0)); }
-  50%     { filter: drop-shadow(0 0 7px rgba(255,200,80,1)) brightness(1.06); }
+  from { filter: drop-shadow(0 0 0px rgba(255,200,80,0)); }
+  to   { filter: drop-shadow(0 0 7px rgba(255,200,80,1)); }
 }
-#skyjoDeckCard.sj-selectable    { animation: sjPileSelectable 1.6s ease-in-out infinite; }
-#skyjoDiscardCard.sj-selectable { animation: sjDiscardSelectable 1.6s ease-in-out infinite; }
+#skyjoDeckCard.sj-selectable    { animation: sjPileSelectable 0.8s ease-in-out infinite alternate; }
+#skyjoDiscardCard.sj-selectable { animation: sjDiscardSelectable 0.8s ease-in-out infinite alternate; }
 
 body.skyjo-bg-paused #skyjoDeckCard.sj-selectable,
 body.skyjo-bg-paused #skyjoDiscardCard.sj-selectable { animation: none; }
@@ -3471,29 +3512,29 @@ body.light #skyjoPhaseMsg { color: var(--muted); }
 
 /* Cartes cliquables en thème clair : halo sombre au lieu de blanc */
 body.light .skyjo-card.skyjo-card-clickable {
-  animation: sjCardClickableLt 1.6s ease-in-out infinite;
+  animation: sjCardClickableLt 0.8s ease-in-out infinite alternate;
 }
 @keyframes sjCardClickableLt {
-  0%,100% { filter: drop-shadow(0 0 0px rgba(60,60,80,0)); }
-  50%     { filter: drop-shadow(0 0 6px rgba(60,60,80,0.75)); }
+  from { filter: drop-shadow(0 0 0px rgba(60,60,80,0)); }
+  to   { filter: drop-shadow(0 0 6px rgba(60,60,80,0.75)); }
 }
 
 /* Pioche sélectionnable en thème clair */
 body.light #skyjoDeckCard.sj-selectable {
-  animation: sjPileSelectableLt 1.6s ease-in-out infinite;
+  animation: sjPileSelectableLt 0.8s ease-in-out infinite alternate;
 }
 @keyframes sjPileSelectableLt {
-  0%,100% { filter: drop-shadow(0 0 0px rgba(180,90,50,0)); }
-  50%     { filter: drop-shadow(0 0 7px rgba(180,90,50,0.8)) brightness(1.06); }
+  from { filter: drop-shadow(0 0 0px rgba(180,90,50,0)); }
+  to   { filter: drop-shadow(0 0 7px rgba(180,90,50,0.85)); }
 }
 
 /* Défausse sélectionnable en thème clair */
 body.light #skyjoDiscardCard.sj-selectable {
-  animation: sjDiscardSelectableLt 1.6s ease-in-out infinite;
+  animation: sjDiscardSelectableLt 0.8s ease-in-out infinite alternate;
 }
 @keyframes sjDiscardSelectableLt {
-  0%,100% { filter: drop-shadow(0 0 0px rgba(160,120,0,0)); }
-  50%     { filter: drop-shadow(0 0 7px rgba(160,120,0,0.75)) brightness(1.06); }
+  from { filter: drop-shadow(0 0 0px rgba(160,120,0,0)); }
+  to   { filter: drop-shadow(0 0 7px rgba(160,120,0,0.8)); }
 }
 
 /* Carte en main en thème clair */
