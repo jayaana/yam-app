@@ -1055,7 +1055,7 @@
         if(!el)return;
         el.classList.remove('sj-score-pop');void el.offsetWidth;el.classList.add('sj-score-pop');
       });
-      setTimeout(function(){_showRoundEndPopup(state);},10000);
+      setTimeout(function(){_showRoundEndPopup(state);},2500);
     });
   }
 
@@ -1074,7 +1074,7 @@
       if(!cardData||cardData.removed)return;
       if(!cardData.revealed){
         (function(el,d,val){setTimeout(function(){sjAnimFlipInPlace(el,val,null);},d);})(el,delay,cardData.value);
-        maxEnd=delay+540+80;delay+=90;
+        maxEnd=delay+400+50;delay+=55;
       }
     });
     setTimeout(function(){if(onDone)onDone();},maxEnd+100);
@@ -1463,22 +1463,17 @@
     var btn=document.getElementById('skyjoAbandonBtn');if(btn)btn.style.display='none';
     var gg=state.scores.girl,gb=state.scores.boy;
     var isDraw=gg===gb,girlWins=gg<gb;
-    var winnerName=girlWins?(typeof v2GetDisplayName==='function'?v2GetDisplayName('girl'):'Elle'):(typeof v2GetDisplayName==='function'?v2GetDisplayName('boy'):'Lui');
-    document.getElementById('skyjoGameEndEmoji').textContent=isDraw?'🤝':'🏆';
-    document.getElementById('skyjoGameEndTitle').textContent=isDraw?'Égalité !':winnerName+' gagne la partie !';
+    document.getElementById('skyjoGameEndEmoji').textContent=isDraw?'🤝':(girlWins?'👧':'👦');
+    document.getElementById('skyjoGameEndTitle').textContent=isDraw?'Égalité !':(girlWins?(typeof v2GetDisplayName==='function'?v2GetDisplayName('girl')+' 👧':'Elle 👧'):(typeof v2GetDisplayName==='function'?v2GetDisplayName('boy')+' 👦':'Lui 👦'))+' gagne la partie !';
     var myFinal=_me==='girl'?gg:gb,oppFinal=_me==='girl'?gb:gg;
     document.getElementById('skyjoFinalScoreGirl').textContent=myFinal;
     document.getElementById('skyjoFinalScoreBoy').textContent=oppFinal;
     var fLblLeft=document.getElementById('skyjoFinalLabelLeft'),fLblRight=document.getElementById('skyjoFinalLabelRight');
     if(fLblLeft)fLblLeft.textContent=(typeof v2GetDisplayName==='function'?v2GetDisplayName(_me):(_me==='girl'?'Elle':'Lui'));
     if(fLblRight)fLblRight.textContent=(typeof v2GetDisplayName==='function'?v2GetDisplayName(_me==='girl'?'boy':'girl'):(_me==='girl'?'Lui':'Elle'));
-    // Avatars — remplace les emojis par les vraies photos
-    var _avSrc=typeof window.yamAvatarSrc==='function';
-    var mySrc  =_avSrc?window.yamAvatarSrc(_me)  :'assets/images/profil_'+_me+'.png';
-    var oppSrc =_avSrc?window.yamAvatarSrc(_other):'assets/images/profil_'+_other+'.png';
     var fEmoLeft=document.getElementById('skyjoFinalEmojiLeft'),fEmoRight=document.getElementById('skyjoFinalEmojiRight');
-    if(fEmoLeft)  fEmoLeft.innerHTML ='<img src="'+mySrc+'"  alt="" style="width:100%;height:100%;object-fit:cover;display:block;">';
-    if(fEmoRight) fEmoRight.innerHTML='<img src="'+oppSrc+'" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">';
+    if(fEmoLeft)fEmoLeft.textContent=_me==='girl'?'👧':'👦';
+    if(fEmoRight)fEmoRight.textContent=_me==='girl'?'👦':'👧';
     var cardG=document.getElementById('skyjoFinalScoreGirl').parentElement;
     var cardB=document.getElementById('skyjoFinalScoreBoy').parentElement;
     cardG.style.borderColor='';cardG.style.background='';
