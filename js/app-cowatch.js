@@ -694,8 +694,8 @@
     list.innerHTML=_savedPlaylist.map(function(item,i){
       var thumb='https://img.youtube.com/vi/'+item.ytId+'/default.jpg';
       return '<div class="cw-lpl-item">'+
-        '<img class="cw-lpl-thumb" src="'+thumb+'" alt="" />'+
-        '<span class="cw-lpl-id">youtu.be/'+item.ytId+'</span>'+
+        '<img class="cw-lpl-thumb" src="'+_escHtml(thumb)+'" alt="" />'+
+        '<span class="cw-lpl-id">youtu.be/'+_escHtml(item.ytId)+'</span>'+
         '<button class="cw-lpl-rm" data-lpl-idx="'+i+'">' +
           '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
         '</button>'+
@@ -974,7 +974,7 @@
     if(window.YT&&window.YT.Player){_ytReady=true;cb();return;}
     if(!document.getElementById('yt-api-sc')){
       var s=document.createElement('script');s.id='yt-api-sc';
-      s.src='https://www.youtube.com/iframe_api';document.head.appendChild(s);
+      s.src='https://www.youtube-nocookie.com/iframe_api';document.head.appendChild(s);
     }
   }
 
@@ -1317,10 +1317,10 @@
           '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
         :'';
       return '<div class="'+cls+'"'+(clickable?' data-pl-jump="'+i+'" style="cursor:pointer;"':'')+'>'+
-        '<img class="cw-pl-thumb" src="'+thumb+'" alt="" />'+
+        '<img class="cw-pl-thumb" src="'+_escHtml(thumb)+'" alt="" />'+
         '<div class="cw-pl-info">'+
           '<div class="cw-pl-status '+statusCls+'">'+statusLbl+'</div>'+
-          '<div class="cw-pl-id">youtu.be/'+item.ytId+'</div>'+
+          '<div class="cw-pl-id">youtu.be/'+_escHtml(item.ytId)+'</div>'+
         '</div>'+
         rmHtml+
       '</div>';
@@ -1462,7 +1462,7 @@
       :'<div class="cw-cavatar" style="background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--muted);">'+_escHtml(_name(role).charAt(0))+'</div>';
     var bubbleClass='cw-cbubble';
     var content='';
-    if(msg.type==='react'){bubbleClass+=' emoji-only';content=msg.emoji||'';}
+    if(msg.type==='react'){bubbleClass+=' emoji-only';content=_escHtml(msg.emoji||'');}
     else{content=_escHtml(msg.text||'');if(_isEmojiOnly(msg.text||''))bubbleClass+=' emoji-only';}
     d.innerHTML=avHtml+
       '<div class="cw-cbody">'+
