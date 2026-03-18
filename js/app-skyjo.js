@@ -454,12 +454,17 @@
     var badgeSlot=document.getElementById('skyjoTurnBadgeSlot');
     if(badgeSlot){
       badgeSlot.innerHTML='';
+      var _avSrc=typeof window.yamAvatarSrc==='function';
       if(myTurnActive){
         var b=document.createElement('div');b.className='sj-your-turn-badge';
-        b.innerHTML='<span class="sj-badge-icon">⬇️</span>TON<br>TOUR';badgeSlot.appendChild(b);
+        var _mySrc=_avSrc?window.yamAvatarSrc(_me):'assets/images/profil_'+_me+'.png';
+        b.innerHTML='<img src="'+_mySrc+'" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;">';
+        badgeSlot.appendChild(b);
       } else if(oppTurnActive){
         var b2=document.createElement('div');b2.className='sj-their-turn-badge';
-        b2.innerHTML='<span class="sj-badge-icon">⬆️</span>Son<br>tour…';badgeSlot.appendChild(b2);
+        var _oppSrc=_avSrc?window.yamAvatarSrc(_other):'assets/images/profil_'+_other+'.png';
+        b2.innerHTML='<img src="'+_oppSrc+'" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;">';
+        badgeSlot.appendChild(b2);
       }
     }
 
