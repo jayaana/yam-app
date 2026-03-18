@@ -113,58 +113,57 @@
   var SUIT_DARK   ={heart:'#bf3020',club:'#3A9E88',spade:'#3A58A0',diamond:'#C07010'};
   var SUIT_SYMS   ={heart:'\u2665',club:'\u2663',spade:'\u2660',diamond:'\u2666'};
 
-  // ─── Bootstrap Icons class par couleur ───────────────
-  var _BI_CLASS = {heart:'bi-suit-heart-fill',club:'bi-suit-club-fill',spade:'bi-suit-spade-fill',diamond:'bi-suit-diamond-fill'};
+  // ─── Bootstrap Icons — classe par couleur ────────────
+  var _BI = {heart:'bi-suit-heart-fill',club:'bi-suit-club-fill',spade:'bi-suit-spade-fill',diamond:'bi-suit-diamond-fill'};
 
-  // Grande icône fond de carte (position top:-35px left:-42px comme dans ocho_all_cardsx)
-  function _suitBgIcon(suit, isHeart) {
-    var cls = _BI_CLASS[suit]||'';
-    // Le coeur a un font-size légèrement différent (125px vs 136px)
-    var fs = isHeart ? '125px' : '136px';
-    var top = isHeart ? '-37px' : '-35px';
-    return '<i class="bi '+cls+' oc-sym-bg" style="font-size:'+fs+';top:'+top+';"></i>';
-  }
-
-  // Petite icône (sous le chiffre)
-  function _suitSmIcon(suit) {
-    var cls = _BI_CLASS[suit]||'';
-    return '<i class="bi '+cls+'" style="font-size:17px;line-height:1;"></i>';
-  }
-
-  // ─── Rendu d'une vraie carte ──────────────────────────
+  // ─── Rendu d'une vraie carte (copie exacte ocho_all_cardsx) ──
   function _cardInner(card, small) {
     var suit = card.suit, val = card.value;
 
     if (val === '8')    return _card8Inner(null, small);
     if (val === 'swap') return _cardSwapInner(small);
 
-    var sClass = {heart:'h',club:'c',spade:'s',diamond:'d'}[suit]||'';
+    var bg   = SUIT_COLORS[suit]||'#888';
     var dark = SUIT_DARK[suit]||'#555';
-    var biCls = _BI_CLASS[suit]||'';
+    var bi   = _BI[suit]||'';
+
+    // Taille grande icône fond : heart=125px/top=-37px, autres=136px/top=-35px
+    var bgFs  = (suit==='heart') ? '136px' : '136px'; // même classe CSS gère heart via selector
+    var bgTop = (suit==='heart') ? '-37px' : '-35px';
+    var bgFs2 = (suit==='heart') ? '125px' : '136px';
 
     var displayVal = val==='block' ? '\u2298' : val;
-    var isBlocked = val==='block';
+    var isBlocked  = val==='block';
 
-    // sous-label : lettre + icône (K♥, J♠, etc.) ou juste icône
+    // value : taille/stroke identiques à ocho_all_cardsx
+    var valFs     = small ? '14px' : '27px';
+    var valStroke = isBlocked ? '2.5px' : '1px';
+    var valMt     = isBlocked ? 'margin-top:-8px;' : '';
+    var subMt     = isBlocked ? 'margin-top:8px;' : 'margin-top:2px;';
+
+    // sous-label : lettre (K ou J) + icône, ou juste icône
+    var subLetter = (val==='+1'||val==='+2') ? 'K' : (isBlocked ? 'J' : '');
+    var subIconFs = small ? '11px' : '17px';
+    var subSpanFs = small ? '11px' : '17px';
     var subHtml;
-    var subLetter = val==='+1'?'K': val==='+2'?'K': val==='block'?'J':'';
     if (subLetter) {
-      subHtml = '<span style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:17px;font-weight:900;-webkit-text-stroke:1px currentColor;paint-order:stroke fill;letter-spacing:-0.05em;line-height:1;color:'+dark+';">'+subLetter+'</span>'+
-                '<i class="bi '+biCls+'" style="font-size:17px;line-height:1;color:'+dark+';"></i>';
+      subHtml = '<span style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:'+subSpanFs+';font-weight:900;-webkit-text-stroke:1px currentColor;paint-order:stroke fill;letter-spacing:-0.05em;line-height:1;color:'+dark+';">'+subLetter+'</span>'+
+                '<i class="bi '+bi+'" style="font-size:'+subIconFs+';line-height:1;color:'+dark+';"></i>';
     } else {
-      subHtml = '<i class="bi '+biCls+'" style="font-size:17px;line-height:1;color:'+dark+';"></i>';
+      subHtml = '<i class="bi '+bi+'" style="font-size:'+subIconFs+';line-height:1;color:'+dark+';"></i>';
     }
 
-    var valFs = small ? '14px' : '27px';
-    var valStroke = isBlocked ? (small?'1.5px':'2.5px') : (small?'0.5px':'1px');
-    var valMt = (isBlocked && !small) ? 'margin-top:-8px;' : '';
-    var subMt = (isBlocked && !small) ? 'margin-top:8px;' : 'margin-top:2px;';
+    // Grande icône fond positionnée exactement comme dans ocho_all_cardsx
+    var symBgFs = small ? (suit==='heart' ? '63px' : '68px') : bgFs2;
+    var symBgTop = small ? (suit==='heart' ? '-19px' : '-18px') : bgTop;
 
-    return '<i class="bi '+biCls+' oc-sym-bg" style="font-size:'+(suit==='heart'?(small?'63px':'125px'):(small?'68px':'136px'))+';top:'+(suit==='heart'?(small?'-19px':'-37px'):(small?'-18px':'-35px'))+';" ></i>'+
+    return '<div style="position:absolute;inset:0;background:'+bg+';">'+
+      '<i class="bi '+bi+'" style="position:absolute;top:'+symBgTop+';left:-42px;font-size:'+symBgFs+';line-height:1;color:#F2E8D4;filter:drop-shadow(3px 5px 0px rgba(0,0,0,0.2));pointer-events:none;"></i>'+
       '<div style="position:absolute;top:'+(small?'4px':'8px')+';left:'+(small?'5px':'11px')+';display:flex;flex-direction:column;align-items:center;z-index:2;">'+
-        '<div class="oc-card-val" style="font-size:'+valFs+';-webkit-text-stroke:'+valStroke+' currentColor;'+valMt+'color:'+dark+';">'+displayVal+'</div>'+
+        '<div style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:'+valFs+';font-weight:900;line-height:1;letter-spacing:-0.08em;-webkit-text-stroke:'+valStroke+' currentColor;paint-order:stroke fill;'+valMt+'color:'+dark+';">'+displayVal+'</div>'+
         '<div style="display:flex;align-items:center;gap:0;'+subMt+'">'+subHtml+'</div>'+
-      '</div>';
+      '</div>'+
+    '</div>';
   }
 
   function _card8Inner(chosenColor, small) {
@@ -210,18 +209,13 @@
   // ─── CSS ─────────────────────────────────────────────
   function _injectCSS(){
     if(document.getElementById('ochoStyles'))return;
-    // Bootstrap Icons CDN
-    if(!document.getElementById('bootstrapIcons')){
-      var li=document.createElement('link');
-      li.id='bootstrapIcons';li.rel='stylesheet';
+    if(!document.getElementById('ochoBIcons')){
+      var li=document.createElement('link');li.id='ochoBIcons';li.rel='stylesheet';
       li.href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css';
       document.head.appendChild(li);
     }
     var s=document.createElement('style');s.id='ochoStyles';
     s.textContent=
-/* Style commun symbole fond de carte */
-'.oc-sym-bg{position:absolute;left:-42px;color:#F2E8D4;filter:drop-shadow(3px 5px 0px rgba(0,0,0,0.2));pointer-events:none;line-height:1;}'+
-'.oc-card-val{font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-weight:900;line-height:1;letter-spacing:-0.08em;paint-order:stroke fill;}'
 /* Pas d'import CDN externe — SVG inline + police système */
 '#ochoView{display:none;position:fixed;inset:0;z-index:200;overflow:hidden;font-family:Bricolage Grotesque,system-ui,sans-serif;}'+
 '#ochoView.active{display:block!important;}'+
@@ -248,13 +242,13 @@
 '#ochoTopArc .oc-arc-bk{position:absolute;width:48px;height:67px;border-radius:9px;border:2px solid rgba(242,232,212,0.65);background:repeating-linear-gradient(135deg,#2a1205 0px,#2a1205 6px,#3a1a0a 6px,#3a1a0a 12px);box-shadow:0 4px 14px rgba(0,0,0,0.5);transform-origin:center 130px;}'+
 '#ochoTopArc .oc-arc-bk::after{content:\'\';position:absolute;inset:5px;border-radius:5px;border:1px solid rgba(242,232,212,0.12);}'+
 '#ochoOppCardBadge{position:absolute;top:-6px;right:-6px;background:#e75a7c;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;z-index:10;}'+
-'.oc-profile-pill{display:inline-flex;align-items:center;gap:12px;padding:4px 10px 4px 0;margin-top:6px;align-self:flex-start;}'+
+'.oc-profile-pill{display:inline-flex;align-items:center;gap:12px;padding:7px 18px 7px 7px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:36px;backdrop-filter:blur(10px);margin-top:6px;align-self:flex-start;}'+
 '.oc-av-wrap{position:relative;width:68px;height:68px;flex-shrink:0;}'+
 '.oc-av-wrap svg{position:absolute;inset:0;transform:rotate(-90deg);width:100%;height:100%;}'+
 '.oc-av-face{position:absolute;inset:8px;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;}'+
 '.oc-av-face img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;}'+
-'.oc-av-partner{background:#333;}'+
-'.oc-av-me{background:#333;}'+
+'.oc-av-partner{background:linear-gradient(135deg,#c87840,#7a4020);}'+
+'.oc-av-me{background:linear-gradient(135deg,#7040b0,#402880);}'+
 '.oc-p-name{font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:20px;font-weight:900;color:#F2E8D4;line-height:1;}'+
 '.oc-p-sub{font-size:13px;color:rgba(242,232,212,0.45);font-weight:600;margin-top:4px;letter-spacing:0.03em;}'+
 '#ochoOppPresenceDot{position:absolute;bottom:6px;right:6px;width:12px;height:12px;border-radius:50%;background:#555;border:2px solid rgba(0,0,0,0.4);transition:background 0.3s;}'+
@@ -268,7 +262,7 @@
 '.oc-pile-wrap{position:relative;width:50px;height:70px;}'+
 '.oc-slot{position:absolute;inset:0;border-radius:8px;background:rgba(0,0,0,0.38);box-shadow:inset 0 2px 6px rgba(0,0,0,0.65);}'+
 '.oc-mc{width:50px;height:70px;border-radius:8px;border:2.5px solid rgba(242,232,212,0.88);position:absolute;top:0;left:0;overflow:hidden;box-shadow:0 3px 10px rgba(0,0,0,0.5);cursor:pointer;}'+
-'.oc-mc-sym{position:absolute;color:#F2E8D4;line-height:1;pointer-events:none;filter:drop-shadow(3px 5px 0px rgba(0,0,0,0.2));}'+
+'.oc-mc-sym{position:absolute;font-size:64px;top:-16px;left:-18px;color:#F2E8D4;line-height:1;pointer-events:none;}'+
 '.oc-mc-val{font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:13px;font-weight:900;position:absolute;top:4px;left:5px;z-index:2;line-height:1;}'+
 '.oc-mc-sub{font-size:9px;font-weight:900;font-family:Arial Rounded MT Bold,Arial Black,sans-serif;position:absolute;top:20px;left:5px;z-index:2;}'+
 '.oc-mc.h{background:#E04E3E;border-color:#F2E8D4;}.oc-mc.h .oc-mc-val,.oc-mc.h .oc-mc-sub{color:#bf3020;}'+
@@ -282,23 +276,19 @@
 '#ochoTimerFill{height:100%;width:100%;background:#FFD700;transform-origin:left;}'+
 '#ochoMeBlock{display:flex;flex-direction:column;align-items:center;gap:0;margin-top:4px;}'+
 '#ochoMeRow{display:flex;align-items:center;gap:0;align-self:stretch;margin-bottom:10px;}'+
-'#ochoMeProfile{display:flex;align-items:center;gap:12px;padding:4px 10px 4px 0;}'+
+'#ochoMeProfile{display:flex;align-items:center;gap:12px;}'+
 '#ochoBtn{margin-left:auto;background:linear-gradient(135deg,#c83020,#e04535);color:#F2E8D4;border:2px solid rgba(242,232,212,0.75);border-radius:18px;padding:8px 16px;font-size:13px;font-weight:900;font-family:Bricolage Grotesque,system-ui,sans-serif;letter-spacing:0.04em;box-shadow:0 3px 12px rgba(200,50,30,0.4);cursor:pointer;white-space:nowrap;}'+
 '#ochoMeTurnPill{display:none;margin-top:3px;align-items:center;gap:5px;background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.35);border-radius:20px;padding:4px 11px;font-size:12px;font-weight:700;color:#FFD700;}'+
 '#ochoMeTurnPill.visible{display:inline-flex;}'+
 '.oc-turn-dot{width:7px;height:7px;border-radius:50%;background:#FFD700;box-shadow:0 0 5px 2px rgba(255,215,0,0.7);}'+
 '#ochoPassBtn{display:none;margin:0 auto 6px;padding:7px 22px;background:rgba(255,255,255,0.12);color:#F2E8D4;border:1px solid rgba(255,255,255,0.3);border-radius:20px;font-size:12px;font-weight:700;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;backdrop-filter:blur(8px);}'+
 '#ochoPassBtn.visible{display:block;}'+
-'#ochoBotArc{position:relative;width:320px;height:110px;margin:0 auto;}'+
+'#ochoBotArc{position:relative;width:300px;height:95px;margin:0 auto;}'+
 /* Vraie carte dans l'arc */
-'.oc-card{position:absolute;width:52px;height:73px;border-radius:9px;border:2.5px solid #F2E8D4;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,0.5);cursor:pointer;transition:box-shadow 0.15s;transform-origin:center 160px;}'+
-'.oc-card.h{background:#E04E3E;}.oc-card.h .oc-card-val,.oc-card.h i{color:#bf3020;}'+
-'.oc-card.c{background:#4CB8A0;}.oc-card.c .oc-card-val,.oc-card.c i{color:#3A9E88;}'+
-'.oc-card.s{background:#5070B8;}.oc-card.s .oc-card-val,.oc-card.s i{color:#3A58A0;}'+
-'.oc-card.d{background:#E89030;}.oc-card.d .oc-card-val,.oc-card.d i{color:#C07010;}'+
+'.oc-card{position:absolute;width:52px;height:73px;border-radius:9px;border:2.5px solid #F2E8D4;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,0.5);cursor:pointer;transition:box-shadow 0.15s;}'+
 '.oc-card.playable{box-shadow:0 0 0 2.5px #FFD700,0 4px 16px rgba(255,210,0,0.35)!important;}'+
 '.oc-card.selected{box-shadow:0 0 0 3px #FFD700,0 8px 24px rgba(255,215,0,0.55)!important;}'+
-'.oc-card.unplayable{opacity:0.58;filter:saturate(0.35);}'+
+'.oc-card.unplayable{opacity:0.32;filter:saturate(0.2);}'+
 '#ochoHint{display:inline-flex;align-items:center;gap:6px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:5px 14px;margin-top:6px;backdrop-filter:blur(8px);}'+
 '.oc-hint-suit{font-size:14px;line-height:1;}'+
 '.oc-hint-text{font-size:11px;font-weight:700;color:rgba(242,232,212,0.7);letter-spacing:0.03em;}'+
@@ -669,16 +659,16 @@
     }else{
       var sClass={heart:'h',club:'c',spade:'s',diamond:'d'}[card.suit]||'';
       if(sClass)el.classList.add(sClass);
-      var biCls=_BI_CLASS[card.suit]||'';
-      var bgIcon=document.createElement('i');
-      bgIcon.className='bi '+biCls+' oc-mc-sym';
+      var bi=_BI[card.suit]||'';
       var isHeart=card.suit==='heart';
-      bgIcon.style.cssText='font-size:'+(isHeart?'64px':'68px')+';top:'+(isHeart?'-17px':'-16px')+';left:-18px;';
+      var bgIcon=document.createElement('i');
+      bgIcon.className='bi '+bi;
+      bgIcon.style.cssText='position:absolute;top:'+(isHeart?'-17px':'-16px')+';left:-18px;font-size:'+(isHeart?'64px':'68px')+';line-height:1;color:#F2E8D4;filter:drop-shadow(3px 5px 0px rgba(0,0,0,0.2));pointer-events:none;';
       el.appendChild(bgIcon);
       var vd=card.value==='block'?'\u2298':card.value;
       var ve=document.createElement('div');ve.className='oc-mc-val';ve.textContent=vd;el.appendChild(ve);
       if(card.value==='+1'||card.value==='+2'||card.value==='block'){
-        var ltr=card.value==='+1'?'K':card.value==='+2'?'K':'J';
+        var ltr=card.value==='block'?'J':'K';
         var sub=document.createElement('div');sub.className='oc-mc-sub';sub.textContent=ltr;el.appendChild(sub);
       }
     }
@@ -703,20 +693,13 @@
     var c=document.getElementById('ochoBotArc');if(!c)return;
     c.innerHTML='';if(hand.length===0)return;
     var n=hand.length;
-    var totalW=Math.min(c.offsetWidth||320,340);
-    var maxAngle=Math.min(24,n*3.5);
-    var arcH=110; // container height
-    var cardH=73,cardW=52;
-    // Center of arc pivot is below the container
-    var pivotY=arcH+80; // transform-origin offset in CSS is 160px, so pivot below
-    var centerX=totalW/2-cardW/2;
+    var totalW=Math.min(c.offsetWidth||300,340);
+    var spread=Math.min(46,(totalW-52)/Math.max(n-1,1));
+    var startX=(totalW-(spread*(n-1)+52))/2;
+    var maxAngle=Math.min(22,n*3);
 
     hand.forEach(function(card,i){
-      var el=document.createElement('div');
-      var sClass={heart:'h',club:'c',spade:'s',diamond:'d'}[card.suit]||'';
-      if(card.value==='8') el.className='oc-card oc-card-8';
-      else if(card.value==='swap') el.className='oc-card oc-card-swap';
-      else el.className='oc-card'+(sClass?' '+sClass:'');
+      var el=document.createElement('div');el.className='oc-card';
       var isPlay=playable.some(function(p){return p.id===card.id;});
       var isSelected=_selectedCard&&_selectedCard.id===card.id;
 
@@ -724,20 +707,11 @@
       else if(isMyTurn)el.classList.add('unplayable');
       if(isSelected)el.classList.add('selected');
 
-      // Fan angle: spread from -maxAngle to +maxAngle
       var angle=n>1?(i/(n-1)-0.5)*maxAngle*2:0;
-      // Horizontal position: center cards, slightly spread
-      var spread=Math.min(44,(totalW-cardW)/Math.max(n-1,1));
-      var startX=(totalW-(spread*(n-1)+cardW))/2;
-      var x=startX+i*spread;
-      // Vertical: arc effect — cards at edges drop slightly
-      var normalizedPos=n>1?(i/(n-1)-0.5)*2:0; // -1 to 1
-      var yOffset=normalizedPos*normalizedPos*12; // parabola lift toward center
+      var lift=n>1?-Math.abs(i/(n-1)-0.5)*8:0;
 
-      var topPos=arcH-cardH-8+yOffset+(isSelected?-14:0);
-
-      el.style.cssText='left:'+x+'px;top:'+topPos+'px;'+
-        'transform:rotate('+angle+'deg);'+
+      el.style.cssText='left:'+(startX+i*spread)+'px;bottom:4px;'+
+        'transform:rotate('+angle+'deg) translateY('+lift+(isSelected?-12:0)+'px);'+
         'z-index:'+(isSelected?99:(i+1))+';';
 
       el.innerHTML=_cardInner(card,false);
