@@ -2837,6 +2837,9 @@ body.light .suggestion-lock-badge.unlocked { background: rgba(231,90,124,0.07); 
   display: none; position: fixed !important; inset: 0 !important;
   z-index: 600; overflow: hidden !important;
   flex-direction: column; background: var(--bg);
+  background-image: url('assets/images/skyjo-home.png');
+  background-size: cover;
+  background-position: center;
   font-family: 'Bricolage Grotesque', sans-serif;
   touch-action: none;
   overscroll-behavior: none;
@@ -3581,6 +3584,69 @@ body.light .skyjo-player-zone.zone-opp.active-zone {
   background: rgba(79,70,229,0.05);
   border-bottom: 1px solid rgba(79,70,229,0.35);
 }
+
+/* ── Fond bois — thème clair ── */
+
+/* Header : glass frosté sur le bois */
+body.light #skyjoView .game-view-header {
+  background: rgba(255,248,238,0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(180,130,80,0.18);
+}
+
+/* Zones joueur au repos : transparentes → bois visible */
+body.light .skyjo-player-zone.zone-opp {
+  background: rgba(255,248,238,0.30);
+  border-bottom: 1px solid rgba(160,110,60,0.15);
+}
+body.light .skyjo-player-zone.zone-me {
+  background: rgba(255,248,238,0.30);
+  border-top: 1px solid rgba(160,110,60,0.15);
+}
+
+/* Zones actives : halo coloré fort, backdrop pour lisibilité des cartes */
+body.light .skyjo-player-zone.zone-me.active-zone {
+  background: rgba(231,90,124,0.13);
+  border-top: 2px solid rgba(231,90,124,0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: sjZoneMeBreathLt 2s ease-in-out infinite;
+}
+@keyframes sjZoneMeBreathLt {
+  0%,100% { background: rgba(231,90,124,0.10); box-shadow: inset 0 0 50px rgba(231,90,124,0.12); }
+  50%     { background: rgba(231,90,124,0.20); box-shadow: inset 0 0 80px rgba(231,90,124,0.20); }
+}
+body.light .skyjo-player-zone.zone-opp.active-zone {
+  background: rgba(79,70,229,0.10);
+  border-bottom: 2px solid rgba(79,70,229,0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: sjZoneOppBreathLt 2s ease-in-out infinite;
+}
+@keyframes sjZoneOppBreathLt {
+  0%,100% { background: rgba(79,70,229,0.08); box-shadow: inset 0 0 50px rgba(79,70,229,0.10); }
+  50%     { background: rgba(79,70,229,0.18); box-shadow: inset 0 0 80px rgba(79,70,229,0.18); }
+}
+
+/* Zone centrale pioche/défausse : glass neutre */
+body.light #skyjoMidZone {
+  background: rgba(255,248,238,0.50);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(160,110,60,0.18);
+  border-bottom: 1px solid rgba(160,110,60,0.18);
+  box-shadow: none;
+}
+
+/* Labels texte : ton brun lisible sur bois clair */
+body.light .skyjo-pile-label { color: rgba(100,60,20,0.70); }
+body.light #skyjoDrawPileCount { color: rgba(100,60,20,0.60); }
+body.light .skyjo-player-zone .skyjo-player-name {
+  color: rgba(60,30,10,0.80);
+  text-shadow: 0 1px 2px rgba(255,255,255,0.50);
+}
+body.light .skyjo-player-zone.active-zone .skyjo-player-name { color: rgba(30,10,0,0.95); }
 
 .pendu-svg{display:block;margin:0 auto 8px;}
 .pendu-word{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin:14px 0;}
