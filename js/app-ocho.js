@@ -113,11 +113,53 @@
   var SUIT_DARK   ={heart:'#bf3020',club:'#3A9E88',spade:'#3A58A0',diamond:'#C07010'};
   var SUIT_SYMS   ={heart:'\u2665',club:'\u2663',spade:'\u2660',diamond:'\u2666'};
 
-  // ─── Bootstrap Icons — classe par couleur ────────────
-  var _BI = {heart:'bi-suit-heart-fill',club:'bi-suit-club-fill',spade:'bi-suit-spade-fill',diamond:'bi-suit-diamond-fill'};
+  // ─── SVG inline des 4 symboles (remplace Bootstrap Icons) ────
+  // Chaque fonction retourne un SVG string à la taille voulue
+  var _SUIT_SVG = {
+    heart: function(sz,col){
+      return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 16 16" fill="'+col+'" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;">'+
+        '<path d="M8 14.25l-.35-.3C3.4 10.15 1 8.02 1 5.5 1 3.42 2.62 2 4.5 2c1.03 0 2.04.5 2.68 1.3L8 4.48l.82-.18C9.46 2.5 10.47 2 11.5 2 13.38 2 15 3.42 15 5.5c0 2.52-2.4 4.65-6.65 8.45L8 14.25z"/>'+
+      '</svg>';
+    },
+    diamond: function(sz,col){
+      return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 16 16" fill="'+col+'" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;">'+
+        '<path d="M8 1l7 7-7 7L1 8z"/>'+
+      '</svg>';
+    },
+    club: function(sz,col){
+      return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 16 16" fill="'+col+'" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;">'+
+        '<path d="M8 1a3 3 0 0 0-2.83 4.02A3 3 0 1 0 8 11.5a3 3 0 1 0 2.83-6.48A3 3 0 0 0 8 1zm0 10.5c-.55 0-1.05.1-1.5.28V13h3v-1.22A4 4 0 0 1 8 11.5z"/>'+
+      '</svg>';
+    },
+    spade: function(sz,col){
+      return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 16 16" fill="'+col+'" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;">'+
+        '<path d="M8 1L1 8a4 4 0 0 0 5.5 5.8C6.19 14.4 6 15 6 15h4s-.19-.6-.5-1.2A4 4 0 0 0 15 8z"/>'+
+      '</svg>';
+    }
+  };
 
-  // ─── Rendu d'une vraie carte (copie exacte ocho_all_cardsx) ──
+  // Icône SVG grosse (fond de carte)
+  function _suitBgSVG(suit, color, small) {
+    var sz = small ? 68 : 72;
+    var fn = _SUIT_SVG[suit];
+    if (!fn) return '';
+    var top  = small ? -16 : -18;
+    var left = small ? -18 : -14;
+    return '<div style="position:absolute;top:'+top+'px;left:'+left+'px;pointer-events:none;opacity:1;line-height:0;">'+
+      fn(sz, color)+
+    '</div>';
+  }
+
+  // Icône SVG petite (sous-label)
+  function _suitSmSVG(suit, color, sz) {
+    var fn = _SUIT_SVG[suit];
+    return fn ? fn(sz, color) : '';
+  }
+
+  // ─── Rendu d'une vraie carte ──────────────────────────
   function _cardInner(card, small) {
+    var fs  = small ? 13 : 16;
+    var sub = small ? 8  : 10;
     var suit = card.suit, val = card.value;
 
     if (val === '8')    return _card8Inner(null, small);
@@ -125,43 +167,23 @@
 
     var bg   = SUIT_COLORS[suit]||'#888';
     var dark = SUIT_DARK[suit]||'#555';
-    var bi   = _BI[suit]||'';
-
-    // Taille grande icône fond : heart=125px/top=-37px, autres=136px/top=-35px
-    var bgFs  = (suit==='heart') ? '136px' : '136px'; // même classe CSS gère heart via selector
-    var bgTop = (suit==='heart') ? '-37px' : '-35px';
-    var bgFs2 = (suit==='heart') ? '125px' : '136px';
 
     var displayVal = val==='block' ? '\u2298' : val;
-    var isBlocked  = val==='block';
-
-    // value : taille/stroke identiques à ocho_all_cardsx
-    var valFs     = small ? '14px' : '27px';
-    var valStroke = isBlocked ? '2.5px' : '1px';
-    var valMt     = isBlocked ? 'margin-top:-8px;' : '';
-    var subMt     = isBlocked ? 'margin-top:8px;' : 'margin-top:2px;';
-
-    // sous-label : lettre (K ou J) + icône, ou juste icône
-    var subLetter = (val==='+1'||val==='+2') ? 'K' : (isBlocked ? 'J' : '');
-    var subIconFs = small ? '11px' : '17px';
-    var subSpanFs = small ? '11px' : '17px';
     var subHtml;
-    if (subLetter) {
-      subHtml = '<span style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:'+subSpanFs+';font-weight:900;-webkit-text-stroke:1px currentColor;paint-order:stroke fill;letter-spacing:-0.05em;line-height:1;color:'+dark+';">'+subLetter+'</span>'+
-                '<i class="bi '+bi+'" style="font-size:'+subIconFs+';line-height:1;color:'+dark+';"></i>';
-    } else {
-      subHtml = '<i class="bi '+bi+'" style="font-size:'+subIconFs+';line-height:1;color:'+dark+';"></i>';
-    }
-
-    // Grande icône fond positionnée exactement comme dans ocho_all_cardsx
-    var symBgFs = small ? (suit==='heart' ? '63px' : '68px') : bgFs2;
-    var symBgTop = small ? (suit==='heart' ? '-19px' : '-18px') : bgTop;
+    if (val==='+1')
+      subHtml='<span style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:'+sub+'px;font-weight:900;color:'+dark+'">Q</span>'+_suitSmSVG(suit,dark,sub);
+    else if (val==='+2')
+      subHtml='<span style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:'+sub+'px;font-weight:900;color:'+dark+'">K</span>'+_suitSmSVG(suit,dark,sub);
+    else if (val==='block')
+      subHtml='<span style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:'+sub+'px;font-weight:900;color:'+dark+'">J</span>'+_suitSmSVG(suit,dark,sub);
+    else
+      subHtml=_suitSmSVG(suit,dark,sub+3);
 
     return '<div style="position:absolute;inset:0;background:'+bg+';">'+
-      '<i class="bi '+bi+'" style="position:absolute;top:'+symBgTop+';left:-42px;font-size:'+symBgFs+';line-height:1;color:#F2E8D4;filter:drop-shadow(3px 5px 0px rgba(0,0,0,0.2));pointer-events:none;"></i>'+
-      '<div style="position:absolute;top:'+(small?'4px':'8px')+';left:'+(small?'5px':'11px')+';display:flex;flex-direction:column;align-items:center;z-index:2;">'+
-        '<div style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:'+valFs+';font-weight:900;line-height:1;letter-spacing:-0.08em;-webkit-text-stroke:'+valStroke+' currentColor;paint-order:stroke fill;'+valMt+'color:'+dark+';">'+displayVal+'</div>'+
-        '<div style="display:flex;align-items:center;gap:0;'+subMt+'">'+subHtml+'</div>'+
+      _suitBgSVG(suit,'#F2E8D4',small)+
+      '<div style="position:absolute;top:'+(small?4:5)+'px;left:'+(small?5:7)+'px;display:flex;flex-direction:column;align-items:center;z-index:2;">'+
+        '<div style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:'+fs+'px;font-weight:900;line-height:1;letter-spacing:-0.06em;color:'+dark+';">'+displayVal+'</div>'+
+        '<div style="display:flex;align-items:center;gap:1px;margin-top:1px;">'+subHtml+'</div>'+
       '</div>'+
     '</div>';
   }
@@ -209,11 +231,6 @@
   // ─── CSS ─────────────────────────────────────────────
   function _injectCSS(){
     if(document.getElementById('ochoStyles'))return;
-    if(!document.getElementById('ochoBIcons')){
-      var li=document.createElement('link');li.id='ochoBIcons';li.rel='stylesheet';
-      li.href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css';
-      document.head.appendChild(li);
-    }
     var s=document.createElement('style');s.id='ochoStyles';
     s.textContent=
 /* Pas d'import CDN externe — SVG inline + police système */
@@ -659,16 +676,12 @@
     }else{
       var sClass={heart:'h',club:'c',spade:'s',diamond:'d'}[card.suit]||'';
       if(sClass)el.classList.add(sClass);
-      var bi=_BI[card.suit]||'';
-      var isHeart=card.suit==='heart';
-      var bgIcon=document.createElement('i');
-      bgIcon.className='bi '+bi;
-      bgIcon.style.cssText='position:absolute;top:'+(isHeart?'-17px':'-16px')+';left:-18px;font-size:'+(isHeart?'64px':'68px')+';line-height:1;color:#F2E8D4;filter:drop-shadow(3px 5px 0px rgba(0,0,0,0.2));pointer-events:none;';
-      el.appendChild(bgIcon);
+      var bg2=document.createElement('div');bg2.className='oc-mc-sym';
+      bg2.textContent=SUIT_SYMS[card.suit]||'';el.appendChild(bg2);
       var vd=card.value==='block'?'\u2298':card.value;
       var ve=document.createElement('div');ve.className='oc-mc-val';ve.textContent=vd;el.appendChild(ve);
       if(card.value==='+1'||card.value==='+2'||card.value==='block'){
-        var ltr=card.value==='block'?'J':'K';
+        var ltr=card.value==='+1'?'Q':card.value==='+2'?'K':'J';
         var sub=document.createElement('div');sub.className='oc-mc-sub';sub.textContent=ltr;el.appendChild(sub);
       }
     }
