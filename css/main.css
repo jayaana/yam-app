@@ -3121,24 +3121,23 @@ body.light .suggestion-lock-badge.unlocked { background: rgba(231,90,124,0.07); 
 .skyjo-card {
   width: var(--sj-cw);
   height: var(--sj-ch);
-  border-radius: 0;          /* le SVG gère ses propres coins arrondis */
+  border-radius: 0;
   position: relative;
   cursor: pointer;
-  transition: transform 0.14s cubic-bezier(.17,.89,.32,1.28), box-shadow 0.14s;
-  box-shadow: none;          /* ombre gérée par le SVG ou le parent */
-  overflow: visible;         /* ne jamais clipper la bordure blanche du SVG */
+  transition: transform 0.14s cubic-bezier(.17,.89,.32,1.28), filter 0.14s;
+  overflow: visible;
   background: transparent;
   -webkit-tap-highlight-color: transparent;
 }
-.skyjo-card:hover { transform: translateY(-3px) scale(1.05); }
+.skyjo-card:hover { transform: translateY(-3px) scale(1.05); filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)); }
 
-/* Carte cliquable — léger pulse sans scale agressif */
+/* Carte cliquable — drop-shadow suit les contours arrondis du SVG */
 .skyjo-card.skyjo-card-clickable {
-  animation: sjCardClickable 1.6s ease-in-out infinite;
+  animation: sjCardClickable 1.4s ease-in-out infinite;
 }
 @keyframes sjCardClickable {
-  0%,100% { filter: brightness(1);    drop-shadow(0 0 0px rgba(245,240,235,0)); }
-  50%     { filter: brightness(1.12); drop-shadow(0 0 6px rgba(245,240,235,0.6)); }
+  0%,100% { filter: drop-shadow(0 0 0px rgba(245,240,235,0)); }
+  50%     { filter: drop-shadow(0 0 6px rgba(245,240,235,0.9)) brightness(1.08); }
 }
 
 /* Le SVG remplit la carte entièrement */
@@ -3351,28 +3350,28 @@ body.light .suggestion-lock-badge.unlocked { background: rgba(231,90,124,0.07); 
 /* ── Pioche & Défausse ── */
 #skyjoDeckCard {
   cursor: pointer;
-  transition: transform 0.14s, box-shadow 0.14s;
+  transition: transform 0.14s, filter 0.14s;
 }
-#skyjoDeckCard:hover { transform: translateY(-3px) scale(1.06); box-shadow: var(--sj-shadow-hover); }
-#skyjoDeckCard:active { transform: scale(0.96); box-shadow: var(--sj-shadow); }
+#skyjoDeckCard:hover { transform: translateY(-3px) scale(1.05); filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)); }
+#skyjoDeckCard:active { transform: scale(0.96); filter: none; }
 
 #skyjoDiscardCard {
   cursor: pointer;
-  transition: transform 0.14s, box-shadow 0.14s;
+  transition: transform 0.14s, filter 0.14s;
 }
-#skyjoDiscardCard:hover { transform: translateY(-3px) scale(1.06); box-shadow: var(--sj-shadow-hover); }
-#skyjoDiscardCard:active { transform: scale(0.96); }
+#skyjoDiscardCard:hover { transform: translateY(-3px) scale(1.05); filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)); }
+#skyjoDiscardCard:active { transform: scale(0.96); filter: none; }
 
 @keyframes sjPileSelectable {
-  0%,100% { box-shadow: var(--sj-shadow), 0 0 0 0 rgba(212,137,110,0.7); }
-  50%     { box-shadow: var(--sj-shadow-hover), 0 0 0 7px rgba(212,137,110,0); }
+  0%,100% { filter: drop-shadow(0 0 0px rgba(212,137,110,0)); }
+  50%     { filter: drop-shadow(0 0 7px rgba(212,137,110,1)) brightness(1.06); }
 }
 @keyframes sjDiscardSelectable {
-  0%,100% { box-shadow: var(--sj-shadow), 0 0 0 0 rgba(255,200,80,0.7); }
-  50%     { box-shadow: var(--sj-shadow-hover), 0 0 0 7px rgba(255,200,80,0); }
+  0%,100% { filter: drop-shadow(0 0 0px rgba(255,200,80,0)); }
+  50%     { filter: drop-shadow(0 0 7px rgba(255,200,80,1)) brightness(1.06); }
 }
-#skyjoDeckCard.sj-selectable    { animation: sjPileSelectable 1.8s ease-in-out infinite; }
-#skyjoDiscardCard.sj-selectable { animation: sjDiscardSelectable 1.8s ease-in-out infinite; }
+#skyjoDeckCard.sj-selectable    { animation: sjPileSelectable 1.6s ease-in-out infinite; }
+#skyjoDiscardCard.sj-selectable { animation: sjDiscardSelectable 1.6s ease-in-out infinite; }
 
 body.skyjo-bg-paused #skyjoDeckCard.sj-selectable,
 body.skyjo-bg-paused #skyjoDiscardCard.sj-selectable { animation: none; }
