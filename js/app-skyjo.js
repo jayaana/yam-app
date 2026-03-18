@@ -1054,7 +1054,6 @@
       [myTotEl,oppTotEl].forEach(function(el){
         if(!el)return;
         el.classList.remove('sj-score-pop');void el.offsetWidth;el.classList.add('sj-score-pop');
-        el.style.width='44px';el.style.height='44px';el.style.fontSize='16px';
       });
       setTimeout(function(){_showRoundEndPopup(state);},10000);
     });
@@ -1083,17 +1082,26 @@
 
   function _showRoundEndPopup(state){
     var myTotEl=document.getElementById('skyjoMyTotal'),oppTotEl=document.getElementById('skyjoOppTotal');
-    [myTotEl,oppTotEl].forEach(function(el){if(el){el.style.width='';el.style.height='';el.style.fontSize='';}});
+    [myTotEl,oppTotEl].forEach(function(el){if(el){el.classList.remove('sj-score-pop');}});
     var rg=state.round_scores?state.round_scores.girl:0,rb=state.round_scores?state.round_scores.boy:0;
     var tg=state.scores?state.scores.girl:0,tb=state.scores?state.scores.boy:0;
-    var winner=rg<rb?(typeof v2GetDisplayName==='function'?v2GetDisplayName('girl')+' 👧':'Elle 👧'):(rb<rg?(typeof v2GetDisplayName==='function'?v2GetDisplayName('boy')+' 👦':'Lui 👦'):null);
+    var winner=rg<rb?(typeof v2GetDisplayName==='function'?v2GetDisplayName('girl')+' gagne la manche !':'Elle gagne la manche !'):(rb<rg?(typeof v2GetDisplayName==='function'?v2GetDisplayName('boy')+' gagne la manche !':'Lui gagne la manche !'):null);
     document.getElementById('skyjoRoundEndEmoji').textContent=!winner?'🤝':'🏆';
-    document.getElementById('skyjoRoundEndTitle').textContent=!winner?'Manche nulle !':(winner+' gagne la manche !');
+    document.getElementById('skyjoRoundEndTitle').textContent=!winner?'Manche nulle !':winner;
     document.getElementById('skyjoRoundEndSub').textContent='Manche '+(state.round||1);
     var myR=_me==='girl'?rg:rb,oppR=_me==='girl'?rb:rg;
     var myT=_me==='girl'?tg:tb,oppT=_me==='girl'?tb:tg;
-    var myName2=(typeof v2GetDisplayName==='function'?'👧 '+v2GetDisplayName('girl'):'👧 Elle');
-    var oppName2=(typeof v2GetDisplayName==='function'?'👦 '+v2GetDisplayName('boy'):'👦 Lui');
+    var myName2=(typeof v2GetDisplayName==='function'?v2GetDisplayName('girl'):'Elle');
+    var oppName2=(typeof v2GetDisplayName==='function'?v2GetDisplayName('boy'):'Lui');
+    // Avatars — utilise yamAvatarSrc si dispo, sinon image par défaut
+    var _avSrc=typeof window.yamAvatarSrc==='function';
+    var mySrc  =_avSrc?window.yamAvatarSrc(_me)  :'assets/images/profil_'+_me+'.png';
+    var oppSrc =_avSrc?window.yamAvatarSrc(_other):'assets/images/profil_'+_other+'.png';
+    // Injecter les avatars dans les cartes
+    var avLeft=document.getElementById('skyjoRoundAvatarLeft');
+    var avRight=document.getElementById('skyjoRoundAvatarRight');
+    if(avLeft)  avLeft.innerHTML ='<img src="'+mySrc+'"  alt="" style="width:100%;height:100%;object-fit:cover;display:block;">';
+    if(avRight) avRight.innerHTML='<img src="'+oppSrc+'" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">';
     var lblLeft=document.getElementById('skyjoRoundLabelLeft'),lblRight=document.getElementById('skyjoRoundLabelRight');
     if(lblLeft)lblLeft.textContent=myName2;if(lblRight)lblRight.textContent=oppName2;
     document.getElementById('skyjoRoundScoreGirl').textContent='+'+myR;
