@@ -3165,16 +3165,14 @@ body.light .sj-their-turn-badge {
   -webkit-tap-highlight-color: transparent;
 }
 .skyjo-card:hover { transform: translateY(-3px) scale(1.05); filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)); }
-/* Pas de hover transform sur carte cliquable — évite le sticky hover iOS qui crée un sautillement */
+/* Pas de hover transform sur carte cliquable — évite le sticky hover iOS */
 .skyjo-card.skyjo-card-clickable:hover { transform: none; filter: none; }
+/* Stoppe le pulse au tap — pas de sautillement sur la carte sélectionnée */
+.skyjo-card.skyjo-card-clickable:active { animation: none; filter: none; transform: none; }
 
-/* Carte cliquable — exactement le même pulse que la pioche/défausse */
+/* Carte cliquable — indication statique, pas d'animation qui sautille */
 .skyjo-card.skyjo-card-clickable {
-  animation: sjCardClickable 0.8s ease-in-out infinite alternate;
-}
-@keyframes sjCardClickable {
-  from { filter: drop-shadow(0 0 0px rgba(212,137,110,0)); }
-  to   { filter: drop-shadow(0 0 7px rgba(212,137,110,1)); }
+  filter: drop-shadow(0 0 5px rgba(212,137,110,0.8));
 }
 
 /* Le SVG remplit la carte entièrement */
@@ -3514,11 +3512,7 @@ body.light #skyjoPhaseMsg { color: var(--muted); }
 
 /* Cartes cliquables en thème clair : halo sombre au lieu de blanc */
 body.light .skyjo-card.skyjo-card-clickable {
-  animation: sjCardClickableLt 0.8s ease-in-out infinite alternate;
-}
-@keyframes sjCardClickableLt {
-  from { filter: drop-shadow(0 0 0px rgba(180,90,50,0)); }
-  to   { filter: drop-shadow(0 0 7px rgba(180,90,50,0.85)); }
+  filter: drop-shadow(0 0 5px rgba(180,90,50,0.7));
 }
 
 /* Pioche sélectionnable en thème clair */
