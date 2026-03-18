@@ -454,7 +454,7 @@
             if(!_launched || _waitingForReconnect) return;
             if(document.getElementById(cfg.waitModalId||'yamWaitModal') ||
                document.getElementById(cfg.countdownModalId||'yamCountdownModal')) return;
-            var oppName = (typeof v2GetDisplayName==='function' ? v2GetDisplayName(_me==='girl'?'boy':'girl') : (_me==='girl'?'Bleu':'Rose'));
+            var oppName = (typeof v2GetDisplayName==='function' ? v2GetDisplayName(_me==='girl'?'boy':'girl') : (_me==='girl'?'Lui':'Elle'));
             if(cfg.onOpponentOffline){
               cfg.onOpponentOffline(oppName);
             } else {
@@ -548,14 +548,16 @@
           deletePresence();
           if(_gameId){
             var gid = _gameId;
+            // PATCH status=abandoned — l'adversaire le détecte via poll (2s) ou Realtime
             fetch(SB_URL+'/rest/v1/'+GAME_TABLE+'?id=eq.'+gid, {
               method:'PATCH',
               headers: sb2Headers({'Prefer':'return=minimal'}),
               body: JSON.stringify({status:'abandoned'})
             }).catch(function(){});
+            // DELETE après 10s — laisse le temps au poll adversaire (2s) de voir status=abandoned
             setTimeout(function(){
               fetch(SB_URL+'/rest/v1/'+GAME_TABLE+'?id=eq.'+gid, {method:'DELETE', headers:sb2Headers()}).catch(function(){});
-            }, 3000);
+            }, 10000);
           }
           resetState();
           if(onConfirm) onConfirm();
