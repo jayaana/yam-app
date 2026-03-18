@@ -428,8 +428,11 @@
     var oppAvEl=document.getElementById('skyjoAvatarOpp');
     var myLbEl=document.getElementById('skyjoMyLabel');
     var oppLbEl=document.getElementById('skyjoOpponentLabel');
-    if(myAvEl)  myAvEl.textContent =_me==='girl'?'👧':'👦';
-    if(oppAvEl) oppAvEl.textContent=_me==='girl'?'👦':'👧';
+    // Mettre à jour les photos de profil sans écraser le <img>
+    var myAvImg=myAvEl?myAvEl.querySelector('.yam-av-img'):null;
+    var oppAvImg=oppAvEl?oppAvEl.querySelector('.yam-av-img'):null;
+    if(myAvImg)  myAvImg.src ='assets/images/profil_'+_me+'.png';
+    if(oppAvImg) oppAvImg.src='assets/images/profil_'+_other+'.png';
     if(myLbEl)  myLbEl.textContent =myName;
     if(oppLbEl) oppLbEl.textContent=oppName;
     var oppHeldLbl=document.getElementById('skyjoOppHeldLabel');
