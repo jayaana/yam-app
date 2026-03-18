@@ -121,32 +121,38 @@
     diamond: 'bi-suit-diamond-fill'
   };
 
-  // Icône Bootstrap grosse (fond de carte) — placement identique à la maquette
-  // maquette : position:absolute;top:-35px;left:-42px;font-size:136px (carte 100px)
-  // oc-card : 52px wide → on scale proportionnellement (~52% de 100px)
-  // small=true  → défausse 50px   : top:-18px left:-22px font-size:70px
-  // small=false → main  52px      : top:-19px left:-22px font-size:72px
+  // Icône Bootstrap grosse (fond de carte)
+  // Maquette (carte 100×142px, border 4px) :
+  //   tous suits : top:-35px left:-42px font-size:136px
+  //   heart      : top:-37px            font-size:125px
+  // Ratio carte jeu / maquette = 52/100 = 0.52
+  //   tous suits : top:-18px left:-22px font-size:71px
+  //   heart      : top:-19px            font-size:65px
   function _suitBgBI(suit, small) {
     var cls = _SUIT_BI[suit];
     if (!cls) return '';
-    var top  = small ? -18 : -19;
-    var left = small ? -22 : -22;
-    var fs   = small ? 70  : 72;
-    // heart a un font-size légèrement différent dans la maquette
-    if (suit === 'heart') fs = small ? 65 : 67;
+    var top  = (suit === 'heart') ? -19 : -18;
+    var left = -22;
+    var fs   = (suit === 'heart') ? 65 : 71;
     return '<i class="bi '+cls+'" style="position:absolute;top:'+top+'px;left:'+left+'px;font-size:'+fs+'px;line-height:1;color:#F2E8D4;filter:drop-shadow(3px 5px 0px rgba(0,0,0,0.2));pointer-events:none;"></i>';
   }
 
-  // Icône Bootstrap petite (sous la valeur) — identique à .suit-small i de la maquette
+  // Icône Bootstrap petite (sous la valeur)
+  // Maquette : .suit-small i { font-size:17px } → 17*0.52 = 9px
   function _suitSmBI(suit, fs) {
     var cls = _SUIT_BI[suit];
     return cls ? '<i class="bi '+cls+'" style="font-size:'+fs+'px;line-height:1;"></i>' : '';
   }
 
   // ─── Rendu d'une vraie carte ──────────────────────────
+  // Maquette (100×142px) → jeu (52×73px), ratio 0.52
+  // .info     : top:8px  left:11px → top:4px  left:6px
+  // .value    : font-size:27px     → 14px
+  // .suit-small span+i : font-size:17px → 9px
+  // .suit-small margin-top:2px     → 1px
+  // .suit-small-blocked margin-top:8px → 4px
+  // .value.blocked margin-top:-8px → -4px
   function _cardInner(card, small) {
-    var fs  = small ? 13 : 16;
-    var sub = small ? 8  : 10;
     var suit = card.suit, val = card.value;
 
     if (val === '8')    return _card8Inner(null, small);
@@ -155,39 +161,30 @@
     var bg   = SUIT_COLORS[suit]||'#888';
     var dark = SUIT_DARK[suit]||'#555';
 
-    // Maquette : valeur + sous-label en haut à gauche, identique à .card .info
-    // small (défausse 50×70) : top:4px left:5px  val:13px  sub:8px
-    // large (main    52×73)  : top:5px left:7px  val:16px  sub:10px
-    var topPx  = small ? 4  : 5;
-    var leftPx = small ? 5  : 7;
-
     var displayVal = val==='block' ? '\u2298' : val;
     var isSpecial  = (val==='+1'||val==='+2'||val==='block');
     var isBlocked  = (val==='block');
 
-    // Lettre avant le symbole : Q pour +1, K pour +2, J pour blocage
-    var letterMap = {'+1':'Q', '+2':'K', 'block':'J'};
     var subHtml;
     if (isSpecial) {
-      var ltr = letterMap[val];
-      // Maquette .suit-small : span (lettre) + i (icône), même font-size
-      subHtml = '<span style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:'+sub+'px;font-weight:900;-webkit-text-stroke:1px '+dark+';paint-order:stroke fill;letter-spacing:-0.05em;line-height:1;color:'+dark+';">'+ltr+'</span>'+
-                _suitSmBI(suit, sub);
+      var ltr = val==='+1'?'Q': val==='+2'?'K': 'J';
+      // .suit-small span + i, tous les deux à 9px, identique à la maquette
+      subHtml = '<span style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:9px;font-weight:900;-webkit-text-stroke:1px '+dark+';paint-order:stroke fill;letter-spacing:-0.05em;line-height:1;color:'+dark+';">'+ltr+'</span>'+
+                _suitSmBI(suit, 9);
     } else {
-      // Juste l'icône Bootstrap, légèrement plus grande (maquette : 17px sur carte 100px → ~9px sur 52px)
-      subHtml = _suitSmBI(suit, sub + 2);
+      // juste l'icône, 9px
+      subHtml = _suitSmBI(suit, 9);
     }
 
-    // margin-top du sous-label : blocage a margin-top:8px dans la maquette (.suit-small-blocked)
-    var subMargin = isBlocked ? (small ? 6 : 8) : (small ? 1 : 2);
-    // Valeur bloquée a -webkit-text-stroke plus épais dans la maquette (.value.blocked)
-    var valStroke = isBlocked ? '2.5px' : '1px';
+    var subMarginTop = isBlocked ? 4 : 1;
+    var valMarginTop = isBlocked ? -4 : 0;
+    var valStroke    = isBlocked ? '2.5px' : '1px';
 
     return '<div style="position:absolute;inset:0;background:'+bg+';">'+
       _suitBgBI(suit, small)+
-      '<div style="position:absolute;top:'+topPx+'px;left:'+leftPx+'px;display:flex;flex-direction:column;align-items:center;z-index:2;">'+
-        '<div style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:'+fs+'px;font-weight:900;line-height:1;letter-spacing:-0.08em;-webkit-text-stroke:'+valStroke+' '+dark+';paint-order:stroke fill;color:'+dark+(isBlocked?';margin-top:-'+(small?4:5)+'px':'')+';">'+displayVal+'</div>'+
-        '<div style="display:flex;align-items:center;gap:0;margin-top:'+subMargin+'px;color:'+dark+';">'+subHtml+'</div>'+
+      '<div style="position:absolute;top:4px;left:6px;display:flex;flex-direction:column;align-items:center;z-index:2;">'+
+        '<div style="font-family:Arial Rounded MT Bold,Arial Black,sans-serif;font-size:14px;font-weight:900;line-height:1;letter-spacing:-0.08em;-webkit-text-stroke:'+valStroke+' '+dark+';paint-order:stroke fill;color:'+dark+';margin-top:'+valMarginTop+'px;">'+displayVal+'</div>'+
+        '<div style="display:flex;align-items:center;gap:0;margin-top:'+subMarginTop+'px;color:'+dark+';">'+subHtml+'</div>'+
       '</div>'+
     '</div>';
   }
