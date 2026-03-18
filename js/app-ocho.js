@@ -73,15 +73,21 @@
     ns.discard.push(card);
     ns.current_color=(card.suit==='wild'||card.suit==='swap')?(chosenColor||'heart'):card.suit;
     ns.draw_penalty=null;
+    ns.ts_turn=Date.now();ns.ocho_declared=null;
+    // Vérifier victoire AVANT les effets spéciaux
+    // La main du joueur après retrait de sa carte, avant tout swap
+    var handAfterPlay=player==='girl'?ns.girl_hand:ns.boy_hand;
+    if(handAfterPlay.length===0){
+      ns.phase='round_end';ns.round_winner=player;ns.wins[player]=(ns.wins[player]||0)+1;
+      return ns;
+    }
+    // Appliquer les effets spéciaux seulement si pas de victoire
     if(card.value==='+1'){ns.draw_penalty={target:other,count:1};ns.turn=other;}
     else if(card.value==='+2'){ns.draw_penalty={target:other,count:2};ns.turn=other;}
     else if(card.value==='block'){ns.turn=player;}
     else if(card.value==='8'){ns.current_color=chosenColor||'heart';ns.turn=other;}
     else if(card.value==='swap'){var tmp=ns.girl_hand;ns.girl_hand=ns.boy_hand;ns.boy_hand=tmp;ns.turn=other;}
     else{ns.turn=other;}
-    ns.ts_turn=Date.now();ns.ocho_declared=null;
-    var mha=player==='girl'?ns.girl_hand:ns.boy_hand;
-    if(mha.length===0){ns.phase='round_end';ns.round_winner=player;ns.wins[player]=(ns.wins[player]||0)+1;}
     return ns;
   }
 
@@ -314,7 +320,7 @@
 '#ochoBotArc{position:relative;width:300px;height:95px;margin:0 auto;}'+
 /* Vraie carte dans l'arc */
 '.oc-card{position:absolute;width:52px;height:73px;border-radius:9px;border:2.5px solid #F2E8D4;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,0.5);cursor:pointer;transition:box-shadow 0.15s;}'+
-'.oc-card.playable{box-shadow:0 0 0 2.5px #FFD700,0 4px 16px rgba(255,210,0,0.35)!important;}'+
+'.oc-card.playable{}'+
 '.oc-card.selected{box-shadow:0 0 0 3px #FFD700,0 8px 24px rgba(255,215,0,0.55)!important;}'+
 '.oc-card.unplayable{filter:brightness(0.45) saturate(0.4);}'+
 '.oc-hint-suit{font-size:14px;line-height:1;}'+
