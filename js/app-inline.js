@@ -559,7 +559,7 @@ function v2ApplyDynamicNames(){
 // Expose : window.yamToggleAccountModal
 // ══════════════════════════════════════════════════════════════════
 (function() {
-  var SUBVIEW_IDS = ['gamesView','quizView','memoryView','penduView','puzzleView','snakeView','skyjoView','prankMenu'];
+  var SUBVIEW_IDS = ['gamesView','quizView','memoryView','penduView','puzzleView','snakeView','skyjoView','ochoView','prankMenu'];
 
   function updateSubviewState() {
     var anyActive = SUBVIEW_IDS.some(function(id) {
@@ -1484,6 +1484,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // ── Jeux avec id ──
   _on('skyjoCard',    'click', function(){ window.openSkyjoLock && window.openSkyjoLock(); });
+  _on('ochoCard',     'click', function(){ window.openOcho      && window.openOcho(); });
   (function(){
     // Accès rapide depuis l'onglet jeux (jx-rows avec id connus)
     var map = {
