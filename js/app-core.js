@@ -948,7 +948,7 @@ window.yamPushNotify = async function(opts) {
 // Variables globales partagées (compat avec les autres modules)
 // ═════════════════════════════════════════════════════════════════
 
-var _subviewIds = ['gamesView','memoryView','penduView','puzzleView','snakeView','skyjoView','quizView','hiddenPage','prankMenu'];
+var _subviewIds = ['gamesView','memoryView','penduView','puzzleView','snakeView','skyjoView','ochoView','quizView','hiddenPage','prankMenu'];
 
 function updateFloatingThemeBtn() {
   var open = _subviewIds.some(function(id) {
