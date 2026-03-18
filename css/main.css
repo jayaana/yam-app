@@ -2936,8 +2936,12 @@ body.light .suggestion-lock-badge.unlocked { background: rgba(231,90,124,0.07); 
   width: 3px;
 }
 .skyjo-player-zone.zone-opp.active-zone {
-  background: rgba(255,255,255,0.03);
-  border-bottom: 1px solid rgba(255,255,255,0.16);
+  border-bottom: 1px solid rgba(255,255,255,0.20);
+  animation: sjZoneOppBreath 2s ease-in-out infinite;
+}
+@keyframes sjZoneOppBreath {
+  0%,100% { background: rgba(255,255,255,0.03); box-shadow: inset 0 0 30px rgba(255,255,255,0.04); }
+  50%     { background: rgba(255,255,255,0.07); box-shadow: inset 0 0 60px rgba(255,255,255,0.08); }
 }
 .skyjo-player-zone.zone-opp.active-zone::before { opacity: 1; }
 
@@ -2948,12 +2952,22 @@ body.light .suggestion-lock-badge.unlocked { background: rgba(231,90,124,0.07); 
   padding-bottom: max(8px, var(--safe-bottom));
 }
 .skyjo-player-zone.zone-me::before {
-  background: linear-gradient(180deg, rgba(212,137,110,0) 0%, rgba(212,137,110,0.6) 50%, rgba(212,137,110,0) 100%);
-  width: 3px;
+  background: linear-gradient(180deg, rgba(212,137,110,0) 0%, rgba(212,137,110,0.8) 50%, rgba(212,137,110,0) 100%);
+  width: 4px;
 }
 .skyjo-player-zone.zone-me.active-zone {
-  background: rgba(212,137,110,0.06);
-  border-top: 1px solid rgba(212,137,110,0.30);
+  border-top: 2px solid rgba(212,137,110,0.55);
+  animation: sjZoneMeBreath 2s ease-in-out infinite;
+}
+@keyframes sjZoneMeBreath {
+  0%,100% {
+    background: rgba(212,137,110,0.06);
+    box-shadow: inset 0 0 40px rgba(212,137,110,0.08), inset 0 -2px 20px rgba(212,137,110,0.06);
+  }
+  50% {
+    background: rgba(212,137,110,0.14);
+    box-shadow: inset 0 0 80px rgba(212,137,110,0.18), inset 0 -2px 40px rgba(212,137,110,0.12);
+  }
 }
 .skyjo-player-zone.zone-me.active-zone::before { opacity: 1; }
 
@@ -2982,11 +2996,11 @@ body.light .suggestion-lock-badge.unlocked { background: rgba(231,90,124,0.07); 
 }
 .skyjo-player-zone.active-zone .skyjo-player-name {
   color: var(--text);
-  animation: sjNamePulse 2.4s ease-in-out infinite;
+  animation: sjNamePulse 2s ease-in-out infinite;
 }
 @keyframes sjNamePulse {
-  0%,100% { opacity: 1; }
-  50%     { opacity: 0.6; }
+  0%,100% { opacity: 1; color: var(--green); }
+  50%     { opacity: 0.55; color: var(--text); }
 }
 
 .skyjo-player-score-badge {
@@ -3107,26 +3121,33 @@ body.light .suggestion-lock-badge.unlocked { background: rgba(231,90,124,0.07); 
 .skyjo-card {
   width: var(--sj-cw);
   height: var(--sj-ch);
-  border-radius: var(--sj-radius);
+  border-radius: 10px; /* = rx="10" du SVG — pas de débordement */
   position: relative;
   cursor: pointer;
   transition: transform 0.14s cubic-bezier(.17,.89,.32,1.28), box-shadow 0.14s;
   box-shadow: var(--sj-shadow);
   overflow: hidden;
+  background: transparent; /* le SVG gère tout, pas de fond CSS */
   -webkit-tap-highlight-color: transparent;
 }
 .skyjo-card:hover { transform: translateY(-3px) scale(1.06); box-shadow: var(--sj-shadow-hover); }
 
-/* Carte cliquable — ring pulsé pour indiquer l'interaction possible */
+/* Carte cliquable — pulse fort et visible */
 .skyjo-card.skyjo-card-clickable {
-  animation: sjCardClickable 1.8s ease-in-out infinite;
+  animation: sjCardClickable 1.2s ease-in-out infinite;
 }
 @keyframes sjCardClickable {
-  0%,100% { box-shadow: var(--sj-shadow), 0 0 0 0 rgba(245,240,235,0.5); }
-  50%     { box-shadow: var(--sj-shadow-hover), 0 0 0 4px rgba(245,240,235,0); }
+  0%,100% {
+    transform: scale(1);
+    box-shadow: var(--sj-shadow), 0 0 0 0 rgba(245,240,235,0.7), 0 0 0 0 rgba(245,240,235,0.3);
+  }
+  50% {
+    transform: scale(1.04);
+    box-shadow: var(--sj-shadow-hover), 0 0 0 3px rgba(245,240,235,0.5), 0 0 0 6px rgba(245,240,235,0.15);
+  }
 }
 
-/* Le SVG remplit la carte entièrement — pas de background CSS sur les cartes avec SVG */
+/* Le SVG remplit la carte entièrement */
 .skyjo-card svg { width: 100%; height: 100%; display: block; position: absolute; inset: 0; }
 
 /* Dos de carte — background de fallback seulement, le SVG gère le rendu */
@@ -3397,8 +3418,11 @@ body.skyjo-bg-paused #skyjoDiscardCard.sj-selectable { animation: none; }
 }
 
 /* ── bg-pause ── */
+body.skyjo-bg-paused #skyjoView .skyjo-player-zone.active-zone,
 body.skyjo-bg-paused #skyjoView .skyjo-player-zone.active-zone::before,
+body.skyjo-bg-paused #skyjoView .skyjo-player-zone.zone-me.active-zone,
 body.skyjo-bg-paused #skyjoView .skyjo-player-zone.zone-me.active-zone::before,
+body.skyjo-bg-paused #skyjoView .skyjo-player-zone.zone-opp.active-zone,
 body.skyjo-bg-paused #skyjoView .skyjo-player-zone.zone-opp.active-zone::before,
 body.skyjo-bg-paused #skyjoView .skyjo-card,
 body.skyjo-bg-paused #skyjoView #skyjoTurnBanner,
