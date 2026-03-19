@@ -550,7 +550,8 @@ function applyThemeToggle() {
   document.documentElement.classList.toggle('light', goWarm);
   document.documentElement.setAttribute('data-theme', goWarm ? 'warm' : 'dark');
   var themeMeta = document.getElementById('themeColorMeta');
-  if (themeMeta) themeMeta.setAttribute('content', goWarm ? '#e2d9cf' : '#121212');
+  var _ochoActive = document.getElementById('ochoView') && (document.getElementById('ochoView').classList.contains('active') || document.getElementById('ochoView').style.display === 'block');
+  if (themeMeta && !_ochoActive) themeMeta.setAttribute('content', goWarm ? '#e2d9cf' : '#121212');
   localStorage.setItem('jayana_theme', goWarm ? 'light' : 'dark');
   var t1 = document.getElementById('themeToggle');
   var t2 = document.getElementById('floatingThemeBtn');
