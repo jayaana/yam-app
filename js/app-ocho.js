@@ -401,7 +401,7 @@
     '<div id="ochoBgOverlay"></div>'+
     '<div id="ochoAura"></div>'+
     '<div id="ochoAnimZone"><div id="ochoAnimText"></div></div>'+
-    '<div id="ochoHeader" style="position:absolute;top:0;left:0;right:0;height:40px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 16px 6px;z-index:100;background:linear-gradient(to bottom, var(--bg, #f2f2f7) 0%, rgba(220,160,140,0.6) 70%, transparent 100%);">'+
+    '<div id="ochoHeader" style="position:absolute;top:0;left:0;right:0;height:60px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 16px 6px;z-index:100;background:linear-gradient(to bottom, var(--bg, #f2f2f7) 0%, rgba(220,160,140,0.6) 70%, transparent 100%);">'+
       '<button id="ochoBackBtn" style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:6px 14px;color:#F2E8D4;font-size:13px;font-weight:700;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;backdrop-filter:blur(8px);">'+
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Retour</button>'+
       '<div style="font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:15px;font-weight:900;color:#F2E8D4;text-shadow:0 1px 4px rgba(0,0,0,0.5);display:flex;flex-direction:column;align-items:center;gap:1px;">'+
