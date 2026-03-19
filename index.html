@@ -2783,7 +2783,6 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 @keyframes cwLivePulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,197,94,.4);}50%{opacity:.85;box-shadow:0 0 0 4px rgba(34,197,94,0);}}
 @keyframes cwLiveDot{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.35);opacity:.7;}}
 .jx-row.disabled{opacity:.45;pointer-events:none;}
-
 /* ── Dashboard ── */
 .jx-dash{background:var(--s1);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
 .jx-dash-vs{display:flex;align-items:center;padding:11px 14px 8px;}
@@ -2812,7 +2811,6 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 .jx-stat+.jx-stat{border-left:1px solid var(--border);padding-left:10px;}
 .jx-stat-val{font-size:11px;font-weight:700;color:var(--text);}
 .jx-stat-lbl{font-size:10px;color:var(--muted);}
-/* Chips */
 .jx-chips{display:flex;gap:6px;padding:7px 12px 8px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
 .jx-chips::-webkit-scrollbar{display:none;}
 .jx-chip{display:flex;align-items:center;gap:5px;background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:4px 9px 4px 6px;flex-shrink:0;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:border-color .15s,background .15s;}
@@ -2822,7 +2820,6 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 .jx-chip-nm{font-size:11px;font-weight:700;color:var(--text);}
 .jx-chip-sc{font-size:11px;color:var(--muted);}
 .jx-chip-sc .jx-w{color:var(--accent);font-weight:700;}
-/* Leaderboard — 2 lignes visibles, scroll interne */
 .jx-lb-hdr{display:flex;justify-content:space-between;align-items:center;padding:7px 14px 5px;}
 .jx-lb-title{font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--muted);text-transform:uppercase;}
 .jx-lb-game{font-size:10px;font-weight:700;color:var(--accent);}
@@ -2871,10 +2868,9 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     </div>
 
     <div class="jx-dash" id="jxDash">
-      <!-- VS row -->
       <div class="jx-dash-vs">
         <div class="jx-dp">
-          <div class="jx-dp-av" id="jxAvA"><span id="jxEmA" style="font-size:19px">😺</span><span class="jx-crown">👑</span></div>
+          <div class="jx-dp-av" id="jxAvA"><span style="font-size:19px">😺</span><span class="jx-crown">👑</span></div>
           <div class="jx-dp-info">
             <span class="jx-dp-name" id="jxNameA">—</span>
             <span class="jx-dp-score" id="jxScoreA">—</span>
@@ -2887,7 +2883,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
           <div class="jx-vs-dot"></div>
         </div>
         <div class="jx-dp r">
-          <div class="jx-dp-av" id="jxAvB" style="background:rgba(59,130,246,.1);"><span id="jxEmB" style="font-size:19px">🐻</span><span class="jx-crown">👑</span></div>
+          <div class="jx-dp-av" id="jxAvB" style="background:rgba(59,130,246,.1);"><span style="font-size:19px">🐻</span><span class="jx-crown">👑</span></div>
           <div class="jx-dp-info">
             <span class="jx-dp-name" id="jxNameB">—</span>
             <span class="jx-dp-score" id="jxScoreB">—</span>
@@ -2895,7 +2891,6 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
           </div>
         </div>
       </div>
-      <!-- Barre progression -->
       <div class="jx-prog-wrap">
         <div class="jx-prog-track"><div class="jx-prog-fill" id="jxProgFill" style="width:50%;"></div></div>
         <div class="jx-prog-meta">
@@ -2904,14 +2899,12 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
         </div>
       </div>
       <div class="jx-sep"></div>
-      <!-- Stats -->
       <div class="jx-stats">
         <div class="jx-stat"><span class="jx-stat-val" id="jxFav">—</span><span class="jx-stat-lbl">Jeu favori</span></div>
         <div class="jx-stat"><span class="jx-stat-val" id="jxStreak">—</span><span class="jx-stat-lbl" id="jxStreakLbl">Série</span></div>
         <div class="jx-stat"><span class="jx-stat-val" id="jxAvg">—</span><span class="jx-stat-lbl">Durée moy.</span></div>
       </div>
       <div class="jx-sep"></div>
-      <!-- Chips scrollables -->
       <div class="jx-chips" id="jxChips">
         <div class="jx-chip jx-chip-on" data-game="ocho"   onclick="jxSelChip(this)"><span class="jx-chip-ic">🎴</span><span class="jx-chip-nm">Ocho</span><span class="jx-chip-sc" id="jxCOcho">—</span></div>
         <div class="jx-chip" data-game="skyjo"  onclick="jxSelChip(this)"><span class="jx-chip-ic">🃏</span><span class="jx-chip-nm">Skyjo</span><span class="jx-chip-sc" id="jxCSkyjo">—</span></div>
@@ -2920,7 +2913,6 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
         <div class="jx-chip" data-game="puzzle" onclick="jxSelChip(this)"><span class="jx-chip-ic">🧩</span><span class="jx-chip-nm">Puzzle</span><span class="jx-chip-sc" id="jxCPuzzle">—</span></div>
         <div class="jx-chip" data-game="snake"  onclick="jxSelChip(this)"><span class="jx-chip-ic">🐍</span><span class="jx-chip-nm">Snake</span><span class="jx-chip-sc" id="jxCSnake">—</span></div>
       </div>
-      <!-- Leaderboard : 2 lignes visibles, scroll interne -->
       <div class="jx-sep"></div>
       <div class="jx-lb-hdr">
         <span class="jx-lb-title">Meilleurs scores</span>
@@ -2964,193 +2956,6 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       <div class="jx-wheel-btn-arrow">›❯</div>
     </button>
   </div>
-
-<script>
-/* ═══════════════════════════════════════
-   DASHBOARD MINI-JEUX — jx-dashboard.js
-   Chargé inline dans yamJeuxTab
-═══════════════════════════════════════ */
-
-var _jxLoaded = false;
-var _jxCurrentGame = 'ocho';
-var _jxScoreCache = null;
-var _jxGirlName = '—';
-var _jxBoyName  = '—';
-
-var _jxGameEmoji = {memory:'🎴',pendu:'🔤',puzzle:'🧩',snake:'🐍',ocho:'🎴',skyjo:'🃏'};
-var _jxGameLabel = {ocho:'Ocho',skyjo:'Skyjo',memory:'Memory',pendu:'Pendu',puzzle:'Puzzle',snake:'Snake'};
-var _jxMedals    = ['🥇','🥈','🥉'];
-
-/* ── Sélection d'un chip ── */
-function jxSelChip(el) {
-  document.querySelectorAll('.jx-chip').forEach(function(c){ c.classList.remove('jx-chip-on'); });
-  el.classList.add('jx-chip-on');
-  _jxCurrentGame = el.dataset.game;
-  if (_jxScoreCache) _jxRenderLb(_jxCurrentGame, _jxScoreCache);
-}
-
-/* ── Drag-to-scroll chips ── */
-(function(){
-  var el = document.getElementById('jxChips');
-  if (!el) return;
-  var d=false, sx=0, sl=0;
-  el.addEventListener('mousedown', function(e){ d=true; sx=e.pageX-el.offsetLeft; sl=el.scrollLeft; });
-  el.addEventListener('mouseleave', function(){ d=false; });
-  el.addEventListener('mouseup', function(){ d=false; });
-  el.addEventListener('mousemove', function(e){ if(!d) return; e.preventDefault(); el.scrollLeft=sl-(e.pageX-el.offsetLeft-sx); });
-})();
-
-/* ── Rendu leaderboard (2 lignes visibles, scroll interne) ── */
-function _jxRenderLb(game, rows) {
-  var gameRows = (rows || []).filter(function(r){ return r.game_id === game; })
-    .sort(function(a,b){ return (b.score||0)-(a.score||0); });
-  document.getElementById('jxLbGame').textContent = _jxGameLabel[game] || game;
-  var sc = document.getElementById('jxLbScroll');
-  if (!gameRows.length) {
-    sc.innerHTML = '<div style="height:29px;display:flex;align-items:center;font-size:11px;color:var(--muted);">Aucune partie encore 🎮</div>';
-    return;
-  }
-  sc.innerHTML = gameRows.slice(0, 10).map(function(r, i) {
-    var isGirl = r.player_role === 'girl';
-    var name = isGirl ? _jxGirlName : _jxBoyName;
-    var avBg = isGirl ? 'rgba(254,243,226,.9)' : 'rgba(234,243,255,.9)';
-    var em   = isGirl ? '😺' : '🐻';
-    var detail = '';
-    if (r.moves)        detail = r.moves + ' coups';
-    else if (r.time_seconds && r.time_seconds > 0) {
-      var m = Math.floor(r.time_seconds/60), s = r.time_seconds%60;
-      detail = m ? m+'m'+String(s).padStart(2,'0')+'s' : s+'s';
-    }
-    return '<div class="jx-lb-row">'
-      + '<div class="jx-lb-rank">' + (_jxMedals[i] || (i+1)) + '</div>'
-      + '<div class="jx-lb-av" style="background:'+avBg+'">'+em+'</div>'
-      + '<div class="jx-lb-name">' + (typeof escHtml==='function'?escHtml(name):name) + '</div>'
-      + (detail ? '<div class="jx-lb-detail">'+detail+'</div>' : '')
-      + '<div class="jx-lb-pts">' + parseInt(r.score||0).toLocaleString() + '</div>'
-      + '</div>';
-  }).join('');
-  sc.scrollTop = 0;
-}
-
-/* ── Rendu chip score ── */
-function _jxRenderChip(game, rows, myRole) {
-  var el = document.getElementById('jxC' + game.charAt(0).toUpperCase() + game.slice(1));
-  if (!el) return;
-  var g = (rows||[]).filter(function(r){ return r.game_id===game && r.player_role==='girl'; }).length;
-  var b = (rows||[]).filter(function(r){ return r.game_id===game && r.player_role==='boy';  }).length;
-  var me = myRole==='girl' ? g : b;
-  var her= myRole==='girl' ? b : g;
-  if (!me && !her) { el.textContent='—'; return; }
-  el.innerHTML = me>=her
-    ? '<span class="jx-w">'+me+'</span>–'+her
-    : me+'–<span class="jx-w">'+her+'</span>';
-}
-
-/* ── Chargement principal ── */
-function jxLoadDashboard() {
-  var u = typeof yamGetUser==='function' ? yamGetUser() : null;
-  if (!u || !u.couple_id) {
-    document.getElementById('jxLeader').textContent = 'Lie-toi à un partenaire 💑';
-    return;
-  }
-  var coupleId = u.couple_id;
-  var myRole   = u.role || (typeof getProfile==='function' ? getProfile() : null);
-  _jxGirlName  = myRole==='girl' ? (u.pseudo||'—') : (u.partner_pseudo||'—');
-  _jxBoyName   = myRole==='boy'  ? (u.pseudo||'—') : (u.partner_pseudo||'—');
-
-  /* Noms dans le VS */
-  document.getElementById('jxNameA').textContent = _jxGirlName;
-  document.getElementById('jxNameB').textContent = _jxBoyName;
-
-  if (typeof sb2Fetch !== 'function') return;
-
-  /* On récupère les 200 derniers scores du couple */
-  sb2Fetch('game_scores', 'couple_id=eq.'+coupleId+'&order=created_at.desc&limit=200')
-    .then(function(rows) {
-      _jxScoreCache = Array.isArray(rows) ? rows : [];
-      var r = _jxScoreCache;
-
-      if (!r.length) {
-        document.getElementById('jxLeader').textContent = 'Aucune partie encore 🎮';
-        ['jxScoreA','jxScoreB'].forEach(function(id){ document.getElementById(id).textContent='0'; });
-        _jxRenderLb(_jxCurrentGame, []);
-        return;
-      }
-
-      /* Victoires = nb de scores par rôle */
-      var totalGirl = r.filter(function(x){ return x.player_role==='girl'; }).length;
-      var totalBoy  = r.filter(function(x){ return x.player_role==='boy';  }).length;
-      var total     = r.length;
-      var scoreA = totalGirl; /* girl = colonne gauche */
-      var scoreB = totalBoy;
-
-      document.getElementById('jxScoreA').textContent = scoreA;
-      document.getElementById('jxScoreB').textContent = scoreB;
-      document.getElementById('jxTotal').textContent  = total + ' parties ce mois';
-
-      /* Barre */
-      var pct = total>0 ? Math.round((scoreA/total)*100) : 50;
-      document.getElementById('jxProgFill').style.width = pct + '%';
-
-      /* Leader + couronne */
-      if (scoreA > scoreB) {
-        document.getElementById('jxLeader').textContent = _jxGirlName + ' mène 🔥';
-        document.getElementById('jxAvA').classList.add('jx-leading');
-        document.getElementById('jxAvB').classList.remove('jx-leading');
-      } else if (scoreB > scoreA) {
-        document.getElementById('jxLeader').textContent = _jxBoyName + ' mène 🔥';
-        document.getElementById('jxAvB').classList.add('jx-leading');
-        document.getElementById('jxAvA').classList.remove('jx-leading');
-      } else {
-        document.getElementById('jxLeader').textContent = 'Égalité parfaite !';
-        document.getElementById('jxAvA').classList.remove('jx-leading');
-        document.getElementById('jxAvB').classList.remove('jx-leading');
-      }
-
-      /* Jeu favori */
-      var counts = {};
-      r.forEach(function(x){ counts[x.game_id]=(counts[x.game_id]||0)+1; });
-      var fav = Object.keys(counts).sort(function(a,b){ return counts[b]-counts[a]; })[0] || '—';
-      document.getElementById('jxFav').textContent = (_jxGameEmoji[fav]||'🎮')+' '+(fav.charAt(0).toUpperCase()+fav.slice(1));
-
-      /* Durée moyenne */
-      var times = r.filter(function(x){ return x.time_seconds>0; }).map(function(x){ return x.time_seconds; });
-      if (times.length) {
-        var avg = Math.round(times.reduce(function(a,b){ return a+b; },0)/times.length);
-        var m=Math.floor(avg/60), s=avg%60;
-        document.getElementById('jxAvg').textContent = m ? m+'m'+String(s).padStart(2,'0')+'s' : s+'s';
-      } else {
-        document.getElementById('jxAvg').textContent = '—';
-      }
-
-      /* Série en cours */
-      var streak=0, lastR=null;
-      for (var i=0;i<r.length;i++) {
-        if (!lastR || r[i].player_role===lastR) { lastR=r[i].player_role; streak++; } else break;
-      }
-      var streakName = lastR==='girl' ? _jxGirlName : _jxBoyName;
-      document.getElementById('jxStreak').textContent = '🔥 ' + streak + ' de suite';
-      document.getElementById('jxStreakLbl').textContent = 'Série ' + streakName;
-
-      /* Chips scores */
-      ['ocho','skyjo','memory','pendu','puzzle','snake'].forEach(function(g){
-        _jxRenderChip(g, r, myRole);
-      });
-
-      /* Leaderboard jeu courant */
-      _jxRenderLb(_jxCurrentGame, r);
-    })
-    .catch(function() {
-      document.getElementById('jxLeader').textContent = 'Erreur de chargement';
-    });
-}
-
-/* ── Trigger : appelé par yamSwitchTab patch (app-nav.js) ── */
-window.jxLoadDashboard = jxLoadDashboard;
-
-/* ── Fallback : session déjà prête ── */
-document.addEventListener('yam:session_ready', function(){ setTimeout(jxLoadDashboard, 800); });
-</script>
 
 </div><!-- /yamJeuxTab -->
 
@@ -4374,6 +4179,7 @@ document.addEventListener('yam:session_ready', function(){ setTimeout(jxLoadDash
 <script src="js/app-messages.js"></script>
 <script src="js/app-events.js"></script>
 <script src="js/app-nav.js"></script>
+<script src="js/app-jeux-dashboard.js"></script>
 <script src="js/app-inline.js"></script>
 
 <!-- ═══════════════════════════════════════════
