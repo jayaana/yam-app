@@ -260,9 +260,9 @@
     var s=document.createElement('style');s.id='ochoStyles';
     s.textContent=
 /* Bootstrap Icons utilises pour les symboles — identique a la maquette */
-'#ochoView{display:none;position:fixed;inset:0;z-index:200;font-family:Bricolage Grotesque,system-ui,sans-serif;background:#7a3d18;}'+
+'#ochoView{display:none;position:fixed;inset:0;z-index:200;font-family:Bricolage Grotesque,system-ui,sans-serif;background:#7a3d18 url("assets/images/ocho-home.png") center top/cover no-repeat;}'+
 '#ochoView.active{display:block!important;}'+
-'#ochoBg{position:absolute;top:calc(-1 * env(safe-area-inset-top, 0px));left:0;right:0;bottom:0;background:url("assets/images/ocho-home.png") center top/cover no-repeat;}'+
+'#ochoBg{display:none;}'+
 '#ochoBgOverlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.08) 40%,rgba(0,0,0,0.28) 100%);pointer-events:none;}'+
 '#ochoAura{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:5;transition:opacity 0.4s;}'+
 '#ochoAura.active{opacity:1;animation:ochoAuraAnim 1.4s ease-in-out infinite;}'+
