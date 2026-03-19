@@ -26,6 +26,7 @@
   var _timerFired    = false;
   var _reactCooldown = false;
   var _lastReactTs   = 0;
+  var _lastCaughtTs  = 0;
   var _ochoAuraOn    = false;
   var _pillOpen      = false;
   var _selectedCard  = null;
@@ -81,7 +82,7 @@
     ns.discard.push(card);
     ns.current_color=(card.suit==='wild'||card.suit==='swap')?(chosenColor||'heart'):card.suit;
     ns.draw_penalty=null;
-    ns.ts_turn=Date.now();ns.ocho_declared=null;
+    ns.ts_turn=Date.now();ns.ocho_declared=null;ns.ocho_counter_used=false;
     // Vérifier victoire AVANT les effets spéciaux (et avant le swap)
     var handAfterPlay=player==='girl'?ns.girl_hand:ns.boy_hand;
     if(handAfterPlay.length===0){
@@ -261,15 +262,36 @@
 '#ochoView.active{display:block!important;}'+
 '#ochoBg{position:absolute;inset:0;background:url("assets/images/ocho-home.png") center center/cover no-repeat;}'+
 '#ochoBgOverlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.08) 40%,rgba(0,0,0,0.28) 100%);pointer-events:none;}'+
-'#ochoAura{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:5;}'+
-'#ochoAura.active{animation:ochoAuraAnim 1.2s ease-in-out infinite;opacity:1;}'+
-'@keyframes ochoAuraAnim{0%{box-shadow:inset 0 0 0px 0px rgba(220,60,40,0);}40%{box-shadow:inset 0 0 60px 20px rgba(220,60,40,0.45),inset 0 0 120px 40px rgba(220,60,40,0.2);}100%{box-shadow:inset 0 0 0px 0px rgba(220,60,40,0);}}'+
+'#ochoAura{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:5;transition:opacity 0.3s;}'+
+'#ochoAura.active{opacity:1;animation:ochoAuraAnim 1.0s ease-in-out infinite;}'+
+'#ochoAura.active-opp{opacity:1;animation:ochoAuraAnimOpp 1.0s ease-in-out infinite;}'+
+'@keyframes ochoAuraAnim{'+
+'0%{box-shadow:inset 0 0 0px 0px rgba(220,60,40,0),inset 0 0 0px 0px rgba(255,215,0,0);}'+
+'25%{box-shadow:inset 0 0 55px 18px rgba(220,60,40,0.55),inset 0 0 100px 35px rgba(220,60,40,0.25),inset 0 0 20px 8px rgba(255,215,0,0.15);}'+
+'50%{box-shadow:inset 0 0 80px 30px rgba(220,60,40,0.65),inset 0 0 150px 55px rgba(220,60,40,0.3),inset 0 0 35px 12px rgba(255,100,40,0.25);}'+
+'75%{box-shadow:inset 0 0 55px 18px rgba(220,60,40,0.55),inset 0 0 100px 35px rgba(220,60,40,0.25),inset 0 0 20px 8px rgba(255,215,0,0.15);}'+
+'100%{box-shadow:inset 0 0 0px 0px rgba(220,60,40,0),inset 0 0 0px 0px rgba(255,215,0,0);}}'+
+'@keyframes ochoAuraAnimOpp{'+
+'0%{box-shadow:inset 0 0 0px 0px rgba(60,120,220,0),inset 0 0 0px 0px rgba(180,215,255,0);}'+
+'25%{box-shadow:inset 0 0 55px 18px rgba(60,120,220,0.5),inset 0 0 100px 35px rgba(60,120,220,0.22),inset 0 0 20px 8px rgba(180,215,255,0.15);}'+
+'50%{box-shadow:inset 0 0 80px 30px rgba(60,120,220,0.6),inset 0 0 150px 55px rgba(60,120,220,0.28),inset 0 0 35px 12px rgba(100,160,255,0.25);}'+
+'75%{box-shadow:inset 0 0 55px 18px rgba(60,120,220,0.5),inset 0 0 100px 35px rgba(60,120,220,0.22),inset 0 0 20px 8px rgba(180,215,255,0.15);}'+
+'100%{box-shadow:inset 0 0 0px 0px rgba(60,120,220,0),inset 0 0 0px 0px rgba(180,215,255,0);}}'+
+'@keyframes ochoCaughtFlash{'+
+'0%{box-shadow:inset 0 0 0px 0px rgba(255,215,0,0);}'+
+'15%{box-shadow:inset 0 0 120px 60px rgba(255,100,0,0.85),inset 0 0 60px 30px rgba(255,215,0,0.6);}'+
+'40%{box-shadow:inset 0 0 90px 45px rgba(255,60,0,0.7),inset 0 0 45px 20px rgba(255,200,0,0.5);}'+
+'70%{box-shadow:inset 0 0 60px 25px rgba(255,30,0,0.45),inset 0 0 25px 10px rgba(255,150,0,0.3);}'+
+'100%{box-shadow:inset 0 0 0px 0px rgba(255,0,0,0);}}'+
+'#ochoAura.caught{opacity:1;animation:ochoCaughtFlash 1.6s ease-out forwards;}'+
 '#ochoAnimZone{position:absolute;top:46px;left:0;right:0;height:90px;display:flex;align-items:center;justify-content:center;z-index:20;pointer-events:none;overflow:hidden;}'+
 '#ochoAnimText{font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:48px;font-weight:900;color:#F2E8D4;text-shadow:0 4px 20px rgba(0,0,0,0.4);opacity:0;letter-spacing:-1px;}'+
 '@keyframes ochoPopIn{0%{opacity:0;transform:scale(0.4) rotate(-8deg);}60%{opacity:1;transform:scale(1.15) rotate(3deg);}80%{transform:scale(0.95) rotate(-1deg);}100%{opacity:1;transform:scale(1) rotate(0);}}'+
 '@keyframes ochoPopOut{0%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(1.3);}}'+
 '.oc-anim-show{animation:ochoPopIn 0.5s cubic-bezier(.34,1.56,.64,1) forwards;}'+
 '.oc-anim-hide{animation:ochoPopOut 0.3s ease-in forwards;}'+
+'@keyframes ochoCaughtShake{0%,100%{transform:translateX(0);}15%{transform:translateX(-12px) rotate(-2deg);}30%{transform:translateX(12px) rotate(2deg);}45%{transform:translateX(-8px);}60%{transform:translateX(8px);}75%{transform:translateX(-4px);}}'+
+'#ochoView.oc-shake{animation:ochoCaughtShake 0.55s ease-in-out;}'+
 '#ochoLayout{position:absolute;top:112px;bottom:80px;left:0;right:0;display:none;flex-direction:column;justify-content:center;padding:0 16px;}'+
 '#ochoLayout.visible{display:flex;}'+
 '#ochoOppBlock{display:flex;flex-direction:column;align-items:center;gap:0;margin-bottom:4px;}'+
@@ -646,15 +668,15 @@
     if(!top)top=deck.pop();
     return{deck:deck,discard:[top],girl_hand:gh,boy_hand:bh,
       current_color:top.suit,turn:'girl',ts_turn:Date.now(),
-      round:1,wins:{girl:0,boy:0},ocho_declared:null,phase:'playing',
+      round:1,wins:{girl:0,boy:0},ocho_declared:null,ocho_counter_used:false,phase:'playing',
       round_winner:null,draw_penalty:null,abandoned:false,abandonedBy:null,reaction:null};
   }
 
   function _resetLocalState(){
     _state=null;_stopTimer();_stopSafetyPoll();_timerFired=false;_reactCooldown=false;
-    _lastReactTs=0;_ochoAuraOn=false;_selectedCard=null;
+    _lastReactTs=0;_lastCaughtTs=0;_ochoAuraOn=false;_selectedCard=null;
     _drawnThisTurn=false;_passAvailable=false;
-    var aura=document.getElementById('ochoAura');if(aura)aura.classList.remove('active');
+    var aura=document.getElementById('ochoAura');if(aura)aura.classList.remove('active','active-opp','caught');
     var pass=document.getElementById('ochoPassBtn');if(pass)pass.classList.remove('visible');
     if(typeof window._corePresenceSuspend==='function')window._corePresenceSuspend();
   }
@@ -684,18 +706,36 @@
       _drawnThisTurn=false;_passAvailable=false;_selectedCard=null;
       var pb=document.getElementById('ochoPassBtn');if(pb)pb.classList.remove('visible');
     }
-    _state=state;_checkIncomingReaction(state);
+    _state=state;_checkIncomingReaction(state);_checkCaughtEffect(state);
     // Déclencher animations adversaire APRÈS la mise à jour de _state
     if (oppPlayedCard) {
-      // Récupérer la vraie carte posée (dernière de la défausse)
       var oppCard = state.discard && state.discard.length ? state.discard[state.discard.length-1] : null;
       setTimeout(function(){ _animateOppCardPlay(oppCard); }, 60);
     }
     if (oppDrewCard)   setTimeout(_animateOppDrawCard, 60);
-    // Désactiver aura si je ne l'ai plus déclarée
-    if(state.ocho_declared!==_me&&_ochoAuraOn){
-      _ochoAuraOn=false;
-      var aura=document.getElementById('ochoAura');if(aura)aura.classList.remove('active');
+    // Gérer l'aura et les effets caught
+    var aura=document.getElementById('ochoAura');
+    var myCurrentHand=_me==='girl'?state.girl_hand:state.boy_hand;
+    var iDeclared=state.ocho_declared===_me;
+    var oppDeclared=state.ocho_declared===_other;
+    var caughtByMe=(state.ocho_declared===_me+'_caught');
+    var caughtByOpp=(state.ocho_declared===_other+'_caught');
+    if(aura){
+      if(_ochoAuraOn&&(!iDeclared||(myCurrentHand&&myCurrentHand.length!==1))){
+        _ochoAuraOn=false;aura.classList.remove('active','active-opp','caught');
+      }
+      if(caughtByMe||caughtByOpp){
+        if(!aura.classList.contains('caught')){
+          aura.classList.remove('active','active-opp');aura.classList.add('caught');
+          setTimeout(function(){aura.classList.remove('caught');},1700);
+        }
+      } else if(iDeclared&&myCurrentHand&&myCurrentHand.length===1){
+        if(!_ochoAuraOn){_ochoAuraOn=true;aura.classList.remove('active-opp','caught');aura.classList.add('active');}
+      } else if(oppDeclared){
+        aura.classList.remove('active','caught');aura.classList.add('active-opp');_ochoAuraOn=false;
+      } else {
+        if(!_ochoAuraOn){aura.classList.remove('active','active-opp','caught');}
+      }
     }
     if(state.phase==='round_end'){_showRoundEnd(state);return;}
     if(state.phase==='game_end'){_showGameEnd(state);return;}
@@ -934,19 +974,35 @@
     if(!_state)return;
     var mh=_me==='girl'?_state.girl_hand:_state.boy_hand;
     var oh=_me==='girl'?_state.boy_hand:_state.girl_hand;
+    // Cas 1 : je déclare mon propre ocho (1 carte en main, pas encore déclaré)
     if(mh.length===1&&_state.ocho_declared!==_me){
       if(_mp.isSaving())return;
-      var ns=_deepCopy(_state);ns.ocho_declared=_me;_mp.saveState(ns);
-      _ochoAuraOn=true;var aura=document.getElementById('ochoAura');if(aura)aura.classList.add('active');
+      var ns=_deepCopy(_state);ns.ocho_declared=_me;ns.ocho_counter_used=false;_mp.saveState(ns);
+      _ochoAuraOn=true;var aura=document.getElementById('ochoAura');
+      if(aura){aura.classList.remove('active-opp','caught');aura.classList.add('active');}
       if(typeof haptic==='function')haptic('medium');return;
     }
+    // Cas 2 : je grille l'adversaire qui a 1 carte et n'a pas déclaré
     if(oh.length===1&&_state.ocho_declared!==_other){
+      // Ocho contre ocho : limité à 1 fois par tour
+      if(_state.ocho_declared===_me&&_state.ocho_counter_used){
+        _showGameMsg('\u26D4','Ocho contre ocho déjà utilisé ce tour !');return;
+      }
       if(_mp.isSaving())return;
       var ns2=_deepCopy(_state);if(ns2.deck.length===0)_reshuffleDiscard(ns2);
       var pc=ns2.deck.pop();
       if(pc){if(_other==='girl')ns2.girl_hand.push(pc);else ns2.boy_hand.push(pc);}
-      ns2.ocho_declared=_me+'_caught';_mp.saveState(ns2);
-      _showGameMsg('\uD83D\uDCA5','Ocho raté ! L\'adversaire pioche !');return;
+      // Marque "caught" visible des 2 côtés + flag anti-spam
+      ns2.ocho_declared=_me+'_caught';
+      ns2.ocho_counter_used=true;
+      _mp.saveState(ns2);
+      // Effet local immédiat
+      var aura2=document.getElementById('ochoAura');
+      if(aura2){aura2.classList.remove('active','active-opp');aura2.classList.add('caught');
+        setTimeout(function(){aura2.classList.remove('caught');},1700);}
+      _showGameMsg('\uD83D\uDCA5','Ocho raté\u00a0! L\'adversaire pioche\u00a0!');
+      _animateOppDrawCard();
+      return;
     }
     if(mh.length>1){
       if(_mp.isSaving())return;
@@ -1434,7 +1490,7 @@
     _mp.saveState({deck:deck,discard:[top],girl_hand:gh,boy_hand:bh,
       current_color:top.suit,turn:state.round_winner||'girl',ts_turn:Date.now(),
       round:(state.round||1)+1,wins:state.wins,
-      ocho_declared:null,phase:'playing',round_winner:null,draw_penalty:null,
+      ocho_declared:null,ocho_counter_used:false,phase:'playing',round_winner:null,draw_penalty:null,
       abandoned:false,abandonedBy:null,reaction:null});
     document.getElementById('ochoRoundEnd').style.display='none';
   }
@@ -1515,6 +1571,26 @@
     var r=state.reaction;
     if(!r.player||!r.emoji||!r.ts||r.player===_me||r.ts===_lastReactTs)return;
     _lastReactTs=r.ts;_showAnimEmoji(r.emoji);
+  }
+
+  // Vérifie si l'adversaire vient de me griller (caught chez moi = l'autre a déclenché)
+  var _lastCaughtTs=0;
+  function _checkCaughtEffect(state){
+    if(!state)return;
+    var caughtMe=(state.ocho_declared===_other+'_caught');
+    if(caughtMe&&state.ts_turn!==_lastCaughtTs){
+      _lastCaughtTs=state.ts_turn;
+      var aura=document.getElementById('ochoAura');
+      if(aura&&!aura.classList.contains('caught')){
+        aura.classList.remove('active','active-opp');aura.classList.add('caught');
+        setTimeout(function(){aura.classList.remove('caught');},1700);
+      }
+      // Shake de l'écran
+      var view=document.getElementById('ochoView');
+      if(view){view.classList.add('oc-shake');setTimeout(function(){view.classList.remove('oc-shake');},600);}
+      _showAnimEmoji('\uD83D\uDCA5');
+      _showGameMsg('\uD83D\uDE31','Tu t\'es fait avoir\u00a0! Tu pioches\u00a0!');
+    }
   }
 
   function _showAnimEmoji(emoji){
