@@ -82,7 +82,7 @@
     ns.discard.push(card);
     ns.current_color=(card.suit==='wild'||card.suit==='swap')?(chosenColor||'heart'):card.suit;
     ns.draw_penalty=null;
-    ns.ts_turn=Date.now();ns.ocho_declared=null;ns.ocho_counter_used=false;
+    ns.ts_turn=Date.now();ns.ocho_declared=null;ns.ocho_counter_used=false;ns.ocho_caught_ts=null;
     // Vérifier victoire AVANT les effets spéciaux (et avant le swap)
     var handAfterPlay=player==='girl'?ns.girl_hand:ns.boy_hand;
     if(handAfterPlay.length===0){
@@ -655,7 +655,7 @@
     if(!top)top=deck.pop();
     return{deck:deck,discard:[top],girl_hand:gh,boy_hand:bh,
       current_color:top.suit,turn:'girl',ts_turn:Date.now(),
-      round:1,wins:{girl:0,boy:0},ocho_declared:null,ocho_counter_used:false,phase:'playing',
+      round:1,wins:{girl:0,boy:0},ocho_declared:null,ocho_counter_used:false,ocho_caught_ts:null,phase:'playing',
       round_winner:null,draw_penalty:null,abandoned:false,abandonedBy:null,reaction:null};
   }
 
@@ -979,6 +979,7 @@
       // Marque "caught" visible des 2 côtés + flag anti-spam
       ns2.ocho_declared=_me+'_caught';
       ns2.ocho_counter_used=true;
+      ns2.ocho_caught_ts=Date.now();
       _mp.saveState(ns2);
       // Vibrations locales (attaquant)
       _buzzScreen(3);
@@ -1472,7 +1473,7 @@
     _mp.saveState({deck:deck,discard:[top],girl_hand:gh,boy_hand:bh,
       current_color:top.suit,turn:state.round_winner||'girl',ts_turn:Date.now(),
       round:(state.round||1)+1,wins:state.wins,
-      ocho_declared:null,ocho_counter_used:false,phase:'playing',round_winner:null,draw_penalty:null,
+      ocho_declared:null,ocho_counter_used:false,ocho_caught_ts:null,phase:'playing',round_winner:null,draw_penalty:null,
       abandoned:false,abandonedBy:null,reaction:null});
     document.getElementById('ochoRoundEnd').style.display='none';
   }
@@ -1568,13 +1569,14 @@
     buzz();
   }
 
-  // Vérifie si l'adversaire vient de me griller
-  var _lastCaughtTs=0;
+  // Vérifie si l'adversaire vient de me griller — déclenché une seule fois puis ignoré
   function _checkCaughtEffect(state){
     if(!state)return;
     var caughtMe=(state.ocho_declared===_other+'_caught');
-    if(caughtMe&&state.ts_turn!==_lastCaughtTs){
-      _lastCaughtTs=state.ts_turn;
+    // On utilise ocho_caught_ts comme identifiant unique de l'événement
+    var evtTs=state.ocho_caught_ts||0;
+    if(caughtMe&&evtTs&&evtTs!==_lastCaughtTs){
+      _lastCaughtTs=evtTs;
       _buzzScreen(3);
       _showAnimEmoji('\uD83D\uDCA5');
       _showGameMsg('\uD83D\uDE31','Tu t\'es fait avoir\u00a0! Tu pioches\u00a0!');
