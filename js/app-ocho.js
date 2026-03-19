@@ -505,8 +505,8 @@
     '<div id="ochoColorPicker">'+
       '<div style="font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:18px;font-weight:900;color:#F2E8D4;">Choisir une couleur</div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">'+
-        '<button class="oc-color-btn" data-color="heart"   style="background:#E04E3E;"><i class="bi bi-suit-heart-fill"></i><span>Cœur</span></button>'+
-        '<button class="oc-color-btn" data-color="club"    style="background:#4CB8A0;"><i class="bi bi-suit-club-fill"></i><span>Trèfle</span></button>'+
+        '<button class="oc-color-btn" data-color="heart"   style="background:#E04E3E;"><i class="bi bi-suit-heart-fill"></i><span>C\u0153ur</span></button>'+
+        '<button class="oc-color-btn" data-color="club"    style="background:#4CB8A0;"><i class="bi bi-suit-club-fill"></i><span>Tr\u00e8fle</span></button>'+
         '<button class="oc-color-btn" data-color="spade"   style="background:#5070B8;"><i class="bi bi-suit-spade-fill"></i><span>Pique</span></button>'+
         '<button class="oc-color-btn" data-color="diamond" style="background:#E89030;"><i class="bi bi-suit-diamond-fill"></i><span>Carreau</span></button>'+
       '</div>'+
@@ -650,8 +650,8 @@
   // ─── Rendu état ───────────────────────────────────────
   function _renderState(gameRow){
     var state=gameRow.state;if(!state)return;
-    // Reset local si changement de tour
-    if(_state&&_state.ts_turn!==state.ts_turn){
+    // Reset local uniquement si le joueur actif change (pas juste le timestamp)
+    if(_state&&_state.turn!==state.turn){
       _drawnThisTurn=false;_passAvailable=false;_selectedCard=null;
       var pb=document.getElementById('ochoPassBtn');if(pb)pb.classList.remove('visible');
     }
@@ -664,7 +664,6 @@
     if(state.phase==='round_end'){_showRoundEnd(state);return;}
     if(state.phase==='game_end'){_showGameEnd(state);return;}
     var re=document.getElementById('ochoRoundEnd'),ge=document.getElementById('ochoGameEnd');
-    // Ne pas cacher si déjà visible (évite que onStateUpdate cache l'écran de fin)
     if(re&&re.style.display==='flex')return;
     if(ge&&ge.style.display==='flex')return;
     if(re)re.style.display='none';if(ge)ge.style.display='none';
@@ -864,12 +863,11 @@
     var ns=_drawCard(_state,_me);
     _drawnThisTurn=true;
 
-    // Vérifier si on a AU MOINS UNE carte jouable dans toute la main (pas juste la carte piochée)
+    // Vérifier si toute la main contient au moins une carte jouable
     var fullHand=_me==='girl'?ns.girl_hand:ns.boy_hand;
     var hasPlayable=_playableCards(fullHand,ns).length>0;
 
     if(hasPlayable){
-      // Garder le tour, montrer le bouton passer
       _passAvailable=true;
       ns.turn=_me;ns.ts_turn=Date.now();
       _mp.saveState(ns);
@@ -877,7 +875,6 @@
       _animateDrawCard(function(){});
       if(typeof haptic==='function')haptic('light');
     }else{
-      // Aucune carte jouable : passer direct
       _passAvailable=false;
       ns.turn=_other;ns.ts_turn=Date.now();
       _mp.saveState(ns);
