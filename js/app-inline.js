@@ -1505,7 +1505,9 @@ document.addEventListener('DOMContentLoaded', function(){
   // On identifie les jx-rows restants sans id par leur contenu
   document.querySelectorAll('.jx-row:not([id])').forEach(function(row){
     var txt = row.textContent;
-    if(txt.indexOf('Skyjo') !== -1 || row.querySelector('#skyjoCard'))
+    if(txt.indexOf('Ocho') !== -1)
+      row.addEventListener('click', function(){ window.openOcho && window.openOcho(); });
+    else if(txt.indexOf('Skyjo') !== -1 || row.querySelector('#skyjoCard'))
       row.addEventListener('click', function(){ window.openSkyjoLock && window.openSkyjoLock(); });
     else if(txt.indexOf('Memory') !== -1)
       row.addEventListener('click', function(){ window.openMemoryGame && window.openMemoryGame(); });
