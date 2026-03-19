@@ -1095,7 +1095,7 @@
       _fxParticles(cx, cy, 14, [col, '#FFD700', '#fff'], 5, 11, 80, 500);
       _fxRipple(cx, cy, col, 420);
       _fxTableFlash(col + '55');
-      _fxLabel('+1 💥', col, 20);
+      _fxLabel('💥', col, 20);
 
     } else if (card.value === '+2') {
       // Double salve de particules — plus intense
@@ -1103,7 +1103,7 @@
       _fxParticles(cx, cy, 22, [col2, '#FF8C00', '#FFD700', '#fff'], 5, 13, 100, 550);
       _fxRipple(cx, cy, col2, 450);
       _fxTableFlash(col2 + '66');
-      _fxLabel('+2 💥', col2, 22);
+      _fxLabel('💥', col2, 22);
 
     } else if (card.value === 'block') {
       // Onde froide — gris/blanc avec icône ⊘
