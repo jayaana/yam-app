@@ -295,8 +295,8 @@
 '.oc-av-face img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;}'+
 '.oc-av-partner{background:transparent;}'+
 '.oc-av-me{background:transparent;}'+
-'.oc-p-name{font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:20px;font-weight:900;color:#F2E8D4;line-height:1;}'+
-'.oc-p-sub{font-size:13px;color:rgba(242,232,212,0.45);font-weight:600;margin-top:4px;letter-spacing:0.03em;}'+
+'.oc-p-name{font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:20px;font-weight:900;color:#ffffff;line-height:1;}'+
+'.oc-p-sub{font-size:13px;color:rgba(255,255,255,0.7);font-weight:600;margin-top:4px;letter-spacing:0.03em;}'+
 '#ochoOppPresenceDot{position:absolute;bottom:6px;right:6px;width:12px;height:12px;border-radius:50%;background:#555;border:2px solid rgba(0,0,0,0.4);transition:background 0.3s;}'+
 '#ochoOppPresenceDot.online{background:#22c55e!important;box-shadow:0 0 5px rgba(34,197,94,0.7)!important;}'+
 '#ochoTableWrap{display:flex;align-items:center;justify-content:center;margin:14px 0;}'+
@@ -1562,7 +1562,7 @@
     },{capture:false,passive:true});
 
     if(btnH){
-      btnH.addEventListener('click',function(e){e.stopPropagation();_spawnHearts();});
+      btnH.addEventListener('click',function(e){e.stopPropagation();_spawnHearts();_sendReaction('\uD83E\uDD0D');});
     }
   }
 
@@ -1577,7 +1577,9 @@
     if(!state||!state.reaction)return;
     var r=state.reaction;
     if(!r.player||!r.emoji||!r.ts||r.player===_me||r.ts===_lastReactTs)return;
-    _lastReactTs=r.ts;_showAnimEmoji(r.emoji);
+    _lastReactTs=r.ts;
+    if(r.emoji==='\uD83E\uDD0D'||r.emoji==='\u2665'){_spawnHeartsFromOpp();}
+    else{_showAnimEmoji(r.emoji);}
   }
 
   // Vibrations répétées de l'écran (count = nombre de secousses)
@@ -1616,6 +1618,25 @@
       el.classList.remove('oc-anim-show');el.classList.add('oc-anim-hide');
       setTimeout(function(){el.classList.remove('oc-anim-hide');el.style.opacity='0';},350);
     },1800);
+  }
+
+  function _spawnHeartsFromOpp(){
+    var screen=document.getElementById('ochoView');
+    var opp=document.getElementById('ochoOppAvatarImg');
+    if(!screen||!opp)return;
+    var rect=opp.getBoundingClientRect();
+    var svRect=screen.getBoundingClientRect();
+    var cx=rect.left-svRect.left+rect.width/2;
+    var cy=rect.top-svRect.top+rect.height/2;
+    for(var i=0;i<7;i++){(function(d){setTimeout(function(){
+      var h=document.createElement('div');h.className='oc-heart';h.textContent='\u2665';
+      h.style.setProperty('--dx',(Math.random()-0.5)*100+'px');
+      h.style.left=(cx-10+Math.random()*20)+'px';
+      h.style.top=cy+'px';
+      h.style.bottom='auto';
+      h.style.fontSize=(20+Math.random()*16)+'px';
+      screen.appendChild(h);setTimeout(function(){h.remove();},2300);
+    },d);})(i*110);}
   }
 
   function _spawnHearts(){
