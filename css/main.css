@@ -258,7 +258,7 @@ html {
   background: #1a1614; /* dark default - overridden by warm theme */
 }
 html[data-theme="warm"], html.light { background: var(--bg) !important; }
-html.ocho-active { background: #7a3d18 url("assets/images/ocho-home.png") center top/cover no-repeat !important; }
+body.ocho-active { background: #7a3d18 url("assets/images/ocho-home.png") center top/cover no-repeat !important; transition: none !important; }
 body { overscroll-behavior: none !important; overscroll-behavior-y: none !important; -webkit-overflow-scrolling: touch; touch-action: pan-y; overflow: hidden; -webkit-user-select: none; user-select: none; }
 /* touch-action:manipulation autorise tap/scroll sans bloquer la sélection de texte.
    pan-x pan-y bloquait le geste longpress + drag de sélection iOS → supprimé.
