@@ -321,7 +321,9 @@
 '#ochoMeBlock{display:flex;flex-direction:column;align-items:center;gap:0;margin-top:4px;margin-bottom:12px;}'+
 '#ochoMeRow{display:flex;align-items:center;gap:0;align-self:stretch;margin-bottom:10px;}'+
 '#ochoMeProfile{display:flex;align-items:center;gap:12px;}'+
-'#ochoBtn{margin-left:auto;background:linear-gradient(135deg,#c83020,#e04535);color:#F2E8D4;border:2px solid rgba(242,232,212,0.75);border-radius:18px;padding:8px 16px;font-size:13px;font-weight:900;font-family:Bricolage Grotesque,system-ui,sans-serif;letter-spacing:0.04em;box-shadow:0 3px 12px rgba(200,50,30,0.4);cursor:pointer;white-space:nowrap;}'+
+'#ochoBtn{margin-left:auto;background:linear-gradient(135deg,#c83020,#e04535);color:#F2E8D4;border:2px solid rgba(242,232,212,0.75);border-radius:18px;padding:8px 16px;font-size:13px;font-weight:900;font-family:Bricolage Grotesque,system-ui,sans-serif;letter-spacing:0.04em;box-shadow:0 3px 12px rgba(200,50,30,0.4);cursor:pointer;white-space:nowrap;transition:background 0.25s,color 0.25s,border-color 0.25s,box-shadow 0.25s;}'+
+'#ochoBtn.oc-btn-declared{background:linear-gradient(135deg,#c8a000,#FFD700)!important;color:#1a0e00!important;border-color:#FFD700!important;box-shadow:0 3px 14px rgba(255,215,0,0.5)!important;}'+
+'#ochoBtn.oc-btn-locked{background:#1a1a1a!important;color:rgba(242,232,212,0.3)!important;border-color:rgba(255,255,255,0.08)!important;box-shadow:none!important;cursor:default!important;}'+
 '#ochoMeTurnPill{display:none;margin-top:3px;align-items:center;gap:5px;background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.35);border-radius:20px;padding:4px 11px;font-size:12px;font-weight:700;color:#FFD700;}'+
 '#ochoMeTurnPill.visible{display:inline-flex;}'+
 '.oc-turn-dot{width:7px;height:7px;border-radius:50%;background:#FFD700;box-shadow:0 0 5px 2px rgba(255,215,0,0.7);}'+
@@ -747,6 +749,7 @@
     var playable=_playableCards(myHand,state);
     _renderMyCards(myHand,playable,isMyTurn);
     _renderHint(state,myHand,playable,isMyTurn);
+    _updateOchoBtn(state,myHand,oppHand);
     if(isMyTurn&&state.draw_penalty&&state.draw_penalty.target===_me&&state.phase==='playing')_applyForcedDraw(state);
   }
 
@@ -952,6 +955,21 @@
   }
 
   function _applyForcedDraw(state){if(_mp.isSaving()||!state||state.phase!=='playing')return;_mp.saveState(_applyDrawPenalty(state));}
+
+  // ─── État visuel du bouton OCHO ───────────────────────
+  function _updateOchoBtn(state, myHand, oppHand){
+    var btn=document.getElementById('ochoBtn');if(!btn)return;
+    var iDeclared=state.ocho_declared===_me;
+    var oppDeclared=state.ocho_declared===_other;
+    btn.classList.remove('oc-btn-declared','oc-btn-locked');
+    if(iDeclared&&myHand.length===1){
+      // Jaune : j'ai déclaré mon ocho avec 1 carte
+      btn.classList.add('oc-btn-declared');
+    } else if(oppDeclared&&oppHand.length===1){
+      // Noir : l'adversaire a déjà déclaré le sien, bouton neutre pour éviter les erreurs
+      btn.classList.add('oc-btn-locked');
+    }
+  }
 
   // ─── Bouton OCHO ──────────────────────────────────────
   function _onOchoBtn(){
