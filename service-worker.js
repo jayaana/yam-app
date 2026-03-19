@@ -26,6 +26,7 @@ var STATIC_ASSETS = [
   '/yam-app/js/app-nav.js',
   '/yam-app/js/app-realtime-init.js',
   '/yam-app/js/app-inline.js',
+  'js/app-jeux-dashboard.js',
   '/yam-app/assets/icons/icon-192.png',
   '/yam-app/assets/icons/icon-512.png',
   '/yam-app/assets/images/reaction_1.png',
