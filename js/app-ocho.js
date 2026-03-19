@@ -775,10 +775,12 @@
   function _renderOppCards(count){
     var c=document.getElementById('ochoTopArc');if(!c)return;
     Array.from(c.children).forEach(function(el){if(el.id!=='ochoOppCardBadge')el.remove();});
-    var n=Math.min(count,10);
+    var n=count;
+    var spread=Math.min(8,Math.max(3,Math.floor(200/(n||1))));
+    var gap=Math.min(26,Math.max(12,Math.floor(220/(n||1))));
     for(var i=0;i<n;i++){
       var el=document.createElement('div');el.className='oc-arc-bk';
-      var angle=(i-(n-1)/2)*8,cx=260/2-24+(i-(n-1)/2)*26;
+      var angle=(i-(n-1)/2)*spread,cx=260/2-24+(i-(n-1)/2)*gap;
       el.style.cssText='left:'+cx+'px;top:4px;transform:rotate('+angle+'deg);';
       c.insertBefore(el,c.firstChild);
     }
