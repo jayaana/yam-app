@@ -1013,8 +1013,9 @@
       var ns3=_deepCopy(_state);if(ns3.deck.length===0)_reshuffleDiscard(ns3);
       var pc2=ns3.deck.pop();
       if(pc2){if(_me==='girl')ns3.girl_hand.push(pc2);else ns3.boy_hand.push(pc2);}
-      _state=ns3; // mise à jour locale immédiate — empêche une 2e pioche avant retour réseau
+      _state=ns3;
       _mp.saveState(ns3);
+      _animateDrawCard(function(){});
       _showGameMsg('\u26A0\uFE0F','Trop tôt ! Tu pioches une carte…');
     }
   }
