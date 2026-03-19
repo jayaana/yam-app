@@ -285,7 +285,7 @@
 '#ochoLayout.visible{display:flex;}'+
 '#ochoOppBlock{display:flex;flex-direction:column;align-items:center;gap:0;margin-bottom:4px;}'+
 '#ochoTopArc{position:relative;width:260px;height:85px;margin:0 auto;}'+
-'#ochoTopArc .oc-arc-bk{position:absolute;width:48px;height:67px;border-radius:9px;border:2px solid rgba(242,232,212,0.65);background:repeating-linear-gradient(135deg,#2a1205 0px,#2a1205 6px,#3a1a0a 6px,#3a1a0a 12px);box-shadow:0 4px 14px rgba(0,0,0,0.5);transform-origin:center 130px;}'+
+'#ochoTopArc .oc-arc-bk{position:absolute;width:48px;height:67px;border-radius:9px;border:2px solid rgba(242,232,212,0.65);background:repeating-linear-gradient(135deg,#2a1205 0px,#2a1205 6px,#3a1a0a 6px,#3a1a0a 12px);box-shadow:0 4px 14px rgba(0,0,0,0.5);transform-origin:center -60px;}'+
 '#ochoTopArc .oc-arc-bk::after{content:\'\';position:absolute;inset:5px;border-radius:5px;border:1px solid rgba(242,232,212,0.12);}'+
 '#ochoOppCardBadge{position:absolute;top:-6px;right:-6px;background:#e75a7c;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;z-index:10;}'+
 '.oc-profile-pill{display:inline-flex;align-items:center;gap:12px;padding:7px 18px 7px 7px;margin-top:6px;align-self:flex-start;}'+
@@ -781,7 +781,7 @@
     for(var i=0;i<n;i++){
       var el=document.createElement('div');el.className='oc-arc-bk';
       var angle=(i-(n-1)/2)*spread,cx=260/2-24+(i-(n-1)/2)*gap;
-      el.style.cssText='left:'+cx+'px;top:4px;transform:rotate('+angle+'deg);';
+      el.style.cssText='left:'+cx+'px;top:18px;transform:rotate('+angle+'deg);';
       c.insertBefore(el,c.firstChild);
     }
     var badge=document.getElementById('ochoOppCardBadge');if(badge)badge.textContent=count;
