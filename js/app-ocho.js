@@ -262,7 +262,7 @@
 /* Bootstrap Icons utilises pour les symboles — identique a la maquette */
 '#ochoView{display:none;position:fixed;inset:0;z-index:200;font-family:Bricolage Grotesque,system-ui,sans-serif;}'+
 '#ochoView.active{display:block!important;}'+
-'#ochoBg{display:none;}'+
+'#ochoBg{position:absolute;inset:0;background:url("assets/images/ocho-home.png") center center/cover no-repeat;}'+
 '#ochoBgOverlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.08) 40%,rgba(0,0,0,0.28) 100%);pointer-events:none;}'+
 '#ochoAura{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:5;transition:opacity 0.4s;}'+
 '#ochoAura.active{opacity:1;animation:ochoAuraAnim 1.4s ease-in-out infinite;}'+
@@ -273,7 +273,7 @@
 '@keyframes ochoAuraAnimOpp{'+
 '0%,100%{box-shadow:inset 0 0 0px 0px rgba(55,110,210,0);}'+
 '50%{box-shadow:inset 0 0 40px 10px rgba(55,110,210,0.28),inset 0 0 80px 25px rgba(55,110,210,0.13);}}'+
-'#ochoAnimZone{position:absolute;top:calc(env(safe-area-inset-top,0px) + 46px);left:0;right:0;height:90px;display:flex;align-items:center;justify-content:center;z-index:20;pointer-events:none;overflow:hidden;}'+
+'#ochoAnimZone{position:absolute;top:46px;left:0;right:0;height:90px;display:flex;align-items:center;justify-content:center;z-index:20;pointer-events:none;overflow:hidden;}'+
 '#ochoAnimText{font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:48px;font-weight:900;color:#F2E8D4;text-shadow:0 4px 20px rgba(0,0,0,0.4);opacity:0;letter-spacing:-1px;}'+
 '@keyframes ochoPopIn{0%{opacity:0;transform:scale(0.4) rotate(-8deg);}60%{opacity:1;transform:scale(1.15) rotate(3deg);}80%{transform:scale(0.95) rotate(-1deg);}100%{opacity:1;transform:scale(1) rotate(0);}}'+
 '@keyframes ochoPopOut{0%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(1.3);}}'+
@@ -281,7 +281,7 @@
 '.oc-anim-hide{animation:ochoPopOut 0.3s ease-in forwards;}'+
 '@keyframes ochoBuzz{0%,100%{transform:translateX(0);}20%{transform:translateX(-8px);}40%{transform:translateX(8px);}60%{transform:translateX(-6px);}80%{transform:translateX(6px);}}'+
 '#ochoView.oc-buzz{animation:ochoBuzz 0.18s ease-in-out;}'+
-'#ochoLayout{position:absolute;top:calc(env(safe-area-inset-top,0px) + 108px);bottom:80px;left:0;right:0;display:none;flex-direction:column;justify-content:center;padding:0 16px;}'+
+'#ochoLayout{position:absolute;top:112px;bottom:80px;left:0;right:0;display:none;flex-direction:column;justify-content:center;padding:0 16px;}'+
 '#ochoLayout.visible{display:flex;}'+
 '#ochoOppBlock{display:flex;flex-direction:column;align-items:center;gap:0;margin-bottom:4px;}'+
 '#ochoTopArc{position:relative;width:260px;height:85px;margin:0 auto;}'+
@@ -401,14 +401,14 @@
     '<div id="ochoBgOverlay"></div>'+
     '<div id="ochoAura"></div>'+
     '<div id="ochoAnimZone"><div id="ochoAnimText"></div></div>'+
-    '<div id="ochoHeader" style="position:absolute;top:0;left:0;right:0;padding-top:max(env(safe-area-inset-top,0px),12px);padding-bottom:10px;padding-left:16px;padding-right:16px;display:flex;align-items:center;justify-content:space-between;z-index:100;background:linear-gradient(180deg,rgba(100,45,10,0.72) 0%,transparent 100%);backdrop-filter:blur(0px);">'+
+    '<div id="ochoHeader" style="position:absolute;top:0;left:0;right:0;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:100;">'+
       '<button id="ochoBackBtn" style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:6px 14px;color:#F2E8D4;font-size:13px;font-weight:700;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;backdrop-filter:blur(8px);">'+
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Retour</button>'+
       '<div style="font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:15px;font-weight:900;color:#F2E8D4;text-shadow:0 1px 4px rgba(0,0,0,0.5);display:flex;flex-direction:column;align-items:center;gap:1px;">'+
-        '<span style="font-size:16px;letter-spacing:0.01em;">Ocho \uD83C\uDCCF</span>'+
+        '<span style="font-size:16px;">Ocho \uD83C\uDCCF</span>'+
         '<span id="ochoTableRound" style="font-size:11px;font-weight:700;color:rgba(242,232,212,0.7);letter-spacing:0.06em;text-transform:uppercase;">Manche 1/6</span>'+
       '</div>'+
-      '<button id="ochoAbandonBtn" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:20px;padding:7px 16px;font-size:13px;font-weight:800;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.35);letter-spacing:0.02em;">Abandon</button>'+
+      '<button id="ochoAbandonBtn" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:20px;padding:7px 16px;font-size:13px;font-weight:800;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.35);">Abandon</button>'+
     '</div>'+
     '<div id="ochoWaitScreen">'+
       '<div style="font-size:52px;">\u23F3</div>'+
@@ -611,7 +611,6 @@
     if(typeof _yamSlide==='function')_yamSlide(ov,gv,'forward');
     else{ov.classList.add('active');ov.style.display='block';}
     var nav=document.querySelector('.bottom-nav');if(nav)nav.style.display='none';
-    document.body.classList.add('ocho-active');
     if(typeof _subviewIds!=='undefined'&&Array.isArray(_subviewIds)&&_subviewIds.indexOf('ochoView')===-1)_subviewIds.push('ochoView');
     _loadAvatars();
 
@@ -1644,7 +1643,6 @@
     if(typeof _yamSlide==='function')_yamSlide(gv,ov,'backward');
     else if(ov){ov.classList.remove('active');ov.style.display='none';}
     var nav=document.querySelector('.bottom-nav');if(nav)nav.style.display='';
-    document.body.classList.remove('ocho-active');
     if(typeof window._corePresenceResume==='function')window._corePresenceResume();
   }
 
