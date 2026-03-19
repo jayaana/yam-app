@@ -1568,7 +1568,7 @@
 
   function _sendReaction(emoji){
     if(_reactCooldown)return;_reactCooldown=true;setTimeout(function(){_reactCooldown=false;},2500);
-    _showAnimEmoji(emoji);
+    if(emoji!=='\uD83E\uDD0D'&&emoji!=='\u2665')_showAnimEmoji(emoji);
     if(!_mp||!_mp.isLaunched()||_mp.isSaving()||!_state)return;
     var ns=_deepCopy(_state);ns.reaction={player:_me,emoji:emoji,ts:Date.now()};_mp.saveState(ns);
   }
@@ -1622,9 +1622,9 @@
 
   function _spawnHeartsFromOpp(){
     var screen=document.getElementById('ochoView');
-    var opp=document.getElementById('ochoOppAvatarImg');
-    if(!screen||!opp)return;
-    var rect=opp.getBoundingClientRect();
+    var me=document.getElementById('ochoMeAvatarImg');
+    if(!screen||!me)return;
+    var rect=me.getBoundingClientRect();
     var svRect=screen.getBoundingClientRect();
     var cx=rect.left-svRect.left+rect.width/2;
     var cy=rect.top-svRect.top+rect.height/2;
