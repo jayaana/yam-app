@@ -260,7 +260,7 @@
     var s=document.createElement('style');s.id='ochoStyles';
     s.textContent=
 /* Bootstrap Icons utilises pour les symboles — identique a la maquette */
-'#ochoView{display:none;position:fixed;inset:0;z-index:200;font-family:Bricolage Grotesque,system-ui,sans-serif;background:#7a3d18 url("assets/images/ocho-home.png") center top/cover no-repeat;}'+
+'#ochoView{display:none;position:fixed;inset:0;z-index:200;font-family:Bricolage Grotesque,system-ui,sans-serif;}'+
 '#ochoView.active{display:block!important;}'+
 '#ochoBg{display:none;}'+
 '#ochoBgOverlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.08) 40%,rgba(0,0,0,0.28) 100%);pointer-events:none;}'+
