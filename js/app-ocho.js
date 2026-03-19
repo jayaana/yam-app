@@ -262,36 +262,23 @@
 '#ochoView.active{display:block!important;}'+
 '#ochoBg{position:absolute;inset:0;background:url("assets/images/ocho-home.png") center center/cover no-repeat;}'+
 '#ochoBgOverlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.08) 40%,rgba(0,0,0,0.28) 100%);pointer-events:none;}'+
-'#ochoAura{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:5;transition:opacity 0.3s;}'+
-'#ochoAura.active{opacity:1;animation:ochoAuraAnim 1.0s ease-in-out infinite;}'+
-'#ochoAura.active-opp{opacity:1;animation:ochoAuraAnimOpp 1.0s ease-in-out infinite;}'+
+'#ochoAura{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:5;transition:opacity 0.4s;}'+
+'#ochoAura.active{opacity:1;animation:ochoAuraAnim 1.4s ease-in-out infinite;}'+
+'#ochoAura.active-opp{opacity:1;animation:ochoAuraAnimOpp 1.4s ease-in-out infinite;}'+
 '@keyframes ochoAuraAnim{'+
-'0%{box-shadow:inset 0 0 0px 0px rgba(220,60,40,0),inset 0 0 0px 0px rgba(255,215,0,0);}'+
-'25%{box-shadow:inset 0 0 55px 18px rgba(220,60,40,0.55),inset 0 0 100px 35px rgba(220,60,40,0.25),inset 0 0 20px 8px rgba(255,215,0,0.15);}'+
-'50%{box-shadow:inset 0 0 80px 30px rgba(220,60,40,0.65),inset 0 0 150px 55px rgba(220,60,40,0.3),inset 0 0 35px 12px rgba(255,100,40,0.25);}'+
-'75%{box-shadow:inset 0 0 55px 18px rgba(220,60,40,0.55),inset 0 0 100px 35px rgba(220,60,40,0.25),inset 0 0 20px 8px rgba(255,215,0,0.15);}'+
-'100%{box-shadow:inset 0 0 0px 0px rgba(220,60,40,0),inset 0 0 0px 0px rgba(255,215,0,0);}}'+
+'0%,100%{box-shadow:inset 0 0 0px 0px rgba(210,55,35,0);}'+
+'50%{box-shadow:inset 0 0 40px 10px rgba(210,55,35,0.28),inset 0 0 80px 25px rgba(210,55,35,0.13);}}'+
 '@keyframes ochoAuraAnimOpp{'+
-'0%{box-shadow:inset 0 0 0px 0px rgba(60,120,220,0),inset 0 0 0px 0px rgba(180,215,255,0);}'+
-'25%{box-shadow:inset 0 0 55px 18px rgba(60,120,220,0.5),inset 0 0 100px 35px rgba(60,120,220,0.22),inset 0 0 20px 8px rgba(180,215,255,0.15);}'+
-'50%{box-shadow:inset 0 0 80px 30px rgba(60,120,220,0.6),inset 0 0 150px 55px rgba(60,120,220,0.28),inset 0 0 35px 12px rgba(100,160,255,0.25);}'+
-'75%{box-shadow:inset 0 0 55px 18px rgba(60,120,220,0.5),inset 0 0 100px 35px rgba(60,120,220,0.22),inset 0 0 20px 8px rgba(180,215,255,0.15);}'+
-'100%{box-shadow:inset 0 0 0px 0px rgba(60,120,220,0),inset 0 0 0px 0px rgba(180,215,255,0);}}'+
-'@keyframes ochoCaughtFlash{'+
-'0%{box-shadow:inset 0 0 0px 0px rgba(255,215,0,0);}'+
-'15%{box-shadow:inset 0 0 120px 60px rgba(255,100,0,0.85),inset 0 0 60px 30px rgba(255,215,0,0.6);}'+
-'40%{box-shadow:inset 0 0 90px 45px rgba(255,60,0,0.7),inset 0 0 45px 20px rgba(255,200,0,0.5);}'+
-'70%{box-shadow:inset 0 0 60px 25px rgba(255,30,0,0.45),inset 0 0 25px 10px rgba(255,150,0,0.3);}'+
-'100%{box-shadow:inset 0 0 0px 0px rgba(255,0,0,0);}}'+
-'#ochoAura.caught{opacity:1;animation:ochoCaughtFlash 1.6s ease-out forwards;}'+
+'0%,100%{box-shadow:inset 0 0 0px 0px rgba(55,110,210,0);}'+
+'50%{box-shadow:inset 0 0 40px 10px rgba(55,110,210,0.28),inset 0 0 80px 25px rgba(55,110,210,0.13);}}'+
 '#ochoAnimZone{position:absolute;top:46px;left:0;right:0;height:90px;display:flex;align-items:center;justify-content:center;z-index:20;pointer-events:none;overflow:hidden;}'+
 '#ochoAnimText{font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:48px;font-weight:900;color:#F2E8D4;text-shadow:0 4px 20px rgba(0,0,0,0.4);opacity:0;letter-spacing:-1px;}'+
 '@keyframes ochoPopIn{0%{opacity:0;transform:scale(0.4) rotate(-8deg);}60%{opacity:1;transform:scale(1.15) rotate(3deg);}80%{transform:scale(0.95) rotate(-1deg);}100%{opacity:1;transform:scale(1) rotate(0);}}'+
 '@keyframes ochoPopOut{0%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(1.3);}}'+
 '.oc-anim-show{animation:ochoPopIn 0.5s cubic-bezier(.34,1.56,.64,1) forwards;}'+
 '.oc-anim-hide{animation:ochoPopOut 0.3s ease-in forwards;}'+
-'@keyframes ochoCaughtShake{0%,100%{transform:translateX(0);}15%{transform:translateX(-12px) rotate(-2deg);}30%{transform:translateX(12px) rotate(2deg);}45%{transform:translateX(-8px);}60%{transform:translateX(8px);}75%{transform:translateX(-4px);}}'+
-'#ochoView.oc-shake{animation:ochoCaughtShake 0.55s ease-in-out;}'+
+'@keyframes ochoBuzz{0%,100%{transform:translateX(0);}20%{transform:translateX(-8px);}40%{transform:translateX(8px);}60%{transform:translateX(-6px);}80%{transform:translateX(6px);}}'+
+'#ochoView.oc-buzz{animation:ochoBuzz 0.18s ease-in-out;}'+
 '#ochoLayout{position:absolute;top:112px;bottom:80px;left:0;right:0;display:none;flex-direction:column;justify-content:center;padding:0 16px;}'+
 '#ochoLayout.visible{display:flex;}'+
 '#ochoOppBlock{display:flex;flex-direction:column;align-items:center;gap:0;margin-bottom:4px;}'+
@@ -676,7 +663,7 @@
     _state=null;_stopTimer();_stopSafetyPoll();_timerFired=false;_reactCooldown=false;
     _lastReactTs=0;_lastCaughtTs=0;_ochoAuraOn=false;_selectedCard=null;
     _drawnThisTurn=false;_passAvailable=false;
-    var aura=document.getElementById('ochoAura');if(aura)aura.classList.remove('active','active-opp','caught');
+    var aura=document.getElementById('ochoAura');if(aura)aura.classList.remove('active','active-opp');
     var pass=document.getElementById('ochoPassBtn');if(pass)pass.classList.remove('visible');
     if(typeof window._corePresenceSuspend==='function')window._corePresenceSuspend();
   }
@@ -722,19 +709,16 @@
     var caughtByOpp=(state.ocho_declared===_other+'_caught');
     if(aura){
       if(_ochoAuraOn&&(!iDeclared||(myCurrentHand&&myCurrentHand.length!==1))){
-        _ochoAuraOn=false;aura.classList.remove('active','active-opp','caught');
+        _ochoAuraOn=false;aura.classList.remove('active','active-opp');
       }
-      if(caughtByMe||caughtByOpp){
-        if(!aura.classList.contains('caught')){
-          aura.classList.remove('active','active-opp');aura.classList.add('caught');
-          setTimeout(function(){aura.classList.remove('caught');},1700);
+      if(!caughtByMe&&!caughtByOpp){
+        if(iDeclared&&myCurrentHand&&myCurrentHand.length===1){
+          if(!_ochoAuraOn){_ochoAuraOn=true;aura.classList.remove('active-opp');aura.classList.add('active');}
+        } else if(oppDeclared){
+          aura.classList.remove('active');aura.classList.add('active-opp');_ochoAuraOn=false;
+        } else {
+          if(!_ochoAuraOn){aura.classList.remove('active','active-opp');}
         }
-      } else if(iDeclared&&myCurrentHand&&myCurrentHand.length===1){
-        if(!_ochoAuraOn){_ochoAuraOn=true;aura.classList.remove('active-opp','caught');aura.classList.add('active');}
-      } else if(oppDeclared){
-        aura.classList.remove('active','caught');aura.classList.add('active-opp');_ochoAuraOn=false;
-      } else {
-        if(!_ochoAuraOn){aura.classList.remove('active','active-opp','caught');}
       }
     }
     if(state.phase==='round_end'){_showRoundEnd(state);return;}
@@ -996,10 +980,8 @@
       ns2.ocho_declared=_me+'_caught';
       ns2.ocho_counter_used=true;
       _mp.saveState(ns2);
-      // Effet local immédiat
-      var aura2=document.getElementById('ochoAura');
-      if(aura2){aura2.classList.remove('active','active-opp');aura2.classList.add('caught');
-        setTimeout(function(){aura2.classList.remove('caught');},1700);}
+      // Vibrations locales (attaquant)
+      _buzzScreen(3);
       _showGameMsg('\uD83D\uDCA5','Ocho raté\u00a0! L\'adversaire pioche\u00a0!');
       _animateOppDrawCard();
       return;
@@ -1573,21 +1555,27 @@
     _lastReactTs=r.ts;_showAnimEmoji(r.emoji);
   }
 
-  // Vérifie si l'adversaire vient de me griller (caught chez moi = l'autre a déclenché)
+  // Vibrations répétées de l'écran (count = nombre de secousses)
+  function _buzzScreen(count){
+    var view=document.getElementById('ochoView');if(!view)return;
+    var done=0;
+    function buzz(){
+      if(done>=count)return;done++;
+      view.classList.remove('oc-buzz');void view.offsetWidth;
+      view.classList.add('oc-buzz');
+      setTimeout(function(){view.classList.remove('oc-buzz');setTimeout(buzz,80);},180);
+    }
+    buzz();
+  }
+
+  // Vérifie si l'adversaire vient de me griller
   var _lastCaughtTs=0;
   function _checkCaughtEffect(state){
     if(!state)return;
     var caughtMe=(state.ocho_declared===_other+'_caught');
     if(caughtMe&&state.ts_turn!==_lastCaughtTs){
       _lastCaughtTs=state.ts_turn;
-      var aura=document.getElementById('ochoAura');
-      if(aura&&!aura.classList.contains('caught')){
-        aura.classList.remove('active','active-opp');aura.classList.add('caught');
-        setTimeout(function(){aura.classList.remove('caught');},1700);
-      }
-      // Shake de l'écran
-      var view=document.getElementById('ochoView');
-      if(view){view.classList.add('oc-shake');setTimeout(function(){view.classList.remove('oc-shake');},600);}
+      _buzzScreen(3);
       _showAnimEmoji('\uD83D\uDCA5');
       _showGameMsg('\uD83D\uDE31','Tu t\'es fait avoir\u00a0! Tu pioches\u00a0!');
     }
