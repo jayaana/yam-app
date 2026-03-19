@@ -611,7 +611,7 @@
     if(typeof _yamSlide==='function')_yamSlide(ov,gv,'forward');
     else{ov.classList.add('active');ov.style.display='block';}
     var nav=document.querySelector('.bottom-nav');if(nav)nav.style.display='none';
-    document.documentElement.classList.add('ocho-active');
+    document.body.classList.add('ocho-active');
     if(typeof _subviewIds!=='undefined'&&Array.isArray(_subviewIds)&&_subviewIds.indexOf('ochoView')===-1)_subviewIds.push('ochoView');
     _loadAvatars();
 
@@ -1644,7 +1644,7 @@
     if(typeof _yamSlide==='function')_yamSlide(gv,ov,'backward');
     else if(ov){ov.classList.remove('active');ov.style.display='none';}
     var nav=document.querySelector('.bottom-nav');if(nav)nav.style.display='';
-    document.documentElement.classList.remove('ocho-active');
+    document.body.classList.remove('ocho-active');
     if(typeof window._corePresenceResume==='function')window._corePresenceResume();
   }
 
