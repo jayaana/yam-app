@@ -359,6 +359,25 @@
 '@keyframes ochoCardShimmer{0%{box-shadow:0 6px 20px rgba(0,0,0,0.5);}50%{box-shadow:0 12px 36px rgba(255,215,0,0.5),0 0 20px rgba(255,215,0,0.3);}100%{box-shadow:0 6px 20px rgba(0,0,0,0.5);}}'+
 '.oc-arc-bk.oc-dealing{animation:ochoDealIn 0.32s cubic-bezier(.34,1.56,.64,1) forwards;}'+
 '@keyframes ochoDealIn{0%{opacity:0;transform:rotate(var(--deal-rot)) scale(0.7) translateY(-18px);}100%{opacity:1;transform:rotate(var(--deal-rot)) scale(1) translateY(0);}}'+
+/* ── Effets cartes spéciales ── */
+/* Particule générique */
+'.oc-fx-particle{position:fixed;pointer-events:none;border-radius:50%;z-index:9998;will-change:transform,opacity;}'+
+'@keyframes ocFxPop{0%{transform:translate(0,0) scale(1);opacity:1;}100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0;}}'+
+/* Ripple d'onde (block / swap) */
+'.oc-fx-ripple{position:fixed;pointer-events:none;border-radius:50%;z-index:9997;border:3px solid var(--rc);will-change:transform,opacity;}'+
+'@keyframes ocFxRipple{0%{transform:translate(-50%,-50%) scale(0.2);opacity:1;}100%{transform:translate(-50%,-50%) scale(3.8);opacity:0;}}'+
+/* Flash overlay sur la table */
+'.oc-fx-flash{position:absolute;inset:0;border-radius:50%;pointer-events:none;z-index:9996;opacity:0;}'+
+'@keyframes ocFxFlash{0%{opacity:0.7;}100%{opacity:0;}}'+
+/* Shake de la carte sur la défausse */
+'@keyframes ocFxShake{0%{transform:rotate(0deg) scale(1);}20%{transform:rotate(-6deg) scale(1.08);}40%{transform:rotate(5deg) scale(1.06);}60%{transform:rotate(-3deg) scale(1.03);}80%{transform:rotate(2deg) scale(1.01);}100%{transform:rotate(0deg) scale(1);}}'+
+'.oc-fx-shaking{animation:ocFxShake 0.35s ease-out forwards;}'+
+/* Label flottant (+1, +2, BLOQUÉ, SWAP) */
+'.oc-fx-label{position:fixed;pointer-events:none;z-index:9999;font-family:Bricolage Grotesque,system-ui,sans-serif;font-weight:900;color:#F2E8D4;text-shadow:0 2px 8px rgba(0,0,0,0.7);will-change:transform,opacity;}'+
+'@keyframes ocFxLabel{0%{opacity:0;transform:translate(-50%,-50%) scale(0.5);}25%{opacity:1;transform:translate(-50%,-80%) scale(1.15);}70%{opacity:1;transform:translate(-50%,-130%) scale(1);}100%{opacity:0;transform:translate(-50%,-160%) scale(0.85);}}'+
+/* Étoile tournante (wild 8) */
+'.oc-fx-star{position:fixed;pointer-events:none;z-index:9998;will-change:transform,opacity;font-size:22px;line-height:1;}'+
+'@keyframes ocFxStar{0%{opacity:1;transform:translate(-50%,-50%) scale(0.4) rotate(0deg);}60%{opacity:1;transform:translate(var(--sdx),var(--sdy)) scale(1.1) rotate(var(--sr));}100%{opacity:0;transform:translate(var(--sdx2),var(--sdy2)) scale(0.3) rotate(var(--sr2));}}'+
 '#ochoView.active ~ .bottom-nav{display:none!important;}';
     document.head.appendChild(s);
   }
@@ -667,7 +686,11 @@
     }
     _state=state;_checkIncomingReaction(state);
     // Déclencher animations adversaire APRÈS la mise à jour de _state
-    if (oppPlayedCard) setTimeout(_animateOppCardPlay, 60);
+    if (oppPlayedCard) {
+      // Récupérer la vraie carte posée (dernière de la défausse)
+      var oppCard = state.discard && state.discard.length ? state.discard[state.discard.length-1] : null;
+      setTimeout(function(){ _animateOppCardPlay(oppCard); }, 60);
+    }
     if (oppDrewCard)   setTimeout(_animateOppDrawCard, 60);
     // Désactiver aura si je ne l'ai plus déclarée
     if(state.ocho_declared!==_me&&_ochoAuraOn){
@@ -935,6 +958,192 @@
     }
   }
 
+  // ══════════════════════════════════════════════════════
+  // EFFETS SPÉCIAUX CARTES — déclenchés à l'impact sur la défausse
+  // ══════════════════════════════════════════════════════
+
+  // Récupère le centre viewport de la carte défausse
+  function _discardCenter() {
+    var el = document.getElementById('ochoDiscardCard');
+    if (!el) return { x: window.innerWidth/2, y: window.innerHeight/2 };
+    var r = el.getBoundingClientRect();
+    return { x: r.left + r.width/2, y: r.top + r.height/2 };
+  }
+
+  // Micro-shake de la carte sur la défausse
+  function _fxShakeDiscard() {
+    var el = document.getElementById('ochoDiscardCard');
+    if (!el) return;
+    el.classList.remove('oc-fx-shaking');
+    void el.offsetWidth;
+    el.classList.add('oc-fx-shaking');
+    setTimeout(function(){ el.classList.remove('oc-fx-shaking'); }, 400);
+  }
+
+  // Label flottant au-dessus de la défausse
+  function _fxLabel(text, color, size) {
+    var c = _discardCenter();
+    var lbl = document.createElement('div');
+    lbl.className = 'oc-fx-label';
+    lbl.textContent = text;
+    lbl.style.cssText =
+      'left:'+c.x+'px;top:'+c.y+'px;font-size:'+(size||22)+'px;color:'+(color||'#F2E8D4')+';'+
+      'animation:ocFxLabel 0.9s cubic-bezier(.34,1.56,.64,1) forwards;';
+    _flyContainer().appendChild(lbl);
+    setTimeout(function(){ lbl.remove(); }, 950);
+  }
+
+  // Explosion de particules circulaires depuis le centre
+  function _fxParticles(cx, cy, count, colors, minR, maxR, spread, dur) {
+    var cont = _flyContainer();
+    for (var i = 0; i < count; i++) {
+      (function(idx){
+        var delay = idx * (dur * 0.04);
+        setTimeout(function(){
+          var p  = document.createElement('div');
+          p.className = 'oc-fx-particle';
+          var angle  = (idx / count) * Math.PI * 2 + (Math.random()-0.5)*0.8;
+          var dist   = spread * (0.5 + Math.random() * 0.7);
+          var size   = minR + Math.random() * (maxR - minR);
+          var color  = colors[Math.floor(Math.random() * colors.length)];
+          var pdur   = (dur * 0.6 + Math.random() * dur * 0.5) | 0;
+          p.style.cssText =
+            'left:'+(cx - size/2)+'px;top:'+(cy - size/2)+'px;'+
+            'width:'+size+'px;height:'+size+'px;background:'+color+';'+
+            '--dx:'+(Math.cos(angle)*dist)+'px;--dy:'+(Math.sin(angle)*dist)+'px;'+
+            'animation:ocFxPop '+pdur+'ms cubic-bezier(.2,.8,.4,1) forwards;';
+          cont.appendChild(p);
+          setTimeout(function(){ p.remove(); }, pdur + 50);
+        }, delay);
+      })(i);
+    }
+  }
+
+  // Onde expansive (ripple)
+  function _fxRipple(cx, cy, color, dur) {
+    var cont = _flyContainer();
+    for (var i = 0; i < 2; i++) {
+      (function(idx){
+        setTimeout(function(){
+          var r = document.createElement('div');
+          r.className = 'oc-fx-ripple';
+          var d = (dur + idx * 120) | 0;
+          r.style.cssText =
+            'left:'+cx+'px;top:'+cy+'px;width:60px;height:60px;'+
+            '--rc:'+color+';border-color:'+color+';'+
+            'animation:ocFxRipple '+d+'ms ease-out forwards;';
+          cont.appendChild(r);
+          setTimeout(function(){ r.remove(); }, d + 50);
+        }, idx * 100);
+      })(i);
+    }
+  }
+
+  // Flash coloré sur la table ovale
+  function _fxTableFlash(color) {
+    var table = document.getElementById('ochoTable');
+    if (!table) return;
+    var fl = document.createElement('div');
+    fl.className = 'oc-fx-flash';
+    fl.style.cssText = 'background:'+color+';animation:ocFxFlash 0.4s ease-out forwards;';
+    table.appendChild(fl);
+    setTimeout(function(){ fl.remove(); }, 450);
+  }
+
+  // Étoiles colorées rayonnantes (wild 8)
+  function _fxStars(cx, cy, colors) {
+    var cont = _flyContainer();
+    var syms = ['✦','★','✸','◆','✦','★'];
+    for (var i = 0; i < 8; i++) {
+      (function(idx){
+        setTimeout(function(){
+          var s   = document.createElement('div');
+          s.className = 'oc-fx-star';
+          var angle  = (idx / 8) * Math.PI * 2;
+          var dist1  = 55 + Math.random() * 35;
+          var dist2  = 90 + Math.random() * 40;
+          var rot1   = (Math.random() * 360) | 0;
+          var rot2   = rot1 + 180 + ((Math.random() * 90)|0);
+          var color  = colors[idx % colors.length];
+          var pdur   = 600 + (Math.random() * 250)|0;
+          s.textContent = syms[idx % syms.length];
+          s.style.cssText =
+            'left:'+cx+'px;top:'+cy+'px;color:'+color+';'+
+            '--sdx:'+(Math.cos(angle)*dist1 - 11)+'px;'+
+            '--sdy:'+(Math.sin(angle)*dist1 - 11)+'px;'+
+            '--sdx2:'+(Math.cos(angle)*dist2 - 11)+'px;'+
+            '--sdy2:'+(Math.sin(angle)*dist2 - 11)+'px;'+
+            '--sr:'+rot1+'deg;--sr2:'+rot2+'deg;'+
+            'animation:ocFxStar '+pdur+'ms cubic-bezier(.2,.8,.3,1) forwards;';
+          cont.appendChild(s);
+          setTimeout(function(){ s.remove(); }, pdur + 50);
+        }, idx * 35);
+      })(i);
+    }
+  }
+
+  // ── Dispatch : choisit l'effet selon la carte jouée ──
+  function _triggerCardFX(card) {
+    var c  = _discardCenter();
+    var cx = c.x, cy = c.y;
+
+    _fxShakeDiscard();
+
+    if (card.value === '+1') {
+      // Orange vif — 1 vague de particules + label
+      var col = SUIT_COLORS[card.suit] || '#E89030';
+      _fxParticles(cx, cy, 14, [col, '#FFD700', '#fff'], 5, 11, 80, 500);
+      _fxRipple(cx, cy, col, 420);
+      _fxTableFlash(col + '55');
+      _fxLabel('+1 🃏', col, 20);
+
+    } else if (card.value === '+2') {
+      // Double salve de particules — plus intense
+      var col2 = SUIT_COLORS[card.suit] || '#E04E3E';
+      _fxParticles(cx, cy, 22, [col2, '#FF8C00', '#FFD700', '#fff'], 5, 13, 100, 550);
+      _fxRipple(cx, cy, col2, 450);
+      _fxTableFlash(col2 + '66');
+      _fxLabel('+2 💥', col2, 22);
+
+    } else if (card.value === 'block') {
+      // Onde froide — gris/blanc avec icône ⊘
+      var col3 = SUIT_COLORS[card.suit] || '#5070B8';
+      _fxRipple(cx, cy, col3, 500);
+      _fxRipple(cx, cy, '#fff', 620);
+      _fxParticles(cx, cy, 10, [col3, 'rgba(255,255,255,0.8)'], 4, 9, 65, 480);
+      _fxTableFlash(col3 + '44');
+      _fxLabel('⊘ BLOQUÉ', col3, 18);
+
+    } else if (card.value === '8') {
+      // Wild : éclat multicolore
+      var allCols = [SUIT_COLORS.heart, SUIT_COLORS.club, SUIT_COLORS.spade, SUIT_COLORS.diamond];
+      _fxStars(cx, cy, allCols);
+      _fxParticles(cx, cy, 28, allCols.concat(['#FFD700','#fff']), 4, 12, 110, 600);
+      _fxRipple(cx, cy, '#FFD700', 550);
+      _fxTableFlash('rgba(255,215,0,0.3)');
+      _fxLabel('✦ WILD ✦', '#FFD700', 20);
+
+    } else if (card.value === 'swap') {
+      // Deux spirales qui se croisent — particules des 4 couleurs
+      var swapCols = [SUIT_COLORS.heart, SUIT_COLORS.club, SUIT_COLORS.spade, SUIT_COLORS.diamond];
+      _fxParticles(cx, cy, 20, swapCols, 5, 12, 95, 580);
+      _fxRipple(cx, cy, '#E04E3E', 460);
+      _fxRipple(cx, cy, '#5070B8', 580);
+      _fxTableFlash('rgba(255,255,255,0.15)');
+      _fxLabel('⇄ SWAP', '#F2E8D4', 20);
+
+    } else {
+      // Carte normale — juste un petit shake, pas d'effets lourds
+      // (déjà fait par _fxShakeDiscard)
+    }
+  }
+
+  // Vérifie si une carte est spéciale
+  function _isSpecialCard(card) {
+    return card.value==='+1'||card.value==='+2'||card.value==='block'||
+           card.value==='8'||card.value==='swap';
+  }
+
   // ─── Animations vol de carte ──────────────────────────
   // IMPORTANT : les cartes volantes sont appendées dans #ochoView,
   // PAS dans document.body. #ochoView est position:fixed;z-index:200
@@ -1015,6 +1224,8 @@
     var scTo = Math.min(toRect.width/52, toRect.height/73);
 
     _flyAnimate(fly, p0, p3, cp1, cp2, 380, 1, scTo, startRot, 0, function() {
+      // Effet spécial à l'impact
+      if (_isSpecialCard(card)) _triggerCardFX(card);
       fly.style.transition = 'opacity 0.1s ease';
       fly.style.opacity = '0';
       setTimeout(function() { fly.remove(); if (cb) cb(); }, 110);
@@ -1054,7 +1265,7 @@
   }
 
   // Animation adversaire : main adverse → défausse (carte dos)
-  function _animateOppCardPlay() {
+  function _animateOppCardPlay(card) {
     var topArc    = document.getElementById('ochoTopArc');
     var discardEl = document.getElementById('ochoDiscardCard');
     if (!topArc || !discardEl) return;
@@ -1082,6 +1293,7 @@
     _flyContainer().appendChild(fly);
 
     _flyAnimate(fly, p0, p3, cp1, cp2, 400, 1, 0.96, -5, 0, function() {
+      if (card && _isSpecialCard(card)) _triggerCardFX(card);
       fly.style.transition = 'opacity 0.1s ease';
       fly.style.opacity = '0';
       setTimeout(function() { fly.remove(); }, 110);
