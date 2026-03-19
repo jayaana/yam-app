@@ -671,9 +671,8 @@
     }
     if(state.phase==='round_end'){_showRoundEnd(state);return;}
     if(state.phase==='game_end'){_showGameEnd(state);return;}
+    // phase === 'playing' : toujours cacher les overlays de fin (cas adversaire bloqué en attente)
     var re=document.getElementById('ochoRoundEnd'),ge=document.getElementById('ochoGameEnd');
-    if(re&&re.style.display==='flex')return;
-    if(ge&&ge.style.display==='flex')return;
     if(re)re.style.display='none';if(ge)ge.style.display='none';
     var isMyTurn=state.turn===_me;
     var myHand=_me==='girl'?state.girl_hand:state.boy_hand;
