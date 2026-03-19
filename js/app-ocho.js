@@ -6,8 +6,9 @@
 
 /* ══════════════════════════════════════════════════════
    OCHO — Jeu de cartes multijoueur (type UNO)
-   108 cartes, 6 manches, 7 cartes en main
-   Cartes spéciales : +1(Q), +2(K), Blocage(J), 8(joker), Swap(main)
+   96 cartes, 6 manches, 7 cartes en main
+   Numériques : A(×2) + 2-7,9,10(×2) par couleur
+   Cartes spéciales : +1, +2, Blocage(×2/couleur), 8-wild(×2), Swap(×2)
    v3 : vraies cartes SVG, animations vol, draw+pass, double-clic, aura, photos
 ══════════════════════════════════════════════════════ */
 (function () {
@@ -38,15 +39,22 @@
 
   function buildDeck() {
     var d = [];
+    // Numériques : A (×1), 2-7 et 9-10 (×2 chacun) — pas de 0, pas de 1, pas de 8 normal
+    var NUMS_DOUBLE = ['2','3','4','5','6','7','9','10'];
     SUITS.forEach(function (s) {
-      d.push(_mkCard(s,'0'));
-      for (var n=1;n<=9;n++) { d.push(_mkCard(s,String(n))); d.push(_mkCard(s,String(n))); }
+      // As : 2 exemplaires par couleur
+      d.push(_mkCard(s,'A')); d.push(_mkCard(s,'A'));
+      // Numériques : 2 exemplaires par couleur
+      NUMS_DOUBLE.forEach(function(n){ d.push(_mkCard(s,n)); d.push(_mkCard(s,n)); });
+      // Spéciaux : 2 exemplaires par couleur
       d.push(_mkCard(s,'+1')); d.push(_mkCard(s,'+1'));
       d.push(_mkCard(s,'+2')); d.push(_mkCard(s,'+2'));
       d.push(_mkCard(s,'block')); d.push(_mkCard(s,'block'));
     });
-    for (var i=0;i<4;i++) d.push(_mkCard('wild','8'));
-    for (var j=0;j<4;j++) d.push(_mkCard('swap','swap'));
+    // Wild 8 : 4 exemplaires au total
+    for(var i=0;i<4;i++) d.push(_mkCard('wild','8'));
+    // Swap : 4 exemplaires au total
+    for(var j=0;j<4;j++) d.push(_mkCard('swap','swap'));
     return _shuffle(d);
   }
 
@@ -74,11 +82,11 @@
     ns.current_color=(card.suit==='wild'||card.suit==='swap')?(chosenColor||'heart'):card.suit;
     ns.draw_penalty=null;
     ns.ts_turn=Date.now();ns.ocho_declared=null;
-    // Vérifier victoire AVANT les effets spéciaux
-    // La main du joueur après retrait de sa carte, avant tout swap
+    // Vérifier victoire AVANT les effets spéciaux (et avant le swap)
     var handAfterPlay=player==='girl'?ns.girl_hand:ns.boy_hand;
     if(handAfterPlay.length===0){
       ns.phase='round_end';ns.round_winner=player;ns.wins[player]=(ns.wins[player]||0)+1;
+      // Pas d'effets spéciaux si le joueur a gagné
       return ns;
     }
     // Appliquer les effets spéciaux seulement si pas de victoire
@@ -688,7 +696,7 @@
     var playable=_playableCards(myHand,state);
     _renderMyCards(myHand,playable,isMyTurn);
     _renderHint(state,myHand,playable,isMyTurn);
-    if(isMyTurn&&state.draw_penalty&&state.draw_penalty.target===_me)_applyForcedDraw(state);
+    if(isMyTurn&&state.draw_penalty&&state.draw_penalty.target===_me&&state.phase==='playing')_applyForcedDraw(state);
   }
 
   // ─── Défausse ─────────────────────────────────────────
@@ -892,7 +900,7 @@
     _mp.saveState(ns);
   }
 
-  function _applyForcedDraw(state){if(_mp.isSaving())return;_mp.saveState(_applyDrawPenalty(state));}
+  function _applyForcedDraw(state){if(_mp.isSaving()||!state||state.phase!=='playing')return;_mp.saveState(_applyDrawPenalty(state));}
 
   // ─── Bouton OCHO ──────────────────────────────────────
   function _onOchoBtn(){
