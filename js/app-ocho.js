@@ -33,6 +33,7 @@
   var _drawnThisTurn = false;
   var _passAvailable = false;
   var _ochoCounterUsed = false;  // anti-spam contre-ocho, local client
+  var _ochoBtnCooldown = false;  // cooldown global bouton ocho
 
   // ─── Deck ─────────────────────────────────────────────
   var SUITS  = ['heart','club','spade','diamond'];
@@ -665,7 +666,7 @@
   function _resetLocalState(){
     _state=null;_stopTimer();_stopSafetyPoll();_timerFired=false;_reactCooldown=false;
     _lastReactTs=0;_lastCaughtTs=0;_ochoAuraOn=false;_selectedCard=null;
-    _drawnThisTurn=false;_passAvailable=false;_ochoCounterUsed=false;
+    _drawnThisTurn=false;_passAvailable=false;_ochoCounterUsed=false;_ochoBtnCooldown=false;
     var aura=document.getElementById('ochoAura');if(aura)aura.classList.remove('active','active-opp');
     var pass=document.getElementById('ochoPassBtn');if(pass)pass.classList.remove('visible');
     if(typeof window._corePresenceSuspend==='function')window._corePresenceSuspend();
@@ -975,6 +976,10 @@
   // ─── Bouton OCHO ──────────────────────────────────────
   function _onOchoBtn(){
     if(!_state)return;
+    // Cooldown global : 1 action max toutes les 1.5s, indépendant du réseau
+    if(_ochoBtnCooldown)return;
+    _ochoBtnCooldown=true;
+    setTimeout(function(){_ochoBtnCooldown=false;},1500);
     var mh=_me==='girl'?_state.girl_hand:_state.boy_hand;
     var oh=_me==='girl'?_state.boy_hand:_state.girl_hand;
     // Cas 1 : je déclare mon propre ocho (1 carte en main, pas encore déclaré)
