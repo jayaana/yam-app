@@ -949,42 +949,38 @@
     return fly;
   }
 
-  // Anime une carte le long d'une vraie courbe de Bezier cubique.
-  // IMPORTANT : bezier() reçoit `raw` (progression lineaire 0->1) pour que la
-  // trajectoire spatiale suive la courbe — l'ease est applique uniquement sur
-  // scale/rotation, jamais sur la position, sinon les points de controle
-  // sont ignores et la carte semble se teleporter.
+  // Anime avec une courbe de Bézier cubique pour un arc naturel
+  // p0=départ, p3=arrivée, cp=point de contrôle (courbure), dur=ms
   function _flyAnimate(fly, p0, p3, cp1, cp2, dur, startScale, endScale, startRot, endRot, onDone) {
     var start = null;
-    function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+    function ease(t) {
+      // ease-in-out cubic
+      return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
+    }
     function bezier(t, a, b, c, d) {
-      var u = 1 - t;
+      var u = 1-t;
       return u*u*u*a + 3*u*u*t*b + 3*u*t*t*c + t*t*t*d;
     }
     function frame(ts) {
       if (!start) start = ts;
       var raw = Math.min((ts - start) / dur, 1);
-      // Position : raw lineaire -> vraie trajectoire de Bezier visible
-      var x = bezier(raw, p0.x, cp1.x, cp2.x, p3.x) - p0.x;
-      var y = bezier(raw, p0.y, cp1.y, cp2.y, p3.y) - p0.y;
-      // Scale/rotation : easeOut pour finition naturelle
-      var e = easeOut(raw);
-      var sc  = startScale + (endScale - startScale) * e;
-      var rot = startRot   + (endRot   - startRot)   * e;
+      var t = ease(raw);
+      var x = bezier(t, p0.x, cp1.x, cp2.x, p3.x) - p0.x;
+      var y = bezier(t, p0.y, cp1.y, cp2.y, p3.y) - p0.y;
+      var sc = startScale + (endScale - startScale) * t;
+      var rot = startRot + (endRot - startRot) * t;
       fly.style.transform = 'translate('+x+'px,'+y+'px) scale('+sc+') rotate('+rot+'deg)';
       if (raw < 1) {
         requestAnimationFrame(frame);
       } else {
-        fly.style.transform =
-          'translate('+(p3.x-p0.x)+'px,'+(p3.y-p0.y)+'px)'+
-          ' scale('+endScale+') rotate('+endRot+'deg)';
+        fly.style.transform = 'translate('+(p3.x-p0.x)+'px,'+(p3.y-p0.y)+'px) scale('+endScale+') rotate('+endRot+'deg)';
         if (onDone) onDone();
       }
     }
     requestAnimationFrame(frame);
   }
 
-  // Jouer une carte : main (bas) -> defausse (centre-table)
+  // Jouer une carte : main (bas) → défausse (centre-table)
   function _animateCardPlay(card, cb) {
     var arc = document.getElementById('ochoBotArc');
     var discardEl = document.getElementById('ochoDiscardCard');
@@ -997,57 +993,60 @@
     if (!fromEl) { if (cb) cb(); return; }
 
     var fromRect = fromEl.getBoundingClientRect();
-    var toRect   = discardEl.getBoundingClientRect();
+    var toRect = discardEl.getBoundingClientRect();
 
-    // Coordonnees absolues viewport (coin sup-gauche de chaque carte)
+    // Point central de destination (centre de la carte défausse)
     var p0 = { x: fromRect.left, y: fromRect.top };
     var p3 = {
-      x: toRect.left + (toRect.width  - 52) / 2,
-      y: toRect.top  + (toRect.height - 73) / 2
+      x: toRect.left + (toRect.width - 52) / 2,
+      y: toRect.top + (toRect.height - 73) / 2
     };
 
-    // Arc parabolique : points de controle au-dessus de la ligne p0->p3
-    // cp1 pres du depart, cp2 pres de l'arrivee, les deux haut dans l'ecran
-    var arcHeight = 130; // pixels au-dessus du plus haut des deux points
-    var topY = Math.min(p0.y, p3.y) - arcHeight;
-    var cp1 = { x: p0.x + (p3.x - p0.x) * 0.25, y: topY };
-    var cp2 = { x: p0.x + (p3.x - p0.x) * 0.75, y: topY };
+    // Arc : le point de contrôle monte au milieu du trajet
+    var midX = (p0.x + p3.x) / 2;
+    var midY = Math.min(p0.y, p3.y) - 80; // monte bien au-dessus
+    var cp1 = { x: p0.x + (midX - p0.x) * 0.4, y: midY };
+    var cp2 = { x: p3.x - (p3.x - midX) * 0.4, y: midY + 20 };
 
     var fly = _createFlyEl(_cardInner(card, false), fromRect, 'transform-origin:center center;');
     fromEl.style.opacity = '0';
-    fly.style.boxShadow = '0 10px 32px rgba(255,215,0,0.45), 0 4px 14px rgba(0,0,0,0.6)';
 
-    var scTo    = Math.min(toRect.width / 52, toRect.height / 73);
-    var startRot = (cardIdx - (hand.length - 1) / 2) * 4;
+    // Légère ombre dorée au départ
+    fly.style.boxShadow = '0 8px 28px rgba(255,215,0,0.4),0 4px 12px rgba(0,0,0,0.5)';
 
-    _flyAnimate(fly, p0, p3, cp1, cp2, 480, 1, scTo, startRot, 0, function() {
-      fly.style.transition = 'opacity 0.1s ease';
-      fly.style.opacity = '0';
-      setTimeout(function() { fly.remove(); if (cb) cb(); }, 110);
+    var scTo = Math.min(toRect.width / 52, toRect.height / 73);
+    // Rotation : part légèrement inclinée selon position dans l'arc, arrive droite
+    var startRot = (cardIdx - (hand.length-1)/2) * 3;
+
+    _flyAnimate(fly, p0, p3, cp1, cp2, 380, 1, scTo, startRot, 0, function() {
+      setTimeout(function() {
+        fly.style.transition = 'opacity 0.12s ease';
+        fly.style.opacity = '0';
+        setTimeout(function() { fly.remove(); if (cb) cb(); }, 130);
+      }, 30);
     });
   }
 
-  // Piocher une carte : paquet (centre-table) -> main (bas)
+  // Piocher une carte : paquet (centre-table) → main (bas)
   function _animateDrawCard(cb) {
     var deckEl = document.getElementById('ochoDeckCard');
-    var arc    = document.getElementById('ochoBotArc');
+    var arc = document.getElementById('ochoBotArc');
     if (!deckEl || !arc) { if (cb) cb(); return; }
 
     var fromRect = deckEl.getBoundingClientRect();
-    var toRect   = arc.getBoundingClientRect();
-
+    // Destination : centre-bas de l'arc (là où la nouvelle carte atterrit)
+    var toRect = arc.getBoundingClientRect();
     var p0 = { x: fromRect.left, y: fromRect.top };
     var p3 = {
-      x: toRect.left + toRect.width / 2 - 25,
-      y: toRect.top  + toRect.height    - 74
+      x: toRect.left + toRect.width / 2 - 26,
+      y: toRect.top + toRect.height - 77
     };
 
-    // Arc vers le bas : la carte plonge depuis le paquet vers la main
-    // cp1 legerement a droite/haut, cp2 centre-bas
-    var arcHeight = 100;
-    var topY = Math.min(p0.y, p3.y) - arcHeight;
-    var cp1 = { x: p0.x + (p3.x - p0.x) * 0.2, y: topY };
-    var cp2 = { x: p0.x + (p3.x - p0.x) * 0.8, y: topY + 20 };
+    // Arc : part vers le haut puis redescend vers la main
+    var midX = (p0.x + p3.x) / 2;
+    var midY = Math.min(p0.y, p3.y) - 60;
+    var cp1 = { x: p0.x - 20, y: midY };
+    var cp2 = { x: p3.x + 20, y: midY + 30 };
 
     var fly = document.createElement('div');
     fly.className = 'oc-flying-card';
@@ -1056,39 +1055,46 @@
       'left:' + fromRect.left + 'px;top:' + fromRect.top + 'px;' +
       'background:repeating-linear-gradient(135deg,#2a1205 0px,#2a1205 6px,#3a1a0a 6px,#3a1a0a 12px);' +
       'transform-origin:center center;';
-    fly.innerHTML = '<div style="position:absolute;inset:5px;border-radius:4px;border:1px solid rgba(242,232,212,0.18);"></div>';
+    // Petite bordure interne
+    fly.innerHTML = '<div style="position:absolute;inset:5px;border-radius:4px;border:1px solid rgba(242,232,212,0.14);"></div>';
     document.body.appendChild(fly);
 
-    _flyAnimate(fly, p0, p3, cp1, cp2, 420, 1, 1.05, -10, 0, function() {
-      fly.style.transition = 'opacity 0.15s ease';
-      fly.style.opacity = '0';
-      setTimeout(function() { fly.remove(); if (cb) cb(); }, 160);
+    _flyAnimate(fly, p0, p3, cp1, cp2, 340, 1, 1.08, -8, 0, function() {
+      fly.style.transition = 'transform 0.15s cubic-bezier(.34,1.56,.64,1), opacity 0.15s ease';
+      fly.style.transform = fly.style.transform + ' scale(1.0)';
+      setTimeout(function() {
+        fly.style.transition = 'opacity 0.18s ease';
+        fly.style.opacity = '0';
+        setTimeout(function() { fly.remove(); if (cb) cb(); }, 190);
+      }, 100);
     });
   }
 
-  // Animation cote adversaire : main adverse -> defausse (carte dos visible)
+  // Animation côté adversaire : défausse ← main adverse (carte dos)
   function _animateOppCardPlay() {
-    var topArc    = document.getElementById('ochoTopArc');
+    var topArc = document.getElementById('ochoTopArc');
     var discardEl = document.getElementById('ochoDiscardCard');
     if (!topArc || !discardEl) return;
 
+    // Prendre la position d'une carte adverse (milieu de l'arc)
     var cardEls = topArc.querySelectorAll('.oc-arc-bk');
     if (!cardEls.length) return;
-    var fromEl   = cardEls[Math.floor(cardEls.length / 2)] || cardEls[0];
+    var midIdx = Math.floor(cardEls.length / 2);
+    var fromEl = cardEls[midIdx] || cardEls[0];
     var fromRect = fromEl.getBoundingClientRect();
-    var toRect   = discardEl.getBoundingClientRect();
+    var toRect = discardEl.getBoundingClientRect();
 
     var p0 = { x: fromRect.left, y: fromRect.top };
     var p3 = {
-      x: toRect.left + (toRect.width  - 50) / 2,
-      y: toRect.top  + (toRect.height - 70) / 2
+      x: toRect.left + (toRect.width - 50) / 2,
+      y: toRect.top + (toRect.height - 70) / 2
     };
+    var midX = (p0.x + p3.x) / 2;
+    var midY = Math.min(p0.y, p3.y) - 70;
+    var cp1 = { x: p0.x + (midX - p0.x) * 0.5, y: midY };
+    var cp2 = { x: p3.x - (p3.x - midX) * 0.5, y: midY + 15 };
 
-    var arcHeight = 110;
-    var topY = Math.min(p0.y, p3.y) - arcHeight;
-    var cp1 = { x: p0.x + (p3.x - p0.x) * 0.25, y: topY };
-    var cp2 = { x: p0.x + (p3.x - p0.x) * 0.75, y: topY };
-
+    // Carte dos adversaire
     var fly = document.createElement('div');
     fly.className = 'oc-flying-card';
     fly.style.cssText =
@@ -1096,35 +1102,33 @@
       'left:' + fromRect.left + 'px;top:' + fromRect.top + 'px;' +
       'background:repeating-linear-gradient(135deg,#2a1205 0px,#2a1205 6px,#3a1a0a 6px,#3a1a0a 12px);' +
       'transform-origin:center center;';
-    fly.innerHTML = '<div style="position:absolute;inset:5px;border-radius:4px;border:1px solid rgba(242,232,212,0.18);"></div>';
+    fly.innerHTML = '<div style="position:absolute;inset:5px;border-radius:4px;border:1px solid rgba(242,232,212,0.14);"></div>';
     document.body.appendChild(fly);
 
-    _flyAnimate(fly, p0, p3, cp1, cp2, 460, 1, 0.96, -5, 0, function() {
-      fly.style.transition = 'opacity 0.12s ease';
+    _flyAnimate(fly, p0, p3, cp1, cp2, 400, 1, 0.96, 6, 0, function() {
+      fly.style.transition = 'opacity 0.15s ease';
       fly.style.opacity = '0';
-      setTimeout(function() { fly.remove(); }, 130);
+      setTimeout(function() { fly.remove(); }, 160);
     });
   }
 
-  // Animation pioche adverse : paquet -> main adverse (carte dos qui monte)
+  // Animation pioche adverse : pioche → main adverse (carte dos qui monte)
   function _animateOppDrawCard() {
     var deckEl = document.getElementById('ochoDeckCard');
     var topArc = document.getElementById('ochoTopArc');
     if (!deckEl || !topArc) return;
 
     var fromRect = deckEl.getBoundingClientRect();
-    var toRect   = topArc.getBoundingClientRect();
-
+    var toRect = topArc.getBoundingClientRect();
     var p0 = { x: fromRect.left, y: fromRect.top };
     var p3 = {
-      x: toRect.left + toRect.width / 2 - 24,
-      y: toRect.top  + 6
+      x: toRect.left + toRect.width / 2 - 25,
+      y: toRect.top + 4
     };
-
-    var arcHeight = 90;
-    var topY = Math.min(p0.y, p3.y) - arcHeight;
-    var cp1 = { x: p0.x + (p3.x - p0.x) * 0.2, y: topY };
-    var cp2 = { x: p0.x + (p3.x - p0.x) * 0.8, y: topY + 15 };
+    var midX = (p0.x + p3.x) / 2;
+    var midY = Math.min(p0.y, p3.y) - 50;
+    var cp1 = { x: p0.x + 20, y: midY };
+    var cp2 = { x: p3.x - 20, y: midY + 20 };
 
     var fly = document.createElement('div');
     fly.className = 'oc-flying-card';
@@ -1133,13 +1137,13 @@
       'left:' + fromRect.left + 'px;top:' + fromRect.top + 'px;' +
       'background:repeating-linear-gradient(135deg,#2a1205 0px,#2a1205 6px,#3a1a0a 6px,#3a1a0a 12px);' +
       'transform-origin:center center;';
-    fly.innerHTML = '<div style="position:absolute;inset:5px;border-radius:4px;border:1px solid rgba(242,232,212,0.18);"></div>';
+    fly.innerHTML = '<div style="position:absolute;inset:5px;border-radius:4px;border:1px solid rgba(242,232,212,0.14);"></div>';
     document.body.appendChild(fly);
 
-    _flyAnimate(fly, p0, p3, cp1, cp2, 380, 1, 1, 5, 0, function() {
-      fly.style.transition = 'opacity 0.12s ease';
+    _flyAnimate(fly, p0, p3, cp1, cp2, 320, 1, 1, 8, 0, function() {
+      fly.style.transition = 'opacity 0.15s ease';
       fly.style.opacity = '0';
-      setTimeout(function() { fly.remove(); }, 130);
+      setTimeout(function() { fly.remove(); }, 160);
     });
   }
 
