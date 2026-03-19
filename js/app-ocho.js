@@ -259,13 +259,8 @@
 /* Bootstrap Icons utilises pour les symboles — identique a la maquette */
 '#ochoView{display:none;position:fixed;inset:0;z-index:200;overflow:hidden;font-family:Bricolage Grotesque,system-ui,sans-serif;}'+
 '#ochoView.active{display:block!important;}'+
-'#ochoBg{position:absolute;inset:0;background:linear-gradient(180deg,#f2a890 0%,#eaa078 16%,#c87850 32%,#b06838 52%,#985828 68%,#804818 82%,#6a3c14 100%);}'+
-'#ochoSky{position:absolute;top:0;left:0;right:0;height:36%;background:linear-gradient(180deg,#f0a490 0%,#e8b898 38%,#bcd4c8 76%,#a8c8ba 100%);}'+
-'.oc-cloud{position:absolute;background:rgba(255,242,235,0.78);border-radius:40px;}'+
-'.oc-mesa{position:absolute;background:#7a3818;}'+
-'.oc-rock{position:absolute;background:#8a4422;border-radius:50%;}'+
-'.oc-cv{position:absolute;background:#385c28;border-radius:3px;}'+
-'.oc-ch{position:absolute;background:#385c28;border-radius:2px;}'+
+'#ochoBg{position:absolute;inset:0;background:url("assets/images/ocho-home.png") center center/cover no-repeat;}'+
+'#ochoBgOverlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.08) 40%,rgba(0,0,0,0.28) 100%);pointer-events:none;}'+
 '#ochoAura{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:5;}'+
 '#ochoAura.active{animation:ochoAuraAnim 1.2s ease-in-out infinite;opacity:1;}'+
 '@keyframes ochoAuraAnim{0%{box-shadow:inset 0 0 0px 0px rgba(220,60,40,0);}40%{box-shadow:inset 0 0 60px 20px rgba(220,60,40,0.45),inset 0 0 120px 40px rgba(220,60,40,0.2);}100%{box-shadow:inset 0 0 0px 0px rgba(220,60,40,0);}}'+
@@ -360,7 +355,10 @@
 '.oc-color-btn:active{transform:scale(0.9);}'+
 '.oc-color-btn i{font-size:38px;color:#F2E8D4;}'+
 '.oc-color-btn span{font-size:11px;font-weight:900;color:#F2E8D4;font-family:Bricolage Grotesque,system-ui,sans-serif;letter-spacing:0.04em;}'+
-'.oc-flying-card{position:fixed;z-index:500;pointer-events:none;border-radius:9px;border:2.5px solid #F2E8D4;box-shadow:0 6px 20px rgba(0,0,0,0.5);}'+
+'.oc-flying-card{position:fixed;z-index:500;pointer-events:none;border-radius:9px;border:2.5px solid #F2E8D4;box-shadow:0 6px 20px rgba(0,0,0,0.5);will-change:transform,opacity;}'+
+'@keyframes ochoCardShimmer{0%{box-shadow:0 6px 20px rgba(0,0,0,0.5);}50%{box-shadow:0 12px 36px rgba(255,215,0,0.5),0 0 20px rgba(255,215,0,0.3);}100%{box-shadow:0 6px 20px rgba(0,0,0,0.5);}}'+
+'.oc-arc-bk.oc-dealing{animation:ochoDealIn 0.32s cubic-bezier(.34,1.56,.64,1) forwards;}'+
+'@keyframes ochoDealIn{0%{opacity:0;transform:rotate(var(--deal-rot)) scale(0.7) translateY(-18px);}100%{opacity:1;transform:rotate(var(--deal-rot)) scale(1) translateY(0);}}'+
 '#ochoView.active ~ .bottom-nav{display:none!important;}';
     document.head.appendChild(s);
   }
@@ -369,20 +367,7 @@
   function _buildOchoHTML(){
     return '<div id="ochoView">'+
     '<div id="ochoBg"></div>'+
-    '<div id="ochoSky">'+
-      '<div class="oc-cloud" style="width:72px;height:23px;top:20%;left:7%;"></div>'+
-      '<div class="oc-cloud" style="width:46px;height:15px;top:31%;left:17%;"></div>'+
-      '<div class="oc-cloud" style="width:88px;height:27px;top:15%;right:9%;"></div>'+
-      '<div class="oc-cloud" style="width:54px;height:17px;top:29%;right:21%;"></div>'+
-    '</div>'+
-    '<div class="oc-mesa" style="width:50px;height:24px;bottom:57%;left:1%;border-radius:3px 3px 0 0;opacity:0.48;"></div>'+
-    '<div class="oc-mesa" style="width:62px;height:20px;bottom:58%;right:0;border-radius:3px 3px 0 0;opacity:0.42;"></div>'+
-    '<div class="oc-rock" style="width:18px;height:11px;bottom:32%;left:4%;opacity:0.6;"></div>'+
-    '<div class="oc-rock" style="width:24px;height:13px;bottom:31%;right:5%;opacity:0.55;"></div>'+
-    '<div class="oc-cv" style="width:5px;height:20px;bottom:32%;left:15%;opacity:0.65;"></div>'+
-    '<div class="oc-ch" style="width:9px;height:4px;bottom:39%;left:11%;opacity:0.65;"></div>'+
-    '<div class="oc-cv" style="width:5px;height:17px;bottom:32%;right:14%;opacity:0.58;"></div>'+
-    '<div class="oc-ch" style="width:8px;height:4px;bottom:37%;right:11%;opacity:0.58;"></div>'+
+    '<div id="ochoBgOverlay"></div>'+
     '<div id="ochoAura"></div>'+
     '<div id="ochoAnimZone"><div id="ochoAnimText"></div></div>'+
     '<div id="ochoHeader" style="position:absolute;top:0;left:0;right:0;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:100;">'+
@@ -658,12 +643,32 @@
   // ─── Rendu état ───────────────────────────────────────
   function _renderState(gameRow){
     var state=gameRow.state;if(!state)return;
+    // Détecter les actions adverse pour déclencher les animations
+    var oppPlayedCard = false;
+    var oppDrewCard   = false;
+    if (_state && _state.phase === 'playing' && state.phase === 'playing') {
+      var prevOppHand = (_other === 'girl' ? _state.girl_hand : _state.boy_hand) || [];
+      var newOppHand  = (_other === 'girl' ? state.girl_hand  : state.boy_hand)  || [];
+      var prevDiscard = _state.discard || [];
+      var newDiscard  = state.discard  || [];
+      // Adverse a joué : sa main a diminué ET la défausse a augmenté
+      if (newOppHand.length < prevOppHand.length && newDiscard.length > prevDiscard.length) {
+        oppPlayedCard = true;
+      }
+      // Adverse a pioché : sa main a augmenté ET la défausse n'a pas bougé
+      if (newOppHand.length > prevOppHand.length && newDiscard.length === prevDiscard.length) {
+        oppDrewCard = true;
+      }
+    }
     // Reset local uniquement si le joueur actif change (pas juste le timestamp)
     if(_state&&_state.turn!==state.turn){
       _drawnThisTurn=false;_passAvailable=false;_selectedCard=null;
       var pb=document.getElementById('ochoPassBtn');if(pb)pb.classList.remove('visible');
     }
     _state=state;_checkIncomingReaction(state);
+    // Déclencher animations adversaire APRÈS la mise à jour de _state
+    if (oppPlayedCard) setTimeout(_animateOppCardPlay, 60);
+    if (oppDrewCard)   setTimeout(_animateOppDrawCard, 60);
     // Désactiver aura si je ne l'ai plus déclarée
     if(state.ocho_declared!==_me&&_ochoAuraOn){
       _ochoAuraOn=false;
@@ -930,67 +935,216 @@
     }
   }
 
-  // ─── Animations vol de carte ──────────────────────────
-  function _animateCardPlay(card,cb){
-    var arc=document.getElementById('ochoBotArc');
-    var discardEl=document.getElementById('ochoDiscardCard');
-    if(!arc||!discardEl){if(cb)cb();return;}
-
-    // Trouver l'élément de carte par index dans la main
-    var hand=_me==='girl'?_state.girl_hand:_state.boy_hand;
-    var cardIdx=hand.findIndex(function(c){return c.id===card.id;});
-    var cardEls=arc.querySelectorAll('.oc-card');
-    var fromEl=cardEls[cardIdx]||cardEls[0];
-    if(!fromEl){if(cb)cb();return;}
-
-    var fromRect=fromEl.getBoundingClientRect();
-    var toRect=discardEl.getBoundingClientRect();
-
-    var fly=document.createElement('div');
-    fly.className='oc-flying-card';
-    fly.style.cssText='width:52px;height:73px;left:'+fromRect.left+'px;top:'+fromRect.top+'px;overflow:hidden;';
-    fly.innerHTML=_cardInner(card,false);
+  // ─── Animations vol de carte (v4 — vraies trajectoires) ──────────
+  // Crée un élément carte volante positionné exactement sur fromRect
+  function _createFlyEl(innerHTML, fromRect, extraStyle) {
+    var fly = document.createElement('div');
+    fly.className = 'oc-flying-card';
+    fly.style.cssText =
+      'width:52px;height:73px;overflow:hidden;' +
+      'left:' + fromRect.left + 'px;top:' + fromRect.top + 'px;' +
+      (extraStyle || '');
+    fly.innerHTML = innerHTML;
     document.body.appendChild(fly);
-
-    // Masquer la carte originale
-    fromEl.style.opacity='0';
-
-    var toX=toRect.left-fromRect.left;
-    var toY=toRect.top-fromRect.top;
-    var sc=Math.min(toRect.width/52,toRect.height/73);
-
-    requestAnimationFrame(function(){requestAnimationFrame(function(){
-      fly.style.transition='transform 0.3s cubic-bezier(.4,0,.2,1),opacity 0.3s ease';
-      fly.style.transform='translate('+toX+'px,'+toY+'px) scale('+sc+')';
-      fly.style.opacity='0';
-      setTimeout(function(){fly.remove();if(cb)cb();},320);
-    });});
+    return fly;
   }
 
-  function _animateDrawCard(cb){
-    var deckEl=document.getElementById('ochoDeckCard');
-    var arc=document.getElementById('ochoBotArc');
-    if(!deckEl||!arc){if(cb)cb();return;}
-    var fromRect=deckEl.getBoundingClientRect();
-    var toRect=arc.getBoundingClientRect();
+  // Anime avec une courbe de Bézier cubique pour un arc naturel
+  // p0=départ, p3=arrivée, cp=point de contrôle (courbure), dur=ms
+  function _flyAnimate(fly, p0, p3, cp1, cp2, dur, startScale, endScale, startRot, endRot, onDone) {
+    var start = null;
+    function ease(t) {
+      // ease-in-out cubic
+      return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
+    }
+    function bezier(t, a, b, c, d) {
+      var u = 1-t;
+      return u*u*u*a + 3*u*u*t*b + 3*u*t*t*c + t*t*t*d;
+    }
+    function frame(ts) {
+      if (!start) start = ts;
+      var raw = Math.min((ts - start) / dur, 1);
+      var t = ease(raw);
+      var x = bezier(t, p0.x, cp1.x, cp2.x, p3.x) - p0.x;
+      var y = bezier(t, p0.y, cp1.y, cp2.y, p3.y) - p0.y;
+      var sc = startScale + (endScale - startScale) * t;
+      var rot = startRot + (endRot - startRot) * t;
+      fly.style.transform = 'translate('+x+'px,'+y+'px) scale('+sc+') rotate('+rot+'deg)';
+      if (raw < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        fly.style.transform = 'translate('+(p3.x-p0.x)+'px,'+(p3.y-p0.y)+'px) scale('+endScale+') rotate('+endRot+'deg)';
+        if (onDone) onDone();
+      }
+    }
+    requestAnimationFrame(frame);
+  }
 
-    var fly=document.createElement('div');
-    fly.className='oc-flying-card oc-bk';
-    fly.style.cssText='width:50px;height:70px;left:'+fromRect.left+'px;top:'+fromRect.top+'px;'+
-      'background:repeating-linear-gradient(135deg,#2a1205 0px,#2a1205 6px,#3a1a0a 6px,#3a1a0a 12px);';
+  // Jouer une carte : main (bas) → défausse (centre-table)
+  function _animateCardPlay(card, cb) {
+    var arc = document.getElementById('ochoBotArc');
+    var discardEl = document.getElementById('ochoDiscardCard');
+    if (!arc || !discardEl) { if (cb) cb(); return; }
+
+    var hand = _me === 'girl' ? _state.girl_hand : _state.boy_hand;
+    var cardIdx = hand.findIndex(function(c) { return c.id === card.id; });
+    var cardEls = arc.querySelectorAll('.oc-card');
+    var fromEl = cardEls[cardIdx] || cardEls[0];
+    if (!fromEl) { if (cb) cb(); return; }
+
+    var fromRect = fromEl.getBoundingClientRect();
+    var toRect = discardEl.getBoundingClientRect();
+
+    // Point central de destination (centre de la carte défausse)
+    var p0 = { x: fromRect.left, y: fromRect.top };
+    var p3 = {
+      x: toRect.left + (toRect.width - 52) / 2,
+      y: toRect.top + (toRect.height - 73) / 2
+    };
+
+    // Arc : le point de contrôle monte au milieu du trajet
+    var midX = (p0.x + p3.x) / 2;
+    var midY = Math.min(p0.y, p3.y) - 80; // monte bien au-dessus
+    var cp1 = { x: p0.x + (midX - p0.x) * 0.4, y: midY };
+    var cp2 = { x: p3.x - (p3.x - midX) * 0.4, y: midY + 20 };
+
+    var fly = _createFlyEl(_cardInner(card, false), fromRect, 'transform-origin:center center;');
+    fromEl.style.opacity = '0';
+
+    // Légère ombre dorée au départ
+    fly.style.boxShadow = '0 8px 28px rgba(255,215,0,0.4),0 4px 12px rgba(0,0,0,0.5)';
+
+    var scTo = Math.min(toRect.width / 52, toRect.height / 73);
+    // Rotation : part légèrement inclinée selon position dans l'arc, arrive droite
+    var startRot = (cardIdx - (hand.length-1)/2) * 3;
+
+    _flyAnimate(fly, p0, p3, cp1, cp2, 380, 1, scTo, startRot, 0, function() {
+      setTimeout(function() {
+        fly.style.transition = 'opacity 0.12s ease';
+        fly.style.opacity = '0';
+        setTimeout(function() { fly.remove(); if (cb) cb(); }, 130);
+      }, 30);
+    });
+  }
+
+  // Piocher une carte : paquet (centre-table) → main (bas)
+  function _animateDrawCard(cb) {
+    var deckEl = document.getElementById('ochoDeckCard');
+    var arc = document.getElementById('ochoBotArc');
+    if (!deckEl || !arc) { if (cb) cb(); return; }
+
+    var fromRect = deckEl.getBoundingClientRect();
+    // Destination : centre-bas de l'arc (là où la nouvelle carte atterrit)
+    var toRect = arc.getBoundingClientRect();
+    var p0 = { x: fromRect.left, y: fromRect.top };
+    var p3 = {
+      x: toRect.left + toRect.width / 2 - 26,
+      y: toRect.top + toRect.height - 77
+    };
+
+    // Arc : part vers le haut puis redescend vers la main
+    var midX = (p0.x + p3.x) / 2;
+    var midY = Math.min(p0.y, p3.y) - 60;
+    var cp1 = { x: p0.x - 20, y: midY };
+    var cp2 = { x: p3.x + 20, y: midY + 30 };
+
+    var fly = document.createElement('div');
+    fly.className = 'oc-flying-card';
+    fly.style.cssText =
+      'width:50px;height:70px;overflow:hidden;' +
+      'left:' + fromRect.left + 'px;top:' + fromRect.top + 'px;' +
+      'background:repeating-linear-gradient(135deg,#2a1205 0px,#2a1205 6px,#3a1a0a 6px,#3a1a0a 12px);' +
+      'transform-origin:center center;';
+    // Petite bordure interne
+    fly.innerHTML = '<div style="position:absolute;inset:5px;border-radius:4px;border:1px solid rgba(242,232,212,0.14);"></div>';
     document.body.appendChild(fly);
 
-    var toX=toRect.left+(toRect.width/2)-fromRect.left-25;
-    var toY=toRect.top-fromRect.top;
+    _flyAnimate(fly, p0, p3, cp1, cp2, 340, 1, 1.08, -8, 0, function() {
+      fly.style.transition = 'transform 0.15s cubic-bezier(.34,1.56,.64,1), opacity 0.15s ease';
+      fly.style.transform = fly.style.transform + ' scale(1.0)';
+      setTimeout(function() {
+        fly.style.transition = 'opacity 0.18s ease';
+        fly.style.opacity = '0';
+        setTimeout(function() { fly.remove(); if (cb) cb(); }, 190);
+      }, 100);
+    });
+  }
 
-    requestAnimationFrame(function(){requestAnimationFrame(function(){
-      fly.style.transition='transform 0.28s cubic-bezier(.4,0,.2,1),opacity 0.28s ease';
-      fly.style.transform='translate('+toX+'px,'+toY+'px) scale(1.06)';
-      setTimeout(function(){
-        fly.style.opacity='0';
-        setTimeout(function(){fly.remove();if(cb)cb();},150);
-      },200);
-    });});
+  // Animation côté adversaire : défausse ← main adverse (carte dos)
+  function _animateOppCardPlay() {
+    var topArc = document.getElementById('ochoTopArc');
+    var discardEl = document.getElementById('ochoDiscardCard');
+    if (!topArc || !discardEl) return;
+
+    // Prendre la position d'une carte adverse (milieu de l'arc)
+    var cardEls = topArc.querySelectorAll('.oc-arc-bk');
+    if (!cardEls.length) return;
+    var midIdx = Math.floor(cardEls.length / 2);
+    var fromEl = cardEls[midIdx] || cardEls[0];
+    var fromRect = fromEl.getBoundingClientRect();
+    var toRect = discardEl.getBoundingClientRect();
+
+    var p0 = { x: fromRect.left, y: fromRect.top };
+    var p3 = {
+      x: toRect.left + (toRect.width - 50) / 2,
+      y: toRect.top + (toRect.height - 70) / 2
+    };
+    var midX = (p0.x + p3.x) / 2;
+    var midY = Math.min(p0.y, p3.y) - 70;
+    var cp1 = { x: p0.x + (midX - p0.x) * 0.5, y: midY };
+    var cp2 = { x: p3.x - (p3.x - midX) * 0.5, y: midY + 15 };
+
+    // Carte dos adversaire
+    var fly = document.createElement('div');
+    fly.className = 'oc-flying-card';
+    fly.style.cssText =
+      'width:50px;height:70px;overflow:hidden;' +
+      'left:' + fromRect.left + 'px;top:' + fromRect.top + 'px;' +
+      'background:repeating-linear-gradient(135deg,#2a1205 0px,#2a1205 6px,#3a1a0a 6px,#3a1a0a 12px);' +
+      'transform-origin:center center;';
+    fly.innerHTML = '<div style="position:absolute;inset:5px;border-radius:4px;border:1px solid rgba(242,232,212,0.14);"></div>';
+    document.body.appendChild(fly);
+
+    _flyAnimate(fly, p0, p3, cp1, cp2, 400, 1, 0.96, 6, 0, function() {
+      fly.style.transition = 'opacity 0.15s ease';
+      fly.style.opacity = '0';
+      setTimeout(function() { fly.remove(); }, 160);
+    });
+  }
+
+  // Animation pioche adverse : pioche → main adverse (carte dos qui monte)
+  function _animateOppDrawCard() {
+    var deckEl = document.getElementById('ochoDeckCard');
+    var topArc = document.getElementById('ochoTopArc');
+    if (!deckEl || !topArc) return;
+
+    var fromRect = deckEl.getBoundingClientRect();
+    var toRect = topArc.getBoundingClientRect();
+    var p0 = { x: fromRect.left, y: fromRect.top };
+    var p3 = {
+      x: toRect.left + toRect.width / 2 - 25,
+      y: toRect.top + 4
+    };
+    var midX = (p0.x + p3.x) / 2;
+    var midY = Math.min(p0.y, p3.y) - 50;
+    var cp1 = { x: p0.x + 20, y: midY };
+    var cp2 = { x: p3.x - 20, y: midY + 20 };
+
+    var fly = document.createElement('div');
+    fly.className = 'oc-flying-card';
+    fly.style.cssText =
+      'width:48px;height:67px;overflow:hidden;' +
+      'left:' + fromRect.left + 'px;top:' + fromRect.top + 'px;' +
+      'background:repeating-linear-gradient(135deg,#2a1205 0px,#2a1205 6px,#3a1a0a 6px,#3a1a0a 12px);' +
+      'transform-origin:center center;';
+    fly.innerHTML = '<div style="position:absolute;inset:5px;border-radius:4px;border:1px solid rgba(242,232,212,0.14);"></div>';
+    document.body.appendChild(fly);
+
+    _flyAnimate(fly, p0, p3, cp1, cp2, 320, 1, 1, 8, 0, function() {
+      fly.style.transition = 'opacity 0.15s ease';
+      fly.style.opacity = '0';
+      setTimeout(function() { fly.remove(); }, 160);
+    });
   }
 
   // ─── Timer (r=27, CIRC≈169.6) ────────────────────────
