@@ -260,9 +260,9 @@
     var s=document.createElement('style');s.id='ochoStyles';
     s.textContent=
 /* Bootstrap Icons utilises pour les symboles — identique a la maquette */
-'#ochoView{display:none;position:fixed;inset:0;z-index:200;font-family:Bricolage Grotesque,system-ui,sans-serif;}'+
+'#ochoView{display:none;position:fixed;inset:0;z-index:200;font-family:Bricolage Grotesque,system-ui,sans-serif;background:#7a3d18;}'+
 '#ochoView.active{display:block!important;}'+
-'#ochoBg{position:absolute;inset:0;background:url("assets/images/ocho-home.png") center center/cover no-repeat;}'+
+'#ochoBg{position:absolute;top:calc(-1 * env(safe-area-inset-top, 0px));left:0;right:0;bottom:0;background:url("assets/images/ocho-home.png") center top/cover no-repeat;}'+
 '#ochoBgOverlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.08) 40%,rgba(0,0,0,0.28) 100%);pointer-events:none;}'+
 '#ochoAura{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:5;transition:opacity 0.4s;}'+
 '#ochoAura.active{opacity:1;animation:ochoAuraAnim 1.4s ease-in-out infinite;}'+
@@ -273,7 +273,7 @@
 '@keyframes ochoAuraAnimOpp{'+
 '0%,100%{box-shadow:inset 0 0 0px 0px rgba(55,110,210,0);}'+
 '50%{box-shadow:inset 0 0 40px 10px rgba(55,110,210,0.28),inset 0 0 80px 25px rgba(55,110,210,0.13);}}'+
-'#ochoAnimZone{position:absolute;top:46px;left:0;right:0;height:90px;display:flex;align-items:center;justify-content:center;z-index:20;pointer-events:none;overflow:hidden;}'+
+'#ochoAnimZone{position:absolute;top:calc(env(safe-area-inset-top,0px) + 46px);left:0;right:0;height:90px;display:flex;align-items:center;justify-content:center;z-index:20;pointer-events:none;overflow:hidden;}'+
 '#ochoAnimText{font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:48px;font-weight:900;color:#F2E8D4;text-shadow:0 4px 20px rgba(0,0,0,0.4);opacity:0;letter-spacing:-1px;}'+
 '@keyframes ochoPopIn{0%{opacity:0;transform:scale(0.4) rotate(-8deg);}60%{opacity:1;transform:scale(1.15) rotate(3deg);}80%{transform:scale(0.95) rotate(-1deg);}100%{opacity:1;transform:scale(1) rotate(0);}}'+
 '@keyframes ochoPopOut{0%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(1.3);}}'+
@@ -281,7 +281,7 @@
 '.oc-anim-hide{animation:ochoPopOut 0.3s ease-in forwards;}'+
 '@keyframes ochoBuzz{0%,100%{transform:translateX(0);}20%{transform:translateX(-8px);}40%{transform:translateX(8px);}60%{transform:translateX(-6px);}80%{transform:translateX(6px);}}'+
 '#ochoView.oc-buzz{animation:ochoBuzz 0.18s ease-in-out;}'+
-'#ochoLayout{position:absolute;top:112px;bottom:80px;left:0;right:0;display:none;flex-direction:column;justify-content:center;padding:0 16px;}'+
+'#ochoLayout{position:absolute;top:calc(env(safe-area-inset-top,0px) + 108px);bottom:80px;left:0;right:0;display:none;flex-direction:column;justify-content:center;padding:0 16px;}'+
 '#ochoLayout.visible{display:flex;}'+
 '#ochoOppBlock{display:flex;flex-direction:column;align-items:center;gap:0;margin-bottom:4px;}'+
 '#ochoTopArc{position:relative;width:260px;height:85px;margin:0 auto;}'+
@@ -303,7 +303,6 @@
 '#ochoTable{width:240px;height:150px;border-radius:50%;position:relative;'+
 'background:radial-gradient(ellipse at 32% 30%,rgba(80,52,30,0.55) 0%,transparent 58%),radial-gradient(ellipse at 72% 74%,rgba(15,8,4,0.5) 0%,transparent 55%),linear-gradient(150deg,#382010 0%,#241208 45%,#180c06 100%);'+
 'border:1.5px solid rgba(140,90,35,0.3);box-shadow:0 10px 44px rgba(0,0,0,0.75),inset 0 1px 0 rgba(255,255,255,0.035);}'+
-'#ochoTableRound{position:absolute;top:10px;right:14px;color:rgba(242,232,212,0.85);font-size:11px;font-weight:700;}'+
 '#ochoPiles{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:16px;}'+
 '.oc-pile-wrap{position:relative;width:50px;height:70px;}'+
 '.oc-slot{position:absolute;inset:0;border-radius:8px;background:rgba(0,0,0,0.38);box-shadow:inset 0 2px 6px rgba(0,0,0,0.65);}'+
@@ -402,11 +401,14 @@
     '<div id="ochoBgOverlay"></div>'+
     '<div id="ochoAura"></div>'+
     '<div id="ochoAnimZone"><div id="ochoAnimText"></div></div>'+
-    '<div id="ochoHeader" style="position:absolute;top:0;left:0;right:0;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:100;">'+
+    '<div id="ochoHeader" style="position:absolute;top:0;left:0;right:0;padding-top:max(env(safe-area-inset-top,0px),12px);padding-bottom:10px;padding-left:16px;padding-right:16px;display:flex;align-items:center;justify-content:space-between;z-index:100;background:linear-gradient(180deg,rgba(100,45,10,0.72) 0%,transparent 100%);backdrop-filter:blur(0px);">'+
       '<button id="ochoBackBtn" style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:6px 14px;color:#F2E8D4;font-size:13px;font-weight:700;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;backdrop-filter:blur(8px);">'+
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Retour</button>'+
-      '<div style="font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:17px;font-weight:900;color:#F2E8D4;text-shadow:0 1px 4px rgba(0,0,0,0.4);">Ocho \uD83C\uDCCF</div>'+
-      '<button id="ochoAbandonBtn" style="display:none;background:rgba(239,83,80,0.18);color:#ef5350;border:1px solid rgba(239,83,80,0.4);border-radius:14px;padding:5px 12px;font-size:12px;font-weight:700;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;">Abandon</button>'+
+      '<div style="font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:15px;font-weight:900;color:#F2E8D4;text-shadow:0 1px 4px rgba(0,0,0,0.5);display:flex;flex-direction:column;align-items:center;gap:1px;">'+
+        '<span style="font-size:16px;letter-spacing:0.01em;">Ocho \uD83C\uDCCF</span>'+
+        '<span id="ochoTableRound" style="font-size:11px;font-weight:700;color:rgba(242,232,212,0.7);letter-spacing:0.06em;text-transform:uppercase;">Manche 1/6</span>'+
+      '</div>'+
+      '<button id="ochoAbandonBtn" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:20px;padding:7px 16px;font-size:13px;font-weight:800;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.35);letter-spacing:0.02em;">Abandon</button>'+
     '</div>'+
     '<div id="ochoWaitScreen">'+
       '<div style="font-size:52px;">\u23F3</div>'+
@@ -444,7 +446,6 @@
         '</div>'+
       '</div>'+
       '<div id="ochoTableWrap"><div id="ochoTable">'+
-        '<div id="ochoTableRound">Manche 1/6</div>'+
         '<div id="ochoPiles">'+
           '<div class="oc-pile-wrap"><div class="oc-slot"></div><div class="oc-mc oc-bk" id="ochoDeckCard"></div><div class="oc-deck-n" id="ochoDeckCount">\u2014</div></div>'+
           '<div class="oc-pile-wrap"><div class="oc-slot"></div><div class="oc-mc" id="ochoDiscardCard"></div><div class="oc-suit-dot" id="ochoColorDot"></div></div>'+
