@@ -976,46 +976,44 @@
   // ─── Bouton OCHO ──────────────────────────────────────
   function _onOchoBtn(){
     if(!_state)return;
-    // Cooldown global : 1 action max toutes les 1.5s, indépendant du réseau
     if(_ochoBtnCooldown)return;
-    _ochoBtnCooldown=true;
-    setTimeout(function(){_ochoBtnCooldown=false;},1500);
     var mh=_me==='girl'?_state.girl_hand:_state.boy_hand;
     var oh=_me==='girl'?_state.boy_hand:_state.girl_hand;
     // Cas 1 : je déclare mon propre ocho (1 carte en main, pas encore déclaré)
     if(mh.length===1&&_state.ocho_declared!==_me){
       if(_mp.isSaving())return;
-      var ns=_deepCopy(_state);ns.ocho_declared=_me;ns.ocho_counter_used=false;_mp.saveState(ns);
+      _ochoBtnCooldown=true;setTimeout(function(){_ochoBtnCooldown=false;},1500);
+      var ns=_deepCopy(_state);ns.ocho_declared=_me;ns.ocho_counter_used=false;
+      _state=ns; // mise à jour locale immédiate — bloque tout re-déclenchement
+      _mp.saveState(ns);
       _ochoAuraOn=true;var aura=document.getElementById('ochoAura');
       if(aura){aura.classList.remove('active-opp','caught');aura.classList.add('active');}
       if(typeof haptic==='function')haptic('medium');return;
     }
     // Cas 2 : je grille l'adversaire qui a 1 carte et n'a pas déclaré
-    // Bloqué si déjà utilisé ce tour (flag local client, imperméable au spam même entre tours)
     if(oh.length===1&&_state.ocho_declared!==_other){
-      if(_ochoCounterUsed){
-        _showGameMsg('\u26D4','Contre-ocho déjà utilisé ce tour !');return;
-      }
+      if(_ochoCounterUsed){_showGameMsg('\u26D4','Contre-ocho déjà utilisé ce tour !');return;}
       if(_mp.isSaving())return;
-      _ochoCounterUsed=true;  // posé immédiatement avant saveState pour bloquer tout spam
+      _ochoBtnCooldown=true;setTimeout(function(){_ochoBtnCooldown=false;},1500);
+      _ochoCounterUsed=true;
       var ns2=_deepCopy(_state);if(ns2.deck.length===0)_reshuffleDiscard(ns2);
       var pc=ns2.deck.pop();
       if(pc){if(_other==='girl')ns2.girl_hand.push(pc);else ns2.boy_hand.push(pc);}
-      ns2.ocho_declared=_me+'_caught';
-      ns2.ocho_counter_used=true;
-      ns2.ocho_caught_ts=Date.now();
+      ns2.ocho_declared=_me+'_caught';ns2.ocho_counter_used=true;ns2.ocho_caught_ts=Date.now();
+      _state=ns2; // mise à jour locale immédiate
       _mp.saveState(ns2);
       _buzzScreen(3);
       _showGameMsg('\uD83D\uDCA5','Ocho raté\u00a0! L\'adversaire pioche\u00a0!');
-      _animateOppDrawCard();
-      return;
+      _animateOppDrawCard();return;
     }
-    // Cas 3 : spam bouton hors contexte (plus d'1 carte, pas de situation valide)
+    // Cas 3 : clic hors contexte (plus d'1 carte, pas de situation valide) — 1 seule pioche
     if(mh.length>1){
       if(_mp.isSaving())return;
+      _ochoBtnCooldown=true;setTimeout(function(){_ochoBtnCooldown=false;},1500);
       var ns3=_deepCopy(_state);if(ns3.deck.length===0)_reshuffleDiscard(ns3);
       var pc2=ns3.deck.pop();
       if(pc2){if(_me==='girl')ns3.girl_hand.push(pc2);else ns3.boy_hand.push(pc2);}
+      _state=ns3; // mise à jour locale immédiate — empêche une 2e pioche avant retour réseau
       _mp.saveState(ns3);
       _showGameMsg('\u26A0\uFE0F','Trop tôt ! Tu pioches une carte…');
     }
