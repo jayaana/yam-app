@@ -80,7 +80,7 @@
         messages: [window.nlPoll, window._checkUnread],
         nous:     [window.loadLikeCounters, window.elleLoadImages, window.luiLoadImages, window.yamRefreshNewBadges, window._loadSectionTitles],
         musique:  [window.sgLoad],
-        jeux:     []
+        jeux:     [window.jxLoadDashboard]
       };
       var toRun = fns[tab] || [];
       toRun.forEach(function(fn){ if(typeof fn === 'function'){ try{ fn(); }catch(e){} } });
