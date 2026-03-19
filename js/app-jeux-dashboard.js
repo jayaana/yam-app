@@ -33,7 +33,7 @@
   /* ── Avatar HTML : photo Supabase ou fallback avatar.png ── */
   function _avatarImg(userId, role, size) {
     size = size || 38;
-    var fallback = 'img/' + (role === 'girl' ? 'avatar_girl' : 'avatar_boy') + '.png';
+    var fallback = 'assets/images/' + (role === 'girl' ? 'profil_girl' : 'profil_boy') + '.png';
     /* Si on n'a pas encore l'userId (profil non chargé), on affiche le fallback */
     if (!userId) {
       return '<img src="' + fallback + '" '
