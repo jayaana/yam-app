@@ -611,6 +611,7 @@
     if(typeof _yamSlide==='function')_yamSlide(ov,gv,'forward');
     else{ov.classList.add('active');ov.style.display='block';}
     var nav=document.querySelector('.bottom-nav');if(nav)nav.style.display='none';
+    var _tcMeta=document.querySelector('meta[name="theme-color"]');if(_tcMeta){_tcMeta.setAttribute('data-ocho-prev',_tcMeta.content);_tcMeta.content='#7a3d18';}else{var _tcNew=document.createElement('meta');_tcNew.name='theme-color';_tcNew.content='#7a3d18';_tcNew.setAttribute('data-ocho-created','1');document.head.appendChild(_tcNew);}
     if(typeof _subviewIds!=='undefined'&&Array.isArray(_subviewIds)&&_subviewIds.indexOf('ochoView')===-1)_subviewIds.push('ochoView');
     _loadAvatars();
 
@@ -1643,6 +1644,7 @@
     if(typeof _yamSlide==='function')_yamSlide(gv,ov,'backward');
     else if(ov){ov.classList.remove('active');ov.style.display='none';}
     var nav=document.querySelector('.bottom-nav');if(nav)nav.style.display='';
+    var _tcR=document.querySelector('meta[name="theme-color"]');if(_tcR){if(_tcR.getAttribute('data-ocho-created')){_tcR.remove();}else{var _prev=_tcR.getAttribute('data-ocho-prev');if(_prev!==null){_tcR.content=_prev;_tcR.removeAttribute('data-ocho-prev');}}}
     if(typeof window._corePresenceResume==='function')window._corePresenceResume();
   }
 
