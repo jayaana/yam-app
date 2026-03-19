@@ -611,9 +611,7 @@
     if(typeof _yamSlide==='function')_yamSlide(ov,gv,'forward');
     else{ov.classList.add('active');ov.style.display='block';}
     var nav=document.querySelector('.bottom-nav');if(nav)nav.style.display='none';
-    var _sz=document.getElementById('ochoSafeZone');
-    if(!_sz){_sz=document.createElement('div');_sz.id='ochoSafeZone';_sz.style.cssText='position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,50px);background:#7a3d18 url("assets/images/ocho-home.png") center top/cover no-repeat;z-index:99999;pointer-events:none;';document.body.appendChild(_sz);}
-    _sz.style.display='block';
+    document.documentElement.classList.add('ocho-active');
     if(typeof _subviewIds!=='undefined'&&Array.isArray(_subviewIds)&&_subviewIds.indexOf('ochoView')===-1)_subviewIds.push('ochoView');
     _loadAvatars();
 
@@ -1646,7 +1644,7 @@
     if(typeof _yamSlide==='function')_yamSlide(gv,ov,'backward');
     else if(ov){ov.classList.remove('active');ov.style.display='none';}
     var nav=document.querySelector('.bottom-nav');if(nav)nav.style.display='';
-    var _sz=document.getElementById('ochoSafeZone');if(_sz)_sz.style.display='none';
+    document.documentElement.classList.remove('ocho-active');
     if(typeof window._corePresenceResume==='function')window._corePresenceResume();
   }
 
