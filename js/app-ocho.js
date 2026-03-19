@@ -1095,7 +1095,7 @@
       _fxParticles(cx, cy, 14, [col, '#FFD700', '#fff'], 5, 11, 80, 500);
       _fxRipple(cx, cy, col, 420);
       _fxTableFlash(col + '55');
-      _fxLabel('+1 🃏', col, 20);
+      _fxLabel('+1 💥', col, 20);
 
     } else if (card.value === '+2') {
       // Double salve de particules — plus intense
@@ -1112,7 +1112,7 @@
       _fxRipple(cx, cy, '#fff', 620);
       _fxParticles(cx, cy, 10, [col3, 'rgba(255,255,255,0.8)'], 4, 9, 65, 480);
       _fxTableFlash(col3 + '44');
-      _fxLabel('⊘ BLOQUÉ', col3, 18);
+      _fxLabel('⊘', col3, 18);
 
     } else if (card.value === '8') {
       // Wild : éclat multicolore
@@ -1130,7 +1130,7 @@
       _fxRipple(cx, cy, '#E04E3E', 460);
       _fxRipple(cx, cy, '#5070B8', 580);
       _fxTableFlash('rgba(255,255,255,0.15)');
-      _fxLabel('⇄ SWAP', '#F2E8D4', 20);
+      _fxLabel('⇄', '#F2E8D4', 20);
 
     } else {
       // Carte normale — juste un petit shake, pas d'effets lourds
