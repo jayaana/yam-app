@@ -32,6 +32,7 @@
   var _selectedCard  = null;
   var _drawnThisTurn = false;
   var _passAvailable = false;
+  var _ochoCounterUsed = false;  // anti-spam contre-ocho, local client
 
   // ─── Deck ─────────────────────────────────────────────
   var SUITS  = ['heart','club','spade','diamond'];
@@ -664,7 +665,7 @@
   function _resetLocalState(){
     _state=null;_stopTimer();_stopSafetyPoll();_timerFired=false;_reactCooldown=false;
     _lastReactTs=0;_lastCaughtTs=0;_ochoAuraOn=false;_selectedCard=null;
-    _drawnThisTurn=false;_passAvailable=false;
+    _drawnThisTurn=false;_passAvailable=false;_ochoCounterUsed=false;
     var aura=document.getElementById('ochoAura');if(aura)aura.classList.remove('active','active-opp');
     var pass=document.getElementById('ochoPassBtn');if(pass)pass.classList.remove('visible');
     if(typeof window._corePresenceSuspend==='function')window._corePresenceSuspend();
@@ -692,7 +693,7 @@
     }
     // Reset local uniquement si le joueur actif change (pas juste le timestamp)
     if(_state&&_state.turn!==state.turn){
-      _drawnThisTurn=false;_passAvailable=false;_selectedCard=null;
+      _drawnThisTurn=false;_passAvailable=false;_selectedCard=null;_ochoCounterUsed=false;
       var pb=document.getElementById('ochoPassBtn');if(pb)pb.classList.remove('visible');
     }
     _state=state;_checkIncomingReaction(state);_checkCaughtEffect(state);
@@ -985,26 +986,26 @@
       if(typeof haptic==='function')haptic('medium');return;
     }
     // Cas 2 : je grille l'adversaire qui a 1 carte et n'a pas déclaré
+    // Bloqué si déjà utilisé ce tour (flag local client, imperméable au spam même entre tours)
     if(oh.length===1&&_state.ocho_declared!==_other){
-      // Ocho contre ocho : limité à 1 fois par tour
-      if(_state.ocho_declared===_me&&_state.ocho_counter_used){
-        _showGameMsg('\u26D4','Ocho contre ocho déjà utilisé ce tour !');return;
+      if(_ochoCounterUsed){
+        _showGameMsg('\u26D4','Contre-ocho déjà utilisé ce tour !');return;
       }
       if(_mp.isSaving())return;
+      _ochoCounterUsed=true;  // posé immédiatement avant saveState pour bloquer tout spam
       var ns2=_deepCopy(_state);if(ns2.deck.length===0)_reshuffleDiscard(ns2);
       var pc=ns2.deck.pop();
       if(pc){if(_other==='girl')ns2.girl_hand.push(pc);else ns2.boy_hand.push(pc);}
-      // Marque "caught" visible des 2 côtés + flag anti-spam
       ns2.ocho_declared=_me+'_caught';
       ns2.ocho_counter_used=true;
       ns2.ocho_caught_ts=Date.now();
       _mp.saveState(ns2);
-      // Vibrations locales (attaquant)
       _buzzScreen(3);
       _showGameMsg('\uD83D\uDCA5','Ocho raté\u00a0! L\'adversaire pioche\u00a0!');
       _animateOppDrawCard();
       return;
     }
+    // Cas 3 : spam bouton hors contexte (plus d'1 carte, pas de situation valide)
     if(mh.length>1){
       if(_mp.isSaving())return;
       var ns3=_deepCopy(_state);if(ns3.deck.length===0)_reshuffleDiscard(ns3);
