@@ -2789,8 +2789,8 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 .jx-dp{flex:1;display:flex;align-items:center;gap:9px;}
 .jx-dp.r{flex-direction:row-reverse;}
 .jx-dp-av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;background:var(--accent-s);position:relative;}
-.jx-dp-av .jx-crown{position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:12px;opacity:0;transition:opacity .3s;}
-.jx-dp-av.jx-leading .jx-crown{opacity:1;}
+.jx-dp-av img{width:100%;height:100%;border-radius:50%;object-fit:cover;}
+.jx-dp-av.jx-leading{box-shadow:0 0 0 2px var(--accent);}
 .jx-dp-info{display:flex;flex-direction:column;}
 .jx-dp.r .jx-dp-info{align-items:flex-end;}
 .jx-dp-name{font-size:11px;color:var(--muted);}
@@ -2828,7 +2828,8 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 .jx-lb-row{height:29px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);}
 .jx-lb-row:last-child{border-bottom:none;}
 .jx-lb-rank{width:18px;text-align:center;font-size:13px;flex-shrink:0;}
-.jx-lb-av{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+.jx-lb-av{width:26px;height:26px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--s3);}
+.jx-lb-av img{width:26px;height:26px;border-radius:50%;object-fit:cover;}
 .jx-lb-name{flex:1;font-size:12px;font-weight:600;color:var(--text);}
 .jx-lb-detail{font-size:10px;color:var(--muted);}
 .jx-lb-pts{font-size:12px;font-weight:700;color:var(--accent);min-width:42px;text-align:right;}
@@ -2870,7 +2871,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     <div class="jx-dash" id="jxDash">
       <div class="jx-dash-vs">
         <div class="jx-dp">
-          <div class="jx-dp-av" id="jxAvA"><span style="font-size:19px">😺</span><span class="jx-crown">👑</span></div>
+          <div class="jx-dp-av" id="jxAvA"></div>
           <div class="jx-dp-info">
             <span class="jx-dp-name" id="jxNameA">—</span>
             <span class="jx-dp-score" id="jxScoreA">—</span>
@@ -2883,7 +2884,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
           <div class="jx-vs-dot"></div>
         </div>
         <div class="jx-dp r">
-          <div class="jx-dp-av" id="jxAvB" style="background:rgba(59,130,246,.1);"><span style="font-size:19px">🐻</span><span class="jx-crown">👑</span></div>
+          <div class="jx-dp-av" id="jxAvB"></div>
           <div class="jx-dp-info">
             <span class="jx-dp-name" id="jxNameB">—</span>
             <span class="jx-dp-score" id="jxScoreB">—</span>
@@ -2906,12 +2907,12 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       </div>
       <div class="jx-sep"></div>
       <div class="jx-chips" id="jxChips">
-        <div class="jx-chip jx-chip-on" data-game="ocho"   onclick="jxSelChip(this)"><span class="jx-chip-ic">🎴</span><span class="jx-chip-nm">Ocho</span><span class="jx-chip-sc" id="jxCOcho">—</span></div>
-        <div class="jx-chip" data-game="skyjo"  onclick="jxSelChip(this)"><span class="jx-chip-ic">🃏</span><span class="jx-chip-nm">Skyjo</span><span class="jx-chip-sc" id="jxCSkyjo">—</span></div>
-        <div class="jx-chip" data-game="memory" onclick="jxSelChip(this)"><span class="jx-chip-ic">🎴</span><span class="jx-chip-nm">Memory</span><span class="jx-chip-sc" id="jxCMemory">—</span></div>
-        <div class="jx-chip" data-game="pendu"  onclick="jxSelChip(this)"><span class="jx-chip-ic">🔤</span><span class="jx-chip-nm">Pendu</span><span class="jx-chip-sc" id="jxCPendu">—</span></div>
-        <div class="jx-chip" data-game="puzzle" onclick="jxSelChip(this)"><span class="jx-chip-ic">🧩</span><span class="jx-chip-nm">Puzzle</span><span class="jx-chip-sc" id="jxCPuzzle">—</span></div>
-        <div class="jx-chip" data-game="snake"  onclick="jxSelChip(this)"><span class="jx-chip-ic">🐍</span><span class="jx-chip-nm">Snake</span><span class="jx-chip-sc" id="jxCSnake">—</span></div>
+        <div class="jx-chip jx-chip-on" data-game="ocho"  ><span class="jx-chip-ic">🎴</span><span class="jx-chip-nm">Ocho</span><span class="jx-chip-sc" id="jxCOcho">—</span></div>
+        <div class="jx-chip" data-game="skyjo" ><span class="jx-chip-ic">🃏</span><span class="jx-chip-nm">Skyjo</span><span class="jx-chip-sc" id="jxCSkyjo">—</span></div>
+        <div class="jx-chip" data-game="memory"><span class="jx-chip-ic">🎴</span><span class="jx-chip-nm">Memory</span><span class="jx-chip-sc" id="jxCMemory">—</span></div>
+        <div class="jx-chip" data-game="pendu" ><span class="jx-chip-ic">🔤</span><span class="jx-chip-nm">Pendu</span><span class="jx-chip-sc" id="jxCPendu">—</span></div>
+        <div class="jx-chip" data-game="puzzle"><span class="jx-chip-ic">🧩</span><span class="jx-chip-nm">Puzzle</span><span class="jx-chip-sc" id="jxCPuzzle">—</span></div>
+        <div class="jx-chip" data-game="snake" ><span class="jx-chip-ic">🐍</span><span class="jx-chip-nm">Snake</span><span class="jx-chip-sc" id="jxCSnake">—</span></div>
       </div>
       <div class="jx-sep"></div>
       <div class="jx-lb-hdr">
