@@ -285,7 +285,7 @@
 '#ochoLayout.visible{display:flex;}'+
 '#ochoOppBlock{display:flex;flex-direction:column;align-items:center;gap:0;margin-bottom:4px;}'+
 '#ochoTopArc{position:relative;width:260px;height:85px;margin:0 auto;}'+
-'#ochoTopArc .oc-arc-bk{position:absolute;width:48px;height:67px;border-radius:9px;border:2px solid rgba(242,232,212,0.65);background:repeating-linear-gradient(135deg,#2a1205 0px,#2a1205 6px,#3a1a0a 6px,#3a1a0a 12px);box-shadow:0 4px 14px rgba(0,0,0,0.5);transform-origin:center -60px;}'+
+'#ochoTopArc .oc-arc-bk{position:absolute;width:48px;height:67px;border-radius:9px;border:2px solid rgba(242,232,212,0.65);background:repeating-linear-gradient(135deg,#2a1205 0px,#2a1205 6px,#3a1a0a 6px,#3a1a0a 12px);box-shadow:0 4px 14px rgba(0,0,0,0.5);}'+
 '#ochoTopArc .oc-arc-bk::after{content:\'\';position:absolute;inset:5px;border-radius:5px;border:1px solid rgba(242,232,212,0.12);}'+
 '#ochoOppCardBadge{position:absolute;top:-6px;right:-6px;background:#e75a7c;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;z-index:10;}'+
 '.oc-profile-pill{display:inline-flex;align-items:center;gap:12px;padding:7px 18px 7px 7px;margin-top:6px;align-self:flex-start;}'+
@@ -775,13 +775,23 @@
   function _renderOppCards(count){
     var c=document.getElementById('ochoTopArc');if(!c)return;
     Array.from(c.children).forEach(function(el){if(el.id!=='ochoOppCardBadge')el.remove();});
-    var n=count;
-    var spread=Math.min(8,Math.max(3,Math.floor(200/(n||1))));
-    var gap=Math.min(26,Math.max(12,Math.floor(220/(n||1))));
+    var n=count;if(n===0)return;
+    var totalW=260;
+    var maxSpread=Math.min(44,n*5);
+    var originY=-380;
+    var cardW=48,cardH=67;
+    var baseX=totalW/2-cardW/2;
     for(var i=0;i<n;i++){
       var el=document.createElement('div');el.className='oc-arc-bk';
-      var angle=(i-(n-1)/2)*spread,cx=260/2-24+(i-(n-1)/2)*gap;
-      el.style.cssText='left:'+cx+'px;top:18px;transform:rotate('+angle+'deg);';
+      var t=n>1?i/(n-1):0.5;
+      var angle=(t-0.5)*maxSpread;
+      var lift=n>1?Math.cos((t-0.5)*Math.PI)*6:0;
+      el.style.cssText=
+        'left:'+baseX+'px;'+
+        'top:4px;'+
+        'transform-origin:center '+originY+'px;'+
+        'transform:rotate('+angle+'deg) translateY('+lift+'px);'+
+        'z-index:'+(i+1)+';';
       c.insertBefore(el,c.firstChild);
     }
     var badge=document.getElementById('ochoOppCardBadge');if(badge)badge.textContent=count;
