@@ -1083,8 +1083,7 @@
     if(btn)btn.style.display=canL?'block':'none';
     if(wm)wm.style.display=canL?'none':'block';
     // Avatars récap — vrais avatars si disponibles
-    var rL=document.getElementById('ochoRoundAvLeftImg'),rR=document.getElementById('ochoRoundAvRightImg');
-    if(rL)rL.src=_getAvatarUrl(_me);if(rR)rR.src=_getAvatarUrl(_other);
+    _loadAvatars();
     document.getElementById('ochoRoundEnd').style.display='flex';
   }
 
@@ -1116,8 +1115,7 @@
     document.getElementById('ochoFinalScoreRight').textContent=_me==='girl'?ow:mw;
     document.getElementById('ochoFinalLabelLeft').textContent=typeof v2GetDisplayName==='function'?v2GetDisplayName(_me):'Moi';
     document.getElementById('ochoFinalLabelRight').textContent=typeof v2GetDisplayName==='function'?v2GetDisplayName(_other):'L\'autre';
-    var fL=document.getElementById('ochoFinalAvLeftImg'),fR=document.getElementById('ochoFinalAvRightImg');
-    if(fL)fL.src=_getAvatarUrl(_me);if(fR)fR.src=_getAvatarUrl(_other);
+    _loadAvatars();
     var cL=document.getElementById('ochoFinalScoreLeft').parentElement;
     var cR=document.getElementById('ochoFinalScoreRight').parentElement;
     if(cL&&cR){
