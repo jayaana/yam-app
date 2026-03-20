@@ -115,52 +115,27 @@
     }, { passive: true });
   }
 
-  /* ── Calcul victoires réelles ──
-     game_scores : chaque row = 1 joueur pour 1 partie.
-     On apparie girl + boy par game_id + fenêtre 10s sur created_at.
-     Gagnant = score le plus élevé. Égalité = 0.5 chacun.
+  /* ── Calcul victoires multi uniquement ──
+     Lit winner_role directement — pas de pairing fragile.
+     Seuls ocho, skyjo, memory (multi) comptent pour le score VS.
+     Une ligne player_role='girl' par partie suffit à compter la victoire.
   ── */
+  var _MULTI_GAMES = ['ocho', 'skyjo', 'memory'];
+
   function _computeWins(rows) {
     var wins = { girl: 0, boy: 0 };
     if (!rows || !rows.length) return wins;
-
-    var sorted = rows.slice().sort(function (a, b) {
-      return new Date(a.created_at) - new Date(b.created_at);
-    });
-
-    var paired = [];
-    var used   = {};
-    for (var i = 0; i < sorted.length; i++) {
-      if (used[i]) continue;
-      var r = sorted[i];
-      var partner = null;
-      for (var j = i + 1; j < sorted.length; j++) {
-        if (used[j]) continue;
-        var s = sorted[j];
-        if (s.game_id !== r.game_id) continue;
-        if (Math.abs(new Date(s.created_at) - new Date(r.created_at)) < 10000) {
-          partner = s; used[j] = true; break;
-        }
-      }
-      used[i] = true;
-      paired.push(partner ? [r, partner] : [r]);
-    }
-
-    paired.forEach(function (pair) {
-      if (pair.length === 1) {
-        wins[pair[0].player_role] = (wins[pair[0].player_role] || 0) + 1;
-      } else {
-        var a = pair[0], b = pair[1];
-        var sA = a.score || 0, sB = b.score || 0;
-        if (sA > sB)      { wins[a.player_role] = (wins[a.player_role] || 0) + 1; }
-        else if (sB > sA) { wins[b.player_role] = (wins[b.player_role] || 0) + 1; }
-        else {
-          wins[a.player_role] = (wins[a.player_role] || 0) + 0.5;
-          wins[b.player_role] = (wins[b.player_role] || 0) + 0.5;
-        }
-      }
-    });
-
+    /* On ne prend qu'une ligne par partie (player_role='girl') pour éviter
+       de compter deux fois la même partie (une ligne girl + une ligne boy). */
+    rows
+      .filter(function (r) {
+        return _MULTI_GAMES.indexOf(r.game_id) !== -1 &&
+               r.winner_role && r.winner_role !== 'draw' &&
+               r.player_role === 'girl';
+      })
+      .forEach(function (r) {
+        wins[r.winner_role] = (wins[r.winner_role] || 0) + 1;
+      });
     return { girl: wins.girl || 0, boy: wins.boy || 0 };
   }
 
@@ -330,7 +305,7 @@
         var favEl = _el('jxFav');
         if (favEl) favEl.textContent = (_GAME_EMOJI[fav] || '🎮') + ' ' + (fav.charAt(0).toUpperCase() + fav.slice(1));
 
-        var times = r.filter(function (x) { return x.time_seconds > 0; }).map(function (x) { return x.time_seconds; });
+        var times = r.filter(function (x) { return x.game_id === fav && x.time_seconds > 0; }).map(function (x) { return x.time_seconds; });
         var avgEl = _el('jxAvg');
         if (avgEl) {
           if (times.length) {
@@ -351,6 +326,9 @@
         var stEl = _el('jxStreak'), stLbl = _el('jxStreakLbl');
         if (stEl)  stEl.textContent  = '🔥 ' + streak + ' de suite';
         if (stLbl) stLbl.textContent = 'Série ' + streakName;
+
+        var favLbl = _el('jxAvgLbl');
+        if (favLbl) favLbl.textContent = 'Durée moy. ' + ((_GAME_LABEL[fav] || fav));
 
         ['ocho', 'skyjo', 'memory', 'pendu', 'puzzle', 'snake'].forEach(function (g) {
           _renderChip(g, r, myRole);
