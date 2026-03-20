@@ -933,14 +933,18 @@ function _openPenduGame(){
   particleActive=false; hideDance();
   window.scrollTo(0,0);
   plbLoad();
+  var autoRole = typeof yamGetUser === 'function' && yamGetUser() ? yamGetUser().role : null;
+  if (autoRole) {
+    document.getElementById('penduGenderScreen').style.display='none';
+    penduSelectGender(autoRole);
+  } else {
+    document.getElementById('penduGenderScreen').style.display='flex';
+  }
 }
 function _closePenduGame(){
   _yamSlide(document.getElementById('gamesView'), document.getElementById('penduView'), 'backward');
   penduPlayer=null;
-  document.getElementById('penduGenderScreen').style.display='flex';
   document.getElementById('penduGameArea').style.display='none';
-  document.getElementById('penduGenderGirl').className='gender-select-btn';
-  document.getElementById('penduGenderBoy').className='gender-select-btn';
 }
 function penduSelectGender(g){
   penduPlayer=g;
@@ -1235,14 +1239,18 @@ function _openPuzzleGame(){
   particleActive=false; hideDance();
   window.scrollTo(0,0);
   zplbLoad();
+  var autoRole = typeof yamGetUser === 'function' && yamGetUser() ? yamGetUser().role : null;
+  if (autoRole) {
+    document.getElementById('puzzleGenderScreen').style.display='none';
+    puzzleSelectGender(autoRole);
+  } else {
+    document.getElementById('puzzleGenderScreen').style.display='flex';
+  }
 }
 function _closePuzzleGame(){
   _yamSlide(document.getElementById('gamesView'), document.getElementById('puzzleView'), 'backward');
   puzzlePlayer=null;
-  document.getElementById('puzzleGenderScreen').style.display='flex';
   document.getElementById('puzzleGameArea').style.display='none';
-  document.getElementById('puzzleGenderGirl').className='gender-select-btn';
-  document.getElementById('puzzleGenderBoy').className='gender-select-btn';
 }
 function puzzleSelectGender(g){
   puzzlePlayer=g;
@@ -1430,15 +1438,19 @@ function _openSnakeGame(){
   snakeCvs.width=s; snakeCvs.height=s;
   SNAKE_CELL=Math.floor(s/SNAKE_COLS);
   snakeDrawIdle();
+  var autoRole = typeof yamGetUser === 'function' && yamGetUser() ? yamGetUser().role : null;
+  if (autoRole) {
+    document.getElementById('snakeGenderScreen').style.display='none';
+    snakeSelectGender(autoRole);
+  } else {
+    document.getElementById('snakeGenderScreen').style.display='flex';
+  }
 }
 function _closeSnakeGame(){
   clearInterval(snakeInterval); snakeRunning=false;
   _yamSlide(document.getElementById('gamesView'), document.getElementById('snakeView'), 'backward');
   snakePlayer=null;
-  document.getElementById('snakeGenderScreen').style.display='flex';
   document.getElementById('snakeGameArea').style.display='none';
-  document.getElementById('snakeGenderGirl').className='gender-select-btn';
-  document.getElementById('snakeGenderBoy').className='gender-select-btn';
 }
 function snakeSelectGender(g){
   snakePlayer=g;
