@@ -214,8 +214,23 @@
     var capGame = game.charAt(0).toUpperCase() + game.slice(1);
     var el = _el('jxC' + capGame);
     if (!el) return;
-    var g = (rows || []).filter(function (r) { return r.game_id === game && r.player_role === 'girl'; }).length;
-    var b = (rows || []).filter(function (r) { return r.game_id === game && r.player_role === 'boy';  }).length;
+
+    var gameRows = (rows || []).filter(function (r) { return r.game_id === game; });
+    if (!gameRows.length) { el.textContent = '—'; return; }
+
+    var g, b;
+    if (_MULTI_GAMES.indexOf(game) !== -1) {
+      // Jeux multi : on compte les victoires via winner_role
+      // On ne prend que les lignes player_role='girl' (une par partie) pour éviter le double comptage
+      var multiRows = gameRows.filter(function (r) { return r.player_role === 'girl' && r.winner_role && r.winner_role !== 'draw'; });
+      g = multiRows.filter(function (r) { return r.winner_role === 'girl'; }).length;
+      b = multiRows.filter(function (r) { return r.winner_role === 'boy';  }).length;
+    } else {
+      // Jeux solo : on compte le nombre de parties jouées par chaque rôle
+      g = gameRows.filter(function (r) { return r.player_role === 'girl'; }).length;
+      b = gameRows.filter(function (r) { return r.player_role === 'boy';  }).length;
+    }
+
     var me  = myRole === 'girl' ? g : b;
     var her = myRole === 'girl' ? b : g;
     if (!me && !her) { el.textContent = '—'; return; }
@@ -271,7 +286,11 @@
         var wGirl  = wins.girl;
         var wBoy   = wins.boy;
         var wTotal = wGirl + wBoy;
-        var total  = r.length;
+        var total = r.filter(function (x) {
+          return _MULTI_GAMES.indexOf(x.game_id) !== -1
+            ? x.player_role === 'girl'   // 1 ligne par partie en multi
+            : true;                       // 1 ligne par partie en solo
+        }).length;
 
         var elSA = _el('jxScoreA'), elSB = _el('jxScoreB');
         if (elSA) elSA.textContent = Math.round(wGirl);
@@ -299,8 +318,12 @@
           if (avB) avB.classList.remove('jx-leading');
         }
 
+        // Jeu favori — compter les vraies parties (1 par partie en multi)
         var counts = {};
-        r.forEach(function (x) { counts[x.game_id] = (counts[x.game_id] || 0) + 1; });
+        r.forEach(function (x) {
+          if (_MULTI_GAMES.indexOf(x.game_id) !== -1 && x.player_role !== 'girl') return;
+          counts[x.game_id] = (counts[x.game_id] || 0) + 1;
+        });
         var fav = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; })[0] || '—';
         var favEl = _el('jxFav');
         if (favEl) favEl.textContent = (_GAME_EMOJI[fav] || '🎮') + ' ' + (fav.charAt(0).toUpperCase() + fav.slice(1));
@@ -317,9 +340,22 @@
           }
         }
 
+        // Streak — nombre de parties consécutives gagnées par le même joueur
+        // Pour les jeux multi : winner_role. Pour les jeux solo : player_role.
+        // On reconstruit une liste de "1 résultat par partie" triée par date desc.
+        var partiesDesc = r
+          .filter(function (x) {
+            return _MULTI_GAMES.indexOf(x.game_id) !== -1 ? x.player_role === 'girl' : true;
+          })
+          .slice() // r est déjà trié created_at desc
+          .map(function (x) {
+            return _MULTI_GAMES.indexOf(x.game_id) !== -1 ? x.winner_role : x.player_role;
+          })
+          .filter(function (role) { return role && role !== 'draw'; });
+
         var streak = 0, lastR = null;
-        for (var i = 0; i < r.length; i++) {
-          if (!lastR || r[i].player_role === lastR) { lastR = r[i].player_role; streak++; }
+        for (var i = 0; i < partiesDesc.length; i++) {
+          if (!lastR || partiesDesc[i] === lastR) { lastR = partiesDesc[i]; streak++; }
           else break;
         }
         var streakName = lastR === 'girl' ? _girlName : _boyName;
