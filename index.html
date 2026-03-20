@@ -3317,82 +3317,181 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 <div id="memoryView">
   <div class="game-view-header">
     <div id="memoryBackBtn" class="game-view-back"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Retour</div>
-    <div class="game-view-title">Jeu de mémoire 🎴</div>
+    <div class="game-view-title" id="memViewTitle">Mémoire 🎴</div>
   </div>
-  <div class="game-view-body">
+  <div class="game-view-body" id="memViewBody">
 
-    <!-- CHOIX MODE solo / multi -->
-    <div id="memoryModeScreen" style="display:block;padding:24px 16px;text-align:center;">
-      <div style="font-size:48px;margin-bottom:12px;">🎴</div>
-      <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;">Jeu de Mémoire</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:28px;">Retrouve toutes les paires !</div>
-      <div style="display:flex;flex-direction:column;gap:12px;max-width:280px;margin:0 auto;">
-        <button id="memorySoloBtn" style="padding:14px;background:var(--s2);border:1px solid var(--border);border-radius:14px;font-size:15px;font-weight:700;color:var(--text);cursor:pointer;">🧠 Solo</button>
-        <button id="memoryMultiBtn" style="padding:14px;background:var(--green);border:none;border-radius:14px;font-size:15px;font-weight:700;color:#000;cursor:pointer;">👫 Multijoueur</button>
-      </div>
-    </div>
-    <div id="memoryLobbyScreen" style="display:none;flex-direction:column;align-items:center;padding:32px 16px;gap:20px;">
-      <div style="font-size:36px;">🎴</div>
-      <div style="font-size:17px;font-weight:700;color:var(--text);">Recherche d'adversaire…</div>
-      <div style="display:flex;align-items:center;gap:24px;background:var(--s2);border:1px solid var(--border);border-radius:16px;padding:16px 28px;">
-        <div style="text-align:center;">
-          <div style="font-size:13px;font-weight:600;color:var(--text);" id="memLobbyNameMe">Moi</div>
-          <div style="width:10px;height:10px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px rgba(34,197,94,0.8);margin:6px auto 0;"></div>
+    <!-- ══ ÉCRAN 1 : LOBBY (matchmaking) ══ -->
+    <div id="memScreenLobby" class="mem-screen">
+      <div class="mem-lobby-vs">
+        <div class="mem-lobby-player">
+          <div class="mem-lobby-avatar" id="memLobbyAvMe"></div>
+          <div class="mem-lobby-name" id="memLobbyNameMe">—</div>
+          <div class="mem-lobby-title" id="memLobbyTitleMe"></div>
+          <div class="mem-lobby-dot mem-lobby-dot--on"></div>
         </div>
-        <div style="font-size:20px;color:var(--muted);">VS</div>
-        <div style="text-align:center;">
-          <div style="font-size:13px;font-weight:600;color:var(--text);" id="memLobbyNameOther">Adversaire</div>
-          <div id="memLobbyDotOther" style="width:10px;height:10px;border-radius:50%;background:#555;margin:6px auto 0;transition:background 0.3s,box-shadow 0.3s;"></div>
+        <div class="mem-lobby-vs-center">
+          <div class="mem-lobby-vs-label">VS</div>
+          <div class="mem-lobby-status" id="memLobbyStatus">En attente…</div>
+        </div>
+        <div class="mem-lobby-player">
+          <div class="mem-lobby-avatar" id="memLobbyAvOther"></div>
+          <div class="mem-lobby-name" id="memLobbyNameOther">—</div>
+          <div class="mem-lobby-title" id="memLobbyTitleOther"></div>
+          <div class="mem-lobby-dot" id="memLobbyDotOther"></div>
         </div>
       </div>
-      <div style="font-size:13px;color:var(--muted);text-align:center;" id="memLobbyStatus">En attente…</div>
-      <button id="memoryMultiCancelBtn" style="padding:10px 28px;background:transparent;border:1px solid var(--border);border-radius:50px;font-size:13px;color:var(--muted);cursor:pointer;">Annuler</button>
+      <button id="memLobbyCancelBtn" class="mem-btn-ghost">Annuler</button>
     </div>
 
-    <!-- JEU EN COURS -->
-    <div id="memoryGameArea" style="display:none">
-
-      <!-- Scores multi (cachés en solo) -->
-      <div id="memMultiScores" class="mem-multi-scores">
-        <div class="mem-player-side">
-          <div class="mem-player-name" id="memMscoreNameMe">Moi</div>
-          <div class="mem-player-score" id="memMscoreValMe">0</div>
+    <!-- ══ ÉCRAN 2 : SÉLECTION DE MODE ══ -->
+    <div id="memScreenMode" class="mem-screen" style="display:none;">
+      <!-- Profils VS avec titres -->
+      <div class="mem-mode-vs">
+        <div class="mem-mode-player">
+          <div class="mem-mode-avatar" id="memModeAvMe"></div>
+          <div class="mem-mode-name" id="memModeNameMe">—</div>
+          <div class="mem-mode-badge" id="memModeTitleMe"></div>
         </div>
-        <div class="mem-center-col">
-          <div id="memTurnBadge" class="mem-turn-badge">⏳</div>
-          <div class="mem-opp-presence">
-            <div id="memOppDot" class="mem-opp-dot"></div>
-            <span id="memMscoreNameOther" class="mem-opp-name">Adversaire</span>
-          </div>
-        </div>
-        <div class="mem-player-side mem-player-side--right">
-          <div class="mem-player-name" id="memMscoreNameOther2"></div>
-          <div class="mem-player-score" id="memMscoreValOther">0</div>
+        <div class="mem-mode-vs-sep">VS</div>
+        <div class="mem-mode-player">
+          <div class="mem-mode-avatar" id="memModeAvOther"></div>
+          <div class="mem-mode-name" id="memModeNameOther">—</div>
+          <div class="mem-mode-badge" id="memModeTitleOther"></div>
         </div>
       </div>
 
-      <div class="memory-header">
-        <div class="memory-stats">
-          <div class="memory-stat"><span class="memory-stat-num" id="memScore">0</span><span class="memory-stat-lbl">Paires</span></div>
-          <div class="memory-stat"><span class="memory-stat-num" id="memMoves">0</span><span class="memory-stat-lbl">Coups</span></div>
-          <div class="memory-stat"><span class="memory-stat-num" id="memTime">0s</span><span class="memory-stat-lbl">Temps</span></div>
+      <!-- Votes en temps réel -->
+      <div class="mem-votes-row">
+        <span class="mem-vote-chip" id="memVoteMe">—</span>
+        <span class="mem-vote-sep">→ vote →</span>
+        <span class="mem-vote-chip" id="memVoteOther">—</span>
+      </div>
+
+      <!-- Cartes de modes -->
+      <div class="mem-mode-cards">
+        <div class="mem-mode-card" id="memModeCardClassic" data-mode="classic">
+          <div class="mem-mode-card-icon">🎴</div>
+          <div class="mem-mode-card-title">Classique+</div>
+          <div class="mem-mode-card-desc">3 manches progressives · cartes spéciales</div>
         </div>
-        <div style="display:flex;gap:8px;">
-          <button class="memory-restart-btn" id="memBtnRestart">🔄</button>
-          <button id="memoryQuitBtn" class="memory-restart-btn" style="color:var(--muted);border-color:var(--border)">✕ Quitter</button>
+        <div class="mem-mode-card" id="memModeCardEcho" data-mode="echo">
+          <div class="mem-mode-card-icon">🔊</div>
+          <div class="mem-mode-card-title">Écho</div>
+          <div class="mem-mode-card-desc">Reproduis la séquence · Simon Says en duel</div>
+        </div>
+        <div class="mem-mode-card" id="memModeCardArchi" data-mode="archi">
+          <div class="mem-mode-card-icon">🏗️</div>
+          <div class="mem-mode-card-title">Architecte</div>
+          <div class="mem-mode-card-desc">Mémorise et reconstruit · tour en temps réel</div>
+        </div>
+        <div class="mem-mode-card mem-mode-card--all" id="memModeCardAll" data-mode="all">
+          <div class="mem-mode-card-icon">⚡</div>
+          <div class="mem-mode-card-title">ALL</div>
+          <div class="mem-mode-card-desc">Les 3 modes · 1 manche chacun</div>
         </div>
       </div>
-      <div class="memory-grid" id="memoryGrid"></div>
-      <div class="memory-win" id="memoryWin">
-        <span class="memory-win-emoji">🏆</span>
-        <div class="memory-win-title" id="memoryWinTitle"></div>
-        <div class="memory-win-sub" id="memoryWinSub"></div>
-        <button class="memory-win-replay" id="memWinReplayBtn">Rejouer 🔄</button>
-        <button id="memWinQuitBtn" class="mem-win-quit-btn" style="display:none;">Quitter</button>
+      <div class="mem-mode-hint" id="memModeHint">Sélectionne un mode — l'autre doit voter pareil</div>
+    </div>
+
+    <!-- ══ ÉCRAN 3A : JEU CLASSIQUE+ ══ -->
+    <div id="memScreenClassic" class="mem-screen" style="display:none;">
+      <!-- Header manche + scores -->
+      <div class="mem-game-header">
+        <div class="mem-manche-badge" id="memClassicManche">Manche 1/3</div>
+        <div class="mem-game-scores">
+          <span class="mem-gscore mem-gscore--me" id="memClassicScoreMe">0</span>
+          <span class="mem-gscore-sep">–</span>
+          <span class="mem-gscore mem-gscore--other" id="memClassicScoreOther">0</span>
+        </div>
+        <div class="mem-game-timer" id="memClassicTimer">0s</div>
+      </div>
+      <!-- Infos tour + présence -->
+      <div class="mem-turn-row">
+        <div class="mem-turn-badge" id="memClassicTurnBadge">⏳</div>
+        <div class="mem-opp-presence"><div class="mem-opp-dot" id="memClassicOppDot"></div><span id="memClassicOppName" class="mem-opp-name"></span></div>
+      </div>
+      <!-- Cartes spéciales actives -->
+      <div class="mem-special-row" id="memClassicSpecialRow" style="display:none;"></div>
+      <!-- Grille -->
+      <div class="memory-grid" id="memClassicGrid"></div>
+      <!-- Résultat manche -->
+      <div class="mem-manche-result" id="memClassicMancheResult" style="display:none;">
+        <div class="mem-manche-result-emoji" id="memClassicMancheEmoji">🏆</div>
+        <div class="mem-manche-result-title" id="memClassicMancheTitle"></div>
+        <div class="mem-manche-result-sub" id="memClassicMancheSub"></div>
+        <button class="mem-btn-primary" id="memClassicNextBtn">Manche suivante →</button>
+        <button class="mem-btn-ghost" id="memClassicQuitBtn">Quitter</button>
+      </div>
+      <!-- Résultat final -->
+      <div class="mem-final-result" id="memClassicFinalResult" style="display:none;">
+        <div class="mem-final-emoji" id="memClassicFinalEmoji">🏆</div>
+        <div class="mem-final-title" id="memClassicFinalTitle"></div>
+        <div class="mem-final-score" id="memClassicFinalScore"></div>
+        <div class="mem-trophy-unlock" id="memClassicTrophyUnlock" style="display:none;"></div>
+        <button class="mem-btn-ghost" id="memClassicDoneBtn">Terminer</button>
       </div>
     </div>
 
-    <!-- CLASSEMENT -->
+    <!-- ══ ÉCRAN 3B : JEU ÉCHO ══ -->
+    <div id="memScreenEcho" class="mem-screen" style="display:none;">
+      <div class="mem-game-header">
+        <div class="mem-manche-badge" id="memEchoLevel">Niveau 1</div>
+        <div class="mem-echo-lives">
+          <span id="memEchoLivesMe" class="mem-echo-hearts">❤️❤️❤️</span>
+          <span class="mem-echo-lives-sep">VS</span>
+          <span id="memEchoLivesOther" class="mem-echo-hearts">❤️❤️❤️</span>
+        </div>
+      </div>
+      <div class="mem-echo-phase" id="memEchoPhase">Mémorise la séquence…</div>
+      <div class="mem-echo-grid" id="memEchoGrid"></div>
+      <div class="mem-echo-progress" id="memEchoProgress"></div>
+      <div class="mem-final-result" id="memEchoFinalResult" style="display:none;">
+        <div class="mem-final-emoji" id="memEchoFinalEmoji">🏆</div>
+        <div class="mem-final-title" id="memEchoFinalTitle"></div>
+        <div class="mem-final-score" id="memEchoFinalScore"></div>
+        <div class="mem-trophy-unlock" id="memEchoTrophyUnlock" style="display:none;"></div>
+        <button class="mem-btn-ghost" id="memEchoDoneBtn">Terminer</button>
+      </div>
+    </div>
+
+    <!-- ══ ÉCRAN 3C : JEU ARCHITECTE ══ -->
+    <div id="memScreenArchi" class="mem-screen" style="display:none;">
+      <div class="mem-game-header">
+        <div class="mem-manche-badge" id="memArchiRound">Structure 1/3</div>
+        <div class="mem-game-scores">
+          <span class="mem-gscore mem-gscore--me" id="memArchiScoreMe">0</span>
+          <span class="mem-gscore-sep">–</span>
+          <span class="mem-gscore mem-gscore--other" id="memArchiScoreOther">0</span>
+        </div>
+      </div>
+      <div class="mem-archi-phase" id="memArchiPhase">Mémorise la structure…</div>
+      <!-- Structure cible -->
+      <div class="mem-archi-target-wrap">
+        <div class="mem-archi-label">Modèle</div>
+        <div class="mem-archi-target" id="memArchiTarget"></div>
+      </div>
+      <!-- Tours des 2 joueurs côte à côte -->
+      <div class="mem-archi-builders">
+        <div class="mem-archi-builder">
+          <div class="mem-archi-builder-name" id="memArchiNameMe"></div>
+          <div class="mem-archi-stack" id="memArchiStackMe"></div>
+          <div class="mem-archi-shapes" id="memArchiShapesMe"></div>
+        </div>
+        <div class="mem-archi-builder">
+          <div class="mem-archi-builder-name" id="memArchiNameOther"></div>
+          <div class="mem-archi-stack" id="memArchiStackOther"></div>
+        </div>
+      </div>
+      <div class="mem-final-result" id="memArchiFinalResult" style="display:none;">
+        <div class="mem-final-emoji" id="memArchiFinalEmoji">🏆</div>
+        <div class="mem-final-title" id="memArchiFinalTitle"></div>
+        <div class="mem-trophy-unlock" id="memArchiTrophyUnlock" style="display:none;"></div>
+        <button class="mem-btn-ghost" id="memArchiDoneBtn">Terminer</button>
+      </div>
+    </div>
+
+    <!-- ══ CLASSEMENT ══ -->
     <div class="leaderboard-wrap" id="memoryLeaderboard" style="display:none;margin-top:20px;">
       <div class="leaderboard-title">Classement</div>
       <div class="leaderboard-tabs">
