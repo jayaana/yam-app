@@ -470,6 +470,17 @@ function _memSetClassicBlocked(blocked) {
 function _memClassicCardClick(card) {
   if (!_memMp||card.classList.contains('flipped')||card.classList.contains('matched')||card.classList.contains('blocked')||_clProcessing||_clFlipped.length>=2) return;
   card.classList.add('flipped'); _clFlipped.push(card);
+
+  // Sauvegarder immédiatement pour que l'adversaire voie la carte retournée en temps réel
+  var _curRT=_memMp.getGameState?_memMp.getGameState():{}; if(!_curRT)_curRT={};
+  var _flippedRT=_clFlipped.map(function(c){return parseInt(c.dataset.idx);});
+  var _matchedRT=_clCards.filter(function(c){return c.classList.contains('matched');}).map(function(c){return parseInt(c.dataset.idx);});
+  _memMp.saveState({phase:'classic',mode:'classic',manche:_clManche,
+    cards:_clCards.map(function(c){return c.dataset.emoji;}),
+    matched:_matchedRT,flipped:_flippedRT,turn:_memProfile,
+    girl_pairs:_clGirlPairs,boy_pairs:_clBoyPairs,moves:_clMoves,
+    specials:(_curRT.specials||[]),timer_start:(_curRT.timer_start||_clTimerStart||0),elapsed:_clSeconds,winner:null});
+
   if (_clFlipped.length!==2) return;
   _clProcessing=true; _clMoves++; _clTotalMoves++;
   var a=_clFlipped[0],b=_clFlipped[1],match=a.dataset.emoji===b.dataset.emoji;
@@ -484,7 +495,7 @@ function _memClassicCardClick(card) {
       var winner=allDone?(_clGirlPairs>_clBoyPairs?'girl':_clBoyPairs>_clGirlPairs?'boy':'draw'):null;
       var ns={phase:'classic',mode:'classic',manche:_clManche,cards:_clCards.map(function(c){return c.dataset.emoji;}),
         matched:matched,flipped:[],turn:_memProfile,girl_pairs:_clGirlPairs,boy_pairs:_clBoyPairs,moves:_clMoves,
-        specials:(cur.specials||[]),timer_start:(cur.timer_start||0),elapsed:_clSeconds,winner:winner};
+        specials:(cur.specials||[]),timer_start:(cur.timer_start||_clTimerStart||0),elapsed:_clSeconds,winner:winner};
       _clFlipped=[];_clProcessing=false;_memMp.saveState(ns);
     } else {
       a.classList.add('wrong');b.classList.add('wrong');
@@ -493,7 +504,7 @@ function _memClassicCardClick(card) {
         _clFlipped=[];_clProcessing=false;
         var ns2={phase:'classic',mode:'classic',manche:_clManche,cards:_clCards.map(function(c){return c.dataset.emoji;}),
           matched:matched,flipped:[],turn:_memProfile==='girl'?'boy':'girl',girl_pairs:_clGirlPairs,boy_pairs:_clBoyPairs,
-          moves:_clMoves,specials:(cur.specials||[]),timer_start:(cur.timer_start||0),elapsed:_clSeconds,winner:null};
+          moves:_clMoves,specials:(cur.specials||[]),timer_start:(cur.timer_start||_clTimerStart||0),elapsed:_clSeconds,winner:null};
         _memMp.saveState(ns2);
       },700);
     }
