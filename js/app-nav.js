@@ -557,28 +557,6 @@ function closeMemoryGame(){
   _yamSlide(document.getElementById('gamesView'), document.getElementById('memoryView'), 'backward');
   if(typeof _memMp!=='undefined' && _memMp){ _memMp.leave(); _memMp=null; }
 }
-// Bouton retour du Memory : pause si partie multijoueur en cours, fermeture complète sinon
-(function(){
-  function _wireMemoryBack(){
-    var btn = document.getElementById('memoryBackBtn');
-    if(!btn) return;
-    btn.onclick = function(){
-      // _memPauseGame est exposé par app-memory.js uniquement quand une partie est active
-      // On délègue la décision pause vs close à app-memory.js via _memIsGameActive()
-      if(typeof window._memPauseGame === 'function' &&
-         typeof window._memIsGameActive === 'function' && window._memIsGameActive()){
-        window._memPauseGame();
-      } else {
-        closeMemoryGame();
-      }
-    };
-  }
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', _wireMemoryBack);
-  } else {
-    _wireMemoryBack();
-  }
-})();
 function closeAllViews(){
   // ── 1. Vues jeux (slides) ──
   var ids=['gamesView','quizView','memoryView','penduView','puzzleView','snakeView','skyjoView'];
