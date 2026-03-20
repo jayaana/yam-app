@@ -96,9 +96,11 @@ function _memLoadAvatar(containerEl, userId, role, size) {
 
 function _memShowScreen(id) {
   ['memScreenLobby','memScreenMode','memScreenClassic','memScreenEcho','memScreenArchi'].forEach(function(s) {
-    var el = _memEl(s); if (el) el.style.display = 'none';
+    var el = _memEl(s);
+    if (el) { el.style.display = 'none'; el.classList.remove('mem-screen--active'); }
   });
-  var t = _memEl(id); if (t) t.style.display = 'flex';
+  var t = _memEl(id);
+  if (t) { t.style.display = 'flex'; t.classList.add('mem-screen--active'); }
 }
 
 function _memShowLb(show) {
@@ -130,10 +132,7 @@ function closeMemoryGame() {
   _yamSlide(document.getElementById('gamesView'), document.getElementById('memoryView'), 'backward');
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-  var b = _memEl('memoryBackBtn');
-  if (b) b.addEventListener('click', closeMemoryGame);
-});
+// Note : memoryBackBtn est géré par app-inline.js
 
 // ═══════════════════════════════════════════════════════════
 // TROPHÉES
@@ -819,4 +818,6 @@ document.addEventListener('DOMContentLoaded',function(){
 // ── Expose globaux ──
 window.openMemoryGame  = openMemoryGame;
 window.closeMemoryGame = closeMemoryGame;
+window._memOpenGame    = openMemoryGame;
+window._memCloseGame   = closeMemoryGame;
 window._memRouteState  = _memRouteState;
