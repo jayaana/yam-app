@@ -231,15 +231,21 @@ function _memStartLobby() {
     onMatchFound: function(gameRow) {
       _memStartedAt = Date.now();
       _memLastState = gameRow.state;
-      // Reset _memCurrentMode pour forcer le re-routage correct
       _memCurrentMode = null;
       var state = gameRow.state;
-      // Si la partie est déjà en cours (pas en mode_select), aller directement en jeu
-      if (state && state.phase && state.phase !== 'mode_select') {
-        setTimeout(function() { _memRouteState(state, gameRow); }, 400);
-      } else {
-        setTimeout(function() { _memGoToModeSelect(gameRow); }, 400);
-      }
+      var ph = state && state.phase;
+      setTimeout(function() {
+        if (ph === 'classic' || ph === 'echo' || ph === 'archi') {
+          // Partie déjà en cours → aller directement en jeu
+          _memRouteState(state, gameRow);
+        } else if (ph === 'playing') {
+          // Accord de vote déjà fait → lancer le mode
+          _memLaunchMode(state.mode, gameRow);
+        } else {
+          // Lobby ou choix de mode
+          _memGoToModeSelect(gameRow);
+        }
+      }, 400);
     },
 
     onStateUpdate: function(gameRow) {
@@ -280,7 +286,6 @@ function _memGoToModeSelect(gameRow) {
   if (nOth) nOth.textContent = _memGetName(_memOther);
   var tMe = _memEl('memModeTitleMe'); if (tMe) tMe.textContent = _memHighestTitle() || 'Débutant';
   var tOth = _memEl('memModeTitleOther'); if (tOth) tOth.textContent = '…';
-  // Charger les trophées de l'adversaire pour afficher son titre
   (function() {
     var cid = _memGetCoupleId();
     if (!cid || !tOth) return;
@@ -308,7 +313,12 @@ function _memGoToModeSelect(gameRow) {
   });
 }
 
+// Chaque joueur écrit simplement son vote dans le state.
+// Le routeur vérifie si les deux votes concordent → lance.
+// Pas de fetch, pas de guard, pas d'état intermédiaire.
 function _memVoteMode(mode) {
+  if (!_memMp || !_memLastState) return;
+
   ['classic','echo','archi','all'].forEach(function(m) {
     var c = _memEl('memModeCard' + m.charAt(0).toUpperCase() + m.slice(1));
     if (c) c.classList.toggle('mem-mode-card--selected', m === mode);
@@ -316,43 +326,21 @@ function _memVoteMode(mode) {
   var hint = _memEl('memModeHint');
   if (hint) hint.textContent = 'Vote envoyé — en attente de '+_memGetName(_memOther)+'…';
 
-  // Fetch l'état le plus récent en base pour ne jamais écraser le vote de l'autre
-  var gameId = _memMp ? _memMp.getGameId() : null;
-  if (!gameId) {
-    _memVoteSave(mode, _memLastState || {phase:'mode_select'});
-    return;
-  }
-  var SB = typeof SB_URL !== 'undefined' ? SB_URL : '';
-  fetch(SB+'/rest/v1/'+MEM_GAME_TABLE+'?id=eq.'+gameId+'&select=state', {headers: sb2Headers()})
-    .then(function(r){ return r.json(); })
-    .then(function(rows) {
-      // Si entre-temps onStateUpdate a déjà amené phase:launching → ne pas écraser
-      if (_memLastState && _memLastState.phase === 'launching') return;
-      var freshState = (Array.isArray(rows) && rows[0] && rows[0].state) ? rows[0].state : (_memLastState || {phase:'mode_select'});
-      // Idem sur l'état frais retourné par le fetch
-      if (freshState.phase === 'launching') return;
-      _memVoteSave(mode, freshState);
-    })
-    .catch(function() {
-      if (_memLastState && _memLastState.phase === 'launching') return;
-      _memVoteSave(mode, _memLastState || {phase:'mode_select'});
-    });
-}
-
-function _memVoteSave(mode, base) {
-  var hint = _memEl('memModeHint');
-  var ns = JSON.parse(JSON.stringify(base));
-  ns.phase = 'mode_select';
+  // Écrire mon vote dans une copie du dernier état connu
+  var ns = JSON.parse(JSON.stringify(_memLastState));
   ns[_memProfile + '_vote'] = mode;
 
+  // Si l'autre a déjà voté le même mode → les deux sont d'accord, on lance
   if (ns[_memOther + '_vote'] === mode) {
-    ns.phase = 'launching'; ns.mode = mode;
-    var cap  = mode.charAt(0).toUpperCase() + mode.slice(1);
+    ns.phase = 'playing';
+    ns.mode  = mode;
+    var cap = mode.charAt(0).toUpperCase() + mode.slice(1);
     var card = _memEl('memModeCard' + cap);
     if (card) card.classList.add('mem-mode-card--matched');
     if (hint) hint.textContent = '✅ Accord ! Lancement…';
   }
-  if (_memMp) _memMp.saveState(ns);
+
+  _memMp.saveState(ns);
 }
 
 function _memUpdateVotes(state) {
@@ -369,22 +357,29 @@ function _memUpdateVotes(state) {
 
 function _memRouteState(state, gameRow) {
   if (!state) return;
-  var ph = state.phase, mo = state.mode;
+  var ph = state.phase;
+
   if (ph === 'mode_select') {
+    // Afficher les votes en cours
     _memUpdateVotes(state);
-  } else if (ph === 'launching') {
-    _memLaunchMode(state.mode, gameRow || {state:state});
-  } else if (ph === 'launching_echo') {
-    // Transition ALL : classic -> echo
-    if (_memCurrentMode === 'all') { _memAllQueue = ['archi']; _memLaunchSingle('echo', gameRow || {state:state}); }
-  } else if (ph === 'launching_archi') {
-    // Transition ALL : echo -> archi
-    if (_memCurrentMode === 'all') { _memAllQueue = []; _memLaunchSingle('archi', gameRow || {state:state}); }
-  } else if (mo === 'classic' || ph === 'classic') {
+    // Vérifier si les deux votes concordent (cas où on reçoit le vote de l'autre en retard)
+    var myVote  = state[_memProfile + '_vote'];
+    var oppVote = state[_memOther   + '_vote'];
+    if (myVote && oppVote && myVote === oppVote) {
+      _memLaunchMode(myVote, gameRow);
+    }
+
+  } else if (ph === 'playing') {
+    // Les deux ont voté le même mode → lancer
+    _memLaunchMode(state.mode, gameRow);
+
+  } else if (ph === 'classic') {
     _memApplyClassicState(state);
-  } else if (mo === 'echo' || ph === 'echo') {
+
+  } else if (ph === 'echo') {
     _memApplyEchoState(state);
-  } else if (mo === 'archi' || ph === 'archi') {
+
+  } else if (ph === 'archi') {
     _memApplyArchiState(state);
   }
 }
@@ -407,23 +402,7 @@ function _memLaunchMode(mode, gameRow) {
 function _memLaunchNextAll(gameRow) {
   if (!_memAllQueue.length) { _memShowAllResults(); return; }
   var m = _memAllQueue.shift();
-  // Publier une phase de transition explicite pour synchroniser les deux joueurs
-  // au lieu de lancer directement (qui ne fonctionnerait que localement)
-  if (m === 'echo' || m === 'archi') {
-    var transPhase = 'launching_' + m;
-    var cur = (_memMp && _memMp.getGameState) ? _memMp.getGameState() : (_memLastState || {});
-    var ns = JSON.parse(JSON.stringify(cur));
-    ns.phase = transPhase; ns.mode = 'all';
-    if (_memMp) {
-      _memMp.saveState(ns);
-      // Lancer aussi localement apres un court delai (pour recevoir l update en retour)
-      setTimeout(function() { _memLaunchSingle(m, {state: ns}); }, 100);
-    } else {
-      _memLaunchSingle(m, gameRow);
-    }
-  } else {
-    _memLaunchSingle(m, gameRow);
-  }
+  _memLaunchSingle(m, gameRow);
 }
 
 function _memLaunchSingle(mode, gameRow) {
@@ -449,14 +428,15 @@ function _memStartClassic(gameRow) {
   _clCards=[]; _clFlipped=[];
   _memShowScreen('memScreenClassic');
   _memUpdateClassicHeader();
-  if (_memProfile === 'girl' && _memMp && (!gameRow || !gameRow.state || gameRow.state.phase !== 'classic')) {
-    // Girl construit et publie le state initial avec les vraies cartes
+  var state = gameRow && gameRow.state;
+  if (state && state.phase === 'classic') {
+    // State déjà prêt (cartes disponibles) → les deux l'appliquent directement
+    _memApplyClassicState(state);
+  } else if (_memProfile === 'girl' && _memMp) {
+    // Girl publie le premier state avec les cartes — boy recevra via onStateUpdate
     _memMp.saveState(_memBuildClassicState(1));
-  } else if (gameRow && gameRow.state && gameRow.state.phase === 'classic') {
-    // State déjà en phase classic (cartes disponibles) -> appliquer directement
-    _memApplyClassicState(gameRow.state);
   }
-  // Si phase=launching : boy attend le prochain onStateUpdate qui aura phase:classic + les cartes
+  // Boy sans state classic : attend le onStateUpdate de girl
 }
 
 function _memBuildClassicState(manche) {
@@ -662,14 +642,10 @@ function _memShowClassicMancheResult(state) {
     nextBtn.textContent='Manche suivante →';
     nextBtn.onclick=function(){
       rEl.style.display='none'; _clResultShown=false; _clCards=[]; _clFlipped=[]; _clMoves=0;
-      var nextManche = _clManche + 1;
-      _clManche = nextManche;
+      _clManche++;
       if (_clTimer){clearInterval(_clTimer);_clTimer=null;}
-      // Les deux joueurs peuvent lancer la manche suivante
-      // girl construit le nouvel état, boy envoie un signal de progression
       if (_memMp) {
-        var ns = _memBuildClassicState(nextManche);
-        // Conserver le timer_start global de la manche 1
+        var ns = _memBuildClassicState(_clManche);
         if (_clTimerStart) ns.timer_start = _clTimerStart;
         _memMp.saveState(ns);
       }
@@ -727,9 +703,12 @@ function _memStartEcho(gameRow) {
     (function(idx){cell.addEventListener('click',function(){_memEchoTap(idx);});})(i);
     grid.appendChild(cell);
   });}
-  if (_memProfile==='girl'&&_memMp) _memMp.saveState(_memBuildEchoState(1,[3,3]));
-  else if (gameRow&&gameRow.state&&gameRow.state.phase==='echo') _memApplyEchoState(gameRow.state);
-  // Si phase=launching : boy attend le prochain onStateUpdate
+  var stateE = gameRow && gameRow.state;
+  if (stateE && stateE.phase === 'echo') {
+    _memApplyEchoState(stateE);
+  } else if (_memProfile==='girl'&&_memMp) {
+    _memMp.saveState(_memBuildEchoState(1,[3,3]));
+  }
 }
 
 function _memBuildEchoState(level,lives) {
@@ -905,9 +884,12 @@ function _memStartArchi(gameRow) {
   if(nOth)nOth.textContent=_memGetName(_memOther);
   _memBuildArchiPalette();
   var isAll = _memCurrentMode === 'all';
-  if(_memProfile==='girl'&&_memMp) _memMp.saveState(_memBuildArchiState(1, isAll));
-  else if(gameRow&&gameRow.state&&gameRow.state.phase==='archi') _memApplyArchiState(gameRow.state);
-  // Si phase=launching : boy attend le prochain onStateUpdate
+  var stateA = gameRow && gameRow.state;
+  if (stateA && stateA.phase === 'archi') {
+    _memApplyArchiState(stateA);
+  } else if (_memProfile==='girl'&&_memMp) {
+    _memMp.saveState(_memBuildArchiState(1, isAll));
+  }
 }
 
 // Tours DIFFÉRENTES pour chaque joueur — chacun a sa propre séquence à mémoriser
