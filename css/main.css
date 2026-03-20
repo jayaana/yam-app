@@ -2183,8 +2183,8 @@ body:not(.prank-flip) > *:not(#prankFlipBanner):not(#prankGotcha):not(#prankLock
 .memory-stat-lbl { font-size: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.2px; margin-top: 3px; display: block; font-weight: 600; }
 .memory-restart-btn { padding: 8px 14px; background: rgba(255,105,180,0.08); color: #ff85a1; border: 1px solid rgba(255,105,180,0.22); border-radius: 10px; font-size: 12px; font-weight: 700; font-family: 'Bricolage Grotesque', sans-serif; cursor: pointer; transition: all 0.2s; }
 .memory-restart-btn:hover { background: rgba(255,105,180,0.18); transform: scale(1.04); }
-.memory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; max-width: 370px; margin: 0 auto; padding: 4px; }
-.mem-card { aspect-ratio: 1; border-radius: 14px; cursor: pointer; position: relative; perspective: 700px; transition: transform 0.15s ease; }
+.memory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; width: 100%; max-width: 370px; margin: 0 auto; padding: 4px; align-self: stretch; box-sizing: border-box; }
+.mem-card { aspect-ratio: 1; border-radius: 14px; cursor: pointer; position: relative; perspective: 700px; transition: transform 0.15s ease; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
 .mem-card:hover:not(.flipped):not(.matched) { transform: scale(1.06) translateY(-2px); }
 .mem-card:active:not(.flipped):not(.matched) { transform: scale(0.95); }
 .mem-card-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.45s cubic-bezier(.45,.05,.25,1.2); border-radius: 14px; }
@@ -2328,8 +2328,8 @@ body:not(.prank-flip) > *:not(#prankFlipBanner):not(#prankGotcha):not(#prankLock
 .mem-echo-hearts { font-size: 14px; }
 .mem-echo-lives-sep { font-size: 11px; color: var(--muted); font-weight: 700; }
 .mem-echo-phase { font-size: 13px; font-weight: 700; color: var(--accent); text-align: center; padding: 6px 0; }
-.mem-echo-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; max-width: 340px; margin: 0 auto; }
-.mem-echo-cell { aspect-ratio:1; border-radius: 14px; background: var(--s2); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 28px; cursor: pointer; transition: transform 0.12s, border-color 0.15s; -webkit-tap-highlight-color: transparent; }
+.mem-echo-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; width: 100%; max-width: 340px; margin: 0 auto; box-sizing: border-box; }
+.mem-echo-cell { aspect-ratio:1; border-radius: 14px; background: var(--s2); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 28px; cursor: pointer; transition: transform 0.12s, border-color 0.15s; -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
 .mem-echo-cell:active { transform: scale(0.92); }
 .mem-echo-cell--lit { border-color: var(--accent); background: rgba(231,90,124,0.18); animation: echoLit 0.35s ease; }
 .mem-echo-cell--correct { border-color: #22c55e; background: rgba(34,197,94,0.15); }
@@ -2354,7 +2354,7 @@ body:not(.prank-flip) > *:not(#prankFlipBanner):not(#prankGotcha):not(#prankLock
 .mem-archi-stack--wrong { border-color: #ef4444; animation: wrongShake 0.38s ease; }
 .mem-archi-shape { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 2px solid rgba(255,255,255,0.1); }
 .mem-archi-shapes { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
-.mem-archi-shapes .mem-archi-shape { cursor: pointer; transition: transform 0.12s; -webkit-tap-highlight-color: transparent; }
+.mem-archi-shapes .mem-archi-shape { cursor: pointer; transition: transform 0.12s; -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
 .mem-archi-shapes .mem-archi-shape:active { transform: scale(0.88); }
 
 /* Grille classique (réutilisée pour Classique+) */
