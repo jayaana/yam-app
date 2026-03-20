@@ -365,23 +365,22 @@ function _memRouteState(state, gameRow) {
   var ph = state.phase;
 
   if (ph === 'mode_select') {
-    // Afficher les votes en cours
     _memUpdateVotes(state);
-    // Vérifier si les deux votes concordent (cas où on reçoit le vote de l'autre en retard)
+    // Vérifier si les deux votes concordent (reçu en retard)
     var myVote  = state[_memProfile + '_vote'];
     var oppVote = state[_memOther   + '_vote'];
     if (myVote && oppVote && myVote === oppVote) {
       _memLaunchMode(myVote, gameRow);
     }
 
-  } else if (ph === 'classic') {
-    _memApplyClassicState(state);
-
-  } else if (ph === 'echo') {
-    _memApplyEchoState(state);
-
-  } else if (ph === 'archi') {
-    _memApplyArchiState(state);
+  } else if (ph === 'classic' || ph === 'echo' || ph === 'archi') {
+    var mo = state.mode || ph;
+    if (mo === 'all' && _memCurrentMode === 'all') {
+      // Transition dans le mode ALL (classic->echo->archi) : appliquer directement
+      _memLaunchSingle(ph, gameRow);
+    } else {
+      _memLaunchMode(mo, gameRow);
+    }
   }
 }
 
@@ -403,7 +402,16 @@ function _memLaunchMode(mode, gameRow) {
 function _memLaunchNextAll(gameRow) {
   if (!_memAllQueue.length) { _memShowAllResults(); return; }
   var m = _memAllQueue.shift();
-  _memLaunchSingle(m, gameRow);
+  // Publier le state du prochain sous-mode pour synchroniser les deux joueurs
+  var nextState;
+  if (m === 'echo')  nextState = _memBuildEchoState(1, [3, 3]);
+  else if (m === 'archi') nextState = _memBuildArchiState(1, true);
+  if (nextState && _memMp) {
+    nextState.mode = 'all'; // conserver le contexte ALL
+    _memMp.saveState(nextState);
+  } else {
+    _memLaunchSingle(m, gameRow);
+  }
 }
 
 function _memLaunchSingle(mode, gameRow) {
