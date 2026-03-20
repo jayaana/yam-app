@@ -437,10 +437,13 @@ function _memStartClassic(gameRow) {
   _memShowScreen('memScreenClassic');
   _memUpdateClassicHeader();
   if (_memProfile === 'girl' && _memMp && (!gameRow || !gameRow.state || gameRow.state.phase !== 'classic')) {
+    // Girl construit et publie le state initial avec les vraies cartes
     _memMp.saveState(_memBuildClassicState(1));
-  } else if (gameRow && gameRow.state) {
+  } else if (gameRow && gameRow.state && gameRow.state.phase === 'classic') {
+    // State déjà en phase classic (cartes disponibles) -> appliquer directement
     _memApplyClassicState(gameRow.state);
   }
+  // Si phase=launching : boy attend le prochain onStateUpdate qui aura phase:classic + les cartes
 }
 
 function _memBuildClassicState(manche) {
@@ -712,7 +715,8 @@ function _memStartEcho(gameRow) {
     grid.appendChild(cell);
   });}
   if (_memProfile==='girl'&&_memMp) _memMp.saveState(_memBuildEchoState(1,[3,3]));
-  else if (gameRow&&gameRow.state) _memApplyEchoState(gameRow.state);
+  else if (gameRow&&gameRow.state&&gameRow.state.phase==='echo') _memApplyEchoState(gameRow.state);
+  // Si phase=launching : boy attend le prochain onStateUpdate
 }
 
 function _memBuildEchoState(level,lives) {
@@ -889,7 +893,8 @@ function _memStartArchi(gameRow) {
   _memBuildArchiPalette();
   var isAll = _memCurrentMode === 'all';
   if(_memProfile==='girl'&&_memMp) _memMp.saveState(_memBuildArchiState(1, isAll));
-  else if(gameRow&&gameRow.state) _memApplyArchiState(gameRow.state);
+  else if(gameRow&&gameRow.state&&gameRow.state.phase==='archi') _memApplyArchiState(gameRow.state);
+  // Si phase=launching : boy attend le prochain onStateUpdate
 }
 
 // Tours DIFFÉRENTES pour chaque joueur — chacun a sa propre séquence à mémoriser
