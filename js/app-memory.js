@@ -425,7 +425,11 @@ function _memApplyClassicState(state) {
   });
 
   var myTurn = state.turn===_memProfile;
-  if (myTurn) _clFlipped=[];
+  // Même logique que l'ancien app-games.js :
+  // Si c'est mon tour ET que je suis en train de jouer (cartes retournées localement ou processing) → ignorer cet update
+  if (myTurn && (_clProcessing || _clFlipped.length > 0)) return;
+  // C'est mon tour et je n'ai rien en cours → réinitialiser _clFlipped (nouveau tour propre)
+  if (myTurn) _clFlipped = [];
   _memSetClassicBlocked(!myTurn);
 
   var badge=_memEl('memClassicTurnBadge');
@@ -469,47 +473,64 @@ function _memSetClassicBlocked(blocked) {
 
 function _memClassicCardClick(card) {
   if (!_memMp||card.classList.contains('flipped')||card.classList.contains('matched')||card.classList.contains('blocked')||_clProcessing||_clFlipped.length>=2) return;
-  card.classList.add('flipped'); _clFlipped.push(card);
 
-  // Sauvegarder immédiatement pour que l'adversaire voie la carte retournée en temps réel
+  card.classList.add('flipped');
+  _clFlipped.push(card);
+
+  // Sauvegarder immédiatement (1ère ou 2ème carte) pour que l'adversaire voie en temps réel
   var _curRT=_memMp.getGameState?_memMp.getGameState():{}; if(!_curRT)_curRT={};
-  var _flippedRT=_clFlipped.map(function(c){return parseInt(c.dataset.idx);});
-  var _matchedRT=_clCards.filter(function(c){return c.classList.contains('matched');}).map(function(c){return parseInt(c.dataset.idx);});
+  var _flippedNow=_clFlipped.map(function(c){return parseInt(c.dataset.idx);});
+  var _matchedNow=_clCards.filter(function(c){return c.classList.contains('matched');}).map(function(c){return parseInt(c.dataset.idx);});
   _memMp.saveState({phase:'classic',mode:'classic',manche:_clManche,
     cards:_clCards.map(function(c){return c.dataset.emoji;}),
-    matched:_matchedRT,flipped:_flippedRT,turn:_memProfile,
-    girl_pairs:_clGirlPairs,boy_pairs:_clBoyPairs,moves:_clMoves,
-    specials:(_curRT.specials||[]),timer_start:(_curRT.timer_start||_clTimerStart||0),elapsed:_clSeconds,winner:null});
+    matched:_matchedNow, flipped:_flippedNow, turn:_memProfile,
+    girl_pairs:_clGirlPairs, boy_pairs:_clBoyPairs, moves:_clMoves,
+    specials:(_curRT.specials||[]), timer_start:(_curRT.timer_start||_clTimerStart||0), elapsed:_clSeconds, winner:null});
 
-  if (_clFlipped.length!==2) return;
-  _clProcessing=true; _clMoves++; _clTotalMoves++;
-  var a=_clFlipped[0],b=_clFlipped[1],match=a.dataset.emoji===b.dataset.emoji;
+  // Attendre la 2ème carte
+  if (_clFlipped.length !== 2) return;
+
+  // 2 cartes retournées : bloquer les updates entrants pendant le traitement
+  _clProcessing = true;
+  _clMoves++; _clTotalMoves++;
+  _memSetClassicBlocked(true); // bloquer le plateau localement
+
+  var a=_clFlipped[0], b=_clFlipped[1], match=a.dataset.emoji===b.dataset.emoji;
+
   setTimeout(function(){
+    _clProcessing = false;
     var matched=_clCards.filter(function(c){return c.classList.contains('matched');}).map(function(c){return parseInt(c.dataset.idx);});
     var cur=_memMp.getGameState?_memMp.getGameState():{}; if(!cur)cur={};
-    if (match){
-      a.classList.add('matched');b.classList.add('matched');
+
+    if (match) {
+      a.classList.add('matched'); b.classList.add('matched');
       matched=matched.concat([parseInt(a.dataset.idx),parseInt(b.dataset.idx)]);
-      if (_memProfile==='girl')_clGirlPairs++;else _clBoyPairs++;
+      if (_memProfile==='girl') _clGirlPairs++; else _clBoyPairs++;
       var allDone=matched.length===_clCards.length;
       var winner=allDone?(_clGirlPairs>_clBoyPairs?'girl':_clBoyPairs>_clGirlPairs?'boy':'draw'):null;
-      var ns={phase:'classic',mode:'classic',manche:_clManche,cards:_clCards.map(function(c){return c.dataset.emoji;}),
-        matched:matched,flipped:[],turn:_memProfile,girl_pairs:_clGirlPairs,boy_pairs:_clBoyPairs,moves:_clMoves,
-        specials:(cur.specials||[]),timer_start:(cur.timer_start||_clTimerStart||0),elapsed:_clSeconds,winner:winner};
-      _clFlipped=[];_clProcessing=false;_memMp.saveState(ns);
+      // Match : je rejoue (turn reste à moi)
+      _clFlipped=[];
+      _memSetClassicBlocked(false);
+      _memMp.saveState({phase:'classic',mode:'classic',manche:_clManche,
+        cards:_clCards.map(function(c){return c.dataset.emoji;}),
+        matched:matched, flipped:[], turn:_memProfile,
+        girl_pairs:_clGirlPairs, boy_pairs:_clBoyPairs, moves:_clMoves,
+        specials:(cur.specials||[]), timer_start:(cur.timer_start||_clTimerStart||0), elapsed:_clSeconds, winner:winner});
     } else {
-      a.classList.add('wrong');b.classList.add('wrong');
+      a.classList.add('wrong'); b.classList.add('wrong');
       setTimeout(function(){
-        a.classList.remove('flipped','wrong');b.classList.remove('flipped','wrong');
-        _clFlipped=[];_clProcessing=false;
-        var ns2={phase:'classic',mode:'classic',manche:_clManche,cards:_clCards.map(function(c){return c.dataset.emoji;}),
-          matched:matched,flipped:[],turn:_memProfile==='girl'?'boy':'girl',girl_pairs:_clGirlPairs,boy_pairs:_clBoyPairs,
-          moves:_clMoves,specials:(cur.specials||[]),timer_start:(cur.timer_start||_clTimerStart||0),elapsed:_clSeconds,winner:null};
-        _memMp.saveState(ns2);
-      },700);
+        a.classList.remove('flipped','wrong'); b.classList.remove('flipped','wrong');
+        _clFlipped=[];
+        // Pas de match : passer le tour à l'adversaire
+        _memMp.saveState({phase:'classic',mode:'classic',manche:_clManche,
+          cards:_clCards.map(function(c){return c.dataset.emoji;}),
+          matched:matched, flipped:[], turn:_memProfile==='girl'?'boy':'girl',
+          girl_pairs:_clGirlPairs, boy_pairs:_clBoyPairs, moves:_clMoves,
+          specials:(cur.specials||[]), timer_start:(cur.timer_start||_clTimerStart||0), elapsed:_clSeconds, winner:null});
+      }, 700);
     }
     _memUpdateClassicScores();
-  }, match?300:0);
+  }, match ? 300 : 0);
 }
 
 function _memShowClassicMancheResult(state) {
