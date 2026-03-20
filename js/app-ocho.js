@@ -1571,7 +1571,7 @@
   }
 
   // ─── Emoji picker (corrigé) ───────────────────────────
-  var OCHO_EMOJIS=['\uD83C\uDF89','\uD83D\uDD25','\uD83D\uDCA5','\uD83C\uDF1F','\uD83D\uDE02','\uD83D\uDC4F','\u2764\uFE0F','\uD83D\uDE0E'];
+  var OCHO_EMOJIS=['😮','🤡','😭','☠️','😂','👏','❤️','😎'];
 
   function _setupEmojiPicker(){
     var pill=document.getElementById('ochoEmojiPill');
