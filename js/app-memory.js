@@ -726,7 +726,7 @@ function _memApplyArchiState(state) {
       var rem=state.show_until-Date.now();
       setTimeout(function(){
         if(targetEl)targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Modèle caché</div>';
-        var cur=_memMp&&_memMp.getGameState?_memMp.getGameState():null;
+        var cur=(_memMp&&_memMp.getGameState?_memMp.getGameState():null)||_memLastState;
         if(cur)_memApplyArchiState(cur);
       },rem);
     } else {
