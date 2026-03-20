@@ -1539,24 +1539,27 @@
     document.getElementById('ochoGameEnd').style.display='flex';
     if(typeof window.yamFlameActivity==='function')window.yamFlameActivity('ocho_together');
     // ── Sauvegarde scores dans game_scores ──
-    var _ocUser=typeof yamGetUser==='function'?yamGetUser():null;
-    var _ocCoupleId=_ocUser?_ocUser.couple_id:null;
-    var _ocDuration=_ochoGameStartedAt?Math.round((Date.now()-_ochoGameStartedAt)/1000):0;
-    var _ocWinnerRole=isDraw?null:(iWon?_me:_other);
-    var _ocWins=state.wins||{girl:0,boy:0};
-    if(_ocCoupleId){
-      ['girl','boy'].forEach(function(role){
-        sb2Post('game_scores',{
-          couple_id:   _ocCoupleId,
-          game_id:     'ocho',
-          player_role: role,
-          score:       _ocWins[role]||0,
-          moves:       0,
-          time_seconds:_ocDuration,
-          winner_role: _ocWinnerRole,
-          user_id:     _ocUser?_ocUser.id:null
-        }).catch(function(){});
-      });
+    // Uniquement côté 'girl' pour éviter la double écriture
+    if (_me === 'girl') {
+      var _ocUser=typeof yamGetUser==='function'?yamGetUser():null;
+      var _ocCoupleId=_ocUser?_ocUser.couple_id:null;
+      var _ocDuration=_ochoGameStartedAt?Math.round((Date.now()-_ochoGameStartedAt)/1000):0;
+      var _ocWinnerRole=isDraw?null:(iWon?_me:_other);
+      var _ocWins=state.wins||{girl:0,boy:0};
+      if(_ocCoupleId){
+        ['girl','boy'].forEach(function(role){
+          sb2Post('game_scores',{
+            couple_id:   _ocCoupleId,
+            game_id:     'ocho',
+            player_role: role,
+            score:       _ocWins[role]||0,
+            moves:       0,
+            time_seconds:_ocDuration,
+            winner_role: _ocWinnerRole,
+            user_id:     _ocUser?_ocUser.id:null
+          }).catch(function(){});
+        });
+      }
     }
   }
 
