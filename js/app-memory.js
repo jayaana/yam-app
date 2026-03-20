@@ -517,10 +517,9 @@ function _memApplyClassicState(state) {
   });
 
   var myTurn = state.turn===_memProfile;
-  // Même logique que l'ancien app-games.js :
-  // Si c'est mon tour ET que je suis en train de jouer (cartes retournées localement ou processing) → ignorer cet update
-  if (myTurn && (_clProcessing || _clFlipped.length > 0)) return;
-  // C'est mon tour et je n'ai rien en cours → réinitialiser _clFlipped (nouveau tour propre)
+  // Bloquer uniquement si on est en train de traiter une paire (setTimeout en cours)
+  if (myTurn && _clProcessing) return;
+  // C'est mon tour → réinitialiser _clFlipped (nouveau tour propre)
   if (myTurn) _clFlipped = [];
   _memSetClassicBlocked(!myTurn);
 
@@ -795,7 +794,9 @@ function _memEchoTap(idx) {
 
 function _memSaveEchoInput(success) {
   if (!_memMp) return;
-  var cur=_memMp.getGameState?_memMp.getGameState():null; if(!cur) return;
+  var cur=_memMp.getGameState?_memMp.getGameState():null;
+  if(!cur) cur=_memLastState;
+  if(!cur) return;
   var ns=JSON.parse(JSON.stringify(cur));
   var now = Date.now();
   ns[_memProfile+'_input'] = success ? _echoMyInput.slice() : [];
