@@ -50,7 +50,7 @@ var _clProcessing  = false, _clResultShown = false, _clSaved = false;
 
 // ── État Écho ──
 var _echoSequence  = [], _echoLevel = 1, _echoMyInput = [];
-var _echoShowInt   = null, _echoSaved = false, _echoShowing = false;
+var _echoShowInt   = null, _echoSaved = false;
 
 // ── État Architecte ──
 var _archiTarget   = [], _archiRound = 1;
@@ -389,8 +389,6 @@ function _memApplyClassicState(state) {
 
   var grid = _memEl('memClassicGrid'); if (!grid) return;
   if (_clCards.length !== (state.cards||[]).length) {
-    var cfg = _CLASSIC_CFGS[(_clManche-1)] || _CLASSIC_CFGS[0];
-    grid.style.gridTemplateColumns = 'repeat('+cfg.cols+', 1fr)';
     grid.innerHTML=''; _clCards=[];
     (state.cards||[]).forEach(function(emoji,idx) {
       var card = document.createElement('div');
@@ -460,7 +458,7 @@ function _memClassicCardClick(card) {
   var a=_clFlipped[0],b=_clFlipped[1],match=a.dataset.emoji===b.dataset.emoji;
   setTimeout(function(){
     var matched=_clCards.filter(function(c){return c.classList.contains('matched');}).map(function(c){return parseInt(c.dataset.idx);});
-    var cur=_memMp.getCurrentState?_memMp.getCurrentState():{};
+    var cur=_memMp.getGameState?_memMp.getGameState():{}; if(!cur)cur={};
     if (match){
       a.classList.add('matched');b.classList.add('matched');
       matched=matched.concat([parseInt(a.dataset.idx),parseInt(b.dataset.idx)]);
@@ -546,7 +544,7 @@ function _memShowClassicFinal(state) {
 // ═══════════════════════════════════════════════════════════
 
 function _memStartEcho(gameRow) {
-  _echoLevel=1; _echoSaved=false; _echoSequence=[]; _echoMyInput=[]; _echoShowing=false;
+  _echoLevel=1; _echoSaved=false; _echoSequence=[]; _echoMyInput=[];
   _memShowScreen('memScreenEcho');
   var lEl=_memEl('memEchoLevel'); if (lEl) lEl.textContent='Niveau 1';
   var lMe=_memEl('memEchoLivesMe'),lOth=_memEl('memEchoLivesOther');
@@ -569,10 +567,7 @@ function _memBuildEchoState(level,lives) {
 
 function _memApplyEchoState(state) {
   if (!state||state.phase!=='echo') return;
-  var prevLevel = _echoLevel;
   _echoSequence=state.sequence||[]; _echoLevel=state.level||1;
-  // Reset animation flag when a new level begins
-  if (_echoLevel !== prevLevel) { _echoShowing = false; }
   var ml=_memProfile==='girl'?state.girl_lives:state.boy_lives;
   var ol=_memProfile==='girl'?state.boy_lives:state.girl_lives;
   function hearts(n){return['❤️','❤️','❤️'].slice(0,Math.max(0,n)).join('')||'💀';}
@@ -582,11 +577,8 @@ function _memApplyEchoState(state) {
   if (state.winner&&!_echoSaved){_memShowEchoResult(state);return;}
   var myInput=_memProfile==='girl'?state.girl_input:state.boy_input;
   _memUpdateEchoPips(_echoSequence.length,(myInput||[]).length);
-  // Guard: only launch sequence animation once per level, not on every state update
-  if ((myInput||[]).length<_echoSequence.length && !_echoShowing) {
-    _echoShowing = true;
-    _echoMyInput = (myInput||[]).slice();
-    _memEchoShowSeq(function(){_memEchoUnblock();});
+  if ((myInput||[]).length<_echoSequence.length) {
+    _memEchoShowSeq(function(){_memEchoUnblock();_echoMyInput=(myInput||[]).slice();});
   }
 }
 
@@ -628,7 +620,7 @@ function _memEchoTap(idx) {
 
 function _memSaveEchoInput(success) {
   if (!_memMp) return;
-  var cur=_memMp.getCurrentState?_memMp.getCurrentState():null; if(!cur) return;
+  var cur=_memMp.getGameState?_memMp.getGameState():null; if(!cur) return;
   var ns=JSON.parse(JSON.stringify(cur));
   ns[_memProfile+'_input']=success?_echoMyInput.slice():[];
   if (!success) ns[_memProfile+'_lives']=Math.max(0,(ns[_memProfile+'_lives']||3)-1);
@@ -637,7 +629,6 @@ function _memSaveEchoInput(success) {
     var lv=_echoLevel+1;
     if (lv>8)  _memUnlockTrophy('telepathie','memEchoTrophyUnlock');
     if (lv>10) _memUnlockTrophy('inextinguible','memEchoTrophyUnlock');
-    _echoShowing = false; // allow animation to fire for the new level
     ns=_memBuildEchoState(lv,[ns.girl_lives,ns.boy_lives]);
   }
   if ((ns.girl_lives||0)<=0||(ns.boy_lives||0)<=0){
@@ -711,12 +702,7 @@ function _memApplyArchiState(state) {
       targetEl.innerHTML='';
       _archiTarget.forEach(function(si){var s=ARCHI_SHAPES[si],d=document.createElement('div');d.className='mem-archi-shape';d.style.background=s.color+'33';d.style.borderColor=s.color+'66';d.textContent=s.emoji;targetEl.appendChild(d);});
       var rem=state.show_until-Date.now();
-      setTimeout(function(){
-        if(targetEl)targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Modèle caché</div>';
-        // Re-apply state to unblock palette now that show_until has passed
-        var cur=_memMp&&_memMp.getCurrentState?_memMp.getCurrentState():null;
-        if(cur)_memApplyArchiState(cur);
-      },rem);
+      setTimeout(function(){if(targetEl)targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Modèle caché</div>';},rem);
     } else {
       targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Modèle caché</div>';
     }
@@ -739,7 +725,7 @@ function _memRenderArchiStack(el,stack){
 
 function _memArchiTap(si) {
   if(!_memMp)return;
-  var cur=_memMp.getCurrentState?_memMp.getCurrentState():null;if(!cur)return;
+  var cur=_memMp.getGameState?_memMp.getGameState():null;if(!cur)return;
   if(Date.now()<(cur.show_until||0))return;
   var sp=_memProfile+'_stack',ns=JSON.parse(JSON.stringify(cur));
   var myStack=(ns[sp]||[]).concat([si]);
