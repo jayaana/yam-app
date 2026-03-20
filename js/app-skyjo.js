@@ -98,6 +98,7 @@
   var _sjPendingRenderRow= null;
   var _waitingNextRound  = false;
   var _roundEndShown     = false;
+  var _sjGameStartedAt   = 0;   // timestamp ms — démarré à onMatchFound
 
   // ─── Deck ─────────────────────────────────────────────
   function shuffle(a){
@@ -264,6 +265,7 @@
       // Partie trouvée / lancée
       onMatchFound: function(gameRow){
         resetLocalState();
+        _sjGameStartedAt = Date.now();
         // ✅ FIX v3.7 : suspend presencePoll de app-core (doublon pendant Skyjo)
         if(typeof window._corePresenceSuspend==='function') window._corePresenceSuspend();
         // ✅ OPT v3.8 : suspend le compteur d'amour (hors écran pendant Skyjo)
@@ -1490,6 +1492,26 @@
     document.getElementById('skyjoGameEnd').style.display='flex';
     // Flamme — partie Skyjo ensemble terminée
     if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('skyjo_together');
+    // ── Sauvegarde scores dans game_scores ──
+    var _sjUser = typeof yamGetUser==='function' ? yamGetUser() : null;
+    var _sjCoupleId = _sjUser ? _sjUser.couple_id : null;
+    var _sjDuration = _sjGameStartedAt ? Math.round((Date.now() - _sjGameStartedAt) / 1000) : 0;
+    var _sjWinnerRole = isDraw ? null : (girlWins ? 'girl' : 'boy');
+    if (_sjCoupleId) {
+      ['girl','boy'].forEach(function(role) {
+        var roleScore = role === 'girl' ? gg : gb;
+        sb2Post('game_scores', {
+          couple_id:   _sjCoupleId,
+          game_id:     'skyjo',
+          player_role: role,
+          score:       roleScore,
+          moves:       0,
+          time_seconds: _sjDuration,
+          winner_role: _sjWinnerRole,
+          user_id:     _sjUser ? _sjUser.id : null
+        }).catch(function(){});
+      });
+    }
   }
 
   window.skyjoNewGame=function(){
