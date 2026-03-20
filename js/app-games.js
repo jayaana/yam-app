@@ -639,9 +639,10 @@ function _memShowMultiResult(state) {
   win.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   // Sauvegarder le score des deux joueurs (multi)
+  // Uniquement côté 'girl' pour éviter la double écriture (_memShowMultiResult tourne chez les deux)
   var coupleId = _memGetCoupleId();
   var _uSaveM = yamGetUser ? yamGetUser() : null;
-  if (coupleId && _uSaveM && _uSaveM.partner_pseudo) {
+  if (profile === 'girl' && coupleId && _uSaveM && _uSaveM.partner_pseudo) {
     var scoreVal = memoryCalcScore(memMoves, memSeconds);
     var girlPairs = state.girl_pairs || 0;
     var boyPairs  = state.boy_pairs  || 0;
