@@ -389,8 +389,9 @@ function _memApplyClassicState(state) {
 
   var grid = _memEl('memClassicGrid'); if (!grid) return;
   if (_clCards.length !== (state.cards||[]).length) {
-    var cfg = _CLASSIC_CFGS[Math.min(_clManche-1, _CLASSIC_CFGS.length-1)];
-    grid.style.gridTemplateColumns = 'repeat('+cfg.cols+', 1fr)';
+    var mcfg = _CLASSIC_CFGS[Math.min(_clManche-1, _CLASSIC_CFGS.length-1)];
+    grid.style.width = '100%';
+    grid.style.gridTemplateColumns = 'repeat('+mcfg.cols+', 1fr)';
     grid.innerHTML=''; _clCards=[];
     (state.cards||[]).forEach(function(emoji,idx) {
       var card = document.createElement('div');
@@ -571,7 +572,7 @@ function _memApplyEchoState(state) {
   if (!state||state.phase!=='echo') return;
   var prevLevel = _echoLevel;
   _echoSequence=state.sequence||[]; _echoLevel=state.level||1;
-  if (_echoLevel !== prevLevel) _echoShowing = false; // nouveau niveau → réautoriser l'animation
+  if (_echoLevel !== prevLevel) _echoShowing = false;
   var ml=_memProfile==='girl'?state.girl_lives:state.boy_lives;
   var ol=_memProfile==='girl'?state.boy_lives:state.girl_lives;
   function hearts(n){return['❤️','❤️','❤️'].slice(0,Math.max(0,n)).join('')||'💀';}
@@ -581,7 +582,6 @@ function _memApplyEchoState(state) {
   if (state.winner&&!_echoSaved){_memShowEchoResult(state);return;}
   var myInput=_memProfile==='girl'?state.girl_input:state.boy_input;
   _memUpdateEchoPips(_echoSequence.length,(myInput||[]).length);
-  // Guard : ne lancer l'animation qu'une seule fois par niveau (le poll toutes les 2s rappellerait sinon)
   if ((myInput||[]).length<_echoSequence.length && !_echoShowing) {
     _echoShowing = true;
     _echoMyInput = (myInput||[]).slice();
@@ -713,7 +713,7 @@ function _memApplyArchiState(state) {
       setTimeout(function(){
         if(targetEl)targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Modèle caché</div>';
         var cur=_memMp&&_memMp.getGameState?_memMp.getGameState():null;
-        if(cur) _memApplyArchiState(cur);
+        if(cur)_memApplyArchiState(cur);
       },rem);
     } else {
       targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Modèle caché</div>';
