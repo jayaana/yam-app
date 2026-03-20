@@ -166,7 +166,9 @@
 
       var detail = '';
       if (r.moves && r.moves > 0) {
-        detail = r.moves + ' coups';
+        detail = game === 'ocho'
+          ? r.moves + ' manches'
+          : r.moves + ' coups';
       } else if (r.time_seconds && r.time_seconds > 0) {
         var m = Math.floor(r.time_seconds / 60), s2 = r.time_seconds % 60;
         detail = m ? m + 'm' + String(s2).padStart(2, '0') + 's' : s2 + 's';
@@ -220,23 +222,25 @@
 
     var g, b;
     if (_MULTI_GAMES.indexOf(game) !== -1) {
-      // Jeux multi : on compte les victoires via winner_role
-      // On ne prend que les lignes player_role='girl' (une par partie) pour éviter le double comptage
+      // Jeux multi : victoires via winner_role — une ligne girl par partie
       var multiRows = gameRows.filter(function (r) { return r.player_role === 'girl' && r.winner_role && r.winner_role !== 'draw'; });
       g = multiRows.filter(function (r) { return r.winner_role === 'girl'; }).length;
       b = multiRows.filter(function (r) { return r.winner_role === 'boy';  }).length;
     } else {
-      // Jeux solo : on compte le nombre de parties jouées par chaque rôle
+      // Jeux solo : nombre de parties par rôle
       g = gameRows.filter(function (r) { return r.player_role === 'girl'; }).length;
       b = gameRows.filter(function (r) { return r.player_role === 'boy';  }).length;
     }
 
-    var me  = myRole === 'girl' ? g : b;
-    var her = myRole === 'girl' ? b : g;
-    if (!me && !her) { el.textContent = '—'; return; }
-    el.innerHTML = me >= her
-      ? '<span class="jx-w">' + me + '</span>–' + her
-      : me + '–<span class="jx-w">' + her + '</span>';
+    if (!g && !b) { el.textContent = '—'; return; }
+
+    // Toujours girl à gauche, boy à droite — cohérent avec le header VS
+    var leftScore  = g;
+    var rightScore = b;
+    var leftWins   = g >= b;
+    el.innerHTML = leftWins
+      ? '<span class="jx-w">' + leftScore + '</span>–' + rightScore
+      : leftScore + '–<span class="jx-w">' + rightScore + '</span>';
   }
 
   /* ── Chargement principal ── */
