@@ -236,13 +236,8 @@ function _memStartLobby() {
       var ph = state && state.phase;
       setTimeout(function() {
         if (ph === 'classic' || ph === 'echo' || ph === 'archi') {
-          // Partie déjà en cours → aller directement en jeu
           _memRouteState(state, gameRow);
-        } else if (ph === 'playing') {
-          // Accord de vote déjà fait → lancer le mode
-          _memLaunchMode(state.mode, gameRow);
         } else {
-          // Lobby ou choix de mode
           _memGoToModeSelect(gameRow);
         }
       }, 400);
@@ -330,17 +325,27 @@ function _memVoteMode(mode) {
   var ns = JSON.parse(JSON.stringify(_memLastState));
   ns[_memProfile + '_vote'] = mode;
 
-  // Si l'autre a déjà voté le même mode → les deux sont d'accord, on lance
+  // Si l'autre a déjà voté le même mode → accord
+  // Le second à voter publie directement le state de jeu prêt (avec les cartes)
+  // Les deux joueurs recoivent ce meme state via onStateUpdate — aucun avantage
   if (ns[_memOther + '_vote'] === mode) {
-    ns.phase = 'playing';
-    ns.mode  = mode;
     var cap = mode.charAt(0).toUpperCase() + mode.slice(1);
     var card = _memEl('memModeCard' + cap);
     if (card) card.classList.add('mem-mode-card--matched');
-    if (hint) hint.textContent = '✅ Accord ! Lancement…';
+    if (hint) hint.textContent = '\u2705 Accord ! Lancement…';
+    var gameState;
+    if (mode === 'classic' || mode === 'all') {
+      gameState = _memBuildClassicState(1);
+      if (mode === 'all') { gameState.mode = 'all'; }
+    } else if (mode === 'echo') {
+      gameState = _memBuildEchoState(1, [3, 3]);
+    } else if (mode === 'archi') {
+      gameState = _memBuildArchiState(1, false);
+    }
+    _memMp.saveState(gameState);
+  } else {
+    _memMp.saveState(ns);
   }
-
-  _memMp.saveState(ns);
 }
 
 function _memUpdateVotes(state) {
@@ -368,10 +373,6 @@ function _memRouteState(state, gameRow) {
     if (myVote && oppVote && myVote === oppVote) {
       _memLaunchMode(myVote, gameRow);
     }
-
-  } else if (ph === 'playing') {
-    // Les deux ont voté le même mode → lancer
-    _memLaunchMode(state.mode, gameRow);
 
   } else if (ph === 'classic') {
     _memApplyClassicState(state);
@@ -428,15 +429,12 @@ function _memStartClassic(gameRow) {
   _clCards=[]; _clFlipped=[];
   _memShowScreen('memScreenClassic');
   _memUpdateClassicHeader();
+  // Les deux joueurs recoivent le meme state via onStateUpdate — appliquer directement
   var state = gameRow && gameRow.state;
-  if (state && state.phase === 'classic') {
-    // State déjà prêt (cartes disponibles) → les deux l'appliquent directement
+  if (state && (state.phase === 'classic' || state.phase === 'echo' || state.phase === 'archi')) {
     _memApplyClassicState(state);
-  } else if (_memProfile === 'girl' && _memMp) {
-    // Girl publie le premier state avec les cartes — boy recevra via onStateUpdate
-    _memMp.saveState(_memBuildClassicState(1));
   }
-  // Boy sans state classic : attend le onStateUpdate de girl
+  // Sinon : le state arrive via onStateUpdate dans les ms qui suivent
 }
 
 function _memBuildClassicState(manche) {
@@ -706,9 +704,8 @@ function _memStartEcho(gameRow) {
   var stateE = gameRow && gameRow.state;
   if (stateE && stateE.phase === 'echo') {
     _memApplyEchoState(stateE);
-  } else if (_memProfile==='girl'&&_memMp) {
-    _memMp.saveState(_memBuildEchoState(1,[3,3]));
   }
+  // Sinon : state arrive via onStateUpdate
 }
 
 function _memBuildEchoState(level,lives) {
@@ -887,9 +884,8 @@ function _memStartArchi(gameRow) {
   var stateA = gameRow && gameRow.state;
   if (stateA && stateA.phase === 'archi') {
     _memApplyArchiState(stateA);
-  } else if (_memProfile==='girl'&&_memMp) {
-    _memMp.saveState(_memBuildArchiState(1, isAll));
   }
+  // Sinon : state arrive via onStateUpdate
 }
 
 // Tours DIFFÉRENTES pour chaque joueur — chacun a sa propre séquence à mémoriser
