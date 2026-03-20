@@ -50,7 +50,7 @@ var _clProcessing  = false, _clResultShown = false, _clSaved = false;
 
 // ── État Écho ──
 var _echoSequence  = [], _echoLevel = 1, _echoMyInput = [];
-var _echoShowInt   = null, _echoSaved = false;
+var _echoShowInt   = null, _echoSaved = false, _echoShowing = false;
 
 // ── État Architecte ──
 var _archiTarget   = [], _archiRound = 1;
@@ -389,6 +389,8 @@ function _memApplyClassicState(state) {
 
   var grid = _memEl('memClassicGrid'); if (!grid) return;
   if (_clCards.length !== (state.cards||[]).length) {
+    var cfg = _CLASSIC_CFGS[Math.min(_clManche-1, _CLASSIC_CFGS.length-1)];
+    grid.style.gridTemplateColumns = 'repeat('+cfg.cols+', 1fr)';
     grid.innerHTML=''; _clCards=[];
     (state.cards||[]).forEach(function(emoji,idx) {
       var card = document.createElement('div');
@@ -544,7 +546,7 @@ function _memShowClassicFinal(state) {
 // ═══════════════════════════════════════════════════════════
 
 function _memStartEcho(gameRow) {
-  _echoLevel=1; _echoSaved=false; _echoSequence=[]; _echoMyInput=[];
+  _echoLevel=1; _echoSaved=false; _echoSequence=[]; _echoMyInput=[]; _echoShowing=false;
   _memShowScreen('memScreenEcho');
   var lEl=_memEl('memEchoLevel'); if (lEl) lEl.textContent='Niveau 1';
   var lMe=_memEl('memEchoLivesMe'),lOth=_memEl('memEchoLivesOther');
@@ -567,7 +569,9 @@ function _memBuildEchoState(level,lives) {
 
 function _memApplyEchoState(state) {
   if (!state||state.phase!=='echo') return;
+  var prevLevel = _echoLevel;
   _echoSequence=state.sequence||[]; _echoLevel=state.level||1;
+  if (_echoLevel !== prevLevel) _echoShowing = false; // nouveau niveau → réautoriser l'animation
   var ml=_memProfile==='girl'?state.girl_lives:state.boy_lives;
   var ol=_memProfile==='girl'?state.boy_lives:state.girl_lives;
   function hearts(n){return['❤️','❤️','❤️'].slice(0,Math.max(0,n)).join('')||'💀';}
@@ -577,8 +581,11 @@ function _memApplyEchoState(state) {
   if (state.winner&&!_echoSaved){_memShowEchoResult(state);return;}
   var myInput=_memProfile==='girl'?state.girl_input:state.boy_input;
   _memUpdateEchoPips(_echoSequence.length,(myInput||[]).length);
-  if ((myInput||[]).length<_echoSequence.length) {
-    _memEchoShowSeq(function(){_memEchoUnblock();_echoMyInput=(myInput||[]).slice();});
+  // Guard : ne lancer l'animation qu'une seule fois par niveau (le poll toutes les 2s rappellerait sinon)
+  if ((myInput||[]).length<_echoSequence.length && !_echoShowing) {
+    _echoShowing = true;
+    _echoMyInput = (myInput||[]).slice();
+    _memEchoShowSeq(function(){ _memEchoUnblock(); });
   }
 }
 
@@ -629,6 +636,7 @@ function _memSaveEchoInput(success) {
     var lv=_echoLevel+1;
     if (lv>8)  _memUnlockTrophy('telepathie','memEchoTrophyUnlock');
     if (lv>10) _memUnlockTrophy('inextinguible','memEchoTrophyUnlock');
+    _echoShowing = false;
     ns=_memBuildEchoState(lv,[ns.girl_lives,ns.boy_lives]);
   }
   if ((ns.girl_lives||0)<=0||(ns.boy_lives||0)<=0){
@@ -702,7 +710,11 @@ function _memApplyArchiState(state) {
       targetEl.innerHTML='';
       _archiTarget.forEach(function(si){var s=ARCHI_SHAPES[si],d=document.createElement('div');d.className='mem-archi-shape';d.style.background=s.color+'33';d.style.borderColor=s.color+'66';d.textContent=s.emoji;targetEl.appendChild(d);});
       var rem=state.show_until-Date.now();
-      setTimeout(function(){if(targetEl)targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Modèle caché</div>';},rem);
+      setTimeout(function(){
+        if(targetEl)targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Modèle caché</div>';
+        var cur=_memMp&&_memMp.getGameState?_memMp.getGameState():null;
+        if(cur) _memApplyArchiState(cur);
+      },rem);
     } else {
       targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Modèle caché</div>';
     }
