@@ -405,7 +405,7 @@
     '<div id="ochoAnimZone"><div id="ochoAnimText"></div></div>'+
     '<div id="ochoHeader" style="position:absolute;top:0;left:0;right:0;height:60px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 16px 6px;z-index:100;background:linear-gradient(to bottom, var(--bg, #f2f2f7) 0%, rgba(220,160,140,0.6) 70%, transparent 100%);">'+
       '<button id="ochoBackBtn" style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:6px 14px;color:#ffffff;font-size:13px;font-weight:700;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;backdrop-filter:blur(8px);">'+
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Retour aux jeux</button>'+
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Retour</button>'+
       '<div style="font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:15px;font-weight:900;color:#ffffff;text-shadow:0 1px 6px rgba(0,0,0,0.4);display:flex;flex-direction:column;align-items:center;gap:1px;">'+
         '<span style="font-size:16px;">Ocho \uD83C\uDCCF</span>'+
         '<span id="ochoTableRound" style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:0.06em;text-transform:uppercase;">Manche 1/6</span>'+
@@ -527,7 +527,7 @@
       '</div>'+
       '<div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:280px;">'+
         '<button id="ochoNewGameBtn" style="width:100%;padding:14px 0;background:#FFD700;color:#000;font-weight:900;font-size:15px;font-family:Bricolage Grotesque,system-ui,sans-serif;border:none;border-radius:50px;cursor:pointer;">Rejouer \uD83D\uDD04</button>'+
-        '<button id="ochoCloseEndBtn" style="width:100%;padding:12px 0;background:rgba(0,0,0,0.3);color:rgba(242,232,212,0.7);border:1px solid rgba(255,255,255,0.15);border-radius:50px;font-size:13px;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;">Retour aux jeux</button>'+
+        '<button id="ochoCloseEndBtn" style="width:100%;padding:12px 0;background:rgba(0,0,0,0.3);color:rgba(242,232,212,0.7);border:1px solid rgba(255,255,255,0.15);border-radius:50px;font-size:13px;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;">Retour</button>'+
       '</div>'+
     '</div>'+
     '<div id="ochoColorPicker">'+
