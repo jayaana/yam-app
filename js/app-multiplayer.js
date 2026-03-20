@@ -134,7 +134,9 @@
         method:'POST',
         headers: sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal'}),
         body: JSON.stringify({role:_me, couple_id:coupleId, user_id:_presUid, last_seen:new Date().toISOString()})
-      }).catch(function(){});
+      }).then(function(r){
+        if(!r.ok) r.text().then(function(t){ console.error('[PRESENCE] upsert failed',r.status,PRESENCE_TABLE,t); });
+      }).catch(function(e){ console.error('[PRESENCE] fetch error',PRESENCE_TABLE,e); });
     }
 
     function deletePresence(){
@@ -508,6 +510,7 @@
         }
 
         // ── Notifier le jeu ───────────────────────────────
+        if(rows[0] && rows[0].state) _gameState = rows[0].state;
         if(cfg.onStateUpdate) cfg.onStateUpdate(rows[0]);
       }).catch(function(){});
     }
