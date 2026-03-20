@@ -32,7 +32,8 @@
   var _selectedCard  = null;
   var _drawnThisTurn = false;
   var _passAvailable = false;
-  var _ochoCounterUsed = false;  // anti-spam contre-ocho, local client
+  var _ochoCounterUsed = false;
+  var _ochoGameStartedAt = 0;  // timestamp ms — démarré à onMatchFound
   var _ochoBtnCooldown = false;  // cooldown global bouton ocho
 
   // ─── Deck ─────────────────────────────────────────────
@@ -633,7 +634,7 @@
         if(db)db.className='oc-pres-dot'+(boyOk?' online':'');
       },
       onMatchFound:function(gameRow){
-        _resetLocalState();_showScreen('ochoLayout');_startSafetyPoll();
+        _resetLocalState();_ochoGameStartedAt=Date.now();_showScreen('ochoLayout');_startSafetyPoll();
         var btn=document.getElementById('ochoAbandonBtn');if(btn)btn.style.display='block';
         _loadAvatars();
         _renderState(gameRow);
@@ -1537,6 +1538,26 @@
     }
     document.getElementById('ochoGameEnd').style.display='flex';
     if(typeof window.yamFlameActivity==='function')window.yamFlameActivity('ocho_together');
+    // ── Sauvegarde scores dans game_scores ──
+    var _ocUser=typeof yamGetUser==='function'?yamGetUser():null;
+    var _ocCoupleId=_ocUser?_ocUser.couple_id:null;
+    var _ocDuration=_ochoGameStartedAt?Math.round((Date.now()-_ochoGameStartedAt)/1000):0;
+    var _ocWinnerRole=isDraw?null:(iWon?_me:_other);
+    var _ocWins=state.wins||{girl:0,boy:0};
+    if(_ocCoupleId){
+      ['girl','boy'].forEach(function(role){
+        sb2Post('game_scores',{
+          couple_id:   _ocCoupleId,
+          game_id:     'ocho',
+          player_role: role,
+          score:       _ocWins[role]||0,
+          moves:       0,
+          time_seconds:_ocDuration,
+          winner_role: _ocWinnerRole,
+          user_id:     _ocUser?_ocUser.id:null
+        }).catch(function(){});
+      });
+    }
   }
 
   // ─── Emoji picker (corrigé) ───────────────────────────
