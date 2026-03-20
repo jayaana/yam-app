@@ -298,6 +298,7 @@ function memoryWinFn() {
       couple_id: coupleId, game_id: 'memory',
       player_role: profile, score: scoreVal,
       moves: memMoves, time_seconds: memSeconds,
+      winner_role: null,
       user_id: yamGetUser ? yamGetUser().id : null
     }).then(function() { _lbLoad(); if (typeof window.yamUpdateTrophies === 'function') window.yamUpdateTrophies(); }).catch(function() {});
   }
@@ -637,17 +638,29 @@ function _memShowMultiResult(state) {
   }
   win.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-  // Sauvegarder le score du gagnant
+  // Sauvegarder le score des deux joueurs (multi)
   var coupleId = _memGetCoupleId();
   var _uSaveM = yamGetUser ? yamGetUser() : null;
-  if (coupleId && iWon && !isDraw && _uSaveM && _uSaveM.partner_pseudo) {
+  if (coupleId && _uSaveM && _uSaveM.partner_pseudo) {
     var scoreVal = memoryCalcScore(memMoves, memSeconds);
-    sb2Post('game_scores', {
-      couple_id: coupleId, game_id: 'memory',
-      player_role: profile, score: scoreVal,
-      moves: memMoves, time_seconds: memSeconds,
-      user_id: yamGetUser ? yamGetUser().id : null
-    }).then(function() { _lbLoad(); if (typeof window.yamUpdateTrophies === 'function') window.yamUpdateTrophies(); }).catch(function() {});
+    var girlPairs = state.girl_pairs || 0;
+    var boyPairs  = state.boy_pairs  || 0;
+    ['girl','boy'].forEach(function(role) {
+      var roleScore = role === 'girl'
+        ? memoryCalcScore(memMoves - (boyPairs * 2), memSeconds)
+        : memoryCalcScore(memMoves - (girlPairs * 2), memSeconds);
+      roleScore = isDraw ? scoreVal : (role === winner ? scoreVal : Math.max(0, scoreVal - 200));
+      sb2Post('game_scores', {
+        couple_id:   coupleId, game_id: 'memory',
+        player_role: role,
+        score:       roleScore,
+        moves:       memMoves, time_seconds: memSeconds,
+        winner_role: isDraw ? 'draw' : winner,
+        user_id:     _uSaveM ? _uSaveM.id : null
+      }).catch(function(){});
+    });
+    if (typeof _lbLoad === 'function') _lbLoad();
+    if (typeof window.yamUpdateTrophies === 'function') window.yamUpdateTrophies();
   }
 
   if (_memMp) { _memMp.stopAll(); }
@@ -910,6 +923,7 @@ var PENDU_WORDS = [
 
 var penduPlayer=null, penduWord='', penduHint='', penduTheme='', penduGuessed=[], penduErrors=0, penduMaxErrors=7;
 var penduScore=0, penduWins=0;
+var penduStartedAt=0;
 var PENDU_PARTS=['ph-head','ph-body','ph-arm1','ph-arm2','ph-leg1','ph-leg2'];
 
 function _openPenduGame(){
@@ -939,7 +953,7 @@ function penduSelectGender(g){
 function penduNewWord(){
   var idx=Math.floor(Math.random()*PENDU_WORDS.length);
   penduWord=PENDU_WORDS[idx].w; penduHint=PENDU_WORDS[idx].h; penduTheme=PENDU_WORDS[idx].t||'❓ Thème';
-  penduGuessed=[]; penduErrors=0;
+  penduGuessed=[]; penduErrors=0; penduStartedAt=Date.now();
   // Reset pendu drawing
   PENDU_PARTS.forEach(function(id){ document.getElementById(id).style.display='none'; });
   document.getElementById('penduErrors').textContent='0 / 7 erreurs';
@@ -995,12 +1009,12 @@ function penduEndGame(won){
   document.getElementById('penduResultMsg').textContent=won?'Bravo ! Mot trouvé 🎊 Score : '+penduScore+' pts':'Perdu... Tu avais '+penduErrors+' erreurs';
   document.getElementById('penduWordReveal').textContent=penduWord.toUpperCase();
   if(penduPlayer && penduScore>0){
-    // ✅ FIX: Ajouter couple_id pour isoler les scores par couple
     var s = ( yamGetUser ? {user: yamGetUser()} : null );
     var coupleId = s && s.user ? s.user.couple_id : null;
     var _uPendu = yamGetUser ? yamGetUser() : null;
+    var penduDuration = penduStartedAt ? Math.round((Date.now()-penduStartedAt)/1000) : 0;
     if(coupleId && _uPendu && _uPendu.partner_pseudo) {
-      sb2Post('game_scores',{couple_id:coupleId,game_id:'pendu',player_role:penduPlayer,score:penduScore,moves:penduErrors,time_seconds:0,user_id:yamGetUser?yamGetUser().id:null})
+      sb2Post('game_scores',{couple_id:coupleId,game_id:'pendu',player_role:penduPlayer,score:penduScore,moves:penduErrors,time_seconds:penduDuration,winner_role:null,user_id:yamGetUser?yamGetUser().id:null})
         .then(function(){ plbLoad(); if (typeof window.yamUpdateTrophies === 'function') window.yamUpdateTrophies(); }).catch(function(){});
     }
   }
@@ -1212,7 +1226,7 @@ function generatePuzzleSource(sz, excludeImg){
   return { type:'canvas', src:generatePuzzleCanvas(sz) };
 }
 
-var puzzlePlayer=null, puzzleSize=3, puzzleOrder=[], puzzleSelected=null, puzzleMoveCount=0, puzzleDataURLCurrent='', puzzleSourceType='canvas', puzzleSourceSrc='';
+var puzzlePlayer=null, puzzleSize=3, puzzleOrder=[], puzzleSelected=null, puzzleMoveCount=0, puzzleDataURLCurrent='', puzzleSourceType='canvas', puzzleSourceSrc='', puzzleStartedAt=0;
 
 function _openPuzzleGame(){
   resetZoom();
@@ -1285,7 +1299,7 @@ function loadImageThenInit(imgSrc, sz){
   img.src=imgSrc;
 }
 function puzzleInit(){
-  puzzleMoveCount=0; puzzleSelected=null;
+  puzzleMoveCount=0; puzzleSelected=null; puzzleStartedAt=Date.now();
   document.getElementById('puzzleMoves').textContent='0 échanges';
   document.getElementById('puzzleWin').style.display='none';
   var n=puzzleSize*puzzleSize;
@@ -1351,7 +1365,7 @@ function puzzleWin(){
     var coupleId = s && s.user ? s.user.couple_id : null;
     var _uPuzzle = yamGetUser ? yamGetUser() : null;
     if(coupleId && _uPuzzle && _uPuzzle.partner_pseudo) {
-      sb2Post('game_scores',{couple_id:coupleId,game_id:'puzzle',player_role:puzzlePlayer,score:score,moves:puzzleMoveCount,time_seconds:0,user_id:yamGetUser?yamGetUser().id:null})
+      sb2Post('game_scores',{couple_id:coupleId,game_id:'puzzle',player_role:puzzlePlayer,score:score,moves:puzzleMoveCount,time_seconds:puzzleStartedAt?Math.round((Date.now()-puzzleStartedAt)/1000):0,winner_role:null,user_id:yamGetUser?yamGetUser().id:null})
         .then(function(){ zplbLoad(); if (typeof window.yamUpdateTrophies === 'function') window.yamUpdateTrophies(); }).catch(function(){});
     }
   }
@@ -1629,7 +1643,8 @@ function snakeGameOver(){
     var coupleId = s && s.user ? s.user.couple_id : null;
     var _uSnake = yamGetUser ? yamGetUser() : null;
     if(coupleId && _uSnake && _uSnake.partner_pseudo) {
-      sb2Post('game_scores',{couple_id:coupleId,game_id:'snake',player_role:snakePlayer,score:snakeCurScore,moves:0,time_seconds:0,user_id:yamGetUser?yamGetUser().id:null})
+      var snakeDuration = snakeStartTime ? Math.round((Date.now()-snakeStartTime)/1000) : 0;
+      sb2Post('game_scores',{couple_id:coupleId,game_id:'snake',player_role:snakePlayer,score:snakeCurScore,moves:0,time_seconds:snakeDuration,winner_role:null,user_id:yamGetUser?yamGetUser().id:null})
         .then(function(){ slbLoad(); if (typeof window.yamUpdateTrophies === 'function') window.yamUpdateTrophies(); }).catch(function(){});
     }
   }
