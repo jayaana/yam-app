@@ -2236,7 +2236,8 @@ body:not(.prank-flip) > *:not(#prankFlipBanner):not(#prankGotcha):not(#prankLock
 ══════════════════════════════════════════ */
 
 /* ── Conteneur écrans ── */
-.mem-screen { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.mem-screen { padding: 16px; display: none; flex-direction: column; gap: 14px; }
+.mem-screen.mem-screen--active { display: flex; }
 
 /* ── Boutons communs ── */
 .mem-btn-primary { padding: 13px 24px; background: var(--accent); color: #fff; border: none; border-radius: 50px; font-size: 14px; font-weight: 700; font-family: 'Bricolage Grotesque', sans-serif; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 3px 12px rgba(231,90,124,0.35); }
