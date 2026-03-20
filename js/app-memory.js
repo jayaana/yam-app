@@ -370,11 +370,23 @@ function _memUpdateVotes(state) {
 function _memRouteState(state, gameRow) {
   if (!state) return;
   var ph = state.phase, mo = state.mode;
-  if (ph === 'mode_select')                                    { _memUpdateVotes(state); }
-  else if (ph === 'launching')                                 { _memLaunchMode(state.mode, gameRow || {state:state}); }
-  else if (mo === 'classic' || ph === 'classic')               { _memApplyClassicState(state); }
-  else if (mo === 'echo'    || ph === 'echo')                  { _memApplyEchoState(state); }
-  else if (mo === 'archi'   || ph === 'archi')                 { _memApplyArchiState(state); }
+  if (ph === 'mode_select') {
+    _memUpdateVotes(state);
+  } else if (ph === 'launching') {
+    _memLaunchMode(state.mode, gameRow || {state:state});
+  } else if (ph === 'launching_echo') {
+    // Transition ALL : classic -> echo
+    if (_memCurrentMode === 'all') { _memAllQueue = ['archi']; _memLaunchSingle('echo', gameRow || {state:state}); }
+  } else if (ph === 'launching_archi') {
+    // Transition ALL : echo -> archi
+    if (_memCurrentMode === 'all') { _memAllQueue = []; _memLaunchSingle('archi', gameRow || {state:state}); }
+  } else if (mo === 'classic' || ph === 'classic') {
+    _memApplyClassicState(state);
+  } else if (mo === 'echo' || ph === 'echo') {
+    _memApplyEchoState(state);
+  } else if (mo === 'archi' || ph === 'archi') {
+    _memApplyArchiState(state);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -410,7 +422,23 @@ function _memLaunchMode(mode, gameRow) {
 function _memLaunchNextAll(gameRow) {
   if (!_memAllQueue.length) { _memShowAllResults(); return; }
   var m = _memAllQueue.shift();
-  _memLaunchSingle(m, gameRow);
+  // Publier une phase de transition explicite pour synchroniser les deux joueurs
+  // au lieu de lancer directement (qui ne fonctionnerait que localement)
+  if (m === 'echo' || m === 'archi') {
+    var transPhase = 'launching_' + m;
+    var cur = (_memMp && _memMp.getGameState) ? _memMp.getGameState() : (_memLastState || {});
+    var ns = JSON.parse(JSON.stringify(cur));
+    ns.phase = transPhase; ns.mode = 'all';
+    if (_memMp) {
+      _memMp.saveState(ns);
+      // Lancer aussi localement apres un court delai (pour recevoir l update en retour)
+      setTimeout(function() { _memLaunchSingle(m, {state: ns}); }, 100);
+    } else {
+      _memLaunchSingle(m, gameRow);
+    }
+  } else {
+    _memLaunchSingle(m, gameRow);
+  }
 }
 
 function _memLaunchSingle(mode, gameRow) {
