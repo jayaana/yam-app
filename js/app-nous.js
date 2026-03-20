@@ -4146,8 +4146,8 @@ window.nousLoad = function(){
   // TROPHÉES — Cumul des meilleurs scores par jeu
   // ════════════════════════════════════════════════════════════════
 
-  // Recalcule les scores cumulés depuis v2_game_scores et met à jour l'affichage.
-  // NE touche PAS à v2_crown — la couronne est attribuée uniquement à minuit par _assignCrown().
+  // Recalcule les scores cumulés depuis game_scores et met à jour l'affichage + couronne.
+  // Inclut tous les jeux : memory, pendu, puzzle, snake, skyjo, ocho.
   function _recalcTrophies () {
     var cid = _getCoupleId();
     if (!cid) return;
@@ -4158,41 +4158,7 @@ window.nousLoad = function(){
       .then(function (scoreRows) {
         if (!Array.isArray(scoreRows)) return;
 
-        var games    = ['memory', 'pendu', 'puzzle', 'snake'];
-        var girlBest = {};
-        var boyBest  = {};
-
-        scoreRows.forEach(function (row) {
-          if (row.player_role === 'girl') {
-            if (!girlBest[row.game_id] || row.score > girlBest[row.game_id])
-              girlBest[row.game_id] = row.score;
-          } else {
-            if (!boyBest[row.game_id] || row.score > boyBest[row.game_id])
-              boyBest[row.game_id] = row.score;
-          }
-        });
-
-        _trophies.girl = games.reduce(function (s, g) { return s + (girlBest[g] || 0); }, 0);
-        _trophies.boy  = games.reduce(function (s, g) { return s + (boyBest[g]  || 0); }, 0);
-
-        _renderTrophies(); // affiche les scores — la couronne reste celle chargée en mémoire
-      }).catch(function () {});
-  }
-
-  // Attribue la couronne à minuit : lit les scores du jour et écrit v2_crown.
-  // Appelé uniquement par le tick minuit (_startTicks) et à l'init (_loadTrophies).
-  function _assignCrown () {
-    var cid   = _getCoupleId();
-    var today = _todayStr();
-    if (!cid) return;
-
-    fetch(SB_URL + '/rest/v1/game_scores?couple_id=eq.' + cid +
-      '&select=player_role,game_id,score&order=score.desc', { headers: sb2Headers() })
-      .then(function (r) { return r.ok ? r.json() : []; })
-      .then(function (scoreRows) {
-        if (!Array.isArray(scoreRows)) return;
-
-        var games    = ['memory', 'pendu', 'puzzle', 'snake'];
+        var games    = ['memory', 'pendu', 'puzzle', 'snake', 'skyjo', 'ocho'];
         var girlBest = {};
         var boyBest  = {};
 
@@ -4231,7 +4197,7 @@ window.nousLoad = function(){
       }).catch(function () {});
   }
 
-  function _loadTrophies () { _assignCrown(); }
+  function _loadTrophies () { _recalcTrophies(); }
 
   // Hook public — met à jour les scores affichés sans toucher à la couronne
   window.yamUpdateTrophies = function () { _recalcTrophies(); };
