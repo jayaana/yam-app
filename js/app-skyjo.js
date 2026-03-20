@@ -1493,24 +1493,30 @@
     // Flamme — partie Skyjo ensemble terminée
     if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('skyjo_together');
     // ── Sauvegarde scores dans game_scores ──
-    var _sjUser = typeof yamGetUser==='function' ? yamGetUser() : null;
-    var _sjCoupleId = _sjUser ? _sjUser.couple_id : null;
-    var _sjDuration = _sjGameStartedAt ? Math.round((Date.now() - _sjGameStartedAt) / 1000) : 0;
-    var _sjWinnerRole = isDraw ? null : (girlWins ? 'girl' : 'boy');
-    if (_sjCoupleId) {
-      ['girl','boy'].forEach(function(role) {
-        var roleScore = role === 'girl' ? gg : gb;
-        sb2Post('game_scores', {
-          couple_id:   _sjCoupleId,
-          game_id:     'skyjo',
-          player_role: role,
-          score:       roleScore,
-          moves:       0,
-          time_seconds: _sjDuration,
-          winner_role: _sjWinnerRole,
-          user_id:     _sjUser ? _sjUser.id : null
-        }).catch(function(){});
-      });
+    // Uniquement côté 'girl' pour éviter la double écriture (showGameEnd tourne chez les deux joueurs)
+    if (_me === 'girl') {
+      var _sjUser = typeof yamGetUser==='function' ? yamGetUser() : null;
+      var _sjCoupleId = _sjUser ? _sjUser.couple_id : null;
+      var _sjDuration = _sjGameStartedAt ? Math.round((Date.now() - _sjGameStartedAt) / 1000) : 0;
+      var _sjWinnerRole = isDraw ? null : (girlWins ? 'girl' : 'boy');
+      if (_sjCoupleId) {
+        ['girl','boy'].forEach(function(role) {
+          var rawScore = role === 'girl' ? gg : gb;
+          // Score leaderboard inversé : à Skyjo le moins de points = meilleur
+          // On sauvegarde 1000 - scoreReel pour que le classement DESC soit cohérent
+          var lbScore = Math.max(0, 1000 - rawScore);
+          sb2Post('game_scores', {
+            couple_id:    _sjCoupleId,
+            game_id:      'skyjo',
+            player_role:  role,
+            score:        lbScore,
+            moves:        0,
+            time_seconds: _sjDuration,
+            winner_role:  _sjWinnerRole,
+            user_id:      _sjUser ? _sjUser.id : null
+          }).catch(function(){});
+        });
+      }
     }
   }
 
