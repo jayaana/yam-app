@@ -111,6 +111,13 @@ function _memCleanup() {
   if (_echoShowInt) { clearInterval(_echoShowInt); _echoShowInt = null; }
   if (_clTimer)     { clearInterval(_clTimer);     _clTimer = null; }
   _memCurrentMode = null; _memAllQueue = []; _memAllResults = {};
+  // Reset flags de résultat pour éviter les popups persistants entre sessions
+  _clResultShown = false; _clSaved = false;
+  // Masquer les popups de résultat si encore affichés
+  var rEl = _memEl('memClassicMancheResult'); if (rEl) rEl.style.display = 'none';
+  var fEl = _memEl('memClassicFinalResult');  if (fEl) fEl.style.display = 'none';
+  var eEl = _memEl('memEchoFinalResult');     if (eEl) eEl.style.display = 'none';
+  var aEl = _memEl('memArchiFinalResult');    if (aEl) aEl.style.display = 'none';
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -178,7 +185,11 @@ function _memStartLobby() {
   var tMe = _memEl('memLobbyTitleMe'); if (tMe) tMe.textContent = _memHighestTitle();
 
   var cancelBtn = _memEl('memLobbyCancelBtn');
-  if (cancelBtn) cancelBtn.onclick = function() { _memCleanup(); _memShowLb(true); _lbLoad(); };
+  if (cancelBtn) cancelBtn.onclick = function() {
+    _memCleanup();
+    // Retour vers la vue gamesView (ferme memoryView proprement)
+    _yamSlide(document.getElementById('gamesView'), document.getElementById('memoryView'), 'backward');
+  };
 
   _memMp = YAMMultiplayer.init({
     gameTable:        MEM_GAME_TABLE,
@@ -216,12 +227,16 @@ function _memStartLobby() {
     onMatchFound: function(gameRow) {
       _memStartedAt = Date.now();
       _memLastState = gameRow.state;
+      // Reset _memCurrentMode pour forcer le re-routage correct si on revient en jeu
+      _memCurrentMode = null;
       setTimeout(function() { _memGoToModeSelect(gameRow); }, 400);
     },
 
     onStateUpdate: function(gameRow) {
       if (!gameRow || !gameRow.state) return;
       _memLastState = gameRow.state;
+      // Si on revient en jeu après une absence, _memCurrentMode peut être périmé
+      // Le reset est géré dans onMatchFound; ici on route normalement
       _memRouteState(gameRow.state, gameRow);
     },
 
@@ -255,6 +270,21 @@ function _memGoToModeSelect(gameRow) {
   if (nOth) nOth.textContent = _memGetName(_memOther);
   var tMe = _memEl('memModeTitleMe'); if (tMe) tMe.textContent = _memHighestTitle() || 'Débutant';
   var tOth = _memEl('memModeTitleOther'); if (tOth) tOth.textContent = '…';
+  // Charger les trophées de l'adversaire pour afficher son titre
+  (function() {
+    var cid = _memGetCoupleId();
+    if (!cid || !tOth) return;
+    sb2Fetch(MEM_TROPHY_TABLE, 'couple_id=eq.'+cid+'&player_role=eq.'+_memOther)
+      .then(function(r) {
+        var oppTrophies = Array.isArray(r) ? r.map(function(x){return x.trophy_id;}) : [];
+        var order = ['legende','osmose','inextinguible','telepathie','architecte','eclair','precision'];
+        var title = '';
+        for (var i = 0; i < order.length; i++) {
+          if (oppTrophies.indexOf(order[i]) !== -1) { title = TROPHIES[order[i]].name; break; }
+        }
+        if (tOth) tOth.textContent = title || 'Débutant';
+      }).catch(function() { if (tOth) tOth.textContent = 'Débutant'; });
+  })();
   var vMe = _memEl('memVoteMe'), vOth = _memEl('memVoteOther');
   if (vMe)  { vMe.textContent  = '—'; vMe.className  = 'mem-vote-chip'; }
   if (vOth) { vOth.textContent = '—'; vOth.className = 'mem-vote-chip'; }
@@ -276,10 +306,14 @@ function _memVoteMode(mode) {
   var hint = _memEl('memModeHint');
   if (hint) hint.textContent = 'Vote envoyé — en attente de '+_memGetName(_memOther)+'…';
 
-  // Toujours partir du dernier état connu pour ne pas écraser le vote de l'autre
-  var ns = JSON.parse(JSON.stringify(_memLastState || {phase:'mode_select'}));
+  // Lire l'état le plus récent depuis le moteur (priorité sur _memLastState local)
+  var engineState = (_memMp && _memMp.getGameState) ? _memMp.getGameState() : null;
+  var base = engineState || _memLastState || {phase:'mode_select'};
+  var ns = JSON.parse(JSON.stringify(base));
+  ns.phase = 'mode_select';
   ns[_memProfile + '_vote'] = mode;
 
+  // Vérifier si l'accord est immédiat (l'autre a déjà voté le même mode)
   if (ns[_memOther + '_vote'] === mode) {
     ns.phase = 'launching'; ns.mode = mode;
     var cap  = mode.charAt(0).toUpperCase() + mode.slice(1);
@@ -317,7 +351,22 @@ function _memRouteState(state, gameRow) {
 // ═══════════════════════════════════════════════════════════
 
 function _memLaunchMode(mode, gameRow) {
-  if (_memCurrentMode === mode && mode !== null) return; // anti-double
+  if (_memCurrentMode === mode && mode !== null) {
+    // Anti-double : déjà lancé dans ce mode, mais si on est sur l'écran de sélection
+    // (retour temporaire), router directement vers le bon écran de jeu
+    var curScreen = null;
+    ['memScreenClassic','memScreenEcho','memScreenArchi'].forEach(function(s) {
+      var el = _memEl(s); if (el && el.classList.contains('mem-screen--active')) curScreen = s;
+    });
+    var modeScreenMap = {classic:'memScreenClassic', echo:'memScreenEcho', archi:'memScreenArchi'};
+    var targetScreen = modeScreenMap[mode === 'all' ? (_memAllQueue[0] || 'classic') : mode];
+    if (curScreen === 'memScreenMode' && targetScreen) {
+      // On est bloqué sur l'écran mode → forcer l'affichage du bon écran de jeu
+      _memCurrentMode = null; // reset pour permettre le re-lancement
+    } else {
+      return; // vraie double-invocation, ignorer
+    }
+  }
   _memCurrentMode = mode;
   if (mode === 'all') {
     _memAllQueue = ['classic','echo','archi']; _memAllResults = {};
@@ -550,10 +599,14 @@ function _memShowClassicMancheResult(state) {
     nextBtn.style.display=(isAll||_clManche>=3)?'none':'';
     nextBtn.textContent='Manche suivante →';
     nextBtn.onclick=function(){
-      rEl.style.display='none'; _clManche++; _clResultShown=false; _clCards=[]; _clFlipped=[]; _clMoves=0;
+      rEl.style.display='none'; _clResultShown=false; _clCards=[]; _clFlipped=[]; _clMoves=0;
+      var nextManche = _clManche + 1;
+      _clManche = nextManche;
       if (_clTimer){clearInterval(_clTimer);_clTimer=null;}
-      if (_memProfile==='girl'&&_memMp) {
-        var ns = _memBuildClassicState(_clManche);
+      // Les deux joueurs peuvent lancer la manche suivante
+      // girl construit le nouvel état, boy envoie un signal de progression
+      if (_memMp) {
+        var ns = _memBuildClassicState(nextManche);
         // Conserver le timer_start global de la manche 1
         if (_clTimerStart) ns.timer_start = _clTimerStart;
         _memMp.saveState(ns);
