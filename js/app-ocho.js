@@ -33,7 +33,8 @@
   var _drawnThisTurn = false;
   var _passAvailable = false;
   var _ochoCounterUsed = false;
-  var _ochoGameStartedAt = 0;  // timestamp ms — démarré à onMatchFound
+  var _ochoGameStartedAt = 0;
+  var _ochoGameEndSaved  = false;  // guard anti double-save (renderState appelé à chaque poll)
   var _ochoBtnCooldown = false;  // cooldown global bouton ocho
 
   // ─── Deck ─────────────────────────────────────────────
@@ -634,7 +635,7 @@
         if(db)db.className='oc-pres-dot'+(boyOk?' online':'');
       },
       onMatchFound:function(gameRow){
-        _resetLocalState();_ochoGameStartedAt=Date.now();_showScreen('ochoLayout');_startSafetyPoll();
+        _resetLocalState();_ochoGameStartedAt=Date.now();_ochoGameEndSaved=false;_showScreen('ochoLayout');_startSafetyPoll();
         var btn=document.getElementById('ochoAbandonBtn');if(btn)btn.style.display='block';
         _loadAvatars();
         _renderState(gameRow);
@@ -1539,21 +1540,27 @@
     document.getElementById('ochoGameEnd').style.display='flex';
     if(typeof window.yamFlameActivity==='function')window.yamFlameActivity('ocho_together');
     // ── Sauvegarde scores dans game_scores ──
-    // Uniquement côté 'girl' pour éviter la double écriture
-    if (_me === 'girl') {
+    // Uniquement côté 'girl' + guard anti double-save (renderState poll continu)
+    if (_me === 'girl' && !_ochoGameEndSaved) {
+      _ochoGameEndSaved = true;
       var _ocUser=typeof yamGetUser==='function'?yamGetUser():null;
       var _ocCoupleId=_ocUser?_ocUser.couple_id:null;
       var _ocDuration=_ochoGameStartedAt?Math.round((Date.now()-_ochoGameStartedAt)/1000):0;
-      var _ocWinnerRole=isDraw?null:(iWon?_me:_other);
       var _ocWins=state.wins||{girl:0,boy:0};
+      var _ocGW=_ocWins.girl||0, _ocBW=_ocWins.boy||0;
+      var _ocTotal=_ocGW+_ocBW||1;
+      var _ocWinnerRole=_ocGW===_ocBW?null:(_ocGW>_ocBW?'girl':'boy');
+      // Score = ratio manches gagnées × 1000 — ex: 4-2 → 667pts, 4-0 → 1000pts, 2-4 → 333pts
       if(_ocCoupleId){
         ['girl','boy'].forEach(function(role){
+          var roleWins = _ocWins[role]||0;
+          var roleScore = Math.round((roleWins / _ocTotal) * 1000);
           sb2Post('game_scores',{
             couple_id:   _ocCoupleId,
             game_id:     'ocho',
             player_role: role,
-            score:       _ocWins[role]||0,
-            moves:       0,
+            score:       roleScore,
+            moves:       roleWins,
             time_seconds:_ocDuration,
             winner_role: _ocWinnerRole,
             user_id:     _ocUser?_ocUser.id:null
