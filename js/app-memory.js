@@ -133,15 +133,43 @@ function openMemoryGame() {
   _yamSlide(document.getElementById('memoryView'), document.getElementById('gamesView'), 'forward');
   window.scrollTo(0, 0);
   _memShowLb(false);
+
+  // Si _memMp existe encore (pause temporaire via bouton retour), reprendre sans recréer
+  if (_memMp && _memMp.isLaunched && _memMp.isLaunched()) {
+    _memMp.upsertPresence();   // réactiver la présence immédiatement
+    _memMp.startPoll();        // relancer le poll pour récupérer l'état courant
+    return;
+  }
+
+  // Sinon démarrage normal
   _memLoadTrophies(function() { _memStartLobby(); });
 }
 
+// Quitter définitivement (abandon complet — supprime présence + partie en attente)
 function closeMemoryGame() {
   _memCleanup();
   _yamSlide(document.getElementById('gamesView'), document.getElementById('memoryView'), 'backward');
 }
 
-// Note : memoryBackBtn est géré par app-inline.js
+// Pause temporaire via bouton retour — conserve la partie et la présence en base
+// L'adversaire voit la présence s'éteindre progressivement (heartbeat stoppé)
+// Au retour : enterLobby() retrouve la partie status=playing et onMatchFound re-route
+function _memPause() {
+  // Stopper les polls/timers mais NE PAS supprimer la présence ni la partie
+  if (_memMp) {
+    _memMp.stopAll();   // stoppe timers, polls, RT channel
+    // NE PAS appeler leave() ni deletePresence() — la partie reste vivante en base
+  }
+  if (_echoShowInt) { clearInterval(_echoShowInt); _echoShowInt = null; }
+  if (_clTimer)     { clearInterval(_clTimer);     _clTimer = null; }
+  // Reset _memCurrentMode pour que _memLaunchMode re-route correctement au retour
+  _memCurrentMode = null;
+  // Reset _clResultShown pour que les popups de résultat se réaffichent correctement
+  _clResultShown = false;
+  _yamSlide(document.getElementById('gamesView'), document.getElementById('memoryView'), 'backward');
+}
+
+// Note : memoryBackBtn est géré par app-nav.js
 
 // ═══════════════════════════════════════════════════════════
 // TROPHÉES
@@ -318,7 +346,6 @@ function _memVoteMode(mode) {
   // Fetch l'état le plus récent en base pour ne jamais écraser le vote de l'autre
   var gameId = _memMp ? _memMp.getGameId() : null;
   if (!gameId) {
-    // Pas encore de gameId connu : utiliser le state local
     _memVoteSave(mode, _memLastState || {phase:'mode_select'});
     return;
   }
@@ -326,10 +353,15 @@ function _memVoteMode(mode) {
   fetch(SB+'/rest/v1/'+MEM_GAME_TABLE+'?id=eq.'+gameId+'&select=state', {headers: sb2Headers()})
     .then(function(r){ return r.json(); })
     .then(function(rows) {
+      // Si entre-temps onStateUpdate a déjà amené phase:launching → ne pas écraser
+      if (_memLastState && _memLastState.phase === 'launching') return;
       var freshState = (Array.isArray(rows) && rows[0] && rows[0].state) ? rows[0].state : (_memLastState || {phase:'mode_select'});
+      // Idem sur l'état frais retourné par le fetch
+      if (freshState.phase === 'launching') return;
       _memVoteSave(mode, freshState);
     })
     .catch(function() {
+      if (_memLastState && _memLastState.phase === 'launching') return;
       _memVoteSave(mode, _memLastState || {phase:'mode_select'});
     });
 }
@@ -1136,4 +1168,6 @@ window.openMemoryGame  = openMemoryGame;
 window.closeMemoryGame = closeMemoryGame;
 window._memOpenGame    = openMemoryGame;
 window._memCloseGame   = closeMemoryGame;
+window._memPauseGame   = _memPause;   // pause temporaire sans destruction (bouton retour)
+window._memIsGameActive = function() { return !!(_memMp && _memMp.isLaunched && _memMp.isLaunched()); };
 window._memRouteState  = _memRouteState;
