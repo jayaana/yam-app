@@ -394,22 +394,7 @@ function _memRouteState(state, gameRow) {
 // ═══════════════════════════════════════════════════════════
 
 function _memLaunchMode(mode, gameRow) {
-  if (_memCurrentMode === mode && mode !== null) {
-    // Anti-double : déjà lancé dans ce mode, mais si on est sur l'écran de sélection
-    // (retour temporaire), router directement vers le bon écran de jeu
-    var curScreen = null;
-    ['memScreenClassic','memScreenEcho','memScreenArchi'].forEach(function(s) {
-      var el = _memEl(s); if (el && el.classList.contains('mem-screen--active')) curScreen = s;
-    });
-    var modeScreenMap = {classic:'memScreenClassic', echo:'memScreenEcho', archi:'memScreenArchi'};
-    var targetScreen = modeScreenMap[mode === 'all' ? (_memAllQueue[0] || 'classic') : mode];
-    if (curScreen === 'memScreenMode' && targetScreen) {
-      // On est bloqué sur l'écran mode → forcer l'affichage du bon écran de jeu
-      _memCurrentMode = null; // reset pour permettre le re-lancement
-    } else {
-      return; // vraie double-invocation, ignorer
-    }
-  }
+  if (_memCurrentMode === mode && mode !== null) return; // anti-double
   _memCurrentMode = mode;
   if (mode === 'all') {
     _memAllQueue = ['classic','echo','archi']; _memAllResults = {};
