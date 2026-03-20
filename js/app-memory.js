@@ -45,7 +45,7 @@ var _memStartedAt   = 0;
 // ── État Classique+ ──
 var _clCards       = [], _clFlipped = [], _clManche = 1;
 var _clGirlPairs   = 0, _clBoyPairs = 0, _clMoves = 0, _clTotalMoves = 0;
-var _clTimer       = null, _clSeconds = 0, _clManche3Secs = 0;
+var _clTimer       = null, _clSeconds = 0, _clManche3Secs = 0, _clTimerStart = 0;
 var _clProcessing  = false, _clResultShown = false, _clSaved = false;
 
 // ── État Écho ──
@@ -207,10 +207,8 @@ function _memStartLobby() {
       if (dot) {
         dot.style.background   = isOnline ? '#22c55e' : '#666';
         dot.style.boxShadow    = isOnline ? '0 0 6px rgba(34,197,94,0.8)' : 'none';
-        dot.style.width        = '8px';
-        dot.style.height       = '8px';
-        dot.style.borderRadius = '50%';
-        dot.style.display      = 'inline-block';
+        dot.style.width        = '8px'; dot.style.height = '8px';
+        dot.style.borderRadius = '50%'; dot.style.display = 'inline-block';
       }
       if (name) name.textContent = _memGetName(_memOther);
     },
@@ -353,7 +351,7 @@ var _CLASSIC_CFGS = [
 
 function _memStartClassic(gameRow) {
   _clManche=1; _clGirlPairs=0; _clBoyPairs=0; _clTotalMoves=0;
-  _clProcessing=false; _clResultShown=false; _clSaved=false; _clSeconds=0; _clManche3Secs=0;
+  _clProcessing=false; _clResultShown=false; _clSaved=false; _clSeconds=0; _clManche3Secs=0; _clTimerStart=0;
   if (_clTimer) { clearInterval(_clTimer); _clTimer=null; }
   _clCards=[]; _clFlipped=[];
   _memShowScreen('memScreenClassic');
@@ -369,9 +367,10 @@ function _memBuildClassicState(manche) {
   var cfg  = _CLASSIC_CFGS[manche-1];
   var pool = MEMORY_EMOJIS.slice(0,cfg.pairs).concat(MEMORY_EMOJIS.slice(0,cfg.pairs));
   for (var i=pool.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=pool[i];pool[i]=pool[j];pool[j]=t;}
+  // timer_start fixé à la manche 1 uniquement — conservé ensuite pour chrono global
   return {phase:'classic',mode:'classic',manche:manche,cards:pool,matched:[],flipped:[],
     girl_pairs:0,boy_pairs:0,turn:'girl',moves:0,winner:null,
-    specials:cfg.specials,timer_start:Date.now(),elapsed:0};
+    specials:cfg.specials,timer_start:manche===1?Date.now():null,elapsed:0};
 }
 
 function _memUpdateClassicHeader() {
@@ -393,6 +392,8 @@ function _memApplyClassicState(state) {
   if (!state || _clProcessing) return;
   _clGirlPairs = state.girl_pairs||0; _clBoyPairs = state.boy_pairs||0;
   _clManche    = state.manche||1;     _clMoves    = state.moves||0;
+  // Mémoriser le timer_start global dès la manche 1
+  if (state.timer_start && !_clTimerStart) _clTimerStart = state.timer_start;
   _memUpdateClassicHeader();
 
   if (state.winner && !_clResultShown) {
@@ -437,21 +438,20 @@ function _memApplyClassicState(state) {
     specRow.innerHTML=state.specials.map(function(s){return '<div class="mem-special-chip '+(cls[s]||'')+'">'+(lbl[s]||s)+'</div>';}).join('');
   }
 
-  // Timer manche 3
-  if (_clManche===3 && !_clTimer && !state.winner) {
-    _clSeconds=state.elapsed||0;
-    _clTimer=setInterval(function(){
-      _clSeconds++; _clManche3Secs=_clSeconds;
-      var rem=Math.max(0,90-_clSeconds);
-      var el=_memEl('memClassicTimer');
-      if (el){el.textContent=rem+'s';el.className='mem-game-timer'+(rem<=15?' mem-game-timer--urgent':'');}
-      if (rem===0&&!_clResultShown&&_memMp){
-        clearInterval(_clTimer);_clTimer=null;
-        var ns=_memBuildWinnerState(state);
-        _memMp.saveState(ns);
-      }
-    },1000);
+  // Chrono global — démarre dès la manche 1, tourne en continu
+  if (!_clTimer && !state.winner && _clTimerStart) {
+    _clTimer = setInterval(function(){
+      if (!_clTimerStart) return;
+      var elapsed = Math.floor((Date.now() - _clTimerStart) / 1000);
+      var el = _memEl('memClassicTimer');
+      if (el) { el.textContent = _memFormatTime(elapsed); el.className = 'mem-game-timer'; }
+    }, 1000);
   }
+}
+
+function _memFormatTime(secs) {
+  var m = Math.floor(secs/60), s = secs%60;
+  return m>0 ? m+'m'+String(s).padStart(2,'0')+'s' : s+'s';
 }
 
 function _memBuildWinnerState(state) {
@@ -520,7 +520,12 @@ function _memShowClassicMancheResult(state) {
     nextBtn.onclick=function(){
       rEl.style.display='none'; _clManche++; _clResultShown=false; _clCards=[]; _clFlipped=[]; _clMoves=0;
       if (_clTimer){clearInterval(_clTimer);_clTimer=null;}
-      if (_memProfile==='girl'&&_memMp) _memMp.saveState(_memBuildClassicState(_clManche));
+      if (_memProfile==='girl'&&_memMp) {
+        var ns = _memBuildClassicState(_clManche);
+        // Conserver le timer_start global de la manche 1
+        if (_clTimerStart) ns.timer_start = _clTimerStart;
+        _memMp.saveState(ns);
+      }
     };
   }
   if (quitBtn) quitBtn.onclick=function(){_memShowClassicFinal(state);};
@@ -536,14 +541,17 @@ function _memShowClassicFinal(state) {
   var eEl=_memEl('memClassicFinalEmoji'),tEl=_memEl('memClassicFinalTitle'),sEl=_memEl('memClassicFinalScore');
   if (eEl) eEl.textContent=isDraw?'🤝':iWon?'🏆':'🎖️';
   if (tEl) tEl.textContent=isDraw?'Égalité !':iWon?'Victoire ! 🎉':_memGetName(_memOther)+' gagne !';
-  if (sEl) sEl.textContent=(_memProfile==='girl'?gW:bW)+' paires · '+_clTotalMoves+' coups total';
+  if (sEl) {
+    var totalSecs = _clTimerStart ? Math.floor((Date.now()-_clTimerStart)/1000) : 0;
+    sEl.textContent=(_memProfile==='girl'?gW:bW)+' paires · '+_clTotalMoves+' coups · '+_memFormatTime(totalSecs);
+  }
   if (iWon&&_clManche3Secs>0&&_clManche3Secs<60) _memUnlockTrophy('eclair','memClassicTrophyUnlock');
   if (iWon&&_clTotalMoves<20) _memUnlockTrophy('precision','memClassicTrophyUnlock');
   if (_memProfile==='girl') {
     var cid=_memGetCoupleId(),dur=Math.round((Date.now()-_memStartedAt)/1000);
     if (cid) ['girl','boy'].forEach(function(r){
       var sc=Math.round(((r==='girl'?gW:bW)/Math.max(1,gW+bW))*1000);
-      sb2Post('game_scores',{couple_id:cid,game_id:'memory',player_role:r,score:sc,moves:_clTotalMoves,time_seconds:dur,winner_role:fw,user_id:typeof yamGetUser==='function'?yamGetUser().id:null}).catch(function(){});
+      sb2Post('game_scores',{couple_id:cid,game_id:'memory',player_role:r,score:sc,moves:_clTotalMoves,time_seconds:dur,winner_role:fw,user_id:typeof yamGetUser==="function"?yamGetUser().id:null}).catch(function(){});
     });
   }
   var doneBtn=_memEl('memClassicDoneBtn');
@@ -579,7 +587,12 @@ function _memStartEcho(gameRow) {
 function _memBuildEchoState(level,lives) {
   var seq=[]; for (var i=0;i<level+2;i++) seq.push(Math.floor(Math.random()*8));
   return {phase:'echo',mode:'echo',manche:1,sequence:seq,level:level,
-    girl_lives:lives[0],boy_lives:lives[1],girl_input:[],boy_input:[],winner:null};
+    girl_lives:lives[0],boy_lives:lives[1],
+    girl_input:[],boy_input:[],
+    girl_max_level:0,boy_max_level:0,   // niveau max atteint par chacun
+    girl_finish_time:null,boy_finish_time:null, // timestamp quand chacun atteint ce niveau
+    girl_eliminated:false,boy_eliminated:false, // éliminé = plus de cœurs
+    winner:null};
 }
 
 function _memApplyEchoState(state) {
@@ -589,6 +602,8 @@ function _memApplyEchoState(state) {
   if (_echoLevel !== prevLevel) _echoShowing = false;
   var ml=_memProfile==='girl'?state.girl_lives:state.boy_lives;
   var ol=_memProfile==='girl'?state.boy_lives:state.girl_lives;
+  var meElim   = _memProfile==='girl'?state.girl_eliminated:state.boy_eliminated;
+  var othElim  = _memProfile==='girl'?state.boy_eliminated:state.girl_eliminated;
   function hearts(n){return['❤️','❤️','❤️'].slice(0,Math.max(0,n)).join('')||'💀';}
   var lMe=_memEl('memEchoLivesMe'),lOth=_memEl('memEchoLivesOther');
   if (lMe) lMe.textContent=hearts(ml); if (lOth) lOth.textContent=hearts(ol);
@@ -596,6 +611,13 @@ function _memApplyEchoState(state) {
   if (state.winner&&!_echoSaved){_memShowEchoResult(state);return;}
   var myInput=_memProfile==='girl'?state.girl_input:state.boy_input;
   _memUpdateEchoPips(_echoSequence.length,(myInput||[]).length);
+  // Si je suis éliminé : afficher message d'attente, bloquer la grille
+  if (meElim) {
+    var ph=_memEl('memEchoPhase');
+    if(ph) ph.textContent='💀 Tu attends que '+_memGetName(_memOther)+' finisse…';
+    _memEchoBlock(); return;
+  }
+  // Lancer l'animation de séquence une seule fois par niveau
   if ((myInput||[]).length<_echoSequence.length && !_echoShowing) {
     _echoShowing = true;
     _echoMyInput = (myInput||[]).slice();
@@ -643,21 +665,58 @@ function _memSaveEchoInput(success) {
   if (!_memMp) return;
   var cur=_memMp.getGameState?_memMp.getGameState():null; if(!cur) return;
   var ns=JSON.parse(JSON.stringify(cur));
-  ns[_memProfile+'_input']=success?_echoMyInput.slice():[];
-  if (!success) ns[_memProfile+'_lives']=Math.max(0,(ns[_memProfile+'_lives']||3)-1);
-  var otherDone=(ns[_memOther+'_input']||[]).length===_echoSequence.length;
-  if (success&&otherDone){
-    var lv=_echoLevel+1;
-    if (lv>8)  _memUnlockTrophy('telepathie','memEchoTrophyUnlock');
-    if (lv>10) _memUnlockTrophy('inextinguible','memEchoTrophyUnlock');
-    _echoShowing = false;
-    ns=_memBuildEchoState(lv,[ns.girl_lives,ns.boy_lives]);
-  }
-  if ((ns.girl_lives||0)<=0||(ns.boy_lives||0)<=0){
-    var gl=ns.girl_lives||0,bl=ns.boy_lives||0;
-    ns.winner=gl>bl?'girl':bl>gl?'boy':'draw';
+  var now = Date.now();
+  ns[_memProfile+'_input'] = success ? _echoMyInput.slice() : [];
+
+  if (!success) {
+    // Erreur → perd une vie
+    ns[_memProfile+'_lives'] = Math.max(0,(ns[_memProfile+'_lives']||3)-1);
+    if (ns[_memProfile+'_lives'] <= 0) {
+      // Éliminé → mémoriser le niveau atteint et le moment
+      ns[_memProfile+'_eliminated']  = true;
+      ns[_memProfile+'_max_level']   = _echoLevel;
+      ns[_memProfile+'_finish_time'] = now;
+      // Si l'autre est aussi éliminé → départager
+      if (ns[_memOther+'_eliminated']) {
+        ns.winner = _memEchoPickWinner(ns);
+      }
+      // Sinon : la partie continue pour l'autre joueur
+    }
+  } else {
+    // Succès → mettre à jour le niveau max
+    if ((_echoLevel) > (ns[_memProfile+'_max_level']||0)) {
+      ns[_memProfile+'_max_level']   = _echoLevel;
+      ns[_memProfile+'_finish_time'] = now;
+    }
+    var otherDone  = (ns[_memOther+'_input']||[]).length === _echoSequence.length;
+    var otherElim  = !!(ns[_memOther+'_eliminated']);
+    if (otherDone || otherElim) {
+      // Les deux ont terminé ce niveau → passer au suivant
+      var lv = _echoLevel + 1;
+      if (lv>8)  _memUnlockTrophy('telepathie','memEchoTrophyUnlock');
+      if (lv>10) _memUnlockTrophy('inextinguible','memEchoTrophyUnlock');
+      _echoShowing = false;
+      var newState = _memBuildEchoState(lv,[ns.girl_lives,ns.boy_lives]);
+      // Transférer les stats max/finish/eliminated
+      newState.girl_max_level   = ns.girl_max_level||0;
+      newState.boy_max_level    = ns.boy_max_level||0;
+      newState.girl_finish_time = ns.girl_finish_time||null;
+      newState.boy_finish_time  = ns.boy_finish_time||null;
+      newState.girl_eliminated  = ns.girl_eliminated||false;
+      newState.boy_eliminated   = ns.boy_eliminated||false;
+      ns = newState;
+    }
   }
   _memMp.saveState(ns);
+}
+
+function _memEchoPickWinner(ns) {
+  var gLv = ns.girl_max_level||0, bLv = ns.boy_max_level||0;
+  if (gLv !== bLv) return gLv > bLv ? 'girl' : 'boy';
+  // Même niveau → celui arrivé en premier à ce niveau gagne
+  var gT = ns.girl_finish_time||0, bT = ns.boy_finish_time||0;
+  if (gT && bT && gT !== bT) return gT < bT ? 'girl' : 'boy';
+  return 'draw';
 }
 
 function _memUpdateEchoPips(total,done){
@@ -671,8 +730,12 @@ function _memShowEchoResult(state) {
   var eEl=_memEl('memEchoFinalEmoji'),tEl=_memEl('memEchoFinalTitle'),sEl=_memEl('memEchoFinalScore');
   if(eEl)eEl.textContent=isDraw?'🤝':iWon?'🏆':'😢';
   if(tEl)tEl.textContent=isDraw?'Égalité !':iWon?'Victoire !':_memGetName(_memOther)+' gagne !';
-  if(sEl)sEl.textContent='Niveau atteint : '+_echoLevel;
-  if(_memProfile==='girl'){var cid=_memGetCoupleId(),dur=Math.round((Date.now()-_memStartedAt)/1000);if(cid)['girl','boy'].forEach(function(r){sb2Post('game_scores',{couple_id:cid,game_id:'memory',player_role:r,score:_echoLevel*100,moves:0,time_seconds:dur,winner_role:state.winner,user_id:typeof yamGetUser==='function'?yamGetUser().id:null}).catch(function(){});});}
+  if(sEl){
+    var myMaxLv = _memProfile==='girl'?(state.girl_max_level||_echoLevel):(state.boy_max_level||_echoLevel);
+    var othMaxLv= _memProfile==='girl'?(state.boy_max_level||0):(state.girl_max_level||0);
+    sEl.textContent='Niveau max : '+myMaxLv+' vs '+othMaxLv;
+  }
+  if(_memProfile==='girl'){var cid=_memGetCoupleId(),dur=Math.round((Date.now()-_memStartedAt)/1000);if(cid)['girl','boy'].forEach(function(r){sb2Post('game_scores',{couple_id:cid,game_id:'memory',player_role:r,score:_echoLevel*100,moves:0,time_seconds:dur,winner_role:state.winner,user_id:typeof yamGetUser==="function"?yamGetUser().id:null}).catch(function(){});});}
   var btn=_memEl('memEchoDoneBtn');if(btn)btn.onclick=function(){
     fEl.style.display='none';
     if(_memCurrentMode==='all'&&_memAllQueue.length>0){_memAllResults.echo={winner:state.winner};_memLaunchNextAll(null);}
@@ -687,21 +750,41 @@ function _memShowEchoResult(state) {
 // ═══════════════════════════════════════════════════════════
 
 function _memStartArchi(gameRow) {
-  _archiRound=1;_archiTarget=[];_archiPerfect=true;_archiSaved=false;
+  _archiRound=1; _archiTarget=[]; _archiMyTarget=[]; _archiPerfect=true; _archiSaved=false;
   _memShowScreen('memScreenArchi');
   var nMe=_memEl('memArchiNameMe'),nOth=_memEl('memArchiNameOther');
-  if(nMe)nMe.textContent=_memGetName(_memProfile);if(nOth)nOth.textContent=_memGetName(_memOther);
+  if(nMe)nMe.textContent=_memGetName(_memProfile);
+  if(nOth)nOth.textContent=_memGetName(_memOther);
   _memBuildArchiPalette();
-  if(_memProfile==='girl'&&_memMp)_memMp.saveState(_memBuildArchiState(1));
-  else if(gameRow&&gameRow.state)_memApplyArchiState(gameRow.state);
+  var isAll = _memCurrentMode === 'all';
+  if(_memProfile==='girl'&&_memMp) _memMp.saveState(_memBuildArchiState(1, isAll));
+  else if(gameRow&&gameRow.state) _memApplyArchiState(gameRow.state);
 }
 
-function _memBuildArchiState(round) {
-  var len=3+round,target=[];
-  for(var i=0;i<len;i++)target.push(Math.floor(Math.random()*ARCHI_SHAPES.length));
-  return{phase:'archi',mode:'archi',manche:round,target:target,girl_stack:[],boy_stack:[],
-    girl_score:0,boy_score:0,girl_done:false,boy_done:false,winner:null,show_until:Date.now()+3500};
+// Tours DIFFÉRENTES pour chaque joueur — chacun a sa propre séquence à mémoriser
+function _memBuildArchiState(round, isAll) {
+  var len = 3 + round;
+  var girlTarget=[], boyTarget=[];
+  for(var i=0;i<len;i++) {
+    girlTarget.push(Math.floor(Math.random()*ARCHI_SHAPES.length));
+    boyTarget.push(Math.floor(Math.random()*ARCHI_SHAPES.length));
+  }
+  var maxRounds = isAll ? 1 : 3;
+  return {
+    phase:'archi', mode:'archi', manche:round, max_rounds:maxRounds,
+    girl_target:girlTarget, boy_target:boyTarget,  // tours différentes
+    girl_stack:[], boy_stack:[],
+    girl_errors:0, boy_errors:0,   // compteur d'erreurs par round
+    girl_score:0, boy_score:0,     // rounds gagnés
+    girl_done:false, boy_done:false,
+    girl_done_time:null, boy_done_time:null, // timestamp de fin de round
+    winner:null,
+    show_until:Date.now()+4000
+  };
 }
+
+// _archiMyTarget = la tour de CE joueur (girl_target ou boy_target selon le rôle)
+var _archiMyTarget = [];
 
 function _memBuildArchiPalette() {
   var p=_memEl('memArchiShapesMe');if(!p)return;p.innerHTML='';
@@ -715,72 +798,152 @@ function _memBuildArchiPalette() {
 
 function _memApplyArchiState(state) {
   if(!state||state.phase!=='archi')return;
-  _archiTarget=state.target||[];_archiRound=state.manche||1;
-  var rEl=_memEl('memArchiRound');if(rEl)rEl.textContent='Structure '+_archiRound+'/3';
+  // Chaque joueur lit SA propre tour
+  _archiMyTarget = (_memProfile==='girl' ? state.girl_target : state.boy_target) || [];
+  _archiTarget   = _archiMyTarget; // compatibilité
+  _archiRound    = state.manche||1;
+  var maxRounds  = state.max_rounds||3;
+  var rEl=_memEl('memArchiRound');
+  if(rEl) rEl.textContent = maxRounds===1 ? 'Tour unique' : 'Round '+_archiRound+'/'+maxRounds;
+
+  // Afficher SA propre tour pendant la phase mémorisation
   var targetEl=_memEl('memArchiTarget');
   if(targetEl){
     var showing=Date.now()<(state.show_until||0);
     if(showing){
       targetEl.innerHTML='';
-      _archiTarget.forEach(function(si){var s=ARCHI_SHAPES[si],d=document.createElement('div');d.className='mem-archi-shape';d.style.background=s.color+'33';d.style.borderColor=s.color+'66';d.textContent=s.emoji;targetEl.appendChild(d);});
+      _archiMyTarget.forEach(function(si){
+        var s=ARCHI_SHAPES[si],d=document.createElement('div');
+        d.className='mem-archi-shape';d.style.background=s.color+'33';
+        d.style.borderColor=s.color+'66';d.textContent=s.emoji;
+        targetEl.appendChild(d);
+      });
       var rem=state.show_until-Date.now();
       setTimeout(function(){
-        if(targetEl)targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Modèle caché</div>';
+        if(targetEl)targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
         var cur=(_memMp&&_memMp.getGameState?_memMp.getGameState():null)||_memLastState;
         if(cur)_memApplyArchiState(cur);
       },rem);
     } else {
-      targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Modèle caché</div>';
+      targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
     }
   }
+
   var phEl=_memEl('memArchiPhase'),showing2=Date.now()<(state.show_until||0);
-  if(phEl)phEl.textContent=showing2?'👀 Mémorise ! ('+Math.ceil(((state.show_until||0)-Date.now())/1000)+'s)':'🏗️ Reconstruit !';
+  if(phEl)phEl.textContent=showing2?'👀 Mémorise ta tour ! ('+Math.ceil(((state.show_until||0)-Date.now())/1000)+'s)':'🏗️ Reconstruit !';
+
+  // Afficher les piles (chacun voit sa pile ET celle de l'adversaire)
   _memRenderArchiStack(_memEl('memArchiStackMe'),    _memProfile==='girl'?state.girl_stack:state.boy_stack);
   _memRenderArchiStack(_memEl('memArchiStackOther'), _memProfile==='girl'?state.boy_stack:state.girl_stack);
-  var pal=_memEl('memArchiShapesMe');if(pal)pal.style.pointerEvents=(showing2||state[_memProfile+'_done'])?'none':'';
-  var gS=state.girl_score||0,bS=state.boy_score||0;
+
+  // Bloquer palette pendant mémorisation ou si ce joueur a déjà fini ce round
+  var pal=_memEl('memArchiShapesMe');
+  if(pal) pal.style.pointerEvents=(showing2||state[_memProfile+'_done'])?'none':'';
+
+  // Scores = rounds gagnés
+  var gS=state.girl_score||0, bS=state.boy_score||0;
   var eMe=_memEl('memArchiScoreMe'),eOth=_memEl('memArchiScoreOther');
-  if(eMe)eMe.textContent=_memProfile==='girl'?gS:bS;if(eOth)eOth.textContent=_memProfile==='girl'?bS:gS;
+  if(eMe)eMe.textContent=(_memProfile==='girl'?gS:bS);
+  if(eOth)eOth.textContent=(_memProfile==='girl'?bS:gS);
+
   if(state.winner&&!_archiSaved){_memShowArchiResult(state);}
 }
 
 function _memRenderArchiStack(el,stack){
   if(!el)return;el.innerHTML='';
-  (stack||[]).forEach(function(si){var s=ARCHI_SHAPES[si],d=document.createElement('div');d.className='mem-archi-shape';d.style.background=s.color+'33';d.style.borderColor=s.color+'66';d.textContent=s.emoji;el.appendChild(d);});
+  (stack||[]).forEach(function(si){
+    var s=ARCHI_SHAPES[si],d=document.createElement('div');
+    d.className='mem-archi-shape';d.style.background=s.color+'33';
+    d.style.borderColor=s.color+'66';d.textContent=s.emoji;
+    el.appendChild(d);
+  });
 }
 
 function _memArchiTap(si) {
   if(!_memMp)return;
-  var cur=_memMp.getGameState?_memMp.getGameState():null;if(!cur)return;
+  var cur=_memMp.getGameState?_memMp.getGameState():null;
+  if(!cur) cur=_memLastState;
+  if(!cur)return;
   if(Date.now()<(cur.show_until||0))return;
-  var sp=_memProfile+'_stack',ns=JSON.parse(JSON.stringify(cur));
+  if(cur[_memProfile+'_done'])return; // déjà fini ce round
+
+  var sp=_memProfile+'_stack';
+  var ns=JSON.parse(JSON.stringify(cur));
   var myStack=(ns[sp]||[]).concat([si]);
   ns[sp]=myStack;
-  var exp=_archiTarget[myStack.length-1];
+
+  var exp=_archiMyTarget[myStack.length-1];
   if(si!==exp){
-    ns[sp]=[];_archiPerfect=false;
-    var sEl=_memEl('memArchiStackMe');if(sEl){sEl.classList.add('mem-archi-stack--wrong');setTimeout(function(){sEl.classList.remove('mem-archi-stack--wrong');},400);}
-    _memMp.saveState(ns);return;
+    // Erreur → réinitialiser la pile, incrémenter les erreurs
+    ns[sp]=[];
+    ns[_memProfile+'_errors']=(ns[_memProfile+'_errors']||0)+1;
+    _archiPerfect=false;
+    var sEl=_memEl('memArchiStackMe');
+    if(sEl){sEl.classList.add('mem-archi-stack--wrong');setTimeout(function(){sEl.classList.remove('mem-archi-stack--wrong');},400);}
+    _memMp.saveState(ns);
+    return;
   }
-  if(myStack.length===_archiTarget.length){
-    ns[_memProfile+'_done']=true;ns[_memProfile+'_score']=(ns[_memProfile+'_score']||0)+1;
-    var sEl2=_memEl('memArchiStackMe');if(sEl2){sEl2.classList.add('mem-archi-stack--complete');setTimeout(function(){sEl2.classList.remove('mem-archi-stack--complete');},600);}
+
+  // Bonne forme
+  if(myStack.length===_archiMyTarget.length){
+    // Ce joueur a fini sa tour en premier (ou en deuxième)
+    ns[_memProfile+'_done']      = true;
+    ns[_memProfile+'_done_time'] = Date.now();
+
+    var sEl2=_memEl('memArchiStackMe');
+    if(sEl2){sEl2.classList.add('mem-archi-stack--complete');setTimeout(function(){sEl2.classList.remove('mem-archi-stack--complete');},600);}
+
     if(ns[_memOther+'_done']){
-      if(cur.manche>=3){var gl=ns.girl_score||0,bl=ns.boy_score||0;ns.winner=gl>bl?'girl':bl>gl?'boy':'draw';}
-      else{setTimeout(function(){if(_memMp){var next=_memBuildArchiState(cur.manche+1);next.girl_score=ns.girl_score||0;next.boy_score=ns.boy_score||0;_memMp.saveState(next);}},1000);}
+      // Les deux ont fini → attribuer le point du round au plus rapide
+      var myTime  = ns[_memProfile+'_done_time'];
+      var othTime = ns[_memOther+'_done_time'];
+      var roundWinner = myTime <= othTime ? _memProfile : _memOther;
+      ns[roundWinner+'_score'] = (ns[roundWinner+'_score']||0) + 1;
+
+      var maxRounds = cur.max_rounds||3;
+      if(cur.manche >= maxRounds){
+        // Fin de partie
+        var gS=ns.girl_score||0, bS=ns.boy_score||0;
+        ns.winner = gS>bS?'girl':bS>gS?'boy':'draw';
+      } else {
+        // Round suivant
+        var isAll = _memCurrentMode==='all';
+        setTimeout(function(){
+          if(_memMp){
+            var next=_memBuildArchiState(cur.manche+1, isAll);
+            next.girl_score=ns.girl_score||0;
+            next.boy_score=ns.boy_score||0;
+            _memMp.saveState(next);
+          }
+        },1200);
+      }
     }
+    // Si l'autre n'a pas encore fini : on attend, la partie continue pour lui
   }
   _memMp.saveState(ns);
 }
 
 function _memShowArchiResult(state){
-  _archiSaved=true;var fEl=_memEl('memArchiFinalResult');if(!fEl)return;fEl.style.display='flex';
+  _archiSaved=true;
+  var fEl=_memEl('memArchiFinalResult');if(!fEl)return;fEl.style.display='flex';
   var iWon=state.winner===_memProfile,isDraw=state.winner==='draw';
   var eEl=_memEl('memArchiFinalEmoji'),tEl=_memEl('memArchiFinalTitle');
   if(eEl)eEl.textContent=isDraw?'🤝':iWon?'🏆':'😢';
   if(tEl)tEl.textContent=isDraw?'Égalité !':iWon?'Victoire !':_memGetName(_memOther)+' gagne !';
-  if(iWon&&_archiPerfect)_memUnlockTrophy('architecte','memArchiTrophyUnlock');
-  if(_memProfile==='girl'){var cid=_memGetCoupleId(),dur=Math.round((Date.now()-_memStartedAt)/1000);if(cid)['girl','boy'].forEach(function(r){sb2Post('game_scores',{couple_id:cid,game_id:'memory',player_role:r,score:(r==='girl'?(state.girl_score||0):(state.boy_score||0))*333,moves:0,time_seconds:dur,winner_role:state.winner,user_id:typeof yamGetUser==='function'?yamGetUser().id:null}).catch(function(){});});}
+  // Trophée si gagné sans aucune erreur
+  var myErrors = _memProfile==='girl'?(state.girl_errors||0):(state.boy_errors||0);
+  if(iWon && myErrors===0) _memUnlockTrophy('architecte','memArchiTrophyUnlock');
+  // Sauvegarder le score
+  if(_memProfile==='girl'){
+    var cid=_memGetCoupleId(),dur=Math.round((Date.now()-_memStartedAt)/1000);
+    if(cid)['girl','boy'].forEach(function(r){
+      var sc=(r==='girl'?(state.girl_score||0):(state.boy_score||0))*333;
+      sb2Post('game_scores',{couple_id:cid,game_id:'memory',player_role:r,score:sc,
+        moves:r==='girl'?(state.girl_errors||0):(state.boy_errors||0),
+        time_seconds:dur,winner_role:state.winner,
+        user_id:typeof yamGetUser==='function'?yamGetUser().id:null}).catch(function(){});
+    });
+  }
   var btn=_memEl('memArchiDoneBtn');if(btn)btn.onclick=function(){
     fEl.style.display='none';
     if(_memCurrentMode==='all'){_memAllResults.archi={winner:state.winner};_memShowAllResults();}
