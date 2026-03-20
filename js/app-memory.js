@@ -9,9 +9,8 @@
 var _gamesLoaded = true;
 function _loadGames() {}
 
-// ═══════════════════════════════════════════════════════════
-// CONSTANTES
-// ═══════════════════════════════════════════════════════════
+// ── État courant (mis à jour à chaque onStateUpdate) ──
+var _memLastState = null;
 
 var MEMORY_EMOJIS = ['💕','🌸','💋','🥰','🌙','✨','🎵','💎','🎀','🍓','🌺','🦋'];
 var ECHO_EMOJIS   = ['💕','🌸','💋','🥰','🌙','✨','🎵','💎'];
@@ -204,11 +203,13 @@ function _memStartLobby() {
 
     onMatchFound: function(gameRow) {
       _memStartedAt = Date.now();
+      _memLastState = gameRow.state;
       setTimeout(function() { _memGoToModeSelect(gameRow); }, 400);
     },
 
     onStateUpdate: function(gameRow) {
       if (!gameRow || !gameRow.state) return;
+      _memLastState = gameRow.state;
       _memRouteState(gameRow.state, gameRow);
     },
 
@@ -251,11 +252,11 @@ function _memGoToModeSelect(gameRow) {
     var card = _memEl('memModeCard' + cap);
     if (!card) return;
     card.classList.remove('mem-mode-card--selected','mem-mode-card--matched');
-    card.onclick = function() { _memVoteMode(mode, gameRow); };
+    card.onclick = function() { _memVoteMode(mode); };
   });
 }
 
-function _memVoteMode(mode, gameRow) {
+function _memVoteMode(mode) {
   ['classic','echo','archi','all'].forEach(function(m) {
     var c = _memEl('memModeCard' + m.charAt(0).toUpperCase() + m.slice(1));
     if (c) c.classList.toggle('mem-mode-card--selected', m === mode);
@@ -263,8 +264,8 @@ function _memVoteMode(mode, gameRow) {
   var hint = _memEl('memModeHint');
   if (hint) hint.textContent = 'Vote envoyé — en attente de '+_memGetName(_memOther)+'…';
 
-  var cur = (gameRow && gameRow.state) ? gameRow.state : (_memMp && _memMp.getCurrentState ? _memMp.getCurrentState() : {});
-  var ns  = JSON.parse(JSON.stringify(cur || {}));
+  // Toujours partir du dernier état connu pour ne pas écraser le vote de l'autre
+  var ns = JSON.parse(JSON.stringify(_memLastState || {phase:'mode_select'}));
   ns[_memProfile + '_vote'] = mode;
 
   if (ns[_memOther + '_vote'] === mode) {
