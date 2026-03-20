@@ -118,6 +118,9 @@ function _memCleanup() {
   var fEl = _memEl('memClassicFinalResult');  if (fEl) fEl.style.display = 'none';
   var eEl = _memEl('memEchoFinalResult');     if (eEl) eEl.style.display = 'none';
   var aEl = _memEl('memArchiFinalResult');    if (aEl) aEl.style.display = 'none';
+  // Vider les bulles spéciales pour ne pas les faire persister d'une session à l'autre
+  var specRow = _memEl('memClassicSpecialRow');
+  if (specRow) { specRow.style.display = 'none'; specRow.innerHTML = ''; }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -227,9 +230,15 @@ function _memStartLobby() {
     onMatchFound: function(gameRow) {
       _memStartedAt = Date.now();
       _memLastState = gameRow.state;
-      // Reset _memCurrentMode pour forcer le re-routage correct si on revient en jeu
+      // Reset _memCurrentMode pour forcer le re-routage correct
       _memCurrentMode = null;
-      setTimeout(function() { _memGoToModeSelect(gameRow); }, 400);
+      var state = gameRow.state;
+      // Si la partie est déjà en cours (pas en mode_select), aller directement en jeu
+      if (state && state.phase && state.phase !== 'mode_select') {
+        setTimeout(function() { _memRouteState(state, gameRow); }, 400);
+      } else {
+        setTimeout(function() { _memGoToModeSelect(gameRow); }, 400);
+      }
     },
 
     onStateUpdate: function(gameRow) {
@@ -306,14 +315,31 @@ function _memVoteMode(mode) {
   var hint = _memEl('memModeHint');
   if (hint) hint.textContent = 'Vote envoyé — en attente de '+_memGetName(_memOther)+'…';
 
-  // Lire l'état le plus récent depuis le moteur (priorité sur _memLastState local)
-  var engineState = (_memMp && _memMp.getGameState) ? _memMp.getGameState() : null;
-  var base = engineState || _memLastState || {phase:'mode_select'};
+  // Fetch l'état le plus récent en base pour ne jamais écraser le vote de l'autre
+  var gameId = _memMp ? _memMp.getGameId() : null;
+  if (!gameId) {
+    // Pas encore de gameId connu : utiliser le state local
+    _memVoteSave(mode, _memLastState || {phase:'mode_select'});
+    return;
+  }
+  var SB = typeof SB_URL !== 'undefined' ? SB_URL : '';
+  fetch(SB+'/rest/v1/'+MEM_GAME_TABLE+'?id=eq.'+gameId+'&select=state', {headers: sb2Headers()})
+    .then(function(r){ return r.json(); })
+    .then(function(rows) {
+      var freshState = (Array.isArray(rows) && rows[0] && rows[0].state) ? rows[0].state : (_memLastState || {phase:'mode_select'});
+      _memVoteSave(mode, freshState);
+    })
+    .catch(function() {
+      _memVoteSave(mode, _memLastState || {phase:'mode_select'});
+    });
+}
+
+function _memVoteSave(mode, base) {
+  var hint = _memEl('memModeHint');
   var ns = JSON.parse(JSON.stringify(base));
   ns.phase = 'mode_select';
   ns[_memProfile + '_vote'] = mode;
 
-  // Vérifier si l'accord est immédiat (l'autre a déjà voté le même mode)
   if (ns[_memOther + '_vote'] === mode) {
     ns.phase = 'launching'; ns.mode = mode;
     var cap  = mode.charAt(0).toUpperCase() + mode.slice(1);
@@ -451,6 +477,16 @@ function _memApplyClassicState(state) {
     _memShowClassicMancheResult(state); return;
   }
 
+  // Si pas de winner → s'assurer que le popup de résultat est caché
+  // (couvre le cas où boy lance la manche suivante et girl reçoit le nouvel état)
+  if (!state.winner) {
+    var rEl = _memEl('memClassicMancheResult');
+    if (rEl && rEl.style.display !== 'none') {
+      rEl.style.display = 'none';
+      _clResultShown = false;
+    }
+  }
+
   var grid = _memEl('memClassicGrid'); if (!grid) return;
   if (_clCards.length !== (state.cards||[]).length) {
     var mcfg = _CLASSIC_CFGS[Math.min(_clManche-1, _CLASSIC_CFGS.length-1)];
@@ -485,10 +521,15 @@ function _memApplyClassicState(state) {
   if (badge){badge.textContent=myTurn?'🎯 Ton tour':'⏳ '+_memGetName(_memOther);badge.className='mem-turn-badge'+(myTurn?'':' mem-turn-badge--other');}
 
   var specRow=_memEl('memClassicSpecialRow');
-  if (specRow&&state.specials&&state.specials.length){
-    specRow.style.display='flex';
-    var lbl={vue:'👁 Vue',miroir:'🪞 Miroir',bombe:'💣 Bombe'}, cls={vue:'mem-special-chip--vue',miroir:'mem-special-chip--miroir',bombe:'mem-special-chip--bombe'};
-    specRow.innerHTML=state.specials.map(function(s){return '<div class="mem-special-chip '+(cls[s]||'')+'">'+(lbl[s]||s)+'</div>';}).join('');
+  if (specRow){
+    if(state.specials&&state.specials.length){
+      specRow.style.display='flex';
+      var lbl={vue:'👁 Vue',miroir:'🪞 Miroir',bombe:'💣 Bombe'}, cls={vue:'mem-special-chip--vue',miroir:'mem-special-chip--miroir',bombe:'mem-special-chip--bombe'};
+      specRow.innerHTML=state.specials.map(function(s){return '<div class="mem-special-chip '+(cls[s]||'')+'">'+(lbl[s]||s)+'</div>';}).join('');
+    } else {
+      specRow.style.display='none';
+      specRow.innerHTML='';
+    }
   }
 
   // Chrono global — démarre dès la manche 1, tourne en continu
