@@ -542,31 +542,20 @@ function closeGames(){
   document.getElementById('yamJeuxTab').classList.add('active');
 }
 function openMemoryGame(){
+  // Délégué à app-memory.js
+  if (typeof window._memOpenGame === 'function') { window._memOpenGame(); return; }
   _loadGames();
   resetZoom();
   _yamSlide(document.getElementById('memoryView'), document.getElementById('gamesView'), 'forward');
   particleActive=false;
   if(typeof hideDance==='function') hideDance();
   window.scrollTo(0,0);
-  // Afficher l'ecran de choix de mode et charger le classement
-  _memShowScreen('mode');
-  if(typeof _lbLoad==='function') _lbLoad();
 }
 function closeMemoryGame(){
+  // Délégué à app-memory.js
+  if (typeof window._memCloseGame === 'function') { window._memCloseGame(); return; }
   _yamSlide(document.getElementById('gamesView'), document.getElementById('memoryView'), 'backward');
-  clearInterval(memTimerInt);
-  // Stopper le multi si actif
   if(typeof _memMp!=='undefined' && _memMp){ _memMp.leave(); _memMp=null; }
-  // Cacher toutes les sous-vues Memory et revenir au menu
-  var game=document.getElementById('memoryGameArea');
-  var lobby=document.getElementById('memoryLobbyScreen');
-  var win=document.getElementById('memoryWin');
-  if(game)  game.style.display='none';
-  if(lobby) lobby.style.display='none';
-  if(win)   win.classList.remove('show');
-  // Remettre l'ecran de mode au prochain ouverture
-  var mode=document.getElementById('memoryModeScreen');
-  if(mode) mode.style.display='block';
 }
 function closeAllViews(){
   // ── 1. Vues jeux (slides) ──
