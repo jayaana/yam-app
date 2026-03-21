@@ -1935,7 +1935,7 @@ function _allShowFinal() {
   var fEl=_memEl('memClassicFinalResult');if(!fEl)return;
   var fElParent=fEl.parentElement, fElNext=fEl.nextSibling;
   document.body.appendChild(fEl);
-  fEl.style.cssText += ';position:fixed!important;z-index:9999!important;inset:0!important;opacity:1!important;display:flex!important;background:var(--bg,#fff)!important;';
+  fEl.style.cssText = 'position:fixed!important;z-index:9999!important;inset:0!important;display:flex!important;align-items:center!important;justify-content:center!important;background:rgba(0,0,0,.4)!important;padding:24px!important;';
   var fw=myW>othW?_memProfile:othW>myW?_memOther:'draw',iWon=fw===_memProfile,isDraw=fw==='draw';
   var eEl=_memEl('memClassicFinalEmoji'),tEl=_memEl('memClassicFinalTitle'),sEl=_memEl('memClassicFinalScore');
   if(eEl)eEl.textContent=isDraw?'🤝':iWon?'🏆':'🎖️';
@@ -2120,10 +2120,104 @@ function _memArchiHideTarget(el) {
 // ═══════════════════════════════════════════════════════════
 
 function _memRebuildScreens() {
+  _memRebuildLobby();
+  _memRebuildModeSelect();
   _memRebuildClassic();
   _memRebuildEcho();
   _memRebuildArchi();
   _memInjectReworkCSS();
+}
+
+// ─────────────────────────────────────────────
+// LOBBY (matchmaking)
+// ─────────────────────────────────────────────
+function _memRebuildLobby() {
+  var screen = _memEl('memScreenLobby'); if (!screen) return;
+  screen.innerHTML =
+    '<div style="display:flex;flex-direction:column;height:100%;">'
+    + '<div class="mem-header">'
+    +   '<span class="mem-back" id="memLobbyCancelBtn">‹ Retour</span>'
+    +   '<span class="mem-title">Mémoire 🃏</span>'
+    +   '<span class="mem-moon">☽</span>'
+    + '</div>'
+    + '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:32px 20px;background:var(--mbg);">'
+    // Les deux joueurs face à face
+    +   '<div style="display:flex;align-items:center;gap:32px;">'
+    +     '<div style="display:flex;flex-direction:column;align-items:center;gap:8px;">'
+    +       '<div class="mem-avatar mem-avatar--girl" id="memLobbyAvMe" style="width:80px;height:80px;font-size:34px;"></div>'
+    +       '<span class="mem-pname" id="memLobbyNameMe"></span>'
+    +       '<span style="font-size:11px;color:var(--mp-m);font-weight:500;" id="memLobbyTitleMe"></span>'
+    +     '</div>'
+    +     '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;">'
+    +       '<span style="font-size:20px;font-weight:600;color:var(--mg2);">VS</span>'
+    +     '</div>'
+    +     '<div style="display:flex;flex-direction:column;align-items:center;gap:8px;">'
+    +       '<div class="mem-avatar mem-avatar--boy" id="memLobbyAvOther" style="width:80px;height:80px;font-size:34px;position:relative;">'
+    +         '<span id="memLobbyDotOther" class="mem-online-dot" style="width:16px;height:16px;"></span>'
+    +       '</div>'
+    +       '<span class="mem-pname" id="memLobbyNameOther"></span>'
+    +     '</div>'
+    +   '</div>'
+    // Status
+    +   '<div id="memLobbyStatus" style="font-size:13px;color:var(--mg6);text-align:center;"></div>'
+    // Spinner
+    +   '<div style="display:flex;align-items:center;gap:8px;">'
+    +     '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="animation:mem-spin 1s linear infinite;flex-shrink:0;"><circle cx="12" cy="12" r="9" stroke="#f9a8d4" stroke-width="2.5"/><path d="M12 3a9 9 0 0 1 9 9" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round"/></svg>'
+    +     '<span style="font-size:12px;color:var(--mg4);">En attente…</span>'
+    +   '</div>'
+    + '</div>'
+  + '</div>';
+}
+
+// ─────────────────────────────────────────────
+// MODE SELECT
+// ─────────────────────────────────────────────
+function _memRebuildModeSelect() {
+  var screen = _memEl('memScreenMode'); if (!screen) return;
+  screen.innerHTML =
+    '<div style="display:flex;flex-direction:column;height:100%;">'
+    + '<div class="mem-header">'
+    +   '<span class="mem-back"></span>'
+    +   '<span class="mem-title">Choisissez un mode</span>'
+    +   '<span class="mem-moon">☽</span>'
+    + '</div>'
+    // Mini profils + votes
+    + '<div class="mem-profiles" style="padding:10px 20px 12px;">'
+    +   '<div style="display:flex;flex-direction:column;align-items:center;gap:5px;">'
+    +     '<div class="mem-avatar mem-avatar--girl" id="memModeAvMe" style="width:48px;height:48px;font-size:20px;"></div>'
+    +     '<span style="font-size:12px;font-weight:500;" id="memModeNameMe"></span>'
+    +     '<span style="font-size:10px;color:var(--mp-m);" id="memModeTitleMe"></span>'
+    +     '<div id="memVoteMe" class="mem-vote-chip">—</div>'
+    +   '</div>'
+    +   '<div style="font-size:12px;font-weight:700;color:var(--mg4);align-self:center;">VS</div>'
+    +   '<div style="display:flex;flex-direction:column;align-items:center;gap:5px;">'
+    +     '<div class="mem-avatar mem-avatar--boy" id="memModeAvOther" style="width:48px;height:48px;font-size:20px;"></div>'
+    +     '<span style="font-size:12px;font-weight:500;" id="memModeNameOther"></span>'
+    +     '<span style="font-size:10px;color:var(--mu-m);" id="memModeTitleOther"></span>'
+    +     '<div id="memVoteOther" class="mem-vote-chip">—</div>'
+    +   '</div>'
+    + '</div>'
+    // Cards de modes
+    + '<div style="flex:1;padding:14px;background:var(--mbg);overflow-y:auto;">'
+    +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">'
+    +     _memModeCardHTML('Classic','classic','🃏','Retournez les paires','3 manches progressives')
+    +     _memModeCardHTML('Echo','echo','🔊','Reproduisez la séquence','Perdez des vies si erreur')
+    +     _memModeCardHTML('Archi','archi','\u{1F3D7}\uFE0F','Mémorisez la tour','Reconstituez l\u2019ordre')
+    +     _memModeCardHTML('All','all','⚡','Les 3 modes en 1','Gagnez 2 étapes sur 3')
+    +   '</div>'
+    +   '<div id="memModeHint" style="text-align:center;font-size:12px;color:var(--mg4);min-height:20px;"></div>'
+    + '</div>'
+  + '</div>';
+}
+
+function _memModeCardHTML(cap, mode, icon, title, sub) {
+  var isAll = mode === 'all';
+  return '<div id="memModeCard'+cap+'" class="mem-mode-card" style="cursor:pointer;">'
+    + '<div style="font-size:28px;margin-bottom:6px;">'+icon+'</div>'
+    + '<div style="font-size:13px;font-weight:600;color:var(--mg9);margin-bottom:2px;">'+title+'</div>'
+    + '<div style="font-size:11px;color:var(--mg4);">'+sub+'</div>'
+    + (isAll ? '<div style="margin-top:6px;display:inline-block;font-size:9px;font-weight:700;background:linear-gradient(135deg,#f97316,#eab308);color:#fff;border-radius:4px;padding:2px 6px;">ALL</div>' : '')
+  + '</div>';
 }
 
 // ── Carte : face arrière avec motif SVG (identique au rework) ──
@@ -2593,6 +2687,7 @@ function _memInjectReworkCSS() {
     '}',
     '.mem-btn:active{transform:scale(.98);}',
     '.mem-btn--primary{background:var(--mp-l);border-color:var(--mp-m);color:var(--mp-d);}',
+    '@keyframes mem-spin{to{transform:rotate(360deg)}}',
   ].join('');
   document.head.appendChild(s);
 }
