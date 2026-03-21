@@ -1225,7 +1225,7 @@ function _allApplyClassicState(state) {
     var _clW=state.winner;
     _allShowStepResult('classic', _clW, function() {
       _allResultShown = false;
-      if (_memMp && _memProfile===_clW) _memMp.saveState(_allBuildEchoState());
+      if (_memMp && _allStep==='classic') _memMp.saveState(_allBuildEchoState());
     });
     return;
   }
@@ -1379,7 +1379,7 @@ function _allApplyEchoState(state) {
     _allEchoSaved=true;
     var _echoW=state.winner;
     _allShowStepResult('echo', _echoW, function(){
-      if(_memMp && _memProfile===_echoW) _memMp.saveState(_allBuildArchiState());
+      if(_memMp && _allStep==='echo') _memMp.saveState(_allBuildArchiState());
     });
     return;
   }
@@ -1562,15 +1562,13 @@ function _allArchiTap(si){
 
 // Popup de résultat d'une étape — cb appelé quand le joueur confirme (girl publie l'étape suivante)
 function _allShowStepResult(step, winner, cb) {
-  // cb = publie l'étape suivante — appelé uniquement par le winner (ou draw→girl)
-  // Les deux joueurs voient le popup ; seul le winner publie le prochain state.
-  // L'autre ferme son popup et attend onStateUpdate pour changer d'écran.
+  // Règle simple : n'importe qui clique → publie l'étape suivante via cb.
+  // Le 2e cliqueur ne fait rien car l'écran a déjà changé via onStateUpdate.
   var labels={classic:'Classique',echo:'Écho',archi:'Architecte'};
   var iWon=winner===_memProfile, isDraw=winner==='draw';
-  var isPublisher = iWon || (isDraw && _memProfile==='girl');
   _allResults[step]={winner:winner};
 
-  var rEl=_memEl('memClassicMancheResult');if(!rEl){if(isPublisher&&cb)cb();return;}
+  var rEl=_memEl('memClassicMancheResult');if(!rEl){if(cb)cb();return;}
   var eEl=_memEl('memClassicMancheEmoji'),tEl=_memEl('memClassicMancheTitle'),sEl=_memEl('memClassicMancheSub');
   if(eEl)eEl.textContent=isDraw?'🤝':iWon?'🏆':'😢';
   if(tEl)tEl.textContent=isDraw?'Égalité !':iWon?'Tu gagnes le '+labels[step]+' !':_memGetName(_memOther)+' gagne le '+labels[step]+' !';
@@ -1583,9 +1581,9 @@ function _allShowStepResult(step, winner, cb) {
     quitBtn.textContent= step==='archi' ? 'Voir le résultat final' : 'Étape suivante →';
     quitBtn.onclick=function(){
       rEl.style.display='none';
-      // Le winner publie le prochain state → l'autre reçoit onStateUpdate et change d'écran
-      // Le perdant ferme juste son popup et attend
-      if(isPublisher && cb) cb();
+      if(cb) cb();
+      // Si l'autre a déjà publié l'étape suivante, onStateUpdate changera l'écran
+      // automatiquement et cb aura été ignoré (l'écran aura déjà changé)
     };
   }
 }
