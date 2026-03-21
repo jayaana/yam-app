@@ -1222,9 +1222,10 @@ function _allApplyClassicState(state) {
   if (state.winner && !_allResultShown) {
     _allResultShown = true;
     if (_allClTimer){clearInterval(_allClTimer);_allClTimer=null;}
-    _allShowStepResult('classic', state.winner, function() {
+    var _clW=state.winner;
+    _allShowStepResult('classic', _clW, function() {
       _allResultShown = false;
-      if (_memMp && _memProfile==='girl') _memMp.saveState(_allBuildEchoState());
+      if (_memMp && _memProfile===_clW) _memMp.saveState(_allBuildEchoState());
     });
     return;
   }
@@ -1359,17 +1360,19 @@ function _allApplyEchoState(state) {
   if(lMe) lMe.textContent=hearts(ml); if(lOth) lOth.textContent=hearts(ol);
   var lv=_memEl('memEchoLevel');if(lv) lv.textContent='ALL · Niveau '+state.level;
 
-  if(state.winner && !_allEchoSaved){
-    _allEchoSaved=true;
-    _allShowStepResult('echo', state.winner, function(){
-      if(_memMp && _memProfile==='girl') _memMp.saveState(_allBuildArchiState());
-    });
-    return;
-  }
-
   var meElim=_memProfile==='girl'?state.girl_eliminated:state.boy_eliminated;
   var myInput=_memProfile==='girl'?state.girl_input:state.boy_input;
   _memUpdateEchoPips(_allEchoSeq.length,(myInput||[]).length);
+
+  // Vérifier winner AVANT meElim — un joueur éliminé doit quand même voir le résultat final
+  if(state.winner && !_allEchoSaved){
+    _allEchoSaved=true;
+    var _echoW=state.winner;
+    _allShowStepResult('echo', _echoW, function(){
+      if(_memMp && _memProfile===_echoW) _memMp.saveState(_allBuildArchiState());
+    });
+    return;
+  }
 
   if(meElim){
     var ph=_memEl('memEchoPhase');if(ph)ph.textContent='💀 Tu attends que '+_memGetName(_memOther)+' finisse…';
@@ -1549,26 +1552,30 @@ function _allArchiTap(si){
 
 // Popup de résultat d'une étape — cb appelé quand le joueur confirme (girl publie l'étape suivante)
 function _allShowStepResult(step, winner, cb) {
+  // cb = publie l'étape suivante — appelé uniquement par le winner (ou draw→girl)
+  // Les deux joueurs voient le popup ; seul le winner publie le prochain state.
+  // L'autre ferme son popup et attend onStateUpdate pour changer d'écran.
   var labels={classic:'Classique',echo:'Écho',archi:'Architecte'};
   var iWon=winner===_memProfile, isDraw=winner==='draw';
+  var isPublisher = iWon || (isDraw && _memProfile==='girl');
   _allResults[step]={winner:winner};
 
-  // Réutilise le popup memClassicMancheResult pour toutes les étapes
-  var rEl=_memEl('memClassicMancheResult');if(!rEl){if(cb)cb();return;}
+  var rEl=_memEl('memClassicMancheResult');if(!rEl){if(isPublisher&&cb)cb();return;}
   var eEl=_memEl('memClassicMancheEmoji'),tEl=_memEl('memClassicMancheTitle'),sEl=_memEl('memClassicMancheSub');
   if(eEl)eEl.textContent=isDraw?'🤝':iWon?'🏆':'😢';
   if(tEl)tEl.textContent=isDraw?'Égalité !':iWon?'Tu gagnes le '+labels[step]+' !':_memGetName(_memOther)+' gagne le '+labels[step]+' !';
   if(sEl)sEl.textContent='';
   rEl.style.display='flex';
 
-  // Masquer le bouton "Manche suivante" et forcer le bouton "Continuer"
   var nextBtn=_memEl('memClassicNextBtn');if(nextBtn)nextBtn.style.display='none';
   var quitBtn=_memEl('memClassicQuitBtn');
   if(quitBtn){
     quitBtn.textContent= step==='archi' ? 'Voir le résultat final' : 'Étape suivante →';
     quitBtn.onclick=function(){
       rEl.style.display='none';
-      if(cb) cb();
+      // Le winner publie le prochain state → l'autre reçoit onStateUpdate et change d'écran
+      // Le perdant ferme juste son popup et attend
+      if(isPublisher && cb) cb();
     };
   }
 }
