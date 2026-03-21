@@ -41,6 +41,7 @@ var _memAllQueue    = [];
 var _memAllResults  = {};
 var _memMyTrophies  = [];
 var _memStartedAt   = 0;
+var _memAllAfk      = false;  // true quand on part en AFK d'un mode ALL en cours
 
 // ── État Classique+ ──
 var _clCards       = [], _clFlipped = [], _clManche = 1;
@@ -214,8 +215,15 @@ function openMemoryGame() {
   _yamSlide(document.getElementById('memoryView'), document.getElementById('gamesView'), 'forward');
   window.scrollTo(0, 0);
   _memShowLb(false);
-  // Si une partie ALL est encore active en arrière-plan → réafficher l'écran en cours
-  // sans relancer un nouveau lobby (évite de casser la partie en cours)
+  // Si on revient d'une AFK mode ALL → passer par enterLobby (comme les autres modes).
+  // enterLobby() voit presenceEmpty → purge si les deux sont partis,
+  // ou rejoint directement si l'adversaire est encore en ligne.
+  if (_memAllAfk) {
+    _memAllAfk = false;
+    _memLoadTrophies(function() { _memStartLobby(); });
+    return;
+  }
+  // Partie ALL encore active sans AFK (ex: rechargement page) → reprendre
   var _allActive = (_memCurrentMode === 'all' || (_memLastState && _memLastState.mode === 'all'))
                     && _memMp && _memLastState && !_memLastState.winner;
   if (_allActive) {
@@ -227,24 +235,22 @@ function openMemoryGame() {
 
 // Quitter définitivement — même comportement qu'Ocho/Skyjo
 function closeMemoryGame() {
-  // Mode ALL en cours (pas encore terminé) → AFK : slide back SANS cleanup complet.
-  // On appelle deletePresence() pour que le moteur détecte l'absence correctement.
-  //
-  // Cas 1 — Un seul joueur absent :
-  //   L'adversaire voit onOpponentOffline → popup "Attendre 20s / Quitter"
-  //   Si on revient → openMemoryGame() → onMatchFound → reprise directe
-  //   Si on ne revient pas → startReconnectWait expire → partie supprimée
-  //
-  // Cas 2 — Les deux joueurs absents :
-  //   deletePresence() ici → les deux last_seen > 40s → fetchState() détecte
-  //   bothAbsent → supprime la partie automatiquement (logique app-multiplayer.js)
+  // Mode ALL en cours (pas encore terminé) → AFK, exactement comme les autres modes :
+  // stopAll() coupe le heartbeat (_presenceActive=false) PUIS deletePresence() vide la
+  // ligne en base. Au retour, enterLobby() vérifie presenceEmpty :
+  //   • Les deux partis → presenceEmpty=true → purge la partie fantôme
+  //   • Un seul parti  → l'adversaire a relancé la présence → rejoint directement
+  // _memMp et _memLastState restent en mémoire (pas de cleanup) pour que le flag
+  // _memAllAfk puisse être détecté dans openMemoryGame().
   var _isAllInProgress = (_memCurrentMode === 'all' || (_memLastState && _memLastState.mode === 'all'))
                           && _memMp && _memLastState && !_memLastState.winner;
   if (_isAllInProgress) {
-    // Signaler l'absence : last_seen mis dans le passé → détection bothAbsent si les deux partent
+    _memAllAfk = true;
+    // Couper le heartbeat AVANT deletePresence (comme leave() dans app-multiplayer.js)
+    if (_memMp && typeof _memMp.stopAll === 'function') _memMp.stopAll();
     if (_memMp && typeof _memMp.deletePresence === 'function') _memMp.deletePresence();
     _yamSlide(document.getElementById('gamesView'), document.getElementById('memoryView'), 'backward');
-    return; // _memMp reste en vie pour la reconnexion
+    return;
   }
   // Tous les autres cas (fin de partie, autres modes) → quitter normalement
   _memCleanup();
