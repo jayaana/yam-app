@@ -1131,7 +1131,7 @@ var _allClProcessing = false, _allClTimerStart = 0, _allClTimer = null;
 
 // ── État echo ALL ──
 var _allEchoSeq     = [], _allEchoMyInput = [], _allEchoShowing = false;
-var _allEchoShowInt = null, _allEchoSaved = false;
+var _allEchoShowInt = null, _allEchoSaved = false, _allEchoPublished = false;
 
 // ── État archi ALL ──
 var _allArchiMyTarget = [], _allArchiSaved = false, _allArchiPerfect = true;
@@ -1188,7 +1188,7 @@ function _allBuildArchiState() {
 function _allStart(gameRow) {
   // Reset complet de tout l'etat ALL — critique pour eviter les residus d'une partie precedente
   _allStep = null; _allResults = {}; _allResultShown = false;
-  _allEchoSaved = false; _allArchiSaved = false;
+  _allEchoSaved = false; _allEchoPublished = false; _allArchiSaved = false;
   // Reset etat Classic ALL
   _allClCards = []; _allClFlipped = [];
   _allClGirlPairs = 0; _allClBoyPairs = 0; _allClMoves = 0;
@@ -1369,7 +1369,7 @@ function _allClassicCardClick(card) {
 // ─────────────────────────────────────────────
 
 function _allStartEcho(state) {
-  _allEchoSeq=[]; _allEchoMyInput=[]; _allEchoShowing=false; _allEchoSaved=false;
+  _allEchoSeq=[]; _allEchoMyInput=[]; _allEchoShowing=false; _allEchoSaved=false; _allEchoPublished=false;
   if(_allEchoShowInt){clearInterval(_allEchoShowInt);_allEchoShowInt=null;}
   _memShowScreen('memScreenEcho');
   var lEl=_memEl('memEchoLevel');if(lEl) lEl.textContent='ALL · Écho';
@@ -1415,8 +1415,8 @@ function _allApplyEchoState(state) {
 
   // Filet de sécurité 1 : les deux éliminés mais winner jamais publié
   // Utiliser un flag séparé pour ne pas bloquer l'affichage du résultat quand il arrive
-  if(meElim && othElim && !state.winner && !_allEchoSaved && _memMp){
-    _allEchoSaved=true; // verrouille pour éviter double publication
+  if(meElim && othElim && !state.winner && !_allEchoPublished && _memMp){
+    _allEchoPublished=true; // verrouille publication, sans bloquer l'affichage du résultat
     var ns2=JSON.parse(JSON.stringify(state));
     ns2.winner=_memEchoPickWinner(ns2)||'draw';
     _memMp.saveState(ns2);
@@ -1426,8 +1426,8 @@ function _allApplyEchoState(state) {
   // Filet de sécurité 2 : les deux ont réussi sans élimination mais winner non publié
   var bothSucceeded = (state.girl_input||[]).length === _allEchoSeq.length &&
                       (state.boy_input||[]).length  === _allEchoSeq.length;
-  if(bothSucceeded && !state.winner && !_allEchoSaved && _memMp){
-    _allEchoSaved=true;
+  if(bothSucceeded && !state.winner && !_allEchoPublished && _memMp){
+    _allEchoPublished=true;
     var ns3=JSON.parse(JSON.stringify(state));
     ns3.winner=_memEchoPickWinner(ns3)||'draw';
     _memMp.saveState(ns3);
