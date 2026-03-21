@@ -1361,10 +1361,20 @@ function _allApplyEchoState(state) {
   var lv=_memEl('memEchoLevel');if(lv) lv.textContent='ALL · Niveau '+state.level;
 
   var meElim=_memProfile==='girl'?state.girl_eliminated:state.boy_eliminated;
+  var othElim=_memProfile==='girl'?state.boy_eliminated:state.girl_eliminated;
   var myInput=_memProfile==='girl'?state.girl_input:state.boy_input;
   _memUpdateEchoPips(_allEchoSeq.length,(myInput||[]).length);
 
-  // Vérifier winner AVANT meElim — un joueur éliminé doit quand même voir le résultat final
+  // Filet de sécurité : les deux sont éliminés mais winner jamais publié (race condition)
+  // → le premier à détecter ça (peu importe le rôle) publie le winner
+  if(meElim && othElim && !state.winner && !_allEchoSaved && _memMp){
+    var ns2=JSON.parse(JSON.stringify(state));
+    ns2.winner=_memEchoPickWinner(ns2)||'draw';
+    _memMp.saveState(ns2);
+    return;
+  }
+
+  // winner présent → afficher résultat (même si ce joueur est éliminé)
   if(state.winner && !_allEchoSaved){
     _allEchoSaved=true;
     var _echoW=state.winner;
