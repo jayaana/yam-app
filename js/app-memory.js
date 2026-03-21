@@ -1407,9 +1407,11 @@ function _allApplyEchoState(state) {
   if(state.winner && !_allEchoSaved){
     _allEchoSaved=true;
     var _echoW=state.winner;
-    // Basculer sur memScreenClassic où se trouve le popup de résultat
-    _memShowScreen('memScreenClassic');
+    // Rendre le popup visible par-dessus l'écran Echo (sans changer d'écran)
+    var _rEl=_memEl('memClassicMancheResult');
+    if(_rEl){ _rEl.style.position='fixed'; _rEl.style.zIndex='999'; _rEl.style.inset='0'; }
     _allShowStepResult('echo', _echoW, function(){
+      if(_rEl){ _rEl.style.position=''; _rEl.style.zIndex=''; _rEl.style.inset=''; }
       if(_memMp && _allStep==='echo') _memMp.saveState(_allBuildArchiState());
     });
     return;
@@ -1579,9 +1581,13 @@ function _allApplyArchiState(state) {
 
   if(state.winner && !_allArchiSaved){
     _allArchiSaved=true;
-    // Basculer sur memScreenClassic où se trouve le popup de résultat
-    _memShowScreen('memScreenClassic');
-    _allShowStepResult('archi', state.winner, function(){ _allShowFinal(); });
+    // Rendre le popup visible par-dessus l'écran Archi (sans changer d'écran)
+    var _rElA=_memEl('memClassicMancheResult');
+    if(_rElA){ _rElA.style.position='fixed'; _rElA.style.zIndex='999'; _rElA.style.inset='0'; }
+    _allShowStepResult('archi', state.winner, function(){
+      if(_rElA){ _rElA.style.position=''; _rElA.style.zIndex=''; _rElA.style.inset=''; }
+      _allShowFinal();
+    });
   }
 }
 
