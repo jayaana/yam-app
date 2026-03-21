@@ -227,17 +227,24 @@ function openMemoryGame() {
 
 // Quitter définitivement — même comportement qu'Ocho/Skyjo
 function closeMemoryGame() {
-  // Mode ALL en cours (pas encore terminé) → AFK au lieu de quitter définitivement
-  // On quitte la vue SANS cleanup — _memMp reste actif en arrière-plan
-  // L'adversaire voit onOpponentOffline → popup "Attendre 20s / Quitter"
-  // Si on revient via openMemoryGame() → enterLobby() → onMatchFound → reprise
-  // Si on ne revient pas → onReconnectTimeout → _memCleanup() automatique
-  // Vérifier aussi via le state serveur en cas de _memCurrentMode non initialisé (ex: rechargement)
+  // Mode ALL en cours (pas encore terminé) → AFK : slide back SANS cleanup complet.
+  // On appelle deletePresence() pour que le moteur détecte l'absence correctement.
+  //
+  // Cas 1 — Un seul joueur absent :
+  //   L'adversaire voit onOpponentOffline → popup "Attendre 20s / Quitter"
+  //   Si on revient → openMemoryGame() → onMatchFound → reprise directe
+  //   Si on ne revient pas → startReconnectWait expire → partie supprimée
+  //
+  // Cas 2 — Les deux joueurs absents :
+  //   deletePresence() ici → les deux last_seen > 40s → fetchState() détecte
+  //   bothAbsent → supprime la partie automatiquement (logique app-multiplayer.js)
   var _isAllInProgress = (_memCurrentMode === 'all' || (_memLastState && _memLastState.mode === 'all'))
                           && _memMp && _memLastState && !_memLastState.winner;
   if (_isAllInProgress) {
+    // Signaler l'absence : last_seen mis dans le passé → détection bothAbsent si les deux partent
+    if (_memMp && typeof _memMp.deletePresence === 'function') _memMp.deletePresence();
     _yamSlide(document.getElementById('gamesView'), document.getElementById('memoryView'), 'backward');
-    return; // ne pas cleanup — laisser la partie vivante en arrière-plan
+    return; // _memMp reste en vie pour la reconnexion
   }
   // Tous les autres cas (fin de partie, autres modes) → quitter normalement
   _memCleanup();
