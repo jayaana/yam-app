@@ -4158,12 +4158,12 @@ window.nousLoad = function(){
       .then(function (scoreRows) {
         if (!Array.isArray(scoreRows)) return;
 
-        // Jeux simples (1 game_id par jeu)
-        var games    = ['pendu', 'puzzle', 'snake', 'skyjo', 'ocho'];
-        // Memory : 4 sous-modes — on prend le meilleur score de chacun
+        // Un score par jeu = meilleur score toutes parties confondues
+        // Memory : meilleur score parmi les 4 sous-modes (max, pas somme)
         var MEMORY_IDS = ['memory_classic', 'memory_echo', 'memory_archi', 'memory_all'];
-        var girlBest = {};
-        var boyBest  = {};
+        var games      = ['pendu', 'puzzle', 'snake', 'skyjo', 'ocho'];
+        var girlBest   = {};
+        var boyBest    = {};
 
         scoreRows.forEach(function (row) {
           if (row.player_role === 'girl') {
@@ -4175,9 +4175,9 @@ window.nousLoad = function(){
           }
         });
 
-        // Score memory = somme des meilleurs scores de chaque sous-mode
-        var girlMemory = MEMORY_IDS.reduce(function (s, id) { return s + (girlBest[id] || 0); }, 0);
-        var boyMemory  = MEMORY_IDS.reduce(function (s, id) { return s + (boyBest[id]  || 0); }, 0);
+        // Memory = meilleur score parmi tous les sous-modes
+        var girlMemory = MEMORY_IDS.reduce(function (m, id) { return Math.max(m, girlBest[id] || 0); }, 0);
+        var boyMemory  = MEMORY_IDS.reduce(function (m, id) { return Math.max(m, boyBest[id]  || 0); }, 0);
 
         _trophies.girl = girlMemory + games.reduce(function (s, g) { return s + (girlBest[g] || 0); }, 0);
         _trophies.boy  = boyMemory  + games.reduce(function (s, g) { return s + (boyBest[g]  || 0); }, 0);
