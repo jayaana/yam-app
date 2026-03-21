@@ -375,8 +375,12 @@ function _memRouteState(state, gameRow) {
 
   } else if (ph === 'classic' || ph === 'echo' || ph === 'archi') {
     var mo = state.mode || ph;
-    if (_memCurrentMode === mo || (mo === 'all' && _memCurrentMode === 'all')) {
-      // Mode déjà actif : appliquer le state directement sans relancer le jeu
+    if (mo === 'all' && _memCurrentMode === 'all') {
+      // Mode ALL actif : transition entre sous-modes (classic->echo->archi)
+      // Utiliser _memLaunchSingle pour initialiser l'écran du nouveau sous-mode
+      _memLaunchSingle(ph, gameRow);
+    } else if (_memCurrentMode === mo) {
+      // Même mode déjà actif : appliquer le state directement (update en cours de jeu)
       if (ph === 'classic') _memApplyClassicState(state);
       else if (ph === 'echo')  _memApplyEchoState(state);
       else if (ph === 'archi') _memApplyArchiState(state);
@@ -439,12 +443,21 @@ function _memStartClassic(gameRow) {
   _clCards=[]; _clFlipped=[];
   _memShowScreen('memScreenClassic');
   _memUpdateClassicHeader();
-  // Les deux joueurs recoivent le meme state via onStateUpdate — appliquer directement
   var state = gameRow && gameRow.state;
-  if (state && (state.phase === 'classic' || state.phase === 'echo' || state.phase === 'archi')) {
+  if (state && state.phase === 'classic' && (state.cards||[]).length > 0) {
+    // Utiliser le state existant (cartes déjà mélangées) pour que les deux joueurs
+    // voient exactement les mêmes cartes
     _memApplyClassicState(state);
+  } else {
+    // Nouvelle partie : construire et publier le state initial (seulement si girl)
+    // Boy recevra le même state via onStateUpdate
+    if (_memProfile === 'girl' && _memMp) {
+      var ns = _memBuildClassicState(1);
+      if (_memCurrentMode === 'all') ns.mode = 'all';
+      _memMp.saveState(ns);
+    }
+    // Sinon : le state arrive via onStateUpdate dans les ms qui suivent
   }
-  // Sinon : le state arrive via onStateUpdate dans les ms qui suivent
 }
 
 function _memBuildClassicState(manche) {
