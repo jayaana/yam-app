@@ -1020,7 +1020,7 @@ function _memArchiTap(si) {
   var cur=_memMp.getGameState?_memMp.getGameState():null;
   if(!cur) cur=_memLastState;
   if(!cur)return;
-  if(Date.now()<(cur.show_until||0))return;
+  if(Date.now()<Math.max(cur.show_until||0, _allArchiShowUntil||0))return;
   if(cur[_memProfile+'_done'])return; // déjà fini ce round
 
   var sp=_memProfile+'_stack';
@@ -1597,14 +1597,14 @@ function _allApplyArchiState(state) {
         var pal2=_memEl('memArchiShapesMe');
         var cur2=(_memMp&&_memMp.getGameState?_memMp.getGameState():null)||_memLastState;
         if(pal2) pal2.style.pointerEvents=(cur2&&cur2[_memProfile+'_done'])?'none':'';
-      },state.show_until-Date.now());
+      },effectiveShowUntil-Date.now());
     } else {
       targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
     }
   }
 
   var phEl=_memEl('memArchiPhase');
-  if(phEl)phEl.textContent=showing?'👀 Mémorise ta tour ! ('+Math.ceil(((state.show_until||0)-Date.now())/1000)+'s)':'🏗️ Reconstruit !';
+  if(phEl)phEl.textContent=showing?'👀 Mémorise ta tour ! ('+Math.ceil((effectiveShowUntil-Date.now())/1000)+'s)':'🏗️ Reconstruit !';
 
   _memRenderArchiStack(_memEl('memArchiStackMe'),    _memProfile==='girl'?state.girl_stack:state.boy_stack);
   _memRenderArchiStack(_memEl('memArchiStackOther'), _memProfile==='girl'?state.boy_stack:state.girl_stack);
@@ -1636,7 +1636,7 @@ function _allApplyArchiState(state) {
 function _allArchiTap(si){
   if(!_memMp)return;
   var cur=(_memMp.getGameState?_memMp.getGameState():null)||_memLastState;if(!cur)return;
-  if(Date.now()<(cur.show_until||0))return;
+  if(Date.now()<Math.max(cur.show_until||0, _allArchiShowUntil||0))return;
   if(cur[_memProfile+'_done'])return;
 
   var sp=_memProfile+'_stack';
@@ -1703,12 +1703,23 @@ function _allShowStepResult(step, winner, cb) {
   var quitBtn=_memEl('memClassicQuitBtn');
   if(quitBtn){
     quitBtn.textContent= step==='archi' ? 'Voir le résultat final' : 'Étape suivante →';
-    quitBtn.onclick=function(){
+
+    var _cbFired = false;
+    function _fireCb(){
+      if(_cbFired) return;
+      _cbFired = true;
       rEl.style.display='none';
       if(cb) cb();
-      // Si l'autre a déjà publié l'étape suivante, onStateUpdate changera l'écran
-      // automatiquement et cb aura été ignoré (l'écran aura déjà changé)
-    };
+    }
+
+    quitBtn.onclick = _fireCb;
+
+    // Pour les transitions intermédiaires (classic→echo, echo→archi) :
+    // déclencher automatiquement après 3s sans attendre le clic
+    // → les deux joueurs passent à la même vitesse
+    if(step !== 'archi'){
+      setTimeout(_fireCb, 3000);
+    }
   }
 }
 
