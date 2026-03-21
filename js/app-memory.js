@@ -1402,17 +1402,28 @@ function _allApplyEchoState(state) {
   var myInput=_memProfile==='girl'?state.girl_input:state.boy_input;
   _memUpdateEchoPips(_allEchoSeq.length,(myInput||[]).length);
 
-  // Filet de sécurité 1 : les deux sont éliminés mais winner jamais publié
-  if(meElim && othElim && !state.winner && !_allEchoSaved && _memMp){
+  // winner présent → afficher résultat EN PRIORITÉ (même si ce joueur est éliminé)
+  // Doit être vérifié AVANT le check meElim pour ne pas bloquer sur "Tu attends..."
+  if(state.winner && !_allEchoSaved){
     _allEchoSaved=true;
+    var _echoW=state.winner;
+    _allShowStepResult('echo', _echoW, function(){
+      if(_memMp && _allStep==='echo') _memMp.saveState(_allBuildArchiState());
+    });
+    return;
+  }
+
+  // Filet de sécurité 1 : les deux éliminés mais winner jamais publié
+  // Utiliser un flag séparé pour ne pas bloquer l'affichage du résultat quand il arrive
+  if(meElim && othElim && !state.winner && !_allEchoSaved && _memMp){
+    _allEchoSaved=true; // verrouille pour éviter double publication
     var ns2=JSON.parse(JSON.stringify(state));
     ns2.winner=_memEchoPickWinner(ns2)||'draw';
     _memMp.saveState(ns2);
     return;
   }
 
-  // Filet de sécurité 2 : les deux ont réussi la séquence (sans élimination)
-  // mais winner jamais publié (race condition entre les deux saveState)
+  // Filet de sécurité 2 : les deux ont réussi sans élimination mais winner non publié
   var bothSucceeded = (state.girl_input||[]).length === _allEchoSeq.length &&
                       (state.boy_input||[]).length  === _allEchoSeq.length;
   if(bothSucceeded && !state.winner && !_allEchoSaved && _memMp){
@@ -1420,16 +1431,6 @@ function _allApplyEchoState(state) {
     var ns3=JSON.parse(JSON.stringify(state));
     ns3.winner=_memEchoPickWinner(ns3)||'draw';
     _memMp.saveState(ns3);
-    return;
-  }
-
-  // winner présent → afficher résultat (même si ce joueur est éliminé)
-  if(state.winner && !_allEchoSaved){
-    _allEchoSaved=true;
-    var _echoW=state.winner;
-    _allShowStepResult('echo', _echoW, function(){
-      if(_memMp && _allStep==='echo') _memMp.saveState(_allBuildArchiState());
-    });
     return;
   }
 
