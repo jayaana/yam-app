@@ -757,6 +757,21 @@ function _memApplyEchoState(state) {
   if (state.winner&&!_echoSaved){_memShowEchoResult(state);return;}
   var myInput=_memProfile==='girl'?state.girl_input:state.boy_input;
   _memUpdateEchoPips(_echoSequence.length,(myInput||[]).length);
+
+  // Filet : je suis survivant, adversaire éliminé, winner non publié
+  // Couvre le cas où getGameState() n'avait pas encore othElim=true dans _memSaveEchoInput
+  if (!meElim && othElim && !state.winner && !_echoSaved && _memMp) {
+    var _nsF = JSON.parse(JSON.stringify(state));
+    var myF  = (_memProfile==='girl'?_nsF.girl_input:_nsF.boy_input)||[];
+    if (myF.length === _echoSequence.length) {
+      // J'ai réussi ma séquence → publier winner
+      _echoSaved = true;
+      _nsF.winner = _memEchoPickWinner(_nsF);
+      _memMp.saveState(_nsF);
+      return;
+    }
+  }
+
   // Si je suis éliminé : afficher message d'attente, bloquer la grille
   if (meElim) {
     var ph=_memEl('memEchoPhase');
@@ -838,7 +853,10 @@ function _memSaveEchoInput(success) {
     }
     var otherDone  = (ns[_memOther+'_input']||[]).length === _echoSequence.length;
     var otherElim  = !!(ns[_memOther+'_eliminated']);
-    if (otherDone || otherElim) {
+    if (otherElim && !otherDone) {
+      // L'adversaire est éliminé mais n'a pas réussi → je suis le survivant → je gagne
+      ns.winner = _memEchoPickWinner(ns);
+    } else if (otherDone || otherElim) {
       // Les deux ont terminé ce niveau → passer au suivant
       var lv = _echoLevel + 1;
       if (lv>8)  _memUnlockTrophy('telepathie','memEchoTrophyUnlock');
