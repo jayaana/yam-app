@@ -1180,8 +1180,19 @@ function _allBuildArchiState() {
 // ─────────────────────────────────────────────
 
 function _allStart(gameRow) {
+  // Reset complet de tout l'etat ALL — critique pour eviter les residus d'une partie precedente
   _allStep = null; _allResults = {}; _allResultShown = false;
   _allEchoSaved = false; _allArchiSaved = false;
+  // Reset etat Classic ALL
+  _allClCards = []; _allClFlipped = [];
+  _allClGirlPairs = 0; _allClBoyPairs = 0; _allClMoves = 0;
+  _allClProcessing = false; _allClTimerStart = 0;
+  if (_allClTimer) { clearInterval(_allClTimer); _allClTimer = null; }
+  // Reset etat Echo ALL
+  _allEchoSeq = []; _allEchoMyInput = []; _allEchoShowing = false;
+  if (_allEchoShowInt) { clearInterval(_allEchoShowInt); _allEchoShowInt = null; }
+  // Reset etat Archi ALL
+  _allArchiMyTarget = []; _allArchiPerfect = true;
   // Le state initial (classic) a déjà été publié par _memVoteMode
   // → on route directement depuis le gameRow reçu
   var state = gameRow && gameRow.state;
@@ -1199,6 +1210,7 @@ function _allRouteState(state, gameRow) {
   // Changement de step → lancer le bon écran
   if (step !== _allStep) {
     _allStep = step;
+    _allResultShown = false; // reset au changement de step pour eviter blocage inter-steps
     if (step === 'classic') _allStartClassic(state);
     else if (step === 'echo')  _allStartEcho(state);
     else if (step === 'archi') _allStartArchi(state);
