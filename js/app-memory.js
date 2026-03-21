@@ -690,6 +690,8 @@ function _memShowClassicFinal(state) {
   var doneBtn=_memEl('memClassicDoneBtn');
   if (doneBtn) doneBtn.onclick=function(){
     fEl.style.display='none';
+    // Supprimer la partie en base avant le cleanup (evite la partie fantome)
+    if (_memMp && typeof _memMp.deleteGame === 'function') _memMp.deleteGame();
     _memCleanup();_memShowLb(true);_lbLoad();
   };
   if (typeof window.yamFlameActivity==='function') window.yamFlameActivity('memory_done');
@@ -877,6 +879,7 @@ function _memShowEchoResult(state) {
   if(_memProfile==='girl'){var cid=_memGetCoupleId(),dur=Math.round((Date.now()-_memStartedAt)/1000);if(cid)['girl','boy'].forEach(function(r){sb2Post('game_scores',{couple_id:cid,game_id:'memory',player_role:r,score:_echoLevel*100,moves:0,time_seconds:dur,winner_role:state.winner,user_id:typeof yamGetUser==="function"?yamGetUser().id:null}).catch(function(){});});}
   var btn=_memEl('memEchoDoneBtn');if(btn)btn.onclick=function(){
     fEl.style.display='none';
+    if (_memMp && typeof _memMp.deleteGame === 'function') _memMp.deleteGame();
     _memCleanup();_memShowLb(true);_lbLoad();
   };
   if(typeof window.yamFlameActivity==='function')window.yamFlameActivity('memory_done');
@@ -1094,6 +1097,7 @@ function _memShowArchiResult(state){
   }
   var btn=_memEl('memArchiDoneBtn');if(btn)btn.onclick=function(){
     fEl.style.display='none';
+    if (_memMp && typeof _memMp.deleteGame === 'function') _memMp.deleteGame();
     _memCleanup();_memShowLb(true);_lbLoad();
   };
   if(typeof window.yamFlameActivity==='function')window.yamFlameActivity('memory_done');
@@ -1644,7 +1648,7 @@ function _allShowFinal() {
     });
   }
   var btn=_memEl('memClassicDoneBtn');
-  if(btn)btn.onclick=function(){fEl.style.display='none';_memCleanup();_memShowLb(true);_lbLoad();};
+  if(btn)btn.onclick=function(){fEl.style.display='none';if(_memMp&&typeof _memMp.deleteGame==='function')_memMp.deleteGame();_memCleanup();_memShowLb(true);_lbLoad();};
   if(typeof window.yamFlameActivity==='function')window.yamFlameActivity('memory_done');
 }
 
