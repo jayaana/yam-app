@@ -50,6 +50,7 @@
     var _gameState     = null;
     var _launched      = false;
     var _saving        = false;  // verrou pendant PATCH
+    var _pendingState  = null;   // dernier state en attente si PATCH en cours
 
     var _presTimer     = null;
     var _lobbyTimer    = null;
@@ -82,6 +83,7 @@
       _gameState = null;
       _launched  = false;
       _saving    = false;
+      _pendingState = null;
       _bothAbsentHandled = false;
       _lastPresenceSent  = 0;
       _absenceStart      = 0;
@@ -516,10 +518,21 @@
     }
 
     // ─── saveState ────────────────────────────────────
+    // Si un PATCH est déjà en cours, on mémorise le dernier state
+    // demandé dans _pendingState et on l'envoie dès que le PATCH
+    // en cours se termine — ainsi aucun état n'est jamais perdu.
     function saveState(ns){
       if(!_gameId) return;
       _gameState = ns;
-      _saving    = true;
+      if(_saving){
+        _pendingState = ns;  // on garde seulement le plus récent
+        return;
+      }
+      _doSave(ns);
+    }
+
+    function _doSave(ns){
+      _saving = true;
       fetch(SB_URL+'/rest/v1/'+GAME_TABLE+'?id=eq.'+_gameId, {
         method:'PATCH',
         headers: sb2Headers({'Prefer':'return=representation'}),
@@ -534,10 +547,24 @@
         if(rows && Array.isArray(rows) && rows[0]){
           if(cfg.onStateUpdate) cfg.onStateUpdate(rows[0]);
         }
+        // S'il y a un state en attente, l'envoyer maintenant
+        if(_pendingState !== null){
+          var next = _pendingState;
+          _pendingState = null;
+          _gameState = next;
+          _doSave(next);
+        }
       })
       .catch(function(e){
         _saving = false;
         console.error('[MULTIPLAYER] saveState err', e);
+        // Même en cas d'erreur, tenter le state en attente
+        if(_pendingState !== null){
+          var next = _pendingState;
+          _pendingState = null;
+          _gameState = next;
+          _doSave(next);
+        }
       });
     }
 
