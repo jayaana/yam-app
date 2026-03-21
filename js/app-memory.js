@@ -375,12 +375,8 @@ function _memRouteState(state, gameRow) {
 
   } else if (ph === 'classic' || ph === 'echo' || ph === 'archi') {
     var mo = state.mode || ph;
-    if (mo === 'all' && _memCurrentMode === 'all') {
-      // Mode ALL actif : transition entre sous-modes (classic->echo->archi)
-      // Utiliser _memLaunchSingle pour initialiser l'écran du nouveau sous-mode
-      _memLaunchSingle(ph, gameRow);
-    } else if (_memCurrentMode === mo) {
-      // Même mode déjà actif : appliquer le state directement (update en cours de jeu)
+    if (_memCurrentMode === mo || (mo === 'all' && _memCurrentMode === 'all')) {
+      // Mode déjà actif : appliquer le state directement sans relancer le jeu
       if (ph === 'classic') _memApplyClassicState(state);
       else if (ph === 'echo')  _memApplyEchoState(state);
       else if (ph === 'archi') _memApplyArchiState(state);
@@ -443,29 +439,20 @@ function _memStartClassic(gameRow) {
   _clCards=[]; _clFlipped=[];
   _memShowScreen('memScreenClassic');
   _memUpdateClassicHeader();
+  // Les deux joueurs recoivent le meme state via onStateUpdate — appliquer directement
   var state = gameRow && gameRow.state;
-  if (state && state.phase === 'classic' && (state.cards||[]).length > 0) {
-    // Utiliser le state existant (cartes déjà mélangées) pour que les deux joueurs
-    // voient exactement les mêmes cartes
+  if (state && (state.phase === 'classic' || state.phase === 'echo' || state.phase === 'archi')) {
     _memApplyClassicState(state);
-  } else {
-    // Nouvelle partie : construire et publier le state initial (seulement si girl)
-    // Boy recevra le même state via onStateUpdate
-    if (_memProfile === 'girl' && _memMp) {
-      var ns = _memBuildClassicState(1);
-      if (_memCurrentMode === 'all') ns.mode = 'all';
-      _memMp.saveState(ns);
-    }
-    // Sinon : le state arrive via onStateUpdate dans les ms qui suivent
   }
+  // Sinon : le state arrive via onStateUpdate dans les ms qui suivent
 }
 
 function _memBuildClassicState(manche) {
   var cfg  = _CLASSIC_CFGS[manche-1];
   var pool = MEMORY_EMOJIS.slice(0,cfg.pairs).concat(MEMORY_EMOJIS.slice(0,cfg.pairs));
   for (var i=pool.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=pool[i];pool[i]=pool[j];pool[j]=t;}
-  var mo = _memCurrentMode === 'all' ? 'all' : 'classic';
-  return {phase:'classic',mode:mo,manche:manche,cards:pool,matched:[],flipped:[],
+  // timer_start fixé à la manche 1 uniquement — conservé ensuite pour chrono global
+  return {phase:'classic',mode:'classic',manche:manche,cards:pool,matched:[],flipped:[],
     girl_pairs:0,boy_pairs:0,turn:'girl',moves:0,winner:null,
     specials:cfg.specials,timer_start:manche===1?Date.now():null,elapsed:0};
 }
@@ -487,9 +474,9 @@ function _memUpdateClassicScores() {
 
 function _memApplyClassicState(state) {
   if (!state || _clProcessing) return;
-  // Ignorer les updates entrants si c'est mon tour et que j'ai une carte
-  // retournée localement — évite que le save intermédiaire réinitialise _clFlipped
-  if (state.turn === _memProfile && _clFlipped.length === 1 && (state.flipped||[]).length === 1) return;
+  // Si c'est mon tour et que j'ai déjà une carte retournée localement,
+  // ignorer l'update entrant pour ne pas perturber mon jeu en cours
+  if (state.turn === _memProfile && _clFlipped.length > 0) return;
   _clGirlPairs = state.girl_pairs||0; _clBoyPairs = state.boy_pairs||0;
   _clManche    = state.manche||1;     _clMoves    = state.moves||0;
   // Mémoriser le timer_start global dès la manche 1
@@ -538,9 +525,7 @@ function _memApplyClassicState(state) {
   // Bloquer uniquement si on est en train de traiter une paire (setTimeout en cours)
   if (myTurn && _clProcessing) return;
   // C'est mon tour → réinitialiser _clFlipped (nouveau tour propre)
-  // Réinitialiser _clFlipped seulement si le state indique un tour propre (flipped vide)
-  // Si flipped n'est pas vide, un coup est en cours — ne pas écraser _clFlipped local
-  if (myTurn && (state.flipped||[]).length === 0) _clFlipped = [];
+  if (myTurn) _clFlipped = [];
   _memSetClassicBlocked(!myTurn);
 
   var badge=_memEl('memClassicTurnBadge');
@@ -576,8 +561,7 @@ function _memFormatTime(secs) {
 
 function _memBuildWinnerState(state) {
   var matched=_clCards.filter(function(c){return c.classList.contains('matched');}).map(function(c){return parseInt(c.dataset.idx);});
-  var _cmo = _memCurrentMode === 'all' ? 'all' : 'classic';
-  return {phase:'classic',mode:_cmo,manche:_clManche,
+  return {phase:'classic',mode:'classic',manche:_clManche,
     cards:_clCards.map(function(c){return c.dataset.emoji;}),matched:matched,flipped:[],
     girl_pairs:_clGirlPairs,boy_pairs:_clBoyPairs,moves:_clMoves,
     specials:state.specials||[],timer_start:state.timer_start||0,elapsed:_clSeconds,
@@ -598,8 +582,7 @@ function _memClassicCardClick(card) {
   var _curRT=_memMp.getGameState?_memMp.getGameState():{}; if(!_curRT)_curRT={};
   var _flippedNow=_clFlipped.map(function(c){return parseInt(c.dataset.idx);});
   var _matchedNow=_clCards.filter(function(c){return c.classList.contains('matched');}).map(function(c){return parseInt(c.dataset.idx);});
-  var _smo = _memCurrentMode === 'all' ? 'all' : 'classic';
-  _memMp.saveState({phase:'classic',mode:_smo,manche:_clManche,
+  _memMp.saveState({phase:'classic',mode:'classic',manche:_clManche,
     cards:_clCards.map(function(c){return c.dataset.emoji;}),
     matched:_matchedNow, flipped:_flippedNow, turn:_memProfile,
     girl_pairs:_clGirlPairs, boy_pairs:_clBoyPairs, moves:_clMoves,
@@ -629,8 +612,7 @@ function _memClassicCardClick(card) {
       // Match : je rejoue (turn reste à moi)
       _clFlipped=[];
       _memSetClassicBlocked(false);
-      var _smo = _memCurrentMode === 'all' ? 'all' : 'classic';
-  _memMp.saveState({phase:'classic',mode:_smo,manche:_clManche,
+      _memMp.saveState({phase:'classic',mode:'classic',manche:_clManche,
         cards:_clCards.map(function(c){return c.dataset.emoji;}),
         matched:matched, flipped:[], turn:_memProfile,
         girl_pairs:_clGirlPairs, boy_pairs:_clBoyPairs, moves:_clMoves,
@@ -641,8 +623,7 @@ function _memClassicCardClick(card) {
         a.classList.remove('flipped','wrong'); b.classList.remove('flipped','wrong');
         _clFlipped=[];
         // Pas de match : passer le tour à l'adversaire
-        var _smo = _memCurrentMode === 'all' ? 'all' : 'classic';
-  _memMp.saveState({phase:'classic',mode:_smo,manche:_clManche,
+        _memMp.saveState({phase:'classic',mode:'classic',manche:_clManche,
           cards:_clCards.map(function(c){return c.dataset.emoji;}),
           matched:matched, flipped:[], turn:_memProfile==='girl'?'boy':'girl',
           girl_pairs:_clGirlPairs, boy_pairs:_clBoyPairs, moves:_clMoves,
@@ -657,7 +638,7 @@ function _memShowClassicMancheResult(state) {
   var me=_memProfile==='girl'?state.girl_pairs:state.boy_pairs;
   var oth=_memProfile==='girl'?state.boy_pairs:state.girl_pairs;
   var iWon=state.winner===_memProfile, isDraw=state.winner==='draw';
-  var isAll=_memCurrentMode==='all' || state.mode==='all';
+  var isAll=_memCurrentMode==='all';
   var rEl=_memEl('memClassicMancheResult'); if (!rEl) return;
   rEl.style.display='flex';
   var eEl=_memEl('memClassicMancheEmoji'),tEl=_memEl('memClassicMancheTitle'),sEl=_memEl('memClassicMancheSub');
@@ -713,15 +694,6 @@ function _memShowClassicFinal(state) {
     else if (_memCurrentMode==='all'){_memAllResults.classic={winner:fw};_memShowAllResults();}
     else{_memCleanup();_memShowLb(true);_lbLoad();}
   };
-  // En mode ALL : passer automatiquement au jeu suivant après 2s sans attendre le clic
-  if (_memCurrentMode==='all' || (state && state.mode==='all')) {
-    setTimeout(function(){
-      fEl.style.display='none';
-      _memAllResults.classic={winner:fw};
-      if (_memAllQueue.length>0) _memLaunchNextAll(null);
-      else _memShowAllResults();
-    }, 2000);
-  }
   if (typeof window.yamFlameActivity==='function') window.yamFlameActivity('memory_done');
 }
 
