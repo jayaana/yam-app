@@ -135,7 +135,9 @@ function openMemoryGame() {
   _memShowLb(false);
   // Si une partie ALL est encore active en arrière-plan → réafficher l'écran en cours
   // sans relancer un nouveau lobby (évite de casser la partie en cours)
-  if (_memCurrentMode === 'all' && _memMp && _memLastState && !_memLastState.winner) {
+  var _allActive = (_memCurrentMode === 'all' || (_memLastState && _memLastState.mode === 'all'))
+                    && _memMp && _memLastState && !_memLastState.winner;
+  if (_allActive) {
     _allRouteState(_memLastState, null);
     return;
   }
@@ -149,7 +151,10 @@ function closeMemoryGame() {
   // L'adversaire voit onOpponentOffline → popup "Attendre 20s / Quitter"
   // Si on revient via openMemoryGame() → enterLobby() → onMatchFound → reprise
   // Si on ne revient pas → onReconnectTimeout → _memCleanup() automatique
-  if (_memCurrentMode === 'all' && _memMp && _memLastState && !_memLastState.winner) {
+  // Vérifier aussi via le state serveur en cas de _memCurrentMode non initialisé (ex: rechargement)
+  var _isAllInProgress = (_memCurrentMode === 'all' || (_memLastState && _memLastState.mode === 'all'))
+                          && _memMp && _memLastState && !_memLastState.winner;
+  if (_isAllInProgress) {
     _yamSlide(document.getElementById('gamesView'), document.getElementById('memoryView'), 'backward');
     return; // ne pas cleanup — laisser la partie vivante en arrière-plan
   }
@@ -1260,6 +1265,7 @@ function _allBuildArchiState() {
 
 function _allStart(gameRow) {
   // Reset complet de tout l'etat ALL — critique pour eviter les residus d'une partie precedente
+  _memCurrentMode = 'all'; // marquer explicitement pour closeMemoryGame et openMemoryGame
   _allStep = null; _allResults = {}; _allResultShown = false;
   _allEchoSaved = false; _allEchoPublished = false; _allArchiSaved = false; _allArchiShowUntil = 0;
   // Reset etat Classic ALL
