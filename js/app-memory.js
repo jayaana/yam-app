@@ -481,14 +481,12 @@ function _memApplyClassicState(state) {
     _memShowClassicMancheResult(state); return;
   }
 
-  // Si pas de winner → s'assurer que le popup de résultat est caché
-  // (couvre le cas où boy lance la manche suivante et girl reçoit le nouvel état)
+  // Si pas de winner → s'assurer que le popup de résultat est caché et le flag remis à zero
+  // (couvre le cas où l'adversaire lance la manche suivante avant que ce joueur n'ait cliqué)
   if (!state.winner) {
     var rEl = _memEl('memClassicMancheResult');
-    if (rEl && rEl.style.display !== 'none') {
-      rEl.style.display = 'none';
-      _clResultShown = false;
-    }
+    if (rEl) rEl.style.display = 'none';
+    _clResultShown = false;
   }
 
   var grid = _memEl('memClassicGrid'); if (!grid) return;
@@ -541,11 +539,17 @@ function _memApplyClassicState(state) {
 
   // Chrono global — démarre dès la manche 1, tourne en continu
   if (!_clTimer && !state.winner && _clTimerStart) {
+    // Mémoriser le timestamp de début de manche 3 pour le trophée Éclair
+    var _manche3Start = (_clManche === 3) ? Date.now() : 0;
     _clTimer = setInterval(function(){
       if (!_clTimerStart) return;
       var elapsed = Math.floor((Date.now() - _clTimerStart) / 1000);
       var el = _memEl('memClassicTimer');
       if (el) { el.textContent = _memFormatTime(elapsed); el.className = 'mem-game-timer'; }
+      // Mettre a jour _clManche3Secs si on est en manche 3
+      if (_clManche === 3 && _manche3Start) {
+        _clManche3Secs = Math.floor((Date.now() - _manche3Start) / 1000);
+      }
     }, 1000);
   }
 }
@@ -561,7 +565,7 @@ function _memBuildWinnerState(state) {
     cards:_clCards.map(function(c){return c.dataset.emoji;}),matched:matched,flipped:[],
     girl_pairs:_clGirlPairs,boy_pairs:_clBoyPairs,moves:_clMoves,
     specials:state.specials||[],timer_start:state.timer_start||0,elapsed:_clSeconds,
-    winner:_clGirlPairs>=_clBoyPairs?'girl':'boy'};
+    winner:_clGirlPairs>_clBoyPairs?'girl':_clBoyPairs>_clGirlPairs?'boy':'draw'};
 }
 
 function _memSetClassicBlocked(blocked) {
@@ -728,8 +732,11 @@ function _memBuildEchoState(level,lives) {
 function _memApplyEchoState(state) {
   if (!state||state.phase!=='echo') return;
   var prevLevel = _echoLevel;
+  var prevSeqLen = _echoSequence.length;
   _echoSequence=state.sequence||[]; _echoLevel=state.level||1;
-  if (_echoLevel !== prevLevel) _echoShowing = false;
+  // Réinitialiser _echoShowing si le niveau ou la séquence a changé
+  // (couvre le cas où c'est l'adversaire qui publie le niveau suivant)
+  if (_echoLevel !== prevLevel || _echoSequence.length !== prevSeqLen) _echoShowing = false;
   var ml=_memProfile==='girl'?state.girl_lives:state.boy_lives;
   var ol=_memProfile==='girl'?state.boy_lives:state.girl_lives;
   var meElim   = _memProfile==='girl'?state.girl_eliminated:state.boy_eliminated;
@@ -954,8 +961,12 @@ function _memApplyArchiState(state) {
       var rem=state.show_until-Date.now();
       setTimeout(function(){
         if(targetEl)targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
-        var cur=(_memMp&&_memMp.getGameState?_memMp.getGameState():null)||_memLastState;
-        if(cur)_memApplyArchiState(cur);
+        // Mettre à jour uniquement la phase texte sans récursion
+        var phEl2=_memEl('memArchiPhase');
+        if(phEl2) phEl2.textContent='🏗️ Reconstruit !';
+        var pal2=_memEl('memArchiShapesMe');
+        var cur2=(_memMp&&_memMp.getGameState?_memMp.getGameState():null)||_memLastState;
+        if(pal2) pal2.style.pointerEvents=(cur2&&cur2[_memProfile+'_done'])?'none':'';
       },rem);
     } else {
       targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
@@ -1035,21 +1046,25 @@ function _memArchiTap(si) {
 
       var maxRounds = cur.max_rounds||3;
       if(cur.manche >= maxRounds){
-        // Fin de partie
+        // Fin de partie → publier une seule fois avec winner
         var gS=ns.girl_score||0, bS=ns.boy_score||0;
         ns.winner = gS>bS?'girl':bS>gS?'boy':'draw';
+        _memMp.saveState(ns);
       } else {
-        // Round suivant
+        // Round suivant → publier ns d'abord (avec _done:true visible), puis next après délai
+        _memMp.saveState(ns);
         var isAll = _memCurrentMode==='all';
+        var _nsScores = {girl: ns.girl_score||0, boy: ns.boy_score||0};
         setTimeout(function(){
           if(_memMp){
             var next=_memBuildArchiState(cur.manche+1, isAll);
-            next.girl_score=ns.girl_score||0;
-            next.boy_score=ns.boy_score||0;
+            next.girl_score=_nsScores.girl;
+            next.boy_score=_nsScores.boy;
             _memMp.saveState(next);
           }
         },1200);
       }
+      return; // ne pas retomber dans le saveState générique ci-dessous
     }
     // Si l'autre n'a pas encore fini : on attend, la partie continue pour lui
   }
@@ -1367,7 +1382,9 @@ function _allApplyEchoState(state) {
 
   // Filet de sécurité : les deux sont éliminés mais winner jamais publié (race condition)
   // → le premier à détecter ça (peu importe le rôle) publie le winner
+  // Guard _allEchoSaved pour éviter que les deux joueurs publient simultanément
   if(meElim && othElim && !state.winner && !_allEchoSaved && _memMp){
+    _allEchoSaved=true; // verrouiller immédiatement avant le saveState async
     var ns2=JSON.parse(JSON.stringify(state));
     ns2.winner=_memEchoPickWinner(ns2)||'draw';
     _memMp.saveState(ns2);
@@ -1495,8 +1512,12 @@ function _allApplyArchiState(state) {
       });
       setTimeout(function(){
         if(targetEl)targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
-        var cur=(_memMp&&_memMp.getGameState?_memMp.getGameState():null)||_memLastState;
-        if(cur)_allApplyArchiState(cur);
+        // Mettre à jour uniquement la phase texte sans récursion
+        var phEl2=_memEl('memArchiPhase');
+        if(phEl2) phEl2.textContent='🏗️ Reconstruit !';
+        var pal2=_memEl('memArchiShapesMe');
+        var cur2=(_memMp&&_memMp.getGameState?_memMp.getGameState():null)||_memLastState;
+        if(pal2) pal2.style.pointerEvents=(cur2&&cur2[_memProfile+'_done'])?'none':'';
       },state.show_until-Date.now());
     } else {
       targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
@@ -1593,9 +1614,11 @@ function _allShowStepResult(step, winner, cb) {
 // ─────────────────────────────────────────────
 
 function _allShowFinal() {
-  var myW=0;
-  ['classic','echo','archi'].forEach(function(k){if(_allResults[k]&&_allResults[k].winner===_memProfile)myW++;});
-  var othW=3-myW;
+  var myW=0, othW=0;
+  ['classic','echo','archi'].forEach(function(k){
+    if(_allResults[k]&&_allResults[k].winner===_memProfile) myW++;
+    if(_allResults[k]&&_allResults[k].winner===_memOther)   othW++;
+  });
   if(myW===3) _memUnlockTrophy('osmose',null);
 
   _memShowScreen('memScreenClassic');
