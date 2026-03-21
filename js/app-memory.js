@@ -136,47 +136,40 @@ function _memUpdatePresenceDot(containerElId, isOnline) {
 // maxLives = nb max de coeurs (3 standalone, 2 ALL)
 function _memRenderEchoProfiles(meContainerId, oppContainerId, maxLives) {
   var u = typeof yamGetUser === 'function' ? yamGetUser() : null;
-  // IDs des éléments de vies — on utilise ceux attendus par _memApplyEchoState
-  // Si déjà existants dans le HTML on les laisse, sinon on les crée dans la barre
-  var livesExistMe  = !!_memEl('memEchoLivesMe');
-  var livesExistOth = !!_memEl('memEchoLivesOther');
-  function renderOne(cid, userId, role, isOpp) {
-    var c = _memEl(cid); if (!c) return;
-    var name = _memGetName(role);
-    var dotHtml = isOpp
-      ? '<span id="' + cid + 'Dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#444;margin-left:3px;vertical-align:middle;transition:background .3s,box-shadow .3s;"></span>'
-      : '';
-    var livesId = isOpp ? 'memEchoLivesOther' : 'memEchoLivesMe';
-    var livesAlreadyExists = isOpp ? livesExistOth : livesExistMe;
-    var hearts = new Array(maxLives).fill('❤️').join('');
-    // Créer la div lives ici seulement si pas déjà dans le HTML
-    var livesHtml = livesAlreadyExists
-      ? '' // existant dans le HTML → on le remplit séparément
-      : '<div id="' + livesId + '" style="font-size:15px;letter-spacing:1px;min-height:20px;">' + hearts + '</div>';
-    c.innerHTML =
-      '<div style="display:flex;flex-direction:column;align-items:center;gap:5px;min-width:70px;">' +
-        '<div id="' + cid + 'Av" style="width:36px;height:36px;border-radius:50%;overflow:hidden;background:var(--surface2,#1e1e2e);flex-shrink:0;border:2px solid ' + (isOpp ? 'var(--mauve,#cba6f7)' : 'var(--pink,#f38ba8)') + ';"></div>' +
-        '<div style="display:flex;align-items:center;gap:2px;">' +
-          '<span style="font-size:11px;font-weight:600;color:var(--subtext1,#a6adc8);">' + name + '</span>' +
-          dotHtml +
-        '</div>' +
-        livesHtml +
-      '</div>';
-    _memLoadAvatar(_memEl(cid + 'Av'), userId, role, 36);
-    // Initialiser la div lives existante avec les bons coeurs
-    if (livesAlreadyExists) {
-      var lEl = _memEl(livesId);
-      if (lEl) lEl.textContent = hearts;
-    }
-  }
-  renderOne(meContainerId,  u ? u.id         : null, _memProfile, false);
-  renderOne(oppContainerId, u ? u.partner_id : null, _memOther,   true);
+  // Charger avatars dans la nouvelle structure HTML
+  var avMe  = _memEl('memEchoAvMe');
+  var avOth = _memEl('memEchoAvOther');
+  var nMe   = _memEl('memEchoNameMe');
+  var nOth  = _memEl('memEchoOppName');
+  if (nMe)  nMe.textContent  = _memGetName(_memProfile);
+  if (nOth) nOth.textContent = _memGetName(_memOther);
+  if (avMe)  { avMe.className  = 'mem-avatar mem-avatar--girl'; _memLoadAvatar(avMe,  u ? u.id         : null, _memProfile, 62); }
+  if (avOth) { avOth.className = 'mem-avatar mem-avatar--boy';  _memLoadAvatar(avOth, u ? u.partner_id : null, _memOther,   62); }
+  // Mettre à jour les coeurs
+  var hearts = new Array(maxLives).fill('❤️').join('');
+  var lMe = _memEl('memEchoLivesMe'); if (lMe) lMe.textContent = hearts;
+  var lOth = _memEl('memEchoLivesOther'); if (lOth) lOth.textContent = hearts;
 }
 
 function _memRenderDualProfiles(meContainerId, oppContainerId) {
   var u = typeof yamGetUser === 'function' ? yamGetUser() : null;
-  _memInjectProfileBar(meContainerId,  u ? u.id         : null, _memProfile, false, false);
-  _memInjectProfileBar(oppContainerId, u ? u.partner_id : null, _memOther,   true,  true);
+  // Load avatars into the new screen structure
+  var avMap = {
+    memClassicMyProfile: 'memClassicAvMe',   memClassicOppProfile: 'memClassicAvOther',
+    memArchiMyProfile:   'memArchiAvMe',      memArchiOppProfile:   'memArchiAvOther'
+  };
+  var nameMap = {
+    memClassicMyProfile: 'memClassicNameMe',  memClassicOppProfile: 'memClassicOppName',
+    memArchiMyProfile:   'memArchiNameMe',     memArchiOppProfile:   'memArchiOppName'
+  };
+  var avMeEl  = _memEl(avMap[meContainerId]);
+  var avOthEl = _memEl(avMap[oppContainerId]);
+  var nMeEl   = _memEl(nameMap[meContainerId]);
+  var nOthEl  = _memEl(nameMap[oppContainerId]);
+  if (nMeEl)  nMeEl.textContent  = _memGetName(_memProfile);
+  if (nOthEl) nOthEl.textContent = _memGetName(_memOther);
+  if (avMeEl)  { avMeEl.className  = 'mem-avatar mem-avatar--girl'; _memLoadAvatar(avMeEl,  u ? u.id         : null, _memProfile, 62); }
+  if (avOthEl) { avOthEl.className = 'mem-avatar mem-avatar--boy';  _memLoadAvatar(avOthEl, u ? u.partner_id : null, _memOther,   62); }
 }
 
 function _memShowScreen(id) {
@@ -637,7 +630,7 @@ function _memApplyClassicState(state) {
     _stateCards.forEach(function(emoji,idx) {
       var card = document.createElement('div');
       card.className='mem-card'; card.dataset.emoji=emoji; card.dataset.idx=String(idx);
-      card.innerHTML='<div class="mem-card-inner"><div class="mem-card-front"></div><div class="mem-card-back">'+emoji+'</div></div>';
+      card.innerHTML='<div class="mem-card-inner">'+_memCardBackSVG()+'<div class="mem-card-face mem-card-front">'+emoji+'</div></div>';
       (function(c){c.addEventListener('click',function(){_memClassicCardClick(c);});})(card);
       grid.appendChild(card); _clCards.push(card);
     });
@@ -1130,11 +1123,10 @@ var _archiMyTarget = [];
 
 function _memBuildArchiPalette() {
   var p=_memEl('memArchiShapesMe');if(!p)return;p.innerHTML='';
-  ARCHI_SHAPES.forEach(function(s,i){
-    var d=document.createElement('div');d.className='mem-archi-shape';
-    d.style.background=s.color+'33';d.style.borderColor=s.color+'66';d.textContent=s.emoji;
-    (function(idx){d.addEventListener('click',function(){_memArchiTap(idx);});})(i);
-    p.appendChild(d);
+  _ARCHI_SVGS.forEach(function(s,i){
+    var tok=_memArchiMakeToken(i,(function(idx){return function(){_memArchiTap(idx);};})(i));
+    tok.style.width='40px';tok.style.height='40px';
+    p.appendChild(tok);
   });
 }
 
@@ -1155,14 +1147,11 @@ function _memApplyArchiState(state) {
     if(showing){
       targetEl.innerHTML='';
       _archiMyTarget.forEach(function(si){
-        var s=ARCHI_SHAPES[si],d=document.createElement('div');
-        d.className='mem-archi-shape';d.style.background=s.color+'33';
-        d.style.borderColor=s.color+'66';d.textContent=s.emoji;
-        targetEl.appendChild(d);
+        targetEl.appendChild(_memArchiMakeSlot(si,false,false));
       });
       var rem=state.show_until-Date.now();
       setTimeout(function(){
-        if(targetEl)targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
+        if(targetEl)_memArchiHideTarget(targetEl);
         // Mettre à jour uniquement la phase texte sans récursion
         var phEl2=_memEl('memArchiPhase');
         if(phEl2) phEl2.textContent='🏗️ Reconstruit !';
@@ -1171,7 +1160,7 @@ function _memApplyArchiState(state) {
         if(pal2) pal2.style.pointerEvents=(cur2&&cur2[_memProfile+'_done'])?'none':'';
       },rem);
     } else {
-      targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
+      _memArchiHideTarget(targetEl);
     }
   }
 
@@ -1198,10 +1187,7 @@ function _memApplyArchiState(state) {
 function _memRenderArchiStack(el,stack){
   if(!el)return;el.innerHTML='';
   (stack||[]).forEach(function(si){
-    var s=ARCHI_SHAPES[si],d=document.createElement('div');
-    d.className='mem-archi-shape';d.style.background=s.color+'33';
-    d.style.borderColor=s.color+'66';d.textContent=s.emoji;
-    el.appendChild(d);
+    el.appendChild(_memArchiMakeSlot(si,true,false));
   });
 }
 
@@ -1486,7 +1472,7 @@ function _allApplyClassicState(state) {
     stCards.forEach(function(emoji,idx){
       var card=document.createElement('div');
       card.className='mem-card'; card.dataset.emoji=emoji; card.dataset.idx=String(idx);
-      card.innerHTML='<div class="mem-card-inner"><div class="mem-card-front"></div><div class="mem-card-back">'+emoji+'</div></div>';
+      card.innerHTML='<div class="mem-card-inner">'+_memCardBackSVG()+'<div class="mem-card-face mem-card-front">'+emoji+'</div></div>';
       (function(c){c.addEventListener('click',function(){_allClassicCardClick(c);});})(card);
       grid.appendChild(card); _allClCards.push(card);
     });
@@ -1800,7 +1786,7 @@ function _allApplyArchiState(state) {
         targetEl.appendChild(d);
       });
       setTimeout(function(){
-        if(targetEl)targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
+        if(targetEl)_memArchiHideTarget(targetEl);
         // Mettre à jour uniquement la phase texte sans récursion
         var phEl2=_memEl('memArchiPhase');
         if(phEl2) phEl2.textContent='🏗️ Reconstruit !';
@@ -1809,7 +1795,7 @@ function _allApplyArchiState(state) {
         if(pal2) pal2.style.pointerEvents=(cur2&&cur2[_memProfile+'_done'])?'none':'';
       },effectiveShowUntil-Date.now());
     } else {
-      targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
+      _memArchiHideTarget(targetEl);
     }
   }
 
@@ -2029,16 +2015,27 @@ function lbRender(rows){
 // ═══════════════════════════════════════════════════════════
 
 function _memEnsureEchoPowerups() {
-  if (_memEl('memEchoPupBar')) return;
   var grid = _memEl('memEchoGrid'); if (!grid) return;
-  var bar = document.createElement('div');
-  bar.id = 'memEchoPupBar';
-  bar.className = 'mem-pup-bar';
-  bar.innerHTML =
-    '<button id="memPupFreeze" class="mem-pup-btn mem-pup-freeze" onclick="_memUsePup(\'freeze\')">❄️ <span>Freeze</span></button>' +
-    '<button id="memPupPeek"   class="mem-pup-btn mem-pup-peek"   onclick="_memUsePup(\'peek\')">👁 <span>Peek</span></button>' +
-    '<button id="memPupShield" class="mem-pup-btn mem-pup-shield" onclick="_memUsePup(\'shield\')">🛡 <span>Shield</span></button>';
-  grid.parentNode.insertBefore(bar, grid.nextSibling);
+  var existing = _memEl('memEchoPupBar');
+
+  if (!existing) {
+    var bar = document.createElement('div');
+    bar.id = 'memEchoPupBar';
+    bar.className = 'mem-pup-bar';
+    bar.innerHTML =
+      '<button id="memPupFreeze" class="mem-pup-btn mem-pup-freeze">❄️ <span>Freeze</span></button>' +
+      '<button id="memPupPeek"   class="mem-pup-btn mem-pup-peek">👁 <span>Peek</span></button>' +
+      '<button id="memPupShield" class="mem-pup-btn mem-pup-shield">🛡 <span>Shield</span></button>';
+    grid.parentNode.insertBefore(bar, grid.nextSibling);
+  }
+
+  // Toujours re-wirer les listeners (gère les re-montages en mode ALL)
+  [['memPupFreeze','freeze'],['memPupPeek','peek'],['memPupShield','shield']].forEach(function(d) {
+    var btn = _memEl(d[0]); if (!btn) return;
+    var clone = btn.cloneNode(true);
+    btn.parentNode.replaceChild(clone, btn);
+    (function(type){ clone.addEventListener('click', function() { _memUsePup(type); }); })(d[1]);
+  });
 }
 
 function _memUpdatePupButtons() {
@@ -2053,7 +2050,7 @@ function _memUpdatePupButtons() {
   });
 }
 
-window._memUsePup = function(type) {
+function _memUsePup(type) {
   if (_echoPups[type] <= 0) return;
   _echoPups[type] = 0;
   _memUpdatePupButtons();
@@ -2103,7 +2100,534 @@ window._memUsePup = function(type) {
       if (_echoShield) { _echoShield = false; _memUpdatePupButtons(); }
     }, 12000);
   }
-};
+}
+window._memUsePup = _memUsePup;
+
+
+// Helper: affiche l'overlay "caché" sur la colonne modèle Architecte
+function _memArchiHideTarget(el) {
+  if (!el) return;
+  el.innerHTML = '';
+  var ov = document.createElement('div');
+  ov.className = 'mem-model-hidden';
+  ov.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="3" fill="#d1d5db"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="#9ca3af" stroke-width="2" stroke-linecap="round"/></svg><span style="font-size:10px;color:#9ca3af;font-weight:500;margin-top:2px;">Caché</span>';
+  el.appendChild(ov);
+}
+
+// ═══════════════════════════════════════════════════════════
+// RECONSTRUCTION HTML DES SCREENS (Refonte visuelle)
+// Structure calquée sur memory_rework.html
+// ═══════════════════════════════════════════════════════════
+
+function _memRebuildScreens() {
+  _memRebuildClassic();
+  _memRebuildEcho();
+  _memRebuildArchi();
+  _memInjectReworkCSS();
+}
+
+// ── Carte : face arrière avec motif SVG (identique au rework) ──
+function _memCardBackSVG() {
+  return '<div class="mem-card-face mem-card-front">'
+    + '<svg width="100%" height="100%" viewBox="0 0 60 72" xmlns="http://www.w3.org/2000/svg">'
+    + '<defs><pattern id="mempat" x="0" y="0" width="12" height="12" patternUnits="userSpaceOnUse">'
+    + '<circle cx="6" cy="6" r="2" fill="rgba(255,255,255,0.16)"/></pattern></defs>'
+    + '<rect width="60" height="72" rx="10" fill="#b94058"/>'
+    + '<rect width="60" height="72" rx="10" fill="url(#mempat)"/>'
+    + '<rect x="4" y="4" width="52" height="64" rx="7" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/>'
+    + '<path d="M30 20 C30 20 22 28 22 33 C22 37.4 25.6 41 30 41 C34.4 41 38 37.4 38 33 C38 28 30 20 30 20Z" fill="rgba(255,255,255,0.2)"/>'
+    + '<path d="M30 41 L26 50 L30 48 L34 50 Z" fill="rgba(255,255,255,0.13)"/>'
+    + '</svg></div>';
+}
+
+// ── SVG shapes pour Architecte (identiques au rework) ──
+var _ARCHI_SVGS = [
+  { color:'#e53e3e', svg: function(c){ return '<svg width="34" height="34" viewBox="0 0 34 34"><circle cx="17" cy="17" r="13" fill="'+c+'"/></svg>'; }},
+  { color:'#3b82f6', svg: function(c){ return '<svg width="34" height="34" viewBox="0 0 34 34"><rect x="4" y="4" width="26" height="26" rx="4" fill="'+c+'"/></svg>'; }},
+  { color:'#22c55e', svg: function(c){ return '<svg width="34" height="34" viewBox="0 0 34 34"><polygon points="17,2 32,31 2,31" fill="'+c+'"/></svg>'; }},
+  { color:'#f59e0b', svg: function(c){ return '<svg width="34" height="34" viewBox="0 0 34 34"><polygon points="17,2 32,17 17,32 2,17" fill="'+c+'"/></svg>'; }},
+  { color:'#a855f7', svg: function(c){ return '<svg width="34" height="34" viewBox="0 0 34 34"><polygon points="17,2 21,12 32,12 23,19 27,30 17,23 7,30 11,19 2,12 13,12" fill="'+c+'"/></svg>'; }},
+  { color:'#06b6d4', svg: function(c){ return '<svg width="34" height="34" viewBox="0 0 34 34"><rect x="12" y="2" width="10" height="30" rx="3" fill="'+c+'"/><rect x="2" y="12" width="30" height="10" rx="3" fill="'+c+'"/></svg>'; }}
+];
+
+// ─────────────────────────────────────────────
+// CLASSIQUE+
+// ─────────────────────────────────────────────
+function _memRebuildClassic() {
+  var screen = _memEl('memScreenClassic'); if (!screen) return;
+  screen.innerHTML =
+    '<div style="position:relative;display:flex;flex-direction:column;height:100%;">'
+    // overlay erreur
+    + '<div id="memClassicErrOverlay" style="position:absolute;inset:0;background:#ef4444;opacity:0;pointer-events:none;z-index:3;transition:opacity .15s;"></div>'
+    // header
+    + '<div class="mem-header">'
+    +   '<span class="mem-back" id="memoryBackBtn">‹ Retour</span>'
+    +   '<span class="mem-title">Classique+ 🃏</span>'
+    +   '<span class="mem-moon">☽</span>'
+    + '</div>'
+    // profils + scores
+    + '<div class="mem-profiles">'
+    +   '<div class="mem-profile" id="memClassicMyProfile">'
+    +     '<div class="mem-avatar mem-avatar--girl" id="memClassicAvMe"></div>'
+    +     '<span class="mem-pname" id="memClassicNameMe"></span>'
+    +   '</div>'
+    +   '<div class="mem-score-center">'
+    +     '<div class="mem-scores">'
+    +       '<span class="mem-score mem-score--g" id="memClassicScoreMe">0</span>'
+    +       '<span class="mem-score-sep">–</span>'
+    +       '<span class="mem-score mem-score--b" id="memClassicScoreOther">0</span>'
+    +     '</div>'
+    +     '<span class="mem-manche-label" id="memClassicManche">Manche 1/3</span>'
+    +   '</div>'
+    +   '<div class="mem-profile" id="memClassicOppProfile">'
+    +     '<div class="mem-avatar mem-avatar--boy" id="memClassicAvOther" style="position:relative;">'
+    +       '<span id="memClassicOppDot" class="mem-online-dot"></span>'
+    +     '</div>'
+    +     '<span class="mem-pname" id="memClassicOppName"></span>'
+    +   '</div>'
+    + '</div>'
+    // game body
+    + '<div class="mem-game-body">'
+    +   '<div class="mem-status-row">'
+    +     '<div id="memClassicTurnBadge" class="mem-turn-badge">⏳ …</div>'
+    +     '<div class="mem-chrono-pill">⏱ <span id="memClassicTimer">0s</span></div>'
+    +   '</div>'
+    +   '<div id="memClassicSpecialRow" style="display:none;gap:6px;margin-bottom:10px;flex-wrap:wrap;"></div>'
+    +   '<div id="memClassicGrid" class="mem-card-grid"></div>'
+    + '</div>'
+    // popup manche
+    + '<div id="memClassicMancheResult" class="mem-result-overlay" style="display:none;">'
+    +   '<div class="mem-result-card">'
+    +     '<div id="memClassicMancheEmoji" class="mem-result-emoji">🏆</div>'
+    +     '<div id="memClassicMancheTitle" class="mem-result-title"></div>'
+    +     '<div id="memClassicMancheSub" class="mem-result-sub"></div>'
+    +     '<div id="memClassicTrophyUnlock" class="mem-trophy-unlock" style="display:none;"></div>'
+    +     '<div class="mem-result-btns">'
+    +       '<button id="memClassicNextBtn" class="mem-btn mem-btn--primary">Manche suivante →</button>'
+    +       '<button id="memClassicQuitBtn" class="mem-btn">Terminer</button>'
+    +     '</div>'
+    +   '</div>'
+    + '</div>'
+    // popup final
+    + '<div id="memClassicFinalResult" class="mem-result-overlay" style="display:none;">'
+    +   '<div class="mem-result-card">'
+    +     '<div id="memClassicFinalEmoji" class="mem-result-emoji">🏆</div>'
+    +     '<div id="memClassicFinalTitle" class="mem-result-title"></div>'
+    +     '<div id="memClassicFinalScore" class="mem-result-sub"></div>'
+    +     '<div id="memClassicTrophyUnlock" class="mem-trophy-unlock" style="display:none;"></div>'
+    +     '<button id="memClassicDoneBtn" class="mem-btn mem-btn--primary" style="margin-top:8px;">Terminer</button>'
+    +   '</div>'
+    + '</div>'
+  + '</div>';
+
+  // Brancher les avatars via _memLoadAvatar une fois que le DOM est prêt
+  // (les avatars réels sont chargés dans _memStartClassic / _memRenderDualProfiles)
+}
+
+// ─────────────────────────────────────────────
+// ÉCHO
+// ─────────────────────────────────────────────
+function _memRebuildEcho() {
+  var screen = _memEl('memScreenEcho'); if (!screen) return;
+  screen.innerHTML =
+    '<div style="position:relative;display:flex;flex-direction:column;height:100%;">'
+    + '<div id="memEchoErrOverlay" style="position:absolute;inset:0;background:#ef4444;opacity:0;pointer-events:none;z-index:3;transition:opacity .15s;"></div>'
+    // header
+    + '<div class="mem-header">'
+    +   '<span class="mem-back" id="memoryBackBtnEcho">‹ Retour</span>'
+    +   '<span class="mem-title">Écho 🔊</span>'
+    +   '<span class="mem-moon">☽</span>'
+    + '</div>'
+    // profils avec coeurs
+    + '<div class="mem-profiles">'
+    +   '<div class="mem-profile" id="memEchoMyProfile">'
+    +     '<div class="mem-avatar mem-avatar--girl" id="memEchoAvMe"></div>'
+    +     '<span class="mem-pname" id="memEchoNameMe"></span>'
+    +     '<div id="memEchoLivesMe" class="mem-hearts-row">❤️❤️❤️</div>'
+    +   '</div>'
+    +   '<div class="mem-score-center">'
+    +     '<div id="memEchoLevel" class="mem-lvl-badge">Niveau 1</div>'
+    +     '<span style="font-size:11px;color:#f9a8d4;margin-top:2px;">VS</span>'
+    +   '</div>'
+    +   '<div class="mem-profile" id="memEchoOppProfile">'
+    +     '<div class="mem-avatar mem-avatar--boy" id="memEchoAvOther" style="position:relative;">'
+    +       '<span id="memEchoOppDot" class="mem-online-dot"></span>'
+    +     '</div>'
+    +     '<span class="mem-pname" id="memEchoOppName"></span>'
+    +     '<div id="memEchoLivesOther" class="mem-hearts-row">❤️❤️❤️</div>'
+    +   '</div>'
+    + '</div>'
+    // game body
+    + '<div class="mem-game-body">'
+    +   '<div class="mem-seq-bar">'
+    +     '<div class="mem-seq-label">SÉQUENCE</div>'
+    +     '<div id="memEchoProgress" class="mem-seq-dots"></div>'
+    +   '</div>'
+    +   '<div id="memEchoPhase" class="mem-echo-msg"></div>'
+    +   '<div id="memEchoGrid" class="mem-echo-grid"></div>'
+    // power-ups
+    +   '<div class="mem-pup-bar" id="memEchoPupBar">'
+    +     '<button id="memPupFreeze" class="mem-pup-btn mem-pup-freeze">❄️ Freeze</button>'
+    +     '<button id="memPupPeek"   class="mem-pup-btn mem-pup-peek">👁 Peek</button>'
+    +     '<button id="memPupShield" class="mem-pup-btn mem-pup-shield">🛡 Shield</button>'
+    +   '</div>'
+    + '</div>'
+    // popup final
+    + '<div id="memEchoFinalResult" class="mem-result-overlay" style="display:none;">'
+    +   '<div class="mem-result-card">'
+    +     '<div id="memEchoFinalEmoji" class="mem-result-emoji">🏆</div>'
+    +     '<div id="memEchoFinalTitle" class="mem-result-title"></div>'
+    +     '<div id="memEchoFinalScore" class="mem-result-sub"></div>'
+    +     '<div id="memEchoTrophyUnlock" class="mem-trophy-unlock" style="display:none;"></div>'
+    +     '<button id="memEchoDoneBtn" class="mem-btn mem-btn--primary" style="margin-top:8px;">Terminer</button>'
+    +   '</div>'
+    + '</div>'
+  + '</div>';
+
+  // Wirer les power-ups
+  [['memPupFreeze','freeze'],['memPupPeek','peek'],['memPupShield','shield']].forEach(function(d) {
+    var btn = _memEl(d[0]); if (!btn) return;
+    (function(type){ btn.addEventListener('click', function(){ _memUsePup(type); }); })(d[1]);
+  });
+}
+
+// ─────────────────────────────────────────────
+// ARCHITECTE
+// ─────────────────────────────────────────────
+function _memRebuildArchi() {
+  var screen = _memEl('memScreenArchi'); if (!screen) return;
+  // Récupérer les noms depuis le state si disponibles
+  var nameMe  = _memGetName(_memProfile  || 'girl');
+  var nameOth = _memGetName(_memOther    || 'boy');
+
+  screen.innerHTML =
+    '<div style="display:flex;flex-direction:column;height:100%;">'
+    // header
+    + '<div class="mem-header">'
+    +   '<span class="mem-back" id="memoryBackBtnArchi">‹ Retour</span>'
+    +   '<span class="mem-title">Architecte 🏗️</span>'
+    +   '<span class="mem-moon">☽</span>'
+    + '</div>'
+    // profils + scores
+    + '<div class="mem-profiles">'
+    +   '<div class="mem-profile" id="memArchiMyProfile">'
+    +     '<div class="mem-avatar mem-avatar--girl" id="memArchiAvMe"></div>'
+    +     '<span class="mem-pname" id="memArchiNameMe">'+nameMe+'</span>'
+    +   '</div>'
+    +   '<div class="mem-score-center">'
+    +     '<div class="mem-scores">'
+    +       '<span class="mem-score mem-score--g" id="memArchiScoreMe">0</span>'
+    +       '<span class="mem-score-sep">–</span>'
+    +       '<span class="mem-score mem-score--b" id="memArchiScoreOther">0</span>'
+    +     '</div>'
+    +     '<span class="mem-manche-label" id="memArchiRound">Round 1/3</span>'
+    +   '</div>'
+    +   '<div class="mem-profile" id="memArchiOppProfile">'
+    +     '<div class="mem-avatar mem-avatar--boy" id="memArchiAvOther" style="position:relative;">'
+    +       '<span id="memArchiOppDot" class="mem-online-dot"></span>'
+    +     '</div>'
+    +     '<span class="mem-pname" id="memArchiOppName">'+nameOth+'</span>'
+    +   '</div>'
+    + '</div>'
+    // game body
+    + '<div class="mem-game-body">'
+    +   '<div class="mem-status-row">'
+    +     '<div id="memArchiPhase" class="mem-turn-badge">Mémorise !</div>'
+    +     '<div id="memArchiCountWrap" class="mem-count-wrap" style="display:none;">'
+    +       '<span id="memArchiCountNum" class="mem-count-num">3</span>'
+    +     '</div>'
+    +   '</div>'
+    // 3 colonnes : moi | modèle | adversaire
+    +   '<div class="mem-archi-cols">'
+    +     '<div class="mem-archi-col mem-archi-col--me">'
+    +       '<div class="mem-col-label mem-col-label--me" id="memArchiLabelMe">'+nameMe.toUpperCase()+'</div>'
+    +       '<div class="mem-archi-slots" id="memArchiStackMe"></div>'
+    +     '</div>'
+    +     '<div class="mem-archi-col mem-archi-col--model">'
+    +       '<div class="mem-col-label mem-col-label--model">MODÈLE</div>'
+    +       '<div class="mem-archi-slots" id="memArchiTarget"></div>'
+    +     '</div>'
+    +     '<div class="mem-archi-col mem-archi-col--opp">'
+    +       '<div class="mem-col-label mem-col-label--opp" id="memArchiLabelOpp">'+nameOth.toUpperCase()+'</div>'
+    +       '<div class="mem-archi-slots" id="memArchiStackOther"></div>'
+    +     '</div>'
+    +   '</div>'
+    // palette
+    +   '<div class="mem-palette-wrap">'
+    +     '<div class="mem-palette-label">PALETTE</div>'
+    +     '<div id="memArchiShapesMe" class="mem-palette"></div>'
+    +   '</div>'
+    + '</div>'
+    // popup final
+    + '<div id="memArchiFinalResult" class="mem-result-overlay" style="display:none;">'
+    +   '<div class="mem-result-card">'
+    +     '<div id="memArchiFinalEmoji" class="mem-result-emoji">🏆</div>'
+    +     '<div id="memArchiFinalTitle" class="mem-result-title"></div>'
+    +     '<div id="memArchiTrophyUnlock" class="mem-trophy-unlock" style="display:none;"></div>'
+    +     '<button id="memArchiDoneBtn" class="mem-btn mem-btn--primary" style="margin-top:8px;">Terminer</button>'
+    +   '</div>'
+    + '</div>'
+  + '</div>';
+}
+
+// ─────────────────────────────────────────────
+// CSS COMPLET (calqué sur memory_rework.html)
+// ─────────────────────────────────────────────
+function _memInjectReworkCSS() {
+  var existing = document.getElementById('mem-rework-style');
+  if (existing) existing.remove();
+  var s = document.createElement('style');
+  s.id = 'mem-rework-style';
+  s.textContent = [
+    '@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap");',
+
+    // Variables
+    ':root{',
+    '  --mp:#ec4899;--mp-l:#fce7f3;--mp-m:#f9a8d4;--mp-d:#be185d;',
+    '  --mu:#7c3aed;--mu-l:#ede9fe;--mu-m:#c4b5fd;',
+    '  --mg:#22c55e;--mr:#ef4444;',
+    '  --mbg:#f5f5f7;--mw:#fff;',
+    '  --mg1:#f3f4f6;--mg2:#e5e7eb;--mg4:#9ca3af;--mg6:#6b7280;--mg9:#111827;',
+    '  --mrad:16px;--mrad-s:10px;--mrad-p:99px;',
+    '}',
+
+    // Screens
+    '#memScreenClassic,#memScreenEcho,#memScreenArchi{',
+    '  display:flex;flex-direction:column;background:var(--mbg);',
+    '  font-family:"DM Sans",sans-serif;',
+    '}',
+
+    // Header
+    '.mem-header{',
+    '  background:var(--mw);display:flex;align-items:center;justify-content:space-between;',
+    '  padding:16px 18px 12px;border-bottom:1px solid var(--mg1);flex-shrink:0;',
+    '}',
+    '.mem-back{font-size:13px;color:var(--mg6);cursor:pointer;}',
+    '.mem-title{font-size:16px;font-weight:500;color:var(--mg9);}',
+    '.mem-moon{font-size:16px;color:var(--mg4);cursor:pointer;}',
+
+    // Profils
+    '.mem-profiles{',
+    '  background:var(--mw);display:flex;align-items:center;justify-content:space-between;',
+    '  padding:12px 20px 16px;border-bottom:1px solid var(--mg1);flex-shrink:0;',
+    '}',
+    '.mem-profile{display:flex;flex-direction:column;align-items:center;gap:5px;}',
+    '.mem-avatar{',
+    '  width:62px;height:62px;border-radius:50%;',
+    '  display:flex;align-items:center;justify-content:center;font-size:26px;',
+    '  overflow:hidden;background:#f9fafb;',
+    '}',
+    '.mem-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}',
+    '.mem-avatar--girl{background:var(--mp-l);border:2.5px solid var(--mp-m);}',
+    '.mem-avatar--boy{background:var(--mu-l);border:2.5px solid var(--mu-m);}',
+    '.mem-online-dot{',
+    '  position:absolute;bottom:2px;right:2px;',
+    '  width:13px;height:13px;background:#444;',
+    '  border-radius:50%;border:2.5px solid var(--mw);',
+    '  transition:background .3s,box-shadow .3s;',
+    '}',
+    '.mem-pname{font-size:13px;font-weight:500;color:var(--mg9);}',
+    '.mem-score-center{display:flex;flex-direction:column;align-items:center;gap:4px;}',
+    '.mem-scores{display:flex;align-items:center;gap:10px;}',
+    '.mem-score{font-size:32px;font-weight:600;transition:transform .3s;}',
+    '.mem-score--g{color:var(--mp);}',
+    '.mem-score--b{color:var(--mu);}',
+    '.mem-score-sep{font-size:14px;color:var(--mg2);}',
+    '.mem-manche-label{font-size:11px;color:var(--mp-m);font-weight:500;}',
+    '.mem-lvl-badge{',
+    '  background:var(--mw);border:1.5px solid #fbcfe8;border-radius:var(--mrad-p);',
+    '  padding:4px 14px;font-size:12px;color:#db2777;font-weight:500;',
+    '}',
+    '.mem-hearts-row{display:flex;gap:3px;font-size:15px;}',
+
+    // Game body
+    '.mem-game-body{padding:14px 14px 18px;background:var(--mbg);flex:1;overflow-y:auto;}',
+
+    // Status row
+    '.mem-status-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}',
+    '.mem-turn-badge{',
+    '  display:inline-flex;align-items:center;gap:5px;',
+    '  background:var(--mp-l);border:1.5px solid var(--mp-m);',
+    '  border-radius:var(--mrad-p);padding:5px 14px;',
+    '  font-size:12px;font-weight:500;color:var(--mp-d);',
+    '  animation:mem-pulse 1.8s ease infinite;',
+    '}',
+    '.mem-turn-badge--other{background:var(--mu-l);border-color:var(--mu-m);color:var(--mu);animation:none;}',
+    '@keyframes mem-pulse{0%{box-shadow:0 0 0 0 rgba(236,72,153,.4)}70%{box-shadow:0 0 0 8px rgba(236,72,153,0)}100%{box-shadow:0 0 0 0 rgba(236,72,153,0)}}',
+    '.mem-chrono-pill{',
+    '  display:flex;align-items:center;gap:5px;background:var(--mw);',
+    '  border:1px solid var(--mg1);border-radius:var(--mrad-p);',
+    '  padding:4px 12px;font-size:13px;font-weight:500;color:var(--mg9);',
+    '}',
+    '.mem-game-timer{',
+    '  display:flex;align-items:center;gap:5px;background:var(--mw);',
+    '  border:1px solid var(--mg1);border-radius:var(--mrad-p);',
+    '  padding:4px 12px;font-size:13px;font-weight:500;color:var(--mg9);',
+    '}',
+
+    // Chips spéciales
+    '.mem-special-chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:var(--mrad-p);font-size:11px;font-weight:500;}',
+    '.mem-special-chip--vue{background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;}',
+    '.mem-special-chip--miroir{background:#f5f3ff;border:1px solid #ddd6fe;color:#6d28d9;}',
+    '.mem-special-chip--bombe{background:#fff7ed;border:1px solid #fed7aa;color:#c2410c;}',
+
+    // ── Cartes Classique+ ──
+    '.mem-card-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;position:relative;}',
+    '.mem-card{perspective:500px;cursor:pointer;height:72px;border-radius:var(--mrad-s);}',
+    '.mem-card-inner{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .38s cubic-bezier(.4,0,.2,1);border-radius:var(--mrad-s);}',
+    '.mem-card.flipped .mem-card-inner{transform:rotateY(180deg);}',
+    '.mem-card-face{position:absolute;inset:0;border-radius:var(--mrad-s);backface-visibility:hidden;display:flex;align-items:center;justify-content:center;}',
+    '.mem-card-front{background:var(--mw);border:1.5px solid var(--mp-l);transform:rotateY(180deg);font-size:26px;}',
+    '.mem-card.matched .mem-card-front{background:#fdf2f8;border-color:var(--mp);animation:mem-match-pop .45s ease;}',
+    '.mem-card.wrong .mem-card-front{background:#fff1f2;border-color:var(--mr);}',
+    '.mem-card.blocked{pointer-events:none;opacity:.92;}',
+    '@keyframes mem-match-pop{0%{transform:rotateY(180deg) scale(1)}40%{transform:rotateY(180deg) scale(1.12)}70%{transform:rotateY(180deg) scale(.97)}100%{transform:rotateY(180deg) scale(1)}}',
+    '@keyframes mem-score-bounce{0%{transform:scale(1)}40%{transform:scale(1.5)}70%{transform:scale(.9)}100%{transform:scale(1)}}',
+
+    // ── Écho ──
+    '.mem-seq-bar{background:var(--mw);border:1px solid var(--mg1);border-radius:var(--mrad);padding:8px 12px;margin-bottom:10px;}',
+    '.mem-seq-label{font-size:10px;color:var(--mp-m);font-weight:500;letter-spacing:.05em;margin-bottom:6px;text-align:center;}',
+    '.mem-seq-dots{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;min-height:14px;}',
+    '.mem-echo-msg{text-align:center;font-size:13px;color:#db2777;font-weight:500;min-height:22px;margin-bottom:12px;}',
+    '.mem-echo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px;}',
+    '.mem-echo-cell{',
+    '  border-radius:var(--mrad);background:var(--mw);border:1.5px solid var(--mp-l);',
+    '  display:flex;align-items:center;justify-content:center;cursor:pointer;',
+    '  position:relative;overflow:hidden;transition:border-color .15s,background .15s,transform .1s;',
+    '  height:72px;font-size:28px;',
+    '}',
+    '.mem-echo-cell:hover:not(.mem-echo-cell--blocked){border-color:var(--mp-m);transform:scale(.96);}',
+    '.mem-echo-cell--lit{border-color:var(--mp)!important;background:#fdf2f8!important;animation:mem-ebtn-pop .4s ease;}',
+    '.mem-echo-cell--correct{border-color:var(--mg)!important;background:#f0fdf4!important;}',
+    '.mem-echo-cell--wrong{border-color:var(--mr)!important;background:#fff1f2!important;}',
+    '.mem-echo-cell--peek{border-color:#818cf8!important;background:#eef2ff!important;box-shadow:0 0 0 3px rgba(99,102,241,.25);}',
+    '.mem-echo-cell--blocked{pointer-events:none;opacity:.75;}',
+    '@keyframes mem-ebtn-pop{0%{transform:scale(1)}40%{transform:scale(1.14)}100%{transform:scale(1)}}',
+    '@keyframes mem-shake-e{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}',
+    // pips
+    '.mem-echo-pip{width:10px;height:10px;border-radius:50%;background:var(--mp-l);display:inline-block;transition:background .2s;}',
+    '.mem-echo-pip--done{background:var(--mp);}',
+    '.mem-echo-pip--active{background:var(--mp-m);box-shadow:0 0 0 3px rgba(236,72,153,.2);}',
+
+    // ── Power-ups ──
+    '.mem-pup-bar{display:flex;gap:7px;margin-bottom:12px;}',
+    '.mem-pup-btn{',
+    '  flex:1;font-size:11px;padding:7px 4px;border-radius:var(--mrad-s);',
+    '  cursor:pointer;font-family:"DM Sans",sans-serif;font-weight:500;border:1px solid;',
+    '  transition:opacity .2s,transform .1s;',
+    '}',
+    '.mem-pup-btn:active{transform:scale(.96);}',
+    '.mem-pup-btn:disabled,.mem-pup-btn--used{opacity:.38;cursor:not-allowed;}',
+    '.mem-pup-freeze{background:#eef2ff;border-color:#c7d2fe;color:#4f46e5;}',
+    '.mem-pup-peek{background:#fdf4ff;border-color:#e9d5ff;color:#7c3aed;}',
+    '.mem-pup-shield{background:#fdf2f8;border-color:#fbcfe8;color:#db2777;}',
+    '.mem-pup-btn--active{box-shadow:0 0 0 3px rgba(236,72,153,.3)!important;opacity:1!important;}',
+
+    // ── Architecte ──
+    '.mem-archi-cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;}',
+    '.mem-archi-col{background:var(--mw);border-radius:var(--mrad);padding:10px 8px;display:flex;flex-direction:column;align-items:center;}',
+    '.mem-archi-col--me{border:1px solid var(--mp-l);}',
+    '.mem-archi-col--model{border:1.5px solid var(--mg2);}',
+    '.mem-archi-col--opp{border:1px solid var(--mu-l);}',
+    '.mem-col-label{font-size:9px;font-weight:500;letter-spacing:.05em;text-align:center;margin-bottom:8px;}',
+    '.mem-col-label--me{color:var(--mp);}',
+    '.mem-col-label--model{color:var(--mg6);}',
+    '.mem-col-label--opp{color:var(--mu);}',
+    '.mem-archi-slots{display:flex;flex-direction:column;gap:7px;align-items:center;min-height:160px;position:relative;width:100%;}',
+    '.mem-aslot{',
+    '  width:44px;height:44px;border-radius:10px;',
+    '  border:1.5px dashed var(--mg2);',
+    '  display:flex;align-items:center;justify-content:center;',
+    '  background:var(--mbg);flex-shrink:0;',
+    '}',
+    '.mem-atoken{width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .12s;flex-shrink:0;}',
+    '.mem-atoken:hover{transform:scale(1.14);}',
+    '.mem-atoken:active{transform:scale(.92);}',
+    '.mem-palette-wrap{background:var(--mw);border:1px solid var(--mg1);border-radius:var(--mrad);padding:12px 10px;margin-bottom:14px;}',
+    '.mem-palette-label{font-size:9px;color:var(--mg4);font-weight:500;letter-spacing:.05em;margin-bottom:10px;text-align:center;}',
+    '.mem-palette{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;}',
+    '.mem-count-wrap{width:36px;height:36px;border-radius:50%;background:var(--mw);border:2px solid var(--mp-l);display:flex;align-items:center;justify-content:center;}',
+    '.mem-count-num{font-size:18px;font-weight:500;color:var(--mp);}',
+    '.mem-model-hidden{position:absolute;inset:0;background:rgba(255,255,255,.93);z-index:2;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;}',
+    '.mem-archi-slots--wrong{animation:mem-shake-archi .4s ease;}',
+    '.mem-archi-slots--done{animation:mem-shine-archi .5s ease;}',
+    '@keyframes mem-shake-archi{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}',
+    '@keyframes mem-shine-archi{0%,100%{box-shadow:none}50%{box-shadow:0 0 0 6px rgba(34,197,94,.3)}}',
+    '@keyframes mem-drop-in{0%{transform:translateY(-18px) scale(.7);opacity:0}60%{transform:translateY(3px) scale(1.08)}100%{transform:translateY(0) scale(1);opacity:1}}',
+    '@keyframes mem-col-shine{0%,100%{box-shadow:none}50%{box-shadow:0 0 0 4px rgba(34,197,94,.35)}}',
+    '@keyframes mem-count-pop{0%{transform:scale(1)}40%{transform:scale(1.5)}100%{transform:scale(1)}}',
+
+    // ── Mode cards (sélection) ──
+    '.mem-mode-card{',
+    '  border-radius:var(--mrad);border:1.5px solid var(--mg2);background:var(--mw);',
+    '  cursor:pointer;padding:14px 12px;',
+    '  transition:border-color .2s,transform .15s,box-shadow .2s;',
+    '}',
+    '.mem-mode-card:hover{border-color:var(--mp-m);transform:translateY(-2px);box-shadow:0 8px 24px rgba(236,72,153,.12);}',
+    '.mem-mode-card--selected{border-color:var(--mp)!important;background:var(--mp-l)!important;}',
+    '.mem-mode-card--matched{border-color:var(--mg)!important;background:#f0fdf4!important;animation:mem-card-matched .4s ease;}',
+    '@keyframes mem-card-matched{0%{transform:scale(1)}40%{transform:scale(1.04)}100%{transform:scale(1)}}',
+    '.mem-vote-chip{display:inline-block;padding:4px 12px;border-radius:var(--mrad-p);font-size:12px;font-weight:500;background:var(--mg1);color:var(--mg6);}',
+    '.mem-vote-chip--active{background:var(--mp-l);border:1px solid var(--mp-m);color:var(--mp-d);}',
+
+    // ── Résultats ──
+    '.mem-result-overlay{',
+    '  position:absolute;inset:0;background:rgba(0,0,0,.35);z-index:20;',
+    '  display:flex;align-items:center;justify-content:center;padding:24px;',
+    '}',
+    '.mem-result-card{',
+    '  background:var(--mw);border-radius:var(--mrad);padding:28px 24px 20px;',
+    '  width:100%;max-width:300px;text-align:center;',
+    '  box-shadow:0 20px 60px rgba(0,0,0,.18);',
+    '}',
+    '.mem-result-emoji{font-size:48px;margin-bottom:8px;}',
+    '.mem-result-title{font-size:17px;font-weight:600;color:var(--mg9);margin-bottom:4px;}',
+    '.mem-result-sub{font-size:12px;color:var(--mg6);margin-bottom:14px;}',
+    '.mem-trophy-unlock{font-size:12px;color:#d97706;font-weight:500;margin-bottom:10px;}',
+    '.mem-result-btns{display:flex;gap:8px;margin-top:14px;}',
+    '.mem-btn{',
+    '  flex:1;padding:9px;border-radius:var(--mrad-s);',
+    '  border:1px solid var(--mg2);background:var(--mw);',
+    '  font-family:"DM Sans",sans-serif;font-size:12px;font-weight:500;color:var(--mg9);',
+    '  cursor:pointer;transition:background .15s,transform .1s;',
+    '}',
+    '.mem-btn:active{transform:scale(.98);}',
+    '.mem-btn--primary{background:var(--mp-l);border-color:var(--mp-m);color:var(--mp-d);}',
+  ].join('');
+  document.head.appendChild(s);
+}
+
+// ─────────────────────────────────────────────
+// Mise à jour du rendu Architecte (SVG shapes)
+// Remplace les fonctions existantes pour utiliser les nouveaux SVGs et classes
+// ─────────────────────────────────────────────
+function _memArchiMakeToken(shapeIdx, clickCb) {
+  var s = _ARCHI_SVGS[shapeIdx]; if (!s) return null;
+  var d = document.createElement('div');
+  d.className = 'mem-atoken';
+  d.innerHTML = s.svg(s.color);
+  if (clickCb) d.addEventListener('click', clickCb);
+  return d;
+}
+function _memArchiMakeSlot(shapeIdx, animate, correct) {
+  var slot = document.createElement('div');
+  slot.className = 'mem-aslot';
+  if (shapeIdx !== undefined && shapeIdx !== null) {
+    var s = _ARCHI_SVGS[shapeIdx];
+    if (s) {
+      slot.style.borderColor = s.color;
+      slot.style.borderStyle = 'solid';
+      slot.style.background  = '#fff';
+      var tok = _memArchiMakeToken(shapeIdx, null);
+      if (animate) tok.style.animation = 'mem-drop-in .4s cubic-bezier(.4,0,.2,1) both';
+      slot.appendChild(tok);
+      if (correct) {
+        setTimeout(function(){ slot.style.animation='mem-col-shine .6s ease'; setTimeout(function(){slot.style.animation='';},700); }, 100);
+      }
+    }
+  }
+  return slot;
+}
 
 document.addEventListener('DOMContentLoaded',function(){
   var tAll=_memEl('lbTabAll'),tGirl=_memEl('lbTabGirl'),tBoy=_memEl('lbTabBoy');
@@ -2111,185 +2635,6 @@ document.addEventListener('DOMContentLoaded',function(){
   if(tGirl) tGirl.addEventListener('click', function(){lbCurrentTab='girl';lbRender(lbCurrentData);});
   if(tBoy)  tBoy.addEventListener('click',  function(){lbCurrentTab='boy'; lbRender(lbCurrentData);});
 
-  // ── Injection des conteneurs de profil joueurs dans chaque écran ──
-  // Crée les divs si absents du HTML — insère en haut de chaque screen
-  _memEnsureProfileBar('memScreenClassic', 'memClassicMyProfile', 'memClassicOppProfile', 'mem-profile-bar--classic');
-  _memEnsureProfileBar('memScreenEcho',    'memEchoMyProfile',    'memEchoOppProfile',    'mem-profile-bar--echo');
-  _memEnsureProfileBar('memScreenArchi',   'memArchiMyProfile',   'memArchiOppProfile',   'mem-profile-bar--archi');
-
-  // ── Styles CSS — Refonte visuelle Memory v2 ──
-  var style = document.createElement('style');
-  style.textContent = [
-    /* ── Google Fonts ── */
-    '@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&display=swap");',
-
-    /* ── Variables ── */
-    ':root {',
-    '  --mem-pink:#ec4899; --mem-pink-light:#fce7f3; --mem-pink-mid:#f9a8d4; --mem-pink-dark:#be185d;',
-    '  --mem-purple:#7c3aed; --mem-purple-light:#ede9fe; --mem-purple-mid:#c4b5fd;',
-    '  --mem-green:#22c55e; --mem-red:#ef4444; --mem-indigo:#4f46e5;',
-    '  --mem-gray-50:#f9fafb; --mem-gray-100:#f3f4f6; --mem-gray-200:#e5e7eb;',
-    '  --mem-gray-400:#9ca3af; --mem-gray-600:#6b7280; --mem-gray-900:#111827;',
-    '  --mem-radius:16px; --mem-radius-sm:10px; --mem-radius-pill:99px;',
-    '}',
-
-    /* ── Profile bars ── */
-    '.mem-profile-bar {',
-    '  display:flex; justify-content:space-between; align-items:flex-start;',
-    '  padding:10px 16px 8px; gap:8px; position:relative; z-index:1;',
-    '  background:#fff; border-bottom:1px solid var(--mem-gray-100);',
-    '}',
-    '.mem-profile-bar--echo { justify-content:space-around; background:rgba(252,231,243,.4); border-radius:12px; margin:6px 8px 0; border-bottom:none; }',
-    '.mem-profile-bar--classic .mem-profile-bar__vs,',
-    '.mem-profile-bar--archi .mem-profile-bar__vs {',
-    '  font-size:11px; font-weight:700; color:var(--mem-gray-400); align-self:center; flex-shrink:0;',
-    '}',
-    '.mem-profile-bar--echo .mem-profile-bar__vs { display:none; }',
-
-    /* ── Cards Classique+ ── */
-    '.mem-card { perspective:500px; cursor:pointer; height:72px; border-radius:var(--mem-radius-sm); }',
-    '.mem-card-inner { width:100%; height:100%; position:relative; transform-style:preserve-3d; transition:transform .38s cubic-bezier(.4,0,.2,1); border-radius:var(--mem-radius-sm); }',
-    '.mem-card.flipped .mem-card-inner { transform:rotateY(180deg); }',
-    '.mem-card-front, .mem-card-back { position:absolute; inset:0; border-radius:var(--mem-radius-sm); backface-visibility:hidden; display:flex; align-items:center; justify-content:center; }',
-    '.mem-card-front {',
-    '  background:linear-gradient(135deg,#b92654 0%,#9d1d42 100%);',
-    '  overflow:hidden;',
-    '}',
-    '.mem-card-front::after {',
-    '  content:""; position:absolute; inset:0;',
-    '  background:repeating-linear-gradient(45deg,rgba(255,255,255,.04) 0,rgba(255,255,255,.04) 2px,transparent 2px,transparent 8px);',
-    '}',
-    '.mem-card-back {',
-    '  background:#fff; border:1.5px solid var(--mem-pink-light); transform:rotateY(180deg); font-size:26px;',
-    '}',
-    '.mem-card.matched .mem-card-back { background:#fdf2f8; border-color:var(--mem-pink); animation:mem-match-pop .45s ease; }',
-    '.mem-card.wrong .mem-card-back   { background:#fff1f2; border-color:var(--mem-red); }',
-    '.mem-card.blocked { pointer-events:none; opacity:.92; }',
-    '@keyframes mem-match-pop { 0%{transform:rotateY(180deg) scale(1)} 40%{transform:rotateY(180deg) scale(1.12)} 70%{transform:rotateY(180deg) scale(.97)} 100%{transform:rotateY(180deg) scale(1)} }',
-
-    /* ── Turn badge ── */
-    '.mem-turn-badge {',
-    '  display:inline-flex; align-items:center; gap:5px;',
-    '  background:var(--mem-pink-light); border:1.5px solid var(--mem-pink-mid);',
-    '  border-radius:var(--mem-radius-pill); padding:5px 14px;',
-    '  font-size:12px; font-weight:500; color:var(--mem-pink-dark);',
-    '  font-family:"DM Sans",sans-serif;',
-    '  animation:mem-tour-pulse 1.8s ease infinite;',
-    '}',
-    '.mem-turn-badge--other {',
-    '  background:var(--mem-purple-light); border-color:var(--mem-purple-mid);',
-    '  color:var(--mem-purple); animation:none;',
-    '}',
-    '@keyframes mem-tour-pulse { 0%{box-shadow:0 0 0 0 rgba(236,72,153,.4)} 70%{box-shadow:0 0 0 8px rgba(236,72,153,0)} 100%{box-shadow:0 0 0 0 rgba(236,72,153,0)} }',
-
-    /* ── Timer ── */
-    '.mem-game-timer {',
-    '  display:flex; align-items:center; gap:5px;',
-    '  background:#fff; border:1px solid var(--mem-gray-100);',
-    '  border-radius:var(--mem-radius-pill); padding:4px 12px;',
-    '  font-size:13px; font-weight:500; color:var(--mem-gray-900);',
-    '  font-family:"DM Sans",sans-serif;',
-    '}',
-
-    /* ── Special chips ── */
-    '.mem-special-chip { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:var(--mem-radius-pill); font-size:11px; font-weight:500; font-family:"DM Sans",sans-serif; }',
-    '.mem-special-chip--vue    { background:#eff6ff; border:1px solid #bfdbfe; color:#1d4ed8; }',
-    '.mem-special-chip--miroir { background:#f5f3ff; border:1px solid #ddd6fe; color:#6d28d9; }',
-    '.mem-special-chip--bombe  { background:#fff7ed; border:1px solid #fed7aa; color:#c2410c; }',
-
-    /* ── Écho cells ── */
-    '.mem-echo-cell {',
-    '  border-radius:var(--mem-radius); background:#fff; border:1.5px solid var(--mem-pink-light);',
-    '  display:flex; align-items:center; justify-content:center; cursor:pointer;',
-    '  font-size:28px; height:72px; transition:border-color .15s, background .15s, transform .1s;',
-    '  position:relative; overflow:hidden;',
-    '}',
-    '.mem-echo-cell:hover:not(.mem-echo-cell--blocked) { border-color:var(--mem-pink-mid); transform:scale(.96); }',
-    '.mem-echo-cell--lit     { border-color:var(--mem-pink)!important; background:#fdf2f8!important; animation:mem-ebtn-pop .4s ease; }',
-    '.mem-echo-cell--correct { border-color:var(--mem-green)!important; background:#f0fdf4!important; }',
-    '.mem-echo-cell--wrong   { border-color:var(--mem-red)!important;   background:#fff1f2!important; }',
-    '.mem-echo-cell--peek    { border-color:#818cf8!important; background:#eef2ff!important; box-shadow:0 0 0 3px rgba(99,102,241,.25); transition:all .2s; }',
-    '.mem-echo-cell--blocked { pointer-events:none; opacity:.75; }',
-    '@keyframes mem-ebtn-pop { 0%{transform:scale(1)} 40%{transform:scale(1.1)} 100%{transform:scale(1)} }',
-
-    /* ── Echo pips ── */
-    '.mem-echo-pip { width:10px; height:10px; border-radius:50%; background:var(--mem-pink-light); display:inline-block; transition:background .2s; }',
-    '.mem-echo-pip--done   { background:var(--mem-pink); }',
-    '.mem-echo-pip--active { background:var(--mem-pink-mid); box-shadow:0 0 0 3px rgba(236,72,153,.2); }',
-
-    /* ── Power-up bar ── */
-    '.mem-pup-bar {',
-    '  display:flex; gap:7px; padding:0 12px 10px;',
-    '}',
-    '.mem-pup-btn {',
-    '  flex:1; display:flex; align-items:center; justify-content:center; gap:4px;',
-    '  font-size:11px; padding:8px 4px; border-radius:var(--mem-radius-sm);',
-    '  cursor:pointer; font-family:"DM Sans",sans-serif; font-weight:500; border:1px solid;',
-    '  transition:opacity .2s, transform .1s, box-shadow .2s;',
-    '}',
-    '.mem-pup-btn:active { transform:scale(.96); }',
-    '.mem-pup-btn:disabled, .mem-pup-btn--used { opacity:.38; cursor:not-allowed; }',
-    '.mem-pup-freeze { background:#eef2ff; border-color:#c7d2fe; color:#4338ca; }',
-    '.mem-pup-peek   { background:#fdf4ff; border-color:#e9d5ff; color:#7c3aed; }',
-    '.mem-pup-shield { background:var(--mem-pink-light); border-color:var(--mem-pink-mid); color:var(--mem-pink-dark); }',
-    '.mem-pup-btn--active { box-shadow:0 0 0 3px rgba(236,72,153,.3)!important; opacity:1!important; }',
-
-    /* ── Architecte shapes ── */
-    '.mem-archi-shape {',
-    '  width:44px; height:44px; border-radius:10px; border:1.5px solid;',
-    '  display:flex; align-items:center; justify-content:center;',
-    '  cursor:pointer; font-size:20px; transition:transform .12s, box-shadow .15s;',
-    '  font-family:"DM Sans",sans-serif;',
-    '}',
-    '.mem-archi-shape:hover { transform:scale(1.1); box-shadow:0 4px 12px rgba(0,0,0,.12); }',
-    '.mem-archi-shape:active { transform:scale(.92); }',
-    '.mem-archi-stack--wrong    { animation:mem-shake-archi .4s ease; }',
-    '.mem-archi-stack--complete { animation:mem-shine-archi .5s ease; }',
-    '@keyframes mem-shake-archi { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)} 40%{transform:translateX(7px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }',
-    '@keyframes mem-shine-archi { 0%,100%{box-shadow:none} 50%{box-shadow:0 0 0 6px rgba(34,197,94,.3)} }',
-
-    /* ── Mode cards (sélection) ── */
-    '.mem-mode-card {',
-    '  border-radius:var(--mem-radius); border:1.5px solid var(--mem-gray-200);',
-    '  background:#fff; cursor:pointer; padding:14px 12px;',
-    '  transition:border-color .2s, transform .15s, box-shadow .2s;',
-    '  font-family:"DM Sans",sans-serif;',
-    '}',
-    '.mem-mode-card:hover { border-color:var(--mem-pink-mid); transform:translateY(-2px); box-shadow:0 8px 24px rgba(236,72,153,.12); }',
-    '.mem-mode-card--selected { border-color:var(--mem-pink)!important; background:var(--mem-pink-light)!important; }',
-    '.mem-mode-card--matched  { border-color:var(--mem-green)!important; background:#f0fdf4!important; animation:mem-card-matched .4s ease; }',
-    '@keyframes mem-card-matched { 0%{transform:scale(1)} 40%{transform:scale(1.04)} 100%{transform:scale(1)} }',
-
-    /* ── Vote chips ── */
-    '.mem-vote-chip { display:inline-block; padding:4px 12px; border-radius:var(--mem-radius-pill); font-size:12px; font-weight:500; background:var(--mem-gray-100); color:var(--mem-gray-600); font-family:"DM Sans",sans-serif; transition:all .2s; }',
-    '.mem-vote-chip--active { background:var(--mem-pink-light); border:1px solid var(--mem-pink-mid); color:var(--mem-pink-dark); }',
-
-    /* ── Result screens ── */
-    '.mem-result-screen {',
-    '  position:absolute; inset:0; background:#fff; z-index:20;',
-    '  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;',
-    '  padding:24px; font-family:"DM Sans",sans-serif; text-align:center;',
-    '}',
-  ].join('\n');
-  document.head.appendChild(style);
+  // Reconstruction HTML des 3 screens + injection CSS
+  _memRebuildScreens();
 });
-
-// Crée la barre de profil dans un écran si les conteneurs n'existent pas déjà
-function _memEnsureProfileBar(screenId, meId, oppId, extraClass) {
-  if (_memEl(meId) && _memEl(oppId)) return; // déjà présents dans le HTML
-  var screen = _memEl(screenId); if (!screen) return;
-  var bar = document.createElement('div');
-  bar.className = 'mem-profile-bar ' + (extraClass||'');
-  bar.innerHTML =
-    '<div id="' + meId  + '" class="mem-profile-bar__me"></div>' +
-    '<div class="mem-profile-bar__vs">VS</div>' +
-    '<div id="' + oppId + '" class="mem-profile-bar__opp"></div>';
-  screen.insertBefore(bar, screen.firstChild);
-}
-
-// ── Expose globaux ──
-window.openMemoryGame  = openMemoryGame;
-window.closeMemoryGame = closeMemoryGame;
-window._memOpenGame    = openMemoryGame;
-window._memCloseGame   = closeMemoryGame;
-window._memRouteState  = _memRouteState;
