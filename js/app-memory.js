@@ -53,6 +53,10 @@ var _clProcessing  = false, _clResultShown = false, _clSaved = false;
 var _echoSequence  = [], _echoLevel = 1, _echoMyInput = [];
 var _echoShowInt   = null, _echoSaved = false, _echoPublished = false, _echoShowing = false;
 
+// ── Power-ups Écho (locaux, 1 usage par partie) ──
+var _echoPups      = {freeze:1, peek:1, shield:1};  // 1 = disponible, 0 = utilisé
+var _echoShield    = false;   // shield actif sur la prochaine erreur
+
 // ── État Architecte ──
 var _archiTarget   = [], _archiRound = 1;
 var _archiPerfect  = true, _archiSaved = false;
@@ -841,6 +845,7 @@ function _memShowClassicFinal(state) {
 
 function _memStartEcho(gameRow) {
   _echoLevel=1; _echoSaved=false; _echoPublished=false; _echoSequence=[]; _echoMyInput=[]; _echoShowing=false;
+  _echoPups={freeze:1,peek:1,shield:1}; _echoShield=false;
   _memShowScreen('memScreenEcho');
   // Injecter les profils labellisés avec les coeurs
   _memRenderEchoProfiles('memEchoMyProfile', 'memEchoOppProfile', 3);
@@ -851,6 +856,9 @@ function _memStartEcho(gameRow) {
     (function(idx){cell.addEventListener('click',function(){_memEchoTap(idx);});})(i);
     grid.appendChild(cell);
   });}
+  // Injecter la barre de power-ups si absente
+  _memEnsureEchoPowerups();
+  _memUpdatePupButtons();
   var stateE = gameRow && gameRow.state;
   if (stateE && stateE.phase === 'echo') {
     _memApplyEchoState(stateE);
@@ -949,6 +957,16 @@ function _memEchoTap(idx) {
     if (_echoMyInput.length===_echoSequence.length){_memEchoBlock();_memSaveEchoInput(true);}
   } else {
     if(cell){cell.classList.add('mem-echo-cell--wrong');setTimeout(function(){cell.classList.remove('mem-echo-cell--wrong');},500);}
+    // Shield absorbe la prochaine erreur
+    if (_echoShield) {
+      _echoShield = false;
+      var ph=_memEl('memEchoPhase'); if(ph) ph.textContent='🛡️ Bouclier absorbé !';
+      setTimeout(function(){
+        _echoMyInput=[];_echoShowing=false;_memEchoBlock();_memUpdateEchoPips(_echoSequence.length,0);
+        _memEchoShowSeq(function(){_memEchoUnblock();});
+      },700);
+      return;
+    }
     _echoMyInput=[];_echoShowing=false;_memEchoBlock();_memUpdateEchoPips(_echoSequence.length,0);_memSaveEchoInput(false);
   }
 }
@@ -2006,6 +2024,87 @@ function lbRender(rows){
   }).join('');
 }
 
+// ═══════════════════════════════════════════════════════════
+// POWER-UPS ÉCHO
+// ═══════════════════════════════════════════════════════════
+
+function _memEnsureEchoPowerups() {
+  if (_memEl('memEchoPupBar')) return;
+  var grid = _memEl('memEchoGrid'); if (!grid) return;
+  var bar = document.createElement('div');
+  bar.id = 'memEchoPupBar';
+  bar.className = 'mem-pup-bar';
+  bar.innerHTML =
+    '<button id="memPupFreeze" class="mem-pup-btn mem-pup-freeze" onclick="_memUsePup(\'freeze\')">❄️ <span>Freeze</span></button>' +
+    '<button id="memPupPeek"   class="mem-pup-btn mem-pup-peek"   onclick="_memUsePup(\'peek\')">👁 <span>Peek</span></button>' +
+    '<button id="memPupShield" class="mem-pup-btn mem-pup-shield" onclick="_memUsePup(\'shield\')">🛡 <span>Shield</span></button>';
+  grid.parentNode.insertBefore(bar, grid.nextSibling);
+}
+
+function _memUpdatePupButtons() {
+  ['freeze','peek','shield'].forEach(function(p) {
+    var btn = _memEl('memPup' + p.charAt(0).toUpperCase() + p.slice(1));
+    if (!btn) return;
+    var avail = _echoPups[p] > 0;
+    btn.disabled = !avail;
+    btn.classList.toggle('mem-pup-btn--used', !avail);
+    // Afficher shield actif
+    if (p === 'shield') btn.classList.toggle('mem-pup-btn--active', !!_echoShield);
+  });
+}
+
+window._memUsePup = function(type) {
+  if (_echoPups[type] <= 0) return;
+  _echoPups[type] = 0;
+  _memUpdatePupButtons();
+
+  if (type === 'freeze') {
+    // Rejoue toute la séquence en ralenti (1200ms entre chaque)
+    var ph = _memEl('memEchoPhase'); if (ph) ph.textContent = '❄️ Freeze — séquence ralentie…';
+    _memEchoBlock();
+    var oldInterval = 700; // vitesse normale
+    // Stopper l'animation en cours si présente
+    if (_echoShowInt) { clearInterval(_echoShowInt); _echoShowInt = null; }
+    var idx2 = 0;
+    _echoShowInt = setInterval(function() {
+      var cells = document.querySelectorAll('#memEchoGrid .mem-echo-cell');
+      cells.forEach(function(c){c.classList.remove('mem-echo-cell--lit');});
+      if (idx2 < _echoSequence.length) {
+        var cell2 = cells[_echoSequence[idx2]];
+        if (cell2) {
+          cell2.classList.add('mem-echo-cell--lit');
+          setTimeout(function(){if(cell2)cell2.classList.remove('mem-echo-cell--lit');}, 800);
+        }
+        idx2++;
+      } else {
+        clearInterval(_echoShowInt); _echoShowInt = null;
+        setTimeout(function(){ _echoMyInput=[]; _memUpdateEchoPips(_echoSequence.length,0); _memEchoUnblock(); }, 500);
+      }
+    }, 1200); // ralenti vs 700ms normal
+
+  } else if (type === 'peek') {
+    // Illumine la prochaine cellule à toucher
+    var nextIdx = _echoSequence[_echoMyInput.length];
+    if (nextIdx === undefined) nextIdx = _echoSequence[0];
+    var cells3 = document.querySelectorAll('#memEchoGrid .mem-echo-cell');
+    var cell3 = cells3[nextIdx];
+    if (cell3) {
+      cell3.classList.add('mem-echo-cell--peek');
+      setTimeout(function(){cell3.classList.remove('mem-echo-cell--peek');}, 900);
+    }
+
+  } else if (type === 'shield') {
+    // Active le shield (absorbe la prochaine erreur)
+    _echoShield = true;
+    _memUpdatePupButtons();
+    var ph2 = _memEl('memEchoPhase'); if (ph2) ph2.textContent = '🛡️ Bouclier actif !';
+    // Shield expire après 12 secondes si pas utilisé
+    setTimeout(function(){
+      if (_echoShield) { _echoShield = false; _memUpdatePupButtons(); }
+    }, 12000);
+  }
+};
+
 document.addEventListener('DOMContentLoaded',function(){
   var tAll=_memEl('lbTabAll'),tGirl=_memEl('lbTabGirl'),tBoy=_memEl('lbTabBoy');
   if(tAll)  tAll.addEventListener('click',  function(){lbCurrentTab='all'; lbRender(lbCurrentData);});
@@ -2018,25 +2117,158 @@ document.addEventListener('DOMContentLoaded',function(){
   _memEnsureProfileBar('memScreenEcho',    'memEchoMyProfile',    'memEchoOppProfile',    'mem-profile-bar--echo');
   _memEnsureProfileBar('memScreenArchi',   'memArchiMyProfile',   'memArchiOppProfile',   'mem-profile-bar--archi');
 
-  // ── Styles CSS dynamiques pour les barres de profil ──
+  // ── Styles CSS — Refonte visuelle Memory v2 ──
   var style = document.createElement('style');
   style.textContent = [
+    /* ── Google Fonts ── */
+    '@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&display=swap");',
+
+    /* ── Variables ── */
+    ':root {',
+    '  --mem-pink:#ec4899; --mem-pink-light:#fce7f3; --mem-pink-mid:#f9a8d4; --mem-pink-dark:#be185d;',
+    '  --mem-purple:#7c3aed; --mem-purple-light:#ede9fe; --mem-purple-mid:#c4b5fd;',
+    '  --mem-green:#22c55e; --mem-red:#ef4444; --mem-indigo:#4f46e5;',
+    '  --mem-gray-50:#f9fafb; --mem-gray-100:#f3f4f6; --mem-gray-200:#e5e7eb;',
+    '  --mem-gray-400:#9ca3af; --mem-gray-600:#6b7280; --mem-gray-900:#111827;',
+    '  --mem-radius:16px; --mem-radius-sm:10px; --mem-radius-pill:99px;',
+    '}',
+
+    /* ── Profile bars ── */
     '.mem-profile-bar {',
     '  display:flex; justify-content:space-between; align-items:flex-start;',
-    '  padding:8px 14px 4px; gap:8px; position:relative; z-index:1;',
+    '  padding:10px 16px 8px; gap:8px; position:relative; z-index:1;',
+    '  background:#fff; border-bottom:1px solid var(--mem-gray-100);',
     '}',
-    '.mem-profile-bar--echo {',
-    '  justify-content:space-around;',
-    '  background:rgba(var(--surface0-rgb,30,30,46),.5);',
-    '  border-radius:12px; margin:0 4px 4px;',
-    '}',
+    '.mem-profile-bar--echo { justify-content:space-around; background:rgba(252,231,243,.4); border-radius:12px; margin:6px 8px 0; border-bottom:none; }',
     '.mem-profile-bar--classic .mem-profile-bar__vs,',
     '.mem-profile-bar--archi .mem-profile-bar__vs {',
-    '  font-size:11px; font-weight:700; color:var(--subtext0,#6c7086);',
-    '  align-self:center; flex-shrink:0;',
+    '  font-size:11px; font-weight:700; color:var(--mem-gray-400); align-self:center; flex-shrink:0;',
     '}',
-    '.mem-profile-bar--echo .mem-profile-bar__vs {',
-    '  display:none;',
+    '.mem-profile-bar--echo .mem-profile-bar__vs { display:none; }',
+
+    /* ── Cards Classique+ ── */
+    '.mem-card { perspective:500px; cursor:pointer; height:72px; border-radius:var(--mem-radius-sm); }',
+    '.mem-card-inner { width:100%; height:100%; position:relative; transform-style:preserve-3d; transition:transform .38s cubic-bezier(.4,0,.2,1); border-radius:var(--mem-radius-sm); }',
+    '.mem-card.flipped .mem-card-inner { transform:rotateY(180deg); }',
+    '.mem-card-front, .mem-card-back { position:absolute; inset:0; border-radius:var(--mem-radius-sm); backface-visibility:hidden; display:flex; align-items:center; justify-content:center; }',
+    '.mem-card-front {',
+    '  background:linear-gradient(135deg,#b92654 0%,#9d1d42 100%);',
+    '  overflow:hidden;',
+    '}',
+    '.mem-card-front::after {',
+    '  content:""; position:absolute; inset:0;',
+    '  background:repeating-linear-gradient(45deg,rgba(255,255,255,.04) 0,rgba(255,255,255,.04) 2px,transparent 2px,transparent 8px);',
+    '}',
+    '.mem-card-back {',
+    '  background:#fff; border:1.5px solid var(--mem-pink-light); transform:rotateY(180deg); font-size:26px;',
+    '}',
+    '.mem-card.matched .mem-card-back { background:#fdf2f8; border-color:var(--mem-pink); animation:mem-match-pop .45s ease; }',
+    '.mem-card.wrong .mem-card-back   { background:#fff1f2; border-color:var(--mem-red); }',
+    '.mem-card.blocked { pointer-events:none; opacity:.92; }',
+    '@keyframes mem-match-pop { 0%{transform:rotateY(180deg) scale(1)} 40%{transform:rotateY(180deg) scale(1.12)} 70%{transform:rotateY(180deg) scale(.97)} 100%{transform:rotateY(180deg) scale(1)} }',
+
+    /* ── Turn badge ── */
+    '.mem-turn-badge {',
+    '  display:inline-flex; align-items:center; gap:5px;',
+    '  background:var(--mem-pink-light); border:1.5px solid var(--mem-pink-mid);',
+    '  border-radius:var(--mem-radius-pill); padding:5px 14px;',
+    '  font-size:12px; font-weight:500; color:var(--mem-pink-dark);',
+    '  font-family:"DM Sans",sans-serif;',
+    '  animation:mem-tour-pulse 1.8s ease infinite;',
+    '}',
+    '.mem-turn-badge--other {',
+    '  background:var(--mem-purple-light); border-color:var(--mem-purple-mid);',
+    '  color:var(--mem-purple); animation:none;',
+    '}',
+    '@keyframes mem-tour-pulse { 0%{box-shadow:0 0 0 0 rgba(236,72,153,.4)} 70%{box-shadow:0 0 0 8px rgba(236,72,153,0)} 100%{box-shadow:0 0 0 0 rgba(236,72,153,0)} }',
+
+    /* ── Timer ── */
+    '.mem-game-timer {',
+    '  display:flex; align-items:center; gap:5px;',
+    '  background:#fff; border:1px solid var(--mem-gray-100);',
+    '  border-radius:var(--mem-radius-pill); padding:4px 12px;',
+    '  font-size:13px; font-weight:500; color:var(--mem-gray-900);',
+    '  font-family:"DM Sans",sans-serif;',
+    '}',
+
+    /* ── Special chips ── */
+    '.mem-special-chip { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:var(--mem-radius-pill); font-size:11px; font-weight:500; font-family:"DM Sans",sans-serif; }',
+    '.mem-special-chip--vue    { background:#eff6ff; border:1px solid #bfdbfe; color:#1d4ed8; }',
+    '.mem-special-chip--miroir { background:#f5f3ff; border:1px solid #ddd6fe; color:#6d28d9; }',
+    '.mem-special-chip--bombe  { background:#fff7ed; border:1px solid #fed7aa; color:#c2410c; }',
+
+    /* ── Écho cells ── */
+    '.mem-echo-cell {',
+    '  border-radius:var(--mem-radius); background:#fff; border:1.5px solid var(--mem-pink-light);',
+    '  display:flex; align-items:center; justify-content:center; cursor:pointer;',
+    '  font-size:28px; height:72px; transition:border-color .15s, background .15s, transform .1s;',
+    '  position:relative; overflow:hidden;',
+    '}',
+    '.mem-echo-cell:hover:not(.mem-echo-cell--blocked) { border-color:var(--mem-pink-mid); transform:scale(.96); }',
+    '.mem-echo-cell--lit     { border-color:var(--mem-pink)!important; background:#fdf2f8!important; animation:mem-ebtn-pop .4s ease; }',
+    '.mem-echo-cell--correct { border-color:var(--mem-green)!important; background:#f0fdf4!important; }',
+    '.mem-echo-cell--wrong   { border-color:var(--mem-red)!important;   background:#fff1f2!important; }',
+    '.mem-echo-cell--peek    { border-color:#818cf8!important; background:#eef2ff!important; box-shadow:0 0 0 3px rgba(99,102,241,.25); transition:all .2s; }',
+    '.mem-echo-cell--blocked { pointer-events:none; opacity:.75; }',
+    '@keyframes mem-ebtn-pop { 0%{transform:scale(1)} 40%{transform:scale(1.1)} 100%{transform:scale(1)} }',
+
+    /* ── Echo pips ── */
+    '.mem-echo-pip { width:10px; height:10px; border-radius:50%; background:var(--mem-pink-light); display:inline-block; transition:background .2s; }',
+    '.mem-echo-pip--done   { background:var(--mem-pink); }',
+    '.mem-echo-pip--active { background:var(--mem-pink-mid); box-shadow:0 0 0 3px rgba(236,72,153,.2); }',
+
+    /* ── Power-up bar ── */
+    '.mem-pup-bar {',
+    '  display:flex; gap:7px; padding:0 12px 10px;',
+    '}',
+    '.mem-pup-btn {',
+    '  flex:1; display:flex; align-items:center; justify-content:center; gap:4px;',
+    '  font-size:11px; padding:8px 4px; border-radius:var(--mem-radius-sm);',
+    '  cursor:pointer; font-family:"DM Sans",sans-serif; font-weight:500; border:1px solid;',
+    '  transition:opacity .2s, transform .1s, box-shadow .2s;',
+    '}',
+    '.mem-pup-btn:active { transform:scale(.96); }',
+    '.mem-pup-btn:disabled, .mem-pup-btn--used { opacity:.38; cursor:not-allowed; }',
+    '.mem-pup-freeze { background:#eef2ff; border-color:#c7d2fe; color:#4338ca; }',
+    '.mem-pup-peek   { background:#fdf4ff; border-color:#e9d5ff; color:#7c3aed; }',
+    '.mem-pup-shield { background:var(--mem-pink-light); border-color:var(--mem-pink-mid); color:var(--mem-pink-dark); }',
+    '.mem-pup-btn--active { box-shadow:0 0 0 3px rgba(236,72,153,.3)!important; opacity:1!important; }',
+
+    /* ── Architecte shapes ── */
+    '.mem-archi-shape {',
+    '  width:44px; height:44px; border-radius:10px; border:1.5px solid;',
+    '  display:flex; align-items:center; justify-content:center;',
+    '  cursor:pointer; font-size:20px; transition:transform .12s, box-shadow .15s;',
+    '  font-family:"DM Sans",sans-serif;',
+    '}',
+    '.mem-archi-shape:hover { transform:scale(1.1); box-shadow:0 4px 12px rgba(0,0,0,.12); }',
+    '.mem-archi-shape:active { transform:scale(.92); }',
+    '.mem-archi-stack--wrong    { animation:mem-shake-archi .4s ease; }',
+    '.mem-archi-stack--complete { animation:mem-shine-archi .5s ease; }',
+    '@keyframes mem-shake-archi { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)} 40%{transform:translateX(7px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }',
+    '@keyframes mem-shine-archi { 0%,100%{box-shadow:none} 50%{box-shadow:0 0 0 6px rgba(34,197,94,.3)} }',
+
+    /* ── Mode cards (sélection) ── */
+    '.mem-mode-card {',
+    '  border-radius:var(--mem-radius); border:1.5px solid var(--mem-gray-200);',
+    '  background:#fff; cursor:pointer; padding:14px 12px;',
+    '  transition:border-color .2s, transform .15s, box-shadow .2s;',
+    '  font-family:"DM Sans",sans-serif;',
+    '}',
+    '.mem-mode-card:hover { border-color:var(--mem-pink-mid); transform:translateY(-2px); box-shadow:0 8px 24px rgba(236,72,153,.12); }',
+    '.mem-mode-card--selected { border-color:var(--mem-pink)!important; background:var(--mem-pink-light)!important; }',
+    '.mem-mode-card--matched  { border-color:var(--mem-green)!important; background:#f0fdf4!important; animation:mem-card-matched .4s ease; }',
+    '@keyframes mem-card-matched { 0%{transform:scale(1)} 40%{transform:scale(1.04)} 100%{transform:scale(1)} }',
+
+    /* ── Vote chips ── */
+    '.mem-vote-chip { display:inline-block; padding:4px 12px; border-radius:var(--mem-radius-pill); font-size:12px; font-weight:500; background:var(--mem-gray-100); color:var(--mem-gray-600); font-family:"DM Sans",sans-serif; transition:all .2s; }',
+    '.mem-vote-chip--active { background:var(--mem-pink-light); border:1px solid var(--mem-pink-mid); color:var(--mem-pink-dark); }',
+
+    /* ── Result screens ── */
+    '.mem-result-screen {',
+    '  position:absolute; inset:0; background:#fff; z-index:20;',
+    '  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;',
+    '  padding:24px; font-family:"DM Sans",sans-serif; text-align:center;',
     '}',
   ].join('\n');
   document.head.appendChild(style);
