@@ -251,7 +251,10 @@ function _memStartLobby() {
       var state = gameRow.state;
       var ph = state && state.phase;
       setTimeout(function() {
-        if (ph === 'classic' || ph === 'echo' || ph === 'archi') {
+        // Mode ALL en cours : router directement sans passer par la sélection de mode
+        if (state && state.mode === 'all' && !state.winner) {
+          _memRouteState(state, gameRow);
+        } else if (ph === 'classic' || ph === 'echo' || ph === 'archi') {
           _memRouteState(state, gameRow);
         } else {
           _memGoToModeSelect(gameRow);
