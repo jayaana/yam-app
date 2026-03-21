@@ -794,7 +794,7 @@ function _memEchoTap(idx) {
     if (_echoMyInput.length===_echoSequence.length){_memEchoBlock();_memSaveEchoInput(true);}
   } else {
     if(cell){cell.classList.add('mem-echo-cell--wrong');setTimeout(function(){cell.classList.remove('mem-echo-cell--wrong');},500);}
-    _echoMyInput=[];_memUpdateEchoPips(_echoSequence.length,0);_memSaveEchoInput(false);
+    _echoMyInput=[];_echoShowing=false;_memEchoBlock();_memUpdateEchoPips(_echoSequence.length,0);_memSaveEchoInput(false);
   }
 }
 
@@ -1458,7 +1458,7 @@ function _allEchoTap(idx){
     }
   } else {
     if(cell){cell.classList.add('mem-echo-cell--wrong');setTimeout(function(){cell.classList.remove('mem-echo-cell--wrong');},500);}
-    _allEchoMyInput=[];
+    _allEchoMyInput=[];_allEchoShowing=false;document.querySelectorAll('#memEchoGrid .mem-echo-cell').forEach(function(c){c.classList.add('mem-echo-cell--blocked');});
     _memUpdateEchoPips(_allEchoSeq.length,0);
     ns[_memProfile+'_input']=[];
     ns[_memProfile+'_lives']=Math.max(0,(ns[_memProfile+'_lives']||2)-1);
