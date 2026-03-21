@@ -852,9 +852,15 @@ function _memSaveEchoInput(success) {
 }
 
 function _memEchoPickWinner(ns) {
+  var gElim = !!(ns.girl_eliminated), bElim = !!(ns.boy_eliminated);
+  // Un survivant bat toujours un éliminé, peu importe les niveaux et timestamps
+  if (!gElim && bElim) return 'girl';
+  if (!bElim && gElim) return 'boy';
+  // Les deux dans le même état (deux survivants ou deux éliminés)
+  // → départager par niveau max atteint
   var gLv = ns.girl_max_level||0, bLv = ns.boy_max_level||0;
   if (gLv !== bLv) return gLv > bLv ? 'girl' : 'boy';
-  // Même niveau → celui arrivé en premier à ce niveau gagne
+  // Même niveau → celui qui l'a atteint en premier gagne
   var gT = ns.girl_finish_time||0, bT = ns.boy_finish_time||0;
   if (gT && bT && gT !== bT) return gT < bT ? 'girl' : 'boy';
   return 'draw';
@@ -1396,14 +1402,24 @@ function _allApplyEchoState(state) {
   var myInput=_memProfile==='girl'?state.girl_input:state.boy_input;
   _memUpdateEchoPips(_allEchoSeq.length,(myInput||[]).length);
 
-  // Filet de sécurité : les deux sont éliminés mais winner jamais publié (race condition)
-  // → le premier à détecter ça (peu importe le rôle) publie le winner
-  // Guard _allEchoSaved pour éviter que les deux joueurs publient simultanément
+  // Filet de sécurité 1 : les deux sont éliminés mais winner jamais publié
   if(meElim && othElim && !state.winner && !_allEchoSaved && _memMp){
-    _allEchoSaved=true; // verrouiller immédiatement avant le saveState async
+    _allEchoSaved=true;
     var ns2=JSON.parse(JSON.stringify(state));
     ns2.winner=_memEchoPickWinner(ns2)||'draw';
     _memMp.saveState(ns2);
+    return;
+  }
+
+  // Filet de sécurité 2 : les deux ont réussi la séquence (sans élimination)
+  // mais winner jamais publié (race condition entre les deux saveState)
+  var bothSucceeded = (state.girl_input||[]).length === _allEchoSeq.length &&
+                      (state.boy_input||[]).length  === _allEchoSeq.length;
+  if(bothSucceeded && !state.winner && !_allEchoSaved && _memMp){
+    _allEchoSaved=true;
+    var ns3=JSON.parse(JSON.stringify(state));
+    ns3.winner=_memEchoPickWinner(ns3)||'draw';
+    _memMp.saveState(ns3);
     return;
   }
 
@@ -1422,9 +1438,18 @@ function _allApplyEchoState(state) {
     document.querySelectorAll('#memEchoGrid .mem-echo-cell').forEach(function(c){c.classList.add('mem-echo-cell--blocked');});
     return;
   }
-  if((myInput||[]).length<_allEchoSeq.length && !_allEchoShowing){
+  // Ne relancer l'animation QUE si :
+  // 1. Mon input est vide (nouveau niveau ou après erreur)
+  // 2. Je ne suis pas en train de jouer (_allEchoMyInput local est aussi vide)
+  // 3. L'animation n'est pas déjà en cours
+  // Evite que la fin de l'adversaire (qui remet boy_input=full dans le state)
+  // ne déclenche une relance intempestive de l'animation pour ce joueur
+  var myLocalInputLen = _allEchoMyInput ? _allEchoMyInput.length : 0;
+  var myServerInputLen = (myInput||[]).length;
+  var shouldShowSeq = myServerInputLen === 0 && myLocalInputLen === 0 && !_allEchoShowing;
+  if(shouldShowSeq){
     _allEchoShowing=true;
-    _allEchoMyInput=(myInput||[]).slice();
+    _allEchoMyInput=[];
     _allEchoShowSeq(function(){
       document.querySelectorAll('#memEchoGrid .mem-echo-cell').forEach(function(c){c.classList.remove('mem-echo-cell--blocked');});
       var ph=_memEl('memEchoPhase');if(ph)ph.textContent='🎯 Reproduis !';
