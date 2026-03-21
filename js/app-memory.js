@@ -223,7 +223,8 @@ function openMemoryGame() {
     _memLoadTrophies(function() { _memStartLobby(); });
     return;
   }
-  // Partie ALL encore active sans AFK (ex: rechargement page) → reprendre
+  // Partie ALL encore active sans AFK (ex: rechargement page) → reprendre via _allRouteState
+  // qui vérifie lui-même si le bon écran est visible et force un restart si besoin
   var _allActive = (_memCurrentMode === 'all' || (_memLastState && _memLastState.mode === 'all'))
                     && _memMp && _memLastState && !_memLastState.winner;
   if (_allActive) {
@@ -1395,17 +1396,25 @@ function _allRouteState(state, gameRow) {
   var step = state.all_step;
   if (!step) return;
 
-  // Changement de step → lancer le bon écran
-  if (step !== _allStep) {
+  // Vérifier que le bon écran est visible — si non, forcer un restart du step
+  // même si step === _allStep (ex: retour après AFK, reload, ou écran de vote encore visible)
+  var screenMap = {classic:'memScreenClassic', echo:'memScreenEcho', archi:'memScreenArchi'};
+  var expectedScreen = screenMap[step];
+  var screenEl = expectedScreen ? document.getElementById(expectedScreen) : null;
+  var screenVisible = screenEl && getComputedStyle(screenEl).display !== 'none';
+  var needsRestart = (step !== _allStep) || !screenVisible;
+
+  // Changement de step OU bon écran non visible → lancer/relancer le bon écran
+  if (needsRestart) {
     _allStep = step;
-    _allResultShown = false; // reset au changement de step pour eviter blocage inter-steps
+    _allResultShown = false; // reset pour eviter blocage inter-steps
     if (step === 'classic') _allStartClassic(state);
     else if (step === 'echo')  _allStartEcho(state);
     else if (step === 'archi') _allStartArchi(state);
     return;
   }
 
-  // Même step → appliquer le state
+  // Même step ET bon écran déjà visible → appliquer le state
   if (step === 'classic') _allApplyClassicState(state);
   else if (step === 'echo')  _allApplyEchoState(state);
   else if (step === 'archi') _allApplyArchiState(state);
