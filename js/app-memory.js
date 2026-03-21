@@ -19,6 +19,23 @@ var ARCHI_SHAPES  = [
   {emoji:'🟢',color:'#22c55e'},{emoji:'🟡',color:'#eab308'},
   {emoji:'🟣',color:'#a855f7'},{emoji:'🟠',color:'#f97316'}
 ];
+var ARCHI_SVG=[
+  {color:'#ef4444',bg:'#fee2e2',svg:'<svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="10" fill="#ef4444"/></svg>'},
+  {color:'#3b82f6',bg:'#dbeafe',svg:'<svg width="26" height="26" viewBox="0 0 26 26"><rect x="3" y="3" width="20" height="20" rx="3" fill="#3b82f6"/></svg>'},
+  {color:'#22c55e',bg:'#dcfce7',svg:'<svg width="26" height="26" viewBox="0 0 26 26"><polygon points="13,2 24,24 2,24" fill="#22c55e"/></svg>'},
+  {color:'#f59e0b',bg:'#fef3c7',svg:'<svg width="26" height="26" viewBox="0 0 26 26"><polygon points="13,2 24,13 13,24 2,13" fill="#f59e0b"/></svg>'},
+  {color:'#a855f7',bg:'#f3e8ff',svg:'<svg width="26" height="26" viewBox="0 0 26 26"><polygon points="13,2 16,10 25,10 18,15 21,24 13,19 5,24 8,15 1,10 10,10" fill="#a855f7"/></svg>'},
+  {color:'#06b6d4',bg:'#cffafe',svg:'<svg width="26" height="26" viewBox="0 0 26 26"><rect x="10" y="2" width="6" height="22" rx="2" fill="#06b6d4"/><rect x="2" y="10" width="22" height="6" rx="2" fill="#06b6d4"/></svg>'}
+];
+function _memArchiShapeEl(si,size,clickCb){
+  size=size||44;
+  var s=ARCHI_SVG[si]||ARCHI_SVG[0];
+  var d=document.createElement('div');
+  d.style.cssText='width:'+size+'px;height:'+size+'px;border-radius:10px;background:'+s.bg+';border:1.5px solid '+s.color+'44;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-sizing:border-box;transition:transform .12s;';
+  d.innerHTML=s.svg;
+  if(clickCb){d.style.cursor='pointer';d.addEventListener('click',clickCb);}
+  return d;
+}
 var TROPHIES = {
   telepathie:    {name:'🧠 Télépathie',     desc:'Écho niveau 8+ sans erreur'},
   eclair:        {name:'⚡ Éclair',          desc:'Classique+ manche 3 en moins de 60s'},
@@ -104,16 +121,14 @@ function _memInjectProfileBar(containerElId, userId, role, isOpponent, showDot) 
   var container = _memEl(containerElId);
   if (!container) return;
   var name = _memGetName(role);
-  var isGirl = (role === 'girl');
-  var borderColor = isGirl ? '#f9a8d4' : '#c4b5fd';
-  var bgColor     = isGirl ? '#fce7f3' : '#ede9fe';
+  var isGirl=(role==='girl'),border=isGirl?'#f9a8d4':'#c4b5fd',bg=isGirl?'#fce7f3':'#ede9fe';
   var dotHtml = (isOpponent && showDot)
     ? '<span id="' + containerElId + 'Dot" style="position:absolute;bottom:2px;right:2px;width:13px;height:13px;border-radius:50%;background:#444;border:2.5px solid #fff;transition:background .3s,box-shadow .3s;"></span>'
     : '';
   container.innerHTML =
     '<div style="display:flex;flex-direction:column;align-items:center;gap:5px;">' +
       '<div style="position:relative;flex-shrink:0;">' +
-        '<div id="' + containerElId + 'Av" style="width:62px;height:62px;border-radius:50%;overflow:hidden;background:' + bgColor + ';border:2.5px solid ' + borderColor + ';"></div>' +
+        '<div id="' + containerElId + 'Av" style="width:62px;height:62px;border-radius:50%;overflow:hidden;background:' + bg + ';border:2.5px solid ' + border + ';"></div>' +
         dotHtml +
       '</div>' +
       '<span style="font-size:13px;font-weight:500;color:#111827;white-space:nowrap;">' + name + '</span>' +
@@ -152,11 +167,9 @@ function _memRenderEchoProfiles(meContainerId, oppContainerId, maxLives) {
     var livesHtml = livesAlreadyExists
       ? '' // existant dans le HTML → on le remplit séparément
       : '<div id="' + livesId + '" style="font-size:15px;letter-spacing:1px;min-height:20px;">' + hearts + '</div>';
-    var isGirl2 = (role === 'girl');
-    var border2 = isOpp ? (isGirl2 ? '#f9a8d4' : '#c4b5fd') : (isGirl2 ? '#f9a8d4' : '#c4b5fd');
-    var bg2     = isGirl2 ? '#fce7f3' : '#ede9fe';
+    var isGirl2=(role==='girl'),border2=isGirl2?'#f9a8d4':'#c4b5fd',bg2=isGirl2?'#fce7f3':'#ede9fe';
     c.innerHTML =
-      '<div style="display:flex;flex-direction:column;align-items:center;gap:5px;min-width:70px;">' +
+      '<div style="display:flex;flex-direction:column;align-items:center;gap:5px;">' +
         '<div style="position:relative;flex-shrink:0;">' +
           '<div id="' + cid + 'Av" style="width:62px;height:62px;border-radius:50%;overflow:hidden;background:' + bg2 + ';border:2.5px solid ' + border2 + ';"></div>' +
           dotHtml +
@@ -564,7 +577,7 @@ function _memStartClassic(gameRow) {
   if (_clTimer) { clearInterval(_clTimer); _clTimer=null; }
   _clCards=[]; _clFlipped=[];
   _memShowScreen('memScreenClassic');
-  // Injecter les profils dans la barre adversaire
+  var _t=_memEl('memViewTitle');if(_t)_t.textContent='Classique+';
   _memRenderDualProfiles('memClassicMyProfile', 'memClassicOppProfile');
   _memUpdateClassicHeader();
   // Les deux joueurs recoivent le meme state via onStateUpdate — appliquer directement
@@ -848,7 +861,8 @@ function _memShowClassicFinal(state) {
 function _memStartEcho(gameRow) {
   _echoLevel=1; _echoSaved=false; _echoPublished=false; _echoSequence=[]; _echoMyInput=[]; _echoShowing=false;
   _memShowScreen('memScreenEcho');
-  // Injecter les profils labellisés avec les coeurs
+  var _t=_memEl('memViewTitle');if(_t)_t.textContent='Echo';
+  _memEchoEnsureSeqBar();
   _memRenderEchoProfiles('memEchoMyProfile', 'memEchoOppProfile', 3);
   var lEl=_memEl('memEchoLevel'); if (lEl) lEl.textContent='Niveau 1';
   var grid=_memEl('memEchoGrid');
@@ -1074,7 +1088,8 @@ function _memShowEchoResult(state) {
 function _memStartArchi(gameRow) {
   _archiRound=1; _archiTarget=[]; _archiMyTarget=[]; _archiPerfect=true; _archiSaved=false;
   _memShowScreen('memScreenArchi');
-  // Injecter les profils avec avatars dans les conteneurs Archi
+  var _t=_memEl('memViewTitle');if(_t)_t.textContent='Architecte';
+  _memArchiSetup3Cols();
   _memRenderDualProfiles('memArchiMyProfile', 'memArchiOppProfile');
   var nMe=_memEl('memArchiNameMe'),nOth=_memEl('memArchiNameOther');
   if(nMe)nMe.textContent=_memGetName(_memProfile);
@@ -1118,11 +1133,8 @@ var _archiMyTarget = [];
 
 function _memBuildArchiPalette() {
   var p=_memEl('memArchiShapesMe');if(!p)return;p.innerHTML='';
-  ARCHI_SHAPES.forEach(function(s,i){
-    var d=document.createElement('div');d.className='mem-archi-shape';
-    d.style.background=s.color+'33';d.style.borderColor=s.color+'66';d.textContent=s.emoji;
-    (function(idx){d.addEventListener('click',function(){_memArchiTap(idx);});})(i);
-    p.appendChild(d);
+  ARCHI_SVG.forEach(function(s,i){
+    p.appendChild(_memArchiShapeEl(i,44,(function(idx){return function(){_memArchiTap(idx);};})(i)));
   });
 }
 
@@ -1142,12 +1154,7 @@ function _memApplyArchiState(state) {
     var showing=Date.now()<(state.show_until||0);
     if(showing){
       targetEl.innerHTML='';
-      _archiMyTarget.forEach(function(si){
-        var s=ARCHI_SHAPES[si],d=document.createElement('div');
-        d.className='mem-archi-shape';d.style.background=s.color+'33';
-        d.style.borderColor=s.color+'66';d.textContent=s.emoji;
-        targetEl.appendChild(d);
-      });
+      _archiMyTarget.forEach(function(si){targetEl.appendChild(_memArchiShapeEl(si,44,null));});
       var rem=state.show_until-Date.now();
       setTimeout(function(){
         if(targetEl)targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
@@ -1159,7 +1166,7 @@ function _memApplyArchiState(state) {
         if(pal2) pal2.style.pointerEvents=(cur2&&cur2[_memProfile+'_done'])?'none':'';
       },rem);
     } else {
-      targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
+      targetEl.innerHTML='<div style="display:flex;align-items:center;justify-content:center;gap:6px;padding:14px 8px;font-size:12px;color:#9ca3af;">&#128274; Tour cach&#233;e</div>';
     }
   }
 
@@ -1185,12 +1192,7 @@ function _memApplyArchiState(state) {
 
 function _memRenderArchiStack(el,stack){
   if(!el)return;el.innerHTML='';
-  (stack||[]).forEach(function(si){
-    var s=ARCHI_SHAPES[si],d=document.createElement('div');
-    d.className='mem-archi-shape';d.style.background=s.color+'33';
-    d.style.borderColor=s.color+'66';d.textContent=s.emoji;
-    el.appendChild(d);
-  });
+  (stack||[]).forEach(function(si){el.appendChild(_memArchiShapeEl(si,44,null));});
 }
 
 function _memArchiTap(si) {
@@ -1797,7 +1799,7 @@ function _allApplyArchiState(state) {
         if(pal2) pal2.style.pointerEvents=(cur2&&cur2[_memProfile+'_done'])?'none':'';
       },effectiveShowUntil-Date.now());
     } else {
-      targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
+      targetEl.innerHTML='<div style="display:flex;align-items:center;justify-content:center;gap:6px;padding:14px 8px;font-size:12px;color:#9ca3af;">&#128274; Tour cach&#233;e</div>';
     }
   }
 
@@ -2012,6 +2014,47 @@ function lbRender(rows){
   }).join('');
 }
 
+
+function _memArchiSetup3Cols(){
+  var screen=_memEl('memScreenArchi');if(!screen)return;
+  var existing=screen.querySelector('.mem-archi-3cols');if(existing)existing.remove();
+  var nameMe=_memGetName(_memProfile),nameOth=_memGetName(_memOther);
+  var isGirl=(_memProfile==='girl'),oppIsGirl=(_memOther==='girl');
+  var wrap=document.createElement('div');wrap.className='mem-archi-3cols';
+  wrap.style.cssText='display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;';
+  function makeCol(label,labelColor,borderColor,stackId,shapesId){
+    var col=document.createElement('div');
+    col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;background:#fff;border:1.5px solid '+borderColor+';border-radius:14px;padding:10px 6px;';
+    col.innerHTML='<div style="font-size:9px;font-weight:700;color:'+labelColor+';text-transform:uppercase;letter-spacing:1px;">'+label+'</div>';
+    var stack=document.createElement('div');stack.style.cssText='display:flex;flex-direction:column;gap:6px;align-items:center;min-height:100px;width:100%;';
+    if(stackId)stack.id=stackId;
+    col.appendChild(stack);
+    if(shapesId){var sh=document.createElement('div');sh.id=shapesId;sh.style.cssText='display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:4px;';col.appendChild(sh);}
+    return col;
+  }
+  var colMe=makeCol(nameMe.toUpperCase(),isGirl?'#ec4899':'#7c3aed',isGirl?'#fce7f3':'#ede9fe','memArchiStackMe','memArchiShapesMe');
+  var colMod=makeCol('MOD\u00c8LE','#9ca3af','#e5e7eb',null,null);
+  var tgt=document.createElement('div');tgt.id='memArchiTarget';tgt.style.cssText='display:flex;flex-direction:column;gap:6px;align-items:center;min-height:100px;width:100%;';
+  colMod.appendChild(tgt);
+  var colOpp=makeCol(nameOth.toUpperCase(),oppIsGirl?'#ec4899':'#7c3aed',oppIsGirl?'#fce7f3':'#ede9fe','memArchiStackOther',null);
+  wrap.appendChild(colMe);wrap.appendChild(colMod);wrap.appendChild(colOpp);
+  var oldTW=screen.querySelector('.mem-archi-target-wrap');if(oldTW)oldTW.style.display='none';
+  var oldBld=screen.querySelector('.mem-archi-builders');if(oldBld)oldBld.style.display='none';
+  var phase=_memEl('memArchiPhase');
+  if(phase&&phase.nextSibling){screen.insertBefore(wrap,phase.nextSibling);}else{screen.appendChild(wrap);}
+}
+
+function _memEchoEnsureSeqBar(){
+  if(_memEl('memEchoSeqBarWrap'))return;
+  var phase=_memEl('memEchoPhase');if(!phase)return;
+  var bar=document.createElement('div');bar.id='memEchoSeqBarWrap';
+  bar.style.cssText='background:#fff;border:1px solid #f3f4f6;border-radius:14px;padding:8px 12px;margin-bottom:4px;';
+  var prog=_memEl('memEchoProgress');
+  bar.innerHTML='<div style="font-size:10px;font-weight:500;color:#f9a8d4;text-transform:uppercase;letter-spacing:.05em;text-align:center;margin-bottom:6px;">S\u00c9QUENCE</div>';
+  if(prog){bar.appendChild(prog);}
+  phase.parentNode.insertBefore(bar,phase);
+}
+
 document.addEventListener('DOMContentLoaded',function(){
   var tAll=_memEl('lbTabAll'),tGirl=_memEl('lbTabGirl'),tBoy=_memEl('lbTabBoy');
   if(tAll)  tAll.addEventListener('click',  function(){lbCurrentTab='all'; lbRender(lbCurrentData);});
@@ -2024,216 +2067,54 @@ document.addEventListener('DOMContentLoaded',function(){
   _memEnsureProfileBar('memScreenEcho',    'memEchoMyProfile',    'memEchoOppProfile',    'mem-profile-bar--echo');
   _memEnsureProfileBar('memScreenArchi',   'memArchiMyProfile',   'memArchiOppProfile',   'mem-profile-bar--archi');
 
-  // ── Styles CSS — Refonte visuelle Memory ──
-  var style = document.createElement('style');
-  style.textContent = [
-    // Import DM Sans
-    "@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');",
-
-    // Screens : fond gris clair, font DM Sans
-    "#memScreenClassic, #memScreenEcho, #memScreenArchi, #memScreenMode, #memScreenLobby {",
-    "  background:#f5f5f7;",
-    "  font-family:'DM Sans',sans-serif;",
-    "}",
-
-    // Profile bar : fond blanc, bordure basse, padding généreux
-    ".mem-profile-bar {",
-    "  display:flex; justify-content:space-between; align-items:center;",
-    "  padding:12px 20px 16px; gap:8px;",
-    "  background:#fff; border-bottom:1px solid #f3f4f6;",
-    "  position:relative; z-index:1; flex-shrink:0;",
-    "}",
-    // Echo : même style
-    ".mem-profile-bar--echo {",
-    "  justify-content:space-between;",
-    "  background:#fff; border-bottom:1px solid #f3f4f6;",
-    "  border-radius:0; margin:0;",
-    "}",
-    // VS centré
-    ".mem-profile-bar__vs {",
-    "  font-size:11px; font-weight:700; color:#9ca3af;",
-    "  align-self:center; flex-shrink:0;",
-    "}",
-    ".mem-profile-bar--echo .mem-profile-bar__vs { display:none; }",
-
-    // Score centré dans la profile bar (Classique+ / Archi)
-    ".mem-profile-bar__vs-block {",
-    "  display:flex; flex-direction:column; align-items:center; gap:4px;",
-    "}",
-    ".mem-profile-bar__score-row {",
-    "  display:flex; align-items:center; gap:10px;",
-    "}",
-    ".mem-score-me, .mem-score-other {",
-    "  font-size:32px; font-weight:600; line-height:1; transition:transform .3s;",
-    "}",
-    ".mem-score-me    { color:#ec4899; }",
-    ".mem-score-other { color:#7c3aed; }",
-    ".mem-score-sep   { font-size:14px; color:#e5e7eb; }",
-    ".mem-manche-label {",
-    "  font-size:11px; font-weight:500; color:#f9a8d4;",
-    "}",
-
-    // Niveau badge Écho
-    ".mem-echo-lvl-badge {",
-    "  background:#fff; border:1.5px solid #fbcfe8; border-radius:99px;",
-    "  padding:4px 14px; font-size:12px; color:#db2777; font-weight:500;",
-    "}",
-    ".mem-echo-vs { font-size:11px; color:#f9a8d4; font-weight:500; margin-top:2px; }",
-
-    // Game body : fond gris
-    ".mem-game-body {",
-    "  padding:14px 14px 18px; background:#f5f5f7; flex:1;",
-    "}",
-
-    // Cartes
-    ".mem-card {",
-    "  perspective:500px; cursor:pointer; height:72px;",
-    "  border-radius:10px;",
-    "}",
-    ".mem-card-inner {",
-    "  width:100%; height:100%; position:relative;",
-    "  transform-style:preserve-3d;",
-    "  transition:transform .38s cubic-bezier(.4,0,.2,1);",
-    "  border-radius:10px;",
-    "}",
-    ".mem-card.flipped .mem-card-inner { transform:rotateY(180deg); }",
-    ".mem-card-front, .mem-card-back {",
-    "  position:absolute; inset:0; border-radius:10px;",
-    "  backface-visibility:hidden;",
-    "  display:flex; align-items:center; justify-content:center;",
-    "}",
-    // Face cachée : rose foncé avec motif losange SVG
-    ".mem-card-front {",
-    "  background:#b94058; overflow:hidden;",
-    "}",
-    ".mem-card-front::after {",
-    "  content:''; position:absolute; inset:0;",
-    "  background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.06) 0,rgba(255,255,255,.06) 1px,transparent 0,transparent 50%);",
-    "  background-size:12px 12px;",
-    "}",
-    // Face visible : blanc avec bordure rose
-    ".mem-card-back {",
-    "  background:#fff; border:1.5px solid #fce7f3;",
-    "  transform:rotateY(180deg); font-size:26px;",
-    "}",
-    ".mem-card.matched .mem-card-back { background:#fdf2f8; border-color:#ec4899; animation:mem-match-pop .45s ease; }",
-    ".mem-card.wrong   .mem-card-back { background:#fff1f2; border-color:#ef4444; }",
-    ".mem-card.blocked { pointer-events:none; opacity:.9; }",
-    "@keyframes mem-match-pop { 0%{transform:rotateY(180deg) scale(1)} 40%{transform:rotateY(180deg) scale(1.12)} 70%{transform:rotateY(180deg) scale(.97)} 100%{transform:rotateY(180deg) scale(1)} }",
-
-    // Turn badge
-    ".mem-turn-badge {",
-    "  display:inline-flex; align-items:center; gap:5px;",
-    "  background:#fce7f3; border:1.5px solid #f9a8d4;",
-    "  border-radius:99px; padding:5px 14px;",
-    "  font-size:12px; font-weight:500; color:#be185d;",
-    "  font-family:'DM Sans',sans-serif;",
-    "  animation:mem-tour-pulse 1.8s ease infinite;",
-    "}",
-    ".mem-turn-badge--other {",
-    "  background:#ede9fe; border-color:#c4b5fd; color:#7c3aed; animation:none;",
-    "}",
-    "@keyframes mem-tour-pulse { 0%{box-shadow:0 0 0 0 rgba(236,72,153,.4)} 70%{box-shadow:0 0 0 8px rgba(236,72,153,0)} 100%{box-shadow:0 0 0 0 rgba(236,72,153,0)} }",
-
-    // Timer pill
-    ".mem-game-timer {",
-    "  display:flex; align-items:center; gap:5px;",
-    "  background:#fff; border:1px solid #f3f4f6; border-radius:99px;",
-    "  padding:4px 12px; font-size:13px; font-weight:500; color:#111827;",
-    "}",
-
-    // Special chips
-    ".mem-special-chip { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:99px; font-size:11px; font-weight:500; }",
-    ".mem-special-chip--vue    { background:#eff6ff; border:1px solid #bfdbfe; color:#1d4ed8; }",
-    ".mem-special-chip--miroir { background:#f5f3ff; border:1px solid #ddd6fe; color:#6d28d9; }",
-    ".mem-special-chip--bombe  { background:#fff7ed; border:1px solid #fed7aa; color:#c2410c; }",
-
-    // Echo cells
-    ".mem-echo-cell {",
-    "  border-radius:16px; background:#fff; border:1.5px solid #fce7f3;",
-    "  display:flex; align-items:center; justify-content:center;",
-    "  cursor:pointer; height:72px; font-size:28px;",
-    "  transition:border-color .15s, background .15s, transform .1s;",
-    "}",
-    ".mem-echo-cell:hover:not(.mem-echo-cell--blocked) { border-color:#f9a8d4; transform:scale(.96); }",
-    ".mem-echo-cell--lit     { border-color:#ec4899 !important; background:#fdf2f8 !important; animation:mem-ebtn-pop .4s ease; }",
-    ".mem-echo-cell--correct { border-color:#22c55e !important; background:#f0fdf4 !important; }",
-    ".mem-echo-cell--wrong   { border-color:#ef4444 !important; background:#fff1f2 !important; }",
-    ".mem-echo-cell--blocked { pointer-events:none; opacity:.75; }",
-    "@keyframes mem-ebtn-pop { 0%{transform:scale(1)} 40%{transform:scale(1.14)} 100%{transform:scale(1)} }",
-
-    // Echo pips
-    ".mem-echo-pip { width:10px; height:10px; border-radius:50%; background:#fce7f3; display:inline-block; transition:background .2s; }",
-    ".mem-echo-pip--done   { background:#ec4899; }",
-    ".mem-echo-pip--active { background:#f9a8d4; box-shadow:0 0 0 3px rgba(236,72,153,.2); }",
-
-    // Archi shapes
-    ".mem-archi-shape {",
-    "  width:44px; height:44px; border-radius:10px; border:1.5px solid;",
-    "  display:flex; align-items:center; justify-content:center;",
-    "  cursor:pointer; font-size:20px;",
-    "  transition:transform .12s, box-shadow .15s;",
-    "}",
-    ".mem-archi-shape:hover { transform:scale(1.1); box-shadow:0 4px 12px rgba(0,0,0,.12); }",
-    ".mem-archi-shape:active { transform:scale(.92); }",
-    ".mem-archi-stack--wrong    { animation:mem-shake-a .4s ease; }",
-    ".mem-archi-stack--complete { animation:mem-shine-a .5s ease; }",
-    "@keyframes mem-shake-a { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)} 40%{transform:translateX(7px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }",
-    "@keyframes mem-shine-a { 0%,100%{box-shadow:none} 50%{box-shadow:0 0 0 6px rgba(34,197,94,.3)} }",
-
-    // Mode cards
-    ".mem-mode-card {",
-    "  border-radius:16px; border:1.5px solid #e5e7eb; background:#fff;",
-    "  cursor:pointer; padding:14px 12px;",
-    "  transition:border-color .2s, transform .15s, box-shadow .2s;",
-    "}",
-    ".mem-mode-card:hover { border-color:#f9a8d4; transform:translateY(-2px); box-shadow:0 8px 24px rgba(236,72,153,.12); }",
-    ".mem-mode-card--selected { border-color:#ec4899 !important; background:#fce7f3 !important; }",
-    ".mem-mode-card--matched  { border-color:#22c55e !important; background:#f0fdf4 !important; }",
-
-    // Vote chips
-    ".mem-vote-chip         { display:inline-block; padding:4px 12px; border-radius:99px; font-size:12px; font-weight:500; background:#f3f4f6; color:#6b7280; }",
-    ".mem-vote-chip--active { background:#fce7f3; border:1px solid #f9a8d4; color:#be185d; }",
-  ].join('\n');
+  // ── Styles CSS dynamiques pour les barres de profil ──
+  var style=document.createElement('style');
+  style.textContent=
+    '.mem-profile-bar{display:flex;justify-content:space-between;align-items:center;background:#fff;border-bottom:1px solid #f3f4f6;padding:12px 20px 14px;gap:8px;flex-shrink:0;}'+
+    '.mem-turn-badge{font-size:12px!important;font-weight:500!important;padding:5px 14px!important;border-radius:99px!important;background:#fce7f3!important;border:1.5px solid #f9a8d4!important;color:#be185d!important;box-shadow:none!important;letter-spacing:0!important;animation:memPulse 1.8s ease infinite!important;}'+
+    '.mem-turn-badge--other{background:#ede9fe!important;border-color:#c4b5fd!important;color:#7c3aed!important;animation:none!important;}'+
+    '@keyframes memPulse{0%{box-shadow:0 0 0 0 rgba(236,72,153,.4)}70%{box-shadow:0 0 0 8px rgba(236,72,153,0)}100%{box-shadow:0 0 0 0 rgba(236,72,153,0)}}'+
+    '.mem-game-timer{font-size:13px!important;font-weight:500!important;color:#111827!important;background:#f9fafb!important;border:1px solid #f3f4f6!important;border-radius:99px!important;padding:4px 10px!important;}'+
+    '.mem-echo-cell{border-radius:16px!important;background:#fff!important;border:1.5px solid #fce7f3!important;box-shadow:0 2px 8px rgba(0,0,0,.04)!important;}'+
+    '.mem-echo-cell--lit{border-color:#ec4899!important;background:#fdf2f8!important;}'+
+    '.mem-echo-cell--correct{border-color:#22c55e!important;background:#f0fdf4!important;}'+
+    '.mem-echo-cell--wrong{border-color:#ef4444!important;background:#fff1f2!important;}'+
+    '.mem-echo-cell--blocked{opacity:.6!important;pointer-events:none!important;}'+
+    '.mem-echo-phase{font-size:13px!important;font-weight:600!important;color:#db2777!important;text-align:center;padding:4px 0 8px!important;}'+
+    '.mem-manche-badge{font-size:11px!important;font-weight:500!important;color:#be185d!important;background:#fce7f3!important;border:1.5px solid #f9a8d4!important;border-radius:99px!important;padding:4px 12px!important;}'+
+    '.mem-gscore--me{color:#ec4899!important;}.mem-gscore--other{color:#7c3aed!important;}'+
+    '.mem-gscore{font-size:32px!important;font-weight:600!important;line-height:1!important;}'+
+    '.mem-game-header{background:#fff!important;border:1px solid #f3f4f6!important;border-radius:16px!important;padding:12px 16px!important;margin-bottom:10px!important;}'+
+    '#memScreenClassic,#memScreenEcho,#memScreenArchi,#memScreenMode,#memScreenLobby{background:#f5f5f7!important;}'+
+    '.mem-card-back{background:#fff!important;border:1.5px solid #fce7f3!important;}'+
+    '.mem-card.matched .mem-card-back{background:#fdf2f8!important;border-color:#ec4899!important;}'+
+    '.mem-card.wrong .mem-card-back{background:#fff1f2!important;border-color:#ef4444!important;}'+
+    '.mem-echo-hearts{font-size:16px!important;letter-spacing:2px!important;}'+
+    '.mem-mode-card--selected{border-color:#ec4899!important;background:#fce7f3!important;}'+
+    '.mem-mode-card--matched{border-color:#22c55e!important;background:#f0fdf4!important;}'+
+    '.mem-vote-chip--active{background:#fce7f3!important;border-color:#f9a8d4!important;color:#be185d!important;}'+
+    '.mem-lobby-player:first-child .mem-lobby-avatar{background:#fce7f3!important;border-color:#f9a8d4!important;}'+
+    '.mem-lobby-player:last-child .mem-lobby-avatar{background:#ede9fe!important;border-color:#c4b5fd!important;}'+
+    '.mem-mode-player:first-child .mem-mode-avatar{background:#fce7f3!important;border-color:#f9a8d4!important;}'+
+    '.mem-mode-player:last-child .mem-mode-avatar{background:#ede9fe!important;border-color:#c4b5fd!important;}';
   document.head.appendChild(style);
 });
 
 // Crée la barre de profil dans un écran si les conteneurs n'existent pas déjà
 function _memEnsureProfileBar(screenId, meId, oppId, extraClass) {
-  if (_memEl(meId) && _memEl(oppId)) return; // déjà présents dans le HTML
-  var screen = _memEl(screenId); if (!screen) return;
-  var bar = document.createElement('div');
-  bar.className = 'mem-profile-bar ' + (extraClass||'');
-
-  var isEcho  = (extraClass||'').indexOf('echo')  !== -1;
-
-  if (isEcho) {
-    // Écho : profil gauche | badge niveau + VS | profil droite
-    bar.innerHTML =
-      '<div id="' + meId  + '" class="mem-profile-bar__me"></div>' +
-      '<div class="mem-profile-bar__vs" style="display:flex;flex-direction:column;align-items:center;gap:4px;">' +
-        '<div id="memEchoLevel" class="mem-echo-lvl-badge">Niveau 1</div>' +
-        '<span class="mem-echo-vs">VS</span>' +
-      '</div>' +
-      '<div id="' + oppId + '" class="mem-profile-bar__opp"></div>';
+  if(_memEl(meId)&&_memEl(oppId))return;
+  var screen=_memEl(screenId);if(!screen)return;
+  var bar=document.createElement('div');
+  bar.className='mem-profile-bar '+(extraClass||'');
+  var isEcho=(extraClass||'').indexOf('echo')!==-1,center;
+  if(isEcho){
+    center='<div style="display:flex;flex-direction:column;align-items:center;gap:4px;"><div id="memEchoLevel" style="background:#fff;border:1.5px solid #fbcfe8;border-radius:99px;padding:4px 14px;font-size:12px;color:#db2777;font-weight:500;">Niveau 1</div><span style="font-size:11px;color:#f9a8d4;font-weight:500;">VS</span></div>';
   } else {
-    // Classique+ / Archi : profil | scores + label | profil
-    var scoreIdMe  = (screenId === 'memScreenClassic') ? 'memClassicScoreMe'    : 'memArchiScoreMe';
-    var scoreIdOth = (screenId === 'memScreenClassic') ? 'memClassicScoreOther' : 'memArchiScoreOther';
-    var mancheId   = (screenId === 'memScreenClassic') ? 'memClassicManche'     : 'memArchiRound';
-    bar.innerHTML =
-      '<div id="' + meId  + '" class="mem-profile-bar__me"></div>' +
-      '<div class="mem-profile-bar__vs" style="display:flex;flex-direction:column;align-items:center;gap:4px;">' +
-        '<div style="display:flex;align-items:center;gap:10px;">' +
-          '<span id="' + scoreIdMe  + '" class="mem-score-me">0</span>' +
-          '<span class="mem-score-sep">–</span>' +
-          '<span id="' + scoreIdOth + '" class="mem-score-other">0</span>' +
-        '</div>' +
-        '<span id="' + mancheId + '" class="mem-manche-label">Manche 1/3</span>' +
-      '</div>' +
-      '<div id="' + oppId + '" class="mem-profile-bar__opp"></div>';
+    var sid=screenId,sMeId=sid==='memScreenClassic'?'memClassicScoreMe':'memArchiScoreMe',sOthId=sid==='memScreenClassic'?'memClassicScoreOther':'memArchiScoreOther',mId=sid==='memScreenClassic'?'memClassicManche':'memArchiRound';
+    center='<div style="display:flex;flex-direction:column;align-items:center;gap:4px;"><div style="display:flex;align-items:center;gap:10px;"><span id="'+sMeId+'" style="font-size:32px;font-weight:600;color:#ec4899;line-height:1;">0</span><span style="font-size:14px;color:#e5e7eb;">&ndash;</span><span id="'+sOthId+'" style="font-size:32px;font-weight:600;color:#7c3aed;line-height:1;">0</span></div><span id="'+mId+'" style="font-size:11px;font-weight:500;color:#f9a8d4;">Manche 1/3</span></div>';
   }
-  screen.insertBefore(bar, screen.firstChild);
+  bar.innerHTML='<div id="'+meId+'"></div>'+center+'<div id="'+oppId+'"></div>';
+  screen.insertBefore(bar,screen.firstChild);
 }
 
 // ── Expose globaux ──
