@@ -334,9 +334,11 @@ function _memVoteMode(mode) {
     if (card) card.classList.add('mem-mode-card--matched');
     if (hint) hint.textContent = '\u2705 Accord ! Lancement…';
     var gameState;
-    if (mode === 'classic' || mode === 'all') {
+    if (mode === 'all') {
+      gameState = _allBuildClassicState(); // manche 1 du ALL
+      gameState.mode = 'all'; gameState.all_step = 'classic';
+    } else if (mode === 'classic') {
       gameState = _memBuildClassicState(1);
-      if (mode === 'all') { gameState.mode = 'all'; }
     } else if (mode === 'echo') {
       gameState = _memBuildEchoState(1, [3, 3]);
     } else if (mode === 'archi') {
@@ -366,17 +368,19 @@ function _memRouteState(state, gameRow) {
 
   if (ph === 'mode_select') {
     _memUpdateVotes(state);
-    // Vérifier si les deux votes concordent (reçu en retard)
     var myVote  = state[_memProfile + '_vote'];
     var oppVote = state[_memOther   + '_vote'];
     if (myVote && oppVote && myVote === oppVote) {
       _memLaunchMode(myVote, gameRow);
     }
 
+  } else if (state.mode === 'all') {
+    // Tout état tagué mode:'all' est géré exclusivement par le routeur ALL
+    _allRouteState(state, gameRow);
+
   } else if (ph === 'classic' || ph === 'echo' || ph === 'archi') {
     var mo = state.mode || ph;
-    if (_memCurrentMode === mo || (mo === 'all' && _memCurrentMode === 'all')) {
-      // Mode déjà actif : appliquer le state directement sans relancer le jeu
+    if (_memCurrentMode === mo) {
       if (ph === 'classic') _memApplyClassicState(state);
       else if (ph === 'echo')  _memApplyEchoState(state);
       else if (ph === 'archi') _memApplyArchiState(state);
@@ -394,27 +398,14 @@ function _memLaunchMode(mode, gameRow) {
   if (_memCurrentMode === mode && mode !== null) return; // anti-double
   _memCurrentMode = mode;
   if (mode === 'all') {
-    _memAllQueue = ['classic','echo','archi']; _memAllResults = {};
-    _memLaunchNextAll(gameRow);
+    _allStart(gameRow);
   } else {
     _memLaunchSingle(mode, gameRow);
   }
 }
 
-function _memLaunchNextAll(gameRow) {
-  if (!_memAllQueue.length) { _memShowAllResults(); return; }
-  var m = _memAllQueue.shift();
-  // Publier le state du prochain sous-mode pour synchroniser les deux joueurs
-  var nextState;
-  if (m === 'echo')  nextState = _memBuildEchoState(1, [3, 3]);
-  else if (m === 'archi') nextState = _memBuildArchiState(1, true);
-  if (nextState && _memMp) {
-    nextState.mode = 'all'; // conserver le contexte ALL
-    _memMp.saveState(nextState);
-  } else {
-    _memLaunchSingle(m, gameRow);
-  }
-}
+
+
 
 function _memLaunchSingle(mode, gameRow) {
   if (mode === 'classic') _memStartClassic(gameRow);
@@ -695,9 +686,7 @@ function _memShowClassicFinal(state) {
   var doneBtn=_memEl('memClassicDoneBtn');
   if (doneBtn) doneBtn.onclick=function(){
     fEl.style.display='none';
-    if (_memCurrentMode==='all'&&_memAllQueue.length>0){_memAllResults.classic={winner:fw};_memLaunchNextAll(null);}
-    else if (_memCurrentMode==='all'){_memAllResults.classic={winner:fw};_memShowAllResults();}
-    else{_memCleanup();_memShowLb(true);_lbLoad();}
+    _memCleanup();_memShowLb(true);_lbLoad();
   };
   if (typeof window.yamFlameActivity==='function') window.yamFlameActivity('memory_done');
 }
@@ -881,9 +870,7 @@ function _memShowEchoResult(state) {
   if(_memProfile==='girl'){var cid=_memGetCoupleId(),dur=Math.round((Date.now()-_memStartedAt)/1000);if(cid)['girl','boy'].forEach(function(r){sb2Post('game_scores',{couple_id:cid,game_id:'memory',player_role:r,score:_echoLevel*100,moves:0,time_seconds:dur,winner_role:state.winner,user_id:typeof yamGetUser==="function"?yamGetUser().id:null}).catch(function(){});});}
   var btn=_memEl('memEchoDoneBtn');if(btn)btn.onclick=function(){
     fEl.style.display='none';
-    if(_memCurrentMode==='all'&&_memAllQueue.length>0){_memAllResults.echo={winner:state.winner};_memLaunchNextAll(null);}
-    else if(_memCurrentMode==='all'){_memAllResults.echo={winner:state.winner};_memShowAllResults();}
-    else{_memCleanup();_memShowLb(true);_lbLoad();}
+    _memCleanup();_memShowLb(true);_lbLoad();
   };
   if(typeof window.yamFlameActivity==='function')window.yamFlameActivity('memory_done');
 }
@@ -1092,32 +1079,538 @@ function _memShowArchiResult(state){
   }
   var btn=_memEl('memArchiDoneBtn');if(btn)btn.onclick=function(){
     fEl.style.display='none';
-    if(_memCurrentMode==='all'){_memAllResults.archi={winner:state.winner};_memShowAllResults();}
-    else{_memCleanup();_memShowLb(true);_lbLoad();}
+    _memCleanup();_memShowLb(true);_lbLoad();
   };
   if(typeof window.yamFlameActivity==='function')window.yamFlameActivity('memory_done');
 }
 
+
+
+
 // ═══════════════════════════════════════════════════════════
-// ALL — Résultat global
+// MODE ALL — Entièrement autonome
+// 3 étapes séquentielles : classic (niveau 2) → echo (niveau 5) → archi (1 round)
+// Chaque state porte mode:'all' + all_step:'classic'|'echo'|'archi'
+// Aucune dépendance aux modes standalone — copie directe de leur logique
 // ═══════════════════════════════════════════════════════════
 
-function _memShowAllResults(){
-  var myW=0;Object.keys(_memAllResults).forEach(function(k){if(_memAllResults[k].winner===_memProfile)myW++;});
-  var othW=Object.keys(_memAllResults).length-myW;
-  if(myW===3)_memUnlockTrophy('osmose',null);
+// ── État local ALL ──
+var _allStep        = null;   // 'classic' | 'echo' | 'archi'
+var _allResults     = {};     // {classic:{winner}, echo:{winner}, archi:{winner}}
+var _allResultShown = false;
+
+// ── État classic ALL ──
+var _allClCards      = [], _allClFlipped = [];
+var _allClGirlPairs  = 0,  _allClBoyPairs = 0, _allClMoves = 0;
+var _allClProcessing = false, _allClTimerStart = 0, _allClTimer = null;
+
+// ── État echo ALL ──
+var _allEchoSeq     = [], _allEchoMyInput = [], _allEchoShowing = false;
+var _allEchoShowInt = null, _allEchoSaved = false;
+
+// ── État archi ALL ──
+var _allArchiMyTarget = [], _allArchiSaved = false, _allArchiPerfect = true;
+
+// ─────────────────────────────────────────────
+// BUILDERS — chaque step a son propre state shape
+// ─────────────────────────────────────────────
+
+// Classique niveau 2 : 10 paires, spéciales vue+miroir, pas de timer
+function _allBuildClassicState() {
+  var pool = MEMORY_EMOJIS.slice(0,10).concat(MEMORY_EMOJIS.slice(0,10));
+  for (var i=pool.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=pool[i];pool[i]=pool[j];pool[j]=t;}
+  return {phase:'classic', mode:'all', all_step:'classic',
+    cards:pool, matched:[], flipped:[], turn:'girl',
+    girl_pairs:0, boy_pairs:0, moves:0, winner:null,
+    specials:['vue','miroir'], timer_start:Date.now()};
+}
+
+// Écho niveau 5 : séquence de 7 items, 2 vies chacun
+function _allBuildEchoState() {
+  var seq=[]; for(var i=0;i<7;i++) seq.push(Math.floor(Math.random()*8));
+  return {phase:'echo', mode:'all', all_step:'echo',
+    sequence:seq, level:5,
+    girl_lives:2, boy_lives:2,
+    girl_input:[], boy_input:[],
+    girl_max_level:0, boy_max_level:0,
+    girl_finish_time:null, boy_finish_time:null,
+    girl_eliminated:false, boy_eliminated:false,
+    winner:null};
+}
+
+// Architecte 1 round, séquence de 4 formes
+function _allBuildArchiState() {
+  var gl=[], bl=[];
+  for(var i=0;i<4;i++){
+    gl.push(Math.floor(Math.random()*ARCHI_SHAPES.length));
+    bl.push(Math.floor(Math.random()*ARCHI_SHAPES.length));
+  }
+  return {phase:'archi', mode:'all', all_step:'archi',
+    manche:1, max_rounds:1,
+    girl_target:gl, boy_target:bl,
+    girl_stack:[], boy_stack:[],
+    girl_errors:0, boy_errors:0,
+    girl_score:0, boy_score:0,
+    girl_done:false, boy_done:false,
+    girl_done_time:null, boy_done_time:null,
+    winner:null, show_until:Date.now()+4000};
+}
+
+// ─────────────────────────────────────────────
+// DÉMARRAGE
+// ─────────────────────────────────────────────
+
+function _allStart(gameRow) {
+  _allStep = null; _allResults = {}; _allResultShown = false;
+  _allEchoSaved = false; _allArchiSaved = false;
+  // Le state initial (classic) a déjà été publié par _memVoteMode
+  // → on route directement depuis le gameRow reçu
+  var state = gameRow && gameRow.state;
+  if (state && state.mode === 'all') _allRouteState(state, gameRow);
+}
+
+// ─────────────────────────────────────────────
+// ROUTEUR ALL — seul point d'entrée pour tous les updates
+// ─────────────────────────────────────────────
+
+function _allRouteState(state, gameRow) {
+  var step = state.all_step;
+  if (!step) return;
+
+  // Changement de step → lancer le bon écran
+  if (step !== _allStep) {
+    _allStep = step;
+    if (step === 'classic') _allStartClassic(state);
+    else if (step === 'echo')  _allStartEcho(state);
+    else if (step === 'archi') _allStartArchi(state);
+    return;
+  }
+
+  // Même step → appliquer le state
+  if (step === 'classic') _allApplyClassicState(state);
+  else if (step === 'echo')  _allApplyEchoState(state);
+  else if (step === 'archi') _allApplyArchiState(state);
+}
+
+// ─────────────────────────────────────────────
+// STEP 1 — CLASSIC
+// ─────────────────────────────────────────────
+
+function _allStartClassic(state) {
+  _allClCards=[]; _allClFlipped=[];
+  _allClGirlPairs=0; _allClBoyPairs=0; _allClMoves=0;
+  _allClProcessing=false; _allClTimerStart=0;
+  if (_allClTimer){clearInterval(_allClTimer);_allClTimer=null;}
+  _memShowScreen('memScreenClassic');
+  var mEl=_memEl('memClassicManche'); if(mEl) mEl.textContent='ALL · Classique';
+  _allApplyClassicState(state);
+}
+
+function _allApplyClassicState(state) {
+  if (!state || _allClProcessing) return;
+  if (state.turn === _memProfile && _allClFlipped.length > 0) return;
+
+  _allClGirlPairs = state.girl_pairs||0;
+  _allClBoyPairs  = state.boy_pairs||0;
+  _allClMoves     = state.moves||0;
+  if (state.timer_start && !_allClTimerStart) _allClTimerStart = state.timer_start;
+
+  var eMe=_memEl('memClassicScoreMe'), eOth=_memEl('memClassicScoreOther');
+  if(eMe) eMe.textContent = _memProfile==='girl'?_allClGirlPairs:_allClBoyPairs;
+  if(eOth) eOth.textContent = _memProfile==='girl'?_allClBoyPairs:_allClGirlPairs;
+
+  if (state.winner && !_allResultShown) {
+    _allResultShown = true;
+    if (_allClTimer){clearInterval(_allClTimer);_allClTimer=null;}
+    _allShowStepResult('classic', state.winner, function() {
+      _allResultShown = false;
+      if (_memMp && _memProfile==='girl') _memMp.saveState(_allBuildEchoState());
+    });
+    return;
+  }
+
+  var grid=_memEl('memClassicGrid'); if(!grid) return;
+  var stCards=state.cards||[];
+  if (_allClCards.length !== stCards.length) {
+    grid.style.gridTemplateColumns='repeat(4,1fr)';
+    grid.innerHTML=''; _allClCards=[];
+    stCards.forEach(function(emoji,idx){
+      var card=document.createElement('div');
+      card.className='mem-card'; card.dataset.emoji=emoji; card.dataset.idx=String(idx);
+      card.innerHTML='<div class="mem-card-inner"><div class="mem-card-front"></div><div class="mem-card-back">'+emoji+'</div></div>';
+      (function(c){c.addEventListener('click',function(){_allClassicCardClick(c);});})(card);
+      grid.appendChild(card); _allClCards.push(card);
+    });
+  }
+
+  var matched=state.matched||[], flipped=state.flipped||[];
+  _allClCards.forEach(function(c,i){
+    if(matched.indexOf(i)!==-1){c.classList.add('flipped','matched');c.classList.remove('wrong','blocked');}
+    else if(flipped.indexOf(i)!==-1){c.classList.add('flipped');c.classList.remove('matched','wrong','blocked');}
+    else{c.classList.remove('flipped','matched','wrong','blocked');}
+  });
+
+  var myTurn=state.turn===_memProfile;
+  if(myTurn && _allClProcessing) return;
+  if(myTurn) _allClFlipped=[];
+  _allClCards.forEach(function(c){if(!c.classList.contains('matched'))c.classList.toggle('blocked',!myTurn);});
+
+  var badge=_memEl('memClassicTurnBadge');
+  if(badge){badge.textContent=myTurn?'🎯 Ton tour':'⏳ '+_memGetName(_memOther);badge.className='mem-turn-badge'+(myTurn?'':' mem-turn-badge--other');}
+
+  var specRow=_memEl('memClassicSpecialRow');
+  if(specRow && state.specials && state.specials.length){
+    specRow.style.display='flex';
+    var lbl={vue:'👁 Vue',miroir:'🪞 Miroir'};
+    var cls={vue:'mem-special-chip--vue',miroir:'mem-special-chip--miroir'};
+    specRow.innerHTML=state.specials.map(function(s){return '<div class="mem-special-chip '+(cls[s]||'')+'">'+(lbl[s]||s)+'</div>';}).join('');
+  }
+
+  if(!_allClTimer && !state.winner && _allClTimerStart){
+    _allClTimer=setInterval(function(){
+      var el=_memEl('memClassicTimer');
+      if(el) el.textContent=_memFormatTime(Math.floor((Date.now()-_allClTimerStart)/1000));
+    },1000);
+  }
+}
+
+function _allClassicCardClick(card) {
+  if(!_memMp||card.classList.contains('flipped')||card.classList.contains('matched')||card.classList.contains('blocked')||_allClProcessing||_allClFlipped.length>=2) return;
+  card.classList.add('flipped');
+  _allClFlipped.push(card);
+
+  var cur=(_memMp.getGameState?_memMp.getGameState():null)||_memLastState||{};
+  var flNow=_allClFlipped.map(function(c){return parseInt(c.dataset.idx);});
+  var maNow=_allClCards.filter(function(c){return c.classList.contains('matched');}).map(function(c){return parseInt(c.dataset.idx);});
+  _memMp.saveState({phase:'classic',mode:'all',all_step:'classic',
+    cards:_allClCards.map(function(c){return c.dataset.emoji;}),
+    matched:maNow,flipped:flNow,turn:_memProfile,
+    girl_pairs:_allClGirlPairs,boy_pairs:_allClBoyPairs,moves:_allClMoves,
+    specials:cur.specials||['vue','miroir'],timer_start:cur.timer_start||_allClTimerStart,winner:null});
+
+  if(_allClFlipped.length!==2) return;
+  _allClProcessing=true;
+  _allClMoves++;
+  _allClCards.forEach(function(c){if(!c.classList.contains('matched'))c.classList.add('blocked');});
+
+  var a=_allClFlipped[0],b=_allClFlipped[1],match=a.dataset.emoji===b.dataset.emoji;
+  setTimeout(function(){
+    _allClProcessing=false;
+    var cur2=(_memMp.getGameState?_memMp.getGameState():null)||_memLastState||{};
+    var matched=_allClCards.filter(function(c){return c.classList.contains('matched');}).map(function(c){return parseInt(c.dataset.idx);});
+    if(match){
+      a.classList.add('matched');b.classList.add('matched');
+      matched=matched.concat([parseInt(a.dataset.idx),parseInt(b.dataset.idx)]);
+      if(_memProfile==='girl') _allClGirlPairs++; else _allClBoyPairs++;
+      var allDone=matched.length===_allClCards.length;
+      var winner=allDone?(_allClGirlPairs>_allClBoyPairs?'girl':_allClBoyPairs>_allClGirlPairs?'boy':'draw'):null;
+      _allClFlipped=[];
+      _allClCards.forEach(function(c){if(!c.classList.contains('matched'))c.classList.remove('blocked');});
+      _memMp.saveState({phase:'classic',mode:'all',all_step:'classic',
+        cards:_allClCards.map(function(c){return c.dataset.emoji;}),
+        matched:matched,flipped:[],turn:_memProfile,
+        girl_pairs:_allClGirlPairs,boy_pairs:_allClBoyPairs,moves:_allClMoves,
+        specials:cur2.specials||['vue','miroir'],timer_start:cur2.timer_start||_allClTimerStart,winner:winner});
+    } else {
+      a.classList.add('wrong');b.classList.add('wrong');
+      setTimeout(function(){
+        a.classList.remove('flipped','wrong');b.classList.remove('flipped','wrong');
+        _allClFlipped=[];
+        _memMp.saveState({phase:'classic',mode:'all',all_step:'classic',
+          cards:_allClCards.map(function(c){return c.dataset.emoji;}),
+          matched:matched,flipped:[],turn:_memProfile==='girl'?'boy':'girl',
+          girl_pairs:_allClGirlPairs,boy_pairs:_allClBoyPairs,moves:_allClMoves,
+          specials:cur2.specials||['vue','miroir'],timer_start:cur2.timer_start||_allClTimerStart,winner:null});
+      },700);
+    }
+  },match?300:0);
+}
+
+// ─────────────────────────────────────────────
+// STEP 2 — ECHO
+// ─────────────────────────────────────────────
+
+function _allStartEcho(state) {
+  _allEchoSeq=[]; _allEchoMyInput=[]; _allEchoShowing=false; _allEchoSaved=false;
+  if(_allEchoShowInt){clearInterval(_allEchoShowInt);_allEchoShowInt=null;}
+  _memShowScreen('memScreenEcho');
+  var lEl=_memEl('memEchoLevel');if(lEl) lEl.textContent='ALL · Écho';
+  var lMe=_memEl('memEchoLivesMe'),lOth=_memEl('memEchoLivesOther');
+  if(lMe) lMe.textContent='❤️❤️'; if(lOth) lOth.textContent='❤️❤️';
+  var grid=_memEl('memEchoGrid');
+  if(grid){grid.innerHTML='';ECHO_EMOJIS.forEach(function(e,i){
+    var cell=document.createElement('div');cell.className='mem-echo-cell mem-echo-cell--blocked';cell.textContent=e;
+    (function(idx){cell.addEventListener('click',function(){_allEchoTap(idx);});})(i);
+    grid.appendChild(cell);
+  });}
+  _allApplyEchoState(state);
+}
+
+function _allApplyEchoState(state) {
+  if(!state||state.all_step!=='echo') return;
+  var prevSeqLen = _allEchoSeq.length;
+  _allEchoSeq = state.sequence||[];
+  if(_allEchoSeq.length !== prevSeqLen) _allEchoShowing=false;
+
+  var ml=_memProfile==='girl'?state.girl_lives:state.boy_lives;
+  var ol=_memProfile==='girl'?state.boy_lives:state.girl_lives;
+  function hearts(n){return['❤️','❤️'].slice(0,Math.max(0,n)).join('')||'💀';}
+  var lMe=_memEl('memEchoLivesMe'),lOth=_memEl('memEchoLivesOther');
+  if(lMe) lMe.textContent=hearts(ml); if(lOth) lOth.textContent=hearts(ol);
+  var lv=_memEl('memEchoLevel');if(lv) lv.textContent='ALL · Niveau '+state.level;
+
+  if(state.winner && !_allEchoSaved){
+    _allEchoSaved=true;
+    _allShowStepResult('echo', state.winner, function(){
+      if(_memMp && _memProfile==='girl') _memMp.saveState(_allBuildArchiState());
+    });
+    return;
+  }
+
+  var meElim=_memProfile==='girl'?state.girl_eliminated:state.boy_eliminated;
+  var myInput=_memProfile==='girl'?state.girl_input:state.boy_input;
+  _memUpdateEchoPips(_allEchoSeq.length,(myInput||[]).length);
+
+  if(meElim){
+    var ph=_memEl('memEchoPhase');if(ph)ph.textContent='💀 Tu attends que '+_memGetName(_memOther)+' finisse…';
+    document.querySelectorAll('#memEchoGrid .mem-echo-cell').forEach(function(c){c.classList.add('mem-echo-cell--blocked');});
+    return;
+  }
+  if((myInput||[]).length<_allEchoSeq.length && !_allEchoShowing){
+    _allEchoShowing=true;
+    _allEchoMyInput=(myInput||[]).slice();
+    _allEchoShowSeq(function(){
+      document.querySelectorAll('#memEchoGrid .mem-echo-cell').forEach(function(c){c.classList.remove('mem-echo-cell--blocked');});
+      var ph=_memEl('memEchoPhase');if(ph)ph.textContent='🎯 Reproduis !';
+    });
+  }
+}
+
+function _allEchoShowSeq(cb){
+  var ph=_memEl('memEchoPhase');if(ph)ph.textContent='👀 Mémorise…';
+  document.querySelectorAll('#memEchoGrid .mem-echo-cell').forEach(function(c){c.classList.add('mem-echo-cell--blocked');});
+  if(_allEchoShowInt)clearInterval(_allEchoShowInt);
+  var idx=0;
+  _allEchoShowInt=setInterval(function(){
+    var cells=document.querySelectorAll('#memEchoGrid .mem-echo-cell');
+    cells.forEach(function(c){c.classList.remove('mem-echo-cell--lit');});
+    if(idx<_allEchoSeq.length){
+      var cell=cells[_allEchoSeq[idx]];if(cell)cell.classList.add('mem-echo-cell--lit');
+      setTimeout(function(){if(cell)cell.classList.remove('mem-echo-cell--lit');},500);
+      idx++;
+    }else{clearInterval(_allEchoShowInt);_allEchoShowInt=null;if(cb)setTimeout(cb,400);}
+  },700);
+}
+
+function _allEchoTap(idx){
+  if(_allEchoMyInput.length>=_allEchoSeq.length||!_memMp) return;
+  var cur=(_memMp.getGameState?_memMp.getGameState():null)||_memLastState;if(!cur)return;
+  var ns=JSON.parse(JSON.stringify(cur));
+  var exp=_allEchoSeq[_allEchoMyInput.length];
+  var cell=document.querySelectorAll('#memEchoGrid .mem-echo-cell')[idx];
+
+  if(idx===exp){
+    if(cell){cell.classList.add('mem-echo-cell--correct');setTimeout(function(){cell.classList.remove('mem-echo-cell--correct');},400);}
+    _allEchoMyInput.push(idx);
+    _memUpdateEchoPips(_allEchoSeq.length,_allEchoMyInput.length);
+    ns[_memProfile+'_input']=_allEchoMyInput.slice();
+    if(_allEchoMyInput.length===_allEchoSeq.length){
+      // Succès — vérifier si les deux ont fini
+      ns[_memProfile+'_max_level']=ns.level||5;
+      ns[_memProfile+'_finish_time']=Date.now();
+      document.querySelectorAll('#memEchoGrid .mem-echo-cell').forEach(function(c){c.classList.add('mem-echo-cell--blocked');});
+      var otherDone=(ns[_memOther+'_input']||[]).length===_allEchoSeq.length;
+      var otherElim=!!(ns[_memOther+'_eliminated']);
+      if(otherDone||otherElim){
+        // Les deux ont fini → winner
+        ns.winner=_memEchoPickWinner(ns);
+      }
+    }
+  } else {
+    if(cell){cell.classList.add('mem-echo-cell--wrong');setTimeout(function(){cell.classList.remove('mem-echo-cell--wrong');},500);}
+    _allEchoMyInput=[];
+    _memUpdateEchoPips(_allEchoSeq.length,0);
+    ns[_memProfile+'_input']=[];
+    ns[_memProfile+'_lives']=Math.max(0,(ns[_memProfile+'_lives']||2)-1);
+    if(ns[_memProfile+'_lives']<=0){
+      ns[_memProfile+'_eliminated']=true;
+      ns[_memProfile+'_max_level']=ns.level||5;
+      ns[_memProfile+'_finish_time']=Date.now();
+      if(ns[_memOther+'_eliminated']) ns.winner=_memEchoPickWinner(ns);
+    }
+  }
+  _memMp.saveState(ns);
+}
+
+// ─────────────────────────────────────────────
+// STEP 3 — ARCHI
+// ─────────────────────────────────────────────
+
+function _allStartArchi(state) {
+  _allArchiMyTarget=[]; _allArchiSaved=false; _allArchiPerfect=true;
+  _memShowScreen('memScreenArchi');
+  var nMe=_memEl('memArchiNameMe'),nOth=_memEl('memArchiNameOther');
+  if(nMe)nMe.textContent=_memGetName(_memProfile);
+  if(nOth)nOth.textContent=_memGetName(_memOther);
+  // Reconstruire la palette avec les listeners ALL
+  var p=_memEl('memArchiShapesMe');if(p){p.innerHTML='';
+    ARCHI_SHAPES.forEach(function(s,i){
+      var d=document.createElement('div');d.className='mem-archi-shape';
+      d.style.background=s.color+'33';d.style.borderColor=s.color+'66';d.textContent=s.emoji;
+      (function(idx){d.addEventListener('click',function(){_allArchiTap(idx);});})(i);
+      p.appendChild(d);
+    });
+  }
+  _allApplyArchiState(state);
+}
+
+function _allApplyArchiState(state) {
+  if(!state||state.all_step!=='archi') return;
+  _allArchiMyTarget=(_memProfile==='girl'?state.girl_target:state.boy_target)||[];
+
+  var rEl=_memEl('memArchiRound');if(rEl)rEl.textContent='ALL · Tour unique';
+
+  var showing=Date.now()<(state.show_until||0);
+  var targetEl=_memEl('memArchiTarget');
+  if(targetEl){
+    if(showing){
+      targetEl.innerHTML='';
+      _allArchiMyTarget.forEach(function(si){
+        var s=ARCHI_SHAPES[si],d=document.createElement('div');
+        d.className='mem-archi-shape';d.style.background=s.color+'33';d.style.borderColor=s.color+'66';d.textContent=s.emoji;
+        targetEl.appendChild(d);
+      });
+      setTimeout(function(){
+        if(targetEl)targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
+        var cur=(_memMp&&_memMp.getGameState?_memMp.getGameState():null)||_memLastState;
+        if(cur)_allApplyArchiState(cur);
+      },state.show_until-Date.now());
+    } else {
+      targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
+    }
+  }
+
+  var phEl=_memEl('memArchiPhase');
+  if(phEl)phEl.textContent=showing?'👀 Mémorise ta tour ! ('+Math.ceil(((state.show_until||0)-Date.now())/1000)+'s)':'🏗️ Reconstruit !';
+
+  _memRenderArchiStack(_memEl('memArchiStackMe'),    _memProfile==='girl'?state.girl_stack:state.boy_stack);
+  _memRenderArchiStack(_memEl('memArchiStackOther'), _memProfile==='girl'?state.boy_stack:state.girl_stack);
+
+  var pal=_memEl('memArchiShapesMe');
+  if(pal)pal.style.pointerEvents=(showing||state[_memProfile+'_done'])?'none':'';
+
+  if(state.winner && !_allArchiSaved){
+    _allArchiSaved=true;
+    _allShowStepResult('archi', state.winner, function(){ _allShowFinal(); });
+  }
+}
+
+function _allArchiTap(si){
+  if(!_memMp)return;
+  var cur=(_memMp.getGameState?_memMp.getGameState():null)||_memLastState;if(!cur)return;
+  if(Date.now()<(cur.show_until||0))return;
+  if(cur[_memProfile+'_done'])return;
+
+  var sp=_memProfile+'_stack';
+  var ns=JSON.parse(JSON.stringify(cur));
+  var myStack=(ns[sp]||[]).concat([si]);
+  ns[sp]=myStack;
+
+  var exp=_allArchiMyTarget[myStack.length-1];
+  if(si!==exp){
+    ns[sp]=[];
+    ns[_memProfile+'_errors']=(ns[_memProfile+'_errors']||0)+1;
+    _allArchiPerfect=false;
+    var sEl=_memEl('memArchiStackMe');
+    if(sEl){sEl.classList.add('mem-archi-stack--wrong');setTimeout(function(){sEl.classList.remove('mem-archi-stack--wrong');},400);}
+    _memMp.saveState(ns);return;
+  }
+
+  if(myStack.length===_allArchiMyTarget.length){
+    ns[_memProfile+'_done']=true;
+    ns[_memProfile+'_done_time']=Date.now();
+    var sEl2=_memEl('memArchiStackMe');
+    if(sEl2){sEl2.classList.add('mem-archi-stack--complete');setTimeout(function(){sEl2.classList.remove('mem-archi-stack--complete');},600);}
+
+    if(ns[_memOther+'_done']){
+      var myT=ns[_memProfile+'_done_time'],othT=ns[_memOther+'_done_time'];
+      var rw=myT<=othT?_memProfile:_memOther;
+      ns[rw+'_score']=(ns[rw+'_score']||0)+1;
+      var gS=ns.girl_score||0,bS=ns.boy_score||0;
+      ns.winner=gS>bS?'girl':bS>gS?'boy':'draw';
+    }
+  }
+  _memMp.saveState(ns);
+}
+
+// ─────────────────────────────────────────────
+// TRANSITIONS ENTRE STEPS
+// ─────────────────────────────────────────────
+
+// Popup de résultat d'une étape — cb appelé quand le joueur confirme (girl publie l'étape suivante)
+function _allShowStepResult(step, winner, cb) {
+  var labels={classic:'Classique',echo:'Écho',archi:'Architecte'};
+  var iWon=winner===_memProfile, isDraw=winner==='draw';
+  _allResults[step]={winner:winner};
+
+  // Réutilise le popup memClassicMancheResult pour toutes les étapes
+  var rEl=_memEl('memClassicMancheResult');if(!rEl){if(cb)cb();return;}
+  var eEl=_memEl('memClassicMancheEmoji'),tEl=_memEl('memClassicMancheTitle'),sEl=_memEl('memClassicMancheSub');
+  if(eEl)eEl.textContent=isDraw?'🤝':iWon?'🏆':'😢';
+  if(tEl)tEl.textContent=isDraw?'Égalité !':iWon?'Tu gagnes le '+labels[step]+' !':_memGetName(_memOther)+' gagne le '+labels[step]+' !';
+  if(sEl)sEl.textContent='';
+  rEl.style.display='flex';
+
+  // Masquer le bouton "Manche suivante" et forcer le bouton "Continuer"
+  var nextBtn=_memEl('memClassicNextBtn');if(nextBtn)nextBtn.style.display='none';
+  var quitBtn=_memEl('memClassicQuitBtn');
+  if(quitBtn){
+    quitBtn.textContent= step==='archi' ? 'Voir le résultat final' : 'Étape suivante →';
+    quitBtn.onclick=function(){
+      rEl.style.display='none';
+      if(cb) cb();
+    };
+  }
+}
+
+// ─────────────────────────────────────────────
+// RÉSULTAT FINAL ALL
+// ─────────────────────────────────────────────
+
+function _allShowFinal() {
+  var myW=0;
+  ['classic','echo','archi'].forEach(function(k){if(_allResults[k]&&_allResults[k].winner===_memProfile)myW++;});
+  var othW=3-myW;
+  if(myW===3) _memUnlockTrophy('osmose',null);
+
   _memShowScreen('memScreenClassic');
   var fEl=_memEl('memClassicFinalResult');if(!fEl)return;fEl.style.display='flex';
   var fw=myW>othW?_memProfile:othW>myW?_memOther:'draw',iWon=fw===_memProfile,isDraw=fw==='draw';
   var eEl=_memEl('memClassicFinalEmoji'),tEl=_memEl('memClassicFinalTitle'),sEl=_memEl('memClassicFinalScore');
   if(eEl)eEl.textContent=isDraw?'🤝':iWon?'🏆':'🎖️';
   if(tEl)tEl.textContent=isDraw?'Égalité !':iWon?'Tu gagnes le ALL ! 🎉':_memGetName(_memOther)+' gagne le ALL !';
-  if(sEl)sEl.textContent=myW+' – '+othW+' (sur 3 modes)';
-  var btn=_memEl('memClassicDoneBtn');if(btn)btn.onclick=function(){_memCleanup();_memShowLb(true);_lbLoad();};
+
+  // Détail par étape
+  var detailParts=['classic','echo','archi'].map(function(k){
+    var r=_allResults[k];if(!r)return k+'?';
+    var w=r.winner;var lbl={classic:'🃏',echo:'👂',archi:'🏗️'};
+    return lbl[k]+(w===_memProfile?'✅':w==='draw'?'🤝':'❌');
+  });
+  if(sEl)sEl.textContent=myW+' – '+othW+' · '+detailParts.join('  ');
+
+  if(_memProfile==='girl'){
+    var cid=_memGetCoupleId(),dur=Math.round((Date.now()-_memStartedAt)/1000);
+    if(cid)['girl','boy'].forEach(function(r){
+      var sc=(r===fw?600:fw==='draw'?300:0);
+      sb2Post('game_scores',{couple_id:cid,game_id:'memory',player_role:r,score:sc,moves:0,time_seconds:dur,winner_role:fw,user_id:typeof yamGetUser==='function'?yamGetUser().id:null}).catch(function(){});
+    });
+  }
+  var btn=_memEl('memClassicDoneBtn');
+  if(btn)btn.onclick=function(){fEl.style.display='none';_memCleanup();_memShowLb(true);_lbLoad();};
+  if(typeof window.yamFlameActivity==='function')window.yamFlameActivity('memory_done');
 }
 
-// ═══════════════════════════════════════════════════════════
-// LEADERBOARD
+
 // ═══════════════════════════════════════════════════════════
 
 var lbCurrentTab='all',lbCurrentData=[];
