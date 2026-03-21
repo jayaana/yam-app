@@ -1664,7 +1664,16 @@ function _allShowStepResult(step, winner, cb) {
   var eEl=_memEl('memClassicMancheEmoji'),tEl=_memEl('memClassicMancheTitle'),sEl=_memEl('memClassicMancheSub');
   if(eEl)eEl.textContent=isDraw?'🤝':iWon?'🏆':'😢';
   if(tEl)tEl.textContent=isDraw?'Égalité !':iWon?'Tu gagnes le '+labels[step]+' !':_memGetName(_memOther)+' gagne le '+labels[step]+' !';
-  if(sEl)sEl.textContent='';
+  // Afficher le score ALL en cours dans le sous-titre
+  var myW=0,othW=0;
+  ['classic','echo','archi'].forEach(function(k){
+    if(_allResults[k]){
+      if(_allResults[k].winner===_memProfile) myW++;
+      else if(_allResults[k].winner===_memOther) othW++;
+    }
+  });
+  var steps_done=['classic','echo','archi'].filter(function(k){return !!_allResults[k];}).length;
+  if(sEl) sEl.textContent=steps_done < 3 ? 'Score ALL : '+myW+' – '+othW+' · '+(3-steps_done)+' étape(s) restante(s)' : '';
   rEl.style.display='flex';
 
   var nextBtn=_memEl('memClassicNextBtn');if(nextBtn)nextBtn.style.display='none';
@@ -1692,8 +1701,11 @@ function _allShowFinal() {
   });
   if(myW===3) _memUnlockTrophy('osmose',null);
 
-  _memShowScreen('memScreenClassic');
-  var fEl=_memEl('memClassicFinalResult');if(!fEl)return;fEl.style.display='flex';
+  // Afficher le résultat final par-dessus tout (sans montrer les cartes du Classique)
+  var fEl=_memEl('memClassicFinalResult');if(!fEl)return;
+  var fElParent=fEl.parentElement, fElNext=fEl.nextSibling;
+  document.body.appendChild(fEl);
+  fEl.style.cssText += ';position:fixed!important;z-index:9999!important;inset:0!important;opacity:1!important;display:flex!important;background:var(--bg,#fff)!important;';
   var fw=myW>othW?_memProfile:othW>myW?_memOther:'draw',iWon=fw===_memProfile,isDraw=fw==='draw';
   var eEl=_memEl('memClassicFinalEmoji'),tEl=_memEl('memClassicFinalTitle'),sEl=_memEl('memClassicFinalScore');
   if(eEl)eEl.textContent=isDraw?'🤝':iWon?'🏆':'🎖️';
@@ -1715,7 +1727,14 @@ function _allShowFinal() {
     });
   }
   var btn=_memEl('memClassicDoneBtn');
-  if(btn)btn.onclick=function(){fEl.style.display='none';if(_memMp&&typeof _memMp.deleteGame==='function')_memMp.deleteGame();_memCleanup();_memShowLb(true);_lbLoad();};
+  if(btn)btn.onclick=function(){
+    fEl.style.display='none';
+    // Remettre fEl à sa place originale avant cleanup
+    if(fElParent) fElParent.insertBefore(fEl, fElNext);
+    fEl.style.position=''; fEl.style.zIndex=''; fEl.style.inset=''; fEl.style.opacity=''; fEl.style.background='';
+    if(_memMp&&typeof _memMp.deleteGame==='function')_memMp.deleteGame();
+    _memCleanup();_memShowLb(true);_lbLoad();
+  };
   if(typeof window.yamFlameActivity==='function')window.yamFlameActivity('memory_done');
 }
 
