@@ -1407,11 +1407,21 @@ function _allApplyEchoState(state) {
   if(state.winner && !_allEchoSaved){
     _allEchoSaved=true;
     var _echoW=state.winner;
-    // Rendre le popup visible par-dessus l'écran Echo (sans changer d'écran)
+    // Déplacer le popup dans body pour contourner le parent display:none
     var _rEl=_memEl('memClassicMancheResult');
-    if(_rEl){ _rEl.style.position='fixed'; _rEl.style.zIndex='999'; _rEl.style.inset='0'; }
+    var _rElParent=_rEl?_rEl.parentElement:null;
+    var _rElNext=_rEl?_rEl.nextSibling:null;
+    if(_rEl){
+      document.body.appendChild(_rEl);
+      _rEl.style.position='fixed'; _rEl.style.zIndex='9999';
+      _rEl.style.inset='0'; _rEl.style.opacity='1';
+    }
     _allShowStepResult('echo', _echoW, function(){
-      if(_rEl){ _rEl.style.position=''; _rEl.style.zIndex=''; _rEl.style.inset=''; }
+      // Remettre le popup à sa place originale
+      if(_rEl && _rElParent){
+        _rElParent.insertBefore(_rEl,_rElNext);
+        _rEl.style.position=''; _rEl.style.zIndex=''; _rEl.style.inset=''; _rEl.style.opacity='';
+      }
       if(_memMp && _allStep==='echo') _memMp.saveState(_allBuildArchiState());
     });
     return;
@@ -1581,11 +1591,20 @@ function _allApplyArchiState(state) {
 
   if(state.winner && !_allArchiSaved){
     _allArchiSaved=true;
-    // Rendre le popup visible par-dessus l'écran Archi (sans changer d'écran)
+    // Déplacer le popup dans body pour contourner le parent display:none
     var _rElA=_memEl('memClassicMancheResult');
-    if(_rElA){ _rElA.style.position='fixed'; _rElA.style.zIndex='999'; _rElA.style.inset='0'; }
+    var _rElAParent=_rElA?_rElA.parentElement:null;
+    var _rElANext=_rElA?_rElA.nextSibling:null;
+    if(_rElA){
+      document.body.appendChild(_rElA);
+      _rElA.style.position='fixed'; _rElA.style.zIndex='9999';
+      _rElA.style.inset='0'; _rElA.style.opacity='1';
+    }
     _allShowStepResult('archi', state.winner, function(){
-      if(_rElA){ _rElA.style.position=''; _rElA.style.zIndex=''; _rElA.style.inset=''; }
+      if(_rElA && _rElAParent){
+        _rElAParent.insertBefore(_rElA,_rElANext);
+        _rElA.style.position=''; _rElA.style.zIndex=''; _rElA.style.inset=''; _rElA.style.opacity='';
+      }
       _allShowFinal();
     });
   }
