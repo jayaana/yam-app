@@ -133,7 +133,8 @@
        de compter deux fois la même partie (une ligne girl + une ligne boy). */
     rows
       .filter(function (r) {
-        return _MULTI_GAMES.indexOf(r.game_id) !== -1 &&
+        var _mIds=['memory','memory_classic','memory_echo','memory_archi','memory_all'];
+        return (_MULTI_GAMES.indexOf(r.game_id) !== -1 || _mIds.indexOf(r.game_id) !== -1) &&
                r.winner_role && r.winner_role !== 'draw' &&
                r.player_role === 'girl';
       })
@@ -145,8 +146,14 @@
 
   /* ── Leaderboard ── */
   function _renderLb(game, rows) {
+    // Pour 'memory' : agréger tous les sous-modes memory_*
+    var _memIds = ['memory', 'memory_classic', 'memory_echo', 'memory_archi', 'memory_all'];
     var gameRows = (rows || [])
-      .filter(function (r) { return r.game_id === game; })
+      .filter(function (r) {
+        return game === 'memory'
+          ? _memIds.indexOf(r.game_id) !== -1
+          : r.game_id === game;
+      })
       .sort(function (a, b) { return (b.score || 0) - (a.score || 0); });
 
     var lblEl = _el('jxLbGame');
@@ -229,11 +236,17 @@
     var el = _el('jxC' + capGame);
     if (!el) return;
 
-    var gameRows = (rows || []).filter(function (r) { return r.game_id === game; });
+    // Pour 'memory' : agréger tous les sous-modes memory_*
+    var memoryIds = ['memory', 'memory_classic', 'memory_echo', 'memory_archi', 'memory_all'];
+    var gameRows = (rows || []).filter(function (r) {
+      return game === 'memory'
+        ? memoryIds.indexOf(r.game_id) !== -1
+        : r.game_id === game;
+    });
     if (!gameRows.length) { el.textContent = '—'; return; }
 
     var g, b;
-    if (_MULTI_GAMES.indexOf(game) !== -1) {
+    if (_MULTI_GAMES.indexOf(game) !== -1 || game === 'memory') {
       // Jeux multi : victoires via winner_role — une ligne girl par partie
       var multiRows = gameRows.filter(function (r) { return r.player_role === 'girl' && r.winner_role && r.winner_role !== 'draw'; });
       g = multiRows.filter(function (r) { return r.winner_role === 'girl'; }).length;
