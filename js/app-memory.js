@@ -487,10 +487,9 @@ function _memUpdateClassicScores() {
 
 function _memApplyClassicState(state) {
   if (!state || _clProcessing) return;
-  // Si c'est mon tour et que j'ai une carte retournée localement,
-  // ignorer seulement si le state entrant recule (moins de cartes flippées)
-  // Laisser passer les états matched ou turn:change
-  if (state.turn === _memProfile && _clFlipped.length > 0 && (state.flipped||[]).length < _clFlipped.length) return;
+  // Ignorer les updates entrants si c'est mon tour et que j'ai une carte
+  // retournée localement — évite que le save intermédiaire réinitialise _clFlipped
+  if (state.turn === _memProfile && _clFlipped.length === 1 && (state.flipped||[]).length === 1) return;
   _clGirlPairs = state.girl_pairs||0; _clBoyPairs = state.boy_pairs||0;
   _clManche    = state.manche||1;     _clMoves    = state.moves||0;
   // Mémoriser le timer_start global dès la manche 1
