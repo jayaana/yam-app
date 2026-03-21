@@ -578,6 +578,7 @@ function _memStartClassic(gameRow) {
   _clCards=[]; _clFlipped=[];
   _memShowScreen('memScreenClassic');
   var _t=_memEl('memViewTitle');if(_t)_t.textContent='Classique+';
+  var _gh=_memEl('memScreenClassic')&&_memEl('memScreenClassic').querySelector('.mem-game-header');if(_gh)_gh.style.display='none';
   _memRenderDualProfiles('memClassicMyProfile', 'memClassicOppProfile');
   _memUpdateClassicHeader();
   // Les deux joueurs recoivent le meme state via onStateUpdate — appliquer directement
@@ -862,6 +863,7 @@ function _memStartEcho(gameRow) {
   _echoLevel=1; _echoSaved=false; _echoPublished=false; _echoSequence=[]; _echoMyInput=[]; _echoShowing=false;
   _memShowScreen('memScreenEcho');
   var _t=_memEl('memViewTitle');if(_t)_t.textContent='Echo';
+  var _gh=_memEl('memScreenEcho')&&_memEl('memScreenEcho').querySelector('.mem-game-header');if(_gh)_gh.style.display='none';
   _memEchoEnsureSeqBar();
   _memRenderEchoProfiles('memEchoMyProfile', 'memEchoOppProfile', 3);
   var lEl=_memEl('memEchoLevel'); if (lEl) lEl.textContent='Niveau 1';
@@ -1089,6 +1091,7 @@ function _memStartArchi(gameRow) {
   _archiRound=1; _archiTarget=[]; _archiMyTarget=[]; _archiPerfect=true; _archiSaved=false;
   _memShowScreen('memScreenArchi');
   var _t=_memEl('memViewTitle');if(_t)_t.textContent='Architecte';
+  var _gh=_memEl('memScreenArchi')&&_memEl('memScreenArchi').querySelector('.mem-game-header');if(_gh)_gh.style.display='none';
   _memArchiSetup3Cols();
   _memRenderDualProfiles('memArchiMyProfile', 'memArchiOppProfile');
   var nMe=_memEl('memArchiNameMe'),nOth=_memEl('memArchiNameOther');
@@ -2032,7 +2035,7 @@ function _memArchiSetup3Cols(){
     if(shapesId){var sh=document.createElement('div');sh.id=shapesId;sh.style.cssText='display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:4px;';col.appendChild(sh);}
     return col;
   }
-  var colMe=makeCol(nameMe.toUpperCase(),isGirl?'#ec4899':'#7c3aed',isGirl?'#fce7f3':'#ede9fe','memArchiStackMe','memArchiShapesMe');
+  var colMe=makeCol(nameMe.toUpperCase(),isGirl?'#ec4899':'#7c3aed',isGirl?'#fce7f3':'#ede9fe','memArchiStackMe',null);
   var colMod=makeCol('MOD\u00c8LE','#9ca3af','#e5e7eb',null,null);
   var tgt=document.createElement('div');tgt.id='memArchiTarget';tgt.style.cssText='display:flex;flex-direction:column;gap:6px;align-items:center;min-height:100px;width:100%;';
   colMod.appendChild(tgt);
@@ -2042,6 +2045,13 @@ function _memArchiSetup3Cols(){
   var oldBld=screen.querySelector('.mem-archi-builders');if(oldBld)oldBld.style.display='none';
   var phase=_memEl('memArchiPhase');
   if(phase&&phase.nextSibling){screen.insertBefore(wrap,phase.nextSibling);}else{screen.appendChild(wrap);}
+  // Palette sous les 3 colonnes
+  var paletteWrap=document.createElement('div');
+  paletteWrap.style.cssText='background:#fff;border:1px solid #f3f4f6;border-radius:14px;padding:10px 12px;margin-top:0;';
+  paletteWrap.innerHTML='<div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;text-align:center;margin-bottom:8px;">PALETTE</div>';
+  var shapesDiv=document.createElement('div');shapesDiv.id='memArchiShapesMe';shapesDiv.style.cssText='display:flex;flex-wrap:wrap;gap:8px;justify-content:center;';
+  paletteWrap.appendChild(shapesDiv);
+  wrap.parentNode.insertBefore(paletteWrap,wrap.nextSibling);
 }
 
 function _memEchoEnsureSeqBar(){
