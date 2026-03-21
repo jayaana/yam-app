@@ -1137,7 +1137,7 @@ var _allEchoSeq     = [], _allEchoMyInput = [], _allEchoShowing = false;
 var _allEchoShowInt = null, _allEchoSaved = false, _allEchoPublished = false;
 
 // ── État archi ALL ──
-var _allArchiMyTarget = [], _allArchiSaved = false, _allArchiPerfect = true;
+var _allArchiMyTarget = [], _allArchiSaved = false, _allArchiPerfect = true, _allArchiShowUntil = 0;
 
 // ─────────────────────────────────────────────
 // BUILDERS — chaque step a son propre state shape
@@ -1191,7 +1191,7 @@ function _allBuildArchiState() {
 function _allStart(gameRow) {
   // Reset complet de tout l'etat ALL — critique pour eviter les residus d'une partie precedente
   _allStep = null; _allResults = {}; _allResultShown = false;
-  _allEchoSaved = false; _allEchoPublished = false; _allArchiSaved = false;
+  _allEchoSaved = false; _allEchoPublished = false; _allArchiSaved = false; _allArchiShowUntil = 0;
   // Reset etat Classic ALL
   _allClCards = []; _allClFlipped = [];
   _allClGirlPairs = 0; _allClBoyPairs = 0; _allClMoves = 0;
@@ -1451,6 +1451,18 @@ function _allApplyEchoState(state) {
     return;
   }
 
+  // Filet de sécurité 3 : je suis survivant, l'adversaire est éliminé, winner non publié
+  // Couvre le cas où girl réussit mais son état local n'avait pas encore boy_eliminated=true
+  var iAmSurvivor = !meElim && othElim;
+  var iFinished = (myInput||[]).length === _allEchoSeq.length;
+  if(iAmSurvivor && iFinished && !state.winner && !_allEchoPublished && _memMp){
+    _allEchoPublished=true;
+    var ns4=JSON.parse(JSON.stringify(state));
+    ns4.winner=_memEchoPickWinner(ns4)||'draw';
+    _memMp.saveState(ns4);
+    return;
+  }
+
   if(meElim){
     var ph=_memEl('memEchoPhase');if(ph)ph.textContent='💀 Tu attends que '+_memGetName(_memOther)+' finisse…';
     document.querySelectorAll('#memEchoGrid .mem-echo-cell').forEach(function(c){c.classList.add('mem-echo-cell--blocked');});
@@ -1550,10 +1562,11 @@ function _allStartArchi(state) {
       p.appendChild(d);
     });
   }
-  // Recalculer show_until localement : chaque joueur a ses 4s d'animation
-  // complètes peu importe quand il arrive sur cet écran
+  // Recalculer show_until localement : chaque joueur a ses 4s complètes
+  // On stocke dans _allArchiShowUntil pour que les polls suivants respectent aussi ce délai
+  _allArchiShowUntil = Date.now() + 4000;
   var localState = JSON.parse(JSON.stringify(state));
-  localState.show_until = Date.now() + 4000;
+  localState.show_until = _allArchiShowUntil;
   _allApplyArchiState(localState);
 }
 
@@ -1563,7 +1576,10 @@ function _allApplyArchiState(state) {
 
   var rEl=_memEl('memArchiRound');if(rEl)rEl.textContent='ALL · Tour unique';
 
-  var showing=Date.now()<(state.show_until||0);
+  // Utiliser le max entre le show_until serveur et le show_until local
+  // pour garantir 4s d'animation même si les polls reçoivent le state original
+  var effectiveShowUntil = Math.max(state.show_until||0, _allArchiShowUntil||0);
+  var showing=Date.now()<effectiveShowUntil;
   var targetEl=_memEl('memArchiTarget');
   if(targetEl){
     if(showing){
