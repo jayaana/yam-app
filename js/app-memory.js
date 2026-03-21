@@ -478,6 +478,7 @@ function _memApplyClassicState(state) {
   // ignorer l'update entrant pour ne pas perturber mon jeu en cours
   if (state.turn === _memProfile && _clFlipped.length > 0) return;
   _clGirlPairs = state.girl_pairs||0; _clBoyPairs = state.boy_pairs||0;
+  var _prevManche = _clManche;         // snapshot AVANT écrasement
   _clManche    = state.manche||1;     _clMoves    = state.moves||0;
   // Mémoriser le timer_start global dès la manche 1
   if (state.timer_start && !_clTimerStart) _clTimerStart = state.timer_start;
@@ -500,12 +501,12 @@ function _memApplyClassicState(state) {
   }
 
   var grid = _memEl('memClassicGrid'); if (!grid) return;
-  // Reconstruire la grille si la longueur change OU si la manche change
-  // (manches 2 et 3 ont toutes les deux 20 cartes — la longueur seule ne suffit pas)
   var _stateCards = state.cards || [];
-  var _needRebuild = _clCards.length !== _stateCards.length || state.manche !== _clManche;
-  if (_needRebuild) {
-    var mcfg = _CLASSIC_CFGS[Math.min(_clManche-1, _CLASSIC_CFGS.length-1)];
+  // Reconstruire la grille si la longueur change OU si la manche a changé.
+  // IMPORTANT : comparer avec _prevManche (snapshot avant l'écrasement de _clManche),
+  // sinon state.manche === _clManche est toujours vrai à ce stade.
+  if (_clCards.length !== _stateCards.length || _clManche !== _prevManche) {
+    var mcfg = _CLASSIC_CFGS[Math.min((state.manche||1)-1, _CLASSIC_CFGS.length-1)];
     grid.style.width = '100%';
     grid.style.gridTemplateColumns = 'repeat('+mcfg.cols+', 1fr)';
     grid.innerHTML=''; _clCards=[];
