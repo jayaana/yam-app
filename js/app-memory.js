@@ -1407,6 +1407,8 @@ function _allApplyEchoState(state) {
   if(state.winner && !_allEchoSaved){
     _allEchoSaved=true;
     var _echoW=state.winner;
+    // Basculer sur memScreenClassic où se trouve le popup de résultat
+    _memShowScreen('memScreenClassic');
     _allShowStepResult('echo', _echoW, function(){
       if(_memMp && _allStep==='echo') _memMp.saveState(_allBuildArchiState());
     });
@@ -1577,6 +1579,8 @@ function _allApplyArchiState(state) {
 
   if(state.winner && !_allArchiSaved){
     _allArchiSaved=true;
+    // Basculer sur memScreenClassic où se trouve le popup de résultat
+    _memShowScreen('memScreenClassic');
     _allShowStepResult('archi', state.winner, function(){ _allShowFinal(); });
   }
 }
