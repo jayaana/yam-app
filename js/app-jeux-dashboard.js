@@ -397,7 +397,8 @@
         var favLbl = _el('jxAvgLbl');
         if (favLbl) favLbl.textContent = 'Durée moy. ' + ((_GAME_LABEL[fav] || fav));
 
-        ['ocho', 'skyjo', 'memory_classic', 'memory_echo', 'memory_archi', 'memory_all', 'pendu', 'puzzle', 'snake'].forEach(function (g) {
+        // 'memory' agrège tous les sous-modes memory_* dans _renderChip
+        ['ocho', 'skyjo', 'memory', 'pendu', 'puzzle', 'snake'].forEach(function (g) {
           _renderChip(g, r, myRole);
         });
 
