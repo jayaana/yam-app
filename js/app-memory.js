@@ -905,7 +905,10 @@ function _memStartArchi(gameRow) {
   var isAll = _memCurrentMode === 'all';
   var stateA = gameRow && gameRow.state;
   if (stateA && stateA.phase === 'archi') {
-    _memApplyArchiState(stateA);
+    // Recalculer show_until localement pour garantir 4s d'animation complètes
+    var localStateA = JSON.parse(JSON.stringify(stateA));
+    localStateA.show_until = Date.now() + 4000;
+    _memApplyArchiState(localStateA);
   }
   // Sinon : state arrive via onStateUpdate
 }
@@ -1547,7 +1550,11 @@ function _allStartArchi(state) {
       p.appendChild(d);
     });
   }
-  _allApplyArchiState(state);
+  // Recalculer show_until localement : chaque joueur a ses 4s d'animation
+  // complètes peu importe quand il arrive sur cet écran
+  var localState = JSON.parse(JSON.stringify(state));
+  localState.show_until = Date.now() + 4000;
+  _allApplyArchiState(localState);
 }
 
 function _allApplyArchiState(state) {
