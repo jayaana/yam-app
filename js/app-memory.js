@@ -375,9 +375,11 @@ function _memRouteState(state, gameRow) {
 
   } else if (ph === 'classic' || ph === 'echo' || ph === 'archi') {
     var mo = state.mode || ph;
-    if (mo === 'all' && _memCurrentMode === 'all') {
-      // Transition dans le mode ALL (classic->echo->archi) : appliquer directement
-      _memLaunchSingle(ph, gameRow);
+    if (_memCurrentMode === mo || (mo === 'all' && _memCurrentMode === 'all')) {
+      // Mode déjà actif : appliquer le state directement sans relancer le jeu
+      if (ph === 'classic') _memApplyClassicState(state);
+      else if (ph === 'echo')  _memApplyEchoState(state);
+      else if (ph === 'archi') _memApplyArchiState(state);
     } else {
       _memLaunchMode(mo, gameRow);
     }
