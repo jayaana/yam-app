@@ -683,8 +683,15 @@ function _memShowClassicFinal(state) {
   if (_memProfile==='girl') {
     var cid=_memGetCoupleId(),dur=Math.round((Date.now()-_memStartedAt)/1000);
     if (cid) ['girl','boy'].forEach(function(r){
-      var sc=Math.round(((r==='girl'?gW:bW)/Math.max(1,gW+bW))*1000);
-      sb2Post('game_scores',{couple_id:cid,game_id:'memory',player_role:r,score:sc,moves:_clTotalMoves,time_seconds:dur,winner_role:fw,user_id:typeof yamGetUser==="function"?yamGetUser().id:null}).catch(function(){});
+      var myPairs = r==='girl'?gW:bW;
+      var total   = Math.max(1, gW+bW);
+      var iWin    = fw===r, isDraw = fw==='draw';
+      // Proportion de paires (0-600) + bonus victoire (200) ou draw (100) + bonus vitesse (0-200)
+      var sc_pairs   = Math.round((myPairs/total)*600);
+      var sc_win     = iWin?200:(isDraw?100:0);
+      var sc_speed   = dur>0 ? Math.max(0, Math.round(200 - (dur/3))) : 0; // -1pt/3s, max 200
+      var sc         = Math.min(1000, sc_pairs + sc_win + sc_speed);
+      sb2Post('game_scores',{couple_id:cid,game_id:'memory_classic',player_role:r,score:sc,moves:_clTotalMoves,time_seconds:dur,winner_role:fw,user_id:typeof yamGetUser==="function"?yamGetUser().id:null}).catch(function(){});
     });
   }
   var doneBtn=_memEl('memClassicDoneBtn');
@@ -882,7 +889,20 @@ function _memShowEchoResult(state) {
     var othMaxLv= _memProfile==='girl'?(state.boy_max_level||0):(state.girl_max_level||0);
     sEl.textContent='Niveau max : '+myMaxLv+' vs '+othMaxLv;
   }
-  if(_memProfile==='girl'){var cid=_memGetCoupleId(),dur=Math.round((Date.now()-_memStartedAt)/1000);if(cid)['girl','boy'].forEach(function(r){sb2Post('game_scores',{couple_id:cid,game_id:'memory',player_role:r,score:_echoLevel*100,moves:0,time_seconds:dur,winner_role:state.winner,user_id:typeof yamGetUser==="function"?yamGetUser().id:null}).catch(function(){});});}
+  if(_memProfile==='girl'){
+  var cid=_memGetCoupleId(),dur=Math.round((Date.now()-_memStartedAt)/1000);
+  if(cid)['girl','boy'].forEach(function(r){
+    var maxLv   = r==='girl'?(state.girl_max_level||_echoLevel):(state.boy_max_level||0);
+    var survived= r==='girl'?!state.girl_eliminated:!state.boy_eliminated;
+    var iWin    = state.winner===r, isDraw = state.winner==='draw';
+    // Niveau max atteint (0-640) + survie (200) + victoire (100) ou draw (50)
+    var sc_level = Math.min(640, maxLv*80);
+    var sc_surv  = survived?200:0;
+    var sc_win   = iWin?100:(isDraw?50:0);
+    var sc       = Math.min(1000, sc_level+sc_surv+sc_win);
+    sb2Post('game_scores',{couple_id:cid,game_id:'memory_echo',player_role:r,score:sc,moves:0,time_seconds:dur,winner_role:state.winner,user_id:typeof yamGetUser==="function"?yamGetUser().id:null}).catch(function(){});
+  });
+}
   var btn=_memEl('memEchoDoneBtn');if(btn)btn.onclick=function(){
     fEl.style.display='none';
     if (_memMp && typeof _memMp.deleteGame === 'function') _memMp.deleteGame();
@@ -1097,10 +1117,17 @@ function _memShowArchiResult(state){
   if(_memProfile==='girl'){
     var cid=_memGetCoupleId(),dur=Math.round((Date.now()-_memStartedAt)/1000);
     if(cid)['girl','boy'].forEach(function(r){
-      var sc=(r==='girl'?(state.girl_score||0):(state.boy_score||0))*333;
-      sb2Post('game_scores',{couple_id:cid,game_id:'memory',player_role:r,score:sc,
-        moves:r==='girl'?(state.girl_errors||0):(state.boy_errors||0),
-        time_seconds:dur,winner_role:state.winner,
+      var rounds     = r==='girl'?(state.girl_score||0):(state.boy_score||0);
+      var errors     = r==='girl'?(state.girl_errors||0):(state.boy_errors||0);
+      var maxRounds  = state.max_rounds||3;
+      var iWin       = state.winner===r, isDraw = state.winner==='draw';
+      // Rounds gagnés (0-600) + précision zéro erreur (200) + victoire (200)
+      var sc_rounds  = Math.round((rounds/Math.max(1,maxRounds))*600);
+      var sc_perfect = errors===0?200:Math.max(0,200-errors*20);
+      var sc_win     = iWin?200:(isDraw?100:0);
+      var sc         = Math.min(1000, sc_rounds+sc_perfect+sc_win);
+      sb2Post('game_scores',{couple_id:cid,game_id:'memory_archi',player_role:r,score:sc,
+        moves:errors, time_seconds:dur, winner_role:state.winner,
         user_id:typeof yamGetUser==='function'?yamGetUser().id:null}).catch(function(){});
     });
   }
@@ -1756,8 +1783,19 @@ function _allShowFinal() {
   if(_memProfile==='girl'){
     var cid=_memGetCoupleId(),dur=Math.round((Date.now()-_memStartedAt)/1000);
     if(cid)['girl','boy'].forEach(function(r){
-      var sc=(r===fw?600:fw==='draw'?300:0);
-      sb2Post('game_scores',{couple_id:cid,game_id:'memory',player_role:r,score:sc,moves:0,time_seconds:dur,winner_role:fw,user_id:typeof yamGetUser==='function'?yamGetUser().id:null}).catch(function(){});
+      // Score ALL = victoires cumulées pondérées + bonus victoire finale
+      var wins   = 0;
+      ['classic','echo','archi'].forEach(function(k){
+        if(_allResults[k]){
+          if(_allResults[k].winner===r) wins+=300;
+          else if(_allResults[k].winner==='draw') wins+=150;
+        }
+      });
+      var iWin   = fw===r, isDraw = fw==='draw';
+      var sc_win = iWin?100:(isDraw?50:0); // bonus victoire globale
+      var sc     = Math.min(1000, wins+sc_win);
+      // game_id 'memory_all' pour badge distinct dans le classement
+      sb2Post('game_scores',{couple_id:cid,game_id:'memory_all',player_role:r,score:sc,moves:0,time_seconds:dur,winner_role:fw,user_id:typeof yamGetUser==='function'?yamGetUser().id:null}).catch(function(){});
     });
   }
   var btn=_memEl('memClassicDoneBtn');
@@ -1781,7 +1819,8 @@ function _lbLoad(){
   var list=_memEl('lbList');if(!list)return;
   list.innerHTML='<div class="lb-loading"><span class="spinner"></span></div>';
   var cid=_memGetCoupleId();if(!cid){list.innerHTML='<div class="lb-empty">Session expirée</div>';return;}
-  sb2Fetch('game_scores','couple_id=eq.'+cid+'&game_id=eq.memory&order=score.desc&limit=50')
+  // Charger tous les sous-modes memory
+  sb2Fetch('game_scores','couple_id=eq.'+cid+'&game_id=in.(memory_classic,memory_echo,memory_archi,memory_all)&order=score.desc&limit=50')
     .then(function(r){lbCurrentData=Array.isArray(r)?r:[];lbRender(lbCurrentData);})
     .catch(function(){if(list)list.innerHTML='<div class="lb-empty">Aucun score encore 🎮</div>';});
 }
@@ -1791,11 +1830,14 @@ function lbRender(rows){
   var top=(lbCurrentTab==='all'?rows:rows.filter(function(r){return r.player_role===lbCurrentTab;})).slice(0,10);
   if(!top.length){list.innerHTML='<div class="lb-empty">Aucun score encore 🎮</div>';return;}
   var icons=['🥇','🥈','🥉'];
+  var modeLabel={'memory_classic':'🃏','memory_echo':'🔊','memory_archi':'🏗️','memory_all':'⚡'};
   list.innerHTML=top.map(function(row,i){
     var name=typeof v2GetDisplayName==='function'?v2GetDisplayName(row.player_role):row.player_role;
     var m=Math.floor(parseInt(row.time_seconds||0)/60),s=parseInt(row.time_seconds||0)%60;
     var ts=m?m+'m'+String(s).padStart(2,'0')+'s':s+'s';
-    return '<div class="lb-row"><div class="lb-rank">'+(icons[i]||(i+1))+'</div><div class="lb-name">'+(typeof escHtml==='function'?escHtml(name):name)+'</div><div class="lb-score"><span>'+parseInt(row.score||0)+'pts</span> · '+ts+'</div></div>';
+    var badge=modeLabel[row.game_id]||'🎴';
+    var allBadge=row.game_id==='memory_all'?'<span style="font-size:9px;font-weight:700;background:linear-gradient(135deg,#f97316,#eab308);color:#fff;border-radius:5px;padding:1px 4px;margin-left:3px;">ALL</span>':'';
+    return '<div class="lb-row"><div class="lb-rank">'+(icons[i]||(i+1))+'</div><div class="lb-name">'+badge+' '+(typeof escHtml==='function'?escHtml(name):name)+allBadge+'</div><div class="lb-score"><span>'+parseInt(row.score||0)+'pts</span> · '+ts+'</div></div>';
   }).join('');
 }
 
