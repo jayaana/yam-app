@@ -474,9 +474,9 @@ function _memUpdateClassicScores() {
 
 function _memApplyClassicState(state) {
   if (!state || _clProcessing) return;
-  // Si c'est mon tour et que j'ai déjà une carte retournée localement,
-  // ignorer l'update entrant pour ne pas perturber mon jeu en cours
-  if (state.turn === _memProfile && _clFlipped.length > 0) return;
+  // Si c'est mon tour et qu'il y a des cartes retournées dans le state entrant
+  // (= save intermédiaire de ma 1ère carte), ignorer pour ne pas perturber mon jeu
+  if (state.turn === _memProfile && (state.flipped||[]).length > 0) return;
   _clGirlPairs = state.girl_pairs||0; _clBoyPairs = state.boy_pairs||0;
   _clManche    = state.manche||1;     _clMoves    = state.moves||0;
   // Mémoriser le timer_start global dès la manche 1
@@ -515,9 +515,13 @@ function _memApplyClassicState(state) {
   }
 
   var matched=state.matched||[], flipped=state.flipped||[];
+  // Fusionner les cartes localement retournées pour éviter le clignotement visuel
+  var localFlipped = _clFlipped.map(function(c){return parseInt(c.dataset.idx);});
+  var mergedFlipped = flipped.slice();
+  localFlipped.forEach(function(idx){ if(mergedFlipped.indexOf(idx)===-1) mergedFlipped.push(idx); });
   _clCards.forEach(function(c,i) {
     if (matched.indexOf(i)!==-1){c.classList.add('flipped','matched');c.classList.remove('wrong','blocked');}
-    else if(flipped.indexOf(i)!==-1){c.classList.add('flipped');c.classList.remove('matched','wrong','blocked');}
+    else if(mergedFlipped.indexOf(i)!==-1){c.classList.add('flipped');c.classList.remove('matched','wrong','blocked');}
     else{c.classList.remove('flipped','matched','wrong','blocked');}
   });
 
@@ -525,7 +529,9 @@ function _memApplyClassicState(state) {
   // Bloquer uniquement si on est en train de traiter une paire (setTimeout en cours)
   if (myTurn && _clProcessing) return;
   // C'est mon tour → réinitialiser _clFlipped (nouveau tour propre)
-  if (myTurn) _clFlipped = [];
+  // Réinitialiser _clFlipped seulement si le state indique un tour propre (flipped vide)
+  // Si flipped n'est pas vide, un coup est en cours — ne pas écraser _clFlipped local
+  if (myTurn && (state.flipped||[]).length === 0) _clFlipped = [];
   _memSetClassicBlocked(!myTurn);
 
   var badge=_memEl('memClassicTurnBadge');
