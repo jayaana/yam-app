@@ -443,7 +443,8 @@
           } else {
             showAlert('⏱️', 'Partie expirée — les deux joueurs étaient absents', function(){
               _bothAbsentHandled = false;
-              enterLobby();
+              // Laisser le jeu gerer la fermeture via onLeave plutot que enterLobby() direct
+              _doLeave();
             });
           }
           return;
@@ -611,6 +612,19 @@
       resetState();
     }
 
+    // ─── Fin de partie : suppression inconditionnelle ─────────────────────
+    // A appeler UNIQUEMENT quand la partie est vraiment terminee (winner connu).
+    // Contrairement a leave(), supprime la partie quel que soit son status (playing ou waiting).
+    // Ne pas appeler lors d'un retour temporaire (bouton retour) car cela detruirait
+    // la mecanique de reconnexion (adversaire qui attend 20s).
+    function deleteGame(){
+      if(!_gameId) return;
+      var gid = _gameId;
+      fetch(SB_URL+'/rest/v1/'+GAME_TABLE+'?id=eq.'+gid, {
+        method:'DELETE', headers:sb2Headers()
+      }).catch(function(){});
+    }
+
     function _doLeave(){
       leave();
       if(cfg.onLeave) cfg.onLeave();
@@ -770,6 +784,7 @@
       getMe:          function(){ return _me; },
       getOther:       function(){ return _other; },
       getGameState:   function(){ return _gameState; },
+      deleteGame:     deleteGame,
       isSaving:       function(){ return _saving; },
       isLaunched:     function(){ return _launched; },
       startReconnectWait: function(){ _waitingForReconnect = true; startPoll(); startReconnectWait(); }
