@@ -93,6 +93,87 @@ function _memLoadAvatar(containerEl, userId, role, size) {
   probe.src = url;
 }
 
+// ── Injection dynamique des barres de profil joueurs ──
+// Appelé au lancement de chaque mode pour injecter avatar + nom + dot adversaire
+// dans les conteneurs prévus dans le HTML (ou les créer si absents)
+
+function _memInjectProfileBar(containerElId, userId, role, isOpponent, showDot) {
+  var u = typeof yamGetUser === 'function' ? yamGetUser() : null;
+  var uid = userId || (u ? (role === _memProfile ? u.id : u.partner_id) : null);
+  var container = _memEl(containerElId);
+  if (!container) return;
+  var name = _memGetName(role);
+  var dotHtml = (isOpponent && showDot)
+    ? '<span id="' + containerElId + 'Dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#444;margin-left:4px;vertical-align:middle;transition:background .3s,box-shadow .3s;"></span>'
+    : '';
+  container.innerHTML =
+    '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">' +
+      '<div id="' + containerElId + 'Av" style="width:40px;height:40px;border-radius:50%;overflow:hidden;background:var(--surface2,#1e1e2e);flex-shrink:0;"></div>' +
+      '<div style="display:flex;align-items:center;gap:3px;">' +
+        '<span style="font-size:12px;font-weight:600;color:var(--text,#cdd6f4);white-space:nowrap;">' + name + '</span>' +
+        dotHtml +
+      '</div>' +
+    '</div>';
+  _memLoadAvatar(_memEl(containerElId + 'Av'), uid, role, 40);
+}
+
+// Met à jour le dot de présence adversaire dans n'importe quel écran
+function _memUpdatePresenceDot(containerElId, isOnline) {
+  var dot = _memEl(containerElId + 'Dot');
+  if (!dot) return;
+  dot.style.background   = isOnline ? '#22c55e' : '#666';
+  dot.style.boxShadow    = isOnline ? '0 0 6px rgba(34,197,94,0.8)' : 'none';
+}
+
+// Injecte ou met à jour les deux profils dans un écran donné
+// me_id / opp_id = IDs des conteneurs parent pour "moi" et "adversaire"
+// Injecte les profils Echo avec coeurs intégrés (avatar + nom + ❤️)
+// maxLives = nb max de coeurs (3 standalone, 2 ALL)
+function _memRenderEchoProfiles(meContainerId, oppContainerId, maxLives) {
+  var u = typeof yamGetUser === 'function' ? yamGetUser() : null;
+  // IDs des éléments de vies — on utilise ceux attendus par _memApplyEchoState
+  // Si déjà existants dans le HTML on les laisse, sinon on les crée dans la barre
+  var livesExistMe  = !!_memEl('memEchoLivesMe');
+  var livesExistOth = !!_memEl('memEchoLivesOther');
+  function renderOne(cid, userId, role, isOpp) {
+    var c = _memEl(cid); if (!c) return;
+    var name = _memGetName(role);
+    var dotHtml = isOpp
+      ? '<span id="' + cid + 'Dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#444;margin-left:3px;vertical-align:middle;transition:background .3s,box-shadow .3s;"></span>'
+      : '';
+    var livesId = isOpp ? 'memEchoLivesOther' : 'memEchoLivesMe';
+    var livesAlreadyExists = isOpp ? livesExistOth : livesExistMe;
+    var hearts = new Array(maxLives).fill('❤️').join('');
+    // Créer la div lives ici seulement si pas déjà dans le HTML
+    var livesHtml = livesAlreadyExists
+      ? '' // existant dans le HTML → on le remplit séparément
+      : '<div id="' + livesId + '" style="font-size:15px;letter-spacing:1px;min-height:20px;">' + hearts + '</div>';
+    c.innerHTML =
+      '<div style="display:flex;flex-direction:column;align-items:center;gap:5px;min-width:70px;">' +
+        '<div id="' + cid + 'Av" style="width:36px;height:36px;border-radius:50%;overflow:hidden;background:var(--surface2,#1e1e2e);flex-shrink:0;border:2px solid ' + (isOpp ? 'var(--mauve,#cba6f7)' : 'var(--pink,#f38ba8)') + ';"></div>' +
+        '<div style="display:flex;align-items:center;gap:2px;">' +
+          '<span style="font-size:11px;font-weight:600;color:var(--subtext1,#a6adc8);">' + name + '</span>' +
+          dotHtml +
+        '</div>' +
+        livesHtml +
+      '</div>';
+    _memLoadAvatar(_memEl(cid + 'Av'), userId, role, 36);
+    // Initialiser la div lives existante avec les bons coeurs
+    if (livesAlreadyExists) {
+      var lEl = _memEl(livesId);
+      if (lEl) lEl.textContent = hearts;
+    }
+  }
+  renderOne(meContainerId,  u ? u.id         : null, _memProfile, false);
+  renderOne(oppContainerId, u ? u.partner_id : null, _memOther,   true);
+}
+
+function _memRenderDualProfiles(meContainerId, oppContainerId) {
+  var u = typeof yamGetUser === 'function' ? yamGetUser() : null;
+  _memInjectProfileBar(meContainerId,  u ? u.id         : null, _memProfile, false, false);
+  _memInjectProfileBar(oppContainerId, u ? u.partner_id : null, _memOther,   true,  true);
+}
+
 function _memShowScreen(id) {
   ['memScreenLobby','memScreenMode','memScreenClassic','memScreenEcho','memScreenArchi'].forEach(function(s) {
     var el = _memEl(s);
@@ -238,6 +319,7 @@ function _memStartLobby() {
     },
 
     onPresenceUpdate: function(isOnline) {
+      // Mettre à jour tous les dots adversaire dans tous les écrans actifs
       var dot  = _memEl('memClassicOppDot');
       var name = _memEl('memClassicOppName');
       if (dot) {
@@ -247,6 +329,10 @@ function _memStartLobby() {
         dot.style.borderRadius = '50%'; dot.style.display = 'inline-block';
       }
       if (name) name.textContent = _memGetName(_memOther);
+      // Nouveaux dots injectés dynamiquement par _memInjectProfileBar
+      _memUpdatePresenceDot('memClassicOppProfile', isOnline);
+      _memUpdatePresenceDot('memEchoOppProfile',     isOnline);
+      _memUpdatePresenceDot('memArchiOppProfile',    isOnline);
     },
 
     onMatchFound: function(gameRow) {
@@ -458,6 +544,8 @@ function _memStartClassic(gameRow) {
   if (_clTimer) { clearInterval(_clTimer); _clTimer=null; }
   _clCards=[]; _clFlipped=[];
   _memShowScreen('memScreenClassic');
+  // Injecter les profils dans la barre adversaire
+  _memRenderDualProfiles('memClassicMyProfile', 'memClassicOppProfile');
   _memUpdateClassicHeader();
   // Les deux joueurs recoivent le meme state via onStateUpdate — appliquer directement
   var state = gameRow && gameRow.state;
@@ -740,9 +828,9 @@ function _memShowClassicFinal(state) {
 function _memStartEcho(gameRow) {
   _echoLevel=1; _echoSaved=false; _echoPublished=false; _echoSequence=[]; _echoMyInput=[]; _echoShowing=false;
   _memShowScreen('memScreenEcho');
+  // Injecter les profils labellisés avec les coeurs
+  _memRenderEchoProfiles('memEchoMyProfile', 'memEchoOppProfile', 3);
   var lEl=_memEl('memEchoLevel'); if (lEl) lEl.textContent='Niveau 1';
-  var lMe=_memEl('memEchoLivesMe'),lOth=_memEl('memEchoLivesOther');
-  if (lMe) lMe.textContent='❤️❤️❤️'; if (lOth) lOth.textContent='❤️❤️❤️';
   var grid=_memEl('memEchoGrid');
   if (grid){grid.innerHTML='';ECHO_EMOJIS.forEach(function(e,i){
     var cell=document.createElement('div');cell.className='mem-echo-cell mem-echo-cell--blocked';cell.textContent=e;
@@ -966,6 +1054,8 @@ function _memShowEchoResult(state) {
 function _memStartArchi(gameRow) {
   _archiRound=1; _archiTarget=[]; _archiMyTarget=[]; _archiPerfect=true; _archiSaved=false;
   _memShowScreen('memScreenArchi');
+  // Injecter les profils avec avatars dans les conteneurs Archi
+  _memRenderDualProfiles('memArchiMyProfile', 'memArchiOppProfile');
   var nMe=_memEl('memArchiNameMe'),nOth=_memEl('memArchiNameOther');
   if(nMe)nMe.textContent=_memGetName(_memProfile);
   if(nOth)nOth.textContent=_memGetName(_memOther);
@@ -1228,12 +1318,12 @@ function _allBuildClassicState() {
     specials:['vue','miroir'], timer_start:Date.now()};
 }
 
-// Écho niveau 5 : séquence de 7 items, 2 vies chacun
+// Écho niveau 5 : séquence de 7 items, 3 vies chacun (↑ de 2 → 3 pour ALL)
 function _allBuildEchoState() {
   var seq=[]; for(var i=0;i<7;i++) seq.push(Math.floor(Math.random()*8));
   return {phase:'echo', mode:'all', all_step:'echo',
     sequence:seq, level:5,
-    girl_lives:2, boy_lives:2,
+    girl_lives:3, boy_lives:3,
     girl_input:[], boy_input:[],
     girl_max_level:0, boy_max_level:0,
     girl_finish_time:null, boy_finish_time:null,
@@ -1318,6 +1408,8 @@ function _allStartClassic(state) {
   _allClProcessing=false; _allClTimerStart=0;
   if (_allClTimer){clearInterval(_allClTimer);_allClTimer=null;}
   _memShowScreen('memScreenClassic');
+  // Injecter profils adversaire
+  _memRenderDualProfiles('memClassicMyProfile', 'memClassicOppProfile');
   var mEl=_memEl('memClassicManche'); if(mEl) mEl.textContent='ALL · Classique';
   _allApplyClassicState(state);
 }
@@ -1451,9 +1543,9 @@ function _allStartEcho(state) {
   _allEchoSeq=[]; _allEchoMyInput=[]; _allEchoShowing=false; _allEchoSaved=false; _allEchoPublished=false;
   if(_allEchoShowInt){clearInterval(_allEchoShowInt);_allEchoShowInt=null;}
   _memShowScreen('memScreenEcho');
+  // Injecter profils avec 3 coeurs pour ALL
+  _memRenderEchoProfiles('memEchoMyProfile', 'memEchoOppProfile', 3);
   var lEl=_memEl('memEchoLevel');if(lEl) lEl.textContent='ALL · Écho';
-  var lMe=_memEl('memEchoLivesMe'),lOth=_memEl('memEchoLivesOther');
-  if(lMe) lMe.textContent='❤️❤️'; if(lOth) lOth.textContent='❤️❤️';
   var grid=_memEl('memEchoGrid');
   if(grid){grid.innerHTML='';ECHO_EMOJIS.forEach(function(e,i){
     var cell=document.createElement('div');cell.className='mem-echo-cell mem-echo-cell--blocked';cell.textContent=e;
@@ -1471,7 +1563,7 @@ function _allApplyEchoState(state) {
 
   var ml=_memProfile==='girl'?state.girl_lives:state.boy_lives;
   var ol=_memProfile==='girl'?state.boy_lives:state.girl_lives;
-  function hearts(n){return['❤️','❤️'].slice(0,Math.max(0,n)).join('')||'💀';}
+  function hearts(n){return['❤️','❤️','❤️'].slice(0,Math.max(0,n)).join('')||'💀';}
   var lMe=_memEl('memEchoLivesMe'),lOth=_memEl('memEchoLivesOther');
   if(lMe) lMe.textContent=hearts(ml); if(lOth) lOth.textContent=hearts(ol);
   var lv=_memEl('memEchoLevel');if(lv) lv.textContent='ALL · Niveau '+state.level;
@@ -1626,6 +1718,8 @@ function _allEchoTap(idx){
 function _allStartArchi(state) {
   _allArchiMyTarget=[]; _allArchiSaved=false; _allArchiPerfect=true;
   _memShowScreen('memScreenArchi');
+  // Injecter profils adversaire
+  _memRenderDualProfiles('memArchiMyProfile', 'memArchiOppProfile');
   var nMe=_memEl('memArchiNameMe'),nOth=_memEl('memArchiNameOther');
   if(nMe)nMe.textContent=_memGetName(_memProfile);
   if(nOth)nOth.textContent=_memGetName(_memOther);
@@ -1895,7 +1989,49 @@ document.addEventListener('DOMContentLoaded',function(){
   if(tAll)  tAll.addEventListener('click',  function(){lbCurrentTab='all'; lbRender(lbCurrentData);});
   if(tGirl) tGirl.addEventListener('click', function(){lbCurrentTab='girl';lbRender(lbCurrentData);});
   if(tBoy)  tBoy.addEventListener('click',  function(){lbCurrentTab='boy'; lbRender(lbCurrentData);});
+
+  // ── Injection des conteneurs de profil joueurs dans chaque écran ──
+  // Crée les divs si absents du HTML — insère en haut de chaque screen
+  _memEnsureProfileBar('memScreenClassic', 'memClassicMyProfile', 'memClassicOppProfile', 'mem-profile-bar--classic');
+  _memEnsureProfileBar('memScreenEcho',    'memEchoMyProfile',    'memEchoOppProfile',    'mem-profile-bar--echo');
+  _memEnsureProfileBar('memScreenArchi',   'memArchiMyProfile',   'memArchiOppProfile',   'mem-profile-bar--archi');
+
+  // ── Styles CSS dynamiques pour les barres de profil ──
+  var style = document.createElement('style');
+  style.textContent = [
+    '.mem-profile-bar {',
+    '  display:flex; justify-content:space-between; align-items:flex-start;',
+    '  padding:8px 14px 4px; gap:8px; position:relative; z-index:1;',
+    '}',
+    '.mem-profile-bar--echo {',
+    '  justify-content:space-around;',
+    '  background:rgba(var(--surface0-rgb,30,30,46),.5);',
+    '  border-radius:12px; margin:0 4px 4px;',
+    '}',
+    '.mem-profile-bar--classic .mem-profile-bar__vs,',
+    '.mem-profile-bar--archi .mem-profile-bar__vs {',
+    '  font-size:11px; font-weight:700; color:var(--subtext0,#6c7086);',
+    '  align-self:center; flex-shrink:0;',
+    '}',
+    '.mem-profile-bar--echo .mem-profile-bar__vs {',
+    '  display:none;',
+    '}',
+  ].join('\n');
+  document.head.appendChild(style);
 });
+
+// Crée la barre de profil dans un écran si les conteneurs n'existent pas déjà
+function _memEnsureProfileBar(screenId, meId, oppId, extraClass) {
+  if (_memEl(meId) && _memEl(oppId)) return; // déjà présents dans le HTML
+  var screen = _memEl(screenId); if (!screen) return;
+  var bar = document.createElement('div');
+  bar.className = 'mem-profile-bar ' + (extraClass||'');
+  bar.innerHTML =
+    '<div id="' + meId  + '" class="mem-profile-bar__me"></div>' +
+    '<div class="mem-profile-bar__vs">VS</div>' +
+    '<div id="' + oppId + '" class="mem-profile-bar__opp"></div>';
+  screen.insertBefore(bar, screen.firstChild);
+}
 
 // ── Expose globaux ──
 window.openMemoryGame  = openMemoryGame;
