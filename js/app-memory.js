@@ -658,7 +658,7 @@ function _memShowClassicMancheResult(state) {
   var me=_memProfile==='girl'?state.girl_pairs:state.boy_pairs;
   var oth=_memProfile==='girl'?state.boy_pairs:state.girl_pairs;
   var iWon=state.winner===_memProfile, isDraw=state.winner==='draw';
-  var isAll=_memCurrentMode==='all';
+  var isAll=_memCurrentMode==='all' || state.mode==='all';
   var rEl=_memEl('memClassicMancheResult'); if (!rEl) return;
   rEl.style.display='flex';
   var eEl=_memEl('memClassicMancheEmoji'),tEl=_memEl('memClassicMancheTitle'),sEl=_memEl('memClassicMancheSub');
@@ -715,7 +715,7 @@ function _memShowClassicFinal(state) {
     else{_memCleanup();_memShowLb(true);_lbLoad();}
   };
   // En mode ALL : passer automatiquement au jeu suivant après 2s sans attendre le clic
-  if (_memCurrentMode==='all') {
+  if (_memCurrentMode==='all' || (state && state.mode==='all')) {
     setTimeout(function(){
       fEl.style.display='none';
       _memAllResults.classic={winner:fw};
