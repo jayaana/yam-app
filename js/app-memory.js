@@ -500,12 +500,16 @@ function _memApplyClassicState(state) {
   }
 
   var grid = _memEl('memClassicGrid'); if (!grid) return;
-  if (_clCards.length !== (state.cards||[]).length) {
+  // Reconstruire la grille si la longueur change OU si la manche change
+  // (manches 2 et 3 ont toutes les deux 20 cartes — la longueur seule ne suffit pas)
+  var _stateCards = state.cards || [];
+  var _needRebuild = _clCards.length !== _stateCards.length || state.manche !== _clManche;
+  if (_needRebuild) {
     var mcfg = _CLASSIC_CFGS[Math.min(_clManche-1, _CLASSIC_CFGS.length-1)];
     grid.style.width = '100%';
     grid.style.gridTemplateColumns = 'repeat('+mcfg.cols+', 1fr)';
     grid.innerHTML=''; _clCards=[];
-    (state.cards||[]).forEach(function(emoji,idx) {
+    _stateCards.forEach(function(emoji,idx) {
       var card = document.createElement('div');
       card.className='mem-card'; card.dataset.emoji=emoji; card.dataset.idx=String(idx);
       card.innerHTML='<div class="mem-card-inner"><div class="mem-card-front"></div><div class="mem-card-back">'+emoji+'</div></div>';
