@@ -50,7 +50,7 @@ var _clProcessing  = false, _clResultShown = false, _clSaved = false;
 
 // ── État Écho ──
 var _echoSequence  = [], _echoLevel = 1, _echoMyInput = [];
-var _echoShowInt   = null, _echoSaved = false, _echoShowing = false;
+var _echoShowInt   = null, _echoSaved = false, _echoPublished = false, _echoShowing = false;
 
 // ── État Architecte ──
 var _archiTarget   = [], _archiRound = 1;
@@ -709,7 +709,7 @@ function _memShowClassicFinal(state) {
 // ═══════════════════════════════════════════════════════════
 
 function _memStartEcho(gameRow) {
-  _echoLevel=1; _echoSaved=false; _echoSequence=[]; _echoMyInput=[]; _echoShowing=false;
+  _echoLevel=1; _echoSaved=false; _echoPublished=false; _echoSequence=[]; _echoMyInput=[]; _echoShowing=false;
   _memShowScreen('memScreenEcho');
   var lEl=_memEl('memEchoLevel'); if (lEl) lEl.textContent='Niveau 1';
   var lMe=_memEl('memEchoLivesMe'),lOth=_memEl('memEchoLivesOther');
@@ -759,13 +759,13 @@ function _memApplyEchoState(state) {
   _memUpdateEchoPips(_echoSequence.length,(myInput||[]).length);
 
   // Filet : je suis survivant, adversaire éliminé, winner non publié
-  // Couvre le cas où getGameState() n'avait pas encore othElim=true dans _memSaveEchoInput
-  if (!meElim && othElim && !state.winner && !_echoSaved && _memMp) {
+  // Utilise _echoPublished (pas _echoSaved) pour ne pas bloquer l'affichage du résultat
+  if (!meElim && othElim && !state.winner && !_echoPublished && _memMp) {
     var _nsF = JSON.parse(JSON.stringify(state));
     var myF  = (_memProfile==='girl'?_nsF.girl_input:_nsF.boy_input)||[];
     if (myF.length === _echoSequence.length) {
       // J'ai réussi ma séquence → publier winner
-      _echoSaved = true;
+      _echoPublished = true;
       _nsF.winner = _memEchoPickWinner(_nsF);
       _memMp.saveState(_nsF);
       return;
@@ -855,6 +855,7 @@ function _memSaveEchoInput(success) {
     var otherElim  = !!(ns[_memOther+'_eliminated']);
     if (otherElim && !otherDone) {
       // L'adversaire est éliminé mais n'a pas réussi → je suis le survivant → je gagne
+      _echoPublished = true;
       ns.winner = _memEchoPickWinner(ns);
     } else if (otherDone || otherElim) {
       // Les deux ont terminé ce niveau → passer au suivant
