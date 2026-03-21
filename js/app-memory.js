@@ -133,11 +133,27 @@ function openMemoryGame() {
   _yamSlide(document.getElementById('memoryView'), document.getElementById('gamesView'), 'forward');
   window.scrollTo(0, 0);
   _memShowLb(false);
+  // Si une partie ALL est encore active en arrière-plan → réafficher l'écran en cours
+  // sans relancer un nouveau lobby (évite de casser la partie en cours)
+  if (_memCurrentMode === 'all' && _memMp && _memLastState && !_memLastState.winner) {
+    _allRouteState(_memLastState, null);
+    return;
+  }
   _memLoadTrophies(function() { _memStartLobby(); });
 }
 
 // Quitter définitivement — même comportement qu'Ocho/Skyjo
 function closeMemoryGame() {
+  // Mode ALL en cours (pas encore terminé) → AFK au lieu de quitter définitivement
+  // On quitte la vue SANS cleanup — _memMp reste actif en arrière-plan
+  // L'adversaire voit onOpponentOffline → popup "Attendre 20s / Quitter"
+  // Si on revient via openMemoryGame() → enterLobby() → onMatchFound → reprise
+  // Si on ne revient pas → onReconnectTimeout → _memCleanup() automatique
+  if (_memCurrentMode === 'all' && _memMp && _memLastState && !_memLastState.winner) {
+    _yamSlide(document.getElementById('gamesView'), document.getElementById('memoryView'), 'backward');
+    return; // ne pas cleanup — laisser la partie vivante en arrière-plan
+  }
+  // Tous les autres cas (fin de partie, autres modes) → quitter normalement
   _memCleanup();
   _yamSlide(document.getElementById('gamesView'), document.getElementById('memoryView'), 'backward');
 }
@@ -257,7 +273,12 @@ function _memStartLobby() {
     onOpponentOffline: function(oppName) {
       if (!_memMp) return;
       _memMp.showChoice('😔', oppName+' est déconnecté(e)', 'Attends ou quitte.',
-        'Attendre', function(){_memMp.startReconnectWait();}, 'Quitter', closeMemoryGame);
+        'Attendre', function(){_memMp.startReconnectWait();},
+        'Quitter', function(){
+          // Forcer le cleanup même en mode ALL (l'adversaire a choisi de quitter)
+          _memCurrentMode = null;
+          closeMemoryGame();
+        });
     }
   });
 
