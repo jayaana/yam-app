@@ -464,8 +464,8 @@ function _memBuildClassicState(manche) {
   var cfg  = _CLASSIC_CFGS[manche-1];
   var pool = MEMORY_EMOJIS.slice(0,cfg.pairs).concat(MEMORY_EMOJIS.slice(0,cfg.pairs));
   for (var i=pool.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=pool[i];pool[i]=pool[j];pool[j]=t;}
-  // timer_start fixé à la manche 1 uniquement — conservé ensuite pour chrono global
-  return {phase:'classic',mode:'classic',manche:manche,cards:pool,matched:[],flipped:[],
+  var mo = _memCurrentMode === 'all' ? 'all' : 'classic';
+  return {phase:'classic',mode:mo,manche:manche,cards:pool,matched:[],flipped:[],
     girl_pairs:0,boy_pairs:0,turn:'girl',moves:0,winner:null,
     specials:cfg.specials,timer_start:manche===1?Date.now():null,elapsed:0};
 }
@@ -577,7 +577,8 @@ function _memFormatTime(secs) {
 
 function _memBuildWinnerState(state) {
   var matched=_clCards.filter(function(c){return c.classList.contains('matched');}).map(function(c){return parseInt(c.dataset.idx);});
-  return {phase:'classic',mode:'classic',manche:_clManche,
+  var _cmo = _memCurrentMode === 'all' ? 'all' : 'classic';
+  return {phase:'classic',mode:_cmo,manche:_clManche,
     cards:_clCards.map(function(c){return c.dataset.emoji;}),matched:matched,flipped:[],
     girl_pairs:_clGirlPairs,boy_pairs:_clBoyPairs,moves:_clMoves,
     specials:state.specials||[],timer_start:state.timer_start||0,elapsed:_clSeconds,
@@ -598,7 +599,8 @@ function _memClassicCardClick(card) {
   var _curRT=_memMp.getGameState?_memMp.getGameState():{}; if(!_curRT)_curRT={};
   var _flippedNow=_clFlipped.map(function(c){return parseInt(c.dataset.idx);});
   var _matchedNow=_clCards.filter(function(c){return c.classList.contains('matched');}).map(function(c){return parseInt(c.dataset.idx);});
-  _memMp.saveState({phase:'classic',mode:'classic',manche:_clManche,
+  var _smo = _memCurrentMode === 'all' ? 'all' : 'classic';
+  _memMp.saveState({phase:'classic',mode:_smo,manche:_clManche,
     cards:_clCards.map(function(c){return c.dataset.emoji;}),
     matched:_matchedNow, flipped:_flippedNow, turn:_memProfile,
     girl_pairs:_clGirlPairs, boy_pairs:_clBoyPairs, moves:_clMoves,
@@ -628,7 +630,8 @@ function _memClassicCardClick(card) {
       // Match : je rejoue (turn reste à moi)
       _clFlipped=[];
       _memSetClassicBlocked(false);
-      _memMp.saveState({phase:'classic',mode:'classic',manche:_clManche,
+      var _smo = _memCurrentMode === 'all' ? 'all' : 'classic';
+  _memMp.saveState({phase:'classic',mode:_smo,manche:_clManche,
         cards:_clCards.map(function(c){return c.dataset.emoji;}),
         matched:matched, flipped:[], turn:_memProfile,
         girl_pairs:_clGirlPairs, boy_pairs:_clBoyPairs, moves:_clMoves,
@@ -639,7 +642,8 @@ function _memClassicCardClick(card) {
         a.classList.remove('flipped','wrong'); b.classList.remove('flipped','wrong');
         _clFlipped=[];
         // Pas de match : passer le tour à l'adversaire
-        _memMp.saveState({phase:'classic',mode:'classic',manche:_clManche,
+        var _smo = _memCurrentMode === 'all' ? 'all' : 'classic';
+  _memMp.saveState({phase:'classic',mode:_smo,manche:_clManche,
           cards:_clCards.map(function(c){return c.dataset.emoji;}),
           matched:matched, flipped:[], turn:_memProfile==='girl'?'boy':'girl',
           girl_pairs:_clGirlPairs, boy_pairs:_clBoyPairs, moves:_clMoves,
@@ -710,6 +714,15 @@ function _memShowClassicFinal(state) {
     else if (_memCurrentMode==='all'){_memAllResults.classic={winner:fw};_memShowAllResults();}
     else{_memCleanup();_memShowLb(true);_lbLoad();}
   };
+  // En mode ALL : passer automatiquement au jeu suivant après 2s sans attendre le clic
+  if (_memCurrentMode==='all') {
+    setTimeout(function(){
+      fEl.style.display='none';
+      _memAllResults.classic={winner:fw};
+      if (_memAllQueue.length>0) _memLaunchNextAll(null);
+      else _memShowAllResults();
+    }, 2000);
+  }
   if (typeof window.yamFlameActivity==='function') window.yamFlameActivity('memory_done');
 }
 
