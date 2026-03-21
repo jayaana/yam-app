@@ -474,6 +474,9 @@ function _memUpdateClassicScores() {
 
 function _memApplyClassicState(state) {
   if (!state || _clProcessing) return;
+  // Si c'est mon tour et que j'ai déjà une carte retournée localement,
+  // ignorer l'update entrant pour ne pas perturber mon jeu en cours
+  if (state.turn === _memProfile && _clFlipped.length > 0) return;
   _clGirlPairs = state.girl_pairs||0; _clBoyPairs = state.boy_pairs||0;
   _clManche    = state.manche||1;     _clMoves    = state.moves||0;
   // Mémoriser le timer_start global dès la manche 1
