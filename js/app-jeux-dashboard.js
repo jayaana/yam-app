@@ -9,8 +9,12 @@
   'use strict';
 
   /* ── Constantes ── */
-  var _GAME_EMOJI = { memory:'🎴', pendu:'🔤', puzzle:'🧩', snake:'🐍', ocho:'🎴', skyjo:'🃏' };
-  var _GAME_LABEL = { ocho:'Ocho', skyjo:'Skyjo', memory:'Memory', pendu:'Pendu', puzzle:'Puzzle', snake:'Snake' };
+  var _GAME_EMOJI = { memory:'🎴', memory_classic:'🃏', memory_echo:'🔊', memory_archi:'🏗️', memory_all:'⚡', pendu:'🔤', puzzle:'🧩', snake:'🐍', ocho:'🎴', skyjo:'🃏' };
+  var _GAME_LABEL = {
+    ocho:'Ocho', skyjo:'Skyjo',
+    memory:'Memory', memory_classic:'Classic+', memory_echo:'Écho', memory_archi:'Architecte', memory_all:'ALL ⚡',
+    pendu:'Pendu', puzzle:'Puzzle', snake:'Snake'
+  };
   var _MEDALS     = ['🥇','🥈','🥉'];
 
   /* ── Supabase Storage (même constantes que app-account.js) ── */
@@ -120,7 +124,7 @@
      Seuls ocho, skyjo, memory (multi) comptent pour le score VS.
      Une ligne player_role='girl' par partie suffit à compter la victoire.
   ── */
-  var _MULTI_GAMES = ['ocho', 'skyjo', 'memory'];
+  var _MULTI_GAMES = ['ocho', 'skyjo', 'memory', 'memory_classic', 'memory_echo', 'memory_archi', 'memory_all'];
 
   function _computeWins(rows) {
     var wins = { girl: 0, boy: 0 };
@@ -204,6 +208,14 @@
       pts.className = 'jx-lb-pts';
       pts.textContent = parseInt(r.score || 0).toLocaleString();
       row.appendChild(pts);
+
+      // Badge mode pour les sous-modes Memory
+      if (game === 'memory_all') {
+        var badge = document.createElement('div');
+        badge.textContent = '⚡ ALL';
+        badge.style.cssText = 'font-size:9px;font-weight:700;background:linear-gradient(135deg,#f97316,#eab308);color:#fff;border-radius:6px;padding:2px 5px;margin-left:4px;white-space:nowrap;';
+        row.appendChild(badge);
+      }
 
       sc.appendChild(row);
     });
@@ -326,7 +338,9 @@
         var counts = {};
         r.forEach(function (x) {
           if (_MULTI_GAMES.indexOf(x.game_id) !== -1 && x.player_role !== 'girl') return;
-          counts[x.game_id] = (counts[x.game_id] || 0) + 1;
+          // Regrouper les sous-modes memory sous 'memory' pour le jeu favori
+          var gid = x.game_id.indexOf('memory') === 0 ? 'memory' : x.game_id;
+          counts[gid] = (counts[gid] || 0) + 1;
         });
         var fav = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; })[0] || '—';
         var favEl = _el('jxFav');
@@ -370,7 +384,7 @@
         var favLbl = _el('jxAvgLbl');
         if (favLbl) favLbl.textContent = 'Durée moy. ' + ((_GAME_LABEL[fav] || fav));
 
-        ['ocho', 'skyjo', 'memory', 'pendu', 'puzzle', 'snake'].forEach(function (g) {
+        ['ocho', 'skyjo', 'memory_classic', 'memory_echo', 'memory_archi', 'memory_all', 'pendu', 'puzzle', 'snake'].forEach(function (g) {
           _renderChip(g, r, myRole);
         });
 
