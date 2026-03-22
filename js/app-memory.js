@@ -73,6 +73,7 @@ var _echoShowInt   = null, _echoSaved = false, _echoPublished = false, _echoShow
 // ── État Architecte ──
 var _archiTarget   = [], _archiRound = 1;
 var _archiPerfect  = true, _archiSaved = false;
+var _archiCdTimer  = null;
 
 // ═══════════════════════════════════════════════════════════
 // HELPERS
@@ -211,6 +212,7 @@ function _memCleanup() {
   if (_memMp) { _memMp.leave(); _memMp = null; }
   if (_echoShowInt) { clearInterval(_echoShowInt); _echoShowInt = null; }
   if (_clTimer)     { clearInterval(_clTimer);     _clTimer = null; }
+  if (_archiCdTimer) { clearInterval(_archiCdTimer); _archiCdTimer = null; }
   _memCurrentMode = null; _memAllQueue = []; _memAllResults = {};
   // Reset flags de résultat pour éviter les popups persistants entre sessions
   _clResultShown = false; _clSaved = false;
@@ -1125,7 +1127,8 @@ function _memBuildArchiState(round, isAll) {
     girl_errors:0, boy_errors:0,   // compteur d'erreurs par round
     girl_score:0, boy_score:0,     // rounds gagnés
     girl_done:false, boy_done:false,
-    girl_done_time:null, boy_done_time:null, // timestamp de fin de round
+    girl_done_time:null, boy_done_time:null,
+    countdown_start:null,
     winner:null,
     show_until:Date.now()+4000
   };
@@ -1193,6 +1196,7 @@ function _memApplyArchiState(state) {
   if(eMe)eMe.textContent=(_memProfile==='girl'?gS:bS);
   if(eOth)eOth.textContent=(_memProfile==='girl'?bS:gS);
 
+  _memArchiHandleCountdown(state);
   if(state.winner&&!_archiSaved){_memShowArchiResult(state);}
 }
 
@@ -1267,9 +1271,64 @@ function _memArchiTap(si) {
       }
       return; // ne pas retomber dans le saveState générique ci-dessous
     }
-    // Si l'autre n'a pas encore fini : on attend, la partie continue pour lui
+    // Si l'autre n'a pas encore fini : lancer countdown 30s
+    if (!ns.countdown_start) ns.countdown_start = Date.now();
   }
   _memMp.saveState(ns);
+}
+
+function _memArchiHandleCountdown(state) {
+  if (!state.countdown_start || state.winner) {
+    if (_archiCdTimer) { clearInterval(_archiCdTimer); _archiCdTimer = null; }
+    var cdEl = _memEl('memArchiCountdown'); if (cdEl) cdEl.style.display = 'none';
+    return;
+  }
+  // Creer/afficher le div countdown
+  var cdEl = _memEl('memArchiCountdown');
+  if (!cdEl) {
+    cdEl = document.createElement('div');
+    cdEl.id = 'memArchiCountdown';
+    cdEl.style.cssText = 'text-align:center;font-size:14px;font-weight:700;color:#ef4444;padding:4px 0 2px;';
+    var phase = _memEl('memArchiPhase');
+    if (phase) phase.parentNode.insertBefore(cdEl, phase.nextSibling);
+  }
+  cdEl.style.display = 'block';
+  if (_archiCdTimer) return; // deja actif
+  _archiCdTimer = setInterval(function() {
+    var cur = (_memMp && _memMp.getGameState ? _memMp.getGameState() : null) || _memLastState;
+    if (!cur || !cur.countdown_start || cur.winner) {
+      clearInterval(_archiCdTimer); _archiCdTimer = null;
+      var el = _memEl('memArchiCountdown'); if (el) el.style.display = 'none';
+      return;
+    }
+    var remaining = 30 - Math.floor((Date.now() - cur.countdown_start) / 1000);
+    var el = _memEl('memArchiCountdown');
+    if (el) el.textContent = remaining > 0 ? '\u23f1 ' + remaining + 's' : '';
+    if (remaining <= 0) {
+      clearInterval(_archiCdTimer); _archiCdTimer = null;
+      // Seul celui qui a fini publie le resultat (evite doublon)
+      if (!_memMp || !cur[_memProfile + '_done']) return;
+      var ns = JSON.parse(JSON.stringify(cur));
+      ns[_memProfile + '_score'] = (ns[_memProfile + '_score'] || 0) + 1;
+      var maxRounds = ns.max_rounds || 3;
+      if (ns.manche >= maxRounds) {
+        var gS = ns.girl_score || 0, bS = ns.boy_score || 0;
+        ns.winner = gS > bS ? 'girl' : bS > gS ? 'boy' : 'draw';
+        _memMp.saveState(ns);
+      } else {
+        var _isAll = _memCurrentMode === 'all';
+        var _sc = {girl: ns.girl_score||0, boy: ns.boy_score||0};
+        _memMp.saveState(ns);
+        setTimeout(function() {
+          if (_memMp) {
+            var next = _memBuildArchiState(ns.manche + 1, _isAll);
+            next.girl_score = _sc.girl; next.boy_score = _sc.boy;
+            _memMp.saveState(next);
+          }
+        }, 1200);
+      }
+    }
+  }, 1000);
 }
 
 function _memShowArchiResult(state){
