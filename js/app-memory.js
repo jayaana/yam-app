@@ -1311,7 +1311,7 @@ function _memArchiHandleCountdown(state) {
       if (!_memMp || !cur[_memProfile + '_done'] || cur.countdown_fired) return;
       var ns = JSON.parse(JSON.stringify(cur));
       ns.countdown_fired = true;
-      ns[_memProfile + '_score'] = (ns[_memProfile + '_score'] || 0) + 1;
+      ns[_memProfile + '_score'] = (ns[_memProfile + '_score'] || 0) + 2;
       var maxRounds = ns.max_rounds || 3;
       if (ns.manche >= maxRounds) {
         var gS = ns.girl_score || 0, bS = ns.boy_score || 0;
