@@ -1658,6 +1658,8 @@ function _allStartEcho(state) {
   _allEchoSeq=[]; _allEchoMyInput=[]; _allEchoShowing=false; _allEchoSaved=false; _allEchoPublished=false;
   if(_allEchoShowInt){clearInterval(_allEchoShowInt);_allEchoShowInt=null;}
   _memShowScreen('memScreenEcho');
+  // Remettre les éléments de vies en place dans le DOM avant de reconstruire les profils (comme le mode solo)
+  _memEchoEnsureSeqBar();
   // Injecter profils avec 3 coeurs pour ALL
   _memRenderEchoProfiles('memEchoMyProfile', 'memEchoOppProfile', 3);
   var lEl=_memEl('memEchoLevel');if(lEl) lEl.textContent='ALL · Écho';
