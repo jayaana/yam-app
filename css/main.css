@@ -6233,3 +6233,42 @@ body.light #rappelOverlay.open { background: rgba(0,0,0,0.22); }
 #memScreenClassic, #memScreenEcho, #memScreenArchi {
   background: #f5f5f7;
 }
+
+/* ══ Memory — thème sombre ══ */
+.mem-archi-col--me,
+.mem-archi-col--model,
+.mem-archi-col--opp,
+.mem-archi-palette-wrap,
+#memEchoSeqBarWrap {
+  background: var(--s1) !important;
+  border-color: var(--border) !important;
+}
+.mem-echo-cell {
+  background: var(--s1) !important;
+  border-color: var(--border) !important;
+}
+.mem-mode-card {
+  background: var(--s1) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+.mem-mode-card-title { color: var(--text) !important; }
+.mem-mode-card-desc  { color: var(--muted) !important; }
+.mem-manche-result,
+.mem-final-result {
+  background: var(--s1) !important;
+  border-color: var(--border) !important;
+}
+.mem-manche-result-title,
+.mem-final-title { color: var(--text) !important; }
+.mem-manche-result-sub,
+.mem-final-score  { color: var(--muted) !important; }
+.mem-profile-bar  { background: var(--s1) !important; border-color: var(--border) !important; }
+.mem-card-back    { background: var(--s1) !important; }
+.mem-game-timer   { background: var(--s2) !important; border-color: var(--border) !important; color: var(--text) !important; }
+.mem-archi-shape  { color: var(--text); }
+.mem-archi-builder-name { color: var(--muted) !important; }
+.mem-echo-phase   { color: var(--accent) !important; }
+.mem-archi-phase  { color: var(--accent) !important; }
+.mem-lobby-vs-label { color: var(--muted) !important; }
+.mem-lobby-name, .mem-mode-name { color: var(--text) !important; }
