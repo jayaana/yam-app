@@ -40,9 +40,9 @@ var TROPHIES = {
   telepathie:    {name:'🧠 Télépathie',     desc:'Écho niveau 8+ sans erreur'},
   eclair:        {name:'⚡ Éclair',          desc:'Classique+ manche 3 en moins de 60s'},
   architecte:    {name:'🏗️ Architecte',     desc:'Architecte sans aucun reset'},
-  osmose:        {name:'💑 Osmose',          desc:'Les 3 modes gagnés en mode ALL'},
+  osmose:        {name:'👩‍❤️‍👨 Osmose',          desc:'Les 3 modes gagnés en mode ALL'},
   precision:     {name:'🎯 Précision',       desc:'Classique+ gagné en moins de 20 coups'},
-  inextinguible: {name:'🔥 Inextinguible',   desc:'Écho niveau 10+'},
+  inextinguible: {name:'🔥 Génie',   desc:'Écho niveau 10+'},
   legende:       {name:'👑 Légende',         desc:'Tous les trophées débloqués'}
 };
 var MEM_GAME_TABLE     = 'memory_games';
