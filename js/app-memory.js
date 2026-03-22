@@ -1218,6 +1218,18 @@ function _memRenderArchiStack(el,stack){
   });
 }
 
+// ── Utilitaire anti-race-condition Architecte ──
+// Lit TOUJOURS le state le plus frais au moment du save,
+// puis n'y injecte QUE nos propres champs — les champs adversaire restent intacts.
+function _archiFlushMyFields(fields) {
+  if (!_memMp) return;
+  var fresh = (_memMp.getGameState ? _memMp.getGameState() : null) || _memLastState;
+  if (!fresh) return;
+  var ns = JSON.parse(JSON.stringify(fresh));
+  Object.keys(fields).forEach(function(k) { ns[k] = fields[k]; });
+  _memMp.saveState(ns);
+}
+
 // Stack locale — source de vérité pour éviter la race condition :
 // chaque joueur maintient sa propre pile localement et ne dépend pas du state serveur pour la calculer.
 var _archiLocalStack = [];
@@ -1240,57 +1252,53 @@ function _memArchiTap(si) {
     _archiPerfect=false;
     var sEl=_memEl('memArchiStackMe');
     if(sEl){sEl.classList.add('mem-archi-stack--wrong');setTimeout(function(){sEl.classList.remove('mem-archi-stack--wrong');},400);}
-    // N'écrire QUE nos champs — les champs adversaire restent intacts dans le state serveur
-    var ns=JSON.parse(JSON.stringify(cur));
-    ns[_memProfile+'_stack']=[];
-    ns[_memProfile+'_errors']=(ns[_memProfile+'_errors']||0)+1;
-    _memMp.saveState(ns);
+    // Lire le state frais AU MOMENT du save — ne touche QU'à nos champs
+    var myErrors=(cur[_memProfile+'_errors']||0)+1;
+    _archiFlushMyFields({[_memProfile+'_stack']:[],[_memProfile+'_errors']:myErrors});
     return;
   }
 
-  // Bonne pièce → mettre à jour pile locale et affichage immédiatement (sans attendre le serveur)
+  // Bonne pièce → pile locale + affichage immédiat
   _archiLocalStack=myStack;
   _memRenderArchiStack(_memEl('memArchiStackMe'), _archiLocalStack);
 
   if(myStack.length===_archiMyTarget.length){
-    // Fini — vider pile locale
     _archiLocalStack=[];
     var sEl2=_memEl('memArchiStackMe');
     if(sEl2){sEl2.classList.add('mem-archi-stack--complete');setTimeout(function(){sEl2.classList.remove('mem-archi-stack--complete');},600);}
 
-    var ns2=JSON.parse(JSON.stringify(cur));
-    ns2[_memProfile+'_stack']=myStack;
-    ns2[_memProfile+'_done']=true;
-    ns2[_memProfile+'_done_time']=Date.now();
+    var doneTime=Date.now();
+    // Lire le state frais pour récupérer les champs adversaire à jour
+    var fresh=(_memMp.getGameState?_memMp.getGameState():null)||_memLastState||cur;
+    var fields={[_memProfile+'_stack']:myStack,[_memProfile+'_done']:true,[_memProfile+'_done_time']:doneTime};
 
-    if(ns2[_memOther+'_done']){
-      var myTime=ns2[_memProfile+'_done_time'],othTime=ns2[_memOther+'_done_time'];
-      var roundWinner=myTime<=othTime?_memProfile:_memOther;
-      ns2[roundWinner+'_score']=(ns2[roundWinner+'_score']||0)+1;
-      var maxRounds=cur.max_rounds||3;
-      if(cur.manche>=maxRounds){
-        var gS=ns2.girl_score||0,bS=ns2.boy_score||0;
-        ns2.winner=gS>bS?'girl':bS>gS?'boy':'draw';
-        _memMp.saveState(ns2);
+    if(fresh[_memOther+'_done']){
+      var othTime=fresh[_memOther+'_done_time'];
+      var roundWinner=doneTime<=othTime?_memProfile:_memOther;
+      var gSf=fresh.girl_score||0, bSf=fresh.boy_score||0;
+      if(roundWinner==='girl')gSf++;else bSf++;
+      fields.girl_score=gSf; fields.boy_score=bSf;
+      var maxRounds=fresh.max_rounds||3;
+      if((fresh.manche||1)>=maxRounds){
+        fields.winner=gSf>bSf?'girl':bSf>gSf?'boy':'draw';
+        _archiFlushMyFields(fields);
       } else {
-        _memMp.saveState(ns2);
+        _archiFlushMyFields(fields);
         var isAll=_memCurrentMode==='all';
-        var _nsScores={girl:ns2.girl_score||0,boy:ns2.boy_score||0};
+        var _sc={girl:gSf,boy:bSf};
         setTimeout(function(){
-          if(_memMp){var next=_memBuildArchiState(cur.manche+1,isAll);next.girl_score=_nsScores.girl;next.boy_score=_nsScores.boy;_memMp.saveState(next);}
+          if(_memMp){var next=_memBuildArchiState((fresh.manche||1)+1,isAll);next.girl_score=_sc.girl;next.boy_score=_sc.boy;_memMp.saveState(next);}
         },1200);
       }
       return;
     }
-    if(!ns2.countdown_start) ns2.countdown_start=Date.now();
-    _memMp.saveState(ns2);
+    if(!fresh.countdown_start) fields.countdown_start=Date.now();
+    _archiFlushMyFields(fields);
     return;
   }
 
-  // Pièce intermédiaire correcte — publier uniquement nos champs, préserver ceux de l'adversaire
-  var ns3=JSON.parse(JSON.stringify(cur));
-  ns3[_memProfile+'_stack']=myStack;
-  _memMp.saveState(ns3);
+  // Pièce intermédiaire correcte
+  _archiFlushMyFields({[_memProfile+'_stack']:myStack});
 }
 
 function _memArchiHandleCountdown(state) {
@@ -1947,43 +1955,38 @@ function _allArchiTap(si){
     _allArchiPerfect=false;
     var sEl=_memEl('memArchiStackMe');
     if(sEl){sEl.classList.add('mem-archi-stack--wrong');setTimeout(function(){sEl.classList.remove('mem-archi-stack--wrong');},400);}
-    // N'écrire QUE nos champs
-    var ns=JSON.parse(JSON.stringify(cur));
-    ns[_memProfile+'_stack']=[];
-    ns[_memProfile+'_errors']=(ns[_memProfile+'_errors']||0)+1;
-    _memMp.saveState(ns);return;
+    var myErrA=(cur[_memProfile+'_errors']||0)+1;
+    _archiFlushMyFields({[_memProfile+'_stack']:[],[_memProfile+'_errors']:myErrA});
+    return;
   }
 
-  // Bonne pièce → mise à jour locale immédiate (sans attendre le serveur)
+  // Bonne pièce → pile locale + affichage immédiat
   _allArchiLocalStack=myStack;
   _memRenderArchiStack(_memEl('memArchiStackMe'), _allArchiLocalStack);
 
   if(myStack.length===_allArchiMyTarget.length){
-    // Fini — vider pile locale
     _allArchiLocalStack=[];
     var sEl2=_memEl('memArchiStackMe');
     if(sEl2){sEl2.classList.add('mem-archi-stack--complete');setTimeout(function(){sEl2.classList.remove('mem-archi-stack--complete');},600);}
 
-    var ns2=JSON.parse(JSON.stringify(cur));
-    ns2[_memProfile+'_stack']=myStack;
-    ns2[_memProfile+'_done']=true;
-    ns2[_memProfile+'_done_time']=Date.now();
+    var doneTimeA=Date.now();
+    var freshA=(_memMp.getGameState?_memMp.getGameState():null)||_memLastState||cur;
+    var fieldsA={[_memProfile+'_stack']:myStack,[_memProfile+'_done']:true,[_memProfile+'_done_time']:doneTimeA};
 
-    if(ns2[_memOther+'_done']){
-      var myT=ns2[_memProfile+'_done_time'],othT=ns2[_memOther+'_done_time'];
-      var rw=myT<=othT?_memProfile:_memOther;
-      ns2[rw+'_score']=(ns2[rw+'_score']||0)+1;
-      var gS=ns2.girl_score||0,bS=ns2.boy_score||0;
-      ns2.winner=gS>bS?'girl':bS>gS?'boy':'draw';
+    if(freshA[_memOther+'_done']){
+      var othTA=freshA[_memOther+'_done_time'];
+      var rwA=doneTimeA<=othTA?_memProfile:_memOther;
+      var gSA=freshA.girl_score||0,bSA=freshA.boy_score||0;
+      if(rwA==='girl')gSA++;else bSA++;
+      fieldsA.girl_score=gSA; fieldsA.boy_score=bSA;
+      fieldsA.winner=gSA>bSA?'girl':bSA>gSA?'boy':'draw';
     }
-    _memMp.saveState(ns2);
+    _archiFlushMyFields(fieldsA);
     return;
   }
 
-  // Pièce intermédiaire correcte — publier uniquement nos champs
-  var ns3=JSON.parse(JSON.stringify(cur));
-  ns3[_memProfile+'_stack']=myStack;
-  _memMp.saveState(ns3);
+  // Pièce intermédiaire correcte
+  _archiFlushMyFields({[_memProfile+'_stack']:myStack});
 }
 
 // ─────────────────────────────────────────────
