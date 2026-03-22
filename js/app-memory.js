@@ -1307,8 +1307,10 @@ function _memArchiHandleCountdown(state) {
     if (remaining <= 0) {
       clearInterval(_archiCdTimer); _archiCdTimer = null;
       // Seul celui qui a fini publie le resultat (evite doublon)
-      if (!_memMp || !cur[_memProfile + '_done']) return;
+      // + countdown_fired evite la double publication si onStateUpdate re-declenche
+      if (!_memMp || !cur[_memProfile + '_done'] || cur.countdown_fired) return;
       var ns = JSON.parse(JSON.stringify(cur));
+      ns.countdown_fired = true;
       ns[_memProfile + '_score'] = (ns[_memProfile + '_score'] || 0) + 1;
       var maxRounds = ns.max_rounds || 3;
       if (ns.manche >= maxRounds) {
