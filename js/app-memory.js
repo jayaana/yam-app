@@ -2029,7 +2029,7 @@ function _memArchiSetup3Cols(){
     var col=document.createElement('div');
     col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;background:#fff;border:1.5px solid '+borderColor+';border-radius:14px;padding:10px 6px;';
     col.innerHTML='<div style="font-size:9px;font-weight:700;color:'+labelColor+';text-transform:uppercase;letter-spacing:1px;">'+label+'</div>';
-    var stack=document.createElement('div');stack.style.cssText='display:flex;flex-direction:column-reverse;gap:6px;align-items:center;min-height:100px;width:100%;justify-content:flex-end;';
+    var stack=document.createElement('div');stack.style.cssText='display:flex;flex-direction:column-reverse;gap:6px;align-items:center;height:200px;width:100%;justify-content:flex-start;';
     if(stackId)stack.id=stackId;
     col.appendChild(stack);
     if(shapesId){var sh=document.createElement('div');sh.id=shapesId;sh.style.cssText='display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:4px;';col.appendChild(sh);}
@@ -2037,7 +2037,7 @@ function _memArchiSetup3Cols(){
   }
   var colMe=makeCol(nameMe.toUpperCase(),isGirl?'#ec4899':'#7c3aed',isGirl?'#fce7f3':'#ede9fe','memArchiStackMe',null);
   var colMod=makeCol('MOD\u00c8LE','#9ca3af','#e5e7eb',null,null);
-  var tgt=document.createElement('div');tgt.id='memArchiTarget';tgt.style.cssText='display:flex;flex-direction:column-reverse;gap:6px;align-items:center;min-height:100px;width:100%;justify-content:flex-end;';
+  var tgt=document.createElement('div');tgt.id='memArchiTarget';tgt.style.cssText='display:flex;flex-direction:column-reverse;gap:6px;align-items:center;height:200px;width:100%;justify-content:flex-start;';
   colMod.appendChild(tgt);
   var colOpp=makeCol(nameOth.toUpperCase(),oppIsGirl?'#ec4899':'#7c3aed',oppIsGirl?'#fce7f3':'#ede9fe','memArchiStackOther',null);
   wrap.appendChild(colMe);wrap.appendChild(colMod);wrap.appendChild(colOpp);
