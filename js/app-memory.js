@@ -2142,7 +2142,13 @@ function _memArchiSetup3Cols(){
 }
 
 function _memEchoEnsureSeqBar(){
-  if(_memEl('memEchoSeqBarWrap'))return;
+  // Remettre les coeurs dans leur conteneur d'origine avant de reconstruire
+  var _livesRow=document.querySelector('#memScreenEcho .mem-echo-lives');
+  var _lMe=_memEl('memEchoLivesMe'),_lOth=_memEl('memEchoLivesOther');
+  if(_livesRow&&_lMe&&!_livesRow.contains(_lMe))_livesRow.insertBefore(_lMe,_livesRow.firstChild);
+  if(_livesRow&&_lOth&&!_livesRow.contains(_lOth))_livesRow.appendChild(_lOth);
+  // Supprimer l'ancienne barre pour la reconstruire avec les coeurs a jour
+  var _old=_memEl('memEchoSeqBarWrap');if(_old)_old.remove();
   var phase=_memEl('memEchoPhase');if(!phase)return;
   var bar=document.createElement('div');bar.id='memEchoSeqBarWrap';
   bar.style.cssText='background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:8px 12px;margin-bottom:4px;';
