@@ -2194,7 +2194,9 @@ document.addEventListener('DOMContentLoaded',function(){
     '.mem-card.matched .mem-card-back{background:#fdf2f8!important;border-color:#ec4899!important;}'+
     '.mem-card.wrong .mem-card-back{background:#fff1f2!important;border-color:#ef4444!important;}'+
     '.mem-echo-hearts{font-size:16px!important;letter-spacing:2px!important;}'+
-    '.mem-mode-card--selected{border-color:#ec4899!important;background:#fce7f3!important;}'+
+    '.mem-mode-card--selected{border-color:#ec4899!important;background:rgba(236,72,153,0.12)!important;}'+
+    '.mem-mode-card--selected .mem-mode-card-title{color:var(--text)!important;}'+
+    '.mem-mode-card--selected .mem-mode-card-desc{color:var(--muted)!important;}'+
     '.mem-mode-card--matched{border-color:#22c55e!important;background:#f0fdf4!important;}'+
     '.mem-vote-chip--active{background:#fce7f3!important;border-color:#f9a8d4!important;color:#be185d!important;}'+
     '.mem-lobby-player:first-child .mem-lobby-avatar{background:#fce7f3!important;border-color:#f9a8d4!important;}'+
