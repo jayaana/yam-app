@@ -212,6 +212,8 @@ function _memCleanup() {
   if (_memMp) { _memMp.leave(); _memMp = null; }
   if (_echoShowInt) { clearInterval(_echoShowInt); _echoShowInt = null; }
   if (_clTimer)     { clearInterval(_clTimer);     _clTimer = null; }
+  if (_allClTimer)   { clearInterval(_allClTimer);   _allClTimer = null; }
+  if (_allEchoShowInt) { clearInterval(_allEchoShowInt); _allEchoShowInt = null; }
   if (_archiCdTimer) { clearInterval(_archiCdTimer); _archiCdTimer = null; }
   _memCurrentMode = null; _memAllQueue = []; _memAllResults = {};
   // Reset flags de résultat pour éviter les popups persistants entre sessions
@@ -1508,6 +1510,13 @@ function _allStartClassic(state) {
   _allClProcessing=false; _allClTimerStart=0;
   if (_allClTimer){clearInterval(_allClTimer);_allClTimer=null;}
   _memShowScreen('memScreenClassic');
+  // Masquer opp-presence (doublon) + deplacer timer
+  var _ms=_memEl('memScreenClassic');
+  if(_ms){
+    var _op=_ms.querySelector('.mem-opp-presence');if(_op)_op.style.display='none';
+    var _tr=_ms.querySelector('.mem-turn-row'),_tim=_memEl('memClassicTimer');
+    if(_tim&&_tr&&!_tr.contains(_tim)){_tim.style.cssText='font-size:13px;font-weight:500;color:#111827;background:#f9fafb;border:1px solid #f3f4f6;border-radius:99px;padding:4px 12px;';_tr.appendChild(_tim);}
+  }
   // Injecter profils adversaire
   _memRenderDualProfiles('memClassicMyProfile', 'memClassicOppProfile');
   var mEl=_memEl('memClassicManche'); if(mEl) mEl.textContent='ALL · Classique';
