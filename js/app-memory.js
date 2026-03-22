@@ -2476,8 +2476,21 @@ function _hanabiStart(gameRow) {
   _memShowScreen('memScreenHanabi');
   var _t = _memEl('memViewTitle'); if (_t) _t.textContent = 'Hanabi';
   _memRenderDualProfiles('memHanabiMyProfile', 'memHanabiOppProfile');
+  // Brancher les listeners (remplace les onclick inline supprimés pour respecter la CSP)
+  _hanabiBindButtons();
   var state = gameRow && gameRow.state;
   if (state && state.phase === 'hanabi') _hanabiApplyState(state);
+}
+
+function _hanabiBindButtons() {
+  var gi = _memEl('memHanabiGiveIndiceBtn');
+  if (gi) { gi.onclick = null; gi.addEventListener('click', _hanabiStartIndice); }
+  var pb = _memEl('memHanabiPlayBtn');
+  if (pb) { pb.onclick = null; pb.addEventListener('click', _hanabiStartPlay); }
+  var db = _memEl('memHanabiDiscardBtn');
+  if (db) { db.onclick = null; db.addEventListener('click', _hanabiStartDiscard); }
+  var cb = _memEl('memHanabiCancelIndiceBtn');
+  if (cb) { cb.onclick = null; cb.addEventListener('click', _hanabiCancelIndice); }
 }
 
 // ── Rendu d'une carte de la main adverse (visible) ──
