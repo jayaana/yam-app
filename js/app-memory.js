@@ -215,6 +215,7 @@ function _memCleanup() {
   if (_allClTimer)   { clearInterval(_allClTimer);   _allClTimer = null; }
   if (_allEchoShowInt) { clearInterval(_allEchoShowInt); _allEchoShowInt = null; }
   if (_archiCdTimer) { clearInterval(_archiCdTimer); _archiCdTimer = null; }
+  _archiUnsubscribeOther();
   _memCurrentMode = null; _memAllQueue = []; _memAllResults = {};
   // Reset flags de résultat pour éviter les popups persistants entre sessions
   _clResultShown = false; _clSaved = false;
@@ -1094,11 +1095,130 @@ function _memShowEchoResult(state) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// ARCHITECTE
+// ARCHITECTE — Piles dans tables séparées (zero race condition)
+// memory_archi_girl  → écrit par girl uniquement
+// memory_archi_boy   → écrit par boy  uniquement
+// Chaque joueur s'abonne en Realtime à la table adverse
+// memory_games porte uniquement : targets, manche, scores, winner, show_until
 // ═══════════════════════════════════════════════════════════
 
+var _archiMyTarget  = [];
+var _archiRound     = 1;
+var _archiPerfect   = true;
+var _archiSaved     = false;
+var _archiLocalStack = [];   // pile locale immédiate (affichage sans latence)
+var _archiRtChannel  = null; // channel Realtime table adverse
+
+function _archiMyTable()    { return 'memory_archi_' + _memProfile; }
+function _archiOtherTable() { return 'memory_archi_' + _memOther;   }
+
+// ── Upsert dans MA table ──────────────────────────────────────────
+function _archiSaveMyRow(fields) {
+  var cid = _memGetCoupleId(); if (!cid) return;
+  var body = Object.assign({ couple_id: cid }, fields);
+  fetch(SB_URL + '/rest/v1/' + _archiMyTable() + '?on_conflict=couple_id', {
+    method:  'POST',
+    headers: sb2Headers({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+    body:    JSON.stringify(body)
+  }).catch(function(e){ console.error('[ARCHI] saveMyRow error', e); });
+}
+
+// ── Lire la table adverse (pour affichage initial) ────────────────
+function _archiReadOther(cb) {
+  var cid = _memGetCoupleId(); if (!cid) return;
+  fetch(SB_URL + '/rest/v1/' + _archiOtherTable() + '?couple_id=eq.' + cid, {
+    headers: sb2Headers()
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(rows){ if (cb && rows && rows[0]) cb(rows[0]); })
+  .catch(function(){});
+}
+
+// ── S'abonner en Realtime à la table adverse ──────────────────────
+function _archiSubscribeOther() {
+  _archiUnsubscribeOther();
+  if (!window._yamRT) { setTimeout(_archiSubscribeOther, 1000); return; }
+  var cid = _memGetCoupleId(); if (!cid) return;
+  _archiRtChannel = window._yamRT
+    .channel('archi_other_' + _memProfile + '_' + cid)
+    .on('postgres_changes', {
+      event:  '*',
+      schema: 'public',
+      table:  _archiOtherTable()
+    }, function(payload) {
+      var row = payload.new;
+      if (!row || row.couple_id !== cid) return;
+      _archiRenderOtherRow(row);
+      // Vérifier si les deux sont done → publier winner dans memory_games
+      _archiCheckBothDone(row);
+    })
+    .subscribe();
+}
+
+function _archiUnsubscribeOther() {
+  if (_archiRtChannel) {
+    try { _archiRtChannel.unsubscribe(); } catch(e){}
+    _archiRtChannel = null;
+  }
+}
+
+// ── Afficher la pile adverse depuis une ligne de sa table ─────────
+function _archiRenderOtherRow(row) {
+  _memRenderArchiStack(_memEl('memArchiStackOther'), row.stack || []);
+}
+
+// ── Vérifier si les deux ont fini → publier winner ────────────────
+function _archiCheckBothDone(otherRow) {
+  if (!_memMp) return;
+  var cur = (_memMp.getGameState ? _memMp.getGameState() : null) || _memLastState;
+  if (!cur || cur.winner) return;
+  // Ce joueur a-t-il fini ?
+  if (!cur[_memProfile + '_done']) return;
+  // L'adversaire vient de finir ?
+  if (!otherRow.done) return;
+  // Les deux ont fini → calculer winner et publier dans memory_games
+  var myTime  = cur[_memProfile + '_done_time'];
+  var othTime = otherRow.done_time;
+  var roundWinner = myTime <= othTime ? _memProfile : _memOther;
+  var ns = JSON.parse(JSON.stringify(cur));
+  var gSf = ns.girl_score || 0, bSf = ns.boy_score || 0;
+  if (roundWinner === 'girl') gSf++; else bSf++;
+  ns.girl_score = gSf; ns.boy_score = bSf;
+  var maxRounds = ns.max_rounds || 3;
+  if ((ns.manche || 1) >= maxRounds) {
+    ns.winner = gSf > bSf ? 'girl' : bSf > gSf ? 'boy' : 'draw';
+    _memMp.saveState(ns);
+  } else {
+    _memMp.saveState(ns);
+    var isAll = _memCurrentMode === 'all';
+    var _sc = { girl: gSf, boy: bSf };
+    setTimeout(function() {
+      if (_memMp) {
+        var next = _memBuildArchiState((ns.manche || 1) + 1, isAll);
+        next.girl_score = _sc.girl; next.boy_score = _sc.boy;
+        _memMp.saveState(next);
+      }
+    }, 1200);
+  }
+}
+
+// ── Reset ma table au début d'un round ───────────────────────────
+function _archiResetMyRow() {
+  var cid = _memGetCoupleId(); if (!cid) return;
+  fetch(SB_URL + '/rest/v1/' + _archiMyTable() + '?couple_id=eq.' + cid, {
+    method:  'DELETE',
+    headers: sb2Headers()
+  }).catch(function(){});
+}
+
+// ── Cleanup complet (appelé par _memCleanup) ──────────────────────
+function _archiCleanup() {
+  _archiUnsubscribeOther();
+  _archiResetMyRow();
+}
+
 function _memStartArchi(gameRow) {
-  _archiRound=1; _archiTarget=[]; _archiMyTarget=[]; _archiPerfect=true; _archiSaved=false; _archiLocalStack=[]; _archiOtherStackCache=[];
+  _archiRound=1; _archiTarget=[]; _archiMyTarget=[]; _archiPerfect=true; _archiSaved=false; _archiLocalStack=[];
   _memShowScreen('memScreenArchi');
   var _t=_memEl('memViewTitle');if(_t)_t.textContent='Architecte';
   var _ms3=_memEl('memScreenArchi');if(_ms3){var _gh3=_ms3.querySelector('.mem-game-header');if(_gh3)_gh3.style.display='none';var _oldSh=_ms3.querySelector('.mem-archi-shapes');if(_oldSh)_oldSh.style.display='none';}
@@ -1108,18 +1228,18 @@ function _memStartArchi(gameRow) {
   if(nMe)nMe.textContent=_memGetName(_memProfile);
   if(nOth)nOth.textContent=_memGetName(_memOther);
   _memBuildArchiPalette();
-  var isAll = _memCurrentMode === 'all';
+  // Vider ma table + s'abonner à la table adverse
+  _archiResetMyRow();
+  _archiSubscribeOther();
   var stateA = gameRow && gameRow.state;
   if (stateA && stateA.phase === 'archi') {
-    // Recalculer show_until localement pour garantir 4s d'animation complètes
     var localStateA = JSON.parse(JSON.stringify(stateA));
     localStateA.show_until = Date.now() + 4000;
     _memApplyArchiState(localStateA);
   }
-  // Sinon : state arrive via onStateUpdate
 }
 
-// Tours DIFFÉRENTES pour chaque joueur — chacun a sa propre séquence à mémoriser
+// Tours DIFFÉRENTES pour chaque joueur
 function _memBuildArchiState(round, isAll) {
   var len = 3 + round;
   var girlTarget=[], boyTarget=[];
@@ -1130,10 +1250,8 @@ function _memBuildArchiState(round, isAll) {
   var maxRounds = isAll ? 1 : 3;
   return {
     phase:'archi', mode:'archi', manche:round, max_rounds:maxRounds,
-    girl_target:girlTarget, boy_target:boyTarget,  // tours différentes
-    girl_stack:[], boy_stack:[],
-    girl_errors:0, boy_errors:0,   // compteur d'erreurs par round
-    girl_score:0, boy_score:0,     // rounds gagnés
+    girl_target:girlTarget, boy_target:boyTarget,
+    girl_score:0, boy_score:0,
     girl_done:false, boy_done:false,
     girl_done_time:null, boy_done_time:null,
     countdown_start:null,
@@ -1141,9 +1259,6 @@ function _memBuildArchiState(round, isAll) {
     show_until:Date.now()+4000
   };
 }
-
-// _archiMyTarget = la tour de CE joueur (girl_target ou boy_target selon le rôle)
-var _archiMyTarget = [];
 
 function _memBuildArchiPalette() {
   var p=_memEl('memArchiShapesMe');if(!p)return;p.innerHTML='';
@@ -1154,15 +1269,21 @@ function _memBuildArchiPalette() {
 
 function _memApplyArchiState(state) {
   if(!state||state.phase!=='archi')return;
-  // Chaque joueur lit SA propre tour
   _archiMyTarget = (_memProfile==='girl' ? state.girl_target : state.boy_target) || [];
-  _archiTarget   = _archiMyTarget; // compatibilité
+  _archiTarget   = _archiMyTarget;
+  var prevRound  = _archiRound;
   _archiRound    = state.manche||1;
-  var maxRounds  = state.max_rounds||3;
+  // Nouveau round → reset pile locale + vider/réabonner les tables
+  if (_archiRound !== prevRound) {
+    _archiLocalStack=[];
+    _archiResetMyRow();
+    // Lire la pile adverse initiale (probablement vide, mais au cas où)
+    _archiReadOther(function(row){ _archiRenderOtherRow(row); });
+  }
+  var maxRounds = state.max_rounds||3;
   var rEl=_memEl('memArchiRound');
   if(rEl) rEl.textContent = maxRounds===1 ? 'Tour unique' : 'Round '+_archiRound+'/'+maxRounds;
 
-  // Afficher SA propre tour pendant la phase mémorisation
   var targetEl=_memEl('memArchiTarget');
   if(targetEl){
     var showing=Date.now()<(state.show_until||0);
@@ -1175,7 +1296,6 @@ function _memApplyArchiState(state) {
       var rem=state.show_until-Date.now();
       setTimeout(function(){
         if(targetEl)targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
-        // Mettre à jour uniquement la phase texte sans récursion
         var phEl2=_memEl('memArchiPhase');
         if(phEl2) phEl2.textContent='🏗️ Reconstruit !';
         var pal2=_memEl('memArchiShapesMe');
@@ -1190,25 +1310,14 @@ function _memApplyArchiState(state) {
   var phEl=_memEl('memArchiPhase'),showing2=Date.now()<(state.show_until||0);
   if(phEl)phEl.textContent=showing2?'👀 Mémorise ta tour ! ('+Math.ceil(((state.show_until||0)-Date.now())/1000)+'s)':'🏗️ Reconstruit !';
 
-  // Mettre à jour le cache de la pile adverse dès qu'on reçoit un state plus avancé
-  var serverOtherStack = (_memProfile==='girl'?state.boy_stack:state.girl_stack)||[];
-  if(serverOtherStack.length > _archiOtherStackCache.length) _archiOtherStackCache = serverOtherStack.slice();
-  // Si l'adversaire a fini ou reset (pile vide après _done), on reset aussi le cache
-  if(state[_memOther+'_done'] || serverOtherStack.length===0) _archiOtherStackCache = serverOtherStack.slice();
+  // Ma pile : depuis la pile locale (affichage immédiat)
+  _memRenderArchiStack(_memEl('memArchiStackMe'), _archiLocalStack);
+  // Pile adverse : depuis la table adverse (lue au démarrage, mise à jour par Realtime)
+  _archiReadOther(function(row){ _archiRenderOtherRow(row); });
 
-  // Afficher les piles — pour la mienne, priorité à la pile locale (évite le clignotement post-tap)
-  var serverMyStack = _memProfile==='girl'?state.girl_stack:state.boy_stack;
-  var displayMyStack = (_archiLocalStack.length > (serverMyStack||[]).length) ? _archiLocalStack : (serverMyStack||[]);
-  _memRenderArchiStack(_memEl('memArchiStackMe'),    displayMyStack);
-  // Pour l'adversaire : afficher le max connu (cache vs serveur)
-  var displayOtherStack = (_archiOtherStackCache.length > serverOtherStack.length) ? _archiOtherStackCache : serverOtherStack;
-  _memRenderArchiStack(_memEl('memArchiStackOther'), displayOtherStack);
-
-  // Bloquer palette pendant mémorisation ou si ce joueur a déjà fini ce round
   var pal=_memEl('memArchiShapesMe');
   if(pal) pal.style.pointerEvents=(showing2||state[_memProfile+'_done'])?'none':'';
 
-  // Scores = rounds gagnés
   var gS=state.girl_score||0, bS=state.boy_score||0;
   var eMe=_memEl('memArchiScoreMe'),eOth=_memEl('memArchiScoreOther');
   if(eMe)eMe.textContent=(_memProfile==='girl'?gS:bS);
@@ -1226,106 +1335,69 @@ function _memRenderArchiStack(el,stack){
   });
 }
 
-// ── Utilitaire anti-race-condition Architecte ──
-// Cache local de la pile adverse — mis à jour à chaque state reçu du serveur.
-// Garantit que nos writes ne régressent jamais la pile adverse.
-var _archiOtherStackCache = [];
-
-function _archiFlushMyFields(fields) {
-  if (!_memMp) return;
-  var fresh = (_memMp.getGameState ? _memMp.getGameState() : null) || _memLastState;
-  if (!fresh) return;
-  var ns = JSON.parse(JSON.stringify(fresh));
-  // Injecter nos champs
-  Object.keys(fields).forEach(function(k) { ns[k] = fields[k]; });
-  // Toujours préserver la pile adverse avec la valeur la plus avancée connue
-  // (cache local vs valeur serveur fraîche — on prend le max)
-  var otherStackKey = _memOther + '_stack';
-  var serverOtherStack = fresh[otherStackKey] || [];
-  var bestOtherStack = (_archiOtherStackCache.length > serverOtherStack.length)
-    ? _archiOtherStackCache : serverOtherStack;
-  ns[otherStackKey] = bestOtherStack;
-  _memMp.saveState(ns);
-}
-
-// Stack locale — source de vérité pour éviter la race condition :
-// chaque joueur maintient sa propre pile localement et ne dépend pas du state serveur pour la calculer.
-var _archiLocalStack = [];
-
 function _memArchiTap(si) {
   if(!_memMp)return;
-  var cur=_memMp.getGameState?_memMp.getGameState():null;
-  if(!cur) cur=_memLastState;
+  var cur=(_memMp.getGameState?_memMp.getGameState():null)||_memLastState;
   if(!cur)return;
-  if(Date.now()<Math.max(cur.show_until||0, _allArchiShowUntil||0))return;
+  if(Date.now()<(cur.show_until||0))return;
   if(cur[_memProfile+'_done'])return;
 
-  // Utiliser la pile locale — immune à la race condition inter-joueurs
   var myStack=_archiLocalStack.concat([si]);
   var exp=_archiMyTarget[myStack.length-1];
 
   if(si!==exp){
-    // Erreur → réinitialiser pile locale + affichage immédiat
     _archiLocalStack=[];
     _archiPerfect=false;
     var sEl=_memEl('memArchiStackMe');
     if(sEl){sEl.classList.add('mem-archi-stack--wrong');setTimeout(function(){sEl.classList.remove('mem-archi-stack--wrong');},400);}
-    // Lire le state frais AU MOMENT du save — ne touche QU'à nos champs
+    _memRenderArchiStack(_memEl('memArchiStackMe'), []);
     var myErrors=(cur[_memProfile+'_errors']||0)+1;
-    _archiFlushMyFields({[_memProfile+'_stack']:[],[_memProfile+'_errors']:myErrors});
+    // Écrire uniquement dans MA table
+    _archiSaveMyRow({ stack:[], errors:myErrors, done:false, manche:_archiRound });
+    // Mettre à jour memory_games pour les erreurs (optionnel, pour les stats)
+    var ns=JSON.parse(JSON.stringify(cur));
+    ns[_memProfile+'_errors']=myErrors;
+    _memMp.saveState(ns);
     return;
   }
 
-  // Bonne pièce → pile locale + affichage immédiat
+  // Bonne pièce
   _archiLocalStack=myStack;
   _memRenderArchiStack(_memEl('memArchiStackMe'), _archiLocalStack);
+  // Écrire ma pile dans MA table — zéro collision possible
+  _archiSaveMyRow({ stack:myStack, errors:cur[_memProfile+'_errors']||0, done:false, manche:_archiRound });
 
   if(myStack.length===_archiMyTarget.length){
     _archiLocalStack=[];
     var sEl2=_memEl('memArchiStackMe');
     if(sEl2){sEl2.classList.add('mem-archi-stack--complete');setTimeout(function(){sEl2.classList.remove('mem-archi-stack--complete');},600);}
-
     var doneTime=Date.now();
-    // Lire le state frais pour récupérer les champs adversaire à jour
-    var fresh=(_memMp.getGameState?_memMp.getGameState():null)||_memLastState||cur;
-    var fields={[_memProfile+'_stack']:myStack,[_memProfile+'_done']:true,[_memProfile+'_done_time']:doneTime};
-
-    if(fresh[_memOther+'_done']){
-      var othTime=fresh[_memOther+'_done_time'];
-      var roundWinner=doneTime<=othTime?_memProfile:_memOther;
-      var gSf=fresh.girl_score||0, bSf=fresh.boy_score||0;
-      if(roundWinner==='girl')gSf++;else bSf++;
-      fields.girl_score=gSf; fields.boy_score=bSf;
-      var maxRounds=fresh.max_rounds||3;
-      if((fresh.manche||1)>=maxRounds){
-        fields.winner=gSf>bSf?'girl':bSf>gSf?'boy':'draw';
-        _archiFlushMyFields(fields);
-      } else {
-        _archiFlushMyFields(fields);
-        var isAll=_memCurrentMode==='all';
-        var _sc={girl:gSf,boy:bSf};
-        setTimeout(function(){
-          if(_memMp){var next=_memBuildArchiState((fresh.manche||1)+1,isAll);next.girl_score=_sc.girl;next.boy_score=_sc.boy;_memMp.saveState(next);}
-        },1200);
-      }
-      return;
-    }
-    if(!fresh.countdown_start) fields.countdown_start=Date.now();
-    _archiFlushMyFields(fields);
+    // Marquer done dans MA table
+    _archiSaveMyRow({ stack:myStack, done:true, done_time:doneTime, errors:cur[_memProfile+'_errors']||0, manche:_archiRound });
+    // Mettre à jour memory_games avec mon _done (l'adversaire le verra via onStateUpdate)
+    var ns2=JSON.parse(JSON.stringify(cur));
+    ns2[_memProfile+'_done']=true;
+    ns2[_memProfile+'_done_time']=doneTime;
+    if(!ns2.countdown_start) ns2.countdown_start=doneTime;
+    _memMp.saveState(ns2);
+    // Si l'adversaire était déjà done → _archiCheckBothDone sera déclenché par son Realtime
+    // Mais si on arrive ici en second, vérifier directement
+    _archiReadOther(function(otherRow){
+      if(otherRow.done) _archiCheckBothDone(otherRow);
+    });
     return;
   }
 
-  // Pièce intermédiaire correcte
-  _archiFlushMyFields({[_memProfile+'_stack']:myStack});
+  // Pièce intermédiaire — pas besoin de toucher à memory_games
 }
 
 function _memArchiHandleCountdown(state) {
   if (!state.countdown_start || state.winner) {
     if (_archiCdTimer) { clearInterval(_archiCdTimer); _archiCdTimer = null; }
+  _archiUnsubscribeOther();
     var cdEl = _memEl('memArchiCountdown'); if (cdEl) cdEl.style.display = 'none';
     return;
   }
-  // Creer/afficher le div countdown
   var cdEl = _memEl('memArchiCountdown');
   if (!cdEl) {
     cdEl = document.createElement('div');
@@ -1335,7 +1407,7 @@ function _memArchiHandleCountdown(state) {
     if (phase) phase.parentNode.insertBefore(cdEl, phase.nextSibling);
   }
   cdEl.style.display = 'block';
-  if (_archiCdTimer) return; // deja actif
+  if (_archiCdTimer) return;
   _archiCdTimer = setInterval(function() {
     var cur = (_memMp && _memMp.getGameState ? _memMp.getGameState() : null) || _memLastState;
     if (!cur || !cur.countdown_start || cur.winner) {
@@ -1348,8 +1420,6 @@ function _memArchiHandleCountdown(state) {
     if (el) el.textContent = remaining > 0 ? '\u23f1 ' + remaining + 's' : '';
     if (remaining <= 0) {
       clearInterval(_archiCdTimer); _archiCdTimer = null;
-      // Seul celui qui a fini publie le resultat (evite doublon)
-      // + countdown_fired evite la double publication si onStateUpdate re-declenche
       if (!_memMp || !cur[_memProfile + '_done'] || cur.countdown_fired) return;
       var ns = JSON.parse(JSON.stringify(cur));
       ns.countdown_fired = true;
@@ -1377,15 +1447,14 @@ function _memArchiHandleCountdown(state) {
 
 function _memShowArchiResult(state){
   _archiSaved=true;
+  _archiUnsubscribeOther();
   var fEl=_memEl('memArchiFinalResult');if(!fEl)return;fEl.style.display='flex';
   var iWon=state.winner===_memProfile,isDraw=state.winner==='draw';
   var eEl=_memEl('memArchiFinalEmoji'),tEl=_memEl('memArchiFinalTitle');
   if(eEl)eEl.textContent=isDraw?'🤝':iWon?'🏆':'😢';
   if(tEl)tEl.textContent=isDraw?'Égalité !':iWon?'Victoire !':_memGetName(_memOther)+' gagne !';
-  // Trophée si gagné sans aucune erreur
   var myErrors = _memProfile==='girl'?(state.girl_errors||0):(state.boy_errors||0);
   if(iWon && myErrors===0) _memUnlockTrophy('architecte','memArchiTrophyUnlock');
-  // Sauvegarder le score
   if(_memProfile==='girl'){
     var cid=_memGetCoupleId(),dur=Math.round((Date.now()-_memStartedAt)/1000);
     if(cid)['girl','boy'].forEach(function(r){
@@ -1393,7 +1462,6 @@ function _memShowArchiResult(state){
       var errors     = r==='girl'?(state.girl_errors||0):(state.boy_errors||0);
       var maxRounds  = state.max_rounds||3;
       var iWin       = state.winner===r, isDraw = state.winner==='draw';
-      // Rounds gagnés (0-600) + précision zéro erreur (200) + victoire (200)
       var sc_rounds  = Math.round((rounds/Math.max(1,maxRounds))*600);
       var sc_perfect = errors===0?200:Math.max(0,200-errors*20);
       var sc_win     = iWin?200:(isDraw?100:0);
@@ -1405,14 +1473,12 @@ function _memShowArchiResult(state){
   }
   var btn=_memEl('memArchiDoneBtn');if(btn)btn.onclick=function(){
     fEl.style.display='none';
+    _archiCleanup();
     if (_memMp && typeof _memMp.deleteGame === 'function') _memMp.deleteGame();
     _memCleanup();_memShowLb(true);_lbLoad();
   };
   if(typeof window.yamFlameActivity==='function')window.yamFlameActivity('memory_done');
 }
-
-
-
 
 // ═══════════════════════════════════════════════════════════
 // MODE ALL — Entièrement autonome
@@ -1437,6 +1503,7 @@ var _allEchoShowInt = null, _allEchoSaved = false, _allEchoPublished = false;
 
 // ── État archi ALL ──
 var _allArchiMyTarget = [], _allArchiSaved = false, _allArchiPerfect = true, _allArchiShowUntil = 0;
+var _allArchiLocalStack = []; // conservé pour compat reset dans _allStart
 
 // ─────────────────────────────────────────────
 // BUILDERS — chaque step a son propre state shape
@@ -1501,7 +1568,7 @@ function _allStart(gameRow) {
   _allEchoSeq = []; _allEchoMyInput = []; _allEchoShowing = false;
   if (_allEchoShowInt) { clearInterval(_allEchoShowInt); _allEchoShowInt = null; }
   // Reset etat Archi ALL
-  _allArchiMyTarget = []; _allArchiPerfect = true; _allArchiLocalStack = []; _archiOtherStackCache = [];
+  _allArchiMyTarget = []; _allArchiPerfect = true; _archiLocalStack = []; _allArchiSaved = false; _allArchiShowUntil = 0;
   // Le state initial (classic) a déjà été publié par _memVoteMode
   // → on route directement depuis le gameRow reçu
   var state = gameRow && gameRow.state;
@@ -1867,22 +1934,22 @@ function _allEchoTap(idx){
 // ─────────────────────────────────────────────
 
 function _allStartArchi(state) {
-  _allArchiMyTarget=[]; _allArchiSaved=false; _allArchiPerfect=true; _allArchiLocalStack=[]; _archiOtherStackCache=[];
+  _allArchiMyTarget=[]; _allArchiSaved=false; _allArchiPerfect=true; _archiLocalStack=[];
   _memShowScreen('memScreenArchi');
-  // Injecter profils adversaire
   _memRenderDualProfiles('memArchiMyProfile', 'memArchiOppProfile');
   var nMe=_memEl('memArchiNameMe'),nOth=_memEl('memArchiNameOther');
   if(nMe)nMe.textContent=_memGetName(_memProfile);
   if(nOth)nOth.textContent=_memGetName(_memOther);
-  // Reconstruire la palette avec les listeners ALL — utiliser ARCHI_SVG (même rendu que le mode solo)
+  // Palette avec listeners ALL — même rendu SVG que le mode solo
   var p=_memEl('memArchiShapesMe');if(p){p.innerHTML='';
     ARCHI_SVG.forEach(function(s,i){
       var d=_memArchiShapeEl(i,44,(function(idx){return function(){_allArchiTap(idx);};})(i));
       p.appendChild(d);
     });
   }
-  // Recalculer show_until localement : chaque joueur a ses 4s complètes
-  // On stocke dans _allArchiShowUntil pour que les polls suivants respectent aussi ce délai
+  // Vider ma table + s'abonner à la table adverse (même infra que le mode solo)
+  _archiResetMyRow();
+  _archiSubscribeOther();
   _allArchiShowUntil = Date.now() + 4000;
   var localState = JSON.parse(JSON.stringify(state));
   localState.show_until = _allArchiShowUntil;
@@ -1895,8 +1962,6 @@ function _allApplyArchiState(state) {
 
   var rEl=_memEl('memArchiRound');if(rEl)rEl.textContent='ALL · Tour unique';
 
-  // Utiliser le max entre le show_until serveur et le show_until local
-  // pour garantir 4s d'animation même si les polls reçoivent le state original
   var effectiveShowUntil = Math.max(state.show_until||0, _allArchiShowUntil||0);
   var showing=Date.now()<effectiveShowUntil;
   var targetEl=_memEl('memArchiTarget');
@@ -1909,7 +1974,6 @@ function _allApplyArchiState(state) {
       });
       setTimeout(function(){
         if(targetEl)targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
-        // Mettre à jour uniquement la phase texte sans récursion
         var phEl2=_memEl('memArchiPhase');
         if(phEl2) phEl2.textContent='🏗️ Reconstruit !';
         var pal2=_memEl('memArchiShapesMe');
@@ -1924,23 +1988,16 @@ function _allApplyArchiState(state) {
   var phEl=_memEl('memArchiPhase');
   if(phEl)phEl.textContent=showing?'👀 Mémorise ta tour ! ('+Math.ceil((effectiveShowUntil-Date.now())/1000)+'s)':'🏗️ Reconstruit !';
 
-  // Priorité à la pile locale pour éviter le clignotement après tap
-  var serverMyStackA = _memProfile==='girl'?state.girl_stack:state.boy_stack;
-  var displayMyStackA = (_allArchiLocalStack.length > (serverMyStackA||[]).length) ? _allArchiLocalStack : (serverMyStackA||[]);
-  // Cache adversaire ALL — même logique que le mode solo
-  var serverOtherStackA = (_memProfile==='girl'?state.boy_stack:state.girl_stack)||[];
-  if(serverOtherStackA.length > _archiOtherStackCache.length) _archiOtherStackCache = serverOtherStackA.slice();
-  if(state[_memOther+'_done'] || serverOtherStackA.length===0) _archiOtherStackCache = serverOtherStackA.slice();
-  var displayOtherStackA = (_archiOtherStackCache.length > serverOtherStackA.length) ? _archiOtherStackCache : serverOtherStackA;
-  _memRenderArchiStack(_memEl('memArchiStackMe'),    displayMyStackA);
-  _memRenderArchiStack(_memEl('memArchiStackOther'), displayOtherStackA);
+  // Ma pile depuis pile locale, adversaire depuis sa table via Realtime
+  _memRenderArchiStack(_memEl('memArchiStackMe'), _archiLocalStack);
+  _archiReadOther(function(row){ _archiRenderOtherRow(row); });
 
   var pal=_memEl('memArchiShapesMe');
   if(pal)pal.style.pointerEvents=(showing||state[_memProfile+'_done'])?'none':'';
 
   if(state.winner && !_allArchiSaved){
     _allArchiSaved=true;
-    // Déplacer le popup dans body pour contourner le parent display:none
+    _archiUnsubscribeOther();
     var _rElA=_memEl('memClassicMancheResult');
     var _rElAParent=_rElA?_rElA.parentElement:null;
     var _rElANext=_rElA?_rElA.nextSibling:null;
@@ -1959,57 +2016,65 @@ function _allApplyArchiState(state) {
   }
 }
 
-// Stack locale ALL — même principe que _archiLocalStack pour le mode solo
-var _allArchiLocalStack = [];
-
 function _allArchiTap(si){
   if(!_memMp)return;
   var cur=(_memMp.getGameState?_memMp.getGameState():null)||_memLastState;if(!cur)return;
   if(Date.now()<Math.max(cur.show_until||0, _allArchiShowUntil||0))return;
   if(cur[_memProfile+'_done'])return;
 
-  // Pile locale — immune à la race condition inter-joueurs
-  var myStack=_allArchiLocalStack.concat([si]);
+  var myStack=_archiLocalStack.concat([si]);
   var exp=_allArchiMyTarget[myStack.length-1];
 
   if(si!==exp){
-    // Erreur → réinitialiser pile locale + affichage immédiat
-    _allArchiLocalStack=[];
+    _archiLocalStack=[];
     _allArchiPerfect=false;
     var sEl=_memEl('memArchiStackMe');
     if(sEl){sEl.classList.add('mem-archi-stack--wrong');setTimeout(function(){sEl.classList.remove('mem-archi-stack--wrong');},400);}
+    _memRenderArchiStack(_memEl('memArchiStackMe'), []);
     var myErrA=(cur[_memProfile+'_errors']||0)+1;
-    _archiFlushMyFields({[_memProfile+'_stack']:[],[_memProfile+'_errors']:myErrA});
+    _archiSaveMyRow({ stack:[], errors:myErrA, done:false, manche:1 });
+    var ns=JSON.parse(JSON.stringify(cur));
+    ns[_memProfile+'_errors']=myErrA;
+    _memMp.saveState(ns);
     return;
   }
 
-  // Bonne pièce → pile locale + affichage immédiat
-  _allArchiLocalStack=myStack;
-  _memRenderArchiStack(_memEl('memArchiStackMe'), _allArchiLocalStack);
+  _archiLocalStack=myStack;
+  _memRenderArchiStack(_memEl('memArchiStackMe'), _archiLocalStack);
+  _archiSaveMyRow({ stack:myStack, errors:cur[_memProfile+'_errors']||0, done:false, manche:1 });
 
   if(myStack.length===_allArchiMyTarget.length){
-    _allArchiLocalStack=[];
+    _archiLocalStack=[];
     var sEl2=_memEl('memArchiStackMe');
     if(sEl2){sEl2.classList.add('mem-archi-stack--complete');setTimeout(function(){sEl2.classList.remove('mem-archi-stack--complete');},600);}
-
     var doneTimeA=Date.now();
-    var freshA=(_memMp.getGameState?_memMp.getGameState():null)||_memLastState||cur;
-    var fieldsA={[_memProfile+'_stack']:myStack,[_memProfile+'_done']:true,[_memProfile+'_done_time']:doneTimeA};
-
-    if(freshA[_memOther+'_done']){
-      var othTA=freshA[_memOther+'_done_time'];
-      var rwA=doneTimeA<=othTA?_memProfile:_memOther;
-      var gSA=freshA.girl_score||0,bSA=freshA.boy_score||0;
-      if(rwA==='girl')gSA++;else bSA++;
-      fieldsA.girl_score=gSA; fieldsA.boy_score=bSA;
-      fieldsA.winner=gSA>bSA?'girl':bSA>gSA?'boy':'draw';
-    }
-    _archiFlushMyFields(fieldsA);
+    _archiSaveMyRow({ stack:myStack, done:true, done_time:doneTimeA, errors:cur[_memProfile+'_errors']||0, manche:1 });
+    var ns2=JSON.parse(JSON.stringify(cur));
+    ns2[_memProfile+'_done']=true;
+    ns2[_memProfile+'_done_time']=doneTimeA;
+    _memMp.saveState(ns2);
+    _archiReadOther(function(otherRow){
+      if(otherRow.done) _archiCheckBothDoneAll(otherRow, ns2);
+    });
     return;
   }
+}
 
-  // Pièce intermédiaire correcte
-  _archiFlushMyFields({[_memProfile+'_stack']:myStack});
+// Variante de _archiCheckBothDone pour le mode ALL (winner → _allShowStepResult)
+function _archiCheckBothDoneAll(otherRow, curState) {
+  if (!_memMp) return;
+  var cur = curState || (_memMp.getGameState ? _memMp.getGameState() : null) || _memLastState;
+  if (!cur || cur.winner) return;
+  if (!cur[_memProfile + '_done'] || !otherRow.done) return;
+  var myTime  = cur[_memProfile + '_done_time'];
+  var othTime = otherRow.done_time;
+  var roundWinner = myTime <= othTime ? _memProfile : _memOther;
+  var ns = JSON.parse(JSON.stringify(cur));
+  var gSA = ns.girl_score||0, bSA = ns.boy_score||0;
+  if(roundWinner==='girl')gSA++;else bSA++;
+  ns.girl_score=gSA; ns.boy_score=bSA;
+  ns.winner=gSA>bSA?'girl':bSA>gSA?'boy':'draw';
+  _memMp.saveState(ns);
 }
 
 // ─────────────────────────────────────────────
