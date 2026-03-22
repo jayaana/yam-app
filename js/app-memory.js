@@ -1157,10 +1157,7 @@ function _memApplyArchiState(state) {
     var showing=Date.now()<(state.show_until||0);
     if(showing){
       targetEl.innerHTML='';
-      _archiMyTarget.forEach(function(si){
-        var s=_memArchiShapeEl(si,44,null);
-        if(targetEl.firstChild){targetEl.insertBefore(s,targetEl.firstChild);}else{targetEl.appendChild(s);}
-      });
+      _archiMyTarget.forEach(function(si){targetEl.appendChild(_memArchiShapeEl(si,44,null));});
       var rem=state.show_until-Date.now();
       setTimeout(function(){
         if(targetEl)targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
@@ -1198,10 +1195,7 @@ function _memApplyArchiState(state) {
 
 function _memRenderArchiStack(el,stack){
   if(!el)return;el.innerHTML='';
-  (stack||[]).forEach(function(si){
-    var s=_memArchiShapeEl(si,44,null);
-    if(el.firstChild){el.insertBefore(s,el.firstChild);}else{el.appendChild(s);}
-  });
+  (stack||[]).forEach(function(si){el.appendChild(_memArchiShapeEl(si,44,null));});
 }
 
 function _memArchiTap(si) {
@@ -2035,7 +2029,7 @@ function _memArchiSetup3Cols(){
     var col=document.createElement('div');
     col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;background:#fff;border:1.5px solid '+borderColor+';border-radius:14px;padding:10px 6px;';
     col.innerHTML='<div style="font-size:9px;font-weight:700;color:'+labelColor+';text-transform:uppercase;letter-spacing:1px;">'+label+'</div>';
-    var stack=document.createElement('div');stack.style.cssText='display:flex;flex-direction:column;gap:6px;align-items:center;min-height:100px;width:100%;';
+    var stack=document.createElement('div');stack.style.cssText='display:flex;flex-direction:column-reverse;gap:6px;align-items:center;min-height:100px;width:100%;justify-content:flex-end;';
     if(stackId)stack.id=stackId;
     col.appendChild(stack);
     if(shapesId){var sh=document.createElement('div');sh.id=shapesId;sh.style.cssText='display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:4px;';col.appendChild(sh);}
@@ -2043,7 +2037,7 @@ function _memArchiSetup3Cols(){
   }
   var colMe=makeCol(nameMe.toUpperCase(),isGirl?'#ec4899':'#7c3aed',isGirl?'#fce7f3':'#ede9fe','memArchiStackMe',null);
   var colMod=makeCol('MOD\u00c8LE','#9ca3af','#e5e7eb',null,null);
-  var tgt=document.createElement('div');tgt.id='memArchiTarget';tgt.style.cssText='display:flex;flex-direction:column;gap:6px;align-items:center;min-height:100px;width:100%;';
+  var tgt=document.createElement('div');tgt.id='memArchiTarget';tgt.style.cssText='display:flex;flex-direction:column-reverse;gap:6px;align-items:center;min-height:100px;width:100%;justify-content:flex-end;';
   colMod.appendChild(tgt);
   var colOpp=makeCol(nameOth.toUpperCase(),oppIsGirl?'#ec4899':'#7c3aed',oppIsGirl?'#fce7f3':'#ede9fe','memArchiStackOther',null);
   wrap.appendChild(colMe);wrap.appendChild(colMod);wrap.appendChild(colOpp);
