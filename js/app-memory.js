@@ -1106,7 +1106,8 @@ var _archiMyTarget  = [];
 var _archiRound     = 1;
 var _archiPerfect   = true;
 var _archiSaved     = false;
-var _archiLocalStack = [];   // pile locale immédiate (affichage sans latence)
+var _archiLocalStack   = [];  // pile en cours de construction (vidée après done/erreur)
+var _archiDisplayStack = [];  // pile à afficher — conservée jusqu'au prochain round
 var _archiRtChannel  = null; // channel Realtime table adverse
 
 function _archiMyTable()    { return 'memory_archi_' + _memProfile; }
@@ -1146,6 +1147,11 @@ function _archiSubscribeOther() {
       schema: 'public',
       table:  _archiOtherTable()
     }, function(payload) {
+      // DELETE = adversaire a reset sa table (nouveau round) → vider pile adverse
+      if (payload.eventType === 'DELETE') {
+        _memRenderArchiStack(_memEl('memArchiStackOther'), []);
+        return;
+      }
       var row = payload.new;
       if (!row || row.couple_id !== cid) return;
       _archiRenderOtherRow(row);
@@ -1218,7 +1224,7 @@ function _archiCleanup() {
 }
 
 function _memStartArchi(gameRow) {
-  _archiRound=1; _archiTarget=[]; _archiMyTarget=[]; _archiPerfect=true; _archiSaved=false; _archiLocalStack=[];
+  _archiRound=1; _archiTarget=[]; _archiMyTarget=[]; _archiPerfect=true; _archiSaved=false; _archiLocalStack=[]; _archiDisplayStack=[];
   _memShowScreen('memScreenArchi');
   var _t=_memEl('memViewTitle');if(_t)_t.textContent='Architecte';
   var _ms3=_memEl('memScreenArchi');if(_ms3){var _gh3=_ms3.querySelector('.mem-game-header');if(_gh3)_gh3.style.display='none';var _oldSh=_ms3.querySelector('.mem-archi-shapes');if(_oldSh)_oldSh.style.display='none';}
@@ -1276,9 +1282,10 @@ function _memApplyArchiState(state) {
   // Nouveau round → reset pile locale + vider/réabonner les tables
   if (_archiRound !== prevRound) {
     _archiLocalStack=[];
+    _archiDisplayStack=[];
+    // Vider l'affichage adverse immédiatement (avant que le Realtime confirme)
+    _memRenderArchiStack(_memEl('memArchiStackOther'), []);
     _archiResetMyRow();
-    // Lire la pile adverse initiale (probablement vide, mais au cas où)
-    _archiReadOther(function(row){ _archiRenderOtherRow(row); });
   }
   var maxRounds = state.max_rounds||3;
   var rEl=_memEl('memArchiRound');
@@ -1310,8 +1317,8 @@ function _memApplyArchiState(state) {
   var phEl=_memEl('memArchiPhase'),showing2=Date.now()<(state.show_until||0);
   if(phEl)phEl.textContent=showing2?'👀 Mémorise ta tour ! ('+Math.ceil(((state.show_until||0)-Date.now())/1000)+'s)':'🏗️ Reconstruit !';
 
-  // Ma pile : depuis la pile locale (affichage immédiat)
-  _memRenderArchiStack(_memEl('memArchiStackMe'), _archiLocalStack);
+  // Ma pile : depuis _archiDisplayStack (conservée après done, contrairement à _archiLocalStack)
+  _memRenderArchiStack(_memEl('memArchiStackMe'), _archiDisplayStack);
   // Pile adverse : depuis la table adverse (lue au démarrage, mise à jour par Realtime)
   _archiReadOther(function(row){ _archiRenderOtherRow(row); });
 
@@ -1347,6 +1354,7 @@ function _memArchiTap(si) {
 
   if(si!==exp){
     _archiLocalStack=[];
+    _archiDisplayStack=[];  // erreur → vider l'affichage aussi
     _archiPerfect=false;
     var sEl=_memEl('memArchiStackMe');
     if(sEl){sEl.classList.add('mem-archi-stack--wrong');setTimeout(function(){sEl.classList.remove('mem-archi-stack--wrong');},400);}
@@ -1363,12 +1371,13 @@ function _memArchiTap(si) {
 
   // Bonne pièce
   _archiLocalStack=myStack;
-  _memRenderArchiStack(_memEl('memArchiStackMe'), _archiLocalStack);
+  _archiDisplayStack=myStack;  // conserver pour affichage même après done
+  _memRenderArchiStack(_memEl('memArchiStackMe'), _archiDisplayStack);
   // Écrire ma pile dans MA table — zéro collision possible
   _archiSaveMyRow({ stack:myStack, errors:cur[_memProfile+'_errors']||0, done:false, manche:_archiRound });
 
   if(myStack.length===_archiMyTarget.length){
-    _archiLocalStack=[];
+    _archiLocalStack=[];  // vider la pile de construction, mais PAS _archiDisplayStack
     var sEl2=_memEl('memArchiStackMe');
     if(sEl2){sEl2.classList.add('mem-archi-stack--complete');setTimeout(function(){sEl2.classList.remove('mem-archi-stack--complete');},600);}
     var doneTime=Date.now();
@@ -1934,7 +1943,7 @@ function _allEchoTap(idx){
 // ─────────────────────────────────────────────
 
 function _allStartArchi(state) {
-  _allArchiMyTarget=[]; _allArchiSaved=false; _allArchiPerfect=true; _archiLocalStack=[];
+  _allArchiMyTarget=[]; _allArchiSaved=false; _allArchiPerfect=true; _archiLocalStack=[]; _archiDisplayStack=[];
   _memShowScreen('memScreenArchi');
   _memRenderDualProfiles('memArchiMyProfile', 'memArchiOppProfile');
   var nMe=_memEl('memArchiNameMe'),nOth=_memEl('memArchiNameOther');
@@ -1988,8 +1997,9 @@ function _allApplyArchiState(state) {
   var phEl=_memEl('memArchiPhase');
   if(phEl)phEl.textContent=showing?'👀 Mémorise ta tour ! ('+Math.ceil((effectiveShowUntil-Date.now())/1000)+'s)':'🏗️ Reconstruit !';
 
-  // Ma pile depuis pile locale, adversaire depuis sa table via Realtime
-  _memRenderArchiStack(_memEl('memArchiStackMe'), _archiLocalStack);
+  // Ma pile depuis _archiDisplayStack (conservée après done)
+  _memRenderArchiStack(_memEl('memArchiStackMe'), _archiDisplayStack);
+  // Pile adverse depuis sa table via Realtime
   _archiReadOther(function(row){ _archiRenderOtherRow(row); });
 
   var pal=_memEl('memArchiShapesMe');
@@ -2027,6 +2037,7 @@ function _allArchiTap(si){
 
   if(si!==exp){
     _archiLocalStack=[];
+    _archiDisplayStack=[];
     _allArchiPerfect=false;
     var sEl=_memEl('memArchiStackMe');
     if(sEl){sEl.classList.add('mem-archi-stack--wrong');setTimeout(function(){sEl.classList.remove('mem-archi-stack--wrong');},400);}
@@ -2040,11 +2051,12 @@ function _allArchiTap(si){
   }
 
   _archiLocalStack=myStack;
-  _memRenderArchiStack(_memEl('memArchiStackMe'), _archiLocalStack);
+  _archiDisplayStack=myStack;
+  _memRenderArchiStack(_memEl('memArchiStackMe'), _archiDisplayStack);
   _archiSaveMyRow({ stack:myStack, errors:cur[_memProfile+'_errors']||0, done:false, manche:1 });
 
   if(myStack.length===_allArchiMyTarget.length){
-    _archiLocalStack=[];
+    _archiLocalStack=[];  // vider construction, conserver _archiDisplayStack
     var sEl2=_memEl('memArchiStackMe');
     if(sEl2){sEl2.classList.add('mem-archi-stack--complete');setTimeout(function(){sEl2.classList.remove('mem-archi-stack--complete');},600);}
     var doneTimeA=Date.now();
