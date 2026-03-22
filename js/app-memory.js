@@ -379,6 +379,7 @@ function _memStartLobby() {
       _memUpdatePresenceDot('memClassicOppProfile', isOnline);
       _memUpdatePresenceDot('memEchoOppProfile',     isOnline);
       _memUpdatePresenceDot('memArchiOppProfile',    isOnline);
+      _hanabiUpdatePresenceDot(isOnline);
     },
 
     onMatchFound: function(gameRow) {
@@ -2411,11 +2412,11 @@ window._memRouteState  = _memRouteState;
 
 // ── Constantes ──
 var HANABI_COLORS = [
-  {id:'blue',  label:'Bleu',  bg:'#E6F1FB', border:'#378ADD', text:'#0C447C'},
-  {id:'green', label:'Vert',  bg:'#EAF3DE', border:'#639922', text:'#27500A'},
-  {id:'red',   label:'Rouge', bg:'#FCEBEB', border:'#E24B4A', text:'#791F1F'},
-  {id:'pink',  label:'Rose',  bg:'#FBEAF0', border:'#D4537E', text:'#72243E'},
-  {id:'amber', label:'Jaune', bg:'#FAEEDA', border:'#BA7517', text:'#633806'}
+  {id:'blue',   label:'Bleu',   bg:'#E6F1FB', border:'#378ADD', text:'#0C447C'},
+  {id:'green',  label:'Vert',   bg:'#EAF3DE', border:'#3B6D11', text:'#27500A'},
+  {id:'red',    label:'Rouge',  bg:'#FCEBEB', border:'#dc2626', text:'#7f1d1d'},
+  {id:'purple', label:'Violet', bg:'#F5F3FF', border:'#7c3aed', text:'#3b0764'},
+  {id:'amber',  label:'Jaune',  bg:'#FAEEDA', border:'#d97706', text:'#633806'}
 ];
 var HANABI_COLOR_MAP = {};
 HANABI_COLORS.forEach(function(c){ HANABI_COLOR_MAP[c.id] = c; });
@@ -2493,40 +2494,87 @@ function _hanabiBindButtons() {
   if (cb) { cb.onclick = null; cb.addEventListener('click', _hanabiCancelIndice); }
 }
 
+// Mettre à jour le dot de présence adversaire dans l'écran Hanabi
+function _hanabiUpdatePresenceDot(isOnline) {
+  var dot = _memEl('memHanabiOppPresenceDot');
+  if (!dot) return;
+  dot.style.background   = isOnline ? '#22c55e' : '#666';
+  dot.style.boxShadow    = isOnline ? '0 0 6px rgba(34,197,94,0.8)' : 'none';
+}
+
 // ── Rendu d'une carte de la main adverse (visible) ──
 function _hanabiMakeOppCard(card, idx) {
   var c = HANABI_COLOR_MAP[card.color];
   var d = document.createElement('div');
-  d.style.cssText = 'width:52px;height:78px;border-radius:10px;background:'+c.bg+';border:2px solid '+c.border+';display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;flex-shrink:0;cursor:default;';
-  d.innerHTML = '<span style="font-size:24px;font-weight:500;color:'+c.text+';">'+card.num+'</span>'+
-    '<div style="position:absolute;bottom:0;left:0;right:0;height:5px;border-radius:0 0 8px 8px;background:'+c.border+';"></div>';
+  d.style.cssText = 'width:48px;height:72px;border-radius:10px;background:'+c.bg+';border:2.5px solid '+c.border+';display:flex;flex-direction:column;align-items:center;justify-content:space-between;position:relative;flex-shrink:0;cursor:default;padding:4px 0 2px;box-sizing:border-box;';
+  // Numéro en haut à gauche
+  var num1 = document.createElement('span');
+  num1.style.cssText = 'font-size:11px;font-weight:700;color:'+c.text+';align-self:flex-start;padding-left:5px;line-height:1;';
+  num1.textContent = card.num;
+  // Gros numéro central
+  var numC = document.createElement('span');
+  numC.style.cssText = 'font-size:26px;font-weight:700;color:'+c.text+';line-height:1;';
+  numC.textContent = card.num;
+  // Barre couleur en bas
+  var bar = document.createElement('div');
+  bar.style.cssText = 'width:100%;height:6px;background:'+c.border+';border-radius:0 0 7px 7px;';
+  d.appendChild(num1); d.appendChild(numC); d.appendChild(bar);
   return d;
 }
 
 // ── Rendu d'une carte de MA main (dos + hints) ──
 function _hanabiMakeMyCard(hints, idx, selectable) {
   var d = document.createElement('div');
-  d.style.cssText = 'width:52px;height:78px;border-radius:10px;background:var(--s1);border:1.5px solid var(--border);display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:4px;position:relative;flex-shrink:0;cursor:'+(selectable?'pointer':'default')+';transition:transform .12s,border-color .12s;box-sizing:border-box;';
+  var isSelected = _hanabiSelectedCard === idx && selectable;
+  // Fond dégradé simulé avec deux couleurs solides
+  d.style.cssText = 'width:48px;height:72px;border-radius:10px;background:var(--s1);border:2px solid '+(isSelected?'#ec4899':'var(--border)')+';display:flex;flex-direction:column;align-items:stretch;position:relative;flex-shrink:0;cursor:'+(selectable?'pointer':'default')+';transition:transform .15s,border-color .15s;box-sizing:border-box;overflow:hidden;'+(isSelected?'transform:translateY(-6px);':'');
   if (selectable) {
     (function(i){ d.addEventListener('click', function(){ _hanabiSelectMyCard(i); }); })(idx);
   }
-  if (_hanabiSelectedCard === idx && selectable) {
-    d.style.transform = 'translateY(-6px)';
-    d.style.borderColor = '#ec4899';
-  }
-  // Afficher les hints reçus
-  var hintHtml = '';
+
+  // Bandeau hints en haut
+  var hintsWrap = document.createElement('div');
+  hintsWrap.style.cssText = 'display:flex;flex-direction:column;gap:2px;padding:4px 4px 2px;flex:1;';
+
   if (hints && hints.length > 0) {
-    hints.forEach(function(h) {
+    // Grouper : couleurs d'abord, chiffres ensuite
+    var colorHints = hints.filter(function(h){ return h.type==='color'; });
+    var numHints   = hints.filter(function(h){ return h.type==='num'; });
+    // Dédupliquer
+    var seen = {};
+    colorHints.concat(numHints).forEach(function(h) {
+      var key = h.type+h.val;
+      if (seen[key]) return; seen[key]=1;
+      var tag = document.createElement('div');
       if (h.type === 'color') {
         var c = HANABI_COLOR_MAP[h.val];
-        hintHtml += '<div style="font-size:9px;padding:1px 4px;border-radius:4px;background:'+c.bg+';color:'+c.text+';font-weight:500;margin-bottom:2px;">'+c.label+'</div>';
-      } else if (h.type === 'num') {
-        hintHtml += '<div style="font-size:9px;padding:1px 4px;border-radius:4px;background:var(--s2);color:var(--text);font-weight:500;margin-bottom:2px;">'+h.val+'</div>';
+        tag.style.cssText = 'font-size:8px;font-weight:700;padding:1px 3px;border-radius:3px;background:'+c.border+';color:#fff;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+        tag.textContent = c.label;
+      } else {
+        tag.style.cssText = 'font-size:9px;font-weight:700;padding:1px 3px;border-radius:3px;background:#e0e7ff;color:#3730a3;text-align:center;';
+        tag.textContent = h.val;
       }
+      hintsWrap.appendChild(tag);
     });
   }
-  d.innerHTML = hintHtml + '<div style="position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:16px;color:var(--muted);">?</div>';
+
+  // Point d'interrogation centré si pas de hints
+  var qWrap = document.createElement('div');
+  qWrap.style.cssText = 'display:flex;align-items:center;justify-content:center;flex:1;';
+  if (!hints || hints.length === 0) {
+    var q = document.createElement('span');
+    q.style.cssText = 'font-size:22px;color:var(--muted);font-weight:300;';
+    q.textContent = '?';
+    qWrap.appendChild(q);
+  }
+
+  // Barre du bas (indique qu'on peut interagir)
+  var bar = document.createElement('div');
+  bar.style.cssText = 'height:4px;background:'+(selectable?'#ec4899':'var(--border)')+';border-radius:0 0 8px 8px;opacity:'+(selectable?'0.7':'0.3')+';';
+
+  d.appendChild(hintsWrap);
+  if (!hints || hints.length === 0) d.appendChild(qWrap);
+  d.appendChild(bar);
   return d;
 }
 
@@ -2548,21 +2596,32 @@ function _hanabiRenderPiles(piles) {
 function _hanabiApplyState(state) {
   if (!state || state.phase !== 'hanabi') return;
 
-  // Ma main et main adverse
-  var myHand    = _memProfile==='girl' ? state.girl_hand    : state.boy_hand;
-  var otherHand = _memProfile==='girl' ? state.boy_hand     : state.girl_hand;
-  var myHints   = _memProfile==='girl' ? state.girl_hints   : state.boy_hints;
+  var myHand    = _memProfile==='girl' ? state.girl_hand  : state.boy_hand;
+  var otherHand = _memProfile==='girl' ? state.boy_hand   : state.girl_hand;
+  var myHints   = _memProfile==='girl' ? state.girl_hints : state.boy_hints;
   var myTurn    = state.turn === _memProfile;
 
-  // Afficher ma main (dos)
+  // Avatars (chargés une seule fois grâce au cache navigateur)
+  var u = typeof yamGetUser === 'function' ? yamGetUser() : null;
+  _memLoadAvatar(_memEl('memHanabiMyProfile'),  u ? u.id         : null, _memProfile, 36);
+  _memLoadAvatar(_memEl('memHanabiOppProfile'), u ? u.partner_id : null, _memOther,   36);
+
+  // Labels
+  var myLbl = _memEl('memHanabiMyLabel');
+  if (myLbl) myLbl.textContent = _memGetName(_memProfile);
+  var oppLbl = _memEl('memHanabiOppLabel');
+  if (oppLbl) oppLbl.textContent = _memGetName(_memOther);
+
+  // Ma main (dos + hints)
   var myEl = _memEl('memHanabiMyCards'); if (myEl) {
     myEl.innerHTML = '';
     myHand.forEach(function(card, i) {
-      myEl.appendChild(_hanabiMakeMyCard(myHints[i]||[], i, myTurn && (_hanabiActionMode==='play'||_hanabiActionMode==='discard')));
+      myEl.appendChild(_hanabiMakeMyCard(myHints[i]||[], i,
+        myTurn && (_hanabiActionMode==='play'||_hanabiActionMode==='discard')));
     });
   }
 
-  // Afficher main adverse
+  // Main adverse (visible)
   var oppEl = _memEl('memHanabiOppCards'); if (oppEl) {
     oppEl.innerHTML = '';
     otherHand.forEach(function(card, i) {
@@ -2573,28 +2632,50 @@ function _hanabiApplyState(state) {
   // Piles
   _hanabiRenderPiles(state.piles);
 
-  // Jetons bleus
+  // Jetons bleus (cercles pleins / creux)
   var bt = _memEl('memHanabiBlueTokens');
   if (bt) {
+    bt.innerHTML = '';
     var blue = state.blue_tokens || 0;
-    bt.textContent = '🔵'.repeat(blue) + (blue < 8 ? '⚫'.repeat(8-blue) : '');
+    for (var bi=0; bi<8; bi++) {
+      var tok = document.createElement('div');
+      tok.style.cssText = 'width:11px;height:11px;border-radius:50%;flex-shrink:0;' +
+        (bi < blue ? 'background:#3b82f6;' : 'background:transparent;border:1.5px solid #93c5fd;');
+      bt.appendChild(tok);
+    }
+    // Compteur texte
+    var bc = document.createElement('span');
+    bc.style.cssText = 'font-size:10px;font-weight:500;color:#1d4ed8;margin-left:2px;';
+    bc.textContent = blue;
+    bt.appendChild(bc);
   }
-  // Jetons rouges (erreurs)
+
+  // Jetons rouges (croix / vide)
   var rt = _memEl('memHanabiRedTokens');
   if (rt) {
+    rt.innerHTML = '';
     var red = state.red_tokens || 0;
-    rt.textContent = '🔴'.repeat(red) + (red < 3 ? '⚫'.repeat(3-red) : '');
+    for (var ri=0; ri<3; ri++) {
+      var rtok = document.createElement('div');
+      rtok.style.cssText = 'width:14px;height:14px;border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;' +
+        (ri < red ? 'background:#ef4444;color:#fff;' : 'background:transparent;border:1.5px solid #fca5a5;color:#fca5a5;');
+      rtok.textContent = ri < red ? '✕' : '✕';
+      rtok.style.opacity = ri < red ? '1' : '0.35';
+      rt.appendChild(rtok);
+    }
+  }
+
+  // Pioche
+  var pc = _memEl('memHanabiPiocheCount');
+  if (pc) {
+    var remaining = state.deck ? state.deck.length : 0;
+    pc.textContent = '🂠 ' + remaining;
+    pc.style.opacity = remaining === 0 ? '0.4' : '1';
   }
 
   // Score
   var sc = _memEl('memHanabiScore');
   if (sc) sc.textContent = 'Score : '+(state.score||0)+' / 25';
-
-  // Labels
-  var myLbl = _memEl('memHanabiMyLabel');
-  if (myLbl) myLbl.textContent = myTurn ? 'Ta main — à toi de jouer' : 'Ta main';
-  var oppLbl = _memEl('memHanabiOppLabel');
-  if (oppLbl) oppLbl.textContent = 'Main de '+_memGetName(_memOther);
 
   // Phase
   var phEl = _memEl('memHanabiPhase');
@@ -2602,24 +2683,26 @@ function _hanabiApplyState(state) {
     if (state.winner) {
       phEl.textContent = '';
     } else if (myTurn) {
-      phEl.textContent = '🎯 Ton tour — que faire ?';
+      phEl.textContent = '🎯 Ton tour';
+      if (state.last_action && state.last_action.desc) {
+        phEl.textContent = '🎯 Ton tour · ' + state.last_action.desc;
+      }
     } else {
       phEl.textContent = '⏳ Tour de '+_memGetName(_memOther)+'…';
-      if (state.last_action && state.last_action.actor === _memOther) {
-        phEl.textContent = _memGetName(_memOther)+' : '+state.last_action.desc;
-      }
     }
   }
 
-  // Actions (mon tour)
+  // Actions — montrer pendant tout le tour (sauf si panneau indice ouvert)
   var actEl = _memEl('memHanabiActions');
-  if (actEl) actEl.style.display = (myTurn && !state.winner) ? 'block' : 'none';
-
-  // Bloquer bouton indice si plus de jetons
+  var showActions = myTurn && !state.winner && _hanabiActionMode !== 'indice';
+  if (actEl) actEl.style.display = showActions ? 'block' : 'none';
   var indBtn = _memEl('memHanabiGiveIndiceBtn');
   if (indBtn) indBtn.disabled = (state.blue_tokens <= 0);
 
-  // Résultat final
+  // Nom dans panneau indice
+  var itn = _memEl('memHanabiIndiceTargetName');
+  if (itn) itn.textContent = _memGetName(_memOther);
+
   if (state.winner && !_hanabiSaved) {
     _hanabiSaved = true;
     _hanabiShowResult(state);
@@ -2735,14 +2818,24 @@ function _hanabiConfirmIndice() {
   _hanabiApplyState(ns);
 }
 
+function _hanabiReenableButtons() {
+  var cur = (_memMp&&_memMp.getGameState?_memMp.getGameState():null)||_memLastState;
+  var gi=_memEl('memHanabiGiveIndiceBtn');
+  if(gi) gi.disabled = cur && cur.blue_tokens <= 0;
+  var pb=_memEl('memHanabiPlayBtn');
+  if(pb) pb.disabled = false;
+  var db=_memEl('memHanabiDiscardBtn');
+  if(db) db.disabled = false;
+}
+
 function _hanabiCancelIndice() {
   _hanabiActionMode = null; _hanabiIndiceType = null; _hanabiIndiceVal = null;
   var panel = _memEl('memHanabiIndicePanel'); if (panel) panel.style.display = 'none';
-  var actEl = _memEl('memHanabiActions'); if (actEl) {
-    var cur = (_memMp&&_memMp.getGameState?_memMp.getGameState():null)||_memLastState;
-    if (cur && cur.turn === _memProfile && !cur.winner) actEl.style.display = 'block';
-  }
-  // Reset opacité cartes adverses
+  var cur = (_memMp&&_memMp.getGameState?_memMp.getGameState():null)||_memLastState;
+  var actEl = _memEl('memHanabiActions');
+  if (actEl && cur && cur.turn === _memProfile && !cur.winner) actEl.style.display = 'block';
+  _hanabiReenableButtons();
+  // Reset opacité + transform cartes adverses
   document.querySelectorAll('#memHanabiOppCards > div').forEach(function(c) {
     c.style.opacity='1'; c.style.transform=''; c.style.transition='';
   });
@@ -2752,24 +2845,39 @@ function _hanabiCancelIndice() {
 function _hanabiStartPlay() {
   _hanabiActionMode = 'play'; _hanabiSelectedCard = null;
   var hint = _memEl('memHanabiActionHint');
-  if (hint) hint.textContent = 'Sélectionne la carte à poser';
+  if (hint) hint.textContent = 'Touche une carte pour la sélectionner, retouche pour poser';
   _hanabiRefreshMyCards();
+  // Désactiver les boutons d'action principaux pendant la sélection
+  var gi=_memEl('memHanabiGiveIndiceBtn'),db=_memEl('memHanabiDiscardBtn');
+  if(gi)gi.disabled=true; if(db)db.disabled=true;
 }
 
 function _hanabiStartDiscard() {
   _hanabiActionMode = 'discard'; _hanabiSelectedCard = null;
   var hint = _memEl('memHanabiActionHint');
-  if (hint) hint.textContent = 'Sélectionne la carte à défausser (+1 jeton)';
+  if (hint) hint.textContent = 'Touche une carte pour la sélectionner, retouche pour défausser';
   _hanabiRefreshMyCards();
+  // Désactiver les boutons d'action principaux pendant la sélection
+  var gi=_memEl('memHanabiGiveIndiceBtn'),pb=_memEl('memHanabiPlayBtn');
+  if(gi)gi.disabled=true; if(pb)pb.disabled=true;
 }
 
 function _hanabiSelectMyCard(idx) {
   if (_hanabiActionMode !== 'play' && _hanabiActionMode !== 'discard') return;
+  if (_hanabiSelectedCard === idx) {
+    // Deuxième tap sur la même carte → confirmer
+    if (_hanabiActionMode === 'play')    _hanabiConfirmPlay();
+    if (_hanabiActionMode === 'discard') _hanabiConfirmDiscard();
+    return;
+  }
+  // Premier tap → sélectionner seulement
   _hanabiSelectedCard = idx;
   _hanabiRefreshMyCards();
-  // Confirmation automatique après 600ms (tap = sélection + confirmation)
-  if (_hanabiActionMode === 'play')    { setTimeout(_hanabiConfirmPlay,    50); }
-  if (_hanabiActionMode === 'discard') { setTimeout(_hanabiConfirmDiscard, 50); }
+  // Mettre à jour le hint texte
+  var hint = _memEl('memHanabiActionHint');
+  if (hint) hint.textContent = _hanabiActionMode === 'play'
+    ? 'Retouche la carte pour confirmer'
+    : 'Retouche pour défausser · +1 jeton bleu';
 }
 
 function _hanabiRefreshMyCards() {
@@ -2826,6 +2934,8 @@ function _hanabiConfirmPlay() {
 
   _hanabiActionMode = null; _hanabiSelectedCard = null;
   var hint = _memEl('memHanabiActionHint'); if (hint) hint.textContent='';
+  var actEl = _memEl('memHanabiActions'); if (actEl) actEl.style.display='none';
+  _hanabiReenableButtons();
   _memMp.saveState(ns);
   _hanabiApplyState(ns);
 }
@@ -2856,6 +2966,8 @@ function _hanabiConfirmDiscard() {
 
   _hanabiActionMode = null; _hanabiSelectedCard = null;
   var hint = _memEl('memHanabiActionHint'); if (hint) hint.textContent='';
+  var actEl2 = _memEl('memHanabiActions'); if (actEl2) actEl2.style.display='none';
+  _hanabiReenableButtons();
   _memMp.saveState(ns);
   _hanabiApplyState(ns);
 }
@@ -2863,13 +2975,21 @@ function _hanabiConfirmDiscard() {
 // ── Vérifier fin de partie ──
 function _hanabiCheckEnd(ns) {
   if (ns.winner) return ns.winner;
-  // 3 erreurs → fin
+  // 3 erreurs → fin immédiate
   if ((ns.red_tokens||0) >= 3) return 'lose';
   // Score parfait
   if ((ns.score||0) >= 25) return 'perfect';
-  // Pioche vide → on laisse le dernier tour se terminer naturellement
-  // (simplifié : fin immédiate quand pioche = 0)
-  if (!ns.deck || ns.deck.length === 0) return 'end';
+  // Pioche vide → chacun a encore 1 tour (2 tours restants total)
+  // On utilise last_round_remaining pour décompter
+  if (!ns.deck || ns.deck.length === 0) {
+    if (ns.last_round_remaining === undefined) {
+      // Première fois qu'on vide la pioche → déclencher le dernier tour
+      ns.last_round_remaining = 2; // 2 tours (un par joueur)
+    } else {
+      ns.last_round_remaining--;
+      if (ns.last_round_remaining <= 0) return 'end';
+    }
+  }
   return null;
 }
 
