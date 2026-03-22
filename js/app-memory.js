@@ -1403,7 +1403,6 @@ function _memArchiTap(si) {
 function _memArchiHandleCountdown(state) {
   if (!state.countdown_start || state.winner) {
     if (_archiCdTimer) { clearInterval(_archiCdTimer); _archiCdTimer = null; }
-  _archiUnsubscribeOther();
     var cdEl = _memEl('memArchiCountdown'); if (cdEl) cdEl.style.display = 'none';
     return;
   }
