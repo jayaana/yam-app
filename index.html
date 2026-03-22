@@ -3390,6 +3390,11 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
           <div class="mem-mode-card-title">ALL</div>
           <div class="mem-mode-card-desc">Les 3 modes · 1 manche chacun</div>
         </div>
+        <div class="mem-mode-card mem-mode-card--coop" id="memModeCardHanabi" data-mode="hanabi">
+          <div class="mem-mode-card-icon">🎆</div>
+          <div class="mem-mode-card-title">Hanabi</div>
+          <div class="mem-mode-card-desc">Coopératif · feu d'artifice à construire ensemble</div>
+        </div>
       </div>
       <div class="mem-mode-hint" id="memModeHint">Sélectionne un mode — l'autre doit voter pareil</div>
     </div>
@@ -3488,6 +3493,65 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
         <div class="mem-final-title" id="memArchiFinalTitle"></div>
         <div class="mem-trophy-unlock" id="memArchiTrophyUnlock" style="display:none;"></div>
         <button class="mem-btn-ghost" id="memArchiDoneBtn">Terminer</button>
+      </div>
+    </div>
+
+    <!-- ══ ÉCRAN 3D : JEU HANABI ══ -->
+    <div id="memScreenHanabi" class="mem-screen" style="display:none;">
+      <!-- Header scores + jetons -->
+      <div class="mem-game-header">
+        <div class="mem-manche-badge" id="memHanabiScore">Score : 0</div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span id="memHanabiBlueTokens" style="font-size:13px;letter-spacing:2px;">🔵🔵🔵🔵🔵🔵🔵🔵</span>
+          <span id="memHanabiRedTokens" style="font-size:13px;letter-spacing:2px;">🔴🔴🔴</span>
+        </div>
+      </div>
+      <!-- Phase / message -->
+      <div class="mem-echo-phase" id="memHanabiPhase">En attente…</div>
+      <!-- Profils joueurs -->
+      <div id="memHanabiMyProfile" style="display:inline-block;"></div>
+      <div id="memHanabiOppProfile" style="display:inline-block;"></div>
+      <!-- Main adversaire (visible pour moi) -->
+      <div id="memHanabiOppHand" style="padding:8px 12px 4px;">
+        <div style="font-size:10px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;" id="memHanabiOppLabel">Main de l'autre</div>
+        <div id="memHanabiOppCards" style="display:flex;gap:7px;justify-content:center;flex-wrap:wrap;"></div>
+        <!-- Panneau indice (visible quand c'est mon tour et que je veux donner un indice) -->
+        <div id="memHanabiIndicePanel" style="display:none;margin-top:10px;">
+          <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:6px;">Choisir l'indice :</div>
+          <div id="memHanabiIndiceColors" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;"></div>
+          <div id="memHanabiIndiceNums" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"></div>
+          <div style="display:flex;gap:8px;">
+            <button class="mem-btn-primary" id="memHanabiConfirmIndice" disabled>Donner l'indice</button>
+            <button class="mem-btn-ghost" onclick="_hanabiCancelIndice()">Annuler</button>
+          </div>
+        </div>
+      </div>
+      <!-- Piles communes -->
+      <div style="padding:4px 12px;">
+        <div style="font-size:10px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Feu d'artifice</div>
+        <div id="memHanabiPiles" style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;"></div>
+      </div>
+      <!-- Ma main (dos, avec hints) -->
+      <div style="padding:4px 12px 8px;">
+        <div style="font-size:10px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;" id="memHanabiMyLabel">Ta main</div>
+        <div id="memHanabiMyCards" style="display:flex;gap:7px;justify-content:center;flex-wrap:wrap;"></div>
+      </div>
+      <!-- Actions (mon tour) -->
+      <div id="memHanabiActions" style="display:none;padding:0 12px 8px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+          <button class="mem-btn-primary" id="memHanabiGiveIndiceBtn" onclick="_hanabiStartIndice()">Donner un indice</button>
+          <button class="mem-btn-ghost" id="memHanabiPlayBtn" onclick="_hanabiStartPlay()">Poser une carte</button>
+          <button class="mem-btn-ghost" id="memHanabiDiscardBtn" onclick="_hanabiStartDiscard()">Défausser</button>
+        </div>
+        <div id="memHanabiActionHint" style="font-size:12px;color:#9ca3af;text-align:center;margin-top:6px;min-height:16px;"></div>
+      </div>
+      <!-- Résultat final -->
+      <div class="mem-final-result" id="memHanabiFinalResult" style="display:none;">
+        <div class="mem-final-emoji" id="memHanabiFinalEmoji">🎆</div>
+        <div class="mem-final-title" id="memHanabiFinalTitle"></div>
+        <div class="mem-final-score" id="memHanabiFinalScore"></div>
+        <div class="mem-trophy-unlock" id="memHanabiTrophyUnlock" style="display:none;"></div>
+        <button class="mem-btn-ghost" id="memHanabiDoneBtn">Terminer</button>
       </div>
     </div>
 
