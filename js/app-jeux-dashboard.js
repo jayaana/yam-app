@@ -607,10 +607,11 @@
 
       _checkLobbies();
 
-      /* Poll 5s pour détecter INSERT et DELETE (DELETE mal capturé par RT
-         sans REPLICA IDENTITY FULL). RT en bonus si disponible.          */
-      _startFallbackPoll();
-      if (window._yamRT) _subscribeRT();
+      if (window._yamRT) {
+        _subscribeRT();
+      } else {
+        _startFallbackPoll();
+      }
     }
 
     /* ── Accrochage sur setProfile — même pattern que app-account.js ── */
