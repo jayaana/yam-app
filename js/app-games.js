@@ -1336,6 +1336,10 @@ function renderLb(elId, rows, detailFn){
 
 })();
 
+// ── Exposition globale des fonctions Quiz ──
+window.openQuiz  = _openQuiz;
+window.closeQuiz = _closeQuiz;
+
 /* ══════════════════════════════════════════════════════════════
    MEMORY — pause/resume quand page cachée (identique Skyjo v3.6)
 ══════════════════════════════════════════════════════════════ */
