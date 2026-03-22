@@ -582,7 +582,7 @@ function _memStartClassic(gameRow) {
   _clCards=[]; _clFlipped=[];
   _memShowScreen('memScreenClassic');
   var _t=_memEl('memViewTitle');if(_t)_t.textContent='Classique+';
-  var _ms=_memEl('memScreenClassic');if(_ms){var _op=_ms.querySelector('.mem-opp-presence');if(_op)_op.style.display='none';var _tr=_ms.querySelector('.mem-turn-row');var _tim=_memEl('memClassicTimer');if(_tim&&_tr&&!_tr.contains(_tim)){_tim.style.cssText='font-size:13px;font-weight:500;color:#111827;background:#f9fafb;border:1px solid #f3f4f6;border-radius:99px;padding:4px 12px;';_tr.appendChild(_tim);}}
+  var _ms=_memEl('memScreenClassic');if(_ms){var _op=_ms.querySelector('.mem-opp-presence');if(_op)_op.remove();var _tr=_ms.querySelector('.mem-turn-row');var _tim=_memEl('memClassicTimer');if(_tim&&_tr&&!_tr.contains(_tim)){_tim.style.cssText='font-size:13px;font-weight:500;color:#111827;background:#f9fafb;border:1px solid #f3f4f6;border-radius:99px;padding:4px 12px;';_tr.appendChild(_tim);}}
   _memRenderDualProfiles('memClassicMyProfile', 'memClassicOppProfile');
   _memUpdateClassicHeader();
   // Les deux joueurs recoivent le meme state via onStateUpdate — appliquer directement
@@ -1513,7 +1513,7 @@ function _allStartClassic(state) {
   // Masquer opp-presence (doublon) + deplacer timer
   var _ms=_memEl('memScreenClassic');
   if(_ms){
-    var _op=_ms.querySelector('.mem-opp-presence');if(_op)_op.style.display='none';
+    var _op=_ms.querySelector('.mem-opp-presence');if(_op)_op.remove();
     var _tr=_ms.querySelector('.mem-turn-row'),_tim=_memEl('memClassicTimer');
     if(_tim&&_tr&&!_tr.contains(_tim)){_tim.style.cssText='font-size:13px;font-weight:500;color:#111827;background:#f9fafb;border:1px solid #f3f4f6;border-radius:99px;padding:4px 12px;';_tr.appendChild(_tim);}
   }
@@ -2183,6 +2183,7 @@ document.addEventListener('DOMContentLoaded',function(){
     '.mem-gscore{font-size:32px!important;font-weight:600!important;line-height:1!important;}'+
     '.mem-game-header{background:#fff!important;border:1px solid #f3f4f6!important;border-radius:16px!important;padding:12px 16px!important;margin-bottom:10px!important;}'+
     '#memScreenClassic,#memScreenEcho,#memScreenArchi,#memScreenMode,#memScreenLobby{background:#f5f5f7!important;}'+'#memScreenClassic .mem-game-header,#memScreenEcho .mem-game-header,#memScreenArchi .mem-game-header{display:none!important;}'+
+    '.mem-opp-presence{display:none!important;}'+
     '.mem-card-back{background:#fff!important;border:1.5px solid #fce7f3!important;}'+
     '.mem-card.matched .mem-card-back{background:#fdf2f8!important;border-color:#ec4899!important;}'+
     '.mem-card.wrong .mem-card-back{background:#fff1f2!important;border-color:#ef4444!important;}'+
