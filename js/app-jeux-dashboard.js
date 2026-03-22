@@ -436,7 +436,7 @@
       { presence: 'skyjo_presence',  chip: 'skyjo',  card: 'skyjoCard'    },
       { presence: 'memory_presence', chip: 'memory', card: 'gvMemoryCard' },
     ];
-    var PRESENCE_STALE_MS = 15000; /* last_seen > 15s -> considéré hors ligne */
+
 
     var _rtChannels  = [];   /* canaux Realtime ouverts */
     var _pollTimer   = null; /* fallback poll si RT indispo */
@@ -532,17 +532,14 @@
           SB_URL + '/rest/v1/' + entry.presence +
           '?couple_id=eq.' + coupleId +
           '&role=eq.' + partnerRole +
-          '&select=role,last_seen&limit=1',
+          '&select=role&limit=1',
           { headers: sb2Headers() }
         )
         .then(function (r) { return r.json(); })
         .then(function (rows) {
           if (Array.isArray(rows) && rows.length > 0) {
-            var age = Date.now() - new Date(rows[0].last_seen).getTime();
-            if (age < PRESENCE_STALE_MS) {
-              found = true;
-              _activate(entry);
-            }
+            found = true;
+            _activate(entry);
           }
           pending--;
           if (pending === 0 && !found) _deactivate();
@@ -612,7 +609,6 @@
 
       if (window._yamRT) {
         _subscribeRT();
-        _stopFallbackPoll();
       } else {
         _startFallbackPoll();
       }
