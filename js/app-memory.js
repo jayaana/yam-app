@@ -2198,15 +2198,29 @@ function _memEnsureProfileBar(screenId, meId, oppId, extraClass) {
   var screen=_memEl(screenId);if(!screen)return;
   var bar=document.createElement('div');
   bar.className='mem-profile-bar '+(extraClass||'');
-  var isEcho=(extraClass||'').indexOf('echo')!==-1,center;
-  if(isEcho){
-    center='<div style="display:flex;flex-direction:column;align-items:center;gap:4px;"><div id="memEchoLevel" style="background:#fff;border:1.5px solid #fbcfe8;border-radius:99px;padding:4px 14px;font-size:12px;color:#db2777;font-weight:500;">Niveau 1</div><span style="font-size:11px;color:#f9a8d4;font-weight:500;">VS</span></div>';
-  } else {
-    var sid=screenId,sMeId=sid==='memScreenClassic'?'memClassicScoreMe':'memArchiScoreMe',sOthId=sid==='memScreenClassic'?'memClassicScoreOther':'memArchiScoreOther',mId=sid==='memScreenClassic'?'memClassicManche':'memArchiRound';
-    center='<div style="display:flex;flex-direction:column;align-items:center;gap:4px;"><div style="display:flex;align-items:center;gap:10px;"><span id="'+sMeId+'" style="font-size:32px;font-weight:600;color:#ec4899;line-height:1;">0</span><span style="font-size:14px;color:#e5e7eb;">&ndash;</span><span id="'+sOthId+'" style="font-size:32px;font-weight:600;color:#7c3aed;line-height:1;">0</span></div><span id="'+mId+'" style="font-size:11px;font-weight:500;color:#f9a8d4;">Manche 1/3</span></div>';
-  }
-  bar.innerHTML='<div id="'+meId+'"></div>'+center+'<div id="'+oppId+'"></div>';
+  var isEcho=(extraClass||'').indexOf('echo')!==-1;
+  var centerId='memProfBarCenter_'+screenId;
+  bar.innerHTML='<div id="'+meId+'"></div><div id="'+centerId+'" style="display:flex;flex-direction:column;align-items:center;gap:4px;"></div><div id="'+oppId+'"></div>';
   screen.insertBefore(bar,screen.firstChild);
+  var centerDiv=document.getElementById(centerId);
+  if(centerDiv){
+    if(isEcho){
+      var lvl=_memEl('memEchoLevel');
+      if(lvl){lvl.style.cssText='background:#fff;border:1.5px solid #fbcfe8;border-radius:99px;padding:4px 14px;font-size:12px;color:#db2777;font-weight:500;';centerDiv.appendChild(lvl);}
+      var vs=document.createElement('span');vs.style.cssText='font-size:11px;color:#f9a8d4;font-weight:500;';vs.textContent='VS';centerDiv.appendChild(vs);
+    } else {
+      var sMeId=screenId==='memScreenClassic'?'memClassicScoreMe':'memArchiScoreMe';
+      var sOthId=screenId==='memScreenClassic'?'memClassicScoreOther':'memArchiScoreOther';
+      var mId2=screenId==='memScreenClassic'?'memClassicManche':'memArchiRound';
+      var scoreRow=document.createElement('div');scoreRow.style.cssText='display:flex;align-items:center;gap:10px;';
+      var sMe=_memEl(sMeId),sOth=_memEl(sOthId),mEl=_memEl(mId2);
+      if(sMe){sMe.style.cssText='font-size:32px;font-weight:600;color:#ec4899;line-height:1;';scoreRow.appendChild(sMe);}
+      var sep=document.createElement('span');sep.style.cssText='font-size:14px;color:#e5e7eb;';sep.textContent='\u2013';scoreRow.appendChild(sep);
+      if(sOth){sOth.style.cssText='font-size:32px;font-weight:600;color:#7c3aed;line-height:1;';scoreRow.appendChild(sOth);}
+      centerDiv.appendChild(scoreRow);
+      if(mEl){mEl.style.cssText='font-size:11px;font-weight:500;color:#f9a8d4;';centerDiv.appendChild(mEl);}
+    }
+  }
 }
 
 // ── Expose globaux ──
