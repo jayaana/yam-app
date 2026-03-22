@@ -3522,7 +3522,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
           <div id="memHanabiIndiceNums" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"></div>
           <div style="display:flex;gap:8px;">
             <button class="mem-btn-primary" id="memHanabiConfirmIndice" disabled>Donner l'indice</button>
-            <button class="mem-btn-ghost" onclick="_hanabiCancelIndice()">Annuler</button>
+            <button class="mem-btn-ghost" id="memHanabiCancelIndiceBtn">Annuler</button>
           </div>
         </div>
       </div>
@@ -3539,9 +3539,9 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       <!-- Actions (mon tour) -->
       <div id="memHanabiActions" style="display:none;padding:0 12px 8px;">
         <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
-          <button class="mem-btn-primary" id="memHanabiGiveIndiceBtn" onclick="_hanabiStartIndice()">Donner un indice</button>
-          <button class="mem-btn-ghost" id="memHanabiPlayBtn" onclick="_hanabiStartPlay()">Poser une carte</button>
-          <button class="mem-btn-ghost" id="memHanabiDiscardBtn" onclick="_hanabiStartDiscard()">Défausser</button>
+          <button class="mem-btn-primary" id="memHanabiGiveIndiceBtn" >Donner un indice</button>
+          <button class="mem-btn-ghost" id="memHanabiPlayBtn" >Poser une carte</button>
+          <button class="mem-btn-ghost" id="memHanabiDiscardBtn" >Défausser</button>
         </div>
         <div id="memHanabiActionHint" style="font-size:12px;color:#9ca3af;text-align:center;margin-top:6px;min-height:16px;"></div>
       </div>
