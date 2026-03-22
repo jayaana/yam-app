@@ -1098,7 +1098,7 @@ function _memShowEchoResult(state) {
 // ═══════════════════════════════════════════════════════════
 
 function _memStartArchi(gameRow) {
-  _archiRound=1; _archiTarget=[]; _archiMyTarget=[]; _archiPerfect=true; _archiSaved=false; _archiLocalStack=[];
+  _archiRound=1; _archiTarget=[]; _archiMyTarget=[]; _archiPerfect=true; _archiSaved=false; _archiLocalStack=[]; _archiOtherStackCache=[];
   _memShowScreen('memScreenArchi');
   var _t=_memEl('memViewTitle');if(_t)_t.textContent='Architecte';
   var _ms3=_memEl('memScreenArchi');if(_ms3){var _gh3=_ms3.querySelector('.mem-game-header');if(_gh3)_gh3.style.display='none';var _oldSh=_ms3.querySelector('.mem-archi-shapes');if(_oldSh)_oldSh.style.display='none';}
@@ -1190,11 +1190,19 @@ function _memApplyArchiState(state) {
   var phEl=_memEl('memArchiPhase'),showing2=Date.now()<(state.show_until||0);
   if(phEl)phEl.textContent=showing2?'👀 Mémorise ta tour ! ('+Math.ceil(((state.show_until||0)-Date.now())/1000)+'s)':'🏗️ Reconstruit !';
 
+  // Mettre à jour le cache de la pile adverse dès qu'on reçoit un state plus avancé
+  var serverOtherStack = (_memProfile==='girl'?state.boy_stack:state.girl_stack)||[];
+  if(serverOtherStack.length > _archiOtherStackCache.length) _archiOtherStackCache = serverOtherStack.slice();
+  // Si l'adversaire a fini ou reset (pile vide après _done), on reset aussi le cache
+  if(state[_memOther+'_done'] || serverOtherStack.length===0) _archiOtherStackCache = serverOtherStack.slice();
+
   // Afficher les piles — pour la mienne, priorité à la pile locale (évite le clignotement post-tap)
   var serverMyStack = _memProfile==='girl'?state.girl_stack:state.boy_stack;
   var displayMyStack = (_archiLocalStack.length > (serverMyStack||[]).length) ? _archiLocalStack : (serverMyStack||[]);
   _memRenderArchiStack(_memEl('memArchiStackMe'),    displayMyStack);
-  _memRenderArchiStack(_memEl('memArchiStackOther'), _memProfile==='girl'?state.boy_stack:state.girl_stack);
+  // Pour l'adversaire : afficher le max connu (cache vs serveur)
+  var displayOtherStack = (_archiOtherStackCache.length > serverOtherStack.length) ? _archiOtherStackCache : serverOtherStack;
+  _memRenderArchiStack(_memEl('memArchiStackOther'), displayOtherStack);
 
   // Bloquer palette pendant mémorisation ou si ce joueur a déjà fini ce round
   var pal=_memEl('memArchiShapesMe');
@@ -1219,14 +1227,24 @@ function _memRenderArchiStack(el,stack){
 }
 
 // ── Utilitaire anti-race-condition Architecte ──
-// Lit TOUJOURS le state le plus frais au moment du save,
-// puis n'y injecte QUE nos propres champs — les champs adversaire restent intacts.
+// Cache local de la pile adverse — mis à jour à chaque state reçu du serveur.
+// Garantit que nos writes ne régressent jamais la pile adverse.
+var _archiOtherStackCache = [];
+
 function _archiFlushMyFields(fields) {
   if (!_memMp) return;
   var fresh = (_memMp.getGameState ? _memMp.getGameState() : null) || _memLastState;
   if (!fresh) return;
   var ns = JSON.parse(JSON.stringify(fresh));
+  // Injecter nos champs
   Object.keys(fields).forEach(function(k) { ns[k] = fields[k]; });
+  // Toujours préserver la pile adverse avec la valeur la plus avancée connue
+  // (cache local vs valeur serveur fraîche — on prend le max)
+  var otherStackKey = _memOther + '_stack';
+  var serverOtherStack = fresh[otherStackKey] || [];
+  var bestOtherStack = (_archiOtherStackCache.length > serverOtherStack.length)
+    ? _archiOtherStackCache : serverOtherStack;
+  ns[otherStackKey] = bestOtherStack;
   _memMp.saveState(ns);
 }
 
@@ -1483,7 +1501,7 @@ function _allStart(gameRow) {
   _allEchoSeq = []; _allEchoMyInput = []; _allEchoShowing = false;
   if (_allEchoShowInt) { clearInterval(_allEchoShowInt); _allEchoShowInt = null; }
   // Reset etat Archi ALL
-  _allArchiMyTarget = []; _allArchiPerfect = true; _allArchiLocalStack = [];
+  _allArchiMyTarget = []; _allArchiPerfect = true; _allArchiLocalStack = []; _archiOtherStackCache = [];
   // Le state initial (classic) a déjà été publié par _memVoteMode
   // → on route directement depuis le gameRow reçu
   var state = gameRow && gameRow.state;
@@ -1849,7 +1867,7 @@ function _allEchoTap(idx){
 // ─────────────────────────────────────────────
 
 function _allStartArchi(state) {
-  _allArchiMyTarget=[]; _allArchiSaved=false; _allArchiPerfect=true; _allArchiLocalStack=[];
+  _allArchiMyTarget=[]; _allArchiSaved=false; _allArchiPerfect=true; _allArchiLocalStack=[]; _archiOtherStackCache=[];
   _memShowScreen('memScreenArchi');
   // Injecter profils adversaire
   _memRenderDualProfiles('memArchiMyProfile', 'memArchiOppProfile');
@@ -1909,8 +1927,13 @@ function _allApplyArchiState(state) {
   // Priorité à la pile locale pour éviter le clignotement après tap
   var serverMyStackA = _memProfile==='girl'?state.girl_stack:state.boy_stack;
   var displayMyStackA = (_allArchiLocalStack.length > (serverMyStackA||[]).length) ? _allArchiLocalStack : (serverMyStackA||[]);
+  // Cache adversaire ALL — même logique que le mode solo
+  var serverOtherStackA = (_memProfile==='girl'?state.boy_stack:state.girl_stack)||[];
+  if(serverOtherStackA.length > _archiOtherStackCache.length) _archiOtherStackCache = serverOtherStackA.slice();
+  if(state[_memOther+'_done'] || serverOtherStackA.length===0) _archiOtherStackCache = serverOtherStackA.slice();
+  var displayOtherStackA = (_archiOtherStackCache.length > serverOtherStackA.length) ? _archiOtherStackCache : serverOtherStackA;
   _memRenderArchiStack(_memEl('memArchiStackMe'),    displayMyStackA);
-  _memRenderArchiStack(_memEl('memArchiStackOther'), _memProfile==='girl'?state.boy_stack:state.girl_stack);
+  _memRenderArchiStack(_memEl('memArchiStackOther'), displayOtherStackA);
 
   var pal=_memEl('memArchiShapesMe');
   if(pal)pal.style.pointerEvents=(showing||state[_memProfile+'_done'])?'none':'';
