@@ -615,14 +615,18 @@
       }
     }
 
-    /* Lance l'init après session_ready (même timing que jxLoadDashboard) */
-    document.addEventListener('yam:session_ready', function () {
-      setTimeout(_init, 1200);
-    });
+    /* ── Accrochage sur setProfile — même pattern que app-account.js ── */
+    /* setProfile est appelé par app-account.js après login ET après refresh,
+       c'est le point d'entrée fiable utilisé par tous les modules YAM.       */
+    var _origSetProfileLobby = window.setProfile;
+    window.setProfile = function (g) {
+      if (_origSetProfileLobby) _origSetProfileLobby.apply(this, arguments);
+      setTimeout(_init, 800);
+    };
 
-    /* Si la session est déjà prête au moment du chargement du script */
-    if (typeof yamGetUser === 'function' && yamGetUser()) {
-      setTimeout(_init, 1200);
+    /* Si setProfile a déjà été appelé (page déjà chargée / refresh) */
+    if (typeof getProfile === 'function' && getProfile()) {
+      setTimeout(_init, 800);
     }
 
     /* Expose pour debug console */
