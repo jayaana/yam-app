@@ -270,6 +270,12 @@ function closeMemoryGame() {
                           && _memMp && _memLastState && !_memLastState.winner;
   if (_isAllInProgress) {
     _memAllAfk = true;
+    // Killer les timers meme en AFK pour eviter le double chrono
+    if (_allClTimer)    { clearInterval(_allClTimer);    _allClTimer = null; }
+    if (_clTimer)       { clearInterval(_clTimer);       _clTimer = null; }
+    if (_allEchoShowInt){ clearInterval(_allEchoShowInt);_allEchoShowInt = null; }
+    if (_echoShowInt)   { clearInterval(_echoShowInt);   _echoShowInt = null; }
+    if (_archiCdTimer)  { clearInterval(_archiCdTimer);  _archiCdTimer = null; }
     // Couper le heartbeat AVANT deletePresence (comme leave() dans app-multiplayer.js)
     if (_memMp && typeof _memMp.stopAll === 'function') _memMp.stopAll();
     if (_memMp && typeof _memMp.deletePresence === 'function') _memMp.deletePresence();
