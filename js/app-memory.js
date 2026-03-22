@@ -1838,12 +1838,10 @@ function _allStartArchi(state) {
   var nMe=_memEl('memArchiNameMe'),nOth=_memEl('memArchiNameOther');
   if(nMe)nMe.textContent=_memGetName(_memProfile);
   if(nOth)nOth.textContent=_memGetName(_memOther);
-  // Reconstruire la palette avec les listeners ALL
+  // Reconstruire la palette avec les listeners ALL — utiliser ARCHI_SVG (même rendu que le mode solo)
   var p=_memEl('memArchiShapesMe');if(p){p.innerHTML='';
-    ARCHI_SHAPES.forEach(function(s,i){
-      var d=document.createElement('div');d.className='mem-archi-shape';
-      d.style.background=s.color+'33';d.style.borderColor=s.color+'66';d.textContent=s.emoji;
-      (function(idx){d.addEventListener('click',function(){_allArchiTap(idx);});})(i);
+    ARCHI_SVG.forEach(function(s,i){
+      var d=_memArchiShapeEl(i,44,(function(idx){return function(){_allArchiTap(idx);};})(i));
       p.appendChild(d);
     });
   }
@@ -1870,9 +1868,8 @@ function _allApplyArchiState(state) {
     if(showing){
       targetEl.innerHTML='';
       _allArchiMyTarget.forEach(function(si){
-        var s=ARCHI_SHAPES[si],d=document.createElement('div');
-        d.className='mem-archi-shape';d.style.background=s.color+'33';d.style.borderColor=s.color+'66';d.textContent=s.emoji;
-        targetEl.appendChild(d);
+        var d=_memArchiShapeEl(si,44,null);
+        if(targetEl.firstChild){targetEl.insertBefore(d,targetEl.firstChild);}else{targetEl.appendChild(d);}
       });
       setTimeout(function(){
         if(targetEl)targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
