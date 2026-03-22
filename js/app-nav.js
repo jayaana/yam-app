@@ -737,7 +737,7 @@ function goTo(id){resetZoom();closeAllViews();document.getElementById('libraryPo
     var raw = _rawGameOpen[k];
     var fn  = GAME_VIEWS[k].open;
     window[fn] = function(){
-      raw.apply(this, arguments);
+      if(raw) raw.apply(this, arguments);
       if(!_busy) push({ type:'game', view:k });
     };
   });
