@@ -132,7 +132,7 @@ function _memInjectProfileBar(containerElId, userId, role, isOpponent, showDot) 
         '<div id="' + containerElId + 'Av" style="width:62px;height:62px;border-radius:50%;overflow:hidden;background:' + bg + ';border:2.5px solid ' + border + ';"></div>' +
         dotHtml +
       '</div>' +
-      '<span style="font-size:13px;font-weight:500;color:#111827;white-space:nowrap;">' + name + '</span>' +
+      '<span style="font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;">' + name + '</span>' +
     '</div>';
   _memLoadAvatar(_memEl(containerElId + 'Av'), uid, role, 62);
 }
@@ -175,7 +175,7 @@ function _memRenderEchoProfiles(meContainerId, oppContainerId, maxLives) {
           '<div id="' + cid + 'Av" style="width:62px;height:62px;border-radius:50%;overflow:hidden;background:' + bg2 + ';border:2.5px solid ' + border2 + ';"></div>' +
           dotHtml +
         '</div>' +
-        '<span style="font-size:13px;font-weight:500;color:#111827;white-space:nowrap;">' + name + '</span>' +
+        '<span style="font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;">' + name + '</span>' +
         livesHtml +
       '</div>';
     _memLoadAvatar(_memEl(cid + 'Av'), userId, role, 62);
@@ -588,7 +588,7 @@ function _memStartClassic(gameRow) {
   _clCards=[]; _clFlipped=[];
   _memShowScreen('memScreenClassic');
   var _t=_memEl('memViewTitle');if(_t)_t.textContent='Classique+';
-  var _ms=_memEl('memScreenClassic');if(_ms){var _op=_ms.querySelector('.mem-opp-presence');if(_op)_op.remove();var _tr=_ms.querySelector('.mem-turn-row');var _tim=_memEl('memClassicTimer');if(_tim&&_tr&&!_tr.contains(_tim)){_tim.style.cssText='font-size:13px;font-weight:500;color:#111827;background:#f9fafb;border:1px solid #f3f4f6;border-radius:99px;padding:4px 12px;';_tr.appendChild(_tim);}}
+  var _ms=_memEl('memScreenClassic');if(_ms){var _op=_ms.querySelector('.mem-opp-presence');if(_op)_op.remove();var _tr=_ms.querySelector('.mem-turn-row');var _tim=_memEl('memClassicTimer');if(_tim&&_tr&&!_tr.contains(_tim)){_tim.style.cssText='font-size:13px;font-weight:500;color:var(--text);background:var(--s2);border:1px solid var(--border);border-radius:99px;padding:4px 12px;';_tr.appendChild(_tim);}}
   _memRenderDualProfiles('memClassicMyProfile', 'memClassicOppProfile');
   _memUpdateClassicHeader();
   // Les deux joueurs recoivent le meme state via onStateUpdate — appliquer directement
@@ -1521,7 +1521,7 @@ function _allStartClassic(state) {
   if(_ms){
     var _op=_ms.querySelector('.mem-opp-presence');if(_op)_op.remove();
     var _tr=_ms.querySelector('.mem-turn-row'),_tim=_memEl('memClassicTimer');
-    if(_tim&&_tr&&!_tr.contains(_tim)){_tim.style.cssText='font-size:13px;font-weight:500;color:#111827;background:#f9fafb;border:1px solid #f3f4f6;border-radius:99px;padding:4px 12px;';_tr.appendChild(_tim);}
+    if(_tim&&_tr&&!_tr.contains(_tim)){_tim.style.cssText='font-size:13px;font-weight:500;color:var(--text);background:var(--s2);border:1px solid var(--border);border-radius:99px;padding:4px 12px;';_tr.appendChild(_tim);}
   }
   // Injecter profils adversaire
   _memRenderDualProfiles('memClassicMyProfile', 'memClassicOppProfile');
@@ -2110,7 +2110,7 @@ function _memArchiSetup3Cols(){
   wrap.style.cssText='display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;';
   function makeCol(label,labelColor,borderColor){
     var col=document.createElement('div');
-    col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;background:#fff;border:1.5px solid '+borderColor+';border-radius:14px;padding:10px 6px;min-height:160px;';
+    col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--s1);border:1.5px solid '+borderColor+';border-radius:14px;padding:10px 6px;min-height:160px;';
     col.innerHTML='<div style="font-size:9px;font-weight:700;color:'+labelColor+';text-transform:uppercase;letter-spacing:1px;">'+label+'</div>';
     return col;
   }
@@ -2134,7 +2134,7 @@ function _memArchiSetup3Cols(){
   if(phase&&phase.nextSibling){screen.insertBefore(wrap,phase.nextSibling);}else{screen.appendChild(wrap);}
   // Palette unique sous les 3 colonnes
   var pw=document.createElement('div');pw.className='mem-archi-palette-wrap';
-  pw.style.cssText='background:#fff;border:1px solid #f3f4f6;border-radius:14px;padding:10px 12px;';
+  pw.style.cssText='background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:10px 12px;';
   pw.innerHTML='<div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;text-align:center;margin-bottom:8px;">PALETTE</div>';
   var sd=document.createElement('div');sd.id='memArchiShapesMe';sd.style.cssText='display:flex;flex-wrap:wrap;gap:8px;justify-content:center;';
   pw.appendChild(sd);
@@ -2145,10 +2145,10 @@ function _memEchoEnsureSeqBar(){
   if(_memEl('memEchoSeqBarWrap'))return;
   var phase=_memEl('memEchoPhase');if(!phase)return;
   var bar=document.createElement('div');bar.id='memEchoSeqBarWrap';
-  bar.style.cssText='background:#fff;border:1px solid #f3f4f6;border-radius:14px;padding:8px 12px;margin-bottom:4px;';
+  bar.style.cssText='background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:8px 12px;margin-bottom:4px;';
   var prog=_memEl('memEchoProgress');
   var _livesMe=_memEl('memEchoLivesMe'),_livesOth=_memEl('memEchoLivesOther');
-  bar.style.cssText='background:#fff;border:1px solid #f3f4f6;border-radius:14px;padding:8px 12px;margin-bottom:4px;display:flex;align-items:center;gap:8px;';
+  bar.style.cssText='background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:8px 12px;margin-bottom:4px;display:flex;align-items:center;gap:8px;';
   if(_livesMe){_livesMe.style.cssText='font-size:16px;letter-spacing:2px;flex-shrink:0;';bar.appendChild(_livesMe);}
   var _center=document.createElement('div');_center.style.cssText='flex:1;text-align:center;';
   _center.innerHTML='<div style="font-size:10px;font-weight:500;color:#f9a8d4;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">S\u00c9QUENCE</div>';
@@ -2173,12 +2173,12 @@ document.addEventListener('DOMContentLoaded',function(){
   // ── Styles CSS dynamiques pour les barres de profil ──
   var style=document.createElement('style');
   style.textContent=
-    '.mem-profile-bar{display:flex;justify-content:space-between;align-items:center;background:#fff;border-bottom:1px solid #f3f4f6;padding:12px 20px 14px;gap:8px;flex-shrink:0;}'+
+    '.mem-profile-bar{display:flex;justify-content:space-between;align-items:center;background:var(--s1);border-bottom:1px solid var(--border);padding:12px 20px 14px;gap:8px;flex-shrink:0;}'+
     '.mem-turn-badge{font-size:12px!important;font-weight:500!important;padding:5px 14px!important;border-radius:99px!important;background:#fce7f3!important;border:1.5px solid #f9a8d4!important;color:#be185d!important;box-shadow:none!important;letter-spacing:0!important;animation:memPulse 1.8s ease infinite!important;}'+
     '.mem-turn-badge--other{background:#ede9fe!important;border-color:#c4b5fd!important;color:#7c3aed!important;animation:none!important;}'+
     '@keyframes memPulse{0%{box-shadow:0 0 0 0 rgba(236,72,153,.4)}70%{box-shadow:0 0 0 8px rgba(236,72,153,0)}100%{box-shadow:0 0 0 0 rgba(236,72,153,0)}}'+
-    '.mem-game-timer{font-size:13px!important;font-weight:500!important;color:#111827!important;background:#f9fafb!important;border:1px solid #f3f4f6!important;border-radius:99px!important;padding:4px 10px!important;}'+
-    '.mem-echo-cell{border-radius:16px!important;background:#fff!important;border:1.5px solid #fce7f3!important;box-shadow:0 2px 8px rgba(0,0,0,.04)!important;}'+
+    '.mem-game-timer{font-size:13px!important;font-weight:500!important;color:var(--text)!important;background:var(--s2)!important;border:1px solid var(--border)!important;border-radius:99px!important;padding:4px 10px!important;}'+
+    '.mem-echo-cell{border-radius:16px!important;background:var(--s1)!important;border:1.5px solid #fce7f3!important;box-shadow:0 2px 8px rgba(0,0,0,.04)!important;}'+
     '.mem-echo-cell--lit{border-color:#ec4899!important;background:#fdf2f8!important;}'+
     '.mem-echo-cell--correct{border-color:#22c55e!important;background:#f0fdf4!important;}'+
     '.mem-echo-cell--wrong{border-color:#ef4444!important;background:#fff1f2!important;}'+
@@ -2187,10 +2187,10 @@ document.addEventListener('DOMContentLoaded',function(){
     '.mem-manche-badge{font-size:11px!important;font-weight:500!important;color:#be185d!important;background:#fce7f3!important;border:1.5px solid #f9a8d4!important;border-radius:99px!important;padding:4px 12px!important;}'+
     '.mem-gscore--me{color:#ec4899!important;}.mem-gscore--other{color:#7c3aed!important;}'+
     '.mem-gscore{font-size:32px!important;font-weight:600!important;line-height:1!important;}'+
-    '.mem-game-header{background:#fff!important;border:1px solid #f3f4f6!important;border-radius:16px!important;padding:12px 16px!important;margin-bottom:10px!important;}'+
-    '#memScreenClassic,#memScreenEcho,#memScreenArchi,#memScreenMode,#memScreenLobby{background:#f5f5f7!important;}'+'#memScreenClassic .mem-game-header,#memScreenEcho .mem-game-header,#memScreenArchi .mem-game-header{display:none!important;}'+
+    '.mem-game-header{background:var(--s1)!important;border:1px solid var(--border)!important;border-radius:16px!important;padding:12px 16px!important;margin-bottom:10px!important;}'+
+    '#memScreenClassic,#memScreenEcho,#memScreenArchi,#memScreenMode,#memScreenLobby{background:var(--bg)!important;}'+'#memScreenClassic .mem-game-header,#memScreenEcho .mem-game-header,#memScreenArchi .mem-game-header{display:none!important;}'+
     '.mem-opp-presence{display:none!important;}'+
-    '.mem-card-back{background:#fff!important;border:1.5px solid #fce7f3!important;}'+
+    '.mem-card-back{background:var(--s1)!important;border:1.5px solid #fce7f3!important;}'+
     '.mem-card.matched .mem-card-back{background:#fdf2f8!important;border-color:#ec4899!important;}'+
     '.mem-card.wrong .mem-card-back{background:#fff1f2!important;border-color:#ef4444!important;}'+
     '.mem-echo-hearts{font-size:16px!important;letter-spacing:2px!important;}'+
@@ -2222,7 +2222,7 @@ function _memEnsureProfileBar(screenId, meId, oppId, extraClass) {
   if(centerDiv){
     if(isEcho){
       var lvl=_memEl('memEchoLevel');
-      if(lvl){lvl.style.cssText='background:#fff;border:1.5px solid #fbcfe8;border-radius:99px;padding:4px 14px;font-size:12px;color:#db2777;font-weight:500;';centerDiv.appendChild(lvl);}
+      if(lvl){lvl.style.cssText='background:var(--s1);border:1.5px solid #fbcfe8;border-radius:99px;padding:4px 14px;font-size:12px;color:#db2777;font-weight:500;';centerDiv.appendChild(lvl);}
       var vs=document.createElement('span');vs.style.cssText='font-size:11px;color:#f9a8d4;font-weight:500;';vs.textContent='VS';centerDiv.appendChild(vs);
     } else {
       var sMeId=screenId==='memScreenClassic'?'memClassicScoreMe':'memArchiScoreMe';
