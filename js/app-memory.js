@@ -1157,7 +1157,10 @@ function _memApplyArchiState(state) {
     var showing=Date.now()<(state.show_until||0);
     if(showing){
       targetEl.innerHTML='';
-      _archiMyTarget.forEach(function(si){targetEl.appendChild(_memArchiShapeEl(si,44,null));});
+      _archiMyTarget.forEach(function(si){
+        var s=_memArchiShapeEl(si,44,null);
+        if(targetEl.firstChild){targetEl.insertBefore(s,targetEl.firstChild);}else{targetEl.appendChild(s);}
+      });
       var rem=state.show_until-Date.now();
       setTimeout(function(){
         if(targetEl)targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
@@ -1195,7 +1198,10 @@ function _memApplyArchiState(state) {
 
 function _memRenderArchiStack(el,stack){
   if(!el)return;el.innerHTML='';
-  (stack||[]).forEach(function(si){el.appendChild(_memArchiShapeEl(si,44,null));});
+  (stack||[]).forEach(function(si){
+    var s=_memArchiShapeEl(si,44,null);
+    if(el.firstChild){el.insertBefore(s,el.firstChild);}else{el.appendChild(s);}
+  });
 }
 
 function _memArchiTap(si) {
@@ -2119,7 +2125,9 @@ document.addEventListener('DOMContentLoaded',function(){
     '.mem-mode-player:first-child .mem-mode-avatar{background:#fce7f3!important;border-color:#f9a8d4!important;}'+
     '.mem-mode-player:last-child .mem-mode-avatar{background:#ede9fe!important;border-color:#c4b5fd!important;}'+
     '.mem-opp-name{display:none!important;}'+
-    '.mem-echo-lives{display:flex!important;align-items:center!important;gap:8px!important;}';
+    '.mem-echo-lives{display:flex!important;align-items:center!important;gap:8px!important;}'+
+    '.mem-archi-stack{flex-direction:column!important;}'+
+    '.mem-archi-target{flex-direction:column!important;}';
   document.head.appendChild(style);
 });
 
