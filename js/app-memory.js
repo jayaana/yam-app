@@ -578,7 +578,7 @@ function _memStartClassic(gameRow) {
   _clCards=[]; _clFlipped=[];
   _memShowScreen('memScreenClassic');
   var _t=_memEl('memViewTitle');if(_t)_t.textContent='Classique+';
-  var _ms=_memEl('memScreenClassic');if(_ms){var _sc=_ms.querySelector('.mem-game-scores');if(_sc)_sc.style.display='none';var _mb=_ms.querySelector('.mem-manche-badge');if(_mb)_mb.style.display='none';}
+  var _ms=_memEl('memScreenClassic');if(_ms){var _gh=_ms.querySelector('.mem-game-header');if(_gh)_gh.style.display='none';var _op=_ms.querySelector('.mem-opp-presence');if(_op)_op.style.display='none';var _tr=_ms.querySelector('.mem-turn-row');var _tim=_memEl('memClassicTimer');if(_tim&&_tr&&!_tr.querySelector('#memClassicTimer')){_tim.style.cssText='font-size:13px;font-weight:500;color:#111827;background:#f9fafb;border:1px solid #f3f4f6;border-radius:99px;padding:4px 12px;';_tr.appendChild(_tim);}}
   _memRenderDualProfiles('memClassicMyProfile', 'memClassicOppProfile');
   _memUpdateClassicHeader();
   // Les deux joueurs recoivent le meme state via onStateUpdate — appliquer directement
@@ -863,7 +863,7 @@ function _memStartEcho(gameRow) {
   _echoLevel=1; _echoSaved=false; _echoPublished=false; _echoSequence=[]; _echoMyInput=[]; _echoShowing=false;
   _memShowScreen('memScreenEcho');
   var _t=_memEl('memViewTitle');if(_t)_t.textContent='Echo';
-  var _el=_memEl('memEchoLevel');if(_el&&_el.parentNode&&_el.parentNode.classList.contains('mem-game-header'))_el.style.display='none';
+  var _msE=_memEl('memScreenEcho');if(_msE){var _ghE=_msE.querySelector('.mem-game-header');if(_ghE)_ghE.style.display='none';var _sep=_msE.querySelector('.mem-echo-lives-sep');if(_sep)_sep.style.display='none';}
   _memEchoEnsureSeqBar();
   _memRenderEchoProfiles('memEchoMyProfile', 'memEchoOppProfile', 3);
   var lEl=_memEl('memEchoLevel'); if (lEl) lEl.textContent='Niveau 1';
@@ -1091,7 +1091,7 @@ function _memStartArchi(gameRow) {
   _archiRound=1; _archiTarget=[]; _archiMyTarget=[]; _archiPerfect=true; _archiSaved=false;
   _memShowScreen('memScreenArchi');
   var _t=_memEl('memViewTitle');if(_t)_t.textContent='Architecte';
-  var _ms3=_memEl('memScreenArchi');if(_ms3){var _sc3=_ms3.querySelector('.mem-game-scores');if(_sc3)_sc3.style.display='none';var _mb3=_ms3.querySelector('.mem-manche-badge');if(_mb3)_mb3.style.display='none';}
+  var _ms3=_memEl('memScreenArchi');if(_ms3){var _gh3=_ms3.querySelector('.mem-game-header');if(_gh3)_gh3.style.display='none';var _oldSh=_ms3.querySelector('.mem-archi-shapes');if(_oldSh)_oldSh.style.display='none';}
   _memArchiSetup3Cols();
   _memRenderDualProfiles('memArchiMyProfile', 'memArchiOppProfile');
   var nMe=_memEl('memArchiNameMe'),nOth=_memEl('memArchiNameOther');
@@ -1157,7 +1157,10 @@ function _memApplyArchiState(state) {
     var showing=Date.now()<(state.show_until||0);
     if(showing){
       targetEl.innerHTML='';
-      _archiMyTarget.forEach(function(si){targetEl.appendChild(_memArchiShapeEl(si,44,null));});
+      _archiMyTarget.forEach(function(si){
+        var s=_memArchiShapeEl(si,44,null);
+        if(targetEl.firstChild){targetEl.insertBefore(s,targetEl.firstChild);}else{targetEl.appendChild(s);}
+      });
       var rem=state.show_until-Date.now();
       setTimeout(function(){
         if(targetEl)targetEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px;">🫣 Tour cachée</div>';
@@ -1195,7 +1198,10 @@ function _memApplyArchiState(state) {
 
 function _memRenderArchiStack(el,stack){
   if(!el)return;el.innerHTML='';
-  (stack||[]).forEach(function(si){el.appendChild(_memArchiShapeEl(si,44,null));});
+  (stack||[]).forEach(function(si){
+    var s=_memArchiShapeEl(si,44,null);
+    if(el.firstChild){el.insertBefore(s,el.firstChild);}else{el.appendChild(s);}
+  });
 }
 
 function _memArchiTap(si) {
@@ -2029,7 +2035,7 @@ function _memArchiSetup3Cols(){
     var col=document.createElement('div');
     col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;background:#fff;border:1.5px solid '+borderColor+';border-radius:14px;padding:10px 6px;';
     col.innerHTML='<div style="font-size:9px;font-weight:700;color:'+labelColor+';text-transform:uppercase;letter-spacing:1px;">'+label+'</div>';
-    var stack=document.createElement('div');stack.style.cssText='display:flex;flex-direction:column-reverse;gap:6px;align-items:center;min-height:100px;width:100%;justify-content:flex-start;';
+    var stack=document.createElement('div');stack.style.cssText='display:flex;flex-direction:column;gap:6px;align-items:center;min-height:100px;width:100%;';
     if(stackId)stack.id=stackId;
     col.appendChild(stack);
     if(shapesId){var sh=document.createElement('div');sh.id=shapesId;sh.style.cssText='display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:4px;';col.appendChild(sh);}
@@ -2037,7 +2043,7 @@ function _memArchiSetup3Cols(){
   }
   var colMe=makeCol(nameMe.toUpperCase(),isGirl?'#ec4899':'#7c3aed',isGirl?'#fce7f3':'#ede9fe','memArchiStackMe',null);
   var colMod=makeCol('MOD\u00c8LE','#9ca3af','#e5e7eb',null,null);
-  var tgt=document.createElement('div');tgt.id='memArchiTarget';tgt.style.cssText='display:flex;flex-direction:column-reverse;gap:6px;align-items:center;min-height:100px;width:100%;justify-content:flex-start;';
+  var tgt=document.createElement('div');tgt.id='memArchiTarget';tgt.style.cssText='display:flex;flex-direction:column;gap:6px;align-items:center;min-height:100px;width:100%;';
   colMod.appendChild(tgt);
   var colOpp=makeCol(nameOth.toUpperCase(),oppIsGirl?'#ec4899':'#7c3aed',oppIsGirl?'#fce7f3':'#ede9fe','memArchiStackOther',null);
   wrap.appendChild(colMe);wrap.appendChild(colMod);wrap.appendChild(colOpp);
@@ -2060,8 +2066,14 @@ function _memEchoEnsureSeqBar(){
   var bar=document.createElement('div');bar.id='memEchoSeqBarWrap';
   bar.style.cssText='background:#fff;border:1px solid #f3f4f6;border-radius:14px;padding:8px 12px;margin-bottom:4px;';
   var prog=_memEl('memEchoProgress');
-  bar.innerHTML='<div style="font-size:10px;font-weight:500;color:#f9a8d4;text-transform:uppercase;letter-spacing:.05em;text-align:center;margin-bottom:6px;">S\u00c9QUENCE</div>';
-  if(prog){bar.appendChild(prog);}
+  var _livesMe=_memEl('memEchoLivesMe'),_livesOth=_memEl('memEchoLivesOther');
+  bar.style.cssText='background:#fff;border:1px solid #f3f4f6;border-radius:14px;padding:8px 12px;margin-bottom:4px;display:flex;align-items:center;gap:8px;';
+  if(_livesMe){_livesMe.style.cssText='font-size:16px;letter-spacing:2px;flex-shrink:0;';bar.appendChild(_livesMe);}
+  var _center=document.createElement('div');_center.style.cssText='flex:1;text-align:center;';
+  _center.innerHTML='<div style="font-size:10px;font-weight:500;color:#f9a8d4;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">S\u00c9QUENCE</div>';
+  if(prog){_center.appendChild(prog);}
+  bar.appendChild(_center);
+  if(_livesOth){_livesOth.style.cssText='font-size:16px;letter-spacing:2px;flex-shrink:0;';bar.appendChild(_livesOth);}
   phase.parentNode.insertBefore(bar,phase);
 }
 
