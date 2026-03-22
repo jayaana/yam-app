@@ -578,7 +578,7 @@ function _memStartClassic(gameRow) {
   _clCards=[]; _clFlipped=[];
   _memShowScreen('memScreenClassic');
   var _t=_memEl('memViewTitle');if(_t)_t.textContent='Classique+';
-  var _gh=_memEl('memScreenClassic')&&_memEl('memScreenClassic').querySelector('.mem-game-header');if(_gh)_gh.style.display='none';
+  var _ms=_memEl('memScreenClassic');if(_ms){var _sc=_ms.querySelector('.mem-game-scores');if(_sc)_sc.style.display='none';var _mb=_ms.querySelector('.mem-manche-badge');if(_mb)_mb.style.display='none';}
   _memRenderDualProfiles('memClassicMyProfile', 'memClassicOppProfile');
   _memUpdateClassicHeader();
   // Les deux joueurs recoivent le meme state via onStateUpdate — appliquer directement
@@ -863,7 +863,7 @@ function _memStartEcho(gameRow) {
   _echoLevel=1; _echoSaved=false; _echoPublished=false; _echoSequence=[]; _echoMyInput=[]; _echoShowing=false;
   _memShowScreen('memScreenEcho');
   var _t=_memEl('memViewTitle');if(_t)_t.textContent='Echo';
-  var _gh=_memEl('memScreenEcho')&&_memEl('memScreenEcho').querySelector('.mem-game-header');if(_gh)_gh.style.display='none';
+  var _el=_memEl('memEchoLevel');if(_el&&_el.parentNode&&_el.parentNode.classList.contains('mem-game-header'))_el.style.display='none';
   _memEchoEnsureSeqBar();
   _memRenderEchoProfiles('memEchoMyProfile', 'memEchoOppProfile', 3);
   var lEl=_memEl('memEchoLevel'); if (lEl) lEl.textContent='Niveau 1';
@@ -1091,7 +1091,7 @@ function _memStartArchi(gameRow) {
   _archiRound=1; _archiTarget=[]; _archiMyTarget=[]; _archiPerfect=true; _archiSaved=false;
   _memShowScreen('memScreenArchi');
   var _t=_memEl('memViewTitle');if(_t)_t.textContent='Architecte';
-  var _gh=_memEl('memScreenArchi')&&_memEl('memScreenArchi').querySelector('.mem-game-header');if(_gh)_gh.style.display='none';
+  var _ms3=_memEl('memScreenArchi');if(_ms3){var _sc3=_ms3.querySelector('.mem-game-scores');if(_sc3)_sc3.style.display='none';var _mb3=_ms3.querySelector('.mem-manche-badge');if(_mb3)_mb3.style.display='none';}
   _memArchiSetup3Cols();
   _memRenderDualProfiles('memArchiMyProfile', 'memArchiOppProfile');
   var nMe=_memEl('memArchiNameMe'),nOth=_memEl('memArchiNameOther');
@@ -2029,7 +2029,7 @@ function _memArchiSetup3Cols(){
     var col=document.createElement('div');
     col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;background:#fff;border:1.5px solid '+borderColor+';border-radius:14px;padding:10px 6px;';
     col.innerHTML='<div style="font-size:9px;font-weight:700;color:'+labelColor+';text-transform:uppercase;letter-spacing:1px;">'+label+'</div>';
-    var stack=document.createElement('div');stack.style.cssText='display:flex;flex-direction:column;gap:6px;align-items:center;min-height:100px;width:100%;';
+    var stack=document.createElement('div');stack.style.cssText='display:flex;flex-direction:column-reverse;gap:6px;align-items:center;min-height:100px;width:100%;justify-content:flex-start;';
     if(stackId)stack.id=stackId;
     col.appendChild(stack);
     if(shapesId){var sh=document.createElement('div');sh.id=shapesId;sh.style.cssText='display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:4px;';col.appendChild(sh);}
@@ -2037,7 +2037,7 @@ function _memArchiSetup3Cols(){
   }
   var colMe=makeCol(nameMe.toUpperCase(),isGirl?'#ec4899':'#7c3aed',isGirl?'#fce7f3':'#ede9fe','memArchiStackMe',null);
   var colMod=makeCol('MOD\u00c8LE','#9ca3af','#e5e7eb',null,null);
-  var tgt=document.createElement('div');tgt.id='memArchiTarget';tgt.style.cssText='display:flex;flex-direction:column;gap:6px;align-items:center;min-height:100px;width:100%;';
+  var tgt=document.createElement('div');tgt.id='memArchiTarget';tgt.style.cssText='display:flex;flex-direction:column-reverse;gap:6px;align-items:center;min-height:100px;width:100%;justify-content:flex-start;';
   colMod.appendChild(tgt);
   var colOpp=makeCol(nameOth.toUpperCase(),oppIsGirl?'#ec4899':'#7c3aed',oppIsGirl?'#fce7f3':'#ede9fe','memArchiStackOther',null);
   wrap.appendChild(colMe);wrap.appendChild(colMod);wrap.appendChild(colOpp);
@@ -2106,7 +2106,9 @@ document.addEventListener('DOMContentLoaded',function(){
     '.mem-lobby-player:first-child .mem-lobby-avatar{background:#fce7f3!important;border-color:#f9a8d4!important;}'+
     '.mem-lobby-player:last-child .mem-lobby-avatar{background:#ede9fe!important;border-color:#c4b5fd!important;}'+
     '.mem-mode-player:first-child .mem-mode-avatar{background:#fce7f3!important;border-color:#f9a8d4!important;}'+
-    '.mem-mode-player:last-child .mem-mode-avatar{background:#ede9fe!important;border-color:#c4b5fd!important;}';
+    '.mem-mode-player:last-child .mem-mode-avatar{background:#ede9fe!important;border-color:#c4b5fd!important;}'+
+    '.mem-opp-name{display:none!important;}'+
+    '.mem-echo-lives{display:flex!important;align-items:center!important;gap:8px!important;}';
   document.head.appendChild(style);
 });
 
