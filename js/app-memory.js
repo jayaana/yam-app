@@ -2021,37 +2021,42 @@ function lbRender(rows){
 function _memArchiSetup3Cols(){
   var screen=_memEl('memScreenArchi');if(!screen)return;
   var existing=screen.querySelector('.mem-archi-3cols');if(existing)existing.remove();
+  var oldPal=screen.querySelector('.mem-archi-palette-wrap');if(oldPal)oldPal.remove();
   var nameMe=_memGetName(_memProfile),nameOth=_memGetName(_memOther);
   var isGirl=(_memProfile==='girl'),oppIsGirl=(_memOther==='girl');
   var wrap=document.createElement('div');wrap.className='mem-archi-3cols';
   wrap.style.cssText='display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;';
-  function makeCol(label,labelColor,borderColor,stackId,shapesId){
+  function makeCol(label,labelColor,borderColor){
     var col=document.createElement('div');
-    col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;background:#fff;border:1.5px solid '+borderColor+';border-radius:14px;padding:10px 6px;';
+    col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;background:#fff;border:1.5px solid '+borderColor+';border-radius:14px;padding:10px 6px;min-height:160px;';
     col.innerHTML='<div style="font-size:9px;font-weight:700;color:'+labelColor+';text-transform:uppercase;letter-spacing:1px;">'+label+'</div>';
-    var stack=document.createElement('div');stack.className='mem-archi-stack';stack.style.cssText='width:100%;';
-    if(stackId)stack.id=stackId;
-    col.appendChild(stack);
-    if(shapesId){var sh=document.createElement('div');sh.id=shapesId;sh.style.cssText='display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:4px;';col.appendChild(sh);}
     return col;
   }
-  var colMe=makeCol(nameMe.toUpperCase(),isGirl?'#ec4899':'#7c3aed',isGirl?'#fce7f3':'#ede9fe','memArchiStackMe',null);
-  var colMod=makeCol('MOD\u00c8LE','#9ca3af','#e5e7eb',null,null);
-  var tgt=document.createElement('div');tgt.id='memArchiTarget';tgt.className='mem-archi-target';tgt.style.cssText='width:100%;';
+  // Colonne MOI : stack avec classe mem-archi-stack (CSS gere column-reverse)
+  var colMe=makeCol(nameMe.toUpperCase(),isGirl?'#ec4899':'#7c3aed',isGirl?'#fce7f3':'#ede9fe');
+  var stackMe=document.createElement('div');stackMe.id='memArchiStackMe';stackMe.className='mem-archi-stack';
+  colMe.appendChild(stackMe);
+  // Colonne MODELE : target avec classe mem-archi-target (CSS gere column-reverse)
+  var colMod=makeCol('MOD\u00c8LE','#9ca3af','#e5e7eb');
+  var tgt=document.createElement('div');tgt.id='memArchiTarget';tgt.className='mem-archi-target';
   colMod.appendChild(tgt);
-  var colOpp=makeCol(nameOth.toUpperCase(),oppIsGirl?'#ec4899':'#7c3aed',oppIsGirl?'#fce7f3':'#ede9fe','memArchiStackOther',null);
+  // Colonne ADVERSAIRE
+  var colOpp=makeCol(nameOth.toUpperCase(),oppIsGirl?'#ec4899':'#7c3aed',oppIsGirl?'#fce7f3':'#ede9fe');
+  var stackOpp=document.createElement('div');stackOpp.id='memArchiStackOther';stackOpp.className='mem-archi-stack';
+  colOpp.appendChild(stackOpp);
   wrap.appendChild(colMe);wrap.appendChild(colMod);wrap.appendChild(colOpp);
+  // Cacher anciens divs HTML
   var oldTW=screen.querySelector('.mem-archi-target-wrap');if(oldTW)oldTW.style.display='none';
   var oldBld=screen.querySelector('.mem-archi-builders');if(oldBld)oldBld.style.display='none';
   var phase=_memEl('memArchiPhase');
   if(phase&&phase.nextSibling){screen.insertBefore(wrap,phase.nextSibling);}else{screen.appendChild(wrap);}
-  // Palette sous les 3 colonnes
-  var paletteWrap=document.createElement('div');
-  paletteWrap.style.cssText='background:#fff;border:1px solid #f3f4f6;border-radius:14px;padding:10px 12px;margin-top:0;';
-  paletteWrap.innerHTML='<div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;text-align:center;margin-bottom:8px;">PALETTE</div>';
-  var shapesDiv=document.createElement('div');shapesDiv.id='memArchiShapesMe';shapesDiv.style.cssText='display:flex;flex-wrap:wrap;gap:8px;justify-content:center;';
-  paletteWrap.appendChild(shapesDiv);
-  wrap.parentNode.insertBefore(paletteWrap,wrap.nextSibling);
+  // Palette unique sous les 3 colonnes
+  var pw=document.createElement('div');pw.className='mem-archi-palette-wrap';
+  pw.style.cssText='background:#fff;border:1px solid #f3f4f6;border-radius:14px;padding:10px 12px;';
+  pw.innerHTML='<div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;text-align:center;margin-bottom:8px;">PALETTE</div>';
+  var sd=document.createElement('div');sd.id='memArchiShapesMe';sd.style.cssText='display:flex;flex-wrap:wrap;gap:8px;justify-content:center;';
+  pw.appendChild(sd);
+  wrap.parentNode.insertBefore(pw,wrap.nextSibling);
 }
 
 function _memEchoEnsureSeqBar(){
