@@ -9,7 +9,7 @@
   'use strict';
 
   /* ── Constantes ── */
-  var _GAME_EMOJI = { memory:'🎴', memory_classic:'🃏', memory_echo:'🔊', memory_archi:'🏗️', memory_all:'⚡', pendu:'🔤', puzzle:'🧩', snake:'🐍', ocho:'🎴', skyjo:'🃏' };
+  var _GAME_EMOJI = { memory:'🧠', memory_classic:'🃏', memory_echo:'🔊', memory_archi:'🏗️', memory_all:'⚡', pendu:'🔤', puzzle:'🧩', snake:'🐍', ocho:'🎴', skyjo:'🃏' };
   var _GAME_LABEL = {
     ocho:'Ocho', skyjo:'Skyjo',
     memory:'Memory', memory_classic:'Classic+', memory_echo:'Écho', memory_archi:'Architecte', memory_all:'ALL ⚡',
