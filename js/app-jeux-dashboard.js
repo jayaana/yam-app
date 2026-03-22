@@ -430,12 +430,13 @@
   ══════════════════════════════════════════════════════════════ */
   (function () {
 
-    /* Tables multijoueur, chip dashboard et card gamesView associés */
+    /* Tables de présence par jeu + chip dashboard + card gamesView */
     var LOBBY_TABLES = [
-      { table: 'ocho_games',   chip: 'ocho',   card: 'ochoCard'     },
-      { table: 'skyjo_games',  chip: 'skyjo',  card: 'skyjoCard'    },
-      { table: 'memory_games', chip: 'memory', card: 'gvMemoryCard' },
+      { presence: 'ocho_presence',   chip: 'ocho',   card: 'ochoCard'     },
+      { presence: 'skyjo_presence',  chip: 'skyjo',  card: 'skyjoCard'    },
+      { presence: 'memory_presence', chip: 'memory', card: 'gvMemoryCard' },
     ];
+    var PRESENCE_STALE_MS = 15000; /* last_seen > 15s -> considéré hors ligne */
 
     var _rtChannels  = [];   /* canaux Realtime ouverts */
     var _pollTimer   = null; /* fallback poll si RT indispo */
@@ -516,7 +517,7 @@
       }
     }
 
-    /* ── Requête REST : cherche un lobby waiting du partenaire ── */
+    /* ── Requête REST : cherche si le partenaire est dans une présence de jeu ── */
     function _checkLobbies() {
       var u = typeof yamGetUser === 'function' ? yamGetUser() : null;
       if (!u || !u.couple_id) return;
@@ -528,18 +529,20 @@
 
       LOBBY_TABLES.forEach(function (entry) {
         fetch(
-          SB_URL + '/rest/v1/' + entry.table +
+          SB_URL + '/rest/v1/' + entry.presence +
           '?couple_id=eq.' + coupleId +
-          '&status=eq.waiting' +
-          '&created_by=eq.' + partnerRole +
-          '&select=id&limit=1',
+          '&role=eq.' + partnerRole +
+          '&select=role,last_seen&limit=1',
           { headers: sb2Headers() }
         )
         .then(function (r) { return r.json(); })
         .then(function (rows) {
           if (Array.isArray(rows) && rows.length > 0) {
-            found = true;
-            _activate(entry);
+            var age = Date.now() - new Date(rows[0].last_seen).getTime();
+            if (age < PRESENCE_STALE_MS) {
+              found = true;
+              _activate(entry);
+            }
           }
           pending--;
           if (pending === 0 && !found) _deactivate();
@@ -558,11 +561,11 @@
 
       LOBBY_TABLES.forEach(function (entry) {
         var ch = window._yamRT
-          .channel('jx_lobby_' + entry.table + '_' + u.couple_id)
+          .channel('jx_lobby_' + entry.presence + '_' + u.couple_id)
           .on('postgres_changes', {
             event:  '*',
             schema: 'public',
-            table:  entry.table,
+            table:  entry.presence,
             filter: 'couple_id=eq.' + u.couple_id,
           }, function () {
             /* Un changement sur cette table → re-vérifier tous les lobbies */
@@ -570,9 +573,9 @@
           })
           .subscribe(function (status) {
             if (status === 'SUBSCRIBED') {
-              yamLog('[LobbyPresence] RT ' + entry.table + ' connecté');
+              yamLog('[LobbyPresence] RT ' + entry.presence + ' connecté');
             } else if (['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].indexOf(status) !== -1) {
-              yamLog('[LobbyPresence] RT ' + entry.table + ' ' + status + ' — fallback poll');
+              yamLog('[LobbyPresence] RT ' + entry.presence + ' ' + status + ' — fallback poll');
               _startFallbackPoll();
             }
           });
