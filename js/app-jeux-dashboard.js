@@ -423,4 +423,211 @@
     setTimeout(jxLoadDashboard, 800);
   });
 
+  /* ══════════════════════════════════════════════════════════════
+     GAME LOBBY PRESENCE — bouton Jouer doré + badge "En jeu"
+     Détecte en realtime si le partenaire attend dans un lobby.
+     Tables surveillées : ocho_games, skyjo_games, memory_games
+  ══════════════════════════════════════════════════════════════ */
+  (function () {
+
+    /* Tables multijoueur, chip dashboard et card gamesView associés */
+    var LOBBY_TABLES = [
+      { table: 'ocho_games',   chip: 'ocho',   card: 'ochoCard'     },
+      { table: 'skyjo_games',  chip: 'skyjo',  card: 'skyjoCard'    },
+      { table: 'memory_games', chip: 'memory', card: 'gvMemoryCard' },
+    ];
+
+    var _rtChannels  = [];   /* canaux Realtime ouverts */
+    var _pollTimer   = null; /* fallback poll si RT indispo */
+    var _activeChip  = null; /* chip actuellement marqué */
+    var _activeEntry = null; /* entry LOBBY_TABLES active */
+
+    /* ── Helpers DOM ── */
+    function _getPlayBtn() { return document.getElementById('jxGamesMore'); }
+
+    function _getChip(game) {
+      return document.querySelector('#jxChips .jx-chip[data-game="' + game + '"]');
+    }
+
+    /* ── Helpers DOM ─ card gamesView ── */
+    function _getCard(cardId) { return document.getElementById(cardId); }
+
+    /* ── Activation : bouton doré + badge chip + badge card ── */
+    function _activate(entry) {
+      var btn = _getPlayBtn();
+      if (btn) btn.classList.add('jx-play-btn--lobby');
+
+      /* Retire l'ancien si le jeu a changé */
+      if (_activeChip && _activeChip !== entry.chip) _deactivateEntry(_activeEntry);
+      _activeChip  = entry.chip;
+      _activeEntry = entry;
+
+      /* Chip dashboard */
+      var chip = _getChip(entry.chip);
+      if (chip) {
+        chip.classList.add('jx-chip--waiting');
+        if (!chip.querySelector('.jx-chip-live-badge')) {
+          var cb = document.createElement('span');
+          cb.className = 'jx-chip-live-badge';
+          cb.textContent = 'En jeu';
+          chip.appendChild(cb);
+        }
+      }
+
+      /* Card gamesView */
+      var card = _getCard(entry.card);
+      if (card) {
+        card.classList.add('gv-game-card--waiting');
+        if (!card.querySelector('.gv-card-live-badge')) {
+          var gb = document.createElement('span');
+          gb.className = 'gv-card-live-badge';
+          gb.textContent = 'En attente';
+          /* Insérer avant la flèche */
+          var arrow = card.querySelector('.gv-game-card-arrow');
+          if (arrow) card.insertBefore(gb, arrow);
+          else card.appendChild(gb);
+        }
+      }
+    }
+
+    /* ── Désactivation complète ── */
+    function _deactivate() {
+      var btn = _getPlayBtn();
+      if (btn) btn.classList.remove('jx-play-btn--lobby');
+      if (_activeEntry) { _deactivateEntry(_activeEntry); _activeEntry = null; }
+      _activeChip = null;
+    }
+
+    function _deactivateEntry(entry) {
+      if (!entry) return;
+      /* Chip */
+      var chip = _getChip(entry.chip);
+      if (chip) {
+        chip.classList.remove('jx-chip--waiting');
+        var cb = chip.querySelector('.jx-chip-live-badge');
+        if (cb) cb.remove();
+      }
+      /* Card */
+      var card = _getCard(entry.card);
+      if (card) {
+        card.classList.remove('gv-game-card--waiting');
+        var gb = card.querySelector('.gv-card-live-badge');
+        if (gb) gb.remove();
+      }
+    }
+
+    /* ── Requête REST : cherche un lobby waiting du partenaire ── */
+    function _checkLobbies() {
+      var u = typeof yamGetUser === 'function' ? yamGetUser() : null;
+      if (!u || !u.couple_id) return;
+      var partnerRole = u.role === 'girl' ? 'boy' : 'girl';
+      var coupleId    = u.couple_id;
+
+      var found = false;
+      var pending = LOBBY_TABLES.length;
+
+      LOBBY_TABLES.forEach(function (entry) {
+        fetch(
+          SB_URL + '/rest/v1/' + entry.table +
+          '?couple_id=eq.' + coupleId +
+          '&status=eq.waiting' +
+          '&created_by=eq.' + partnerRole +
+          '&select=id&limit=1',
+          { headers: sb2Headers() }
+        )
+        .then(function (r) { return r.json(); })
+        .then(function (rows) {
+          if (Array.isArray(rows) && rows.length > 0) {
+            found = true;
+            _activate(entry);
+          }
+          pending--;
+          if (pending === 0 && !found) _deactivate();
+        })
+        .catch(function () { pending--; });
+      });
+    }
+
+    /* ── Realtime : écoute INSERT/UPDATE/DELETE sur les 3 tables ── */
+    function _subscribeRT() {
+      if (!window._yamRT) return false;
+      var u = typeof yamGetUser === 'function' ? yamGetUser() : null;
+      if (!u || !u.couple_id) return false;
+
+      _closeRT();
+
+      LOBBY_TABLES.forEach(function (entry) {
+        var ch = window._yamRT
+          .channel('jx_lobby_' + entry.table + '_' + u.couple_id)
+          .on('postgres_changes', {
+            event:  '*',
+            schema: 'public',
+            table:  entry.table,
+            filter: 'couple_id=eq.' + u.couple_id,
+          }, function () {
+            /* Un changement sur cette table → re-vérifier tous les lobbies */
+            _checkLobbies();
+          })
+          .subscribe(function (status) {
+            if (status === 'SUBSCRIBED') {
+              yamLog('[LobbyPresence] RT ' + entry.table + ' connecté');
+            } else if (['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].indexOf(status) !== -1) {
+              yamLog('[LobbyPresence] RT ' + entry.table + ' ' + status + ' — fallback poll');
+              _startFallbackPoll();
+            }
+          });
+        _rtChannels.push(ch);
+      });
+      return true;
+    }
+
+    function _closeRT() {
+      _rtChannels.forEach(function (ch) {
+        try { if (window._yamRT) window._yamRT.removeChannel(ch); } catch (e) {}
+      });
+      _rtChannels = [];
+    }
+
+    /* ── Fallback poll (si Realtime indispo) ── */
+    function _startFallbackPoll() {
+      if (_pollTimer) return;
+      _checkLobbies();
+      _pollTimer = setInterval(_checkLobbies, 5000);
+      yamLog('[LobbyPresence] fallback poll actif');
+    }
+
+    function _stopFallbackPoll() {
+      if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+    }
+
+    /* ── Init ── */
+    function _init() {
+      var u = typeof yamGetUser === 'function' ? yamGetUser() : null;
+      if (!u || !u.couple_id) return;
+
+      _checkLobbies();
+
+      if (window._yamRT) {
+        _subscribeRT();
+        _stopFallbackPoll();
+      } else {
+        _startFallbackPoll();
+      }
+    }
+
+    /* Lance l'init après session_ready (même timing que jxLoadDashboard) */
+    document.addEventListener('yam:session_ready', function () {
+      setTimeout(_init, 1200);
+    });
+
+    /* Si la session est déjà prête au moment du chargement du script */
+    if (typeof yamGetUser === 'function' && yamGetUser()) {
+      setTimeout(_init, 1200);
+    }
+
+    /* Expose pour debug console */
+    window._jxLobbyPresence = { check: _checkLobbies, init: _init };
+
+  }());
+
 })();
