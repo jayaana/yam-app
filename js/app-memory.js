@@ -211,6 +211,11 @@ function _memShowScreen(id) {
       view.classList.remove('mem-bg-arcade');
     }
   }
+  // Titre header
+  var titleEl = _memEl('memViewTitle');
+  if (titleEl && (id === 'memScreenLobby' || id === 'memScreenMode')) {
+    titleEl.textContent = 'Mémoire 🎴';
+  }
 }
 
 function _memShowLb(show) {
