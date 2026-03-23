@@ -24,6 +24,7 @@
   /* ── État ── */
   var _currentGame = null;
   var _scoreCache  = null;
+  var _lastTouch   = 0;
   var _girlName    = '—';
   var _boyName     = '—';
   var _girlUserId  = null;
@@ -104,6 +105,19 @@
     var el = _el('jxChips');
     if (!el) return;
     var d = false, sx = 0, sl = 0, moved = false;
+    var touchStartX = 0, touchStartY = 0;
+
+    el.addEventListener('touchstart', function (e) {
+      moved = false;
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    el.addEventListener('touchmove', function (e) {
+      var dx = Math.abs(e.touches[0].clientX - touchStartX);
+      var dy = Math.abs(e.touches[0].clientY - touchStartY);
+      if (dx > 5 || dy > 5) moved = true;
+    }, { passive: true });
 
     el.addEventListener('mousedown', function (e) {
       d = true; moved = false;
@@ -121,11 +135,14 @@
 
     el.addEventListener('click', function (e) {
       if (moved) return;
+      if (Date.now() - _lastTouch < 400) return; // ignorer le click synthétisé après touchend
       var chip = e.target.closest ? e.target.closest('.jx-chip') : null;
       if (chip) jxSelChip(chip);
     });
 
     el.addEventListener('touchend', function (e) {
+      _lastTouch = Date.now();
+      if (moved) return;
       var chip = e.target.closest ? e.target.closest('.jx-chip') : null;
       if (chip) jxSelChip(chip);
     }, { passive: true });
