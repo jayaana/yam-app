@@ -2477,10 +2477,10 @@ function _hanabiStart(gameRow) {
   _memShowScreen('memScreenHanabi');
   var _t = _memEl('memViewTitle'); if (_t) _t.textContent = 'Hanabi';
   _memRenderDualProfiles('memHanabiMyProfile', 'memHanabiOppProfile');
-  // Brancher les listeners (remplace les onclick inline supprimés pour respecter la CSP)
   _hanabiBindButtons();
   var state = gameRow && gameRow.state;
   if (state && state.phase === 'hanabi') _hanabiApplyState(state);
+  _hanabiInitArcade();
 }
 
 function _hanabiBindButtons() {
@@ -2492,6 +2492,112 @@ function _hanabiBindButtons() {
   if (db) { db.onclick = null; db.addEventListener('click', _hanabiStartDiscard); }
   var cb = _memEl('memHanabiCancelIndiceBtn');
   if (cb) { cb.onclick = null; cb.addEventListener('click', _hanabiCancelIndice); }
+}
+
+function _hanabiInitArcade() {
+  var canvas = _memEl('memHanabiArcadeCanvas');
+  if (!canvas) return;
+  if (canvas._hnbInit) return;
+  canvas._hnbInit = true;
+
+  var W = 0, H = 72;
+  canvas.height = H;
+
+  function resize() {
+    W = canvas.parentElement ? canvas.parentElement.offsetWidth : 300;
+    if (W < 10) W = 300;
+    canvas.width = W;
+    canvas.height = H;
+  }
+  resize();
+
+  var ctx = canvas.getContext('2d');
+  var COLORS  = ['#c4dff5','#bce0bc','#f5c4c4','#dac4f0','#f0dca0'];
+  var BORDERS = ['#2a5a84','#2a6a2a','#8a2a2a','#5a2a8a','#8a6a10'];
+  var particles = [], stars = [], sprites = [], ticker = 0;
+
+  for (var s = 0; s < 30; s++) {
+    stars.push({ x: Math.random()*800, y: 4+Math.random()*60, r: Math.random()>0.6?2:1,
+      phase: Math.random()*Math.PI*2, speed: 0.018+Math.random()*0.03 });
+  }
+
+  function spawnFirework() {
+    var ci = Math.floor(Math.random()*5);
+    var cx = 30 + Math.random()*(W-60);
+    var cy = 6 + Math.random()*28;
+    var count = 14 + Math.floor(Math.random()*8);
+    for (var i = 0; i < count; i++) {
+      var angle = (i/count)*Math.PI*2;
+      var spd   = 1.0 + Math.random()*2.0;
+      particles.push({ x:cx, y:cy, vx:Math.cos(angle)*spd, vy:Math.sin(angle)*spd,
+        color:COLORS[ci], border:BORDERS[ci], life:1,
+        size:Math.random()>0.5?3:2, decay:0.018+Math.random()*0.014 });
+    }
+  }
+
+  function spawnSprite() {
+    var ci = Math.floor(Math.random()*5);
+    sprites.push({ x:W+12, y:H*0.5+(Math.random()-0.5)*22,
+      w:11, h:15, color:COLORS[ci], border:BORDERS[ci],
+      num:1+Math.floor(Math.random()*5), speed:0.7+Math.random()*0.9 });
+  }
+
+  function draw() {
+    if (!canvas.parentElement) return;
+    resize();
+    ctx.fillStyle = '#3a3530';
+    ctx.fillRect(0,0,W,H);
+    for (var ly = 0; ly < H; ly += 4) {
+      ctx.fillStyle = 'rgba(0,0,0,0.07)';
+      ctx.fillRect(0,ly,W,1);
+    }
+    stars.forEach(function(st) {
+      st.phase += st.speed;
+      var a = 0.2 + 0.55*((Math.sin(st.phase)+1)/2);
+      ctx.fillStyle = 'rgba(245,230,200,'+a+')';
+      ctx.fillRect(Math.round(st.x % W), Math.round(st.y), st.r, st.r);
+    });
+    particles = particles.filter(function(p){ return p.life > 0; });
+    particles.forEach(function(p) {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.035; p.vx *= 0.97; p.life -= p.decay;
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size);
+      ctx.fillStyle = p.border;
+      ctx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1);
+      ctx.globalAlpha = 1;
+    });
+    sprites.forEach(function(sp) {
+      sp.x -= sp.speed;
+      if (sp.x + sp.w < 0) { sp.x = W+12; sp.y = H*0.5+(Math.random()-0.5)*22; }
+      var sx = Math.round(sp.x), sy = Math.round(sp.y - sp.h/2);
+      ctx.fillStyle = sp.color;
+      ctx.fillRect(sx, sy, sp.w, sp.h);
+      ctx.fillStyle = sp.border;
+      ctx.fillRect(sx, sy, sp.w, 1);
+      ctx.fillRect(sx, sy+sp.h-1, sp.w, 1);
+      ctx.fillRect(sx, sy, 1, sp.h);
+      ctx.fillRect(sx+sp.w-1, sy, 1, sp.h);
+      ctx.fillRect(sx, sy+sp.h-3, sp.w, 3); // liseré bas coloré
+      ctx.font = 'bold 7px "Courier New"';
+      ctx.textAlign = 'center';
+      ctx.fillText(sp.num, Math.round(sp.x+sp.w/2), Math.round(sp.y+3));
+    });
+    ticker++;
+    if (ticker % 88 === 0) spawnFirework();
+    if (ticker % 130 === 0) spawnSprite();
+    if (ticker % 55 < 35) {
+      ctx.fillStyle = 'rgba(245,200,122,0.28)';
+      ctx.font = 'bold 7px "Courier New"';
+      ctx.textAlign = 'right';
+      ctx.fillText('HANABI  2025', W-6, H-5);
+    }
+    requestAnimationFrame(draw);
+  }
+
+  for (var si = 0; si < 5; si++) { spawnSprite(); sprites[sprites.length-1].x = Math.random()*W; }
+  spawnFirework();
+  draw();
 }
 
 // Mettre à jour le dot de présence adversaire dans l'écran Hanabi
@@ -2590,20 +2696,10 @@ function _hanabiRenderPiles(piles) {
       d.style.borderColor = '#c0b0a0';
       d.style.borderBottomColor = '#c0b0a0';
       d.style.borderStyle = 'dashed';
-      // Encoches de couleur sur les 4 coins pour indiquer la couleur attendue
-      ['top:0;left:0;border-radius:0 0 3px 0;',
-       'top:0;right:0;border-radius:0 0 0 3px;',
-       'bottom:3px;left:0;border-radius:0 3px 0 0;',
-       'bottom:3px;right:0;border-radius:3px 0 0 0;'].forEach(function(pos) {
-        var notch = document.createElement('div');
-        notch.style.cssText = 'position:absolute;'+pos+'width:8px;height:8px;background:'+c.border+';opacity:0.7;';
-        d.appendChild(notch);
-      });
-      // Label couleur centré discret
-      var lbl = document.createElement('span');
-      lbl.style.cssText = 'font-size:7px;font-weight:700;color:'+c.border+';letter-spacing:1px;text-transform:uppercase;font-family:Courier New,monospace;opacity:0.6;';
-      lbl.textContent = c.label;
-      d.appendChild(lbl);
+      // Encoche unique bas-gauche : même style que la barre de progression des piles remplies
+      var notch = document.createElement('div');
+      notch.style.cssText = 'position:absolute;bottom:0;left:0;width:18px;height:4px;background:'+c.border+';opacity:0.55;';
+      d.appendChild(notch);
     }
     if (val > 0) {
       var num = document.createElement('span');
@@ -2710,9 +2806,9 @@ function _hanabiApplyState(state) {
       phEl.innerHTML = '';
     } else if (myTurn) {
       var desc = (state.last_action && state.last_action.desc) ? ' · ' + state.last_action.desc.toUpperCase() : '';
-      phEl.innerHTML = '<span class="hnb-blink-sq">&#9646;</span> TON TOUR' + desc;
+      phEl.innerHTML = '<span class="hnb-blink-sq"></span>TON TOUR' + desc;
     } else {
-      phEl.innerHTML = '&#9203; TOUR DE ' + _memGetName(_memOther).toUpperCase() + '…';
+      phEl.innerHTML = '<span class="hnb-blink-sq-gray"></span>TOUR DE ' + _memGetName(_memOther).toUpperCase() + '…';
     }
   }
 
@@ -2893,7 +2989,7 @@ function _hanabiCancelIndice() {
 function _hanabiStartPlay() {
   _hanabiActionMode = 'play'; _hanabiSelectedCard = null;
   var hint = _memEl('memHanabiActionHint');
-  if (hint) hint.textContent = 'Touche une carte pour la sélectionner, retouche pour poser';
+  if (hint) hint.innerHTML = '<span class="hnb-blink-sq" style="background:#1a6a1a;"></span>TOUCHE UNE CARTE POUR LA POSER';
   _hanabiRefreshMyCards();
   var gi=_memEl('memHanabiGiveIndiceBtn'), db=_memEl('memHanabiDiscardBtn'), pb=_memEl('memHanabiPlayBtn');
   if(gi){gi.disabled=true; gi.classList.add('hnb-btn-dimmed');}
@@ -2904,7 +3000,7 @@ function _hanabiStartPlay() {
 function _hanabiStartDiscard() {
   _hanabiActionMode = 'discard'; _hanabiSelectedCard = null;
   var hint = _memEl('memHanabiActionHint');
-  if (hint) hint.textContent = 'Touche une carte pour la sélectionner, retouche pour défausser';
+  if (hint) hint.innerHTML = '<span class="hnb-blink-sq" style="background:#8a1a1a;"></span>TOUCHE UNE CARTE POUR LA DÉFAUSSER';
   _hanabiRefreshMyCards();
   var gi=_memEl('memHanabiGiveIndiceBtn'), pb=_memEl('memHanabiPlayBtn'), db=_memEl('memHanabiDiscardBtn');
   if(gi){gi.disabled=true; gi.classList.add('hnb-btn-dimmed');}
@@ -2914,20 +3010,11 @@ function _hanabiStartDiscard() {
 
 function _hanabiSelectMyCard(idx) {
   if (_hanabiActionMode !== 'play' && _hanabiActionMode !== 'discard') return;
-  if (_hanabiSelectedCard === idx) {
-    // Deuxième tap sur la même carte → confirmer
-    if (_hanabiActionMode === 'play')    _hanabiConfirmPlay();
-    if (_hanabiActionMode === 'discard') _hanabiConfirmDiscard();
-    return;
-  }
-  // Premier tap → sélectionner seulement
+  // 1 seul clic sur la carte = confirmation directe
   _hanabiSelectedCard = idx;
   _hanabiRefreshMyCards();
-  // Mettre à jour le hint texte
-  var hint = _memEl('memHanabiActionHint');
-  if (hint) hint.textContent = _hanabiActionMode === 'play'
-    ? 'Retouche la carte pour confirmer'
-    : 'Retouche pour défausser · +1 jeton bleu';
+  if (_hanabiActionMode === 'play')    _hanabiConfirmPlay();
+  if (_hanabiActionMode === 'discard') _hanabiConfirmDiscard();
 }
 
 function _hanabiRefreshMyCards() {
