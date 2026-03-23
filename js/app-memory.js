@@ -2690,6 +2690,7 @@ function _hanabiRenderPiles(piles) {
     var val = piles[c.id] || 0;
     var d = document.createElement('div');
     d.setAttribute('data-color', c.id);
+    d.style.cssText = 'flex:1;min-width:0;height:66px;border-radius:3px;border:2px solid;border-bottom:3px solid;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;box-sizing:border-box;font-family:Courier New,monospace;';
     if (val > 0) {
       d.style.background = c.bg;
       d.style.borderColor = c.border;
@@ -3173,8 +3174,14 @@ function _hanabiConfirmPlay() {
   _hanabiReenableButtons();
   _memMp.saveState(ns);
   _hanabiSkipHintAnim = true;
-  // Décaler le re-render pour laisser le flash être visible
-  setTimeout(function(){ _hanabiApplyState(ns); }, correct ? 700 : 650);
+  var toastMsg  = correct ? ('✓ POSÉ — '+(c?c.label:'')+' '+card.num) : ('✕ MAUVAISE CARTE — '+(c?c.label:'')+' '+card.num);
+  var toastBg   = correct ? (c?c.bg:'#e8f5e8') : '#fcebeb';
+  var toastCol  = correct ? (c?c.text:'#1a4a1a') : '#7f1d1d';
+  setTimeout(function(){
+    _hanabiApplyState(ns);
+    // Toast après le re-render pour qu'il s'affiche sur le nouveau DOM
+    setTimeout(function(){ _hanabiShowToast(toastMsg, toastBg, toastCol); }, 30);
+  }, correct ? 700 : 650);
 }
 
 function _hanabiConfirmDiscard() {
@@ -3208,8 +3215,12 @@ function _hanabiConfirmDiscard() {
   _hanabiReenableButtons();
   _memMp.saveState(ns);
   _hanabiSkipHintAnim = true;
-  // Décaler le re-render pour laisser le flash défausse être visible
-  setTimeout(function(){ _hanabiApplyState(ns); }, 650);
+  var dc = HANABI_COLOR_MAP[card.color];
+  var toastMsgD = 'DÉFAUSSÉ — '+(dc?dc.label:'')+' '+card.num+' · +1 jeton';
+  setTimeout(function(){
+    _hanabiApplyState(ns);
+    setTimeout(function(){ _hanabiShowToast(toastMsgD, '#2a2218', '#c8b99a'); }, 30);
+  }, 650);
 }
 
 // ── Animations feedback ──
@@ -3287,7 +3298,6 @@ function _hanabiAnimPlaySuccess(c, num) {
       setTimeout(function(){ fl.remove(); }, 380);
     }, 200);
   });
-  _hanabiShowToast('✓ POSÉ — '+(c?c.label:'')+' '+num, c?c.bg:'#e8f5e8', c?c.text:'#1a4a1a');
 }
 
 // Pose réussie côté spectateur
@@ -3381,7 +3391,6 @@ function _hanabiAnimPlayError(c, num) {
   });
 
   if (navigator.vibrate) navigator.vibrate([50,30,80]);
-  _hanabiShowToast('✕ MAUVAISE CARTE — '+(c?c.label:'')+' '+num, '#fcebeb', '#7f1d1d');
 }
 
 // Erreur côté spectateur
@@ -3432,7 +3441,6 @@ function _hanabiAnimDiscardSelf(c, num) {
     }, 220);
   });
   if (navigator.vibrate) navigator.vibrate([30]);
-  _hanabiShowToast('DÉFAUSSÉ — '+(c?c.label:'')+' '+num+' · +1 jeton', '#2a2218', '#c8b99a');
 }
 
 // Défausse côté spectateur
