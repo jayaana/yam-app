@@ -3005,7 +3005,6 @@ function _hanabiStartIndice() {
 
   // Afficher panneau
   var panel = _memEl('memHanabiIndicePanel'); if (panel) panel.style.display = 'block';
-  var actEl = _memEl('memHanabiActions'); if (actEl) actEl.style.display = 'none';
 
   // Couleurs
   var colEl = _memEl('memHanabiIndiceColors'); if (colEl) {
@@ -3122,9 +3121,6 @@ function _hanabiReenableButtons() {
 function _hanabiCancelIndice() {
   _hanabiActionMode = null; _hanabiIndiceType = null; _hanabiIndiceVal = null;
   var panel = _memEl('memHanabiIndicePanel'); if (panel) panel.style.display = 'none';
-  var cur = (_memMp&&_memMp.getGameState?_memMp.getGameState():null)||_memLastState;
-  var actEl = _memEl('memHanabiActions');
-  if (actEl && cur && cur.turn === _memProfile && !cur.winner) actEl.style.display = 'block';
   _hanabiReenableButtons();
   document.querySelectorAll('#memHanabiOppCards > div').forEach(function(c) {
     c.style.opacity='1'; c.style.transform=''; c.style.transition=''; c.style.outline='';
