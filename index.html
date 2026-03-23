@@ -3612,16 +3612,17 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     #memScreenMode {
       background-image: url('https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/arcade-memory.png') !important;
       background-size: cover !important;
-      background-position: center top !important;
+      background-position: center center !important;
       background-repeat: no-repeat !important;
       position: relative !important;
+      min-height: 100dvh !important;
     }
     #memScreenLobby::before,
     #memScreenMode::before {
       content: '';
       position: absolute;
       inset: 0;
-      background: rgba(15, 12, 30, 0.72);
+      background: rgba(8, 6, 20, 0.82);
       pointer-events: none;
       z-index: 0;
     }
