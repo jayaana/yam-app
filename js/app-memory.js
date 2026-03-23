@@ -2590,7 +2590,7 @@ function _hanabiInitArcade() {
       ctx.fillStyle = 'rgba(245,200,122,0.28)';
       ctx.font = 'bold 7px "Courier New"';
       ctx.textAlign = 'right';
-      ctx.fillText('HANABI  2025', W-6, H-5);
+      ctx.fillText('HANABI  2026', W-6, H-5);
     }
     requestAnimationFrame(draw);
   }
@@ -2734,12 +2734,29 @@ function _hanabiApplyState(state) {
   var oppLbl = _memEl('memHanabiOppLabel');
   if (oppLbl) oppLbl.textContent = _memGetName(_memOther);
 
-  // Ma main (dos + hints)
+  // Ma main (dos + hints) — avec animation si nouveaux hints reçus
   var myEl = _memEl('memHanabiMyCards'); if (myEl) {
+    var prevHints = [];
+    myEl.querySelectorAll('[data-hint-count]').forEach(function(el, i){ prevHints[i] = parseInt(el.getAttribute('data-hint-count'))||0; });
     myEl.innerHTML = '';
     myHand.forEach(function(card, i) {
-      myEl.appendChild(_hanabiMakeMyCard(myHints[i]||[], i,
-        myTurn && (_hanabiActionMode==='play'||_hanabiActionMode==='discard')));
+      var cardEl = _hanabiMakeMyCard(myHints[i]||[], i,
+        myTurn && (_hanabiActionMode==='play'||_hanabiActionMode==='discard'));
+      cardEl.setAttribute('data-hint-count', (myHints[i]||[]).length);
+      myEl.appendChild(cardEl);
+    });
+    // Animer les cartes qui viennent de recevoir un indice
+    var newHintLengths = myHints.map(function(h){ return (h||[]).length; });
+    newHintLengths.forEach(function(len, i) {
+      if (len > (prevHints[i]||0)) {
+        var card = myEl.children[i];
+        if (card) {
+          card.style.transition = 'transform .12s, box-shadow .12s';
+          card.style.transform = 'translateY(-8px) scale(1.1)';
+          card.style.boxShadow = '0 4px 18px rgba(245,200,122,0.65)';
+          setTimeout(function(){ card.style.transform=''; card.style.boxShadow=''; }, 520);
+        }
+      }
     });
   }
 
@@ -2875,6 +2892,8 @@ function _hanabiStartIndice() {
         document.querySelectorAll('#memHanabiIndiceColors div').forEach(function(x){ x.style.borderColor='transparent'; x.style.transform='scale(1)'; });
         b.style.borderColor = '#3a3530'; b.style.transform = 'scale(1.2)';
         _hanabiIndiceType = 'color'; _hanabiIndiceVal = c.id;
+        // Reset sélection chiffre
+        document.querySelectorAll('#memHanabiIndiceNums div').forEach(function(x){ x.style.background='#f5f0e8'; x.style.borderColor='#3a3530'; x.style.color='#3a3530'; });
         _hanabiPreviewIndice();
         var btn = _memEl('memHanabiConfirmIndice'); if (btn) btn.disabled = false;
       });
@@ -2892,6 +2911,8 @@ function _hanabiStartIndice() {
       b.addEventListener('click', function() {
         document.querySelectorAll('#memHanabiIndiceNums div').forEach(function(x){ x.style.background='#f5f0e8'; x.style.borderColor='#3a3530'; x.style.color='#3a3530'; });
         b.style.background='#f0dca0'; b.style.borderColor='#8a6a10'; b.style.color='#5a3a00';
+        // Reset sélection couleur
+        document.querySelectorAll('#memHanabiIndiceColors div').forEach(function(x){ x.style.borderColor='transparent'; x.style.transform='scale(1)'; });
         _hanabiIndiceType = 'num'; _hanabiIndiceVal = n;
         _hanabiPreviewIndice();
         var btn = _memEl('memHanabiConfirmIndice'); if (btn) btn.disabled = false;
@@ -2904,7 +2925,7 @@ function _hanabiStartIndice() {
   if (btn) btn.onclick = _hanabiConfirmIndice;
 }
 
-// ── Preview : illuminer les cartes adverses correspondantes ──
+// ── Preview : illuminer les cartes adverses correspondantes (persistant) ──
 function _hanabiPreviewIndice() {
   var cur = (_memMp&&_memMp.getGameState?_memMp.getGameState():null)||_memLastState;
   if (!cur) return;
@@ -2915,9 +2936,10 @@ function _hanabiPreviewIndice() {
     var match = false;
     if (_hanabiIndiceType==='color') match = c && c.color === _hanabiIndiceVal;
     if (_hanabiIndiceType==='num')   match = c && c.num   === _hanabiIndiceVal;
-    card.style.opacity = match ? '1' : '0.3';
-    card.style.transform = match ? 'translateY(-4px)' : 'scale(0.95)';
-    card.style.transition = 'opacity .2s, transform .2s';
+    card.style.opacity   = match ? '1' : '0.28';
+    card.style.transform = match ? 'translateY(-5px) scale(1.04)' : 'scale(0.94)';
+    card.style.transition = 'opacity .18s, transform .18s';
+    card.style.outline   = match ? '2px solid #f5c87a' : 'none';
   });
 }
 
@@ -2957,8 +2979,6 @@ function _hanabiConfirmIndice() {
 
   _hanabiCancelIndice();
   _memMp.saveState(ns);
-
-  // Flash visuel 4s chez moi aussi (reset des highlights)
   _hanabiApplyState(ns);
 }
 
@@ -2979,17 +2999,25 @@ function _hanabiCancelIndice() {
   var actEl = _memEl('memHanabiActions');
   if (actEl && cur && cur.turn === _memProfile && !cur.winner) actEl.style.display = 'block';
   _hanabiReenableButtons();
-  // Reset opacité + transform cartes adverses
   document.querySelectorAll('#memHanabiOppCards > div').forEach(function(c) {
-    c.style.opacity='1'; c.style.transform=''; c.style.transition='';
+    c.style.opacity='1'; c.style.transform=''; c.style.transition=''; c.style.outline='';
   });
+}
+
+function _hanabiCancelAction() {
+  _hanabiActionMode = null; _hanabiSelectedCard = null;
+  var hint = _memEl('memHanabiActionHint'); if (hint) hint.innerHTML = '';
+  _hanabiReenableButtons();
+  var cur = (_memMp&&_memMp.getGameState?_memMp.getGameState():null)||_memLastState;
+  if (cur) _hanabiApplyState(cur);
 }
 
 // ── Poser / Défausser ──
 function _hanabiStartPlay() {
+  if (_hanabiActionMode === 'play') { _hanabiCancelAction(); return; }
   _hanabiActionMode = 'play'; _hanabiSelectedCard = null;
   var hint = _memEl('memHanabiActionHint');
-  if (hint) hint.innerHTML = '<span class="hnb-blink-sq" style="background:#1a6a1a;"></span>TOUCHE UNE CARTE POUR LA POSER';
+  if (hint) hint.innerHTML = '<span class="hnb-blink-sq" style="background:#1a6a1a;margin-right:4px;"></span>TOUCHE UNE CARTE POUR LA POSER';
   _hanabiRefreshMyCards();
   var gi=_memEl('memHanabiGiveIndiceBtn'), db=_memEl('memHanabiDiscardBtn'), pb=_memEl('memHanabiPlayBtn');
   if(gi){gi.disabled=true; gi.classList.add('hnb-btn-dimmed');}
@@ -2998,9 +3026,10 @@ function _hanabiStartPlay() {
 }
 
 function _hanabiStartDiscard() {
+  if (_hanabiActionMode === 'discard') { _hanabiCancelAction(); return; }
   _hanabiActionMode = 'discard'; _hanabiSelectedCard = null;
   var hint = _memEl('memHanabiActionHint');
-  if (hint) hint.innerHTML = '<span class="hnb-blink-sq" style="background:#8a1a1a;"></span>TOUCHE UNE CARTE POUR LA DÉFAUSSER';
+  if (hint) hint.innerHTML = '<span class="hnb-blink-sq" style="background:#8a1a1a;margin-right:4px;"></span>TOUCHE UNE CARTE POUR LA DÉFAUSSER';
   _hanabiRefreshMyCards();
   var gi=_memEl('memHanabiGiveIndiceBtn'), pb=_memEl('memHanabiPlayBtn'), db=_memEl('memHanabiDiscardBtn');
   if(gi){gi.disabled=true; gi.classList.add('hnb-btn-dimmed');}
@@ -3042,22 +3071,22 @@ function _hanabiConfirmPlay() {
   var card = ns[myHandKey][_hanabiSelectedCard];
   var pileVal = ns.piles[card.color] || 0;
   var correct = card.num === pileVal + 1;
+  var c = HANABI_COLOR_MAP[card.color];
 
   var desc = '';
   if (correct) {
     ns.piles[card.color] = card.num;
     ns.score = (ns.score||0) + 1;
-    // Bonus : si on complète une pile à 5 → récupère 1 jeton bleu
     if (card.num === 5 && ns.blue_tokens < 8) ns.blue_tokens++;
-    desc = 'Pose '+HANABI_COLOR_MAP[card.color].label+' '+card.num+' ✓';
+    desc = 'Pose '+c.label+' '+card.num+' ✓';
+    _hanabiFlashSuccess(c);
   } else {
-    // Erreur → défausser + jeton rouge
     ns.discard = (ns.discard||[]).concat([card]);
     ns.red_tokens = (ns.red_tokens||0) + 1;
-    desc = 'Erreur : '+HANABI_COLOR_MAP[card.color].label+' '+card.num+' ✗';
+    desc = 'Erreur : '+c.label+' '+card.num+' ✗';
+    _hanabiFlashError();
   }
 
-  // Piocher une nouvelle carte
   ns[myHandKey].splice(_hanabiSelectedCard, 1);
   ns[myHintsKey].splice(_hanabiSelectedCard, 1);
   if (ns.deck && ns.deck.length > 0) {
@@ -3070,8 +3099,7 @@ function _hanabiConfirmPlay() {
   ns.winner = _hanabiCheckEnd(ns);
 
   _hanabiActionMode = null; _hanabiSelectedCard = null;
-  var hint = _memEl('memHanabiActionHint'); if (hint) hint.textContent='';
-  var actEl = _memEl('memHanabiActions'); if (actEl) actEl.style.display='none';
+  var hint = _memEl('memHanabiActionHint'); if (hint) hint.innerHTML='';
   _hanabiReenableButtons();
   _memMp.saveState(ns);
   _hanabiApplyState(ns);
@@ -3090,6 +3118,8 @@ function _hanabiConfirmDiscard() {
   ns.discard = (ns.discard||[]).concat([card]);
   if (ns.blue_tokens < 8) ns.blue_tokens++;
 
+  _hanabiFlashDiscard(HANABI_COLOR_MAP[card.color]);
+
   ns[myHandKey].splice(_hanabiSelectedCard, 1);
   ns[myHintsKey].splice(_hanabiSelectedCard, 1);
   if (ns.deck && ns.deck.length > 0) {
@@ -3102,11 +3132,73 @@ function _hanabiConfirmDiscard() {
   ns.winner = _hanabiCheckEnd(ns);
 
   _hanabiActionMode = null; _hanabiSelectedCard = null;
-  var hint = _memEl('memHanabiActionHint'); if (hint) hint.textContent='';
-  var actEl2 = _memEl('memHanabiActions'); if (actEl2) actEl2.style.display='none';
+  var hint = _memEl('memHanabiActionHint'); if (hint) hint.innerHTML='';
   _hanabiReenableButtons();
   _memMp.saveState(ns);
   _hanabiApplyState(ns);
+}
+
+// ── Animations feedback ──
+function _hanabiFlashSuccess(c) {
+  var screen = _memEl('memScreenHanabi'); if (!screen) return;
+  var el = document.createElement('div');
+  el.style.cssText = 'position:fixed;inset:0;background:'+c.bg+';opacity:0;pointer-events:none;z-index:9999;transition:opacity .12s;display:flex;align-items:center;justify-content:center;';
+  el.innerHTML = '<span style="font-family:Courier New,monospace;font-size:28px;font-weight:700;color:'+c.text+';letter-spacing:2px;text-shadow:0 0 10px '+c.border+';">✓ POSÉ !</span>';
+  document.body.appendChild(el);
+  requestAnimationFrame(function(){ el.style.opacity='0.82'; });
+  setTimeout(function(){ el.style.opacity='0'; setTimeout(function(){ el.remove(); }, 180); }, 420);
+}
+
+function _hanabiFlashError() {
+  var screen = _memEl('memScreenHanabi'); if (!screen) return;
+  // Flash rouge
+  var el = document.createElement('div');
+  el.style.cssText = 'position:fixed;inset:0;background:#8a1a1a;opacity:0;pointer-events:none;z-index:9999;transition:opacity .1s;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;';
+  el.innerHTML = '<span style="font-family:Courier New,monospace;font-size:24px;font-weight:700;color:#f5c4c4;letter-spacing:2px;">✕ ERREUR !</span>'+
+    '<span style="font-size:28px;">💔</span>';
+  document.body.appendChild(el);
+  requestAnimationFrame(function(){ el.style.opacity='0.88'; });
+  // Vibration si disponible
+  if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+  setTimeout(function(){ el.style.opacity='0'; setTimeout(function(){ el.remove(); }, 180); }, 550);
+  // Shake de l'écran Hanabi
+  var screen2 = _memEl('memScreenHanabi');
+  if (screen2) {
+    screen2.style.transition = 'transform .08s';
+    var shakes = [{x:-6},{x:6},{x:-4},{x:4},{x:-2},{x:2},{x:0}];
+    var si = 0;
+    var shakeInt = setInterval(function() {
+      if (si >= shakes.length) { clearInterval(shakeInt); screen2.style.transform=''; return; }
+      screen2.style.transform = 'translateX('+shakes[si].x+'px)';
+      si++;
+    }, 60);
+  }
+}
+
+function _hanabiFlashDiscard(c) {
+  var el = document.createElement('div');
+  el.style.cssText = 'position:fixed;inset:0;background:#3a3530;opacity:0;pointer-events:none;z-index:9999;transition:opacity .1s;display:flex;align-items:center;justify-content:center;';
+  el.innerHTML = '<span style="font-family:Courier New,monospace;font-size:22px;font-weight:700;color:#f5e6c8;letter-spacing:2px;">DÉFAUSSÉE</span>';
+  document.body.appendChild(el);
+  requestAnimationFrame(function(){ el.style.opacity='0.7'; });
+  setTimeout(function(){ el.style.opacity='0'; setTimeout(function(){ el.remove(); }, 150); }, 380);
+}
+
+// ── Animation indice reçu : faire pulser les cartes concernées ──
+function _hanabiAnimateHintsReceived(newHints, prevHints) {
+  // Appelée côté destinataire quand le state change avec de nouveaux hints
+  if (!newHints || !prevHints) return;
+  var myCards = document.querySelectorAll('#memHanabiMyCards > div');
+  newHints.forEach(function(hints, i) {
+    var prevLen = (prevHints[i] || []).length;
+    if (hints.length > prevLen && myCards[i]) {
+      var card = myCards[i];
+      card.style.transition = 'transform .12s, box-shadow .12s';
+      card.style.transform = 'translateY(-8px) scale(1.08)';
+      card.style.boxShadow = '0 4px 16px rgba(245,200,122,0.6)';
+      setTimeout(function(){ card.style.transform=''; card.style.boxShadow=''; }, 500);
+    }
+  });
 }
 
 // ── Vérifier fin de partie ──
