@@ -3607,39 +3607,32 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       border-top: 2px solid #5a5048;
     }
     #memHanabiArcadeCanvas { display: block; width: 100%; height: 72px; }
-    /* ── Fond arcade — uniquement sous le header ── */
+    /* ── Fond arcade — image floue sur toute la vue Memory ── */
     #memoryView {
-      background-image: url('https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/arcade-memory.png') !important;
-      background-size: cover !important;
-      background-position: center 60px !important;
-      background-repeat: no-repeat !important;
+      position: relative !important;
     }
-    /* Overlay + flou sur les deux écrans uniquement */
-    #memScreenLobby,
-    #memScreenMode {
-      background: rgba(4, 8, 24, 0.88) !important;
-      backdrop-filter: blur(3px) !important;
-      -webkit-backdrop-filter: blur(3px) !important;
+    #memoryView::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url('https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/arcade-memory.png');
+      background-size: cover;
+      background-position: center;
+      filter: blur(6px) brightness(0.45);
+      z-index: 0;
+      pointer-events: none;
     }
-    /* Textes lobby */
-    #memScreenLobby .mem-lobby-name,
-    #memScreenLobby .mem-lobby-vs-label,
-    #memScreenLobby .mem-lobby-status,
-    #memScreenLobby .mem-lobby-title {
-      color: #e8f0ff !important;
+    #memoryView > * {
+      position: relative;
+      z-index: 1;
     }
-    #memScreenLobby .mem-btn-ghost {
-      color: #1a1a2e !important;
-      border-color: #e8f0ff !important;
-      background: #e8f0ff !important;
-      font-weight: 700 !important;
+    /* Carte Hanabi — même style que les autres + titre doré */
+    #memScreenMode .mem-mode-card--coop {
+      background: var(--s1) !important;
+      border-color: var(--border) !important;
     }
-    /* Textes écran mode */
-    #memScreenMode .mem-mode-name,
-    #memScreenMode .mem-mode-vs-sep,
-    #memScreenMode .mem-mode-vote-label,
-    #memScreenMode .mem-mode-vote-hint {
-      color: #e8f0ff !important;
+    #memScreenMode .mem-mode-card--coop .mem-mode-card-title {
+      color: #c8950a !important;
     }
     </style>
 
