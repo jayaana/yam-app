@@ -2439,12 +2439,13 @@ function _hanabiMakeDeck() {
 
 // ── État local Hanabi ──
 var _hanabiSaved       = false;
-var _hanabiActionMode  = null;  // 'indice'|'play'|'discard'
-var _hanabiIndiceType  = null;  // 'color'|'num'
-var _hanabiIndiceVal   = null;  // color id ou num (int)
-var _hanabiSelectedCard = null; // index carte ma main (play/discard)
+var _hanabiActionMode  = null;
+var _hanabiIndiceType  = null;
+var _hanabiIndiceVal   = null;
+var _hanabiSelectedCard = null;
 var _hanabiFlashTimer  = null;
-var _hanabiSkipHintAnim = false; // true après une action locale pour éviter faux-positifs
+var _hanabiSkipHintAnim = false;
+var _hanabiLastActionTs = 0; // timestamp de la dernière action déjà animée
 
 // ── Builder état initial ──
 function _hanabiGetBuildState() {
@@ -2797,8 +2798,43 @@ function _hanabiApplyState(state) {
     _hanabiPreviewIndice();
   }
 
-  // Piles
-  _hanabiRenderPiles(state.piles);
+  // ── Animations côté spectateur (actions de l'adversaire) ──
+  var la = state.last_action;
+  if (la && la.actor === _memOther && !myTurn) {
+    var laTs = la.ts || (la.type + la.desc); // identifiant unique de l'action
+    if (laTs !== _hanabiLastActionTs) {
+      _hanabiLastActionTs = laTs;
+      if (la.type === 'play') {
+        var isErr = la.desc && la.desc.indexOf('Erreur') !== -1;
+        var cardColor = null;
+        var cardNum   = null;
+        // Extraire couleur/num depuis la desc "Pose BLU 3 ✓" ou "Erreur : BLU 3 ✗"
+        HANABI_COLORS.forEach(function(c) {
+          if (la.desc && la.desc.indexOf(c.label) !== -1) cardColor = c;
+        });
+        var numMatch = la.desc && la.desc.match(/(\d)/);
+        if (numMatch) cardNum = numMatch[1];
+        if (isErr) {
+          _hanabiAnimCardFlyError(cardColor, cardNum);
+        } else {
+          _hanabiAnimCardFlySuccess(cardColor, cardNum);
+        }
+      } else if (la.type === 'discard') {
+        var cardColor2 = null;
+        HANABI_COLORS.forEach(function(c) {
+          if (la.desc && la.desc.indexOf(c.label) !== -1) cardColor2 = c;
+        });
+        var numMatch2 = la.desc && la.desc.match(/(\d)/);
+        var cardNum2 = numMatch2 ? numMatch2[1] : '?';
+        _hanabiAnimCardDiscard(cardColor2, cardNum2);
+      }
+    }
+  }
+
+  // Même chose côté joueur actif : si c'est notre tour et qu'il y a une last_action de nous
+  // (après le délai, les animations locales sont déjà faites — rien à faire ici)
+
+
 
   // Jetons bleus (cercles pleins / creux)
   var bt = _memEl('memHanabiBlueTokens');
@@ -3004,7 +3040,7 @@ function _hanabiConfirmIndice() {
   else                      ns.girl_hints = newHints;
   ns.blue_tokens = cur.blue_tokens - 1;
   ns.turn = _memOther;
-  ns.last_action = {type:'indice', actor:_memProfile, desc:desc};
+  ns.last_action = {type:'indice', actor:_memProfile, desc:desc, ts:Date.now()};
 
   _hanabiCancelIndice();
   _memMp.saveState(ns);
@@ -3111,12 +3147,12 @@ function _hanabiConfirmPlay() {
     ns.score = (ns.score||0) + 1;
     if (card.num === 5 && ns.blue_tokens < 8) ns.blue_tokens++;
     desc = 'Pose '+c.label+' '+card.num+' ✓';
-    _hanabiFlashSuccess(c);
+    _hanabiAnimPlaySuccess(c, card.num);
   } else {
     ns.discard = (ns.discard||[]).concat([card]);
     ns.red_tokens = (ns.red_tokens||0) + 1;
     desc = 'Erreur : '+c.label+' '+card.num+' ✗';
-    _hanabiFlashError();
+    _hanabiAnimPlayError(c, card.num);
   }
 
   ns[myHandKey].splice(_hanabiSelectedCard, 1);
@@ -3127,7 +3163,7 @@ function _hanabiConfirmPlay() {
   }
 
   ns.turn = _memOther;
-  ns.last_action = {type:'play', actor:_memProfile, desc:desc};
+  ns.last_action = {type:'play', actor:_memProfile, desc:desc, ts:Date.now()};
   ns.winner = _hanabiCheckEnd(ns);
 
   _hanabiActionMode = null; _hanabiSelectedCard = null;
@@ -3153,6 +3189,7 @@ function _hanabiConfirmDiscard() {
   if (ns.blue_tokens < 8) ns.blue_tokens++;
 
   _hanabiFlashDiscard(HANABI_COLOR_MAP[card.color]);
+  _hanabiAnimDiscardSelf(HANABI_COLOR_MAP[card.color], card.num);
 
   ns[myHandKey].splice(_hanabiSelectedCard, 1);
   ns[myHintsKey].splice(_hanabiSelectedCard, 1);
@@ -3162,7 +3199,7 @@ function _hanabiConfirmDiscard() {
   }
 
   ns.turn = _memOther;
-  ns.last_action = {type:'discard', actor:_memProfile, desc:'Défausse '+HANABI_COLOR_MAP[card.color].label+' '+card.num};
+  ns.last_action = {type:'discard', actor:_memProfile, desc:'Défausse '+HANABI_COLOR_MAP[card.color].label+' '+card.num, ts:Date.now()};
   ns.winner = _hanabiCheckEnd(ns);
 
   _hanabiActionMode = null; _hanabiSelectedCard = null;
@@ -3241,22 +3278,267 @@ function _hanabiFlashDiscard(c) {
   setTimeout(function(){ el.style.opacity='0'; setTimeout(function(){ el.remove(); }, 200); }, 700);
 }
 
-// ── Animation indice reçu : faire pulser les cartes concernées ──
-function _hanabiAnimateHintsReceived(newHints, prevHints) {
-  // Appelée côté destinataire quand le state change avec de nouveaux hints
-  if (!newHints || !prevHints) return;
-  var myCards = document.querySelectorAll('#memHanabiMyCards > div');
-  newHints.forEach(function(hints, i) {
-    var prevLen = (prevHints[i] || []).length;
-    if (hints.length > prevLen && myCards[i]) {
-      var card = myCards[i];
-      card.style.transition = 'transform .12s, box-shadow .12s';
-      card.style.transform = 'translateY(-8px) scale(1.08)';
-      card.style.boxShadow = '0 4px 16px rgba(245,200,122,0.6)';
-      setTimeout(function(){ card.style.transform=''; card.style.boxShadow=''; }, 500);
-    }
+
+// ═══════════════════════════════════════════════════
+// ── Animations de jeu (pose, erreur, défausse) ──
+// Utilisées des deux côtés : joueur actif (confirmPlay/Discard)
+// et spectateur (détection via last_action dans _hanabiApplyState)
+// ═══════════════════════════════════════════════════
+
+// Crée un élément carte volante de départ à destination
+function _hanabiMakeFlyer(c, num, startRect, endRect, cb) {
+  var flyer = document.createElement('div');
+  var sx = startRect.left, sy = startRect.top, sw = startRect.width, sh = startRect.height;
+  var ex = endRect.left,   ey = endRect.top;
+  flyer.style.cssText = [
+    'position:fixed',
+    'left:'+sx+'px', 'top:'+sy+'px',
+    'width:'+sw+'px', 'height:'+sh+'px',
+    'background:'+(c?c.bg:'#f5f0e8'),
+    'border:2px solid '+(c?c.border:'#3a3530'),
+    'border-bottom:4px solid '+(c?c.borderB:'#1a1a1a'),
+    'border-radius:3px',
+    'display:flex','align-items:center','justify-content:center',
+    'font-family:Courier New,monospace',
+    'font-size:22px','font-weight:700',
+    'color:'+(c?c.text:'#3a3530'),
+    'pointer-events:none','z-index:9998',
+    'transition:none',
+    'will-change:transform,opacity'
+  ].join(';');
+  flyer.textContent = num || '?';
+  document.body.appendChild(flyer);
+  // Forcer reflow puis animer vers destination
+  requestAnimationFrame(function() {
+    var dx = ex - sx, dy = ey - sy;
+    flyer.style.transition = 'transform .45s cubic-bezier(.4,0,.2,1), opacity .1s';
+    flyer.style.transform = 'translate('+dx+'px,'+dy+'px) scale(0.85)';
+    setTimeout(function() {
+      if (cb) cb(flyer);
+    }, 450);
   });
+  return flyer;
 }
+
+// Pose réussie côté joueur actif
+function _hanabiAnimPlaySuccess(c, num) {
+  var myCards = document.querySelector('#memHanabiMyCards');
+  var pilesEl = document.querySelector('#memHanabiPiles');
+  if (!myCards || !pilesEl) return;
+  // Départ : centre de la zone ma main
+  var startR = myCards.getBoundingClientRect();
+  var endR   = pilesEl.getBoundingClientRect();
+  var start = {left: startR.left + startR.width/2 - 25, top: startR.top, width:50, height:66};
+  var end   = {left: endR.left + endR.width/2 - 25,   top: endR.top};
+
+  var flyer = _hanabiMakeFlyer(c, num, start, end, function(fl) {
+    // Pulse sur la pile à l'arrivée
+    fl.style.transition = 'transform .15s cubic-bezier(.2,1.6,.4,1), opacity .2s';
+    fl.style.transform = 'translate('+(end.left-start.left)+'px,'+(end.top-start.top)+'px) scale(1.25)';
+    setTimeout(function() {
+      fl.style.transition = 'transform .1s, opacity .3s';
+      fl.style.transform = 'translate('+(end.left-start.left)+'px,'+(end.top-start.top)+'px) scale(0.9)';
+      fl.style.opacity = '0';
+      setTimeout(function(){ fl.remove(); }, 400);
+    }, 200);
+  });
+  // Message
+  _hanabiShowToast('✓ POSÉ — '+( c?c.label:'' )+' '+num, c?c.bg:'#e8f5e8', c?c.text:'#1a4a1a');
+}
+
+// Pose réussie côté spectateur
+function _hanabiAnimCardFlySuccess(c, num) {
+  var oppCards = document.querySelector('#memHanabiOppCards');
+  var pilesEl  = document.querySelector('#memHanabiPiles');
+  if (!oppCards || !pilesEl) return;
+  var startR = oppCards.getBoundingClientRect();
+  var endR   = pilesEl.getBoundingClientRect();
+  var start = {left: startR.left + startR.width/2 - 25, top: startR.top, width:50, height:66};
+  var end   = {left: endR.left + endR.width/2 - 25, top: endR.top};
+
+  _hanabiMakeFlyer(c, num, start, end, function(fl) {
+    // Pulse + disparition
+    fl.style.transition = 'transform .18s cubic-bezier(.2,1.6,.4,1), opacity .25s';
+    fl.style.transform = 'translate('+(end.left-start.left)+'px,'+(end.top-start.top)+'px) scale(1.3)';
+    setTimeout(function() {
+      fl.style.transform = 'translate('+(end.left-start.left)+'px,'+(end.top-start.top)+'px) scale(1.0)';
+      fl.style.opacity = '0';
+      setTimeout(function(){ fl.remove(); }, 350);
+    }, 220);
+  });
+  _hanabiShowToast((c?c.label:'')+' '+num+' posé(e) ✓', c?c.bg:'#e8f5e8', c?c.text:'#1a4a1a');
+}
+
+// Erreur côté joueur actif : carte vole, se retourne (flip), croix rouge
+function _hanabiAnimPlayError(c, num) {
+  var myCards = document.querySelector('#memHanabiMyCards');
+  var pilesEl = document.querySelector('#memHanabiPiles');
+  if (!myCards || !pilesEl) return;
+  var startR = myCards.getBoundingClientRect();
+  var endR   = pilesEl.getBoundingClientRect();
+  var start = {left: startR.left + startR.width/2 - 25, top: startR.top, width:50, height:66};
+  var end   = {left: endR.left + endR.width/2 - 25, top: endR.top};
+
+  // Wrapper pour le flip 3D
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'position:fixed;left:'+start.left+'px;top:'+start.top+'px;width:'+start.width+'px;height:'+start.height+'px;pointer-events:none;z-index:9998;perspective:400px;';
+  var inner = document.createElement('div');
+  inner.style.cssText = 'width:100%;height:100%;transform-style:preserve-3d;transition:none;';
+
+  var front = document.createElement('div');
+  front.style.cssText = 'position:absolute;inset:0;backface-visibility:hidden;background:#f5f0e8;border:2px solid #3a3530;border-radius:3px;display:flex;align-items:center;justify-content:center;font-family:Courier New,monospace;font-size:13px;font-weight:700;color:#8a7a6a;';
+  front.textContent = '?';
+
+  var back = document.createElement('div');
+  back.style.cssText = 'position:absolute;inset:0;backface-visibility:hidden;transform:rotateY(180deg);background:'+(c?c.bg:'#f5f0e8')+';border:2px solid '+(c?c.border:'#3a3530')+';border-radius:3px;display:flex;align-items:center;justify-content:center;font-family:Courier New,monospace;font-size:22px;font-weight:700;color:'+(c?c.text:'#3a3530')+';';
+  back.textContent = num || '?';
+
+  inner.appendChild(front); inner.appendChild(back); wrap.appendChild(inner);
+  document.body.appendChild(wrap);
+
+  // Phase 1 : vol vers la pile
+  requestAnimationFrame(function() {
+    var dx = end.left - start.left, dy = end.top - start.top;
+    inner.style.transition = 'transform .5s cubic-bezier(.4,0,.2,1)';
+    inner.style.transform = 'translate('+dx+'px,'+dy+'px)';
+    // Phase 2 : flip à mi-chemin
+    setTimeout(function() {
+      inner.style.transition = 'transform .5s cubic-bezier(.4,0,.2,1), transform .35s ease-in-out';
+      inner.style.transform = 'translate('+dx+'px,'+dy+'px) rotateY(180deg)';
+    }, 280);
+    // Phase 3 : croix rouge qui pop
+    setTimeout(function() {
+      var cross = document.createElement('div');
+      cross.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:#dc2626;opacity:0;transition:opacity .12s, transform .18s cubic-bezier(.2,1.6,.4,1);transform:scale(0.5);pointer-events:none;';
+      cross.textContent = '✕';
+      back.appendChild(cross);
+      requestAnimationFrame(function(){ cross.style.opacity='1'; cross.style.transform='scale(1.2)'; });
+      setTimeout(function(){ cross.style.transform='scale(1)'; }, 200);
+    }, 600);
+    // Phase 4 : disparition
+    setTimeout(function() {
+      inner.style.transition = 'opacity .3s';
+      inner.style.opacity = '0';
+      setTimeout(function(){ wrap.remove(); }, 350);
+    }, 1100);
+  });
+
+  if (navigator.vibrate) navigator.vibrate([50,30,80]);
+  _hanabiFlashErrorLight();
+  _hanabiShowToast('✕ MAUVAISE CARTE — '+(c?c.label:'')+' '+num, '#fcebeb', '#7f1d1d');
+}
+
+// Erreur côté spectateur
+function _hanabiAnimCardFlyError(c, num) {
+  var oppCards = document.querySelector('#memHanabiOppCards');
+  var pilesEl  = document.querySelector('#memHanabiPiles');
+  if (!oppCards || !pilesEl) return;
+  var startR = oppCards.getBoundingClientRect();
+  var endR   = pilesEl.getBoundingClientRect();
+  var start = {left: startR.left + startR.width/2 - 25, top: startR.top, width:50, height:66};
+  var end   = {left: endR.left + endR.width/2 - 25, top: endR.top};
+
+  var flyer = _hanabiMakeFlyer(c, num, start, end, function(fl) {
+    // Croix rouge qui pop
+    var cross = document.createElement('div');
+    cross.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:#dc2626;opacity:0;transition:opacity .12s,transform .2s cubic-bezier(.2,1.6,.4,1);transform:scale(0.4);';
+    cross.textContent = '✕';
+    fl.style.position = 'fixed'; fl.appendChild(cross);
+    requestAnimationFrame(function(){ cross.style.opacity='1'; cross.style.transform='scale(1.2)'; });
+    setTimeout(function(){ cross.style.transform='scale(1.0)'; }, 200);
+    // Tremblement puis disparition
+    var s2 = _memEl('memScreenHanabi');
+    if (s2) { var si=0,sh=[-4,4,-3,3,-1,1,0]; s2.style.transition='transform .06s'; var iv=setInterval(function(){ if(si>=sh.length){clearInterval(iv);s2.style.transform='';return;} s2.style.transform='translateX('+sh[si]+'px)';si++;},60); }
+    if (navigator.vibrate) navigator.vibrate([50,30,80]);
+    setTimeout(function(){ fl.style.transition='opacity .3s'; fl.style.opacity='0'; setTimeout(function(){ fl.remove(); },350); }, 700);
+  });
+  _hanabiShowToast('✕ MAUVAISE CARTE — '+(c?c.label:'')+' '+num, '#fcebeb', '#7f1d1d');
+}
+
+// Défausse côté joueur actif
+function _hanabiAnimDiscardSelf(c, num) {
+  var myCards = document.querySelector('#memHanabiMyCards');
+  if (!myCards) return;
+  var startR = myCards.getBoundingClientRect();
+  var start = {left: startR.left + startR.width/2 - 25, top: startR.top, width:50, height:66};
+  var end   = {left: start.left + 20, top: start.top + 80};
+
+  var flyer = document.createElement('div');
+  flyer.style.cssText = 'position:fixed;left:'+start.left+'px;top:'+start.top+'px;width:'+start.width+'px;height:'+start.height+'px;background:'+(c?c.bg:'#f5f0e8')+';border:2px solid '+(c?c.border:'#c0b0a0')+';border-radius:3px;display:flex;align-items:center;justify-content:center;font-family:Courier New,monospace;font-size:20px;font-weight:700;color:'+(c?c.text:'#3a3530')+';pointer-events:none;z-index:9998;overflow:hidden;';
+  flyer.textContent = num || '?';
+  document.body.appendChild(flyer);
+
+  // Effet déchirure : ligne diagonale qui coupe la carte
+  var tear = document.createElement('div');
+  tear.style.cssText = 'position:absolute;top:0;left:0;width:200%;height:2px;background:#3a3530;transform:rotate(35deg) translateY(25px);opacity:0;transition:opacity .1s,transform .25s ease-in;transform-origin:left center;';
+  flyer.appendChild(tear);
+
+  requestAnimationFrame(function() {
+    // Phase 1 : déchirure apparaît
+    tear.style.opacity = '0.6';
+    // Phase 2 : les deux moitiés partent
+    setTimeout(function() {
+      flyer.style.transition = 'transform .35s ease-in, opacity .35s';
+      flyer.style.transform = 'translate('+( end.left-start.left-20)+'px,'+(end.top-start.top)+'px) rotate(-15deg) scale(0.7)';
+      flyer.style.opacity = '0';
+      setTimeout(function(){ flyer.remove(); }, 380);
+    }, 220);
+  });
+  if (navigator.vibrate) navigator.vibrate([30]);
+  _hanabiShowToast('DÉFAUSSÉ — '+(c?c.label:'')+' '+num+' · +1 jeton', '#2a2218', '#c8b99a');
+}
+
+// Défausse côté spectateur
+function _hanabiAnimCardDiscard(c, num) {
+  var oppCards = document.querySelector('#memHanabiOppCards');
+  if (!oppCards) return;
+  var startR = oppCards.getBoundingClientRect();
+  var start = {left: startR.left + startR.width/2 - 25, top: startR.top, width:50, height:66};
+
+  var flyer = document.createElement('div');
+  flyer.style.cssText = 'position:fixed;left:'+start.left+'px;top:'+start.top+'px;width:'+start.width+'px;height:'+start.height+'px;background:'+(c?c.bg:'#f5f0e8')+';border:2px solid '+(c?c.border:'#c0b0a0')+';border-radius:3px;display:flex;align-items:center;justify-content:center;font-family:Courier New,monospace;font-size:20px;font-weight:700;color:'+(c?c.text:'#3a3530')+';pointer-events:none;z-index:9998;overflow:hidden;';
+  flyer.textContent = num || '?';
+  document.body.appendChild(flyer);
+
+  var tear = document.createElement('div');
+  tear.style.cssText = 'position:absolute;top:0;left:0;width:200%;height:2px;background:#3a3530;transform:rotate(35deg) translateY(25px);opacity:0;transition:opacity .1s;';
+  flyer.appendChild(tear);
+
+  requestAnimationFrame(function() {
+    tear.style.opacity = '0.6';
+    setTimeout(function() {
+      flyer.style.transition = 'transform .35s ease-in, opacity .35s';
+      flyer.style.transform = 'translateY(60px) rotate(-12deg) scale(0.6)';
+      flyer.style.opacity = '0';
+      setTimeout(function(){ flyer.remove(); }, 380);
+    }, 200);
+  });
+  if (navigator.vibrate) navigator.vibrate([20]);
+  _hanabiShowToast((c?c.label:'')+' '+num+' défaussé(e)', '#2a2218', '#c8b99a');
+}
+
+// Toast bas d'écran — message court visible des deux côtés
+function _hanabiShowToast(msg, bg, color) {
+  var existing = document.getElementById('hnb-toast');
+  if (existing) existing.remove();
+  var t = document.createElement('div');
+  t.id = 'hnb-toast';
+  t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:'+(bg||'#3a3530')+';color:'+(color||'#f5e6c8')+';font-family:Courier New,monospace;font-size:12px;font-weight:700;letter-spacing:1px;padding:8px 16px;border-radius:3px;border:2px solid '+(color||'#f5e6c8')+';opacity:0;pointer-events:none;z-index:10000;transition:opacity .15s,transform .15s;white-space:nowrap;';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(function(){ t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)'; });
+  setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){ t.remove(); },200); }, 2200);
+}
+
+// Flash erreur léger (pas plein écran)
+function _hanabiFlashErrorLight() {
+  var scr = _memEl('memScreenHanabi'); if (!scr) return;
+  scr.style.transition = 'box-shadow .1s';
+  scr.style.boxShadow = 'inset 0 0 0 4px #dc2626';
+  setTimeout(function(){ scr.style.transition='box-shadow .4s'; scr.style.boxShadow='none'; }, 200);
+}
+
+
 
 // ── Vérifier fin de partie ──
 function _hanabiCheckEnd(ns) {
