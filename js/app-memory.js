@@ -2750,22 +2750,46 @@ function _hanabiApplyState(state) {
     newHintLengths.forEach(function(len, i) {
       if (len > (prevHints[i]||0)) {
         var card = myEl.children[i];
-        if (card) {
-          card.style.transition = 'transform .12s, box-shadow .12s';
-          card.style.transform = 'translateY(-8px) scale(1.1)';
-          card.style.boxShadow = '0 4px 18px rgba(245,200,122,0.65)';
-          setTimeout(function(){ card.style.transform=''; card.style.boxShadow=''; }, 520);
-        }
+        if (!card) return;
+        // Bounce visible : monte haut, rebondit, redescend
+        card.style.transition = 'none';
+        card.style.transform = 'translateY(0)';
+        card.style.boxShadow = 'none';
+        setTimeout(function() {
+          card.style.transition = 'transform .18s cubic-bezier(.2,1.6,.4,1), box-shadow .18s';
+          card.style.transform = 'translateY(-18px) scale(1.12)';
+          card.style.boxShadow = '0 8px 24px rgba(245,200,122,0.85)';
+          card.style.outline = '2px solid #f5c87a';
+        }, 20);
+        setTimeout(function() {
+          card.style.transition = 'transform .14s ease-in, box-shadow .3s';
+          card.style.transform = 'translateY(-4px) scale(1.04)';
+        }, 260);
+        setTimeout(function() {
+          card.style.transition = 'transform .1s ease-out, box-shadow .3s, outline .3s';
+          card.style.transform = 'translateY(0)';
+          card.style.boxShadow = 'none';
+          card.style.outline = 'none';
+        }, 500);
       }
     });
   }
 
-  // Main adverse (visible)
-  var oppEl = _memEl('memHanabiOppCards'); if (oppEl) {
+  // Main adverse (visible) — ne pas reconstruire si panneau indice ouvert (pour conserver le preview)
+  var oppEl = _memEl('memHanabiOppCards');
+  var indiceOpen = _hanabiActionMode === 'indice' && _hanabiIndiceType !== null;
+  if (oppEl && !indiceOpen) {
     oppEl.innerHTML = '';
     otherHand.forEach(function(card, i) {
       oppEl.appendChild(_hanabiMakeOppCard(card, i));
     });
+  } else if (oppEl && indiceOpen) {
+    // Reconstruire mais re-appliquer le preview immédiatement après
+    oppEl.innerHTML = '';
+    otherHand.forEach(function(card, i) {
+      oppEl.appendChild(_hanabiMakeOppCard(card, i));
+    });
+    _hanabiPreviewIndice();
   }
 
   // Piles
@@ -3140,48 +3164,69 @@ function _hanabiConfirmDiscard() {
 
 // ── Animations feedback ──
 function _hanabiFlashSuccess(c) {
-  var screen = _memEl('memScreenHanabi'); if (!screen) return;
   var el = document.createElement('div');
-  el.style.cssText = 'position:fixed;inset:0;background:'+c.bg+';opacity:0;pointer-events:none;z-index:9999;transition:opacity .12s;display:flex;align-items:center;justify-content:center;';
-  el.innerHTML = '<span style="font-family:Courier New,monospace;font-size:28px;font-weight:700;color:'+c.text+';letter-spacing:2px;text-shadow:0 0 10px '+c.border+';">✓ POSÉ !</span>';
+  el.style.cssText = 'position:fixed;inset:0;background:'+c.bg+';opacity:0;pointer-events:none;z-index:9999;transition:opacity .15s;display:flex;align-items:center;justify-content:center;';
+  el.innerHTML = '<span style="font-family:Courier New,monospace;font-size:30px;font-weight:700;color:'+c.text+';letter-spacing:3px;border:3px solid '+c.border+';padding:10px 20px;">✓ POSÉ !</span>';
   document.body.appendChild(el);
-  requestAnimationFrame(function(){ el.style.opacity='0.82'; });
-  setTimeout(function(){ el.style.opacity='0'; setTimeout(function(){ el.remove(); }, 180); }, 420);
+  requestAnimationFrame(function(){ el.style.opacity='0.9'; });
+  setTimeout(function(){ el.style.opacity='0'; setTimeout(function(){ el.remove(); }, 220); }, 750);
 }
 
 function _hanabiFlashError() {
-  var screen = _memEl('memScreenHanabi'); if (!screen) return;
-  // Flash rouge
+  // Flash rouge plus doux
   var el = document.createElement('div');
-  el.style.cssText = 'position:fixed;inset:0;background:#8a1a1a;opacity:0;pointer-events:none;z-index:9999;transition:opacity .1s;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;';
-  el.innerHTML = '<span style="font-family:Courier New,monospace;font-size:24px;font-weight:700;color:#f5c4c4;letter-spacing:2px;">✕ ERREUR !</span>'+
-    '<span style="font-size:28px;">💔</span>';
+  el.style.cssText = 'position:fixed;inset:0;background:#5a1010;opacity:0;pointer-events:none;z-index:9999;transition:opacity .15s;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;';
+  el.innerHTML = '<span style="font-family:Courier New,monospace;font-size:22px;font-weight:700;color:#f5c4c4;letter-spacing:2px;">✕ MAUVAISE CARTE</span>';
   document.body.appendChild(el);
-  requestAnimationFrame(function(){ el.style.opacity='0.88'; });
-  // Vibration si disponible
-  if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
-  setTimeout(function(){ el.style.opacity='0'; setTimeout(function(){ el.remove(); }, 180); }, 550);
-  // Shake de l'écran Hanabi
+  requestAnimationFrame(function(){ el.style.opacity='0.65'; });
+  if (navigator.vibrate) navigator.vibrate([60, 30, 60]);
+  setTimeout(function(){ el.style.opacity='0'; setTimeout(function(){ el.remove(); }, 200); }, 700);
+
+  // Shake écran modéré
   var screen2 = _memEl('memScreenHanabi');
   if (screen2) {
-    screen2.style.transition = 'transform .08s';
-    var shakes = [{x:-6},{x:6},{x:-4},{x:4},{x:-2},{x:2},{x:0}];
+    var shakes = [-5,5,-3,3,-1,1,0];
     var si = 0;
+    screen2.style.transition = 'transform .07s';
     var shakeInt = setInterval(function() {
       if (si >= shakes.length) { clearInterval(shakeInt); screen2.style.transform=''; return; }
-      screen2.style.transform = 'translateX('+shakes[si].x+'px)';
+      screen2.style.transform = 'translateX('+shakes[si]+'px)';
       si++;
-    }, 60);
+    }, 65);
   }
+
+  // Coeur qui éclate : cherche le dernier coeur plein et le fait exploser
+  setTimeout(function() {
+    var rt = _memEl('memHanabiRedTokens');
+    if (!rt) return;
+    // Trouver le dernier coeur rouge (avant qu'il devienne gris dans le prochain render)
+    var hearts = rt.querySelectorAll('div');
+    // On anime tous les coeurs : le dernier plein va "exploser"
+    var lastFull = null;
+    hearts.forEach(function(h) {
+      // Si les pixels sont rouges c'est un coeur plein
+      var pixels = h.querySelectorAll('span');
+      var hasRed = false;
+      pixels.forEach(function(p){ if(p.style.background === 'rgb(200, 64, 64)' || p.style.background === '#c84040') hasRed = true; });
+      if (hasRed) lastFull = h;
+    });
+    if (lastFull) {
+      // Éclater : scale up puis disparaît
+      lastFull.style.transition = 'transform .15s ease-out, opacity .25s';
+      lastFull.style.transform = 'scale(2.5)';
+      lastFull.style.opacity = '0';
+      setTimeout(function(){ lastFull.style.transform=''; lastFull.style.opacity=''; }, 400);
+    }
+  }, 80);
 }
 
 function _hanabiFlashDiscard(c) {
   var el = document.createElement('div');
-  el.style.cssText = 'position:fixed;inset:0;background:#3a3530;opacity:0;pointer-events:none;z-index:9999;transition:opacity .1s;display:flex;align-items:center;justify-content:center;';
-  el.innerHTML = '<span style="font-family:Courier New,monospace;font-size:22px;font-weight:700;color:#f5e6c8;letter-spacing:2px;">DÉFAUSSÉE</span>';
+  el.style.cssText = 'position:fixed;inset:0;background:#2a2218;opacity:0;pointer-events:none;z-index:9999;transition:opacity .15s;display:flex;align-items:center;justify-content:center;';
+  el.innerHTML = '<span style="font-family:Courier New,monospace;font-size:24px;font-weight:700;color:#c8b99a;letter-spacing:2px;border:2px solid #5a4a30;padding:8px 16px;">DÉFAUSSÉE</span>';
   document.body.appendChild(el);
-  requestAnimationFrame(function(){ el.style.opacity='0.7'; });
-  setTimeout(function(){ el.style.opacity='0'; setTimeout(function(){ el.remove(); }, 150); }, 380);
+  requestAnimationFrame(function(){ el.style.opacity='0.78'; });
+  setTimeout(function(){ el.style.opacity='0'; setTimeout(function(){ el.remove(); }, 200); }, 700);
 }
 
 // ── Animation indice reçu : faire pulser les cartes concernées ──
