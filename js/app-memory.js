@@ -2689,7 +2689,7 @@ function _hanabiRenderPiles(piles) {
   HANABI_COLORS.forEach(function(c) {
     var val = piles[c.id] || 0;
     var d = document.createElement('div');
-    d.style.cssText = 'flex:1;min-width:0;height:66px;border-radius:3px;border:2px solid;border-bottom:3px solid;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;box-sizing:border-box;font-family:Courier New,monospace;';
+    d.setAttribute('data-color', c.id);
     if (val > 0) {
       d.style.background = c.bg;
       d.style.borderColor = c.border;
@@ -3223,7 +3223,9 @@ function _hanabiConfirmDiscard() {
 function _hanabiMakeFlyer(c, num, startRect, endRect, cb) {
   var flyer = document.createElement('div');
   var sx = startRect.left, sy = startRect.top, sw = startRect.width, sh = startRect.height;
-  var ex = endRect.left,   ey = endRect.top;
+  // Centrer horizontalement dans la zone de destination
+  var ex = endRect.left + (endRect.width  || sw)/2 - sw/2;
+  var ey = endRect.top  + (endRect.height || sh)/2 - sh/2;
   flyer.style.cssText = [
     'position:fixed',
     'left:'+sx+'px', 'top:'+sy+'px',
@@ -3242,37 +3244,47 @@ function _hanabiMakeFlyer(c, num, startRect, endRect, cb) {
   ].join(';');
   flyer.textContent = num || '?';
   document.body.appendChild(flyer);
-  // Forcer reflow puis animer vers destination
   requestAnimationFrame(function() {
     var dx = ex - sx, dy = ey - sy;
-    flyer.style.transition = 'transform .45s cubic-bezier(.4,0,.2,1), opacity .1s';
-    flyer.style.transform = 'translate('+dx+'px,'+dy+'px) scale(0.85)';
+    flyer.style.transition = 'transform .42s cubic-bezier(.4,0,.2,1), opacity .1s';
+    flyer.style.transform = 'translate('+dx+'px,'+dy+'px) scale(0.9)';
     setTimeout(function() {
-      if (cb) cb(flyer);
-    }, 450);
+      if (cb) cb(flyer, dx, dy);
+    }, 430);
   });
   return flyer;
 }
 
+// Obtenir le rect de la pile correspondant à une couleur
+function _hanabiGetPileRect(c) {
+  if (!c) {
+    var el = document.querySelector('#memHanabiPiles');
+    if (!el) return null;
+    var r = el.getBoundingClientRect();
+    return {left: r.left + r.width/2 - 25, top: r.top, width: 50, height: 66};
+  }
+  var pile = document.querySelector('#memHanabiPiles [data-color="'+c.id+'"]');
+  if (!pile) return null;
+  return pile.getBoundingClientRect();
+}
+
 // Pose réussie côté joueur actif
 function _hanabiAnimPlaySuccess(c, num) {
-  var pilesEl = document.querySelector('#memHanabiPiles');
-  if (!pilesEl) return;
-  var endR = pilesEl.getBoundingClientRect();
-  // Partir de la carte sélectionnée (rect capturé avant rebuild)
+  var endR = _hanabiGetPileRect(c);
+  if (!endR) return;
   var r = _hanabiSelectedCardRect;
   var start = r ? {left:r.left, top:r.top, width:r.width, height:r.height}
                 : (function(){ var el=document.querySelector('#memHanabiMyCards'); var br=el?el.getBoundingClientRect():{left:100,top:300,width:50,height:66}; return {left:br.left+br.width/2-25,top:br.top,width:50,height:66}; })();
-  var end = {left: endR.left + endR.width/2 - start.width/2, top: endR.top};
+  var end = {left: endR.left, top: endR.top, width: endR.width, height: endR.height};
 
-  _hanabiMakeFlyer(c, num, start, end, function(fl) {
+  _hanabiMakeFlyer(c, num, start, end, function(fl, dx, dy) {
     fl.style.transition = 'transform .15s cubic-bezier(.2,1.6,.4,1), opacity .2s';
-    fl.style.transform = 'translate('+(end.left-start.left)+'px,'+(end.top-start.top)+'px) scale(1.25)';
+    fl.style.transform = 'translate('+dx+'px,'+dy+'px) scale(1.15)';
     setTimeout(function() {
-      fl.style.transition = 'transform .1s, opacity .3s';
-      fl.style.transform = 'translate('+(end.left-start.left)+'px,'+(end.top-start.top)+'px) scale(0.9)';
+      fl.style.transition = 'transform .12s, opacity .35s';
+      fl.style.transform = 'translate('+dx+'px,'+dy+'px) scale(0.92)';
       fl.style.opacity = '0';
-      setTimeout(function(){ fl.remove(); }, 400);
+      setTimeout(function(){ fl.remove(); }, 380);
     }, 200);
   });
   _hanabiShowToast('✓ POSÉ — '+(c?c.label:'')+' '+num, c?c.bg:'#e8f5e8', c?c.text:'#1a4a1a');
@@ -3296,18 +3308,17 @@ function _hanabiGetOppCardRect(c) {
 
 // Pose réussie côté spectateur
 function _hanabiAnimCardFlySuccess(c, num) {
-  var pilesEl = document.querySelector('#memHanabiPiles');
-  if (!pilesEl) return;
+  var endR = _hanabiGetPileRect(c);
+  if (!endR) return;
   var r = _hanabiGetOppCardRect(c);
   if (!r) return;
   var start = {left:r.left, top:r.top, width:r.width, height:r.height};
-  var endR = pilesEl.getBoundingClientRect();
-  var end = {left: endR.left + endR.width/2 - start.width/2, top: endR.top};
-  _hanabiMakeFlyer(c, num, start, end, function(fl) {
+  var end = {left: endR.left, top: endR.top, width: endR.width, height: endR.height};
+  _hanabiMakeFlyer(c, num, start, end, function(fl, dx, dy) {
     fl.style.transition = 'transform .18s cubic-bezier(.2,1.6,.4,1), opacity .25s';
-    fl.style.transform = 'translate('+(end.left-start.left)+'px,'+(end.top-start.top)+'px) scale(1.3)';
+    fl.style.transform = 'translate('+dx+'px,'+dy+'px) scale(1.3)';
     setTimeout(function() {
-      fl.style.transform = 'translate('+(end.left-start.left)+'px,'+(end.top-start.top)+'px) scale(1.0)';
+      fl.style.transform = 'translate('+dx+'px,'+dy+'px) scale(1.0)';
       fl.style.opacity = '0';
       setTimeout(function(){ fl.remove(); }, 350);
     }, 220);
@@ -3315,15 +3326,14 @@ function _hanabiAnimCardFlySuccess(c, num) {
   _hanabiShowToast((c?c.label:'')+' '+num+' posé(e) ✓', c?c.bg:'#e8f5e8', c?c.text:'#1a4a1a');
 }
 
-// Erreur côté joueur actif : carte vole, se retourne (flip), croix rouge
+// Erreur côté joueur actif : carte vole vers SA pile, flip, croix rouge
 function _hanabiAnimPlayError(c, num) {
-  var pilesEl = document.querySelector('#memHanabiPiles');
-  if (!pilesEl) return;
-  var endR = pilesEl.getBoundingClientRect();
+  var endR = _hanabiGetPileRect(c);
+  if (!endR) return;
   var r = _hanabiSelectedCardRect;
   var start = r ? {left:r.left, top:r.top, width:r.width, height:r.height}
                 : (function(){ var el=document.querySelector('#memHanabiMyCards'); var br=el?el.getBoundingClientRect():{left:100,top:300,width:50,height:66}; return {left:br.left+br.width/2-25,top:br.top,width:50,height:66}; })();
-  var end = {left: endR.left + endR.width/2 - start.width/2, top: endR.top};
+  var end = {left: endR.left, top: endR.top, width: endR.width, height: endR.height};
 
   // Wrapper pour le flip 3D
   var wrap = document.createElement('div');
@@ -3342,9 +3352,10 @@ function _hanabiAnimPlayError(c, num) {
   inner.appendChild(front); inner.appendChild(back); wrap.appendChild(inner);
   document.body.appendChild(wrap);
 
-  // Phase 1 : vol vers la pile
+  // Phase 1 : vol vers la pile (centré)
   requestAnimationFrame(function() {
-    var dx = end.left - start.left, dy = end.top - start.top;
+    var dx = (end.left + end.width/2 - start.width/2) - start.left;
+    var dy = (end.top  + end.height/2 - start.height/2) - start.top;
     inner.style.transition = 'transform .5s cubic-bezier(.4,0,.2,1)';
     inner.style.transform = 'translate('+dx+'px,'+dy+'px)';
     // Phase 2 : flip à mi-chemin
@@ -3376,13 +3387,12 @@ function _hanabiAnimPlayError(c, num) {
 // Erreur côté spectateur
 // Erreur côté spectateur
 function _hanabiAnimCardFlyError(c, num) {
-  var pilesEl = document.querySelector('#memHanabiPiles');
-  if (!pilesEl) return;
+  var endR = _hanabiGetPileRect(c);
+  if (!endR) return;
   var r = _hanabiGetOppCardRect(c);
   if (!r) return;
   var start = {left:r.left, top:r.top, width:r.width, height:r.height};
-  var endR = pilesEl.getBoundingClientRect();
-  var end = {left: endR.left + endR.width/2 - start.width/2, top: endR.top};
+  var end = {left: endR.left, top: endR.top, width: endR.width, height: endR.height};
   _hanabiMakeFlyer(c, num, start, end, function(fl) {
     var cross = document.createElement('div');
     cross.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:#dc2626;opacity:0;transition:opacity .12s,transform .2s cubic-bezier(.2,1.6,.4,1);transform:scale(0.4);';
