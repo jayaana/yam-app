@@ -2914,7 +2914,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       <div class="jx-chips" id="jxChips">
         <div class="jx-chip" data-game="ocho"  ><span class="jx-chip-ic">🎴</span><span class="jx-chip-nm">Ocho</span><span class="jx-chip-sc" id="jxCOcho">—</span></div>
         <div class="jx-chip" data-game="skyjo" ><span class="jx-chip-ic">🃏</span><span class="jx-chip-nm">Skyjo</span><span class="jx-chip-sc" id="jxCSkyjo">—</span></div>
-        <div class="jx-chip" data-game="memory"><span class="jx-chip-ic">🤖</span><span class="jx-chip-nm">Memory</span><span class="jx-chip-sc" id="jxCMemory">—</span></div>
+        <div class="jx-chip" data-game="memory"><span class="jx-chip-ic">🧠</span><span class="jx-chip-nm">Memory</span><span class="jx-chip-sc" id="jxCMemory">—</span></div>
         <div class="jx-chip" data-game="pendu" ><span class="jx-chip-ic">🔤</span><span class="jx-chip-nm">Pendu</span><span class="jx-chip-sc" id="jxCPendu">—</span></div>
         <div class="jx-chip" data-game="puzzle"><span class="jx-chip-ic">🧩</span><span class="jx-chip-nm">Puzzle</span><span class="jx-chip-sc" id="jxCPuzzle">—</span></div>
         <div class="jx-chip" data-game="snake" ><span class="jx-chip-ic">🐍</span><span class="jx-chip-nm">Snake</span><span class="jx-chip-sc" id="jxCSnake">—</span></div>
@@ -3280,7 +3280,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       <div class="gv-game-card-arrow">›</div>
     </div>
     <div id="gvMemoryCard" class="gv-game-card">
-      <div class="gv-game-card-icon">🤖</div>
+      <div class="gv-game-card-icon">🧠</div>
       <div class="gv-game-card-info">
         <div class="gv-game-card-name">Memory <span class="jx-badge">BETA</span></div>
         <div class="gv-game-card-desc">Retrouve les paires</div>
@@ -3620,7 +3620,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     #memoryView::before {
       content: '';
       position: fixed;
-      top: 60px; left: 0; right: 0; bottom: 0;
+      top: 0; left: 0; right: 0; bottom: 0;
       background-image: url('https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/arcade-memory.png');
       background-size: cover;
       background-position: center top;
@@ -3644,7 +3644,19 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       font-weight: 700 !important;
     }
 
-    /* ── Textes écran mode — hardcodés ── */
+    /* Header protégé — fond opaque par-dessus l'image */
+    #memoryView .game-view-header {
+      position: relative;
+      z-index: 10;
+      background: var(--bg) !important;
+      border-bottom: 1px solid var(--border) !important;
+    }
+
+    /* vote → sep */
+    #memScreenMode .mem-vote-sep {
+      color: #ffffff !important;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    }
     #memScreenMode .mem-mode-name,
     #memScreenMode .mem-mode-vs-sep,
     #memScreenMode .mem-mode-hint {
