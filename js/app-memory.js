@@ -2443,6 +2443,7 @@ var _hanabiActionMode  = null;
 var _hanabiIndiceType  = null;
 var _hanabiIndiceVal   = null;
 var _hanabiSelectedCard = null;
+var _hanabiSelectedCardRect = null; // rect capturé avant rebuild DOM
 var _hanabiFlashTimer  = null;
 var _hanabiSkipHintAnim = false;
 var _hanabiLastActionTs = 0; // timestamp de la dernière action déjà animée
@@ -2475,7 +2476,7 @@ function _hanabiGetBuildState() {
 function _hanabiStart(gameRow) {
   _hanabiSaved = false; _hanabiActionMode = null;
   _hanabiIndiceType = null; _hanabiIndiceVal = null;
-  _hanabiSelectedCard = null; _hanabiLastActionTs = 0; _hanabiSkipHintAnim = false;
+  _hanabiSelectedCard = null; _hanabiSelectedCardRect = null; _hanabiLastActionTs = 0; _hanabiSkipHintAnim = false;
   _memShowScreen('memScreenHanabi');
   var _t = _memEl('memViewTitle'); if (_t) _t.textContent = 'Hanabi';
   _memRenderDualProfiles('memHanabiMyProfile', 'memHanabiOppProfile');
@@ -3104,8 +3105,12 @@ function _hanabiStartDiscard() {
 
 function _hanabiSelectMyCard(idx) {
   if (_hanabiActionMode !== 'play' && _hanabiActionMode !== 'discard') return;
-  // 1 seul clic sur la carte = confirmation directe
+  // Capturer le rect de la carte AVANT de reconstruire le DOM
+  var myEl = _memEl('memHanabiMyCards');
+  var cardEl = myEl ? myEl.children[idx] : null;
+  var cardRect = cardEl ? cardEl.getBoundingClientRect() : null;
   _hanabiSelectedCard = idx;
+  _hanabiSelectedCardRect = cardRect; // stocker pour les animations
   _hanabiRefreshMyCards();
   if (_hanabiActionMode === 'play')    _hanabiConfirmPlay();
   if (_hanabiActionMode === 'discard') _hanabiConfirmDiscard();
@@ -3251,17 +3256,16 @@ function _hanabiMakeFlyer(c, num, startRect, endRect, cb) {
 
 // Pose réussie côté joueur actif
 function _hanabiAnimPlaySuccess(c, num) {
-  var myCards = document.querySelector('#memHanabiMyCards');
   var pilesEl = document.querySelector('#memHanabiPiles');
-  if (!myCards || !pilesEl) return;
-  // Départ : centre de la zone ma main
-  var startR = myCards.getBoundingClientRect();
-  var endR   = pilesEl.getBoundingClientRect();
-  var start = {left: startR.left + startR.width/2 - 25, top: startR.top, width:50, height:66};
-  var end   = {left: endR.left + endR.width/2 - 25,   top: endR.top};
+  if (!pilesEl) return;
+  var endR = pilesEl.getBoundingClientRect();
+  // Partir de la carte sélectionnée (rect capturé avant rebuild)
+  var r = _hanabiSelectedCardRect;
+  var start = r ? {left:r.left, top:r.top, width:r.width, height:r.height}
+                : (function(){ var el=document.querySelector('#memHanabiMyCards'); var br=el?el.getBoundingClientRect():{left:100,top:300,width:50,height:66}; return {left:br.left+br.width/2-25,top:br.top,width:50,height:66}; })();
+  var end = {left: endR.left + endR.width/2 - start.width/2, top: endR.top};
 
-  var flyer = _hanabiMakeFlyer(c, num, start, end, function(fl) {
-    // Pulse sur la pile à l'arrivée
+  _hanabiMakeFlyer(c, num, start, end, function(fl) {
     fl.style.transition = 'transform .15s cubic-bezier(.2,1.6,.4,1), opacity .2s';
     fl.style.transform = 'translate('+(end.left-start.left)+'px,'+(end.top-start.top)+'px) scale(1.25)';
     setTimeout(function() {
@@ -3271,22 +3275,35 @@ function _hanabiAnimPlaySuccess(c, num) {
       setTimeout(function(){ fl.remove(); }, 400);
     }, 200);
   });
-  // Message
-  _hanabiShowToast('✓ POSÉ — '+( c?c.label:'' )+' '+num, c?c.bg:'#e8f5e8', c?c.text:'#1a4a1a');
+  _hanabiShowToast('✓ POSÉ — '+(c?c.label:'')+' '+num, c?c.bg:'#e8f5e8', c?c.text:'#1a4a1a');
+}
+
+// Pose réussie côté spectateur
+// Trouver le rect d'une carte adverse par couleur
+function _hanabiGetOppCardRect(c) {
+  var cur = (_memMp&&_memMp.getGameState?_memMp.getGameState():null)||_memLastState;
+  var oppHand = cur ? (_memProfile==='girl' ? cur.boy_hand : cur.girl_hand) : null;
+  var oppCards = document.querySelectorAll('#memHanabiOppCards > div');
+  if (oppHand && c) {
+    for (var i=0; i<oppHand.length; i++) {
+      if (oppHand[i].color === c.id && oppCards[i]) {
+        return oppCards[i].getBoundingClientRect();
+      }
+    }
+  }
+  return oppCards.length > 0 ? oppCards[0].getBoundingClientRect() : null;
 }
 
 // Pose réussie côté spectateur
 function _hanabiAnimCardFlySuccess(c, num) {
-  var oppCards = document.querySelector('#memHanabiOppCards');
-  var pilesEl  = document.querySelector('#memHanabiPiles');
-  if (!oppCards || !pilesEl) return;
-  var startR = oppCards.getBoundingClientRect();
-  var endR   = pilesEl.getBoundingClientRect();
-  var start = {left: startR.left + startR.width/2 - 25, top: startR.top, width:50, height:66};
-  var end   = {left: endR.left + endR.width/2 - 25, top: endR.top};
-
+  var pilesEl = document.querySelector('#memHanabiPiles');
+  if (!pilesEl) return;
+  var r = _hanabiGetOppCardRect(c);
+  if (!r) return;
+  var start = {left:r.left, top:r.top, width:r.width, height:r.height};
+  var endR = pilesEl.getBoundingClientRect();
+  var end = {left: endR.left + endR.width/2 - start.width/2, top: endR.top};
   _hanabiMakeFlyer(c, num, start, end, function(fl) {
-    // Pulse + disparition
     fl.style.transition = 'transform .18s cubic-bezier(.2,1.6,.4,1), opacity .25s';
     fl.style.transform = 'translate('+(end.left-start.left)+'px,'+(end.top-start.top)+'px) scale(1.3)';
     setTimeout(function() {
@@ -3300,13 +3317,13 @@ function _hanabiAnimCardFlySuccess(c, num) {
 
 // Erreur côté joueur actif : carte vole, se retourne (flip), croix rouge
 function _hanabiAnimPlayError(c, num) {
-  var myCards = document.querySelector('#memHanabiMyCards');
   var pilesEl = document.querySelector('#memHanabiPiles');
-  if (!myCards || !pilesEl) return;
-  var startR = myCards.getBoundingClientRect();
-  var endR   = pilesEl.getBoundingClientRect();
-  var start = {left: startR.left + startR.width/2 - 25, top: startR.top, width:50, height:66};
-  var end   = {left: endR.left + endR.width/2 - 25, top: endR.top};
+  if (!pilesEl) return;
+  var endR = pilesEl.getBoundingClientRect();
+  var r = _hanabiSelectedCardRect;
+  var start = r ? {left:r.left, top:r.top, width:r.width, height:r.height}
+                : (function(){ var el=document.querySelector('#memHanabiMyCards'); var br=el?el.getBoundingClientRect():{left:100,top:300,width:50,height:66}; return {left:br.left+br.width/2-25,top:br.top,width:50,height:66}; })();
+  var end = {left: endR.left + endR.width/2 - start.width/2, top: endR.top};
 
   // Wrapper pour le flip 3D
   var wrap = document.createElement('div');
@@ -3357,57 +3374,49 @@ function _hanabiAnimPlayError(c, num) {
 }
 
 // Erreur côté spectateur
+// Erreur côté spectateur
 function _hanabiAnimCardFlyError(c, num) {
-  var oppCards = document.querySelector('#memHanabiOppCards');
-  var pilesEl  = document.querySelector('#memHanabiPiles');
-  if (!oppCards || !pilesEl) return;
-  var startR = oppCards.getBoundingClientRect();
-  var endR   = pilesEl.getBoundingClientRect();
-  var start = {left: startR.left + startR.width/2 - 25, top: startR.top, width:50, height:66};
-  var end   = {left: endR.left + endR.width/2 - 25, top: endR.top};
-
-  var flyer = _hanabiMakeFlyer(c, num, start, end, function(fl) {
-    // Croix rouge qui pop
+  var pilesEl = document.querySelector('#memHanabiPiles');
+  if (!pilesEl) return;
+  var r = _hanabiGetOppCardRect(c);
+  if (!r) return;
+  var start = {left:r.left, top:r.top, width:r.width, height:r.height};
+  var endR = pilesEl.getBoundingClientRect();
+  var end = {left: endR.left + endR.width/2 - start.width/2, top: endR.top};
+  _hanabiMakeFlyer(c, num, start, end, function(fl) {
     var cross = document.createElement('div');
     cross.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:#dc2626;opacity:0;transition:opacity .12s,transform .2s cubic-bezier(.2,1.6,.4,1);transform:scale(0.4);';
-    cross.textContent = '✕';
-    fl.style.position = 'fixed'; fl.appendChild(cross);
+    cross.textContent = '\u2715';
+    fl.appendChild(cross);
     requestAnimationFrame(function(){ cross.style.opacity='1'; cross.style.transform='scale(1.2)'; });
     setTimeout(function(){ cross.style.transform='scale(1.0)'; }, 200);
-    // Tremblement puis disparition
     var s2 = _memEl('memScreenHanabi');
     if (s2) { var si=0,sh=[-4,4,-3,3,-1,1,0]; s2.style.transition='transform .06s'; var iv=setInterval(function(){ if(si>=sh.length){clearInterval(iv);s2.style.transform='';return;} s2.style.transform='translateX('+sh[si]+'px)';si++;},60); }
-    if (navigator.vibrate) navigator.vibrate([50,30,80]);
     setTimeout(function(){ fl.style.transition='opacity .3s'; fl.style.opacity='0'; setTimeout(function(){ fl.remove(); },350); }, 700);
   });
-  _hanabiShowToast('✕ MAUVAISE CARTE — '+(c?c.label:'')+' '+num, '#fcebeb', '#7f1d1d');
+  _hanabiShowToast('\u2715 MAUVAISE CARTE — '+(c?c.label:'')+' '+num, '#fcebeb', '#7f1d1d');
 }
 
 // Défausse côté joueur actif
+// Défausse côté joueur actif
 function _hanabiAnimDiscardSelf(c, num) {
-  var myCards = document.querySelector('#memHanabiMyCards');
-  if (!myCards) return;
-  var startR = myCards.getBoundingClientRect();
-  var start = {left: startR.left + startR.width/2 - 25, top: startR.top, width:50, height:66};
-  var end   = {left: start.left + 20, top: start.top + 80};
-
+  var r = _hanabiSelectedCardRect;
+  var start = r ? {left:r.left, top:r.top, width:r.width, height:r.height}
+                : (function(){ var el=document.querySelector('#memHanabiMyCards'); var br=el?el.getBoundingClientRect():{left:100,top:300,width:50,height:66}; return {left:br.left+br.width/2-25,top:br.top,width:50,height:66}; })();
+  var end = {left: start.left + 20, top: start.top + 90};
   var flyer = document.createElement('div');
   flyer.style.cssText = 'position:fixed;left:'+start.left+'px;top:'+start.top+'px;width:'+start.width+'px;height:'+start.height+'px;background:'+(c?c.bg:'#f5f0e8')+';border:2px solid '+(c?c.border:'#c0b0a0')+';border-radius:3px;display:flex;align-items:center;justify-content:center;font-family:Courier New,monospace;font-size:20px;font-weight:700;color:'+(c?c.text:'#3a3530')+';pointer-events:none;z-index:9998;overflow:hidden;';
   flyer.textContent = num || '?';
   document.body.appendChild(flyer);
-
-  // Effet déchirure : ligne diagonale qui coupe la carte
+  var midY = Math.round(start.height / 2);
   var tear = document.createElement('div');
-  tear.style.cssText = 'position:absolute;top:0;left:0;width:200%;height:2px;background:#3a3530;transform:rotate(35deg) translateY(25px);opacity:0;transition:opacity .1s,transform .25s ease-in;transform-origin:left center;';
+  tear.style.cssText = 'position:absolute;top:0;left:0;width:200%;height:2px;background:#3a3530;transform:rotate(35deg) translateY('+midY+'px);opacity:0;transition:opacity .1s;';
   flyer.appendChild(tear);
-
   requestAnimationFrame(function() {
-    // Phase 1 : déchirure apparaît
     tear.style.opacity = '0.6';
-    // Phase 2 : les deux moitiés partent
     setTimeout(function() {
       flyer.style.transition = 'transform .35s ease-in, opacity .35s';
-      flyer.style.transform = 'translate('+( end.left-start.left-20)+'px,'+(end.top-start.top)+'px) rotate(-15deg) scale(0.7)';
+      flyer.style.transform = 'translateY(90px) rotate(-15deg) scale(0.7)';
       flyer.style.opacity = '0';
       setTimeout(function(){ flyer.remove(); }, 380);
     }, 220);
@@ -3417,21 +3426,19 @@ function _hanabiAnimDiscardSelf(c, num) {
 }
 
 // Défausse côté spectateur
+// Défausse côté spectateur
 function _hanabiAnimCardDiscard(c, num) {
-  var oppCards = document.querySelector('#memHanabiOppCards');
-  if (!oppCards) return;
-  var startR = oppCards.getBoundingClientRect();
-  var start = {left: startR.left + startR.width/2 - 25, top: startR.top, width:50, height:66};
-
+  var r = _hanabiGetOppCardRect(c);
+  if (!r) return;
+  var start = {left:r.left, top:r.top, width:r.width, height:r.height};
   var flyer = document.createElement('div');
   flyer.style.cssText = 'position:fixed;left:'+start.left+'px;top:'+start.top+'px;width:'+start.width+'px;height:'+start.height+'px;background:'+(c?c.bg:'#f5f0e8')+';border:2px solid '+(c?c.border:'#c0b0a0')+';border-radius:3px;display:flex;align-items:center;justify-content:center;font-family:Courier New,monospace;font-size:20px;font-weight:700;color:'+(c?c.text:'#3a3530')+';pointer-events:none;z-index:9998;overflow:hidden;';
   flyer.textContent = num || '?';
   document.body.appendChild(flyer);
-
+  var midY = Math.round(start.height / 2);
   var tear = document.createElement('div');
-  tear.style.cssText = 'position:absolute;top:0;left:0;width:200%;height:2px;background:#3a3530;transform:rotate(35deg) translateY(25px);opacity:0;transition:opacity .1s;';
+  tear.style.cssText = 'position:absolute;top:0;left:0;width:200%;height:2px;background:#3a3530;transform:rotate(35deg) translateY('+midY+'px);opacity:0;transition:opacity .1s;';
   flyer.appendChild(tear);
-
   requestAnimationFrame(function() {
     tear.style.opacity = '0.6';
     setTimeout(function() {
@@ -3445,20 +3452,24 @@ function _hanabiAnimCardDiscard(c, num) {
   _hanabiShowToast((c?c.label:'')+' '+num+' défaussé(e)', '#2a2218', '#c8b99a');
 }
 
-// Toast intégré dans la zone actions (memHanabiActionHint)
+// Toast intégré dans la zone actions (recouvre les boutons)
 function _hanabiShowToast(msg, bg, color) {
   var hint = _memEl('memHanabiActionHint');
   if (!hint) return;
-  hint.innerHTML = '';
-  hint.style.cssText = 'font-size:10px;color:'+color+';text-align:center;padding:4px 8px 6px;font-family:Courier New,monospace;letter-spacing:0.5px;background:'+bg+';font-weight:700;opacity:0;transition:opacity .15s;';
   hint.textContent = msg;
-  requestAnimationFrame(function(){ hint.style.opacity='1'; });
-  setTimeout(function(){
-    hint.style.transition='opacity .3s';
-    hint.style.opacity='0';
-    setTimeout(function(){
-      hint.style.cssText='font-size:10px;color:#c8b99a;text-align:center;padding:0 8px 6px;font-family:Courier New,monospace;min-height:14px;';
-      hint.innerHTML='';
+  hint.style.background = bg || '#3a3530';
+  hint.style.color = color || '#f5e6c8';
+  hint.style.opacity = '0';
+  hint.style.transition = 'opacity .15s';
+  requestAnimationFrame(function(){ hint.style.opacity = '1'; });
+  clearTimeout(hint._toastTimer);
+  hint._toastTimer = setTimeout(function() {
+    hint.style.transition = 'opacity .3s';
+    hint.style.opacity = '0';
+    setTimeout(function() {
+      hint.textContent = '';
+      hint.style.background = '';
+      hint.style.color = '';
     }, 320);
   }, 2200);
 }
