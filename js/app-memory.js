@@ -2798,6 +2798,9 @@ function _hanabiApplyState(state) {
     _hanabiPreviewIndice();
   }
 
+  // Piles
+  _hanabiRenderPiles(state.piles);
+
   // ── Animations côté spectateur (actions de l'adversaire) ──
   var la = state.last_action;
   if (la && la.actor === _memOther && !myTurn) {
@@ -3188,7 +3191,6 @@ function _hanabiConfirmDiscard() {
   ns.discard = (ns.discard||[]).concat([card]);
   if (ns.blue_tokens < 8) ns.blue_tokens++;
 
-  _hanabiFlashDiscard(HANABI_COLOR_MAP[card.color]);
   _hanabiAnimDiscardSelf(HANABI_COLOR_MAP[card.color], card.num);
 
   ns[myHandKey].splice(_hanabiSelectedCard, 1);
@@ -3212,73 +3214,6 @@ function _hanabiConfirmDiscard() {
 }
 
 // ── Animations feedback ──
-function _hanabiFlashSuccess(c) {
-  var el = document.createElement('div');
-  el.style.cssText = 'position:fixed;inset:0;background:'+c.bg+';opacity:0;pointer-events:none;z-index:9999;transition:opacity .15s;display:flex;align-items:center;justify-content:center;';
-  el.innerHTML = '<span style="font-family:Courier New,monospace;font-size:30px;font-weight:700;color:'+c.text+';letter-spacing:3px;border:3px solid '+c.border+';padding:10px 20px;">✓ POSÉ !</span>';
-  document.body.appendChild(el);
-  requestAnimationFrame(function(){ el.style.opacity='0.9'; });
-  setTimeout(function(){ el.style.opacity='0'; setTimeout(function(){ el.remove(); }, 220); }, 750);
-}
-
-function _hanabiFlashError() {
-  // Flash rouge plus doux
-  var el = document.createElement('div');
-  el.style.cssText = 'position:fixed;inset:0;background:#5a1010;opacity:0;pointer-events:none;z-index:9999;transition:opacity .15s;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;';
-  el.innerHTML = '<span style="font-family:Courier New,monospace;font-size:22px;font-weight:700;color:#f5c4c4;letter-spacing:2px;">✕ MAUVAISE CARTE</span>';
-  document.body.appendChild(el);
-  requestAnimationFrame(function(){ el.style.opacity='0.65'; });
-  if (navigator.vibrate) navigator.vibrate([60, 30, 60]);
-  setTimeout(function(){ el.style.opacity='0'; setTimeout(function(){ el.remove(); }, 200); }, 700);
-
-  // Shake écran modéré
-  var screen2 = _memEl('memScreenHanabi');
-  if (screen2) {
-    var shakes = [-5,5,-3,3,-1,1,0];
-    var si = 0;
-    screen2.style.transition = 'transform .07s';
-    var shakeInt = setInterval(function() {
-      if (si >= shakes.length) { clearInterval(shakeInt); screen2.style.transform=''; return; }
-      screen2.style.transform = 'translateX('+shakes[si]+'px)';
-      si++;
-    }, 65);
-  }
-
-  // Coeur qui éclate : cherche le dernier coeur plein et le fait exploser
-  setTimeout(function() {
-    var rt = _memEl('memHanabiRedTokens');
-    if (!rt) return;
-    // Trouver le dernier coeur rouge (avant qu'il devienne gris dans le prochain render)
-    var hearts = rt.querySelectorAll('div');
-    // On anime tous les coeurs : le dernier plein va "exploser"
-    var lastFull = null;
-    hearts.forEach(function(h) {
-      // Si les pixels sont rouges c'est un coeur plein
-      var pixels = h.querySelectorAll('span');
-      var hasRed = false;
-      pixels.forEach(function(p){ if(p.style.background === 'rgb(200, 64, 64)' || p.style.background === '#c84040') hasRed = true; });
-      if (hasRed) lastFull = h;
-    });
-    if (lastFull) {
-      // Éclater : scale up puis disparaît
-      lastFull.style.transition = 'transform .15s ease-out, opacity .25s';
-      lastFull.style.transform = 'scale(2.5)';
-      lastFull.style.opacity = '0';
-      setTimeout(function(){ lastFull.style.transform=''; lastFull.style.opacity=''; }, 400);
-    }
-  }, 80);
-}
-
-function _hanabiFlashDiscard(c) {
-  var el = document.createElement('div');
-  el.style.cssText = 'position:fixed;inset:0;background:#2a2218;opacity:0;pointer-events:none;z-index:9999;transition:opacity .15s;display:flex;align-items:center;justify-content:center;';
-  el.innerHTML = '<span style="font-family:Courier New,monospace;font-size:24px;font-weight:700;color:#c8b99a;letter-spacing:2px;border:2px solid #5a4a30;padding:8px 16px;">DÉFAUSSÉE</span>';
-  document.body.appendChild(el);
-  requestAnimationFrame(function(){ el.style.opacity='0.78'; });
-  setTimeout(function(){ el.style.opacity='0'; setTimeout(function(){ el.remove(); }, 200); }, 700);
-}
-
-
 // ═══════════════════════════════════════════════════
 // ── Animations de jeu (pose, erreur, défausse) ──
 // Utilisées des deux côtés : joueur actif (confirmPlay/Discard)
@@ -3424,7 +3359,6 @@ function _hanabiAnimPlayError(c, num) {
   });
 
   if (navigator.vibrate) navigator.vibrate([50,30,80]);
-  _hanabiFlashErrorLight();
   _hanabiShowToast('✕ MAUVAISE CARTE — '+(c?c.label:'')+' '+num, '#fcebeb', '#7f1d1d');
 }
 
@@ -3517,28 +3451,23 @@ function _hanabiAnimCardDiscard(c, num) {
   _hanabiShowToast((c?c.label:'')+' '+num+' défaussé(e)', '#2a2218', '#c8b99a');
 }
 
-// Toast bas d'écran — message court visible des deux côtés
+// Toast intégré dans la zone actions (memHanabiActionHint)
 function _hanabiShowToast(msg, bg, color) {
-  var existing = document.getElementById('hnb-toast');
-  if (existing) existing.remove();
-  var t = document.createElement('div');
-  t.id = 'hnb-toast';
-  t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:'+(bg||'#3a3530')+';color:'+(color||'#f5e6c8')+';font-family:Courier New,monospace;font-size:12px;font-weight:700;letter-spacing:1px;padding:8px 16px;border-radius:3px;border:2px solid '+(color||'#f5e6c8')+';opacity:0;pointer-events:none;z-index:10000;transition:opacity .15s,transform .15s;white-space:nowrap;';
-  t.textContent = msg;
-  document.body.appendChild(t);
-  requestAnimationFrame(function(){ t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)'; });
-  setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){ t.remove(); },200); }, 2200);
+  var hint = _memEl('memHanabiActionHint');
+  if (!hint) return;
+  hint.innerHTML = '';
+  hint.style.cssText = 'font-size:10px;color:'+color+';text-align:center;padding:4px 8px 6px;font-family:Courier New,monospace;letter-spacing:0.5px;background:'+bg+';font-weight:700;opacity:0;transition:opacity .15s;';
+  hint.textContent = msg;
+  requestAnimationFrame(function(){ hint.style.opacity='1'; });
+  setTimeout(function(){
+    hint.style.transition='opacity .3s';
+    hint.style.opacity='0';
+    setTimeout(function(){
+      hint.style.cssText='font-size:10px;color:#c8b99a;text-align:center;padding:0 8px 6px;font-family:Courier New,monospace;min-height:14px;';
+      hint.innerHTML='';
+    }, 320);
+  }, 2200);
 }
-
-// Flash erreur léger (pas plein écran)
-function _hanabiFlashErrorLight() {
-  var scr = _memEl('memScreenHanabi'); if (!scr) return;
-  scr.style.transition = 'box-shadow .1s';
-  scr.style.boxShadow = 'inset 0 0 0 4px #dc2626';
-  setTimeout(function(){ scr.style.transition='box-shadow .4s'; scr.style.boxShadow='none'; }, 200);
-}
-
-
 
 // ── Vérifier fin de partie ──
 function _hanabiCheckEnd(ns) {
