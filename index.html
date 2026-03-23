@@ -3562,12 +3562,33 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     .hnb-btn-label  { font-size: 10px; font-weight: 700; letter-spacing: 1px; }
     .hnb-action-hint { font-size: 10px; color: #c8b99a; text-align: center; padding: 0 8px 6px; font-family: 'Courier New', monospace; min-height: 14px; }
 
-    /* Scanlines overlay */
-    #memScreenHanabi::before {
-      content: '';
-      position: absolute; inset: 0; pointer-events: none; z-index: 100;
-      background: repeating-linear-gradient(to bottom, transparent 0px, transparent 3px, rgba(58,53,48,0.03) 3px, rgba(58,53,48,0.03) 4px);
+    /* Carré clignotant pixel — ton tour */
+    .hnb-blink-sq {
+      display: inline-block;
+      width: 8px; height: 8px;
+      background: #f5c87a;
+      vertical-align: middle;
+      margin-right: 4px;
+      animation: hnb-sq-blink 0.7s step-end infinite;
     }
+    @keyframes hnb-sq-blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* Bouton grisé quand une autre action est en cours */
+    .hnb-btn.hnb-btn-dimmed {
+      opacity: 0.22 !important;
+      filter: grayscale(0.7) !important;
+      pointer-events: none !important;
+    }
+
+    /* Zone arcade animée */
+    #memHanabiArcade {
+      background: #3a3530;
+      padding: 10px 0 8px;
+      overflow: hidden;
+      position: relative;
+      height: 80px;
+    }
+    .hnb-arcade-canvas { display: block; width: 100%; height: 60px; }
     </style>
 
     <div id="memScreenHanabi" class="mem-screen" style="display:none;position:relative;">
@@ -3673,6 +3694,171 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
         <div class="mem-trophy-unlock" id="memHanabiTrophyUnlock" style="display:none;"></div>
         <button class="mem-btn-ghost" id="memHanabiDoneBtn">Terminer</button>
       </div>
+
+      <!-- Zone arcade animée -->
+      <div id="memHanabiArcade">
+        <canvas class="hnb-arcade-canvas" id="memHanabiArcadeCanvas"></canvas>
+      </div>
+
+      <script>
+      (function() {
+        function initHanabiArcade() {
+          var canvas = document.getElementById('memHanabiArcadeCanvas');
+          if (!canvas || canvas._hnbInit) return;
+          canvas._hnbInit = true;
+          var ctx = canvas.getContext('2d');
+          var W, H;
+          function resize() {
+            W = canvas.offsetWidth; H = canvas.offsetHeight;
+            canvas.width = W; canvas.height = H;
+          }
+          resize();
+
+          var COLORS = ['#c4dff5','#bce0bc','#f5c4c4','#dac4f0','#f0dca0'];
+          var BORDERS = ['#2a5a84','#2a6a2a','#8a2a2a','#5a2a8a','#8a6a10'];
+
+          // Feux d'artifice pixel
+          var particles = [];
+          var stars = [];
+          var ticker = 0;
+
+          // Étoiles de fond fixes
+          for (var s=0; s<28; s++) {
+            stars.push({
+              x: Math.random()*800, y: Math.random()*60,
+              r: Math.random() > 0.6 ? 2 : 1,
+              phase: Math.random()*Math.PI*2,
+              speed: 0.02 + Math.random()*0.03
+            });
+          }
+
+          function spawnFirework() {
+            var ci = Math.floor(Math.random()*5);
+            var cx = 40 + Math.random()*(W-80);
+            var cy = 8 + Math.random()*30;
+            var count = 12 + Math.floor(Math.random()*8);
+            for (var i=0; i<count; i++) {
+              var angle = (i/count)*Math.PI*2;
+              var speed = 1.2 + Math.random()*1.8;
+              particles.push({
+                x:cx, y:cy,
+                vx: Math.cos(angle)*speed,
+                vy: Math.sin(angle)*speed,
+                color: COLORS[ci],
+                border: BORDERS[ci],
+                life: 1,
+                size: Math.random()>0.5 ? 3 : 2,
+                decay: 0.022 + Math.random()*0.012
+              });
+            }
+          }
+
+          // Objets pixel qui scrollent (petites cartes / sprites)
+          var sprites = [];
+          function spawnSprite() {
+            var ci = Math.floor(Math.random()*5);
+            sprites.push({
+              x: W+10,
+              y: H*0.35 + (Math.random()-0.5)*20,
+              w: 10, h: 14,
+              color: COLORS[ci],
+              border: BORDERS[ci],
+              num: 1+Math.floor(Math.random()*5),
+              speed: 0.6+Math.random()*0.8
+            });
+          }
+
+          function draw() {
+            ctx.clearRect(0,0,W,H);
+
+            // Fond dégradé très sombre
+            ctx.fillStyle='#3a3530';
+            ctx.fillRect(0,0,W,H);
+
+            // Scanline subtle
+            for (var ly=0; ly<H; ly+=4) {
+              ctx.fillStyle='rgba(0,0,0,0.08)';
+              ctx.fillRect(0,ly,W,1);
+            }
+
+            // Étoiles clignotantes
+            stars.forEach(function(st) {
+              st.phase += st.speed;
+              var alpha = 0.25 + 0.5*((Math.sin(st.phase)+1)/2);
+              ctx.fillStyle='rgba(245,230,200,'+alpha+')';
+              ctx.fillRect(Math.round(st.x % W), Math.round(st.y), st.r, st.r);
+            });
+
+            // Particules feux d'artifice
+            particles = particles.filter(function(p){ return p.life > 0; });
+            particles.forEach(function(p) {
+              p.x += p.vx; p.y += p.vy;
+              p.vy += 0.04; // gravité légère
+              p.vx *= 0.97;
+              p.life -= p.decay;
+              var a = Math.max(0, p.life);
+              ctx.globalAlpha = a;
+              ctx.fillStyle = p.color;
+              ctx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size);
+              ctx.fillStyle = p.border;
+              ctx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1);
+              ctx.globalAlpha = 1;
+            });
+
+            // Sprites cartes qui scrollent
+            sprites.forEach(function(sp) {
+              sp.x -= sp.speed;
+              if (sp.x + sp.w < 0) sp.x = W + 10;
+              ctx.fillStyle = sp.color;
+              ctx.fillRect(Math.round(sp.x), Math.round(sp.y - sp.h/2), sp.w, sp.h);
+              ctx.fillStyle = sp.border;
+              ctx.fillRect(Math.round(sp.x), Math.round(sp.y - sp.h/2), sp.w, 1); // top
+              ctx.fillRect(Math.round(sp.x), Math.round(sp.y + sp.h/2 - 1), sp.w, 1); // bottom
+              ctx.fillRect(Math.round(sp.x), Math.round(sp.y - sp.h/2), 1, sp.h); // left
+              ctx.fillRect(Math.round(sp.x+sp.w-1), Math.round(sp.y - sp.h/2), 1, sp.h); // right
+              // Chiffre centré
+              ctx.fillStyle = sp.border;
+              ctx.font = 'bold 7px "Courier New"';
+              ctx.textAlign = 'center';
+              ctx.fillText(sp.num, Math.round(sp.x + sp.w/2), Math.round(sp.y + 3));
+            });
+
+            // Score style arcade en bas à droite qui clignote
+            ticker++;
+            if (ticker % 60 < 40) {
+              ctx.fillStyle = 'rgba(245,200,122,0.35)';
+              ctx.font = 'bold 7px "Courier New"';
+              ctx.textAlign = 'right';
+              ctx.fillText('HANABI © 2025', W-6, H-4);
+            }
+
+            // Spawn logique
+            if (ticker % 90 === 0) spawnFirework();
+            if (ticker % 140 === 0) spawnSprite();
+
+            requestAnimationFrame(draw);
+          }
+
+          // Init sprites de départ
+          for (var si=0; si<4; si++) {
+            spawnSprite();
+            sprites[sprites.length-1].x = Math.random()*W;
+          }
+          spawnFirework();
+          draw();
+        }
+
+        // Lancer dès que l'écran est visible
+        var obs = new MutationObserver(function() {
+          var screen = document.getElementById('memScreenHanabi');
+          if (screen && screen.style.display !== 'none') initHanabiArcade();
+        });
+        obs.observe(document.body, {subtree:true, attributes:true, attributeFilter:['style']});
+        // Aussi au cas où déjà visible
+        if (document.readyState === 'complete') initHanabiArcade();
+        else window.addEventListener('load', initHanabiArcade);
+      })();
+      </script>
     </div>
 
     <!-- ══ CLASSEMENT ══ -->
