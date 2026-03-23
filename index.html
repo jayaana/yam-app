@@ -3628,7 +3628,36 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       z-index: -1;
       pointer-events: none;
     }
-    /* Carte Hanabi — même fond natif + titre doré */
+
+    /* ── Textes lobby — hardcodés pour rester lisibles sur l'image ── */
+    #memScreenLobby .mem-lobby-name,
+    #memScreenLobby .mem-lobby-vs-label,
+    #memScreenLobby .mem-lobby-status,
+    #memScreenLobby .mem-lobby-title {
+      color: #ffffff !important;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.7);
+    }
+    #memScreenLobby .mem-btn-ghost {
+      background: rgba(255,255,255,0.92) !important;
+      color: #1a1a2e !important;
+      border-color: rgba(255,255,255,0.6) !important;
+      font-weight: 700 !important;
+    }
+
+    /* ── Textes écran mode — hardcodés ── */
+    #memScreenMode .mem-mode-name,
+    #memScreenMode .mem-mode-vs-sep,
+    #memScreenMode .mem-mode-hint {
+      color: #ffffff !important;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.7);
+    }
+    #memScreenMode .mem-mode-vote-btn {
+      background: rgba(255,255,255,0.15) !important;
+      border-color: rgba(255,255,255,0.5) !important;
+      color: #ffffff !important;
+    }
+
+    /* ── Carte Hanabi — même fond natif + titre doré ── */
     #memScreenMode .mem-mode-card--coop {
       background: var(--s1) !important;
       border-color: var(--border) !important;
