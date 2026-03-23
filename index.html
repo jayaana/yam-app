@@ -3617,7 +3617,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       position: relative !important;
       isolation: isolate !important;
     }
-    #memoryView::before {
+    #memoryView.mem-bg-arcade::before {
       content: '';
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -3628,7 +3628,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       z-index: -1;
       pointer-events: none;
     }
-    body:not(.light) #memoryView::before {
+    body:not(.light) #memoryView.mem-bg-arcade::before {
       background-image: url('https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/arcade-memory2.png');
     }
 
