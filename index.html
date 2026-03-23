@@ -3498,70 +3498,193 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     </div>
 
     <!-- ══ ÉCRAN 3D : JEU HANABI ══ -->
-    <div id="memScreenHanabi" class="mem-screen" style="display:none;">
+    <!-- ══ STYLES HANABI ARCADE ══ -->
+    <style>
+    #memScreenHanabi { font-family: 'Courier New', monospace !important; background: #f5f0e8 !important; }
+    .hnb-header { background: #3a3530; padding: 7px 12px; display: flex; align-items: center; justify-content: space-between; }
+    .hnb-title  { font-size: 13px; font-weight: 700; color: #f5e6c8; letter-spacing: 2px; text-transform: uppercase; }
+    .hnb-back   { font-size: 10px; color: #c8b99a; letter-spacing: 0.5px; background: none; border: none; cursor: pointer; font-family: 'Courier New', monospace; padding: 0; }
+    .hnb-theme-btn { font-size: 10px; color: #f5c87a; background: none; border: 1px solid #5a5048; border-radius: 3px; cursor: pointer; font-family: 'Courier New', monospace; padding: 2px 6px; letter-spacing: 0.5px; }
+    .hnb-theme-btn:active { background: #5a5048; }
 
-      <!-- Header compact : score + jetons + pioche -->
-      <div class="mem-game-header" style="padding:8px 12px;">
-        <div class="mem-manche-badge" id="memHanabiScore">0 / 25</div>
-        <div id="memHanabiTokensWrap" style="display:flex;gap:6px;align-items:center;">
-          <div id="memHanabiBlueTokens" style="display:flex;gap:2px;align-items:center;"></div>
-          <div id="memHanabiRedTokens" style="display:flex;gap:2px;align-items:center;"></div>
-          <div id="memHanabiPiocheCount" style="font-size:10px;font-weight:500;color:var(--muted);background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:1px 5px;">🂠 34</div>
+    .hnb-hud { background: #ede5d6; border-bottom: 2px solid #3a3530; padding: 6px 10px; display: flex; align-items: center; gap: 8px; }
+    .hnb-score { font-size: 11px; font-weight: 700; color: #3a3530; letter-spacing: 1px; min-width: 56px; font-family: 'Courier New', monospace; }
+    .hnb-tokens-group { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+    .hnb-token-row { display: flex; align-items: center; gap: 4px; }
+    .hnb-tok-icon { font-size: 8px; font-weight: 700; color: #3a3530; width: 10px; text-align: center; font-family: 'Courier New', monospace; }
+    #memHanabiBlueTokens { display: flex; gap: 2px; align-items: center; }
+    #memHanabiRedTokens  { display: flex; gap: 3px; align-items: center; }
+
+    .hnb-deck { display: flex; flex-direction: column; align-items: center; gap: 1px; margin-left: 4px; }
+    .hnb-deck-stack { position: relative; width: 24px; height: 30px; }
+    .hnb-dc { position: absolute; border-radius: 2px; border: 1.5px solid #3a3530; }
+    .hnb-dc:nth-child(1) { width: 20px; height: 26px; top: 4px; left: 4px; background: #d4c9b8; }
+    .hnb-dc:nth-child(2) { width: 20px; height: 26px; top: 2px; left: 2px; background: #cbbfae; }
+    .hnb-dc:nth-child(3) { width: 20px; height: 26px; top: 0; left: 0; background: #c0b5a4; display: flex; align-items: center; justify-content: center; }
+    .hnb-dc-pat { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; width: 10px; height: 12px; padding: 1px; }
+    .hnb-dc-pat span { display: block; background: #b0a090; }
+    .hnb-dc-pat span:nth-child(odd) { background: #a09080; }
+    .hnb-deck-num   { font-size: 10px; font-weight: 700; color: #3a3530; font-family: 'Courier New', monospace; }
+    .hnb-deck-label { font-size: 7px; color: #8a7a6a; text-transform: uppercase; letter-spacing: 1px; font-family: 'Courier New', monospace; }
+
+    .hnb-phase { background: #3a3530; padding: 5px 12px; text-align: center; font-size: 10px; color: #f5c87a; letter-spacing: 2px; text-transform: uppercase; font-family: 'Courier New', monospace; }
+
+    .hnb-player-zone { padding: 7px 8px; border-bottom: 1px solid #d4c9b8; }
+    .hnb-player-header { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+    .hnb-avatar { width: 30px; height: 30px; border: 2px solid #3a3530; background: #c8baa8; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; flex-shrink: 0; border-radius: 0; }
+    .hnb-avatar.active { border-color: #f5c87a; }
+    .hnb-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .hnb-presence { position: absolute; bottom: -3px; right: -3px; width: 7px; height: 7px; border: 1.5px solid #f5f0e8; }
+    .hnb-presence.on  { background: #78c878; }
+    .hnb-presence.off { background: #b0a090; }
+    .hnb-player-name { font-size: 11px; font-weight: 700; color: #3a3530; letter-spacing: 0.5px; font-family: 'Courier New', monospace; }
+    .hnb-player-sub  { font-size: 8px; color: #8a7a6a; text-transform: uppercase; letter-spacing: 1px; margin-top: 1px; font-family: 'Courier New', monospace; }
+
+    .hnb-piles-zone { padding: 7px 8px; border-bottom: 1px solid #d4c9b8; background: #ede5d6; }
+    .hnb-piles-label { font-size: 8px; color: #8a7a6a; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px; font-family: 'Courier New', monospace; }
+    .hnb-piles-row { display: flex; gap: 4px; }
+
+    .hnb-indice-panel { display: none; margin-top: 8px; background: #ede5d6; border: 2px solid #3a3530; border-bottom: 4px solid #3a3530; border-radius: 3px; padding: 8px 10px; }
+    .hnb-indice-title { font-size: 10px; font-weight: 700; color: #3a3530; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; font-family: 'Courier New', monospace; }
+    .hnb-indice-confirm { height: 34px; border: 2px solid #2a6a2a; border-bottom: 4px solid #1a4a1a; background: #bce0bc; color: #0a4a0a; font-size: 10px; font-weight: 700; font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; padding: 0 12px; border-radius: 3px; }
+    .hnb-indice-confirm:disabled { opacity: 0.4; cursor: default; }
+    .hnb-indice-cancel  { height: 34px; border: 2px solid #3a3530; border-bottom: 4px solid #1a1a1a; background: #f5f0e8; color: #3a3530; font-size: 10px; font-weight: 700; font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; padding: 0 12px; border-radius: 3px; }
+
+    .hnb-actions { display: none; padding: 0; background: #3a3530; }
+    .hnb-actions-row { display: flex; gap: 6px; padding: 8px; }
+    .hnb-btn { flex: 1; height: 42px; border: 2px solid; border-bottom: 5px solid; border-radius: 3px; font-size: 11px; font-weight: 700; font-family: 'Courier New', monospace; letter-spacing: 0.5px; text-transform: uppercase; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; transition: transform 0.08s, border-bottom-width 0.08s; -webkit-tap-highlight-color: transparent; }
+    .hnb-btn:active { transform: translateY(3px); border-bottom-width: 2px; }
+    .hnb-btn:disabled { opacity: 0.4; cursor: default; }
+    .hnb-btn-indice { background: #f5e6c8; border-color: #8a6a10; border-bottom-color: #5a3a00; color: #3a2000; }
+    .hnb-btn-play   { background: #c8f0c8; border-color: #1a6a1a; border-bottom-color: #0a3a0a; color: #0a3a0a; }
+    .hnb-btn-disc   { background: #f5c8c8; border-color: #8a1a1a; border-bottom-color: #5a0a0a; color: #5a0a0a; }
+    .hnb-btn-icon   { font-size: 14px; line-height: 1; }
+    .hnb-btn-label  { font-size: 10px; font-weight: 700; letter-spacing: 1px; }
+    .hnb-action-hint { font-size: 10px; color: #c8b99a; text-align: center; padding: 0 8px 6px; font-family: 'Courier New', monospace; min-height: 14px; }
+
+    /* Scanlines overlay */
+    #memScreenHanabi::before {
+      content: '';
+      position: absolute; inset: 0; pointer-events: none; z-index: 100;
+      background: repeating-linear-gradient(to bottom, transparent 0px, transparent 3px, rgba(58,53,48,0.03) 3px, rgba(58,53,48,0.03) 4px);
+    }
+
+    /* Thème sombre Hanabi */
+    #memScreenHanabi.hnb-dark { background: #1a1510 !important; }
+    #memScreenHanabi.hnb-dark .hnb-hud { background: #2a2018; border-bottom-color: #5a4a30; }
+    #memScreenHanabi.hnb-dark .hnb-score { color: #f5e6c8; }
+    #memScreenHanabi.hnb-dark .hnb-player-zone { border-bottom-color: #3a2e1a; }
+    #memScreenHanabi.hnb-dark .hnb-piles-zone { background: #2a2018; border-bottom-color: #3a2e1a; }
+    #memScreenHanabi.hnb-dark .hnb-piles-label { color: #8a7055; }
+    #memScreenHanabi.hnb-dark .hnb-player-name { color: #f5e6c8; }
+    #memScreenHanabi.hnb-dark .hnb-player-sub  { color: #8a7055; }
+    #memScreenHanabi.hnb-dark .hnb-indice-panel { background: #2a2018; border-color: #5a4a30; border-bottom-color: #3a2e1a; }
+    #memScreenHanabi.hnb-dark .hnb-indice-title { color: #f5e6c8; }
+    #memScreenHanabi.hnb-dark .hnb-avatar { border-color: #5a4a30; background: #3a2e1a; }
+    #memScreenHanabi.hnb-dark .hnb-avatar.active { border-color: #f5c87a; }
+    #memScreenHanabi.hnb-dark .hnb-presence { border-color: #1a1510; }
+    </style>
+
+    <div id="memScreenHanabi" class="mem-screen" style="display:none;position:relative;">
+
+      <!-- Header -->
+      <div class="hnb-header">
+        <span class="hnb-back">← RETOUR</span>
+        <span class="hnb-title">HANABI</span>
+        <button class="hnb-theme-btn" id="memHanabiThemeBtn">◑ THÈME</button>
+      </div>
+
+      <!-- HUD : score + tokens + pioche -->
+      <div class="hnb-hud">
+        <div class="hnb-score" id="memHanabiScore">SCR 00/25</div>
+        <div class="hnb-tokens-group">
+          <div class="hnb-token-row">
+            <span class="hnb-tok-icon">●</span>
+            <div id="memHanabiBlueTokens"></div>
+          </div>
+          <div class="hnb-token-row">
+            <span class="hnb-tok-icon" style="color:#e07070;">♥</span>
+            <div id="memHanabiRedTokens"></div>
+          </div>
+        </div>
+        <div class="hnb-deck">
+          <div class="hnb-deck-stack">
+            <div class="hnb-dc"></div>
+            <div class="hnb-dc"></div>
+            <div class="hnb-dc">
+              <div class="hnb-dc-pat"><span></span><span></span><span></span><span></span></div>
+            </div>
+          </div>
+          <div class="hnb-deck-num" id="memHanabiPiocheCount">40</div>
+          <div class="hnb-deck-label">Pioche</div>
         </div>
       </div>
 
-      <!-- Phase -->
-      <div class="mem-echo-phase" id="memHanabiPhase" style="padding:4px 12px;font-size:12px;">En attente…</div>
+      <!-- Phase / tour -->
+      <div class="hnb-phase" id="memHanabiPhase">EN ATTENTE…</div>
 
-      <!-- Main adverse : avatar inline + cartes -->
-      <div style="padding:4px 10px 2px;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;width:32px;">
-            <div style="position:relative;">
-              <div id="memHanabiOppProfile" style="width:28px;height:28px;border-radius:50%;overflow:hidden;background:#ede9fe;border:2px solid #c4b5fd;"></div>
-              <div id="memHanabiOppPresenceDot" style="position:absolute;bottom:0;right:0;width:7px;height:7px;border-radius:50%;background:#444;border:1.5px solid #fff;"></div>
-            </div>
-            <span id="memHanabiOppLabel" style="font-size:8px;color:var(--muted);text-align:center;line-height:1.1;white-space:nowrap;overflow:hidden;max-width:32px;text-overflow:ellipsis;"></span>
+      <!-- Main adverse -->
+      <div class="hnb-player-zone">
+        <div class="hnb-player-header">
+          <div style="position:relative;flex-shrink:0;">
+            <div class="hnb-avatar active" id="memHanabiOppProfile"></div>
+            <div class="hnb-presence off" id="memHanabiOppPresenceDot"></div>
           </div>
-          <div id="memHanabiOppCards" style="display:flex;gap:4px;flex:1;min-width:0;overflow:hidden;"></div>
+          <div>
+            <div class="hnb-player-name" id="memHanabiOppLabel">—</div>
+            <div class="hnb-player-sub">Main adverse</div>
+          </div>
         </div>
-        <!-- Panneau indice compact -->
-        <div id="memHanabiIndicePanel" style="display:none;margin-top:8px;background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:8px 10px;">
-          <div style="font-size:11px;font-weight:500;color:var(--text);margin-bottom:6px;">Indice pour <span id="memHanabiIndiceTargetName"></span></div>
+        <div id="memHanabiOppCards" style="display:flex;gap:4px;flex:1;min-width:0;overflow:hidden;"></div>
+        <!-- Panneau indice -->
+        <div class="hnb-indice-panel" id="memHanabiIndicePanel">
+          <div class="hnb-indice-title">Indice pour <span id="memHanabiIndiceTargetName"></span></div>
           <div id="memHanabiIndiceColors" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;"></div>
           <div id="memHanabiIndiceNums" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;"></div>
           <div style="display:flex;gap:6px;">
-            <button class="mem-btn-primary" id="memHanabiConfirmIndice" disabled style="padding:5px 12px;font-size:12px;">Confirmer</button>
-            <button class="mem-btn-ghost" id="memHanabiCancelIndiceBtn" style="padding:5px 12px;font-size:12px;">Annuler</button>
+            <button class="hnb-indice-confirm" id="memHanabiConfirmIndice" disabled>Confirmer</button>
+            <button class="hnb-indice-cancel"  id="memHanabiCancelIndiceBtn">Annuler</button>
           </div>
         </div>
       </div>
 
-      <!-- Piles communes compactes -->
-      <div style="padding:4px 10px 2px;">
-        <div style="font-size:9px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Feu d'artifice</div>
-        <div id="memHanabiPiles" style="display:flex;gap:4px;justify-content:center;"></div>
+      <!-- Piles feux d'artifice -->
+      <div class="hnb-piles-zone">
+        <div class="hnb-piles-label">-- feux d'artifice --</div>
+        <div class="hnb-piles-row" id="memHanabiPiles"></div>
       </div>
 
-      <!-- Ma main : avatar inline + cartes -->
-      <div style="padding:4px 10px 2px;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;width:32px;">
-            <div id="memHanabiMyProfile" style="width:28px;height:28px;border-radius:50%;overflow:hidden;background:#fce7f3;border:2px solid #f9a8d4;"></div>
-            <span id="memHanabiMyLabel" style="font-size:8px;color:var(--muted);text-align:center;line-height:1.1;white-space:nowrap;overflow:hidden;max-width:32px;text-overflow:ellipsis;"></span>
+      <!-- Ma main -->
+      <div class="hnb-player-zone">
+        <div class="hnb-player-header">
+          <div style="position:relative;flex-shrink:0;">
+            <div class="hnb-avatar" id="memHanabiMyProfile"></div>
           </div>
-          <div id="memHanabiMyCards" style="display:flex;gap:4px;flex:1;min-width:0;overflow:hidden;"></div>
+          <div>
+            <div class="hnb-player-name" id="memHanabiMyLabel">—</div>
+            <div class="hnb-player-sub">Ta main</div>
+          </div>
         </div>
+        <div id="memHanabiMyCards" style="display:flex;gap:4px;flex:1;min-width:0;overflow:hidden;"></div>
       </div>
 
-      <!-- Actions compactes -->
-      <div id="memHanabiActions" style="display:none;padding:4px 10px 4px;">
-        <div style="display:flex;gap:6px;justify-content:center;">
-          <button class="mem-btn-primary" id="memHanabiGiveIndiceBtn" style="padding:5px 10px;font-size:11px;">💡 Indice</button>
-          <button class="mem-btn-ghost" id="memHanabiPlayBtn" style="padding:5px 10px;font-size:11px;">▶ Poser</button>
-          <button class="mem-btn-ghost" id="memHanabiDiscardBtn" style="padding:5px 10px;font-size:11px;">✕ Défausser</button>
+      <!-- Actions -->
+      <div class="hnb-actions" id="memHanabiActions">
+        <div class="hnb-actions-row">
+          <button class="hnb-btn hnb-btn-indice" id="memHanabiGiveIndiceBtn">
+            <span class="hnb-btn-icon">?</span>
+            <span class="hnb-btn-label">INDICE</span>
+          </button>
+          <button class="hnb-btn hnb-btn-play" id="memHanabiPlayBtn">
+            <span class="hnb-btn-icon">▶</span>
+            <span class="hnb-btn-label">POSER</span>
+          </button>
+          <button class="hnb-btn hnb-btn-disc" id="memHanabiDiscardBtn">
+            <span class="hnb-btn-icon">✕</span>
+            <span class="hnb-btn-label">DÉFAUSSE</span>
+          </button>
         </div>
-        <div id="memHanabiActionHint" style="font-size:11px;color:var(--muted);text-align:center;margin-top:3px;min-height:14px;"></div>
+        <div class="hnb-action-hint" id="memHanabiActionHint"></div>
       </div>
 
       <!-- Résultat final -->
