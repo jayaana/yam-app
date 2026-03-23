@@ -214,7 +214,7 @@ function _memShowScreen(id) {
   // Titre header
   var titleEl = _memEl('memViewTitle');
   if (titleEl && (id === 'memScreenLobby' || id === 'memScreenMode')) {
-    titleEl.textContent = 'Memory 🎴';
+    titleEl.textContent = 'Memory 🤖';
   }
 }
 
