@@ -22,7 +22,7 @@
   var _SB_BUCKET = 'images';
 
   /* ── État ── */
-  var _currentGame = 'ocho';
+  var _currentGame = null;
   var _scoreCache  = null;
   var _girlName    = '—';
   var _boyName     = '—';
@@ -80,9 +80,21 @@
   function jxSelChip(el) {
     var chip = el.closest ? el.closest('.jx-chip') : el;
     if (!chip || !chip.dataset || !chip.dataset.game) return;
+    var game = chip.dataset.game;
+    var section = document.getElementById('jxLbSection');
+
+    // Re-clic sur le même jeu → toggle (cache si visible)
+    if (game === _currentGame && section && section.style.display !== 'none') {
+      section.style.display = 'none';
+      document.querySelectorAll('.jx-chip').forEach(function (c) { c.classList.remove('jx-chip-on'); });
+      _currentGame = null;
+      return;
+    }
+
     document.querySelectorAll('.jx-chip').forEach(function (c) { c.classList.remove('jx-chip-on'); });
     chip.classList.add('jx-chip-on');
-    _currentGame = chip.dataset.game;
+    _currentGame = game;
+    if (section) section.style.display = 'block';
     if (_scoreCache) _renderLb(_currentGame, _scoreCache);
   }
   window.jxSelChip = jxSelChip;
@@ -307,7 +319,7 @@
           var sa  = _el('jxScoreA'); if (sa)  sa.textContent  = '0';
           var sb2 = _el('jxScoreB'); if (sb2) sb2.textContent = '0';
           var pf0 = _el('jxProgFill'); if (pf0) pf0.style.width = '50%';
-          _renderLb(_currentGame, []);
+          if (_currentGame) _renderLb(_currentGame, []);
           return;
         }
 
@@ -402,7 +414,7 @@
           _renderChip(g, r, myRole);
         });
 
-        _renderLb(_currentGame, r);
+        if (_currentGame) _renderLb(_currentGame, r);
       })
       .catch(function () {
         var ldr = _el('jxLeader');
