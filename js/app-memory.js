@@ -2412,11 +2412,11 @@ window._memRouteState  = _memRouteState;
 
 // ── Constantes ──
 var HANABI_COLORS = [
-  {id:'blue',   label:'Bleu',   bg:'#E6F1FB', border:'#378ADD', text:'#0C447C'},
-  {id:'green',  label:'Vert',   bg:'#EAF3DE', border:'#3B6D11', text:'#27500A'},
-  {id:'red',    label:'Rouge',  bg:'#FCEBEB', border:'#dc2626', text:'#7f1d1d'},
-  {id:'purple', label:'Violet', bg:'#F5F3FF', border:'#7c3aed', text:'#3b0764'},
-  {id:'amber',  label:'Jaune',  bg:'#FAEEDA', border:'#d97706', text:'#633806'}
+  {id:'blue',   label:'BLU', bg:'#c4dff5', border:'#2a5a84', borderB:'#1a3a64', text:'#0a3060'},
+  {id:'green',  label:'VER', bg:'#bce0bc', border:'#2a6a2a', borderB:'#1a4a1a', text:'#0a4a0a'},
+  {id:'red',    label:'RGE', bg:'#f5c4c4', border:'#8a2a2a', borderB:'#6a1a1a', text:'#6a0a0a'},
+  {id:'purple', label:'VIO', bg:'#dac4f0', border:'#5a2a8a', borderB:'#3a0a6a', text:'#3a0a6a'},
+  {id:'amber',  label:'JAU', bg:'#f0dca0', border:'#8a6a10', borderB:'#6a4a00', text:'#5a3a00'}
 ];
 var HANABI_COLOR_MAP = {};
 HANABI_COLORS.forEach(function(c){ HANABI_COLOR_MAP[c.id] = c; });
@@ -2492,33 +2492,54 @@ function _hanabiBindButtons() {
   if (db) { db.onclick = null; db.addEventListener('click', _hanabiStartDiscard); }
   var cb = _memEl('memHanabiCancelIndiceBtn');
   if (cb) { cb.onclick = null; cb.addEventListener('click', _hanabiCancelIndice); }
+  // Toggle thème clair/sombre
+  var tb = _memEl('memHanabiThemeBtn');
+  if (tb) {
+    tb.onclick = null;
+    tb.addEventListener('click', function() {
+      var screen = _memEl('memScreenHanabi');
+      if (screen) screen.classList.toggle('hnb-dark');
+    });
+  }
 }
 
 // Mettre à jour le dot de présence adversaire dans l'écran Hanabi
 function _hanabiUpdatePresenceDot(isOnline) {
   var dot = _memEl('memHanabiOppPresenceDot');
   if (!dot) return;
-  dot.style.background   = isOnline ? '#22c55e' : '#666';
-  dot.style.boxShadow    = isOnline ? '0 0 6px rgba(34,197,94,0.8)' : 'none';
+  dot._online = isOnline;
+  dot.className = 'hnb-presence ' + (isOnline ? 'on' : 'off');
 }
 
 // ── Rendu d'une carte de la main adverse (visible) ──
 function _hanabiMakeOppCard(card, idx) {
   var c = HANABI_COLOR_MAP[card.color];
   var d = document.createElement('div');
-  d.style.cssText = 'width:40px;height:60px;border-radius:8px;background:'+c.bg+';border:2px solid '+c.border+';display:flex;flex-direction:column;align-items:center;justify-content:space-between;position:relative;flex-shrink:0;cursor:default;padding:3px 0 2px;box-sizing:border-box;flex:1;min-width:0;max-width:52px;';
-  // Numéro en haut à gauche
-  var num1 = document.createElement('span');
-  num1.style.cssText = 'font-size:9px;font-weight:700;color:'+c.text+';align-self:flex-start;padding-left:4px;line-height:1;';
-  num1.textContent = card.num;
+  d.style.cssText = 'flex:1;min-width:0;max-width:52px;height:66px;border-radius:3px;background:'+c.bg+';border:2px solid '+c.border+';border-bottom:4px solid '+c.borderB+';display:flex;align-items:center;justify-content:center;position:relative;cursor:default;box-sizing:border-box;overflow:hidden;font-family:Courier New,monospace;transition:transform .1s;';
+  // Cadre intérieur
+  var inner = document.createElement('div');
+  inner.style.cssText = 'position:absolute;inset:3px;border:1px solid rgba(255,255,255,0.55);border-radius:1px;pointer-events:none;';
+  // Coin haut gauche : num + label couleur
+  var tl = document.createElement('div');
+  tl.style.cssText = 'position:absolute;top:4px;left:5px;display:flex;flex-direction:column;align-items:center;line-height:1;';
+  var cn = document.createElement('span');
+  cn.style.cssText = 'font-size:10px;font-weight:700;color:'+c.text+';';
+  cn.textContent = card.num;
+  var cl = document.createElement('span');
+  cl.style.cssText = 'font-size:6px;font-weight:700;color:'+c.text+';margin-top:1px;letter-spacing:.3px;';
+  cl.textContent = c.label;
+  tl.appendChild(cn); tl.appendChild(cl);
+  // Pip couleur haut droite
+  var dot = document.createElement('div');
+  dot.style.cssText = 'position:absolute;top:4px;right:5px;width:7px;height:7px;border-radius:50%;background:'+c.border+';border:1px solid rgba(0,0,0,0.15);';
   // Gros numéro central
   var numC = document.createElement('span');
-  numC.style.cssText = 'font-size:20px;font-weight:700;color:'+c.text+';line-height:1;';
+  numC.style.cssText = 'font-size:28px;font-weight:700;color:'+c.text+';line-height:1;position:relative;z-index:2;font-family:Courier New,monospace;';
   numC.textContent = card.num;
   // Barre couleur en bas
   var bar = document.createElement('div');
-  bar.style.cssText = 'width:100%;height:6px;background:'+c.border+';border-radius:0 0 7px 7px;';
-  d.appendChild(num1); d.appendChild(numC); d.appendChild(bar);
+  bar.style.cssText = 'position:absolute;bottom:0;left:0;right:0;height:5px;background:'+c.border+';';
+  d.appendChild(inner); d.appendChild(tl); d.appendChild(dot); d.appendChild(numC); d.appendChild(bar);
   return d;
 }
 
@@ -2526,55 +2547,43 @@ function _hanabiMakeOppCard(card, idx) {
 function _hanabiMakeMyCard(hints, idx, selectable) {
   var d = document.createElement('div');
   var isSelected = _hanabiSelectedCard === idx && selectable;
-  // Fond dégradé simulé avec deux couleurs solides
-  d.style.cssText = 'width:40px;height:60px;border-radius:8px;background:var(--s1);border:2px solid '+(isSelected?'#ec4899':'var(--border)')+';display:flex;flex-direction:column;align-items:stretch;position:relative;flex-shrink:0;cursor:'+(selectable?'pointer':'default')+';transition:transform .15s,border-color .15s;box-sizing:border-box;overflow:hidden;flex:1;min-width:0;max-width:52px;'+(isSelected?'transform:translateY(-5px);':'');
+  d.style.cssText = 'flex:1;min-width:0;max-width:52px;height:66px;border-radius:3px;background:#f5f0e8;border:2px solid #3a3530;border-bottom:4px solid #3a3530;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:'+(selectable?'pointer':'default')+';position:relative;overflow:hidden;box-sizing:border-box;font-family:Courier New,monospace;transition:transform .1s;'+(isSelected?'transform:translateY(-5px);border-color:#f5c87a;border-bottom-color:#c8a030;':'');
   if (selectable) {
     (function(i){ d.addEventListener('click', function(){ _hanabiSelectMyCard(i); }); })(idx);
   }
-
-  // Bandeau hints en haut
+  // Motif de fond SVG discret
+  var bgDeco = document.createElement('div');
+  bgDeco.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0.1;pointer-events:none;';
+  bgDeco.innerHTML = '<svg width="36" height="36" viewBox="0 0 36 36" fill="none"><rect x="4" y="4" width="28" height="28" rx="3" stroke="#3a3530" stroke-width="1.5"/><path d="M4 13h28M13 4v28" stroke="#3a3530" stroke-width="1"/><path d="M9 9l18 18M27 9L9 27" stroke="#3a3530" stroke-width="0.8"/></svg>';
+  // Bordure intérieure pointillée
+  var innerBorder = document.createElement('div');
+  innerBorder.style.cssText = 'position:absolute;inset:3px;border:1px dashed #c0b0a0;border-radius:1px;pointer-events:none;';
+  // Carré ?
+  var qBox = document.createElement('div');
+  qBox.style.cssText = 'width:22px;height:28px;border:2px solid #b0a090;border-radius:2px;display:flex;align-items:center;justify-content:center;background:#ede5d6;position:relative;z-index:2;font-size:13px;font-weight:700;color:#8a7a6a;font-family:Courier New,monospace;';
+  qBox.textContent = '?';
+  // Hints
   var hintsWrap = document.createElement('div');
-  hintsWrap.style.cssText = 'display:flex;flex-direction:column;gap:2px;padding:4px 4px 2px;flex:1;';
-
+  hintsWrap.style.cssText = 'display:flex;gap:2px;flex-wrap:wrap;justify-content:center;padding:0 3px;position:relative;z-index:2;';
   if (hints && hints.length > 0) {
-    // Grouper : couleurs d'abord, chiffres ensuite
+    var seen = {};
     var colorHints = hints.filter(function(h){ return h.type==='color'; });
     var numHints   = hints.filter(function(h){ return h.type==='num'; });
-    // Dédupliquer
-    var seen = {};
     colorHints.concat(numHints).forEach(function(h) {
-      var key = h.type+h.val;
-      if (seen[key]) return; seen[key]=1;
+      var key = h.type+h.val; if (seen[key]) return; seen[key]=1;
       var tag = document.createElement('div');
       if (h.type === 'color') {
         var c = HANABI_COLOR_MAP[h.val];
-        tag.style.cssText = 'font-size:7px;font-weight:700;padding:1px 2px;border-radius:2px;background:'+c.border+';color:#fff;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;';
+        tag.style.cssText = 'font-size:7px;font-weight:700;padding:1px 3px;border:1.5px solid '+c.border+';background:'+c.bg+';color:'+c.text+';text-transform:uppercase;letter-spacing:.3px;font-family:Courier New,monospace;';
         tag.textContent = c.label;
       } else {
-        tag.style.cssText = 'font-size:8px;font-weight:700;padding:1px 3px;border-radius:2px;background:#e0e7ff;color:#3730a3;text-align:center;line-height:1.3;';
+        tag.style.cssText = 'font-size:7px;font-weight:700;padding:1px 3px;border:1.5px solid #8a7a6a;background:#ede5d6;color:#3a3530;font-family:Courier New,monospace;';
         tag.textContent = h.val;
       }
       hintsWrap.appendChild(tag);
     });
   }
-
-  // Point d'interrogation centré si pas de hints
-  var qWrap = document.createElement('div');
-  qWrap.style.cssText = 'display:flex;align-items:center;justify-content:center;flex:1;';
-  if (!hints || hints.length === 0) {
-    var q = document.createElement('span');
-    q.style.cssText = 'font-size:18px;color:var(--muted);font-weight:300;';
-    q.textContent = '?';
-    qWrap.appendChild(q);
-  }
-
-  // Barre du bas (indique qu'on peut interagir)
-  var bar = document.createElement('div');
-  bar.style.cssText = 'height:4px;background:'+(selectable?'#ec4899':'var(--border)')+';border-radius:0 0 8px 8px;opacity:'+(selectable?'0.7':'0.3')+';';
-
-  d.appendChild(hintsWrap);
-  if (!hints || hints.length === 0) d.appendChild(qWrap);
-  d.appendChild(bar);
+  d.appendChild(bgDeco); d.appendChild(innerBorder); d.appendChild(qBox); d.appendChild(hintsWrap);
   return d;
 }
 
@@ -2585,9 +2594,27 @@ function _hanabiRenderPiles(piles) {
   HANABI_COLORS.forEach(function(c) {
     var val = piles[c.id] || 0;
     var d = document.createElement('div');
-    d.style.cssText = 'width:40px;height:54px;border-radius:8px;background:'+c.bg+';border:1.5px solid '+c.border+';display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;min-width:0;max-width:52px;';
-    d.innerHTML = '<span style="font-size:16px;font-weight:700;color:'+c.text+';">'+(val||'—')+'</span>'+
-      '<span style="font-size:8px;color:'+c.text+';">'+c.label+'</span>';
+    d.style.cssText = 'flex:1;min-width:0;max-width:52px;height:44px;border-radius:3px;border:2px solid;border-bottom:3px solid;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;box-sizing:border-box;font-family:Courier New,monospace;';
+    if (val > 0) {
+      d.style.background = c.bg;
+      d.style.borderColor = c.border;
+      d.style.borderBottomColor = c.borderB;
+    } else {
+      d.style.background = '#f5f0e8';
+      d.style.borderColor = '#c0b0a0';
+      d.style.borderBottomColor = '#c0b0a0';
+      d.style.borderStyle = 'dashed';
+    }
+    var num = document.createElement('span');
+    num.style.cssText = 'font-size:17px;font-weight:700;color:'+(val>0?c.text:'#c0b0a0')+';font-family:Courier New,monospace;';
+    num.textContent = val > 0 ? val : '—';
+    // Barre de progression
+    if (val > 0) {
+      var bar = document.createElement('div');
+      bar.style.cssText = 'position:absolute;bottom:0;left:0;height:3px;background:'+c.border+';width:'+(val/5*100)+'%;';
+      d.appendChild(bar);
+    }
+    d.appendChild(num);
     el.appendChild(d);
   });
 }
@@ -2639,29 +2666,29 @@ function _hanabiApplyState(state) {
     var blue = state.blue_tokens || 0;
     for (var bi=0; bi<8; bi++) {
       var tok = document.createElement('div');
-      tok.style.cssText = 'width:9px;height:9px;border-radius:50%;flex-shrink:0;' +
-        (bi < blue ? 'background:#3b82f6;' : 'background:transparent;border:1.5px solid #93c5fd;');
+      tok.style.cssText = 'width:8px;height:8px;border-radius:50%;flex-shrink:0;' +
+        (bi < blue ? 'background:#7bafd4;border:1.5px solid #3a6b94;' : 'background:#ede5d6;border:1.5px solid #b0a090;');
       bt.appendChild(tok);
     }
-    // Compteur texte
-    var bc = document.createElement('span');
-    bc.style.cssText = 'font-size:10px;font-weight:500;color:#1d4ed8;margin-left:2px;';
-    bc.textContent = blue;
-    bt.appendChild(bc);
   }
 
-  // Jetons rouges (croix / vide)
+  // Jetons rouges — coeurs pixel rétro 5x5
   var rt = _memEl('memHanabiRedTokens');
   if (rt) {
     rt.innerHTML = '';
     var red = state.red_tokens || 0;
+    // Masque pixel coeur 5x5 : 1=plein, 0=vide
+    var heartMask = [0,1,0,1,0, 1,1,1,1,1, 1,1,1,1,1, 0,1,1,1,0, 0,0,1,0,0];
     for (var ri=0; ri<3; ri++) {
-      var rtok = document.createElement('div');
-      rtok.style.cssText = 'width:11px;height:11px;border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;' +
-        (ri < red ? 'background:#ef4444;color:#fff;' : 'background:transparent;border:1.5px solid #fca5a5;color:#fca5a5;');
-      rtok.textContent = ri < red ? '✕' : '✕';
-      rtok.style.opacity = ri < red ? '1' : '0.35';
-      rt.appendChild(rtok);
+      var hWrap = document.createElement('div');
+      hWrap.style.cssText = 'display:inline-grid;grid-template-columns:repeat(5,3px);grid-template-rows:repeat(5,3px);gap:0;margin-right:2px;';
+      heartMask.forEach(function(px) {
+        var cell = document.createElement('span');
+        cell.style.cssText = 'display:block;width:3px;height:3px;';
+        if (px) cell.style.background = ri < red ? '#e07070' : '#c0b0a0';
+        hWrap.appendChild(cell);
+      });
+      rt.appendChild(hWrap);
     }
   }
 
@@ -2669,13 +2696,13 @@ function _hanabiApplyState(state) {
   var pc = _memEl('memHanabiPiocheCount');
   if (pc) {
     var remaining = state.deck ? state.deck.length : 0;
-    pc.textContent = '🂠 ' + remaining;
+    pc.textContent = remaining;
     pc.style.opacity = remaining === 0 ? '0.4' : '1';
   }
 
   // Score
   var sc = _memEl('memHanabiScore');
-  if (sc) sc.textContent = 'Score : '+(state.score||0)+' / 25';
+  if (sc) sc.textContent = 'SCR '+(String(state.score||0).padStart(2,'0'))+'/25';
 
   // Phase
   var phEl = _memEl('memHanabiPhase');
@@ -2683,12 +2710,11 @@ function _hanabiApplyState(state) {
     if (state.winner) {
       phEl.textContent = '';
     } else if (myTurn) {
-      phEl.textContent = '🎯 Ton tour';
-      if (state.last_action && state.last_action.desc) {
-        phEl.textContent = '🎯 Ton tour · ' + state.last_action.desc;
-      }
+      var phTxt = '► TON TOUR';
+      if (state.last_action && state.last_action.desc) phTxt = '► TON TOUR · ' + state.last_action.desc.toUpperCase();
+      phEl.textContent = phTxt;
     } else {
-      phEl.textContent = '⏳ Tour de '+_memGetName(_memOther)+'…';
+      phEl.textContent = '⏳ TOUR DE '+_memGetName(_memOther).toUpperCase()+'…';
     }
   }
 
@@ -2698,6 +2724,12 @@ function _hanabiApplyState(state) {
   if (actEl) actEl.style.display = showActions ? 'block' : 'none';
   var indBtn = _memEl('memHanabiGiveIndiceBtn');
   if (indBtn) indBtn.disabled = (state.blue_tokens <= 0);
+
+  // Présence dot style arcade
+  var dot = _memEl('memHanabiOppPresenceDot');
+  if (dot) {
+    dot.className = 'hnb-presence ' + (dot._online ? 'on' : 'off');
+  }
 
   // Nom dans panneau indice
   var itn = _memEl('memHanabiIndiceTargetName');
@@ -2729,7 +2761,7 @@ function _hanabiStartIndice() {
       b.title = c.label;
       b.addEventListener('click', function() {
         document.querySelectorAll('#memHanabiIndiceColors div').forEach(function(x){ x.style.borderColor='transparent'; x.style.transform='scale(1)'; });
-        b.style.borderColor = '#111'; b.style.transform = 'scale(1.2)';
+        b.style.borderColor = '#3a3530'; b.style.transform = 'scale(1.2)';
         _hanabiIndiceType = 'color'; _hanabiIndiceVal = c.id;
         _hanabiPreviewIndice();
         var btn = _memEl('memHanabiConfirmIndice'); if (btn) btn.disabled = false;
@@ -2743,11 +2775,11 @@ function _hanabiStartIndice() {
     numEl.innerHTML = '';
     [1,2,3,4,5].forEach(function(n) {
       var b = document.createElement('div');
-      b.style.cssText = 'width:32px;height:32px;border-radius:8px;background:var(--s2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;color:var(--text);cursor:pointer;transition:background .12s,border-color .12s;';
+      b.style.cssText = 'width:32px;height:32px;border-radius:3px;background:#f5f0e8;border:2px solid #3a3530;border-bottom:3px solid #3a3530;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#3a3530;cursor:pointer;font-family:Courier New,monospace;transition:background .12s,border-color .12s;';
       b.textContent = n;
       b.addEventListener('click', function() {
-        document.querySelectorAll('#memHanabiIndiceNums div').forEach(function(x){ x.style.background='var(--s2)'; x.style.borderColor='var(--border)'; x.style.color='var(--text)'; });
-        b.style.background='#fce7f3'; b.style.borderColor='#f9a8d4'; b.style.color='#be185d';
+        document.querySelectorAll('#memHanabiIndiceNums div').forEach(function(x){ x.style.background='#f5f0e8'; x.style.borderColor='#3a3530'; x.style.color='#3a3530'; });
+        b.style.background='#f0dca0'; b.style.borderColor='#8a6a10'; b.style.color='#5a3a00';
         _hanabiIndiceType = 'num'; _hanabiIndiceVal = n;
         _hanabiPreviewIndice();
         var btn = _memEl('memHanabiConfirmIndice'); if (btn) btn.disabled = false;
