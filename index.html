@@ -3672,10 +3672,29 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       color: #ffffff !important;
     }
 
-    /* ── Carte Hanabi — même fond natif + titre doré ── */
+    /* ── Cartes mode — fonds opaques sur image de fond ── */
+    #memScreenMode .mem-mode-card--selected {
+      background: var(--s1) !important;
+      border-color: var(--accent) !important;
+      border-width: 2.5px !important;
+    }
+    #memScreenMode .mem-mode-card--matched {
+      background: var(--s1) !important;
+      border-color: #22c55e !important;
+      border-width: 2.5px !important;
+    }
+    /* Hanabi — même traitement sélection que les autres */
     #memScreenMode .mem-mode-card--coop {
       background: var(--s1) !important;
       border-color: var(--border) !important;
+    }
+    #memScreenMode .mem-mode-card--coop.mem-mode-card--selected {
+      border-color: var(--accent) !important;
+      border-width: 2.5px !important;
+    }
+    #memScreenMode .mem-mode-card--coop.mem-mode-card--matched {
+      border-color: #22c55e !important;
+      border-width: 2.5px !important;
     }
     #memScreenMode .mem-mode-card--coop .mem-mode-card-title {
       color: #c8950a !important;
