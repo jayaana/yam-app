@@ -3549,7 +3549,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     .hnb-indice-cancel  { height: 34px; border: 2px solid #3a3530; border-bottom: 4px solid #1a1a1a; background: #f5f0e8; color: #3a3530; font-size: 10px; font-weight: 700; font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; padding: 0 12px; border-radius: 3px; }
 
     /* Actions — toujours visibles, grisées quand pas son tour */
-    .hnb-actions { padding: 0; background: #3a3530; }
+    .hnb-actions { padding: 0; background: #3a3530; position: relative; }
     .hnb-actions-row { display: flex; gap: 6px; padding: 8px; }
     .hnb-btn { flex: 1; height: 42px; border: 2px solid; border-bottom: 5px solid; border-radius: 3px; font-size: 11px; font-weight: 700; font-family: 'Courier New', monospace; letter-spacing: 0.5px; text-transform: uppercase; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; transition: transform 0.08s, border-bottom-width 0.08s; -webkit-tap-highlight-color: transparent; }
     .hnb-btn:active:not(:disabled) { transform: translateY(3px); border-bottom-width: 2px; }
@@ -3560,7 +3560,14 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     .hnb-btn-disc   { background: #f5c8c8; border-color: #8a1a1a; border-bottom-color: #5a0a0a; color: #5a0a0a; }
     .hnb-btn-icon   { font-size: 14px; line-height: 1; }
     .hnb-btn-label  { font-size: 10px; font-weight: 700; letter-spacing: 1px; }
-    .hnb-action-hint { font-size: 10px; color: #c8b99a; text-align: center; padding: 0 8px 6px; font-family: 'Courier New', monospace; min-height: 14px; }
+    .hnb-action-hint {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700;
+      font-family: 'Courier New', monospace; letter-spacing: 0.5px;
+      pointer-events: none; opacity: 0; z-index: 10;
+      padding: 0 8px; text-align: center; border-radius: 0;
+    }
 
     /* Carré clignotant pixel — ton tour */
     .hnb-blink-sq {
