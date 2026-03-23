@@ -3610,25 +3610,23 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     /* ── Fond arcade Memory ── */
     #memScreenLobby,
     #memScreenMode {
-      position: relative !important;
-      overflow: hidden !important;
+      min-height: calc(100dvh - 60px) !important;
+      background-color: transparent !important;
     }
-    #memScreenLobby::after,
-    #memScreenMode::after {
+    #memoryView {
+      position: relative !important;
+      isolation: isolate !important;
+    }
+    #memoryView::before {
       content: '';
-      position: absolute;
-      inset: -20px;
+      position: fixed;
+      top: 60px; left: 0; right: 0; bottom: 0;
       background-image: url('https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/arcade-memory.png');
       background-size: cover;
-      background-position: center;
-      filter: blur(2px) brightness(0.55);
-      z-index: 0;
+      background-position: center top;
+      filter: blur(2px) brightness(0.5);
+      z-index: -1;
       pointer-events: none;
-    }
-    #memScreenLobby > *,
-    #memScreenMode > * {
-      position: relative;
-      z-index: 1;
     }
     /* Carte Hanabi — même fond natif + titre doré */
     #memScreenMode .mem-mode-card--coop {
