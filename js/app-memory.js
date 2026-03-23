@@ -2475,7 +2475,7 @@ function _hanabiGetBuildState() {
 function _hanabiStart(gameRow) {
   _hanabiSaved = false; _hanabiActionMode = null;
   _hanabiIndiceType = null; _hanabiIndiceVal = null;
-  _hanabiSelectedCard = null;
+  _hanabiSelectedCard = null; _hanabiLastActionTs = 0; _hanabiSkipHintAnim = false;
   _memShowScreen('memScreenHanabi');
   var _t = _memEl('memViewTitle'); if (_t) _t.textContent = 'Hanabi';
   _memRenderDualProfiles('memHanabiMyProfile', 'memHanabiOppProfile');
@@ -2802,40 +2802,34 @@ function _hanabiApplyState(state) {
   _hanabiRenderPiles(state.piles);
 
   // ── Animations côté spectateur (actions de l'adversaire) ──
+  // Note : quand l'adversaire joue, state.turn vient de passer à MOI → myTurn=true
+  // On détecte donc via la.actor === _memOther indépendamment de myTurn
   var la = state.last_action;
-  if (la && la.actor === _memOther && !myTurn) {
-    var laTs = la.ts || (la.type + la.desc); // identifiant unique de l'action
+  if (la && la.actor === _memOther) {
+    var laTs = la.ts || (la.type + '|' + la.desc);
     if (laTs !== _hanabiLastActionTs) {
       _hanabiLastActionTs = laTs;
+      var cardColor = null;
+      HANABI_COLORS.forEach(function(c) {
+        if (la.desc && la.desc.indexOf(c.label) !== -1) cardColor = c;
+      });
+      var numMatch = la.desc && la.desc.match(/(\d)/);
+      var cardNum = numMatch ? numMatch[1] : '?';
+
       if (la.type === 'play') {
         var isErr = la.desc && la.desc.indexOf('Erreur') !== -1;
-        var cardColor = null;
-        var cardNum   = null;
-        // Extraire couleur/num depuis la desc "Pose BLU 3 ✓" ou "Erreur : BLU 3 ✗"
-        HANABI_COLORS.forEach(function(c) {
-          if (la.desc && la.desc.indexOf(c.label) !== -1) cardColor = c;
-        });
-        var numMatch = la.desc && la.desc.match(/(\d)/);
-        if (numMatch) cardNum = numMatch[1];
         if (isErr) {
           _hanabiAnimCardFlyError(cardColor, cardNum);
+          if (navigator.vibrate) navigator.vibrate([60, 30, 80]);
         } else {
           _hanabiAnimCardFlySuccess(cardColor, cardNum);
         }
       } else if (la.type === 'discard') {
-        var cardColor2 = null;
-        HANABI_COLORS.forEach(function(c) {
-          if (la.desc && la.desc.indexOf(c.label) !== -1) cardColor2 = c;
-        });
-        var numMatch2 = la.desc && la.desc.match(/(\d)/);
-        var cardNum2 = numMatch2 ? numMatch2[1] : '?';
-        _hanabiAnimCardDiscard(cardColor2, cardNum2);
+        _hanabiAnimCardDiscard(cardColor, cardNum);
+        if (navigator.vibrate) navigator.vibrate([25]);
       }
     }
   }
-
-  // Même chose côté joueur actif : si c'est notre tour et qu'il y a une last_action de nous
-  // (après le délai, les animations locales sont déjà faites — rien à faire ici)
 
 
 
