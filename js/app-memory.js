@@ -2443,10 +2443,12 @@ var _hanabiActionMode  = null;
 var _hanabiIndiceType  = null;
 var _hanabiIndiceVal   = null;
 var _hanabiSelectedCard = null;
-var _hanabiSelectedCardRect = null; // rect capturé avant rebuild DOM
+var _hanabiSelectedCardRect = null;
 var _hanabiFlashTimer  = null;
 var _hanabiSkipHintAnim = false;
-var _hanabiLastActionTs = 0; // timestamp de la dernière action déjà animée
+var _hanabiLastActionTs = 0;
+var _hanabiNewCardIdx   = -1;  // index de la nouvelle carte piochée (-1 = aucune)
+var _hanabiNewCardTimer = null; // timer pour effacer le badge après 10s
 
 // ── Builder état initial ──
 function _hanabiGetBuildState() {
@@ -2476,7 +2478,7 @@ function _hanabiGetBuildState() {
 function _hanabiStart(gameRow) {
   _hanabiSaved = false; _hanabiActionMode = null;
   _hanabiIndiceType = null; _hanabiIndiceVal = null;
-  _hanabiSelectedCard = null; _hanabiSelectedCardRect = null; _hanabiLastActionTs = 0; _hanabiSkipHintAnim = false;
+  _hanabiSelectedCard = null; _hanabiSelectedCardRect = null; _hanabiLastActionTs = 0; _hanabiSkipHintAnim = false; _hanabiNewCardIdx = -1;
   _memShowScreen('memScreenHanabi');
   var _t = _memEl('memViewTitle'); if (_t) _t.textContent = 'Hanabi';
   _memRenderDualProfiles('memHanabiMyProfile', 'memHanabiOppProfile');
@@ -2612,7 +2614,7 @@ function _hanabiUpdatePresenceDot(isOnline) {
 }
 
 // ── Rendu d'une carte de la main adverse (visible) ──
-function _hanabiMakeOppCard(card, idx) {
+function _hanabiMakeOppCard(card, idx, isNew) {
   var c = HANABI_COLOR_MAP[card.color];
   var d = document.createElement('div');
   d.style.cssText = 'flex:1;min-width:0;height:66px;border-radius:3px;background:'+c.bg+';border:2px solid '+c.border+';border-bottom:4px solid '+c.borderB+';display:flex;align-items:center;justify-content:center;position:relative;cursor:default;box-sizing:border-box;overflow:hidden;font-family:Courier New,monospace;transition:transform .1s;';
@@ -2635,11 +2637,12 @@ function _hanabiMakeOppCard(card, idx) {
   var bar = document.createElement('div');
   bar.style.cssText = 'position:absolute;bottom:0;left:0;right:0;height:5px;background:'+c.border+';';
   d.appendChild(inner); d.appendChild(tl); d.appendChild(dot); d.appendChild(numC); d.appendChild(bar);
+  if (isNew) _hanabiAddNewBadge(d);
   return d;
 }
 
 // ── Rendu d'une carte de MA main (dos + hints) ──
-function _hanabiMakeMyCard(hints, idx, selectable) {
+function _hanabiMakeMyCard(hints, idx, selectable, isNew) {
   var d = document.createElement('div');
   var isSelected = _hanabiSelectedCard === idx && selectable;
   d.style.cssText = 'flex:1;min-width:0;height:66px;border-radius:3px;background:#f5f0e8;border:2px solid #3a3530;border-bottom:4px solid #3a3530;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:'+(selectable?'pointer':'default')+';position:relative;overflow:hidden;box-sizing:border-box;font-family:Courier New,monospace;transition:transform .1s;'+(isSelected?'transform:translateY(-5px);border-color:#f5c87a;border-bottom-color:#c8a030;':'');
@@ -2679,7 +2682,37 @@ function _hanabiMakeMyCard(hints, idx, selectable) {
     });
   }
   d.appendChild(bgDeco); d.appendChild(innerBorder); d.appendChild(qBox); d.appendChild(hintsWrap);
+  if (isNew) _hanabiAddNewBadge(d);
   return d;
+}
+
+// ── Badge NEW sur une carte fraîchement piochée ──
+function _hanabiAddNewBadge(cardEl) {
+  var badge = document.createElement('div');
+  badge.style.cssText = [
+    'position:absolute',
+    'bottom:5px', 'right:4px',
+    'font-family:Courier New,monospace',
+    'font-size:7px', 'font-weight:700',
+    'color:#5a3a00',
+    'background:#f5c87a',
+    'border:1.5px solid #8a6a10',
+    'border-radius:2px',
+    'padding:1px 3px',
+    'letter-spacing:.5px',
+    'z-index:5',
+    'pointer-events:none',
+    'opacity:0',
+    'transform:scale(0.5)',
+    'transition:opacity .15s, transform .2s cubic-bezier(.2,1.6,.4,1)'
+  ].join(';');
+  badge.textContent = 'NEW';
+  cardEl.appendChild(badge);
+  // Pop animation
+  requestAnimationFrame(function() {
+    badge.style.opacity = '1';
+    badge.style.transform = 'scale(1)';
+  });
 }
 
 // ── Rendu des piles ──
@@ -2726,6 +2759,9 @@ function _hanabiApplyState(state) {
   var otherHand = _memProfile==='girl' ? state.boy_hand   : state.girl_hand;
   var myHints   = _memProfile==='girl' ? state.girl_hints : state.boy_hints;
   var myTurn    = state.turn === _memProfile;
+  // Déclarer tôt pour usage dans le rendu des cartes
+  var la2    = state.last_action;
+  var newIdx = (la2 && la2.new_card_idx !== undefined && la2.new_card_idx >= 0) ? la2.new_card_idx : -1;
 
   // Avatars (chargés une seule fois grâce au cache navigateur)
   var u = typeof yamGetUser === 'function' ? yamGetUser() : null;
@@ -2743,9 +2779,12 @@ function _hanabiApplyState(state) {
     var prevHints = [];
     myEl.querySelectorAll('[data-hint-count]').forEach(function(el, i){ prevHints[i] = parseInt(el.getAttribute('data-hint-count'))||0; });
     myEl.innerHTML = '';
+    // Badge NEW sur ma carte si c'est moi qui viens de jouer
+    var myNewIdx = (la2 && la2.actor === _memProfile && newIdx >= 0) ? newIdx : -1;
     myHand.forEach(function(card, i) {
       var cardEl = _hanabiMakeMyCard(myHints[i]||[], i,
-        myTurn && (_hanabiActionMode==='play'||_hanabiActionMode==='discard'));
+        myTurn && (_hanabiActionMode==='play'||_hanabiActionMode==='discard'),
+        i === myNewIdx);
       cardEl.setAttribute('data-hint-count', (myHints[i]||[]).length);
       myEl.appendChild(cardEl);
     });
@@ -2786,19 +2825,37 @@ function _hanabiApplyState(state) {
   // Main adverse (visible) — ne pas reconstruire si panneau indice ouvert (pour conserver le preview)
   var oppEl = _memEl('memHanabiOppCards');
   var indiceOpen = _hanabiActionMode === 'indice' && _hanabiIndiceType !== null;
+  var oppNewIdx = (la2 && la2.actor === _memOther && newIdx >= 0) ? newIdx : -1;
   if (oppEl && !indiceOpen) {
     oppEl.innerHTML = '';
     otherHand.forEach(function(card, i) {
-      oppEl.appendChild(_hanabiMakeOppCard(card, i));
+      oppEl.appendChild(_hanabiMakeOppCard(card, i, i === oppNewIdx));
     });
   } else if (oppEl && indiceOpen) {
-    // Reconstruire mais re-appliquer le preview immédiatement après
     oppEl.innerHTML = '';
     otherHand.forEach(function(card, i) {
-      oppEl.appendChild(_hanabiMakeOppCard(card, i));
+      oppEl.appendChild(_hanabiMakeOppCard(card, i, i === oppNewIdx));
     });
     _hanabiPreviewIndice();
   }
+
+  // Détecter la nouvelle carte piochée (badge NEW)
+  var isNewAction = la2 && la2.ts && la2.ts !== _hanabiLastActionTs;
+  if (isNewAction && newIdx >= 0) {
+    _hanabiNewCardIdx = newIdx;
+    if (_hanabiNewCardTimer) clearTimeout(_hanabiNewCardTimer);
+    _hanabiNewCardTimer = setTimeout(function() {
+      _hanabiNewCardIdx = -1;
+      // Re-render discret des cartes pour enlever le badge
+      var cur2 = (_memMp&&_memMp.getGameState?_memMp.getGameState():null)||_memLastState;
+      if (cur2) {
+        _hanabiSkipHintAnim = true;
+        _hanabiApplyState(cur2);
+      }
+    }, 10000);
+  }
+
+
 
   // Piles
   _hanabiRenderPiles(state.piles);
@@ -2940,6 +2997,10 @@ function _hanabiStartIndice() {
   if (!cur || cur.blue_tokens <= 0) return;
   _hanabiActionMode = 'indice';
   _hanabiIndiceType = null; _hanabiIndiceVal = null;
+  if (_hanabiNewCardIdx >= 0) {
+    _hanabiNewCardIdx = -1;
+    if (_hanabiNewCardTimer) { clearTimeout(_hanabiNewCardTimer); _hanabiNewCardTimer = null; }
+  }
 
   // Afficher panneau
   var panel = _memEl('memHanabiIndicePanel'); if (panel) panel.style.display = 'block';
@@ -3082,6 +3143,11 @@ function _hanabiStartPlay() {
   if (_hanabiActionMode === 'play') { _hanabiCancelAction(); return; }
   _hanabiActionMode = 'play'; _hanabiSelectedCard = null;
   _hanabiSkipHintAnim = true;
+  // Annuler le badge NEW si présent
+  if (_hanabiNewCardIdx >= 0) {
+    _hanabiNewCardIdx = -1;
+    if (_hanabiNewCardTimer) { clearTimeout(_hanabiNewCardTimer); _hanabiNewCardTimer = null; }
+  }
   var hint = _memEl('memHanabiActionHint');
   if (hint) hint.innerHTML = '<span class="hnb-blink-sq" style="background:#1a6a1a;margin-right:4px;"></span>TOUCHE UNE CARTE POUR LA POSER';
   _hanabiRefreshMyCards();
@@ -3095,6 +3161,10 @@ function _hanabiStartDiscard() {
   if (_hanabiActionMode === 'discard') { _hanabiCancelAction(); return; }
   _hanabiActionMode = 'discard'; _hanabiSelectedCard = null;
   _hanabiSkipHintAnim = true;
+  if (_hanabiNewCardIdx >= 0) {
+    _hanabiNewCardIdx = -1;
+    if (_hanabiNewCardTimer) { clearTimeout(_hanabiNewCardTimer); _hanabiNewCardTimer = null; }
+  }
   var hint = _memEl('memHanabiActionHint');
   if (hint) hint.innerHTML = '<span class="hnb-blink-sq" style="background:#8a1a1a;margin-right:4px;"></span>TOUCHE UNE CARTE POUR LA DÉFAUSSER';
   _hanabiRefreshMyCards();
@@ -3166,7 +3236,7 @@ function _hanabiConfirmPlay() {
   }
 
   ns.turn = _memOther;
-  ns.last_action = {type:'play', actor:_memProfile, desc:desc, ts:Date.now()};
+  ns.last_action = {type:'play', actor:_memProfile, desc:desc, ts:Date.now(), new_card_idx: ns.deck && ns.deck.length >= 0 ? ns[myHandKey].length - 1 : -1};
   ns.winner = _hanabiCheckEnd(ns);
 
   _hanabiActionMode = null; _hanabiSelectedCard = null;
@@ -3207,7 +3277,7 @@ function _hanabiConfirmDiscard() {
   }
 
   ns.turn = _memOther;
-  ns.last_action = {type:'discard', actor:_memProfile, desc:'Défausse '+HANABI_COLOR_MAP[card.color].label+' '+card.num, ts:Date.now()};
+  ns.last_action = {type:'discard', actor:_memProfile, desc:'Défausse '+HANABI_COLOR_MAP[card.color].label+' '+card.num, ts:Date.now(), new_card_idx: ns[myHandKey].length - 1};
   ns.winner = _hanabiCheckEnd(ns);
 
   _hanabiActionMode = null; _hanabiSelectedCard = null;
