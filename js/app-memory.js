@@ -2444,6 +2444,7 @@ var _hanabiIndiceType  = null;  // 'color'|'num'
 var _hanabiIndiceVal   = null;  // color id ou num (int)
 var _hanabiSelectedCard = null; // index carte ma main (play/discard)
 var _hanabiFlashTimer  = null;
+var _hanabiSkipHintAnim = false; // true après une action locale pour éviter faux-positifs
 
 // ── Builder état initial ──
 function _hanabiGetBuildState() {
@@ -2746,33 +2747,37 @@ function _hanabiApplyState(state) {
       myEl.appendChild(cardEl);
     });
     // Animer les cartes qui viennent de recevoir un indice
+    // (seulement si c'est une mise à jour distante, pas une action locale)
+    var doAnim = !_hanabiSkipHintAnim;
+    _hanabiSkipHintAnim = false;
     var newHintLengths = myHints.map(function(h){ return (h||[]).length; });
-    newHintLengths.forEach(function(len, i) {
-      if (len > (prevHints[i]||0)) {
-        var card = myEl.children[i];
-        if (!card) return;
-        // Bounce visible : monte haut, rebondit, redescend
-        card.style.transition = 'none';
-        card.style.transform = 'translateY(0)';
-        card.style.boxShadow = 'none';
-        setTimeout(function() {
-          card.style.transition = 'transform .18s cubic-bezier(.2,1.6,.4,1), box-shadow .18s';
-          card.style.transform = 'translateY(-18px) scale(1.12)';
-          card.style.boxShadow = '0 8px 24px rgba(245,200,122,0.85)';
-          card.style.outline = '2px solid #f5c87a';
-        }, 20);
-        setTimeout(function() {
-          card.style.transition = 'transform .14s ease-in, box-shadow .3s';
-          card.style.transform = 'translateY(-4px) scale(1.04)';
-        }, 260);
-        setTimeout(function() {
-          card.style.transition = 'transform .1s ease-out, box-shadow .3s, outline .3s';
+    if (doAnim) {
+      newHintLengths.forEach(function(len, i) {
+        if (len > (prevHints[i]||0)) {
+          var card = myEl.children[i];
+          if (!card) return;
+          card.style.transition = 'none';
           card.style.transform = 'translateY(0)';
           card.style.boxShadow = 'none';
-          card.style.outline = 'none';
-        }, 500);
-      }
-    });
+          setTimeout(function() {
+            card.style.transition = 'transform .18s cubic-bezier(.2,1.6,.4,1), box-shadow .18s';
+            card.style.transform = 'translateY(-18px) scale(1.12)';
+            card.style.boxShadow = '0 8px 24px rgba(245,200,122,0.85)';
+            card.style.outline = '2px solid #f5c87a';
+          }, 20);
+          setTimeout(function() {
+            card.style.transition = 'transform .14s ease-in, box-shadow .3s';
+            card.style.transform = 'translateY(-4px) scale(1.04)';
+          }, 260);
+          setTimeout(function() {
+            card.style.transition = 'transform .1s ease-out, box-shadow .3s, outline .3s';
+            card.style.transform = 'translateY(0)';
+            card.style.boxShadow = 'none';
+            card.style.outline = 'none';
+          }, 500);
+        }
+      });
+    }
   }
 
   // Main adverse (visible) — ne pas reconstruire si panneau indice ouvert (pour conserver le preview)
@@ -3003,6 +3008,7 @@ function _hanabiConfirmIndice() {
 
   _hanabiCancelIndice();
   _memMp.saveState(ns);
+  _hanabiSkipHintAnim = true;
   _hanabiApplyState(ns);
 }
 
@@ -3040,6 +3046,7 @@ function _hanabiCancelAction() {
 function _hanabiStartPlay() {
   if (_hanabiActionMode === 'play') { _hanabiCancelAction(); return; }
   _hanabiActionMode = 'play'; _hanabiSelectedCard = null;
+  _hanabiSkipHintAnim = true;
   var hint = _memEl('memHanabiActionHint');
   if (hint) hint.innerHTML = '<span class="hnb-blink-sq" style="background:#1a6a1a;margin-right:4px;"></span>TOUCHE UNE CARTE POUR LA POSER';
   _hanabiRefreshMyCards();
@@ -3052,6 +3059,7 @@ function _hanabiStartPlay() {
 function _hanabiStartDiscard() {
   if (_hanabiActionMode === 'discard') { _hanabiCancelAction(); return; }
   _hanabiActionMode = 'discard'; _hanabiSelectedCard = null;
+  _hanabiSkipHintAnim = true;
   var hint = _memEl('memHanabiActionHint');
   if (hint) hint.innerHTML = '<span class="hnb-blink-sq" style="background:#8a1a1a;margin-right:4px;"></span>TOUCHE UNE CARTE POUR LA DÉFAUSSER';
   _hanabiRefreshMyCards();
@@ -3126,7 +3134,9 @@ function _hanabiConfirmPlay() {
   var hint = _memEl('memHanabiActionHint'); if (hint) hint.innerHTML='';
   _hanabiReenableButtons();
   _memMp.saveState(ns);
-  _hanabiApplyState(ns);
+  _hanabiSkipHintAnim = true;
+  // Décaler le re-render pour laisser le flash être visible
+  setTimeout(function(){ _hanabiApplyState(ns); }, correct ? 700 : 650);
 }
 
 function _hanabiConfirmDiscard() {
@@ -3159,7 +3169,9 @@ function _hanabiConfirmDiscard() {
   var hint = _memEl('memHanabiActionHint'); if (hint) hint.innerHTML='';
   _hanabiReenableButtons();
   _memMp.saveState(ns);
-  _hanabiApplyState(ns);
+  _hanabiSkipHintAnim = true;
+  // Décaler le re-render pour laisser le flash défausse être visible
+  setTimeout(function(){ _hanabiApplyState(ns); }, 650);
 }
 
 // ── Animations feedback ──
