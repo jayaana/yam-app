@@ -37,7 +37,7 @@ function _memArchiShapeEl(si,size,clickCb){
   return d;
 }
 var TROPHIES = {
-  telepathie:    {name:'🧠 Télépathie',     desc:'Écho niveau 8+ sans erreur'},
+  telepathie:    {name:'🤖 Télépathie',     desc:'Écho niveau 8+ sans erreur'},
   eclair:        {name:'⚡ Éclair',          desc:'Classique+ manche 3 en moins de 60s'},
   architecte:    {name:'🏗️ Architecte',     desc:'Architecte sans aucun reset'},
   osmose:        {name:'👩‍❤️‍👨 Osmose',          desc:'Les 3 modes gagnés en mode ALL'},
@@ -202,6 +202,15 @@ function _memShowScreen(id) {
   });
   var t = _memEl(id);
   if (t) { t.style.display = 'flex'; t.classList.add('mem-screen--active'); }
+  // Fond arcade uniquement sur lobby et sélection de mode
+  var view = _memEl('memoryView');
+  if (view) {
+    if (id === 'memScreenLobby' || id === 'memScreenMode') {
+      view.classList.add('mem-bg-arcade');
+    } else {
+      view.classList.remove('mem-bg-arcade');
+    }
+  }
 }
 
 function _memShowLb(show) {
