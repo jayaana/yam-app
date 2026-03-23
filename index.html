@@ -3607,19 +3607,16 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       border-top: 2px solid #5a5048;
     }
     #memHanabiArcadeCanvas { display: block; width: 100%; height: 72px; }
-    /* ── Fond arcade — couvre toute la vue Memory (header inclus) ── */
+    /* ── Fond arcade — uniquement sous le header ── */
     #memoryView {
       background-image: url('https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/arcade-memory.png') !important;
       background-size: cover !important;
-      background-position: center top !important;
+      background-position: center 60px !important;
       background-repeat: no-repeat !important;
-      background-attachment: local !important;
     }
-    /* Overlay sombre sur les deux écrans seulement */
+    /* Overlay + flou sur les deux écrans uniquement */
     #memScreenLobby,
     #memScreenMode {
-      position: relative !important;
-      min-height: 100dvh !important;
       background: rgba(4, 8, 24, 0.88) !important;
       backdrop-filter: blur(3px) !important;
       -webkit-backdrop-filter: blur(3px) !important;
