@@ -3622,7 +3622,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       content: '';
       position: absolute;
       inset: 0;
-      background: rgba(8, 6, 20, 0.82);
+      background: rgba(8, 6, 20, 0.80);
       pointer-events: none;
       z-index: 0;
     }
@@ -3630,6 +3630,53 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     #memScreenMode > * {
       position: relative;
       z-index: 1;
+    }
+    /* Textes clairs sur fond sombre */
+    #memScreenLobby .mem-lobby-name,
+    #memScreenLobby .mem-lobby-vs-label,
+    #memScreenLobby .mem-lobby-status,
+    #memScreenLobby .mem-lobby-title,
+    #memScreenMode  .mem-mode-name,
+    #memScreenMode  .mem-mode-vs-sep,
+    #memScreenMode  .mem-mode-vote-label {
+      color: #f0eeff !important;
+    }
+    #memScreenLobby .mem-btn-ghost {
+      color: #d0c8ff !important;
+      border-color: rgba(200,180,255,0.4) !important;
+      background: rgba(255,255,255,0.07) !important;
+    }
+    /* Cartes de mode — fond semi-transparent lisible */
+    #memScreenMode .mem-mode-card {
+      background: rgba(20, 16, 40, 0.82) !important;
+      border-color: rgba(180, 140, 255, 0.35) !important;
+      backdrop-filter: blur(4px);
+    }
+    #memScreenMode .mem-mode-card--selected {
+      border-color: var(--accent) !important;
+      background: rgba(231, 90, 124, 0.18) !important;
+    }
+    #memScreenMode .mem-mode-card--matched {
+      border-color: #22c55e !important;
+      background: rgba(34, 197, 94, 0.15) !important;
+    }
+    #memScreenMode .mem-mode-card-title {
+      color: #f0eeff !important;
+    }
+    #memScreenMode .mem-mode-card-desc {
+      color: rgba(200, 190, 255, 0.75) !important;
+    }
+    #memScreenMode .mem-mode-card--coop .mem-mode-card-title {
+      color: #f5c87a !important;
+    }
+    /* Boutons vote */
+    #memScreenMode .mem-mode-vote-btn {
+      color: #d0c8ff !important;
+      border-color: rgba(200,180,255,0.4) !important;
+      background: rgba(255,255,255,0.07) !important;
+    }
+    #memScreenMode .mem-mode-vote-hint {
+      color: rgba(200,190,255,0.65) !important;
     }
     </style>
 
