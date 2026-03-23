@@ -2590,17 +2590,30 @@ function _hanabiRenderPiles(piles) {
       d.style.borderColor = '#c0b0a0';
       d.style.borderBottomColor = '#c0b0a0';
       d.style.borderStyle = 'dashed';
+      // Encoches de couleur sur les 4 coins pour indiquer la couleur attendue
+      ['top:0;left:0;border-radius:0 0 3px 0;',
+       'top:0;right:0;border-radius:0 0 0 3px;',
+       'bottom:3px;left:0;border-radius:0 3px 0 0;',
+       'bottom:3px;right:0;border-radius:3px 0 0 0;'].forEach(function(pos) {
+        var notch = document.createElement('div');
+        notch.style.cssText = 'position:absolute;'+pos+'width:8px;height:8px;background:'+c.border+';opacity:0.7;';
+        d.appendChild(notch);
+      });
+      // Label couleur centré discret
+      var lbl = document.createElement('span');
+      lbl.style.cssText = 'font-size:7px;font-weight:700;color:'+c.border+';letter-spacing:1px;text-transform:uppercase;font-family:Courier New,monospace;opacity:0.6;';
+      lbl.textContent = c.label;
+      d.appendChild(lbl);
     }
-    var num = document.createElement('span');
-    num.style.cssText = 'font-size:17px;font-weight:700;color:'+(val>0?c.text:'#c0b0a0')+';font-family:Courier New,monospace;';
-    num.textContent = val > 0 ? val : '—';
-    // Barre de progression
     if (val > 0) {
+      var num = document.createElement('span');
+      num.style.cssText = 'font-size:17px;font-weight:700;color:'+c.text+';font-family:Courier New,monospace;';
+      num.textContent = val;
       var bar = document.createElement('div');
       bar.style.cssText = 'position:absolute;bottom:0;left:0;height:3px;background:'+c.border+';width:'+(val/5*100)+'%;';
       d.appendChild(bar);
+      d.appendChild(num);
     }
-    d.appendChild(num);
     el.appendChild(d);
   });
 }
@@ -2694,13 +2707,12 @@ function _hanabiApplyState(state) {
   var phEl = _memEl('memHanabiPhase');
   if (phEl) {
     if (state.winner) {
-      phEl.textContent = '';
+      phEl.innerHTML = '';
     } else if (myTurn) {
-      var phTxt = '► TON TOUR';
-      if (state.last_action && state.last_action.desc) phTxt = '► TON TOUR · ' + state.last_action.desc.toUpperCase();
-      phEl.textContent = phTxt;
+      var desc = (state.last_action && state.last_action.desc) ? ' · ' + state.last_action.desc.toUpperCase() : '';
+      phEl.innerHTML = '<span class="hnb-blink-sq">&#9646;</span> TON TOUR' + desc;
     } else {
-      phEl.textContent = '⏳ TOUR DE '+_memGetName(_memOther).toUpperCase()+'…';
+      phEl.innerHTML = '&#9203; TOUR DE ' + _memGetName(_memOther).toUpperCase() + '…';
     }
   }
 
@@ -2714,12 +2726,26 @@ function _hanabiApplyState(state) {
       actEl.classList.add('hnb-frozen');
     }
   }
-  var indBtn = _memEl('memHanabiGiveIndiceBtn');
-  if (indBtn) indBtn.disabled = (!myTurn || state.blue_tokens <= 0 || !!state.winner);
+  var indBtn  = _memEl('memHanabiGiveIndiceBtn');
   var playBtn = _memEl('memHanabiPlayBtn');
-  if (playBtn) playBtn.disabled = (!myTurn || !!state.winner);
   var discBtn = _memEl('memHanabiDiscardBtn');
-  if (discBtn) discBtn.disabled = (!myTurn || !!state.winner);
+  if (!myTurn || !!state.winner) {
+    if (indBtn)  indBtn.disabled  = true;
+    if (playBtn) playBtn.disabled = true;
+    if (discBtn) discBtn.disabled = true;
+  } else if (_hanabiActionMode === 'play') {
+    if (indBtn)  indBtn.disabled  = true;
+    if (playBtn) playBtn.disabled = false;
+    if (discBtn) discBtn.disabled = true;
+  } else if (_hanabiActionMode === 'discard') {
+    if (indBtn)  indBtn.disabled  = true;
+    if (playBtn) playBtn.disabled = true;
+    if (discBtn) discBtn.disabled = false;
+  } else {
+    if (indBtn)  indBtn.disabled  = (state.blue_tokens <= 0);
+    if (playBtn) playBtn.disabled = false;
+    if (discBtn) discBtn.disabled = false;
+  }
 
   // Nom dans panneau indice
   var itn = _memEl('memHanabiIndiceTargetName');
@@ -2843,11 +2869,11 @@ function _hanabiConfirmIndice() {
 function _hanabiReenableButtons() {
   var cur = (_memMp&&_memMp.getGameState?_memMp.getGameState():null)||_memLastState;
   var gi=_memEl('memHanabiGiveIndiceBtn');
-  if(gi) gi.disabled = cur && cur.blue_tokens <= 0;
   var pb=_memEl('memHanabiPlayBtn');
-  if(pb) pb.disabled = false;
   var db=_memEl('memHanabiDiscardBtn');
-  if(db) db.disabled = false;
+  if(gi){ gi.disabled = (cur && cur.blue_tokens <= 0); gi.classList.remove('hnb-btn-dimmed'); }
+  if(pb){ pb.disabled = false; pb.classList.remove('hnb-btn-dimmed'); }
+  if(db){ db.disabled = false; db.classList.remove('hnb-btn-dimmed'); }
 }
 
 function _hanabiCancelIndice() {
@@ -2869,9 +2895,10 @@ function _hanabiStartPlay() {
   var hint = _memEl('memHanabiActionHint');
   if (hint) hint.textContent = 'Touche une carte pour la sélectionner, retouche pour poser';
   _hanabiRefreshMyCards();
-  // Désactiver les boutons d'action principaux pendant la sélection
-  var gi=_memEl('memHanabiGiveIndiceBtn'),db=_memEl('memHanabiDiscardBtn');
-  if(gi)gi.disabled=true; if(db)db.disabled=true;
+  var gi=_memEl('memHanabiGiveIndiceBtn'), db=_memEl('memHanabiDiscardBtn'), pb=_memEl('memHanabiPlayBtn');
+  if(gi){gi.disabled=true; gi.classList.add('hnb-btn-dimmed');}
+  if(db){db.disabled=true; db.classList.add('hnb-btn-dimmed');}
+  if(pb){pb.classList.remove('hnb-btn-dimmed');}
 }
 
 function _hanabiStartDiscard() {
@@ -2879,9 +2906,10 @@ function _hanabiStartDiscard() {
   var hint = _memEl('memHanabiActionHint');
   if (hint) hint.textContent = 'Touche une carte pour la sélectionner, retouche pour défausser';
   _hanabiRefreshMyCards();
-  // Désactiver les boutons d'action principaux pendant la sélection
-  var gi=_memEl('memHanabiGiveIndiceBtn'),pb=_memEl('memHanabiPlayBtn');
-  if(gi)gi.disabled=true; if(pb)pb.disabled=true;
+  var gi=_memEl('memHanabiGiveIndiceBtn'), pb=_memEl('memHanabiPlayBtn'), db=_memEl('memHanabiDiscardBtn');
+  if(gi){gi.disabled=true; gi.classList.add('hnb-btn-dimmed');}
+  if(pb){pb.disabled=true; pb.classList.add('hnb-btn-dimmed');}
+  if(db){db.classList.remove('hnb-btn-dimmed');}
 }
 
 function _hanabiSelectMyCard(idx) {
