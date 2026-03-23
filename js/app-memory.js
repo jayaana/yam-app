@@ -2492,15 +2492,6 @@ function _hanabiBindButtons() {
   if (db) { db.onclick = null; db.addEventListener('click', _hanabiStartDiscard); }
   var cb = _memEl('memHanabiCancelIndiceBtn');
   if (cb) { cb.onclick = null; cb.addEventListener('click', _hanabiCancelIndice); }
-  // Toggle thème clair/sombre
-  var tb = _memEl('memHanabiThemeBtn');
-  if (tb) {
-    tb.onclick = null;
-    tb.addEventListener('click', function() {
-      var screen = _memEl('memScreenHanabi');
-      if (screen) screen.classList.toggle('hnb-dark');
-    });
-  }
 }
 
 // Mettre à jour le dot de présence adversaire dans l'écran Hanabi
@@ -2515,11 +2506,9 @@ function _hanabiUpdatePresenceDot(isOnline) {
 function _hanabiMakeOppCard(card, idx) {
   var c = HANABI_COLOR_MAP[card.color];
   var d = document.createElement('div');
-  d.style.cssText = 'flex:1;min-width:0;max-width:52px;height:66px;border-radius:3px;background:'+c.bg+';border:2px solid '+c.border+';border-bottom:4px solid '+c.borderB+';display:flex;align-items:center;justify-content:center;position:relative;cursor:default;box-sizing:border-box;overflow:hidden;font-family:Courier New,monospace;transition:transform .1s;';
-  // Cadre intérieur
+  d.style.cssText = 'flex:1;min-width:0;height:66px;border-radius:3px;background:'+c.bg+';border:2px solid '+c.border+';border-bottom:4px solid '+c.borderB+';display:flex;align-items:center;justify-content:center;position:relative;cursor:default;box-sizing:border-box;overflow:hidden;font-family:Courier New,monospace;transition:transform .1s;';
   var inner = document.createElement('div');
   inner.style.cssText = 'position:absolute;inset:3px;border:1px solid rgba(255,255,255,0.55);border-radius:1px;pointer-events:none;';
-  // Coin haut gauche : num + label couleur
   var tl = document.createElement('div');
   tl.style.cssText = 'position:absolute;top:4px;left:5px;display:flex;flex-direction:column;align-items:center;line-height:1;';
   var cn = document.createElement('span');
@@ -2529,14 +2518,11 @@ function _hanabiMakeOppCard(card, idx) {
   cl.style.cssText = 'font-size:6px;font-weight:700;color:'+c.text+';margin-top:1px;letter-spacing:.3px;';
   cl.textContent = c.label;
   tl.appendChild(cn); tl.appendChild(cl);
-  // Pip couleur haut droite
   var dot = document.createElement('div');
   dot.style.cssText = 'position:absolute;top:4px;right:5px;width:7px;height:7px;border-radius:50%;background:'+c.border+';border:1px solid rgba(0,0,0,0.15);';
-  // Gros numéro central
   var numC = document.createElement('span');
   numC.style.cssText = 'font-size:28px;font-weight:700;color:'+c.text+';line-height:1;position:relative;z-index:2;font-family:Courier New,monospace;';
   numC.textContent = card.num;
-  // Barre couleur en bas
   var bar = document.createElement('div');
   bar.style.cssText = 'position:absolute;bottom:0;left:0;right:0;height:5px;background:'+c.border+';';
   d.appendChild(inner); d.appendChild(tl); d.appendChild(dot); d.appendChild(numC); d.appendChild(bar);
@@ -2547,7 +2533,7 @@ function _hanabiMakeOppCard(card, idx) {
 function _hanabiMakeMyCard(hints, idx, selectable) {
   var d = document.createElement('div');
   var isSelected = _hanabiSelectedCard === idx && selectable;
-  d.style.cssText = 'flex:1;min-width:0;max-width:52px;height:66px;border-radius:3px;background:#f5f0e8;border:2px solid #3a3530;border-bottom:4px solid #3a3530;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:'+(selectable?'pointer':'default')+';position:relative;overflow:hidden;box-sizing:border-box;font-family:Courier New,monospace;transition:transform .1s;'+(isSelected?'transform:translateY(-5px);border-color:#f5c87a;border-bottom-color:#c8a030;':'');
+  d.style.cssText = 'flex:1;min-width:0;height:66px;border-radius:3px;background:#f5f0e8;border:2px solid #3a3530;border-bottom:4px solid #3a3530;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:'+(selectable?'pointer':'default')+';position:relative;overflow:hidden;box-sizing:border-box;font-family:Courier New,monospace;transition:transform .1s;'+(isSelected?'transform:translateY(-5px);border-color:#f5c87a;border-bottom-color:#c8a030;':'');
   if (selectable) {
     (function(i){ d.addEventListener('click', function(){ _hanabiSelectMyCard(i); }); })(idx);
   }
@@ -2594,7 +2580,7 @@ function _hanabiRenderPiles(piles) {
   HANABI_COLORS.forEach(function(c) {
     var val = piles[c.id] || 0;
     var d = document.createElement('div');
-    d.style.cssText = 'flex:1;min-width:0;max-width:52px;height:44px;border-radius:3px;border:2px solid;border-bottom:3px solid;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;box-sizing:border-box;font-family:Courier New,monospace;';
+    d.style.cssText = 'flex:1;min-width:0;height:66px;border-radius:3px;border:2px solid;border-bottom:3px solid;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;box-sizing:border-box;font-family:Courier New,monospace;';
     if (val > 0) {
       d.style.background = c.bg;
       d.style.borderColor = c.border;
@@ -2672,20 +2658,20 @@ function _hanabiApplyState(state) {
     }
   }
 
-  // Jetons rouges — coeurs pixel rétro 5x5
+  // Jetons rouges — coeurs pixel rétro 5x5 : rouge = vie, gris = perdu
   var rt = _memEl('memHanabiRedTokens');
   if (rt) {
     rt.innerHTML = '';
     var red = state.red_tokens || 0;
-    // Masque pixel coeur 5x5 : 1=plein, 0=vide
     var heartMask = [0,1,0,1,0, 1,1,1,1,1, 1,1,1,1,1, 0,1,1,1,0, 0,0,1,0,0];
     for (var ri=0; ri<3; ri++) {
+      var alive = ri < (3 - red);
       var hWrap = document.createElement('div');
       hWrap.style.cssText = 'display:inline-grid;grid-template-columns:repeat(5,3px);grid-template-rows:repeat(5,3px);gap:0;margin-right:2px;';
       heartMask.forEach(function(px) {
         var cell = document.createElement('span');
         cell.style.cssText = 'display:block;width:3px;height:3px;';
-        if (px) cell.style.background = ri < red ? '#e07070' : '#c0b0a0';
+        if (px) cell.style.background = alive ? '#c84040' : '#b0a090';
         hWrap.appendChild(cell);
       });
       rt.appendChild(hWrap);
@@ -2718,18 +2704,22 @@ function _hanabiApplyState(state) {
     }
   }
 
-  // Actions — montrer pendant tout le tour (sauf si panneau indice ouvert)
+  // Actions — toujours visibles, frozen si pas son tour
   var actEl = _memEl('memHanabiActions');
-  var showActions = myTurn && !state.winner && _hanabiActionMode !== 'indice';
-  if (actEl) actEl.style.display = showActions ? 'block' : 'none';
-  var indBtn = _memEl('memHanabiGiveIndiceBtn');
-  if (indBtn) indBtn.disabled = (state.blue_tokens <= 0);
-
-  // Présence dot style arcade
-  var dot = _memEl('memHanabiOppPresenceDot');
-  if (dot) {
-    dot.className = 'hnb-presence ' + (dot._online ? 'on' : 'off');
+  if (actEl) {
+    actEl.style.display = 'block';
+    if (myTurn && !state.winner && _hanabiActionMode !== 'indice') {
+      actEl.classList.remove('hnb-frozen');
+    } else {
+      actEl.classList.add('hnb-frozen');
+    }
   }
+  var indBtn = _memEl('memHanabiGiveIndiceBtn');
+  if (indBtn) indBtn.disabled = (!myTurn || state.blue_tokens <= 0 || !!state.winner);
+  var playBtn = _memEl('memHanabiPlayBtn');
+  if (playBtn) playBtn.disabled = (!myTurn || !!state.winner);
+  var discBtn = _memEl('memHanabiDiscardBtn');
+  if (discBtn) discBtn.disabled = (!myTurn || !!state.winner);
 
   // Nom dans panneau indice
   var itn = _memEl('memHanabiIndiceTargetName');
