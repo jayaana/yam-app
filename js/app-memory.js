@@ -2466,7 +2466,7 @@ function _hanabiGetBuildState() {
     boy_hints:   [[],[],[],[],[]],
     piles:       {blue:0,green:0,red:0,pink:0,amber:0},
     discard:     [],
-    blue_tokens: 6,
+    blue_tokens: 8,
     red_tokens:  0,
     score:       0,
     winner:      null,
@@ -2898,7 +2898,7 @@ function _hanabiApplyState(state) {
   if (bt) {
     bt.innerHTML = '';
     var blue = state.blue_tokens || 0;
-    for (var bi=0; bi<6; bi++) {
+    for (var bi=0; bi<8; bi++) {
       var tok = document.createElement('div');
       tok.style.cssText = 'width:8px;height:8px;border-radius:50%;flex-shrink:0;' +
         (bi < blue ? 'background:#7bafd4;border:1.5px solid #3a6b94;' : 'background:#ede5d6;border:1.5px solid #b0a090;');
@@ -3215,7 +3215,7 @@ function _hanabiConfirmPlay() {
   if (correct) {
     ns.piles[card.color] = card.num;
     ns.score = (ns.score||0) + 1;
-    if (card.num === 5 && ns.blue_tokens < 6) ns.blue_tokens++;
+    if (card.num === 5 && ns.blue_tokens < 8) ns.blue_tokens++;
     desc = 'Pose '+c.label+' '+card.num+' ✓';
     _hanabiAnimPlaySuccess(c, card.num);
   } else {
@@ -3262,7 +3262,7 @@ function _hanabiConfirmDiscard() {
 
   var card = ns[myHandKey][_hanabiSelectedCard];
   ns.discard = (ns.discard||[]).concat([card]);
-  if (ns.blue_tokens < 6) ns.blue_tokens++;
+  if (ns.blue_tokens < 8) ns.blue_tokens++;
 
   _hanabiAnimDiscardSelf(HANABI_COLOR_MAP[card.color], card.num);
 
