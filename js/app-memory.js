@@ -2541,6 +2541,7 @@ function _hanabiInitArcade() {
   }
 
   function spawnSprite() {
+    if (sprites.length >= 4) return; // max 4 cartes simultanées
     var ci = Math.floor(Math.random()*5);
     sprites.push({ x:W+12, y:H*0.5+(Math.random()-0.5)*22,
       w:11, h:15, color:COLORS[ci], border:BORDERS[ci],
@@ -2590,7 +2591,7 @@ function _hanabiInitArcade() {
     });
     ticker++;
     if (ticker % 88 === 0) spawnFirework();
-    if (ticker % 130 === 0) spawnSprite();
+    if (ticker % 220 === 0) spawnSprite();
     if (ticker % 55 < 35) {
       ctx.fillStyle = 'rgba(245,200,122,0.28)';
       ctx.font = 'bold 7px "Courier New"';
@@ -2600,7 +2601,7 @@ function _hanabiInitArcade() {
     requestAnimationFrame(draw);
   }
 
-  for (var si = 0; si < 5; si++) { spawnSprite(); sprites[sprites.length-1].x = Math.random()*W; }
+  for (var si = 0; si < 2; si++) { spawnSprite(); sprites[sprites.length-1].x = Math.random()*W; }
   spawnFirework();
   draw();
 }
