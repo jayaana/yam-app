@@ -2914,7 +2914,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       <div class="jx-chips" id="jxChips">
         <div class="jx-chip" data-game="ocho"  ><span class="jx-chip-ic">🎴</span><span class="jx-chip-nm">Ocho</span><span class="jx-chip-sc" id="jxCOcho">—</span></div>
         <div class="jx-chip" data-game="skyjo" ><span class="jx-chip-ic">🃏</span><span class="jx-chip-nm">Skyjo</span><span class="jx-chip-sc" id="jxCSkyjo">—</span></div>
-        <div class="jx-chip" data-game="memory"><span class="jx-chip-ic">🧠</span><span class="jx-chip-nm">Memory</span><span class="jx-chip-sc" id="jxCMemory">—</span></div>
+        <div class="jx-chip" data-game="memory"><span class="jx-chip-ic">🤖</span><span class="jx-chip-nm">Memory</span><span class="jx-chip-sc" id="jxCMemory">—</span></div>
         <div class="jx-chip" data-game="pendu" ><span class="jx-chip-ic">🔤</span><span class="jx-chip-nm">Pendu</span><span class="jx-chip-sc" id="jxCPendu">—</span></div>
         <div class="jx-chip" data-game="puzzle"><span class="jx-chip-ic">🧩</span><span class="jx-chip-nm">Puzzle</span><span class="jx-chip-sc" id="jxCPuzzle">—</span></div>
         <div class="jx-chip" data-game="snake" ><span class="jx-chip-ic">🐍</span><span class="jx-chip-nm">Snake</span><span class="jx-chip-sc" id="jxCSnake">—</span></div>
@@ -3280,7 +3280,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       <div class="gv-game-card-arrow">›</div>
     </div>
     <div id="gvMemoryCard" class="gv-game-card">
-      <div class="gv-game-card-icon">🧠</div>
+      <div class="gv-game-card-icon">🤖</div>
       <div class="gv-game-card-info">
         <div class="gv-game-card-name">Memory <span class="jx-badge">BETA</span></div>
         <div class="gv-game-card-desc">Retrouve les paires</div>
@@ -3627,6 +3627,9 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       filter: blur(2px) brightness(0.5);
       z-index: -1;
       pointer-events: none;
+    }
+    body:not(.light) #memoryView::before {
+      background-image: url('https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/arcade-memory2.png');
     }
 
     /* ── Textes lobby — hardcodés pour rester lisibles sur l'image ── */
