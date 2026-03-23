@@ -2506,14 +2506,14 @@ function _hanabiUpdatePresenceDot(isOnline) {
 function _hanabiMakeOppCard(card, idx) {
   var c = HANABI_COLOR_MAP[card.color];
   var d = document.createElement('div');
-  d.style.cssText = 'width:48px;height:72px;border-radius:10px;background:'+c.bg+';border:2.5px solid '+c.border+';display:flex;flex-direction:column;align-items:center;justify-content:space-between;position:relative;flex-shrink:0;cursor:default;padding:4px 0 2px;box-sizing:border-box;';
+  d.style.cssText = 'width:40px;height:60px;border-radius:8px;background:'+c.bg+';border:2px solid '+c.border+';display:flex;flex-direction:column;align-items:center;justify-content:space-between;position:relative;flex-shrink:0;cursor:default;padding:3px 0 2px;box-sizing:border-box;flex:1;min-width:0;max-width:52px;';
   // Numéro en haut à gauche
   var num1 = document.createElement('span');
-  num1.style.cssText = 'font-size:11px;font-weight:700;color:'+c.text+';align-self:flex-start;padding-left:5px;line-height:1;';
+  num1.style.cssText = 'font-size:9px;font-weight:700;color:'+c.text+';align-self:flex-start;padding-left:4px;line-height:1;';
   num1.textContent = card.num;
   // Gros numéro central
   var numC = document.createElement('span');
-  numC.style.cssText = 'font-size:26px;font-weight:700;color:'+c.text+';line-height:1;';
+  numC.style.cssText = 'font-size:20px;font-weight:700;color:'+c.text+';line-height:1;';
   numC.textContent = card.num;
   // Barre couleur en bas
   var bar = document.createElement('div');
@@ -2527,7 +2527,7 @@ function _hanabiMakeMyCard(hints, idx, selectable) {
   var d = document.createElement('div');
   var isSelected = _hanabiSelectedCard === idx && selectable;
   // Fond dégradé simulé avec deux couleurs solides
-  d.style.cssText = 'width:48px;height:72px;border-radius:10px;background:var(--s1);border:2px solid '+(isSelected?'#ec4899':'var(--border)')+';display:flex;flex-direction:column;align-items:stretch;position:relative;flex-shrink:0;cursor:'+(selectable?'pointer':'default')+';transition:transform .15s,border-color .15s;box-sizing:border-box;overflow:hidden;'+(isSelected?'transform:translateY(-6px);':'');
+  d.style.cssText = 'width:40px;height:60px;border-radius:8px;background:var(--s1);border:2px solid '+(isSelected?'#ec4899':'var(--border)')+';display:flex;flex-direction:column;align-items:stretch;position:relative;flex-shrink:0;cursor:'+(selectable?'pointer':'default')+';transition:transform .15s,border-color .15s;box-sizing:border-box;overflow:hidden;flex:1;min-width:0;max-width:52px;'+(isSelected?'transform:translateY(-5px);':'');
   if (selectable) {
     (function(i){ d.addEventListener('click', function(){ _hanabiSelectMyCard(i); }); })(idx);
   }
@@ -2548,10 +2548,10 @@ function _hanabiMakeMyCard(hints, idx, selectable) {
       var tag = document.createElement('div');
       if (h.type === 'color') {
         var c = HANABI_COLOR_MAP[h.val];
-        tag.style.cssText = 'font-size:8px;font-weight:700;padding:1px 3px;border-radius:3px;background:'+c.border+';color:#fff;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+        tag.style.cssText = 'font-size:7px;font-weight:700;padding:1px 2px;border-radius:2px;background:'+c.border+';color:#fff;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;';
         tag.textContent = c.label;
       } else {
-        tag.style.cssText = 'font-size:9px;font-weight:700;padding:1px 3px;border-radius:3px;background:#e0e7ff;color:#3730a3;text-align:center;';
+        tag.style.cssText = 'font-size:8px;font-weight:700;padding:1px 3px;border-radius:2px;background:#e0e7ff;color:#3730a3;text-align:center;line-height:1.3;';
         tag.textContent = h.val;
       }
       hintsWrap.appendChild(tag);
@@ -2563,7 +2563,7 @@ function _hanabiMakeMyCard(hints, idx, selectable) {
   qWrap.style.cssText = 'display:flex;align-items:center;justify-content:center;flex:1;';
   if (!hints || hints.length === 0) {
     var q = document.createElement('span');
-    q.style.cssText = 'font-size:22px;color:var(--muted);font-weight:300;';
+    q.style.cssText = 'font-size:18px;color:var(--muted);font-weight:300;';
     q.textContent = '?';
     qWrap.appendChild(q);
   }
@@ -2585,9 +2585,9 @@ function _hanabiRenderPiles(piles) {
   HANABI_COLORS.forEach(function(c) {
     var val = piles[c.id] || 0;
     var d = document.createElement('div');
-    d.style.cssText = 'width:48px;height:66px;border-radius:10px;background:'+c.bg+';border:1.5px solid '+c.border+';display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;';
-    d.innerHTML = '<span style="font-size:20px;font-weight:500;color:'+c.text+';">'+(val||'—')+'</span>'+
-      '<span style="font-size:9px;color:'+c.text+';">'+c.label+'</span>';
+    d.style.cssText = 'width:40px;height:54px;border-radius:8px;background:'+c.bg+';border:1.5px solid '+c.border+';display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;min-width:0;max-width:52px;';
+    d.innerHTML = '<span style="font-size:16px;font-weight:700;color:'+c.text+';">'+(val||'—')+'</span>'+
+      '<span style="font-size:8px;color:'+c.text+';">'+c.label+'</span>';
     el.appendChild(d);
   });
 }
@@ -2603,8 +2603,8 @@ function _hanabiApplyState(state) {
 
   // Avatars (chargés une seule fois grâce au cache navigateur)
   var u = typeof yamGetUser === 'function' ? yamGetUser() : null;
-  _memLoadAvatar(_memEl('memHanabiMyProfile'),  u ? u.id         : null, _memProfile, 36);
-  _memLoadAvatar(_memEl('memHanabiOppProfile'), u ? u.partner_id : null, _memOther,   36);
+  _memLoadAvatar(_memEl('memHanabiMyProfile'),  u ? u.id         : null, _memProfile, 28);
+  _memLoadAvatar(_memEl('memHanabiOppProfile'), u ? u.partner_id : null, _memOther,   28);
 
   // Labels
   var myLbl = _memEl('memHanabiMyLabel');
@@ -2639,7 +2639,7 @@ function _hanabiApplyState(state) {
     var blue = state.blue_tokens || 0;
     for (var bi=0; bi<8; bi++) {
       var tok = document.createElement('div');
-      tok.style.cssText = 'width:11px;height:11px;border-radius:50%;flex-shrink:0;' +
+      tok.style.cssText = 'width:9px;height:9px;border-radius:50%;flex-shrink:0;' +
         (bi < blue ? 'background:#3b82f6;' : 'background:transparent;border:1.5px solid #93c5fd;');
       bt.appendChild(tok);
     }
@@ -2657,7 +2657,7 @@ function _hanabiApplyState(state) {
     var red = state.red_tokens || 0;
     for (var ri=0; ri<3; ri++) {
       var rtok = document.createElement('div');
-      rtok.style.cssText = 'width:14px;height:14px;border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;' +
+      rtok.style.cssText = 'width:11px;height:11px;border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;' +
         (ri < red ? 'background:#ef4444;color:#fff;' : 'background:transparent;border:1.5px solid #fca5a5;color:#fca5a5;');
       rtok.textContent = ri < red ? '✕' : '✕';
       rtok.style.opacity = ri < red ? '1' : '0.35';
