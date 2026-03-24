@@ -246,6 +246,8 @@ function _memCleanup() {
   _mindSaved    = false;
   _mindSelected = null;
   if (_mindBgAnim) { cancelAnimationFrame(_mindBgAnim); _mindBgAnim = null; }
+  if (_mindHandBlinkInt) { clearInterval(_mindHandBlinkInt); _mindHandBlinkInt = null; }
+  _mindMyHandActive = false; _mindOppHandActive = false;
   var mf = _memEl('memMindFinalResult'); if (mf) mf.style.display = 'none';
   var mb = _memEl('memMindLevelBanner'); if (mb) mb.classList.add('hidden');
 }
@@ -3702,6 +3704,11 @@ var _mindOppCards    = [];   // vraies cartes adversaire (lues depuis mind_hands
 var _mindOppPatchedTs  = 0;    // timestamp du dernier patch local de la main adv (anti race-condition)
 var _mindAlreadyBurned = []; // cartes adv deja brulees ce niveau (evite double pénalité)
 
+// ── Main pixel art (signal) ──
+var _mindMyHandActive  = false; // est-ce que MA main est active (remplie)
+var _mindOppHandActive = false; // est-ce que la main adverse est active (clignote)
+var _mindHandBlinkInt  = null;  // interval clignotement main adverse
+
 // ── Helpers Supabase directs ──
 function _mindFetch(params) {
   return fetch(SB_URL + '/rest/v1/' + MIND_HANDS_TABLE + '?' + params, {
@@ -3798,8 +3805,13 @@ function _mindStart(gameRow) {
   _mindLastBurnedTs = 0;
   _mindOppPatchedTs  = 0;
   _mindAlreadyBurned = [];
+  _mindMyHandActive  = false;
+  _mindOppHandActive = false;
+  if (_mindHandBlinkInt) { clearInterval(_mindHandBlinkInt); _mindHandBlinkInt = null; }
   _memShowScreen('memScreenMind');
   _mindStartBgCanvas();
+  // Injecter les mains pixel art après le rendu DOM (pile déjà présente dans le HTML)
+  setTimeout(function() { _mindInjectHands(); }, 0);
 
   var u = typeof yamGetUser === 'function' ? yamGetUser() : null;
   _memLoadAvatar(_memEl('memMindMyAvatar'),  u ? u.id         : null, _memProfile, 28);
@@ -4016,6 +4028,7 @@ function _mindRenderAll(state) {
   _mindRenderOppCards();
   _mindRenderMyCards();
   _mindUpdatePhase(state);
+  _mindApplyHandState(state);
 }
 
 // ── Rendu HUD ──
@@ -4267,7 +4280,9 @@ function _mindNextLevel(state) {
     last_played: null,
     error:       null,
     burned:      null,
-    winner:      null
+    winner:      null,
+    girl_hand_active: false,
+    boy_hand_active:  false
   };
 
   _mindLocked       = false;
@@ -4344,6 +4359,171 @@ function _mindShowResult(state) {
 // ═══════════════════════════════════════════════════════════
 // THE MIND — ANIMATIONS RÉTRO
 // ═══════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════
+// THE MIND — MAINS PIXEL ART
+// Gauche  = main adverse  (invisible si inactive, clignote si active)
+// Droite  = ma main       (contour si inactive, remplie si active)
+// La main est orientée "posée à plat, tournée vers l'adversaire"
+// ═══════════════════════════════════════════════════════════
+
+// Pixels de la main (grille 11×14, 1 = pixel visible)
+// Orientation : doigts vers le haut, paume vers le bas, regardant à gauche
+// Pour la main droite (la mienne) on flippe horizontalement via transform
+var MIND_HAND_PIXELS = [
+  [0,0,1,1,0,0,1,1,0,0,0],
+  [0,1,1,1,1,1,1,1,1,0,0],
+  [0,1,1,1,1,1,1,1,1,1,0],
+  [0,1,1,0,1,1,0,1,1,1,0],
+  [1,1,1,0,1,1,0,1,1,1,0],
+  [1,1,1,1,1,1,1,1,1,1,0],
+  [1,1,1,1,1,1,1,1,1,1,0],
+  [0,1,1,1,1,1,1,1,1,1,0],
+  [0,1,1,1,1,1,1,1,1,0,0],
+  [0,0,1,1,1,1,1,1,0,0,0],
+  [0,0,1,1,1,1,1,0,0,0,0],
+  [0,0,0,1,1,1,0,0,0,0,0],
+  [0,0,0,1,1,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0]
+];
+
+function _mindDrawHandSVG(opts) {
+  // opts: { filled, color, outlineColor, px, flip }
+  var px       = opts.px || 5;
+  var rows     = MIND_HAND_PIXELS.length;
+  var cols     = MIND_HAND_PIXELS[0].length;
+  var W        = cols * px;
+  var H        = rows * px;
+  var fill     = opts.filled  ? (opts.color || '#c8d840')        : 'none';
+  var stroke   = opts.outlineColor || '#c8d840';
+  var flipAttr = opts.flip ? ' transform="scale(-1,1) translate(-' + W + ',0)"' : '';
+
+  var rects = '';
+  for (var r = 0; r < rows; r++) {
+    for (var c = 0; c < cols; c++) {
+      if (!MIND_HAND_PIXELS[r][c]) continue;
+      var x = c * px, y = r * px;
+      if (opts.filled) {
+        rects += '<rect x="'+x+'" y="'+y+'" width="'+px+'" height="'+px+'" fill="'+fill+'"/>';
+      } else {
+        // Contour : on dessine uniquement si le pixel adjacent (haut/bas/gauche/droite)
+        // est vide → effet bord pixel art
+        var top    = r > 0        ? MIND_HAND_PIXELS[r-1][c]   : 0;
+        var bot    = r < rows-1   ? MIND_HAND_PIXELS[r+1][c]   : 0;
+        var left   = c > 0        ? MIND_HAND_PIXELS[r][c-1]   : 0;
+        var right  = c < cols-1   ? MIND_HAND_PIXELS[r][c+1]   : 0;
+        // Si au moins un voisin est vide → pixel de bord = on trace
+        var isBorder = (!top || !bot || !left || !right);
+        if (isBorder) {
+          rects += '<rect x="'+x+'" y="'+y+'" width="'+px+'" height="'+px+'" fill="'+stroke+'"/>';
+        }
+      }
+    }
+  }
+
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" style="display:block;image-rendering:pixelated;">'
+    + '<g' + flipAttr + '>' + rects + '</g>'
+    + '</svg>';
+}
+
+// Crée (ou met à jour) les deux éléments main autour de la pile centrale
+function _mindInjectHands() {
+  var pile = _memEl('memMindPileCard');
+  if (!pile) return;
+  var parent = pile.parentNode;
+  if (!parent) return;
+
+  // Supprimer si déjà présents
+  var existing = parent.querySelectorAll('.mnd-hand-btn');
+  for (var i = 0; i < existing.length; i++) existing[i].remove();
+
+  // --- Main adverse (gauche) ---
+  var oppHand = document.createElement('div');
+  oppHand.id = 'memMindOppHand';
+  oppHand.className = 'mnd-hand-btn';
+  oppHand.style.cssText = [
+    'width:60px;height:80px;display:flex;align-items:center;justify-content:center;',
+    'cursor:default;flex-shrink:0;visibility:hidden;'
+  ].join('');
+  oppHand.innerHTML = _mindDrawHandSVG({ filled: true, color: '#c8d840', px: 5 });
+
+  // --- Ma main (droite, flipée = doigts pointés vers la gauche) ---
+  var myHand = document.createElement('div');
+  myHand.id = 'memMindMyHand';
+  myHand.className = 'mnd-hand-btn';
+  myHand.style.cssText = [
+    'width:60px;height:80px;display:flex;align-items:center;justify-content:center;',
+    'cursor:pointer;flex-shrink:0;'
+  ].join('');
+  myHand.innerHTML = _mindDrawHandSVG({ filled: false, outlineColor: '#4a5a1a', px: 5, flip: true });
+  myHand.title = 'Signal main';
+  myHand.addEventListener('click', _mindToggleMyHand);
+
+  // Insérer : oppHand | pile | myHand
+  parent.insertBefore(oppHand, pile);
+  var after = pile.nextSibling;
+  if (after) parent.insertBefore(myHand, after);
+  else parent.appendChild(myHand);
+}
+
+// Toggle ma propre main + push dans le state partagé
+function _mindToggleMyHand() {
+  if (!_memMp || !_memLastState) return;
+  _mindMyHandActive = !_mindMyHandActive;
+  _mindRenderMyHandEl();
+  // Sauvegarder dans le state partagé
+  var ns = JSON.parse(JSON.stringify(_memLastState));
+  ns[_memProfile + '_hand_active'] = _mindMyHandActive;
+  _memMp.saveState(ns);
+}
+
+// Mise à jour visuelle de MA main
+function _mindRenderMyHandEl() {
+  var el = _memEl('memMindMyHand'); if (!el) return;
+  if (_mindMyHandActive) {
+    el.innerHTML = _mindDrawHandSVG({ filled: true, color: '#c8d840', px: 5, flip: true });
+  } else {
+    el.innerHTML = _mindDrawHandSVG({ filled: false, outlineColor: '#4a5a1a', px: 5, flip: true });
+  }
+}
+
+// Mise à jour visuelle de la main ADVERSE (clignote si active, invisible sinon)
+function _mindRenderOppHandEl(active) {
+  var el = _memEl('memMindOppHand'); if (!el) return;
+  if (_mindHandBlinkInt) { clearInterval(_mindHandBlinkInt); _mindHandBlinkInt = null; }
+  if (!active) {
+    el.style.visibility = 'hidden';
+    el.style.opacity = '1';
+    return;
+  }
+  el.style.visibility = 'visible';
+  el.innerHTML = _mindDrawHandSVG({ filled: true, color: '#c8d840', px: 5 });
+  // Clignotement
+  var visible = true;
+  _mindHandBlinkInt = setInterval(function() {
+    if (!_memEl('memMindOppHand')) { clearInterval(_mindHandBlinkInt); _mindHandBlinkInt = null; return; }
+    visible = !visible;
+    el.style.opacity = visible ? '1' : '0.15';
+  }, 400);
+}
+
+// Appliquer l'état des mains depuis le state partagé entrant
+function _mindApplyHandState(state) {
+  var oppActive = !!(state[_memOther + '_hand_active']);
+  var myActive  = !!(state[_memProfile + '_hand_active']);
+
+  // Ma main : sync depuis le state (utile à la reconnexion)
+  if (myActive !== _mindMyHandActive) {
+    _mindMyHandActive = myActive;
+    _mindRenderMyHandEl();
+  }
+
+  // Main adverse : màj seulement si changement
+  if (oppActive !== _mindOppHandActive) {
+    _mindOppHandActive = oppActive;
+    _mindRenderOppHandEl(oppActive);
+  }
+}
 
 function _mindStartBgCanvas() {
   var canvas = _memEl('memMindBgCanvas'); if (!canvas) return;
