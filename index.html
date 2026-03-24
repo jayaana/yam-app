@@ -3370,7 +3370,8 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
         <span class="mem-vote-chip" id="memVoteOther">—</span>
       </div>
 
-      <!-- Cartes de modes -->
+      <!-- Cartes de modes — catégorie DUEL -->
+      <div class="mem-mode-category-label mem-mode-category-label--duel">⚔️ DUEL</div>
       <div class="mem-mode-cards">
         <div class="mem-mode-card" id="memModeCardClassic" data-mode="classic">
           <div class="mem-mode-card-icon">🎴</div>
@@ -3387,18 +3388,32 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
           <div class="mem-mode-card-title">Architecte</div>
           <div class="mem-mode-card-desc">Mémorise et reconstruit · tour en temps réel</div>
         </div>
+      </div>
+
+      <!-- Cartes de modes — catégorie COOP -->
+      <div class="mem-mode-category-label mem-mode-category-label--coop">🤝 COOP</div>
+      <div class="mem-mode-cards">
         <div class="mem-mode-card mem-mode-card--coop" id="memModeCardHanabi" data-mode="hanabi">
           <div class="mem-mode-card-icon">🎆</div>
           <div class="mem-mode-card-title">Hanabi</div>
           <div class="mem-mode-card-desc">Coopératif · feu d'artifice ensemble</div>
         </div>
+        <div class="mem-mode-card mem-mode-card--coop mem-mode-card--mind" id="memModeCardMind" data-mode="mind">
+          <div class="mem-mode-card-icon">🧠</div>
+          <div class="mem-mode-card-title">The Mind</div>
+          <div class="mem-mode-card-desc">Sans parler · jouez dans l'ordre</div>
+        </div>
+      </div>
+
+      <!-- ALL — pleine largeur -->
+      <div class="mem-mode-cards mem-mode-cards--all">
         <div class="mem-mode-card mem-mode-card--all" id="memModeCardAll" data-mode="all">
           <div class="mem-mode-card-icon">⚡</div>
           <div class="mem-mode-card-title">ALL</div>
           <div class="mem-mode-card-desc">Les 3 modes · 1 manche chacun</div>
         </div>
-
       </div>
+
       <div class="mem-mode-hint" id="memModeHint">Sélectionne un mode — l'autre doit voter pareil</div>
     </div>
 
@@ -3699,6 +3714,17 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     #memScreenMode .mem-mode-card--coop .mem-mode-card-title {
       color: #c8950a !important;
     }
+    /* Grille modes — 2 colonnes par défaut */
+    #memScreenMode .mem-mode-cards { margin-bottom: 0 !important; }
+    /* Catégories */
+    #memScreenMode .mem-mode-category-label {
+      color: #fff !important;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+      padding: 8px 4px 2px !important;
+    }
+    #memScreenMode .mem-mode-cards--all {
+      grid-template-columns: 1fr !important;
+    }
     </style>
 
     <div id="memScreenHanabi" class="mem-screen" style="display:none;position:relative;">
@@ -3808,6 +3834,602 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       <!-- Zone arcade animée — initialisée par _hanabiStart() dans app-memory.js -->
       <div id="memHanabiArcade">
         <canvas id="memHanabiArcadeCanvas"></canvas>
+      </div>
+    </div>
+
+    <!-- ══ ÉCRAN : THE MIND ══ -->
+    <style>
+    /* ── The Mind — Game Boy DMG palette ──
+       BG:     #0f1208  (écran éteint)
+       Dark:   #1a1f0a  (fond cellules sombres)
+       Mid:    #4a5a1a  (éléments médium)
+       Light:  #8a9a2a  (éléments actifs)
+       Bright: #c8d840  (texte principal / glow)
+       Scanline overlay + grain LCD
+    */
+    #memScreenMind {
+      font-family: 'Courier New', monospace !important;
+      background: #0f1208 !important;
+      color: #c8d840 !important;
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Scanlines LCD Game Boy */
+    #memScreenMind::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 3px,
+        rgba(0,0,0,0.22) 3px,
+        rgba(0,0,0,0.22) 4px
+      );
+      pointer-events: none;
+      z-index: 100;
+    }
+    /* Grain LCD */
+    #memScreenMind::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 99;
+      opacity: 0.5;
+    }
+
+    /* HUD */
+    .mnd-hud {
+      background: #0a0d04;
+      border-bottom: 2px solid #3a4a10;
+      padding: 7px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      position: relative;
+      z-index: 10;
+    }
+    .mnd-hud-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+    }
+    .mnd-hud-val {
+      font-size: 18px;
+      font-weight: 700;
+      color: #c8d840;
+      letter-spacing: 2px;
+      font-family: 'Courier New', monospace;
+      line-height: 1;
+      text-shadow: 0 0 8px rgba(200,216,64,0.5);
+    }
+    .mnd-hud-lbl {
+      font-size: 7px;
+      color: #4a5a1a;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-family: 'Courier New', monospace;
+    }
+    .mnd-hud-lives {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+    .mnd-heart {
+      width: 14px;
+      height: 14px;
+      position: relative;
+      transition: opacity 0.3s, filter 0.3s;
+    }
+    .mnd-heart.lost {
+      opacity: 0.15;
+      filter: grayscale(1);
+    }
+    .mnd-heart svg { display: block; }
+
+    /* Bande de phase */
+    .mnd-phase-bar {
+      background: #0a0d04;
+      border-bottom: 1px solid #2a3a0a;
+      padding: 5px 12px;
+      text-align: center;
+      font-size: 9px;
+      color: #8a9a2a;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      font-family: 'Courier New', monospace;
+      position: relative;
+      z-index: 10;
+    }
+    .mnd-phase-bar .mnd-blink {
+      display: inline-block;
+      width: 6px; height: 6px;
+      background: #c8d840;
+      vertical-align: middle;
+      margin-right: 6px;
+      animation: mnd-blink 0.8s step-end infinite;
+    }
+    @keyframes mnd-blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* Zone adversaire */
+    .mnd-opp-zone {
+      padding: 8px 12px 6px;
+      border-bottom: 1px solid #1e280a;
+      position: relative;
+      z-index: 10;
+    }
+    .mnd-opp-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .mnd-avatar {
+      width: 28px; height: 28px;
+      border: 2px solid #3a4a10;
+      background: #1a1f0a;
+      overflow: hidden;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .mnd-avatar img { width:100%; height:100%; object-fit:cover; }
+    .mnd-presence-dot {
+      position: absolute;
+      bottom: -3px; right: -3px;
+      width: 7px; height: 7px;
+      border: 1.5px solid #0f1208;
+    }
+    .mnd-presence-dot.on  { background: #c8d840; box-shadow: 0 0 4px rgba(200,216,64,0.7); }
+    .mnd-presence-dot.off { background: #2a3a0a; }
+    .mnd-player-name {
+      font-size: 10px;
+      font-weight: 700;
+      color: #c8d840;
+      letter-spacing: 1px;
+      font-family: 'Courier New', monospace;
+    }
+    .mnd-player-sub {
+      font-size: 7px;
+      color: #4a5a1a;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+    .mnd-opp-cards {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      min-height: 54px;
+      align-items: center;
+    }
+    /* Dos carte adversaire */
+    .mnd-card-back {
+      width: 38px; height: 54px;
+      background: #1a1f0a;
+      border: 2px solid #3a4a10;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .mnd-card-back::before {
+      content: '';
+      position: absolute;
+      inset: 3px;
+      border: 1px solid #2a3a0a;
+      border-radius: 1px;
+    }
+    .mnd-card-back-dot {
+      width: 6px; height: 6px;
+      background: #3a4a10;
+    }
+
+    /* Pile centrale */
+    .mnd-pile-zone {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      position: relative;
+      z-index: 10;
+      gap: 8px;
+    }
+    .mnd-pile-label {
+      font-size: 8px;
+      color: #4a5a1a;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      font-family: 'Courier New', monospace;
+    }
+    .mnd-pile-card {
+      width: 64px; height: 90px;
+      background: #0a0d04;
+      border: 2px solid #6a7a20;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 0 14px rgba(200,216,64,0.18), inset 0 0 8px rgba(0,0,0,0.5);
+    }
+    .mnd-pile-card::before {
+      content: '';
+      position: absolute;
+      inset: 4px;
+      border: 1px solid #2a3a0a;
+      border-radius: 2px;
+      pointer-events: none;
+    }
+    .mnd-pile-num {
+      font-size: 36px;
+      font-weight: 700;
+      color: #c8d840;
+      font-family: 'Courier New', monospace;
+      line-height: 1;
+      text-shadow: 0 0 10px rgba(200,216,64,0.6);
+      z-index: 1;
+    }
+    .mnd-pile-num.empty {
+      font-size: 22px;
+      color: #2a3a0a;
+      text-shadow: none;
+    }
+    .mnd-pile-count {
+      font-size: 9px;
+      color: #4a5a1a;
+      letter-spacing: 2px;
+      font-family: 'Courier New', monospace;
+    }
+
+    /* Mes cartes */
+    .mnd-my-zone {
+      padding: 8px 12px;
+      border-top: 1px solid #1e280a;
+      background: #0a0d04;
+      position: relative;
+      z-index: 10;
+    }
+    .mnd-my-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .mnd-my-cards {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      min-height: 66px;
+    }
+    /* Carte jouable */
+    .mnd-card {
+      width: 44px; height: 62px;
+      background: #1a1f0a;
+      border: 2px solid #5a6a18;
+      border-bottom: 5px solid #2a3a0a;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 700;
+      color: #c8d840;
+      font-family: 'Courier New', monospace;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.1s, border-bottom-width 0.1s, box-shadow 0.1s;
+      -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+      text-shadow: 0 0 6px rgba(200,216,64,0.4);
+      user-select: none;
+    }
+    .mnd-card:active {
+      transform: translateY(3px);
+      border-bottom-width: 2px;
+    }
+    .mnd-card.mnd-card--selected {
+      border-color: #c8d840;
+      border-bottom-color: #6a7a20;
+      background: #252d0c;
+      box-shadow: 0 0 12px rgba(200,216,64,0.45);
+      transform: translateY(-4px);
+      border-bottom-width: 5px;
+    }
+    .mnd-card--disabled {
+      opacity: 0.3;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    /* Bouton jouer */
+    .mnd-actions {
+      padding: 8px 12px 10px;
+      background: #0a0d04;
+      border-top: 2px solid #1e280a;
+      position: relative;
+      z-index: 10;
+    }
+    .mnd-play-btn {
+      width: 100%;
+      height: 46px;
+      background: #1a1f0a;
+      border: 2px solid #5a6a18;
+      border-bottom: 5px solid #0a0d04;
+      border-radius: 3px;
+      color: #8a9a2a;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.08s, border-bottom-width 0.08s, background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .mnd-play-btn:active:not(:disabled) {
+      transform: translateY(3px);
+      border-bottom-width: 2px;
+    }
+    .mnd-play-btn:disabled {
+      opacity: 0.25;
+      cursor: default;
+    }
+    .mnd-play-btn.mnd-play-btn--ready {
+      background: #252d0c;
+      border-color: #c8d840;
+      border-bottom-color: #4a5a10;
+      color: #c8d840;
+      box-shadow: 0 0 14px rgba(200,216,64,0.3);
+      animation: mnd-pulse-btn 1.4s ease-in-out infinite;
+    }
+    @keyframes mnd-pulse-btn {
+      0%,100% { box-shadow: 0 0 8px rgba(200,216,64,0.2); }
+      50%      { box-shadow: 0 0 20px rgba(200,216,64,0.55); }
+    }
+
+    /* Canvas background */
+    #memMindBgCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.5;
+    }
+
+    /* Toast */
+    .mnd-toast {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: 50%;
+      background: #0a0d04;
+      border: 2px solid #c8d840;
+      color: #c8d840;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 8px 16px;
+      pointer-events: none;
+      z-index: 200;
+      white-space: nowrap;
+      transition: opacity 0.3s;
+      text-align: center;
+    }
+
+    /* Résultat final */
+    #memMindFinalResult {
+      position: absolute;
+      inset: 0;
+      z-index: 300;
+      background: rgba(10,13,4,0.96);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 24px;
+    }
+    .mnd-final-emoji { font-size: 52px; animation: mnd-pop 0.4s cubic-bezier(.17,.67,.58,1.4); }
+    @keyframes mnd-pop { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+    .mnd-final-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #c8d840;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 1px;
+      text-align: center;
+      text-shadow: 0 0 10px rgba(200,216,64,0.5);
+    }
+    .mnd-final-sub {
+      font-size: 10px;
+      color: #4a5a1a;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 2px;
+      text-align: center;
+    }
+
+    /* Banner niveau */
+    .mnd-level-banner {
+      position: absolute;
+      inset: 0;
+      z-index: 250;
+      background: rgba(10,13,4,0.94);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      pointer-events: none;
+    }
+    .mnd-level-banner.hidden { display: none; }
+    .mnd-level-num {
+      font-size: 64px;
+      font-weight: 700;
+      color: #c8d840;
+      font-family: 'Courier New', monospace;
+      text-shadow: 0 0 20px rgba(200,216,64,0.7);
+      line-height: 1;
+      animation: mnd-pop 0.3s ease;
+    }
+    .mnd-level-txt {
+      font-size: 10px;
+      color: #8a9a2a;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      font-family: 'Courier New', monospace;
+    }
+    .mnd-level-cd {
+      font-size: 10px;
+      color: #4a5a1a;
+      letter-spacing: 3px;
+      font-family: 'Courier New', monospace;
+      margin-top: 4px;
+    }
+
+    /* Animations carte */
+    .mnd-card-fly {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Carte The Mind dans la sélection de mode */
+    #memScreenMode .mem-mode-card--mind .mem-mode-card-title {
+      color: #7a8a1a !important;
+    }
+    #memScreenMode .mem-mode-card--mind {
+      background: var(--s1) !important;
+    }
+    body:not(.light) #memScreenMode .mem-mode-card--mind {
+      background: #1a1f0a !important;
+      border-color: #3a4a10 !important;
+    }
+    body:not(.light) #memScreenMode .mem-mode-card--mind .mem-mode-card-title {
+      color: #c8d840 !important;
+    }
+    body:not(.light) #memScreenMode .mem-mode-card--mind .mem-mode-card-desc {
+      color: #4a5a1a !important;
+    }
+    #memScreenMode .mem-mode-card--mind.mem-mode-card--selected {
+      border-color: #c8d840 !important;
+      border-width: 2.5px !important;
+    }
+    #memScreenMode .mem-mode-card--mind.mem-mode-card--matched {
+      border-color: #c8d840 !important;
+      border-width: 2.5px !important;
+    }
+    </style>
+
+    <div id="memScreenMind" class="mem-screen" style="display:none;flex-direction:column;">
+      <canvas id="memMindBgCanvas"></canvas>
+
+      <!-- HUD -->
+      <div class="mnd-hud">
+        <div class="mnd-hud-block">
+          <div class="mnd-hud-val" id="memMindLevel">01</div>
+          <div class="mnd-hud-lbl">Niveau</div>
+        </div>
+        <div class="mnd-hud-block">
+          <div class="mnd-hud-lives" id="memMindLives"></div>
+          <div class="mnd-hud-lbl">Vies</div>
+        </div>
+        <div class="mnd-hud-block">
+          <div class="mnd-hud-val" id="memMindDeck">--</div>
+          <div class="mnd-hud-lbl">Pioche</div>
+        </div>
+      </div>
+
+      <!-- Phase -->
+      <div class="mnd-phase-bar" id="memMindPhase">
+        <span class="mnd-blink"></span><span id="memMindPhaseText">EN ATTENTE…</span>
+      </div>
+
+      <!-- Zone adversaire -->
+      <div class="mnd-opp-zone">
+        <div class="mnd-opp-header">
+          <div style="position:relative;flex-shrink:0;">
+            <div class="mnd-avatar" id="memMindOppAvatar"></div>
+            <div class="mnd-presence-dot off" id="memMindOppDot"></div>
+          </div>
+          <div>
+            <div class="mnd-player-name" id="memMindOppName">—</div>
+            <div class="mnd-player-sub">Cartes adversaire</div>
+          </div>
+        </div>
+        <div class="mnd-opp-cards" id="memMindOppCards"></div>
+      </div>
+
+      <!-- Pile centrale -->
+      <div class="mnd-pile-zone">
+        <div class="mnd-pile-label">── pile ──</div>
+        <div class="mnd-pile-card" id="memMindPileCard">
+          <div class="mnd-pile-num empty" id="memMindPileNum">?</div>
+        </div>
+        <div class="mnd-pile-count" id="memMindPileCount">0 carte(s) posée(s)</div>
+      </div>
+
+      <!-- Mes cartes -->
+      <div class="mnd-my-zone">
+        <div class="mnd-my-header">
+          <div style="position:relative;flex-shrink:0;">
+            <div class="mnd-avatar" id="memMindMyAvatar"></div>
+          </div>
+          <div>
+            <div class="mnd-player-name" id="memMindMyName">—</div>
+            <div class="mnd-player-sub">Mes cartes</div>
+          </div>
+        </div>
+        <div class="mnd-my-cards" id="memMindMyCards"></div>
+      </div>
+
+      <!-- Bouton jouer -->
+      <div class="mnd-actions">
+        <button class="mnd-play-btn" id="memMindPlayBtn" disabled>
+          <span>&#9654;</span><span>JOUER LA CARTE</span>
+        </button>
+      </div>
+
+      <!-- Banner niveau -->
+      <div class="mnd-level-banner hidden" id="memMindLevelBanner">
+        <div class="mnd-level-txt">NIVEAU</div>
+        <div class="mnd-level-num" id="memMindLevelBannerNum">1</div>
+        <div class="mnd-level-cd" id="memMindLevelBannerCd">Synchronisez vos esprits…</div>
+      </div>
+
+      <!-- Résultat final -->
+      <div id="memMindFinalResult" style="display:none;">
+        <div class="mnd-final-emoji" id="memMindFinalEmoji">&#129504;</div>
+        <div class="mnd-final-title" id="memMindFinalTitle"></div>
+        <div class="mnd-final-sub"   id="memMindFinalSub"></div>
+        <button class="mem-btn-ghost" id="memMindDoneBtn" style="margin-top:16px;color:#8a9a2a;border-color:#3a4a10;">Terminer</button>
       </div>
     </div>
 
