@@ -3388,6 +3388,11 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
           <div class="mem-mode-card-title">Architecte</div>
           <div class="mem-mode-card-desc">Mémorise et reconstruit · tour en temps réel</div>
         </div>
+        <div class="mem-mode-card mem-mode-card--all" id="memModeCardAll" data-mode="all">
+          <div class="mem-mode-card-icon">⚡</div>
+          <div class="mem-mode-card-title">ALL</div>
+          <div class="mem-mode-card-desc">Les 3 modes · 1 manche chacun</div>
+        </div>
       </div>
 
       <!-- Cartes de modes — catégorie COOP -->
@@ -3402,15 +3407,6 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
           <div class="mem-mode-card-icon">🧠</div>
           <div class="mem-mode-card-title">The Mind</div>
           <div class="mem-mode-card-desc">Sans parler · jouez dans l'ordre</div>
-        </div>
-      </div>
-
-      <!-- ALL — pleine largeur -->
-      <div class="mem-mode-cards mem-mode-cards--all">
-        <div class="mem-mode-card mem-mode-card--all" id="memModeCardAll" data-mode="all">
-          <div class="mem-mode-card-icon">⚡</div>
-          <div class="mem-mode-card-title">ALL</div>
-          <div class="mem-mode-card-desc">Les 3 modes · 1 manche chacun</div>
         </div>
       </div>
 
@@ -3698,7 +3694,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       border-color: #22c55e !important;
       border-width: 2.5px !important;
     }
-    /* Hanabi — même traitement sélection que les autres */
+    /* Hanabi / COOP — même traitement sélection que les autres */
     #memScreenMode .mem-mode-card--coop {
       background: var(--s1) !important;
       border-color: var(--border) !important;
@@ -3714,16 +3710,61 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     #memScreenMode .mem-mode-card--coop .mem-mode-card-title {
       color: #c8950a !important;
     }
+    /* The Mind dark — couleurs assorties aux autres cartes (pas de vert) */
+    body:not(.light) #memScreenMode .mem-mode-card--mind {
+      background: var(--s1) !important;
+      border-color: var(--border) !important;
+    }
+    body:not(.light) #memScreenMode .mem-mode-card--mind .mem-mode-card-title {
+      color: #e879a0 !important;
+    }
+    body:not(.light) #memScreenMode .mem-mode-card--mind .mem-mode-card-desc {
+      color: var(--sub) !important;
+    }
+    body:not(.light) #memScreenMode .mem-mode-card--mind.mem-mode-card--selected {
+      border-color: var(--accent) !important;
+      border-width: 2.5px !important;
+    }
+    body:not(.light) #memScreenMode .mem-mode-card--mind.mem-mode-card--matched {
+      border-color: #22c55e !important;
+      border-width: 2.5px !important;
+    }
+    /* ALL — même style que les autres cartes DUEL */
+    #memScreenMode .mem-mode-card--all {
+      background: var(--s1) !important;
+      border-color: var(--border) !important;
+    }
+    #memScreenMode .mem-mode-card--all .mem-mode-card-title {
+      color: var(--text) !important;
+    }
+    #memScreenMode .mem-mode-card--all.mem-mode-card--selected {
+      border-color: var(--accent) !important;
+      border-width: 2.5px !important;
+    }
     /* Grille modes — 2 colonnes par défaut */
     #memScreenMode .mem-mode-cards { margin-bottom: 0 !important; }
-    /* Catégories */
+    /* Catégories — pilules lisibles */
     #memScreenMode .mem-mode-category-label {
+      display: inline-flex !important;
+      align-items: center !important;
+      padding: 5px 14px !important;
+      margin: 10px 0 6px !important;
+      border-radius: 20px !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      letter-spacing: 1px !important;
+      text-shadow: none !important;
       color: #fff !important;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
-      padding: 8px 4px 2px !important;
+      backdrop-filter: blur(6px) !important;
+      -webkit-backdrop-filter: blur(6px) !important;
     }
-    #memScreenMode .mem-mode-cards--all {
-      grid-template-columns: 1fr !important;
+    #memScreenMode .mem-mode-category-label--duel {
+      background: rgba(232, 60, 90, 0.82) !important;
+      border: 1px solid rgba(255,120,140,0.5) !important;
+    }
+    #memScreenMode .mem-mode-category-label--coop {
+      background: rgba(30, 140, 100, 0.82) !important;
+      border: 1px solid rgba(80,200,150,0.5) !important;
     }
     </style>
 
@@ -4324,27 +4365,6 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     /* Carte The Mind dans la sélection de mode */
     #memScreenMode .mem-mode-card--mind .mem-mode-card-title {
       color: #7a8a1a !important;
-    }
-    #memScreenMode .mem-mode-card--mind {
-      background: var(--s1) !important;
-    }
-    body:not(.light) #memScreenMode .mem-mode-card--mind {
-      background: #1a1f0a !important;
-      border-color: #3a4a10 !important;
-    }
-    body:not(.light) #memScreenMode .mem-mode-card--mind .mem-mode-card-title {
-      color: #c8d840 !important;
-    }
-    body:not(.light) #memScreenMode .mem-mode-card--mind .mem-mode-card-desc {
-      color: #4a5a1a !important;
-    }
-    #memScreenMode .mem-mode-card--mind.mem-mode-card--selected {
-      border-color: #c8d840 !important;
-      border-width: 2.5px !important;
-    }
-    #memScreenMode .mem-mode-card--mind.mem-mode-card--matched {
-      border-color: #c8d840 !important;
-      border-width: 2.5px !important;
     }
 
     /* ══════════════════════════════════════════════
