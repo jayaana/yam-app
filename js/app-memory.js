@@ -3700,6 +3700,7 @@ var _mindMyCards     = [];   // cartes locales lues depuis mind_hands
 var _mindOppCount    = 0;    // nb cartes adversaire (lu depuis mind_hands)
 var _mindOppCards    = [];   // vraies cartes adversaire (lues depuis mind_hands)
 var _mindOppPatchedTs  = 0;    // timestamp du dernier patch local de la main adv (anti race-condition)
+var _mindAlreadyBurned = []; // cartes adv deja brulees ce niveau (evite double pénalité)
 
 // ── Helpers Supabase directs ──
 function _mindFetch(params) {
@@ -3749,6 +3750,8 @@ function _mindBuildState(level) {
     pile:        [],
     girl_deal:   girlCards,
     boy_deal:    boyCards,
+    girl_cards:  girlCards.slice(),  // main courante (source de vérité partagée)
+    boy_cards:   boyCards.slice(),   // main courante (source de vérité partagée)
     last_played: null,
     error:       null,
     winner:      null
@@ -3794,6 +3797,7 @@ function _mindStart(gameRow) {
   _mindOppCount     = 0;
   _mindLastBurnedTs = 0;
   _mindOppPatchedTs  = 0;
+  _mindAlreadyBurned = [];
   _memShowScreen('memScreenMind');
   _mindStartBgCanvas();
 
@@ -3832,10 +3836,14 @@ function _mindStart(gameRow) {
     });
   }
 
-  if (coupleId && myDeal.length > 0) {
-    // Upsert sa propre ligne et initialiser _mindMyCards directement depuis le deal
-    _mindMyCards = myDeal.slice();
-    _mindWriteMyHand(coupleId, level, myDeal).then(function() {
+  // Lire la main courante depuis state[role+'_cards'] si disponible (source de vérité),
+  // sinon fallback sur le deal initial.
+  var myCurrentCards = state[_memProfile + '_cards'];
+  var myInitCards = (myCurrentCards && myCurrentCards.length > 0) ? myCurrentCards : myDeal;
+
+  if (coupleId && myInitCards.length > 0) {
+    _mindMyCards = myInitCards.slice();
+    _mindWriteMyHand(coupleId, level, myInitCards).then(function() {
       _mindInitCards();
     }).catch(function() { _mindInitCards(); });
   } else {
@@ -3877,22 +3885,16 @@ function _mindApplyState(state) {
   if (state.burned && state.burned.ts && state.burned.ts !== _mindLastBurnedTs) {
     _mindLastBurnedTs = state.burned.ts;
     var burnedList = state.burned.cards || [];
-    var burnRole   = state.burned.role;
     if (burnedList.length > 0) {
       burnedJustNow = true;
-      if (burnRole === _memProfile) {
-        // Mes cartes brûlées : les retirer de _mindMyCards
-        var burnedSet = burnedList.slice();
-        _mindMyCards = _mindMyCards.filter(function(c) {
-          var bi = burnedSet.indexOf(c);
-          if (bi !== -1) { burnedSet.splice(bi, 1); return false; }
-          return true;
-        });
-      } else {
-        // Cartes adversaire brûlées : mettre à jour notre état local
-        var newOppAfterBurn = _mindOppCards.filter(function(c) { return burnedList.indexOf(c) === -1; });
-        _mindOppCards = newOppAfterBurn;
-        _mindOppCount = newOppAfterBurn.length;
+      // Les mains mises à jour sont dans state[role+'_cards'] — source de vérité unique.
+      // On synchronise simplement les caches locaux depuis le state.
+      if (state[_memProfile + '_cards']) {
+        _mindMyCards  = state[_memProfile + '_cards'].slice();
+      }
+      if (state[_memOther + '_cards']) {
+        _mindOppCards = state[_memOther + '_cards'].slice();
+        _mindOppCount = _mindOppCards.length;
       }
       // Toast + flash rouge
       _mindShowToast('🔥 ' + _memGetName(burnRole) + ' avait ' + burnedList.join(', ') + ' — défaussé ! -1 ❤️', '#3a1500');
@@ -3911,9 +3913,11 @@ function _mindApplyState(state) {
       _mindNextLevelTs = nts;
       _mindLocked = true;
 
-      var myNextDeal = state[_memProfile + '_deal'] || [];
-      if (myNextDeal.length > 0) {
-        _mindMyCards = myNextDeal.slice();
+      // Lire la nouvelle main depuis state[role+'_cards'] (déjà initialisé dans _mindPlayCard)
+      // ou fallback sur le deal si non présent.
+      var myNextCards = state[_memProfile + '_cards'] || state[_memProfile + '_deal'] || [];
+      if (myNextCards.length > 0) {
+        _mindMyCards = myNextCards.slice();
         var cid = _memGetCoupleId();
         if (cid) _mindWriteMyHand(cid, state.next_level, _mindMyCards).catch(function(){});
       }
@@ -3994,6 +3998,14 @@ function _mindApplyState(state) {
   }
 
   // ── 5. Render de base (init, reconnexion, burned seul, etc.) ──
+  // Synchroniser les caches locaux depuis le state partagé si les champs sont présents.
+  if (state[_memProfile + '_cards']) {
+    _mindMyCards  = state[_memProfile + '_cards'].slice();
+  }
+  if (state[_memOther + '_cards']) {
+    _mindOppCards = state[_memOther + '_cards'].slice();
+    _mindOppCount = _mindOppCards.length;
+  }
   _mindRenderAll(state);
 }
 
@@ -4138,13 +4150,16 @@ function _mindPlayCard(idx) {
   var ns  = JSON.parse(JSON.stringify(state));
   var pile = ns.pile.slice();
   var top  = pile.length ? pile[pile.length - 1] : 0;
-  pile.push(card);
-  ns.pile = pile;
+
+  // Mettre à jour la main du joueur courant dans le state partagé
+  ns[_memProfile + '_cards'] = _mindMyCards.slice();
 
   var isError = (card < top);
 
   if (isError) {
     // ── Erreur : ordre cassé ──
+    // pile inchangée — la carte jouée hors ordre n'est pas posée
+    ns[_memProfile + '_cards'] = _mindMyCards.slice();  // déjà mis à jour
     ns.lives = Math.max(0, (ns.lives || 5) - 1);
     ns.error = { role: _memProfile, card: card, ts: Date.now() };
     ns.last_played = null;
@@ -4156,37 +4171,42 @@ function _mindPlayCard(idx) {
     return;
   }
 
-  // ── Coup valide ──
-  ns.error       = null;
+  // ── Coup valide : ajouter la carte à la pile
+  pile.push(card);
+  ns.pile  = pile;
+  ns.error = null;
   ns.last_played = { role: _memProfile, card: card, ts: Date.now() };
 
   // ── Vérifier si l'adversaire avait des cartes inférieures à la carte jouée ──
   // FIX BUG 2 : _mindOppCards peut être désynchronisé (race condition au chargement,
   // ou 0 cartes restantes non rafraîchies). On recalcule depuis mind_hands en temps réel.
-  function _mindDoPlayWithOppCards(oppCards) {
-    var burnedCards = oppCards.filter(function(c) { return c < card; });
+  function _mindDoPlayWithOppCards() {
+    // Source de vérité : la main adversaire EST dans le state partagé (ns[otherRole+'_cards']).
+    // Pas de fetch, pas de variable locale — les deux joueurs lisent/écrivent le même objet.
+    var oppCardsInState = (ns[_memOther + '_cards'] || []).slice();
+    var burnedCards = oppCardsInState.filter(function(c) { return c < card; });
 
     if (burnedCards.length > 0) {
-      // Retirer les cartes brûlées de la main adversaire
-      var newOppCards = oppCards.filter(function(c) { return c >= card; });
-      // Persister la nouvelle main adversaire
+      // Retirer les cartes brûlées de la main adverse dans le state partagé
+      var newOppCards = oppCardsInState.filter(function(c) { return c >= card; });
+      ns[_memOther + '_cards'] = newOppCards;
+      // Mettre à jour aussi le cache local pour le rendu
+      _mindOppCards = newOppCards;
+      _mindOppCount = newOppCards.length;
+      // Persister la nouvelle main adversaire dans mind_hands (pour reconnexion)
       var coupleIdBurn = _memGetCoupleId();
       if (coupleIdBurn) {
         _mindPatch('couple_id=eq.' + coupleIdBurn + '&role=eq.' + _memOther, { cards: newOppCards }).catch(function(){});
       }
-      // Les cartes brûlées sont signalées via ns.burned.cards pour le toast,
-      // mais ne sont PAS pushées dans la pile (elles ne comptent pas comme jouées
-      // et ne doivent pas apparaître comme top de pile).
+      // Les cartes brûlées ne rejoignent PAS la pile visible.
       ns.pile = pile;
       // Perdre 1 PV
       ns.lives = Math.max(0, (ns.lives || 5) - 1);
       // Signaler les cartes brûlées pour l'animation de révélation
       ns.burned = { cards: burnedCards, role: _memOther, ts: Date.now() };
       if (ns.lives <= 0) { ns.winner = 'lose'; }
-      _mindOppCards = newOppCards;
-      _mindOppPatchedTs = Date.now();  // marquer patch local (anti race-condition)
-      _mindOppCount = newOppCards.length;
     } else {
+      ns.pile  = pile;
       ns.burned = null;
     }
 
@@ -4214,28 +4234,9 @@ function _mindPlayCard(idx) {
     _memMp.saveState(ns);
   }
 
-  // Recharger les cartes adversaire depuis mind_hands avant calcul.
-  // SAUF si un patch local vient d'être appliqué (<3s) : dans ce cas
-  // mind_hands n'a pas encore été mis à jour côté serveur (race condition) —
-  // on fait confiance à _mindOppCards local qui est déjà à jour.
-  var coupleIdOpp = _memGetCoupleId();
-  var recentPatch = (Date.now() - _mindOppPatchedTs) < 3000;
-  if (coupleIdOpp && !recentPatch) {
-    _mindFetch('couple_id=eq.' + coupleIdOpp + '&role=eq.' + _memOther)
-      .then(function(rows) {
-        var fresh = (rows && rows[0] && rows[0].cards) ? rows[0].cards : [];
-        _mindOppCards = fresh;
-        _mindOppCount = fresh.length;
-        _mindDoPlayWithOppCards(fresh);
-      })
-      .catch(function() {
-        // Fallback sur la version locale si la requête échoue
-        _mindDoPlayWithOppCards(_mindOppCards.slice());
-      });
-  } else {
-    // Patch récent ou pas de coupleId → utiliser _mindOppCards local
-    _mindDoPlayWithOppCards(_mindOppCards.slice());
-  }
+  // La main adversaire est dans ns[_memOther+'_cards'] (state partagé).
+  // Plus besoin de fetch mind_hands pour calculer les burned cards.
+  _mindDoPlayWithOppCards();
 }
 
 // ── Niveau suivant (déclenché par girl uniquement après le banner) ──
@@ -4257,6 +4258,8 @@ function _mindNextLevel(state) {
     pile:        [],
     girl_deal:   state.girl_deal  || [],
     boy_deal:    state.boy_deal   || [],
+    girl_cards:  state.girl_deal  || [],  // reset au deal du nouveau niveau
+    boy_cards:   state.boy_deal   || [],  // reset au deal du nouveau niveau
     last_played: null,
     error:       null,
     burned:      null,
@@ -4267,6 +4270,7 @@ function _mindNextLevel(state) {
   _mindSelected     = null;
   _mindLastBurnedTs = 0;
   _mindNextLevelTs  = 0;  // FIX BUG 1 : reset pour que la prochaine phase mind_next soit détectée
+  _mindAlreadyBurned = [];  // reset au nouveau niveau
   _memMp.saveState(ns);
 }
 
