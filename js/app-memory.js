@@ -3692,11 +3692,13 @@ var _mindBgAnim      = null;
 var _mindSaved       = false;
 var _mindSelected    = null;
 var _mindLocked      = false;
-var _mindLastErrorTs = 0;
-var _mindLastPlayTs  = 0;
-var _mindNextLevelTs = 0;
+var _mindLastErrorTs  = 0;
+var _mindLastPlayTs   = 0;
+var _mindNextLevelTs  = 0;
+var _mindLastBurnedTs = 0;
 var _mindMyCards     = [];   // cartes locales lues depuis mind_hands
 var _mindOppCount    = 0;    // nb cartes adversaire (lu depuis mind_hands)
+var _mindOppCards    = [];   // vraies cartes adversaire (lues depuis mind_hands)
 
 // ── Helpers Supabase directs ──
 function _mindFetch(params) {
@@ -3742,7 +3744,7 @@ function _mindBuildState(level) {
     phase:       'mind',
     mode:        'mind',
     level:       level,
-    lives:       2,
+    lives:       5,
     pile:        [],
     girl_deal:   girlCards,
     boy_deal:    boyCards,
@@ -3776,17 +3778,20 @@ function _mindLoadOppCount(cb) {
   _mindFetch('couple_id=eq.' + coupleId + '&role=eq.' + _memOther)
     .then(function(rows) {
       var cards = (Array.isArray(rows) && rows[0] && rows[0].cards) ? rows[0].cards : [];
+      _mindOppCards = cards.slice();
       cb(cards.length);
     }).catch(function() { cb(0); });
 }
 
 // ── Lancement ──
 function _mindStart(gameRow) {
-  _mindSaved    = false;
-  _mindSelected = null;
-  _mindLocked   = false;
-  _mindMyCards  = [];
-  _mindOppCount = 0;
+  _mindSaved        = false;
+  _mindSelected     = null;
+  _mindLocked       = false;
+  _mindMyCards      = [];
+  _mindOppCards     = [];
+  _mindOppCount     = 0;
+  _mindLastBurnedTs = 0;
   _memShowScreen('memScreenMind');
   _mindStartBgCanvas();
 
@@ -3931,7 +3936,23 @@ function _mindApplyState(state) {
     return;
   }
 
-  // ── 5. Render de base (init, reconnexion, etc.) ──
+  // ── 5. Burned cards (cartes adversaire révélées et défaussées) ──
+  if (state.burned && state.burned.ts && state.burned.ts !== _mindLastBurnedTs) {
+    _mindLastBurnedTs = state.burned.ts;
+    var burnedList = state.burned.cards || [];
+    var burnRole   = state.burned.role;
+    if (burnedList.length > 0) {
+      _mindShowToast('🔥 ' + _memGetName(burnRole) + ' avait ' + burnedList.join(', ') + ' — défaussé ! -1 ❤️', '#3a1500');
+      if (navigator.vibrate) navigator.vibrate([60, 40, 60, 40, 60]);
+      // Flash rouge
+      var flash = document.createElement('div');
+      flash.style.cssText = 'position:fixed;inset:0;background:rgba(200,60,20,0.18);pointer-events:none;z-index:9990;transition:opacity 0.4s;';
+      document.body.appendChild(flash);
+      requestAnimationFrame(function(){ setTimeout(function(){ flash.style.opacity='0'; setTimeout(function(){ flash.remove(); }, 420); }, 200); });
+    }
+  }
+
+  // ── 6. Render de base (init, reconnexion, etc.) ──
   _mindRenderAll(state);
 }
 
@@ -3951,7 +3972,7 @@ function _mindRenderHUD(state) {
   var livesEl = _memEl('memMindLives');
   if (livesEl) {
     livesEl.innerHTML = '';
-    for (var i = 0; i < 2; i++) {
+    for (var i = 0; i < 5; i++) {
       var heart = document.createElement('div');
       heart.className = 'mnd-heart' + (i >= (state.lives||0) ? ' lost' : '');
       heart.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 12.5S1 8.5 1 4.5C1 2.57 2.57 1 4.5 1c.96 0 1.87.4 2.5 1.07C7.63 1.4 8.54 1 9.5 1 11.43 1 13 2.57 13 4.5c0 4-6 8-6 8z" fill="' + (i < (state.lives||0) ? '#ee4488' : '#2a3a0a') + '"/></svg>';
@@ -4072,7 +4093,7 @@ function _mindPlayCard(idx) {
 
   if (isError) {
     // ── Erreur : ordre cassé ──
-    ns.lives = Math.max(0, (ns.lives || 2) - 1);
+    ns.lives = Math.max(0, (ns.lives || 5) - 1);
     ns.error = { role: _memProfile, card: card, ts: Date.now() };
     ns.last_played = null;
     if (ns.lives <= 0) ns.winner = 'lose';
@@ -4086,6 +4107,36 @@ function _mindPlayCard(idx) {
   // ── Coup valide ──
   ns.error       = null;
   ns.last_played = { role: _memProfile, card: card, ts: Date.now() };
+
+  // ── Vérifier si l'adversaire avait des cartes inférieures à la carte jouée ──
+  // Ces cartes auraient dû être jouées avant : on les révèle, défausse, et on perd 1 PV
+  var oppRoleDeal = (_memOther === 'girl') ? ns.girl_deal : ns.boy_deal;
+  // On recalcule les cartes restantes de l'adversaire depuis son deal initial minus la pile
+  var oppRemainingFromState = _mindOppCards.slice(); // cartes réelles chargées depuis mind_hands
+  var burnedCards = oppRemainingFromState.filter(function(c) { return c < card; });
+
+  if (burnedCards.length > 0) {
+    // Retirer les cartes brûlées de la main adversaire
+    var newOppCards = oppRemainingFromState.filter(function(c) { return c >= card; });
+    // Persister la nouvelle main adversaire (la girl peut PATCH la main du boy et vice versa)
+    var coupleIdBurn = _memGetCoupleId();
+    if (coupleIdBurn) {
+      _mindPatch('couple_id=eq.' + coupleIdBurn + '&role=eq.' + _memOther, { cards: newOppCards }).catch(function(){});
+    }
+    // Ajouter les cartes brûlées à la pile (elles sont défaussées dans l'ordre)
+    burnedCards.sort(function(a,b){return a-b;});
+    for (var bi = 0; bi < burnedCards.length; bi++) { pile.push(burnedCards[bi]); }
+    ns.pile = pile;
+    // Perdre 1 PV
+    ns.lives = Math.max(0, (ns.lives || 5) - 1);
+    // Signaler les cartes brûlées pour l'animation de révélation
+    ns.burned = { cards: burnedCards, role: _memOther, ts: Date.now() };
+    if (ns.lives <= 0) { ns.winner = 'lose'; }
+    _mindOppCards = newOppCards;
+    _mindOppCount = newOppCards.length;
+  } else {
+    ns.burned = null;
+  }
 
   // Vérifier fin de niveau : level*2 cartes au total dans la pile
   var totalCards = (ns.level || 1) * 2;
@@ -4135,11 +4186,13 @@ function _mindNextLevel(state) {
     boy_deal:    state.boy_deal   || [],
     last_played: null,
     error:       null,
+    burned:      null,
     winner:      null
   };
 
-  _mindLocked   = false;
-  _mindSelected = null;
+  _mindLocked       = false;
+  _mindSelected     = null;
+  _mindLastBurnedTs = 0;
   _memMp.saveState(ns);
 }
 
