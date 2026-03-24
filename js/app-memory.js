@@ -3916,7 +3916,7 @@ function _mindApplyState(state) {
         if (cid) _mindWriteMyHand(cid, state.next_level, _mindMyCards).catch(function(){});
       }
 
-      // Recharger le count adversaire avant render (fix cartes grisées côté boy)
+      // Toujours recharger le count adversaire AVANT le render (fix nb cartes incorrect côté girl/boy)
       _mindLoadOppCount(function(n) {
         _mindOppCount = n;
         _mindRenderAll(state);
@@ -4136,16 +4136,21 @@ function _mindPlayCard(idx) {
   var ns  = JSON.parse(JSON.stringify(state));
   var pile = ns.pile.slice();
   var top  = pile.length ? pile[pile.length - 1] : 0;
-  pile.push(card);
-  ns.pile = pile;
 
   var isError = (card < top);
 
   if (isError) {
     // ── Erreur : ordre cassé ──
+    // La carte jouée hors ordre est défaussée : elle NE rejoint PAS la pile visible.
+    // On la remet dans _mindMyCards pour que les calculs suivants restent cohérents.
+    _mindMyCards.splice(idx, 0, card);
+    _mindRenderMyCards();
+
     ns.lives = Math.max(0, (ns.lives || 5) - 1);
     ns.error = { role: _memProfile, card: card, ts: Date.now() };
     ns.last_played = null;
+    // pile inchangée (on ne push PAS la carte erronée)
+    ns.pile = pile;
     if (ns.lives <= 0) ns.winner = 'lose';
     // Déverrouiller après l'animation d'erreur (gérée dans _mindApplyState via realtime)
     // Mais si le realtime est lent, on déverrouille quand même après 1.5s
@@ -4153,6 +4158,10 @@ function _mindPlayCard(idx) {
     _memMp.saveState(ns);
     return;
   }
+
+  // Coup valide : on ajoute la carte à la pile
+  pile.push(card);
+  ns.pile = pile;
 
   // ── Coup valide ──
   ns.error       = null;
