@@ -3734,29 +3734,28 @@ function _mindBuildState(level) {
     var tmp = deck[j]; deck[j] = deck[k]; deck[k] = tmp;
   }
   var n = level;
-  // On stocke les deals ici temporairement pour que _mindStart puisse les insérer dans mind_hands
-  _mindPendingGirlCards = deck.slice(0, n).sort(function(a,b){return a-b;});
-  _mindPendingBoyCards  = deck.slice(n, n*2).sort(function(a,b){return a-b;});
+  // Les deals sont stockés dans le state partagé —
+  // chaque joueur lit son propre deal et upsert sa propre ligne mind_hands
+  var girlCards = deck.slice(0, n).sort(function(a,b){return a-b;});
+  var boyCards  = deck.slice(n, n*2).sort(function(a,b){return a-b;});
   return {
     phase:       'mind',
     mode:        'mind',
     level:       level,
     lives:       2,
     pile:        [],
+    girl_deal:   girlCards,
+    boy_deal:    boyCards,
     last_played: null,
     error:       null,
     winner:      null
   };
 }
-var _mindPendingGirlCards = [];
-var _mindPendingBoyCards  = [];
 
-// ── Écrire les mains dans mind_hands (appelé par girl uniquement) ──
-function _mindWriteHands(coupleId, level) {
-  return Promise.all([
-    _mindUpsert({ couple_id: coupleId, role: 'girl', level: level, cards: _mindPendingGirlCards }),
-    _mindUpsert({ couple_id: coupleId, role: 'boy',  level: level, cards: _mindPendingBoyCards  })
-  ]);
+// ── Écrire SA PROPRE main dans mind_hands ──
+// Chaque joueur upsert uniquement sa ligne (RLS enforce this)
+function _mindWriteMyHand(coupleId, level, cards) {
+  return _mindUpsert({ couple_id: coupleId, role: _memProfile, level: level, cards: cards });
 }
 
 // ── Lire mes cartes depuis mind_hands ──
@@ -3812,32 +3811,30 @@ function _mindStart(gameRow) {
     _mindPlayCard(_mindSelected);
   };
 
-  // Girl écrit les mains dans mind_hands au démarrage
+  // Chaque joueur lit son deal depuis le state partagé et upsert sa propre ligne
   var state = gameRow && gameRow.state ? gameRow.state : (_memLastState || {});
-  if (_memProfile === 'girl' && _mindPendingGirlCards.length > 0) {
-    var coupleId = _memGetCoupleId();
-    if (coupleId) {
-      _mindWriteHands(coupleId, state.level || 1).then(function() {
-        _mindLoadMyCards(function(cards) {
-          _mindMyCards = cards;
-          _mindLoadOppCount(function(n) {
-            _mindOppCount = n;
-            if (_memLastState) _mindApplyState(_memLastState);
-            _mindShowLevelBanner(state.level || 1, true);
-          });
-        });
-      });
-    }
-  } else {
-    // Boy ou reprise : charger depuis mind_hands
+  var myDeal = state[_memProfile + '_deal'] || [];
+  var coupleId = _memGetCoupleId();
+  var level = state.level || 1;
+
+  function _mindInitCards() {
     _mindLoadMyCards(function(cards) {
       _mindMyCards = cards;
       _mindLoadOppCount(function(n) {
         _mindOppCount = n;
         if (_memLastState) _mindApplyState(_memLastState);
-        _mindShowLevelBanner(state.level || 1, true);
+        _mindShowLevelBanner(level, true);
       });
     });
+  }
+
+  if (coupleId && myDeal.length > 0) {
+    // Upsert sa propre ligne uniquement
+    _mindWriteMyHand(coupleId, level, myDeal).then(function() {
+      _mindInitCards();
+    }).catch(function() { _mindInitCards(); });
+  } else {
+    _mindInitCards();
   }
 }
 
@@ -3893,16 +3890,22 @@ function _mindApplyState(state) {
     return;
   }
 
-  // Nouveau niveau reçu par boy : recharger ses cartes
-  if (state.phase === 'mind' && state.level && _mindMyCards.length === 0 && !state.winner) {
-    _mindLoadMyCards(function(cards) {
-      _mindMyCards = cards;
-      _mindLoadOppCount(function(n) {
-        _mindOppCount = n;
-        _mindRenderAll(state);
-      });
-    });
-    return;
+  // Nouveau niveau : chaque joueur upsert sa propre ligne depuis le deal dans state
+  var myDeal = state[_memProfile + '_deal'];
+  if (myDeal && myDeal.length > 0 && _mindMyCards.length === 0 && !state.winner) {
+    var coupleId2 = _memGetCoupleId();
+    if (coupleId2) {
+      _mindWriteMyHand(coupleId2, state.level, myDeal).then(function() {
+        _mindLoadMyCards(function(cards) {
+          _mindMyCards = cards;
+          _mindLoadOppCount(function(n) {
+            _mindOppCount = n;
+            _mindRenderAll(state);
+          });
+        });
+      }).catch(function() { _mindRenderAll(state); });
+      return;
+    }
   }
 
   _mindRenderAll(state);
@@ -4076,20 +4079,17 @@ function _mindPlayCard(idx) {
   _memMp.saveState(ns);
 }
 
-// ── Niveau suivant ──
+// ── Niveau suivant (déclenché par girl) ──
+// Girl construit le nouveau state avec les deals inclus.
+// Chaque joueur lit son deal depuis le state dans _mindApplyState.
 function _mindNextLevel(state) {
   var coupleId = _memGetCoupleId();
   if (!coupleId) return;
-  var ns = _mindBuildState(state.next_level);
+  var ns   = _mindBuildState(state.next_level);
   ns.lives = state.lives;
-  // Girl écrit les nouvelles mains puis sauvegarde le state
-  _mindWriteHands(coupleId, state.next_level).then(function() {
-    _mindMyCards  = _mindPendingGirlCards.slice();
-    _mindOppCount = _mindPendingBoyCards.length;
-    _mindLocked   = false;
-    _mindSelected = null;
-    _memMp.saveState(ns);
-  });
+  _mindLocked   = false;
+  _mindSelected = null;
+  _memMp.saveState(ns);
 }
 
 // ── Phase message ──
