@@ -3863,9 +3863,6 @@ function _mindApplyState(state) {
   }
 
   // ── 2. Nouveau niveau (phase mind_next) ──
-  // Déclenché quand tous les cartes ont été jouées correctement.
-  // La girl est la seule à pousser le nouveau state (évite double-push).
-  // Les deux joueurs rechargent leurs cartes depuis les deals inclus dans le state.
   if (state.phase === 'mind_next') {
     var nts = state.next_ts || 0;
     if (nts !== _mindNextLevelTs) {
@@ -3880,14 +3877,19 @@ function _mindApplyState(state) {
         if (cid) _mindWriteMyHand(cid, state.next_level, _mindMyCards).catch(function(){});
       }
 
-      _mindRenderAll(state);
+      // FIX BUG 1 : recharger le count adversaire depuis mind_hands pour que le render
+      // soit correct dès le banner (évite _mindOppCount=0 qui laisse le jeu bloqué)
+      _mindLoadOppCount(function(n) {
+        _mindOppCount = n;
+        _mindRenderAll(state);
+      });
+
       _mindShowLevelBanner(state.next_level, false);
 
       // Après le banner (2.8s) : la girl pousse le nouveau state, le boy attend le realtime
       if (_memProfile === 'girl') {
         (function(capturedNts) {
           setTimeout(function() {
-            // Vérifier qu'on est toujours dans le même mind_next (pas déjà passé)
             if (_memLastState && _memLastState.phase === 'mind_next' && (_memLastState.next_ts||0) === capturedNts) {
               _mindNextLevel(_memLastState);
             }
@@ -3895,9 +3897,20 @@ function _mindApplyState(state) {
         })(nts);
       }
     } else {
-      // Même nts déjà traité : simple re-render
       _mindRenderAll(state);
     }
+    return;
+  }
+
+  // ── 2b. Transition mind_next → mind (state 'mind' normal) ──
+  // FIX BUG 1 : quand le boy reçoit le state 'mind' poussé par la girl après le banner,
+  // _mindLocked peut être encore true depuis la phase mind_next. On le libère ici.
+  if (state.phase === 'mind' && _mindLocked && _mindNextLevelTs > 0) {
+    _mindLoadOppCount(function(n) {
+      _mindOppCount = n;
+      _mindLocked = false;
+      _mindRenderAll(state);
+    });
     return;
   }
 
@@ -3936,12 +3949,26 @@ function _mindApplyState(state) {
     return;
   }
 
-  // ── 5. Burned cards (cartes adversaire révélées et défaussées) ──
+  // ── 5. Burned cards (cartes révélées et défaussées) ──
   if (state.burned && state.burned.ts && state.burned.ts !== _mindLastBurnedTs) {
     _mindLastBurnedTs = state.burned.ts;
     var burnedList = state.burned.cards || [];
     var burnRole   = state.burned.role;
     if (burnedList.length > 0) {
+      // ── FIX BUG 3 : si c'est MA main qui est défaussée, retirer les cartes localement ──
+      if (burnRole === _memProfile) {
+        var burnedSet = burnedList.slice();
+        _mindMyCards = _mindMyCards.filter(function(c) {
+          var idx = burnedSet.indexOf(c);
+          if (idx !== -1) { burnedSet.splice(idx, 1); return false; }
+          return true;
+        });
+      } else {
+        // C'est la main adverse : mettre à jour _mindOppCards et _mindOppCount
+        var newOppAfterBurn = _mindOppCards.filter(function(c) { return burnedList.indexOf(c) === -1; });
+        _mindOppCards = newOppAfterBurn;
+        _mindOppCount = newOppAfterBurn.length;
+      }
       _mindShowToast('🔥 ' + _memGetName(burnRole) + ' avait ' + burnedList.join(', ') + ' — défaussé ! -1 ❤️', '#3a1500');
       if (navigator.vibrate) navigator.vibrate([60, 40, 60, 40, 60]);
       // Flash rouge
@@ -4109,60 +4136,75 @@ function _mindPlayCard(idx) {
   ns.last_played = { role: _memProfile, card: card, ts: Date.now() };
 
   // ── Vérifier si l'adversaire avait des cartes inférieures à la carte jouée ──
-  // Ces cartes auraient dû être jouées avant : on les révèle, défausse, et on perd 1 PV
-  var oppRoleDeal = (_memOther === 'girl') ? ns.girl_deal : ns.boy_deal;
-  // On recalcule les cartes restantes de l'adversaire depuis son deal initial minus la pile
-  var oppRemainingFromState = _mindOppCards.slice(); // cartes réelles chargées depuis mind_hands
-  var burnedCards = oppRemainingFromState.filter(function(c) { return c < card; });
+  // FIX BUG 2 : _mindOppCards peut être désynchronisé (race condition au chargement,
+  // ou 0 cartes restantes non rafraîchies). On recalcule depuis mind_hands en temps réel.
+  function _mindDoPlayWithOppCards(oppCards) {
+    var burnedCards = oppCards.filter(function(c) { return c < card; });
 
-  if (burnedCards.length > 0) {
-    // Retirer les cartes brûlées de la main adversaire
-    var newOppCards = oppRemainingFromState.filter(function(c) { return c >= card; });
-    // Persister la nouvelle main adversaire (la girl peut PATCH la main du boy et vice versa)
-    var coupleIdBurn = _memGetCoupleId();
-    if (coupleIdBurn) {
-      _mindPatch('couple_id=eq.' + coupleIdBurn + '&role=eq.' + _memOther, { cards: newOppCards }).catch(function(){});
-    }
-    // Ajouter les cartes brûlées à la pile (elles sont défaussées dans l'ordre)
-    burnedCards.sort(function(a,b){return a-b;});
-    for (var bi = 0; bi < burnedCards.length; bi++) { pile.push(burnedCards[bi]); }
-    ns.pile = pile;
-    // Perdre 1 PV
-    ns.lives = Math.max(0, (ns.lives || 5) - 1);
-    // Signaler les cartes brûlées pour l'animation de révélation
-    ns.burned = { cards: burnedCards, role: _memOther, ts: Date.now() };
-    if (ns.lives <= 0) { ns.winner = 'lose'; }
-    _mindOppCards = newOppCards;
-    _mindOppCount = newOppCards.length;
-  } else {
-    ns.burned = null;
-  }
-
-  // Vérifier fin de niveau : level*2 cartes au total dans la pile
-  var totalCards = (ns.level || 1) * 2;
-  if (pile.length >= totalCards) {
-    if (ns.level >= 12) {
-      ns.winner = 'win';
+    if (burnedCards.length > 0) {
+      // Retirer les cartes brûlées de la main adversaire
+      var newOppCards = oppCards.filter(function(c) { return c >= card; });
+      // Persister la nouvelle main adversaire
+      var coupleIdBurn = _memGetCoupleId();
+      if (coupleIdBurn) {
+        _mindPatch('couple_id=eq.' + coupleIdBurn + '&role=eq.' + _memOther, { cards: newOppCards }).catch(function(){});
+      }
+      // Ajouter les cartes brûlées à la pile (elles sont défaussées dans l'ordre)
+      burnedCards.sort(function(a,b){return a-b;});
+      for (var bi = 0; bi < burnedCards.length; bi++) { pile.push(burnedCards[bi]); }
+      ns.pile = pile;
+      // Perdre 1 PV
+      ns.lives = Math.max(0, (ns.lives || 5) - 1);
+      // Signaler les cartes brûlées pour l'animation de révélation
+      ns.burned = { cards: burnedCards, role: _memOther, ts: Date.now() };
+      if (ns.lives <= 0) { ns.winner = 'lose'; }
+      _mindOppCards = newOppCards;
+      _mindOppCount = newOppCards.length;
     } else {
-      // Préparer le prochain niveau : inclure les deals dans le state
-      // pour que les deux joueurs rechargent leurs cartes via _mindApplyState
-      var nextState = _mindBuildState(ns.level + 1);
-      ns.phase      = 'mind_next';
-      ns.next_level = ns.level + 1;
-      ns.next_ts    = Date.now();
-      ns.girl_deal  = nextState.girl_deal;
-      ns.boy_deal   = nextState.boy_deal;
-      ns.winner     = null;
+      ns.burned = null;
     }
-    _mindMyCards = []; // vider localement, on rechargera depuis le deal dans _mindApplyState
-    _mindRenderMyCards();
+
+    // Vérifier fin de niveau : level*2 cartes au total dans la pile
+    var totalCards = (ns.level || 1) * 2;
+    if (pile.length >= totalCards) {
+      if (ns.level >= 12) {
+        ns.winner = 'win';
+      } else {
+        // Préparer le prochain niveau
+        var nextState = _mindBuildState(ns.level + 1);
+        ns.phase      = 'mind_next';
+        ns.next_level = ns.level + 1;
+        ns.next_ts    = Date.now();
+        ns.girl_deal  = nextState.girl_deal;
+        ns.boy_deal   = nextState.boy_deal;
+        ns.winner     = null;
+      }
+      _mindMyCards = [];
+      _mindRenderMyCards();
+    }
+
+    // Sécurité déverrouillage
+    setTimeout(function() { if (_mindLocked) { _mindLocked = false; _mindRenderMyCards(); } }, 1500);
+    _memMp.saveState(ns);
   }
 
-  // Le déverrouillage se fera dans _mindApplyState quand le realtime revient
-  // (last_played.role === _memProfile). Sécurité : 1.5s max.
-  setTimeout(function() { if (_mindLocked) { _mindLocked = false; _mindRenderMyCards(); } }, 1500);
-
-  _memMp.saveState(ns);
+  // Recharger les cartes adversaire depuis mind_hands (source de vérité) avant calcul
+  var coupleIdOpp = _memGetCoupleId();
+  if (coupleIdOpp) {
+    _mindFetch('couple_id=eq.' + coupleIdOpp + '&role=eq.' + _memOther)
+      .then(function(rows) {
+        var fresh = (rows && rows[0] && rows[0].cards) ? rows[0].cards : [];
+        _mindOppCards = fresh;
+        _mindOppCount = fresh.length;
+        _mindDoPlayWithOppCards(fresh);
+      })
+      .catch(function() {
+        // Fallback sur la version locale si la requête échoue
+        _mindDoPlayWithOppCards(_mindOppCards.slice());
+      });
+  } else {
+    _mindDoPlayWithOppCards(_mindOppCards.slice());
+  }
 }
 
 // ── Niveau suivant (déclenché par girl uniquement après le banner) ──
@@ -4193,6 +4235,7 @@ function _mindNextLevel(state) {
   _mindLocked       = false;
   _mindSelected     = null;
   _mindLastBurnedTs = 0;
+  _mindNextLevelTs  = 0;  // FIX BUG 1 : reset pour que la prochaine phase mind_next soit détectée
   _memMp.saveState(ns);
 }
 
