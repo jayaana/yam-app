@@ -579,7 +579,7 @@ function _memRouteState(state, gameRow) {
     } else {
       _memLaunchMode('hanabi', gameRow);
     }
-  } else if (ph === 'mind') {
+  } else if (ph === 'mind' || ph === 'mind_next') {
     if (_memCurrentMode === 'mind') {
       _mindApplyState(state);
     } else {
@@ -3840,90 +3840,98 @@ function _mindStart(gameRow) {
   }
 }
 
-// ── Appliquer un state entrant ──
+// ── Appliquer un state entrant (appelé par onStateUpdate + init) ──
+//
+// Règle unique : _mindMyCards est LA source de vérité locale pour mes cartes.
+// Le state partagé (memory_games) contient la pile, les lives, les deals initiaux.
+// On ne relit JAMAIS les cartes depuis le state — on les gère uniquement via splice local.
+//
 function _mindApplyState(state) {
   if (!state) return;
 
-  // Animation carte adversaire
-  if (state.last_played && state.last_played.ts !== _mindLastPlayTs) {
-    _mindLastPlayTs = state.last_played.ts; // toujours mettre à jour pour éviter double-rendu
-    if (state.last_played.role !== _memProfile) {
-      // Coup adverse : charger le count et animer
-      _mindLoadOppCount(function(n) {
-        _mindOppCount = n;
-        _mindAnimOppPlay(state.last_played.card);
-        _mindRenderAll(state);
-      });
-      return;
-    }
-    // Mon propre coup revient via realtime : juste render, pas d'animation double
+  // ── 1. Résultat final ──
+  if (state.winner) {
+    _mindLocked = true;
     _mindRenderAll(state);
+    _mindShowResult(state);
     return;
   }
 
-  // Animation erreur
+  // ── 2. Nouveau niveau (phase mind_next) ──
+  // Déclenché quand tous les cartes ont été jouées correctement.
+  // La girl est la seule à pousser le nouveau state (évite double-push).
+  // Les deux joueurs rechargent leurs cartes depuis les deals inclus dans le state.
+  if (state.phase === 'mind_next') {
+    var nts = state.next_ts || 0;
+    if (nts !== _mindNextLevelTs) {
+      _mindNextLevelTs = nts;
+      _mindLocked = true;
+
+      // Recharger ma main depuis le deal du prochain niveau (déjà dans le state)
+      var myNextDeal = state[_memProfile + '_deal'] || [];
+      if (myNextDeal.length > 0) {
+        _mindMyCards = myNextDeal.slice();
+        var cid = _memGetCoupleId();
+        if (cid) _mindWriteMyHand(cid, state.next_level, _mindMyCards).catch(function(){});
+      }
+
+      _mindRenderAll(state);
+      _mindShowLevelBanner(state.next_level, false);
+
+      // Après le banner (2.8s) : la girl pousse le nouveau state, le boy attend le realtime
+      if (_memProfile === 'girl') {
+        (function(capturedNts) {
+          setTimeout(function() {
+            // Vérifier qu'on est toujours dans le même mind_next (pas déjà passé)
+            if (_memLastState && _memLastState.phase === 'mind_next' && (_memLastState.next_ts||0) === capturedNts) {
+              _mindNextLevel(_memLastState);
+            }
+          }, 2800);
+        })(nts);
+      }
+    } else {
+      // Même nts déjà traité : simple re-render
+      _mindRenderAll(state);
+    }
+    return;
+  }
+
+  // ── 3. Erreur (carte jouée dans le désordre) ──
   if (state.error && state.error.ts !== _mindLastErrorTs) {
     _mindLastErrorTs = state.error.ts;
     _mindAnimError(state.error);
     _mindLocked = true;
     setTimeout(function() {
       _mindLocked = false;
-      _mindRenderMyCards(state);
+      _mindRenderAll(_memLastState || state);
     }, 1200);
-  }
-
-  // Passage niveau suivant
-  if (state.phase === 'mind_next') {
-    var nts = state.next_ts || 0;
-    if (nts !== _mindNextLevelTs) {
-      _mindNextLevelTs = nts;
-      _mindShowLevelBanner(state.next_level, false);
-      if (_memProfile === 'girl') {
-        (function(capturedNts) {
-          setTimeout(function() {
-            if (_memLastState && _memLastState.phase === 'mind_next' && (_memLastState.next_ts||0) === capturedNts) {
-              _mindNextLevel(_memLastState);
-            }
-          }, 2800);
-        })(nts);
-      } else {
-        // Boy recharge ses cartes depuis le deal inclus dans mind_next
-        var boyNextDeal = state[_memProfile + '_deal'] || [];
-        if (boyNextDeal.length > 0) {
-          var coupleIdB = _memGetCoupleId();
-          if (coupleIdB) {
-            _mindMyCards = boyNextDeal.slice();
-            _mindWriteMyHand(coupleIdB, state.next_level || ((state.level||1)+1), boyNextDeal).catch(function(){});
-          }
-        }
-      }
-    }
-    // Rendu direct sans passer par _mindRenderAll pour éviter que le bloc mind_next
-    // dans _mindRenderAll ne tente de re-déclencher le setTimeout (double-fire ou annulation)
-    _mindRenderHUD(state);
-    _mindRenderPile(state);
-    _mindRenderOppCards();
-    _mindRenderMyCards(state);
-    _mindUpdatePhase(state);
+    _mindRenderAll(state);
     return;
   }
 
-  // Nouveau niveau : si mes cartes sont vides et le state contient un deal, recharger
-  var myDeal = state[_memProfile + '_deal'];
-  if (myDeal && myDeal.length > 0 && _mindMyCards.length === 0 && !state.winner) {
-    var coupleId2 = _memGetCoupleId();
-    if (coupleId2) {
-      _mindMyCards = myDeal.slice();
-      _mindWriteMyHand(coupleId2, state.level, myDeal).then(function() {
-        _mindLoadOppCount(function(n) {
-          _mindOppCount = n;
-          _mindRenderAll(state);
-        });
-      }).catch(function() { _mindRenderAll(state); });
+  // ── 4. Coup joué (le mien revient via realtime, ou coup adverse) ──
+  if (state.last_played && state.last_played.ts !== _mindLastPlayTs) {
+    _mindLastPlayTs = state.last_played.ts;
+
+    if (state.last_played.role !== _memProfile) {
+      // Coup adverse : recharger le count adversaire puis animer + render
+      _mindLoadOppCount(function(n) {
+        _mindOppCount = n;
+        _mindAnimOppPlay(state.last_played.card);
+        _mindLocked = false;
+        _mindRenderAll(state);
+      });
       return;
     }
+
+    // Mon propre coup est revenu via realtime :
+    // déverrouiller et render (la carte a déjà été retirée localement dans _mindPlayCard)
+    _mindLocked = false;
+    _mindRenderAll(state);
+    return;
   }
 
+  // ── 5. Render de base (init, reconnexion, etc.) ──
   _mindRenderAll(state);
 }
 
@@ -3931,11 +3939,8 @@ function _mindRenderAll(state) {
   _mindRenderHUD(state);
   _mindRenderPile(state);
   _mindRenderOppCards();
-  _mindRenderMyCards(state);
+  _mindRenderMyCards();
   _mindUpdatePhase(state);
-  if (state.winner) {
-    _mindShowResult(state);
-  }
 }
 
 // ── Rendu HUD ──
@@ -3987,7 +3992,8 @@ function _mindRenderOppCards() {
 }
 
 // ── Rendu mes cartes ──
-function _mindRenderMyCards(state) {
+// Source de vérité : _mindMyCards (jamais relu depuis le state)
+function _mindRenderMyCards() {
   var el = _memEl('memMindMyCards');
   if (!el) return;
   el.innerHTML = '';
@@ -3995,7 +4001,7 @@ function _mindRenderMyCards(state) {
   var playBtn = _memEl('memMindPlayBtn');
   if (playBtn) { playBtn.disabled = true; playBtn.classList.remove('mnd-play-btn--ready'); }
 
-  var locked = !!(state && state.winner) || _mindLocked;
+  var locked = _mindLocked;
 
   if (_mindMyCards.length === 0) {
     var noCard = document.createElement('span');
@@ -4031,93 +4037,109 @@ function _mindSelectCard(idx) {
 // ── Jouer une carte ──
 function _mindPlayCard(idx) {
   if (!_memMp || !_memLastState || _mindLocked) return;
-  if (idx >= _mindMyCards.length) return;
+  if (idx < 0 || idx >= _mindMyCards.length) return;
 
   var state = _memLastState;
   var card  = _mindMyCards[idx];
 
-  // Bloquer + animer immédiatement
-  _mindLocked   = true;
+  // 1. Bloquer immédiatement pour éviter les doubles-clics
+  _mindLocked = true;
   _mindSelected = null;
   var playBtn = _memEl('memMindPlayBtn');
   if (playBtn) { playBtn.disabled = true; playBtn.classList.remove('mnd-play-btn--ready'); }
 
-  // Retirer la carte localement AVANT l'animation pour que le DOM soit à jour immédiatement
+  // 2. Retirer la carte localement et re-render immédiatement (carte disparaît du DOM)
   _mindMyCards.splice(idx, 1);
-  _mindRenderMyCards(_memLastState || {});
+  _mindRenderMyCards();
 
+  // 3. Lancer l'animation visuelle (flyer vers la pile)
   _mindAnimSelfPlay(idx, card);
 
-  // PATCH mind_hands : mettre à jour mes cartes restantes
+  // 4. Persister ma main dans mind_hands
   var coupleId = _memGetCoupleId();
   if (coupleId) {
-    _mindPatch(
-      'couple_id=eq.' + coupleId + '&role=eq.' + _memProfile,
-      { cards: _mindMyCards }
-    ).catch(function() {});
+    _mindPatch('couple_id=eq.' + coupleId + '&role=eq.' + _memProfile, { cards: _mindMyCards }).catch(function(){});
   }
 
-  // Construire le nouveau state partagé
-  var ns   = JSON.parse(JSON.stringify(state));
+  // 5. Construire le nouveau state partagé
+  var ns  = JSON.parse(JSON.stringify(state));
   var pile = ns.pile.slice();
-  var top  = pile.length ? pile[pile.length-1] : 0;
-
+  var top  = pile.length ? pile[pile.length - 1] : 0;
   pile.push(card);
   ns.pile = pile;
 
-  // Erreur si la carte est plus petite que le top de la pile (ordre cassé)
-  var isError = card < top;
+  var isError = (card < top);
 
   if (isError) {
-    ns.lives = Math.max(0, (ns.lives||2) - 1);
+    // ── Erreur : ordre cassé ──
+    ns.lives = Math.max(0, (ns.lives || 2) - 1);
     ns.error = { role: _memProfile, card: card, ts: Date.now() };
     ns.last_played = null;
     if (ns.lives <= 0) ns.winner = 'lose';
-    setTimeout(function() { _mindLocked = false; _mindRenderMyCards(_memLastState && _memLastState.phase === 'mind' ? _memLastState : ns); }, 1200);
-  } else {
-    ns.error       = null;
-    ns.last_played = { role: _memProfile, card: card, ts: Date.now() };
-    // Victoire de niveau ? pile.length atteint le total de cartes du niveau (level * 2)
-    var totalCards = (ns.level || 1) * 2;
-    if (pile.length >= totalCards) {
-      if (ns.level >= 12) {
-        ns.winner = 'win';
-      } else {
-        ns.phase      = 'mind_next';
-        ns.next_level = ns.level + 1;
-        ns.next_ts    = Date.now();
-        ns.next_girl_deal = null; // sera rempli par _mindNextLevel
-        ns.next_boy_deal  = null;
-        ns.winner     = null;
-      }
-      _mindMyCards = []; // vider localement, on attendra le nouveau deal
-    }
+    // Déverrouiller après l'animation d'erreur (gérée dans _mindApplyState via realtime)
+    // Mais si le realtime est lent, on déverrouille quand même après 1.5s
+    setTimeout(function() { if (_mindLocked) { _mindLocked = false; _mindRenderMyCards(); } }, 1500);
     _memMp.saveState(ns);
-    setTimeout(function() { _mindLocked = false; _mindRenderMyCards(ns); }, 500);
     return;
   }
+
+  // ── Coup valide ──
+  ns.error       = null;
+  ns.last_played = { role: _memProfile, card: card, ts: Date.now() };
+
+  // Vérifier fin de niveau : level*2 cartes au total dans la pile
+  var totalCards = (ns.level || 1) * 2;
+  if (pile.length >= totalCards) {
+    if (ns.level >= 12) {
+      ns.winner = 'win';
+    } else {
+      // Préparer le prochain niveau : inclure les deals dans le state
+      // pour que les deux joueurs rechargent leurs cartes via _mindApplyState
+      var nextState = _mindBuildState(ns.level + 1);
+      ns.phase      = 'mind_next';
+      ns.next_level = ns.level + 1;
+      ns.next_ts    = Date.now();
+      ns.girl_deal  = nextState.girl_deal;
+      ns.boy_deal   = nextState.boy_deal;
+      ns.winner     = null;
+    }
+    _mindMyCards = []; // vider localement, on rechargera depuis le deal dans _mindApplyState
+    _mindRenderMyCards();
+  }
+
+  // Le déverrouillage se fera dans _mindApplyState quand le realtime revient
+  // (last_played.role === _memProfile). Sécurité : 1.5s max.
+  setTimeout(function() { if (_mindLocked) { _mindLocked = false; _mindRenderMyCards(); } }, 1500);
 
   _memMp.saveState(ns);
 }
 
-// ── Niveau suivant (déclenché par girl) ──
-// Girl construit le nouveau state avec les deals inclus.
-// Chaque joueur lit son deal depuis le state dans _mindApplyState.
+// ── Niveau suivant (déclenché par girl uniquement après le banner) ──
+// Les deals sont déjà inclus dans le state mind_next (générés dans _mindPlayCard).
+// La girl pousse juste le nouveau state phase:'mind' pour signaler le démarrage.
+// Les deux joueurs ont déjà rechargé leurs cartes dans _mindApplyState.
 function _mindNextLevel(state) {
   var coupleId = _memGetCoupleId();
   if (!coupleId) return;
-  var level = state.next_level || ((state.level||1) + 1);
-  var ns   = _mindBuildState(level);
-  ns.lives = state.lives;
-  // Inclure les deals dans le state partagé pour que le boy puisse recharger ses cartes
-  // (girl_deal et boy_deal sont déjà dans ns via _mindBuildState)
+  var level = state.next_level || ((state.level || 1) + 1);
+
+  // Construire le state de jeu pour le nouveau niveau
+  // Les cartes ont déjà été rechargées par les 2 joueurs dans _mindApplyState
+  var ns = {
+    phase:       'mind',
+    mode:        'mind',
+    level:       level,
+    lives:       state.lives,
+    pile:        [],
+    girl_deal:   state.girl_deal  || [],
+    boy_deal:    state.boy_deal   || [],
+    last_played: null,
+    error:       null,
+    winner:      null
+  };
+
   _mindLocked   = false;
   _mindSelected = null;
-  // Girl écrit sa propre main immédiatement
-  _mindMyCards = ns[_memProfile + '_deal'] ? ns[_memProfile + '_deal'].slice() : [];
-  if (_mindMyCards.length > 0) {
-    _mindWriteMyHand(coupleId, level, _mindMyCards).catch(function(){});
-  }
   _memMp.saveState(ns);
 }
 
