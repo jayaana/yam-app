@@ -2937,7 +2937,7 @@ body.light .suggestion-lock-badge.unlocked { background: rgba(231,90,124,0.07); 
   overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
 }
 #memoryView.active { display: block; }
-.game-view-header { padding: 8px 16px 8px; padding-top: calc(var(--safe-top) + 6px); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.game-view-header { padding: 8px 16px 0px; padding-top: calc(var(--safe-top) + 6px); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
 .game-view-back { display:inline-flex; align-items:center; gap:7px; font-size:11px; font-weight:600; color:var(--sub); background:var(--s2); border:1px solid var(--border); border-radius:20px; padding:5px 10px; cursor:pointer; margin-bottom:0; transition:background 0.15s, color 0.15s, transform 0.12s; }
 .game-view-back:hover { background:var(--s3); color:var(--text); transform:translateX(-2px); }
 .game-view-title { font-family:'Bricolage Grotesque',sans-serif; font-size:17px; font-weight:700; color:var(--text); }
