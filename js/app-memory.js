@@ -3669,9 +3669,10 @@ function _hanabiScoreLabel(s) {
 // Niveaux 1–12 · 2 vies · sans communication
 // ═══════════════════════════════════════════════════════════
 
-var _mindBgAnim   = null;  // RAF handle canvas background
-var _mindSaved    = false;
-var _mindSelected = null;  // index carte sélectionnée (ma main)
+var _mindBgAnim       = null;  // RAF handle canvas background
+var _mindSaved        = false;
+var _mindSelected     = null;  // index carte sélectionnée (ma main)
+var _mindNextLevelTs  = 0;     // timestamp du dernier mind_next déclenché (anti-double)
 
 // ── Build state initial ──
 function _mindBuildState(level) {
@@ -3829,6 +3830,20 @@ function _mindApplyState(state) {
   // Phase message
   _mindUpdatePhase(state);
 
+  // Passage au niveau suivant — déclenché UNE seule fois par le joueur girl
+  // on vérifie le timestamp pour éviter les re-déclenchements sur chaque onStateUpdate
+  if (state.phase === 'mind_next' && _memProfile === 'girl') {
+    var nextTs = state.next_ts || 0;
+    if (nextTs !== _mindNextLevelTs) {
+      _mindNextLevelTs = nextTs;
+      setTimeout(function() {
+        if (_memLastState && _memLastState.phase === 'mind_next' && _memLastState.next_ts === nextTs) {
+          _mindNextLevel(_memLastState);
+        }
+      }, 2500);
+    }
+  }
+
   // Animation erreur
   if (state.error && state.error.ts !== (_mindLastErrorTs || 0)) {
     _mindLastErrorTs = state.error.ts;
@@ -3911,9 +3926,10 @@ function _mindPlayCard(idx) {
         ns.winner = 'win';
       } else {
         // Passer au niveau suivant après délai
-        ns.winner = null;
-        ns.phase  = 'mind_next';
+        ns.winner   = null;
+        ns.phase    = 'mind_next';
         ns.next_level = ns.level + 1;
+        ns.next_ts  = Date.now();
       }
     }
   }
