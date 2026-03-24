@@ -4396,16 +4396,22 @@ function _mindDrawCrossSVG(opts) {
   }
 }
 
-// Crée (ou met à jour) les deux éléments main autour de la pile centrale
+// Crée (ou met à jour) les deux croix autour de la pile centrale
 function _mindInjectHands() {
   var pile = _memEl('memMindPileCard');
   if (!pile) return;
-  var parent = pile.parentNode;
-  if (!parent) return;
 
-  // Supprimer si déjà présents
-  var existing = parent.querySelectorAll('.mnd-hand-btn');
-  for (var i = 0; i < existing.length; i++) existing[i].remove();
+  // Supprimer le wrapper précédent si déjà présent
+  var oldWrap = _memEl('memMindPileRow');
+  if (oldWrap) {
+    oldWrap.parentNode.insertBefore(pile, oldWrap);
+    oldWrap.remove();
+  }
+
+  // Créer un wrapper horizontal : [croix adverse] [pile] [ma croix]
+  var wrap = document.createElement('div');
+  wrap.id = 'memMindPileRow';
+  wrap.style.cssText = 'display:flex;flex-direction:row;align-items:center;justify-content:center;gap:12px;width:100%;';
 
   // --- Croix adverse (gauche) ---
   var oppHand = document.createElement('div');
@@ -4429,11 +4435,11 @@ function _mindInjectHands() {
   myHand.title = 'Signal croix';
   myHand.addEventListener('click', _mindToggleMyHand);
 
-  // Insérer : oppHand | pile | myHand
-  parent.insertBefore(oppHand, pile);
-  var after = pile.nextSibling;
-  if (after) parent.insertBefore(myHand, after);
-  else parent.appendChild(myHand);
+  // Assembler le wrapper : [croix adverse] [pile] [ma croix]
+  wrap.appendChild(oppHand);
+  pile.parentNode.insertBefore(wrap, pile);
+  wrap.appendChild(pile);
+  wrap.appendChild(myHand);
 }
 
 // Toggle ma propre main + push dans le state partagé
