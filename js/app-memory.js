@@ -3818,23 +3818,25 @@ function _mindStart(gameRow) {
   var level = state.level || 1;
 
   function _mindInitCards() {
-    _mindLoadMyCards(function(cards) {
-      _mindMyCards = cards;
-      _mindLoadOppCount(function(n) {
-        _mindOppCount = n;
-        if (_memLastState) _mindApplyState(_memLastState);
-        _mindShowLevelBanner(level, true);
-      });
+    _mindLoadOppCount(function(n) {
+      _mindOppCount = n;
+      if (_memLastState) _mindApplyState(_memLastState);
+      _mindShowLevelBanner(level, true);
     });
   }
 
   if (coupleId && myDeal.length > 0) {
-    // Upsert sa propre ligne uniquement
+    // Upsert sa propre ligne et initialiser _mindMyCards directement depuis le deal
+    _mindMyCards = myDeal.slice();
     _mindWriteMyHand(coupleId, level, myDeal).then(function() {
       _mindInitCards();
     }).catch(function() { _mindInitCards(); });
   } else {
-    _mindInitCards();
+    // Essayer de relire depuis mind_hands (reconnexion)
+    _mindLoadMyCards(function(cards) {
+      _mindMyCards = cards;
+      _mindInitCards();
+    });
   }
 }
 
@@ -3846,13 +3848,11 @@ function _mindApplyState(state) {
   if (state.last_played && state.last_played.ts !== _mindLastPlayTs) {
     _mindLastPlayTs = state.last_played.ts;
     if (state.last_played.role !== _memProfile) {
-      // Rafraîchir le count adversaire depuis mind_hands puis animer
+      // Rafraîchir le count adversaire depuis mind_hands puis animer + render complet
       _mindLoadOppCount(function(n) {
         _mindOppCount = n;
         _mindAnimOppPlay(state.last_played.card);
-        _mindRenderOppCards();
-        _mindRenderHUD(state);
-        _mindUpdatePhase(state);
+        _mindRenderAll(state);
       });
       return;
     }
@@ -3882,7 +3882,15 @@ function _mindApplyState(state) {
           }
         }, 2800);
       } else {
-        // Boy recharge ses cartes quand le state du nouveau niveau arrive
+        // Boy recharge ses cartes depuis le deal inclus dans mind_next
+        var boyNextDeal = state[_memProfile + '_deal'] || [];
+        if (boyNextDeal.length > 0) {
+          var coupleIdB = _memGetCoupleId();
+          if (coupleIdB) {
+            _mindMyCards = boyNextDeal.slice();
+            _mindWriteMyHand(coupleIdB, state.next_level || ((state.level||1)+1), boyNextDeal).catch(function(){});
+          }
+        }
       }
     }
     _mindRenderHUD(state);
@@ -3890,18 +3898,16 @@ function _mindApplyState(state) {
     return;
   }
 
-  // Nouveau niveau : chaque joueur upsert sa propre ligne depuis le deal dans state
+  // Nouveau niveau : si mes cartes sont vides et le state contient un deal, recharger
   var myDeal = state[_memProfile + '_deal'];
   if (myDeal && myDeal.length > 0 && _mindMyCards.length === 0 && !state.winner) {
     var coupleId2 = _memGetCoupleId();
     if (coupleId2) {
+      _mindMyCards = myDeal.slice();
       _mindWriteMyHand(coupleId2, state.level, myDeal).then(function() {
-        _mindLoadMyCards(function(cards) {
-          _mindMyCards = cards;
-          _mindLoadOppCount(function(n) {
-            _mindOppCount = n;
-            _mindRenderAll(state);
-          });
+        _mindLoadOppCount(function(n) {
+          _mindOppCount = n;
+          _mindRenderAll(state);
         });
       }).catch(function() { _mindRenderAll(state); });
       return;
@@ -4053,27 +4059,28 @@ function _mindPlayCard(idx) {
     ns.error = { role: _memProfile, card: card, ts: Date.now() };
     ns.last_played = null;
     if (ns.lives <= 0) ns.winner = 'lose';
-    setTimeout(function() { _mindLocked = false; _mindRenderMyCards(_memLastState || ns); }, 1200);
+    setTimeout(function() { _mindLocked = false; _mindRenderMyCards(_memLastState && _memLastState.phase === 'mind' ? _memLastState : ns); }, 1200);
   } else {
     ns.error       = null;
     ns.last_played = { role: _memProfile, card: card, ts: Date.now() };
-    // Victoire de niveau ? On vérifie via mind_hands
-    _mindLoadOppCount(function(oppN) {
-      _mindOppCount = oppN;
-      if (_mindMyCards.length === 0 && oppN === 0) {
-        if (ns.level >= 12) {
-          ns.winner = 'win';
-        } else {
-          ns.phase      = 'mind_next';
-          ns.next_level = ns.level + 1;
-          ns.next_ts    = Date.now();
-          ns.winner     = null;
-        }
+    // Victoire de niveau ? pile.length atteint le total de cartes du niveau (level * 2)
+    var totalCards = (ns.level || 1) * 2;
+    if (pile.length >= totalCards) {
+      if (ns.level >= 12) {
+        ns.winner = 'win';
+      } else {
+        ns.phase      = 'mind_next';
+        ns.next_level = ns.level + 1;
+        ns.next_ts    = Date.now();
+        ns.next_girl_deal = null; // sera rempli par _mindNextLevel
+        ns.next_boy_deal  = null;
+        ns.winner     = null;
       }
-      _memMp.saveState(ns);
-    });
-    setTimeout(function() { _mindLocked = false; _mindRenderMyCards(_memLastState || ns); }, 500);
-    return; // saveState appelé dans le callback ci-dessus
+      _mindMyCards = []; // vider localement, on attendra le nouveau deal
+    }
+    _memMp.saveState(ns);
+    setTimeout(function() { _mindLocked = false; _mindRenderMyCards(ns); }, 500);
+    return;
   }
 
   _memMp.saveState(ns);
@@ -4085,10 +4092,18 @@ function _mindPlayCard(idx) {
 function _mindNextLevel(state) {
   var coupleId = _memGetCoupleId();
   if (!coupleId) return;
-  var ns   = _mindBuildState(state.next_level);
+  var level = state.next_level || ((state.level||1) + 1);
+  var ns   = _mindBuildState(level);
   ns.lives = state.lives;
+  // Inclure les deals dans le state partagé pour que le boy puisse recharger ses cartes
+  // (girl_deal et boy_deal sont déjà dans ns via _mindBuildState)
   _mindLocked   = false;
   _mindSelected = null;
+  // Girl écrit sa propre main immédiatement
+  _mindMyCards = ns[_memProfile + '_deal'] ? ns[_memProfile + '_deal'].slice() : [];
+  if (_mindMyCards.length > 0) {
+    _mindWriteMyHand(coupleId, level, _mindMyCards).catch(function(){});
+  }
   _memMp.saveState(ns);
 }
 
