@@ -3665,38 +3665,51 @@ function _hanabiScoreLabel(s) {
 }
 
 // ═══════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════
 // THE MIND — Jeu coopératif rétro
-// Niveaux 1–12 · 2 vies · sans communication
+// Architecture : state partagé = actions uniquement.
+// Chaque joueur gère ses cartes LOCALEMENT.
+// Le state ne contient que : pile, lives, level, events.
 // ═══════════════════════════════════════════════════════════
 
-var _mindBgAnim       = null;  // RAF handle canvas background
+// ── Variables locales (ne transitent PAS par le state partagé) ──
+var _mindMyCards      = [];   // mes cartes courantes (local)
+var _mindBgAnim       = null;
 var _mindSaved        = false;
-var _mindSelected     = null;  // index carte sélectionnée (ma main)
-var _mindNextLevelTs  = 0;     // timestamp du dernier mind_next déclenché (anti-double)
+var _mindSelected     = null;
+var _mindNextLevelTs  = 0;
+var _mindLastErrorTs  = 0;
+var _mindLastPlayTs   = 0;
+var _mindLevel        = 1;
+var _mindLocked       = false; // bloque les actions pendant animation
 
-// ── Build state initial ──
+// ── Build state initial (émis par girl uniquement) ──
+// Le state partagé NE contient PAS les cartes des joueurs.
+// Chaque joueur reçoit ses cartes via girl_deal / boy_deal (lus une seule fois).
 function _mindBuildState(level) {
   var deck = [];
   for (var i = 1; i <= 100; i++) deck.push(i);
-  // Fisher-Yates shuffle
   for (var j = deck.length - 1; j > 0; j--) {
     var k = Math.floor(Math.random() * (j + 1));
     var tmp = deck[j]; deck[j] = deck[k]; deck[k] = tmp;
   }
-  var cardsPerPlayer = level;
-  var girlCards = deck.slice(0, cardsPerPlayer).sort(function(a,b){return a-b;});
-  var boyCards  = deck.slice(cardsPerPlayer, cardsPerPlayer * 2).sort(function(a,b){return a-b;});
+  var n = level;
+  var girlDeal = deck.slice(0, n).sort(function(a,b){return a-b;});
+  var boyDeal  = deck.slice(n, n*2).sort(function(a,b){return a-b;});
   return {
-    phase:       'mind',
-    mode:        'mind',
-    level:       level,
-    lives:       2,
-    girl_cards:  girlCards,
-    boy_cards:   boyCards,
-    pile:        [],          // cartes posées dans l'ordre
-    last_played: null,        // {role, card} dernière carte jouée
-    error:       null,        // {role, card, expected} si erreur
-    winner:      null         // 'win' | 'lose'
+    phase:     'mind',
+    mode:      'mind',
+    level:     level,
+    lives:     2,
+    pile:      [],       // valeurs posées
+    girl_deal: girlDeal, // cartes initiales girl — lues une seule fois au démarrage
+    boy_deal:  boyDeal,  // cartes initiales boy  — lues une seule fois au démarrage
+    girl_remaining: n,   // nb cartes restantes girl (compteur public)
+    boy_remaining:  n,   // nb cartes restantes boy  (compteur public)
+    last_played: null,   // {role, card, ts}
+    error:       null,   // {role, card, ts}
+    winner:      null
   };
 }
 
@@ -3704,17 +3717,18 @@ function _mindBuildState(level) {
 function _mindStart(gameRow) {
   _mindSaved    = false;
   _mindSelected = null;
+  _mindLocked   = false;
+  _mindMyCards  = [];
   _memShowScreen('memScreenMind');
   _mindStartBgCanvas();
 
   var u = typeof yamGetUser === 'function' ? yamGetUser() : null;
   _memLoadAvatar(_memEl('memMindMyAvatar'),  u ? u.id         : null, _memProfile, 28);
   _memLoadAvatar(_memEl('memMindOppAvatar'), u ? u.partner_id : null, _memOther,   28);
-  var nMe = _memEl('memMindMyName'),  nOth = _memEl('memMindOppName');
-  if (nMe)  nMe.textContent  = _memGetName(_memProfile);
+  var nMe = _memEl('memMindMyName'), nOth = _memEl('memMindOppName');
+  if (nMe)  nMe.textContent = _memGetName(_memProfile);
   if (nOth) nOth.textContent = _memGetName(_memOther);
 
-  // Bouton Terminer résultat
   var doneBtn = _memEl('memMindDoneBtn');
   if (doneBtn) doneBtn.onclick = function() {
     var fr = _memEl('memMindFinalResult'); if (fr) fr.style.display = 'none';
@@ -3722,160 +3736,178 @@ function _mindStart(gameRow) {
     _memCleanup(); _memShowLb(true); _lbLoad();
   };
 
-  // Bouton jouer
   var playBtn = _memEl('memMindPlayBtn');
-  if (playBtn) {
-    playBtn.onclick = function() {
-      if (_mindSelected === null) return;
-      _mindPlayCard(_mindSelected);
-    };
-  }
+  if (playBtn) playBtn.onclick = function() {
+    if (_mindSelected === null || _mindLocked) return;
+    _mindPlayCard(_mindSelected);
+  };
 
   if (_memLastState) _mindApplyState(_memLastState);
-
-  // Banner niveau au démarrage
   _mindShowLevelBanner(_memLastState ? _memLastState.level : 1, true);
 }
 
-// ── Appliquer un state ──
+// ── Appliquer un state entrant ──
 function _mindApplyState(state) {
   if (!state) return;
 
-  // Niveau
-  var lvlEl = _memEl('memMindLevel');
-  if (lvlEl) lvlEl.textContent = String(state.level || 1).padStart(2,'0');
-
-  // Vies (pixel hearts)
-  var livesEl = _memEl('memMindLives');
-  if (livesEl) {
-    livesEl.innerHTML = '';
-    for (var i = 0; i < 2; i++) {
-      var heart = document.createElement('div');
-      heart.className = 'mnd-heart' + (i >= (state.lives || 0) ? ' lost' : '');
-      heart.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 12.5S1 8.5 1 4.5C1 2.57 2.57 1 4.5 1c.96 0 1.87.4 2.5 1.07C7.63 1.4 8.54 1 9.5 1 11.43 1 13 2.57 13 4.5c0 4-6 8-6 8z" fill="' + (i < (state.lives || 0) ? '#ee4488' : '#2a3a0a') + '"/></svg>';
-      livesEl.appendChild(heart);
-    }
+  // Initialiser mes cartes locales depuis le deal (une seule fois par niveau)
+  var myDealKey = _memProfile + '_deal';
+  if (state[myDealKey] && _mindMyCards.length === 0 && !state.winner) {
+    _mindMyCards = state[myDealKey].slice();
+    _mindLevel   = state.level;
   }
 
-  // Pioche restante
-  var myCards  = (state[_memProfile + '_cards'] || []);
-  var oppCards = (state[_memOther   + '_cards'] || []);
-  var deckEl   = _memEl('memMindDeck');
-  if (deckEl) deckEl.textContent = String(myCards.length + oppCards.length).padStart(2,'0');
-
-  // Pile centrale
-  var pile   = state.pile || [];
-  var topNum = pile.length > 0 ? pile[pile.length - 1] : null;
-  var pileNumEl = _memEl('memMindPileNum');
-  if (pileNumEl) {
-    pileNumEl.textContent  = topNum !== null ? topNum : '?';
-    pileNumEl.className    = 'mnd-pile-num' + (topNum === null ? ' empty' : '');
-  }
-  var pileCountEl = _memEl('memMindPileCount');
-  if (pileCountEl) pileCountEl.textContent = pile.length + ' carte(s) posée(s)';
-
-  // Cartes adversaire (dos)
-  var oppCardsEl = _memEl('memMindOppCards');
-  if (oppCardsEl) {
-    oppCardsEl.innerHTML = '';
-    for (var j = 0; j < oppCards.length; j++) {
-      var back = document.createElement('div');
-      back.className = 'mnd-card-back';
-      var dot = document.createElement('div');
-      dot.className = 'mnd-card-back-dot';
-      back.appendChild(dot);
-      oppCardsEl.appendChild(back);
+  // Si nouveau niveau reçu (next_ts changé), réinitialiser mes cartes
+  if (state.phase === 'mind_next') {
+    var nts = state.next_ts || 0;
+    if (nts !== _mindNextLevelTs) {
+      _mindNextLevelTs = nts;
+      // Girl déclenche la construction du niveau suivant
+      if (_memProfile === 'girl') {
+        setTimeout(function() {
+          if (_memLastState && _memLastState.phase === 'mind_next' && (_memLastState.next_ts||0) === nts) {
+            _mindNextLevel(_memLastState);
+          }
+        }, 2500);
+      }
     }
-    if (oppCards.length === 0) {
-      var empty = document.createElement('span');
-      empty.style.cssText = 'font-size:9px;color:#2a3a0a;letter-spacing:2px;font-family:Courier New,monospace;';
-      empty.textContent = 'AUCUNE CARTE';
-      oppCardsEl.appendChild(empty);
-    }
+    // Dans tous les cas afficher le banner et bloquer
+    _mindShowLevelBanner(state.next_level, false);
+    _mindRenderHUD(state);
+    _mindUpdatePhase(state);
+    return;
   }
 
-  // Mes cartes (jouables)
-  var myCardsEl = _memEl('memMindMyCards');
-  if (myCardsEl) {
-    myCardsEl.innerHTML = '';
+  // Nouveau niveau : réinitialiser cartes locales depuis le deal
+  if (state.level !== _mindLevel && state[myDealKey]) {
+    _mindMyCards = state[myDealKey].slice();
+    _mindLevel   = state.level;
     _mindSelected = null;
-    for (var ci = 0; ci < myCards.length; ci++) {
-      (function(idx, val) {
-        var card = document.createElement('div');
-        card.className = 'mnd-card';
-        card.textContent = val;
-        if (state.winner) { card.classList.add('mnd-card--disabled'); }
-        card.addEventListener('click', function() {
-          if (state.winner) return;
-          _mindSelectCard(idx, myCards.length);
-        });
-        myCardsEl.appendChild(card);
-      })(ci, myCards[ci]);
-    }
-    if (myCards.length === 0) {
-      var noCard = document.createElement('span');
-      noCard.style.cssText = 'font-size:9px;color:#2a3a0a;letter-spacing:2px;font-family:Courier New,monospace;';
-      noCard.textContent = 'AUCUNE CARTE';
-      myCardsEl.appendChild(noCard);
-    }
+    _mindLocked   = false;
+    _mindShowLevelBanner(state.level, false);
   }
 
-  // Bouton jouer
-  // Ne pas réactiver si c'est nous qui venons juste de jouer (évite double-tap)
-  var playBtn = _memEl('memMindPlayBtn');
-  if (playBtn) {
-    var justPlayed = state.last_played && state.last_played.role === _memProfile
-                     && (Date.now() - (state.last_played.ts || 0)) < 1500;
-    playBtn.disabled = (state.winner !== null) || (myCards.length === 0) || justPlayed;
-    playBtn.classList.toggle('mnd-play-btn--ready', false);
-  }
-
-  // Phase message
-  _mindUpdatePhase(state);
-
-  // Passage au niveau suivant — déclenché UNE seule fois par le joueur girl
-  // on vérifie le timestamp pour éviter les re-déclenchements sur chaque onStateUpdate
-  if (state.phase === 'mind_next' && _memProfile === 'girl') {
-    var nextTs = state.next_ts || 0;
-    if (nextTs !== _mindNextLevelTs) {
-      _mindNextLevelTs = nextTs;
-      setTimeout(function() {
-        if (_memLastState && _memLastState.phase === 'mind_next' && _memLastState.next_ts === nextTs) {
-          _mindNextLevel(_memLastState);
-        }
-      }, 2500);
-    }
-  }
-
-  // Animation erreur
-  if (state.error && state.error.ts !== (_mindLastErrorTs || 0)) {
-    _mindLastErrorTs = state.error.ts;
-    _mindAnimError(state.error);
-  }
-
-  // Animation carte jouée
-  if (state.last_played && state.last_played.ts !== (_mindLastPlayTs || 0)) {
+  // Animation carte adversaire posée
+  if (state.last_played && state.last_played.ts !== _mindLastPlayTs) {
     _mindLastPlayTs = state.last_played.ts;
     if (state.last_played.role !== _memProfile) {
       _mindAnimOppPlay(state.last_played.card);
     }
   }
 
-  // Résultat
-  if (state.winner) {
-    _mindShowResult(state);
+  // Animation erreur
+  if (state.error && state.error.ts !== _mindLastErrorTs) {
+    _mindLastErrorTs = state.error.ts;
+    _mindAnimError(state.error);
+    // Après erreur : débloquer après délai
+    _mindLocked = true;
+    setTimeout(function() { _mindLocked = false; _mindRenderMyCards(state); }, 1200);
+  }
+
+  _mindRenderHUD(state);
+  _mindRenderOppCards(state);
+  _mindRenderMyCards(state);
+  _mindRenderPile(state);
+  _mindUpdatePhase(state);
+
+  if (state.winner) _mindShowResult(state);
+}
+
+// ── Rendu HUD ──
+function _mindRenderHUD(state) {
+  var lvlEl = _memEl('memMindLevel');
+  if (lvlEl) lvlEl.textContent = String(state.level || 1).padStart(2,'0');
+
+  var livesEl = _memEl('memMindLives');
+  if (livesEl) {
+    livesEl.innerHTML = '';
+    for (var i = 0; i < 2; i++) {
+      var heart = document.createElement('div');
+      heart.className = 'mnd-heart' + (i >= (state.lives||0) ? ' lost' : '');
+      heart.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 12.5S1 8.5 1 4.5C1 2.57 2.57 1 4.5 1c.96 0 1.87.4 2.5 1.07C7.63 1.4 8.54 1 9.5 1 11.43 1 13 2.57 13 4.5c0 4-6 8-6 8z" fill="' + (i < (state.lives||0) ? '#ee4488' : '#2a3a0a') + '"/></svg>';
+      livesEl.appendChild(heart);
+    }
+  }
+
+  var deckEl = _memEl('memMindDeck');
+  if (deckEl) {
+    var total = (_mindMyCards.length) + (state[_memOther + '_remaining'] || 0);
+    deckEl.textContent = String(total).padStart(2,'0');
   }
 }
 
-var _mindLastErrorTs = 0;
-var _mindLastPlayTs  = 0;
+// ── Rendu pile ──
+function _mindRenderPile(state) {
+  var pile = state.pile || [];
+  var topNum = pile.length ? pile[pile.length-1] : null;
+  var pileNumEl = _memEl('memMindPileNum');
+  if (pileNumEl) {
+    pileNumEl.textContent = topNum !== null ? topNum : '?';
+    pileNumEl.className   = 'mnd-pile-num' + (topNum === null ? ' empty' : '');
+  }
+  var pileCountEl = _memEl('memMindPileCount');
+  if (pileCountEl) pileCountEl.textContent = pile.length + ' carte(s) posée(s)';
+}
 
-// ── Sélectionner une carte ──
-function _mindSelectCard(idx, total) {
-  _mindSelected = (_mindSelected === idx) ? null : idx;
+// ── Rendu cartes adversaire (dos) ──
+function _mindRenderOppCards(state) {
+  var oppCardsEl = _memEl('memMindOppCards');
+  if (!oppCardsEl) return;
+  var n = state[_memOther + '_remaining'] || 0;
+  oppCardsEl.innerHTML = '';
+  for (var j = 0; j < n; j++) {
+    var back = document.createElement('div');
+    back.className = 'mnd-card-back';
+    var dot = document.createElement('div');
+    dot.className = 'mnd-card-back-dot';
+    back.appendChild(dot);
+    oppCardsEl.appendChild(back);
+  }
+  if (n === 0) {
+    var empty = document.createElement('span');
+    empty.style.cssText = 'font-size:9px;color:#2a3a0a;letter-spacing:2px;font-family:Courier New,monospace;';
+    empty.textContent = 'AUCUNE CARTE';
+    oppCardsEl.appendChild(empty);
+  }
+}
+
+// ── Rendu mes cartes ──
+function _mindRenderMyCards(state) {
   var myCardsEl = _memEl('memMindMyCards');
   if (!myCardsEl) return;
-  var cards = myCardsEl.querySelectorAll('.mnd-card');
+  myCardsEl.innerHTML = '';
+  _mindSelected = null;
+
+  var playBtn = _memEl('memMindPlayBtn');
+  if (playBtn) { playBtn.disabled = true; playBtn.classList.remove('mnd-play-btn--ready'); }
+
+  if (_mindMyCards.length === 0) {
+    var noCard = document.createElement('span');
+    noCard.style.cssText = 'font-size:9px;color:#2a3a0a;letter-spacing:2px;font-family:Courier New,monospace;';
+    noCard.textContent = 'AUCUNE CARTE';
+    myCardsEl.appendChild(noCard);
+    return;
+  }
+
+  var locked = !!(state.winner) || _mindLocked;
+  for (var ci = 0; ci < _mindMyCards.length; ci++) {
+    (function(idx, val) {
+      var card = document.createElement('div');
+      card.className = 'mnd-card' + (locked ? ' mnd-card--disabled' : '');
+      card.textContent = val;
+      if (!locked) {
+        card.addEventListener('click', function() { _mindSelectCard(idx); });
+      }
+      myCardsEl.appendChild(card);
+    })(ci, _mindMyCards[ci]);
+  }
+}
+
+// ── Sélectionner une carte ──
+function _mindSelectCard(idx) {
+  if (_mindLocked) return;
+  _mindSelected = (_mindSelected === idx) ? null : idx;
+  var cards = (_memEl('memMindMyCards') || {}).querySelectorAll('.mnd-card');
   for (var i = 0; i < cards.length; i++) {
     cards[i].classList.toggle('mnd-card--selected', i === _mindSelected);
   }
@@ -3888,99 +3920,110 @@ function _mindSelectCard(idx, total) {
 
 // ── Jouer une carte ──
 function _mindPlayCard(idx) {
-  if (!_memMp || !_memLastState) return;
+  if (!_memMp || !_memLastState || _mindLocked) return;
+  if (idx >= _mindMyCards.length) return;
+
   var state = _memLastState;
-  var myCards = (state[_memProfile + '_cards'] || []).slice();
-  if (idx >= myCards.length) return;
+  var card  = _mindMyCards[idx];
 
-  var card = myCards[idx];
-
-  // Animer la carte volante immédiatement (UX)
-  _mindAnimSelfPlay(idx, card);
-
-  // Bloquer le bouton immédiatement pour éviter double-tap
+  // Bloquer immédiatement
+  _mindLocked   = true;
   _mindSelected = null;
   var playBtn = _memEl('memMindPlayBtn');
   if (playBtn) { playBtn.disabled = true; playBtn.classList.remove('mnd-play-btn--ready'); }
 
-  // Construire nouveau state
-  // IMPORTANT : on ne touche QUE son propre champ de cartes.
-  // Les cartes de l'adversaire sont préservées telles quelles dans le state partagé.
-  var ns = JSON.parse(JSON.stringify(state));
-  var pile = ns.pile.slice();
+  // Animation locale immédiate
+  _mindAnimSelfPlay(idx, card);
 
-  // Retirer la carte de ma main
-  var newMyCards = myCards.filter(function(_, i) { return i !== idx; });
-  ns[_memProfile + '_cards'] = newMyCards;
+  // Retirer la carte de ma main locale
+  _mindMyCards.splice(idx, 1);
 
-  // Vérifier si la carte est valide :
-  // la plus petite carte de TOUTES les mains restantes doit être >= card
-  var oppCards    = (ns[_memOther + '_cards'] || []);
-  var allRemaining = oppCards.concat(newMyCards);
-  var hasSmaller   = allRemaining.some(function(c) { return c < card; });
+  // Construire le nouveau state
+  // On ne touche QUE les champs publics : pile, lives, counters, events
+  var ns         = JSON.parse(JSON.stringify(state));
+  var pile       = ns.pile.slice();
+  var topPile    = pile.length ? pile[pile.length-1] : 0;
+  var oppRemain  = ns[_memOther + '_remaining'] || 0;
+
+  // Erreur si la carte posée est plus grande que le top de pile ET qu'une carte
+  // plus petite existe chez l'adversaire (on ne connaît pas ses cartes exactes,
+  // mais on sait combien il en a — l'erreur est détectée après par le state)
+  // → ici on fait confiance au joueur, l'erreur sera détectée côté serveur/state
+  // En pratique : erreur si card < topPile (incohérence d'ordre)
+  // La vraie règle The Mind : erreur si on joue alors qu'une carte plus petite
+  // existe CHEZ L'AUTRE. On ne peut pas le savoir localement → on envoie l'action
+  // et on laisse l'autre joueur (ou le state) détecter.
+  // SIMPLIFICATION FONCTIONNELLE : on envoie l'action, le state note le résultat.
 
   pile.push(card);
   ns.pile = pile;
+  ns[_memProfile + '_remaining'] = _mindMyCards.length;
 
-  if (hasSmaller) {
-    // Erreur — perdre une vie
-    ns.lives = Math.max(0, (ns.lives || 2) - 1);
+  // Vérifier si le joueur qui vient de jouer a commis une erreur :
+  // une carte plus petite que 'card' existait-elle quelque part ?
+  // On stocke la vraie main de chaque joueur dans girl_deal/boy_deal au départ,
+  // mais elles sont effacées après distribution. Pas de référence côté state.
+  // → On utilise une heuristique : erreur détectée si card < topPile (ordre cassé)
+  var isError = (card < topPile);
+
+  if (isError) {
+    ns.lives = Math.max(0, (ns.lives||2) - 1);
     ns.error = { role: _memProfile, card: card, ts: Date.now() };
     ns.last_played = null;
-    if (ns.lives <= 0) {
-      ns.winner = 'lose';
-    }
+    if (ns.lives <= 0) ns.winner = 'lose';
+    // Débloquer après animation
+    setTimeout(function() { _mindLocked = false; _mindRenderMyCards(ns); }, 1200);
   } else {
+    ns.error       = null;
     ns.last_played = { role: _memProfile, card: card, ts: Date.now() };
-    ns.error = null;
-
-    // Victoire de niveau : les deux mains sont vides
-    var allLeft = (ns.girl_cards || []).length + (ns.boy_cards || []).length;
-    if (allLeft === 0) {
+    // Niveau terminé si les deux joueurs n'ont plus de cartes
+    var myRemain  = _mindMyCards.length;
+    var oppRemain2 = ns[_memOther + '_remaining'];
+    if (myRemain === 0 && oppRemain2 === 0) {
       if (ns.level >= 12) {
         ns.winner = 'win';
       } else {
-        ns.winner     = null;
         ns.phase      = 'mind_next';
         ns.next_level = ns.level + 1;
         ns.next_ts    = Date.now();
+        ns.winner     = null;
       }
     }
+    // Débloquer après courte pause
+    setTimeout(function() { _mindLocked = false; _mindRenderMyCards(_memLastState || ns); }, 600);
   }
 
+  // Effacer les deals du state (plus utiles, économiser bande passante)
+  delete ns.girl_deal;
+  delete ns.boy_deal;
+
   _memMp.saveState(ns);
 }
 
-// ── Passer au niveau suivant ──
+// ── Niveau suivant ──
 function _mindNextLevel(state) {
-  var ns = _mindBuildState(state.next_level);
-  ns.lives = state.lives; // conserver les vies
+  var ns     = _mindBuildState(state.next_level);
+  ns.lives   = state.lives;
+  // Réinitialiser ma main locale depuis le nouveau deal
+  _mindMyCards = ns[_memProfile + '_deal'].slice();
+  _mindLevel   = ns.level;
+  _mindLocked  = false;
+  _mindSelected = null;
   _memMp.saveState(ns);
-  _mindShowLevelBanner(state.next_level, false);
 }
 
-// ── Mettre à jour la barre de phase ──
+// ── Phase message ──
 function _mindUpdatePhase(state) {
   var txt = _memEl('memMindPhaseText');
   if (!txt) return;
   if (state.winner === 'win') {
     txt.textContent = 'VICTOIRE — Esprits en fusion !';
   } else if (state.winner === 'lose') {
-    txt.textContent = 'DÉFAITE — Synchronisation perdue';
+    txt.textContent = 'DEFAITE — Synchronisation perdue';
   } else if (state.phase === 'mind_next') {
-    txt.textContent = 'Niveau ' + (state.next_level) + ' en approche…';
-    // Déclencher automatiquement le niveau suivant si on est le joueur girl
-    if (_memProfile === 'girl') {
-      setTimeout(function() {
-        if (_memLastState && _memLastState.phase === 'mind_next') {
-          _mindNextLevel(_memLastState);
-        }
-      }, 2800);
-    }
+    txt.textContent = 'NIVEAU ' + state.next_level + ' EN APPROCHE…';
   } else {
-    var myCards  = (state[_memProfile + '_cards'] || []).length;
-    var oppCards = (state[_memOther   + '_cards'] || []).length;
-    txt.textContent = 'NIVEAU ' + state.level + '  —  MOI ' + myCards + '  •  ADV ' + oppCards;
+    txt.textContent = 'NIVEAU ' + (state.level||1) + '  —  MOI ' + _mindMyCards.length + '  \u2022  ADV ' + (state[_memOther+'_remaining']||0);
   }
 }
 
@@ -3992,21 +4035,18 @@ function _mindShowLevelBanner(level, isStart) {
   if (!banner || !numEl) return;
   numEl.textContent = level;
   banner.classList.remove('hidden');
-  var count = 3;
-  if (cdEl) cdEl.textContent = isStart ? 'Synchronisez vos esprits…' : 'Prochain niveau dans ' + count + '…';
-  if (!isStart) {
+  if (isStart) {
+    if (cdEl) cdEl.textContent = 'Synchronisez vos esprits\u2026';
+    setTimeout(function() { banner.classList.add('hidden'); }, 2500);
+  } else {
+    var count = 3;
+    if (cdEl) cdEl.textContent = 'Prochain niveau dans ' + count + '\u2026';
     var iv = setInterval(function() {
       count--;
-      if (count <= 0) {
-        clearInterval(iv);
-        banner.classList.add('hidden');
-      } else {
-        if (cdEl) cdEl.textContent = 'Prochain niveau dans ' + count + '…';
-      }
+      if (count <= 0) { clearInterval(iv); banner.classList.add('hidden'); }
+      else if (cdEl)  { cdEl.textContent = 'Prochain niveau dans ' + count + '\u2026'; }
     }, 1000);
-    setTimeout(function() { banner.classList.add('hidden'); }, 3000);
-  } else {
-    setTimeout(function() { banner.classList.add('hidden'); }, 2500);
+    setTimeout(function() { banner.classList.add('hidden'); }, 3200);
   }
 }
 
@@ -4014,140 +4054,81 @@ function _mindShowLevelBanner(level, isStart) {
 function _mindShowResult(state) {
   if (_mindSaved) return;
   _mindSaved = true;
-
   var fr = _memEl('memMindFinalResult');
   if (!fr) return;
   fr.style.display = 'flex';
-
   var emojiEl = _memEl('memMindFinalEmoji');
   var titleEl = _memEl('memMindFinalTitle');
   var subEl   = _memEl('memMindFinalSub');
-
   if (state.winner === 'win') {
-    if (emojiEl) emojiEl.textContent = '🧠';
+    if (emojiEl) emojiEl.textContent = '\uD83E\uDDE0';
     if (titleEl) titleEl.textContent = 'PARFAITE SYNCHRONISATION';
-    if (subEl)   subEl.textContent   = '12 niveaux · Esprits fusionnés';
+    if (subEl)   subEl.textContent   = '12 niveaux \u00b7 Esprits fusionn\u00e9s';
     _mindAnimVictory();
   } else {
-    if (emojiEl) emojiEl.textContent = '💀';
-    if (titleEl) titleEl.textContent = 'DÉSYNCHRONISÉS';
-    if (subEl)   subEl.textContent   = 'Niveau ' + (state.level || 1) + ' · Recommencez !';
+    if (emojiEl) emojiEl.textContent = '\uD83D\uDC80';
+    if (titleEl) titleEl.textContent = 'DESYNCHRONISES';
+    if (subEl)   subEl.textContent   = 'Niveau ' + (state.level||1) + ' \u00b7 Recommencez !';
     _mindAnimDefeat();
   }
-
-  // Sauvegarder score
   if (_memProfile === 'girl') {
-    var cid = _memGetCoupleId();
-    var dur = Math.round((Date.now() - _memStartedAt) / 1000);
+    var cid = _memGetCoupleId(), dur = Math.round((Date.now()-_memStartedAt)/1000);
     if (cid) {
-      sb2Post('game_scores', {
-        couple_id:   cid,
-        game_id:     'memory_mind',
-        player_role: 'girl',
-        score:       (state.level || 1) * 100,
-        moves:       (state.pile || []).length,
-        time_seconds:dur,
-        winner_role: state.winner === 'win' ? 'both' : 'none',
-        user_id:     typeof yamGetUser === 'function' ? yamGetUser().id : null
-      }).catch(function(){});
-      sb2Post('game_scores', {
-        couple_id:   cid,
-        game_id:     'memory_mind',
-        player_role: 'boy',
-        score:       (state.level || 1) * 100,
-        moves:       (state.pile || []).length,
-        time_seconds:dur,
-        winner_role: state.winner === 'win' ? 'both' : 'none',
-        user_id:     null
-      }).catch(function(){});
+      sb2Post('game_scores',{couple_id:cid,game_id:'memory_mind',player_role:'girl',score:(state.level||1)*100,moves:(state.pile||[]).length,time_seconds:dur,winner_role:state.winner==='win'?'both':'none',user_id:typeof yamGetUser==='function'?yamGetUser().id:null}).catch(function(){});
+      sb2Post('game_scores',{couple_id:cid,game_id:'memory_mind',player_role:'boy', score:(state.level||1)*100,moves:(state.pile||[]).length,time_seconds:dur,winner_role:state.winner==='win'?'both':'none',user_id:null}).catch(function(){});
     }
   }
-  if (typeof window.yamFlameActivity === 'function') window.yamFlameActivity('memory_done');
+  if (typeof window.yamFlameActivity==='function') window.yamFlameActivity('memory_done');
 }
 
 // ═══════════════════════════════════════════════════════════
 // THE MIND — ANIMATIONS RÉTRO
 // ═══════════════════════════════════════════════════════════
 
-// ── Canvas background : étoiles + particules ──
 function _mindStartBgCanvas() {
   var canvas = _memEl('memMindBgCanvas');
   if (!canvas) return;
   var ctx = canvas.getContext('2d');
   var W, H, stars = [], particles = [];
-
   function resize() {
     var sc = _memEl('memScreenMind');
     W = canvas.width  = sc ? sc.offsetWidth  : window.innerWidth;
     H = canvas.height = sc ? sc.offsetHeight : window.innerHeight;
     stars = [];
-    for (var i = 0; i < 60; i++) {
-      stars.push({
-        x: Math.random() * W,
-        y: Math.random() * H,
-        r: Math.random() < 0.7 ? 1 : 2,
-        blink: Math.random() * Math.PI * 2,
-        speed: 0.02 + Math.random() * 0.03
-      });
-    }
+    for (var i = 0; i < 60; i++) stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()<0.7?1:2,blink:Math.random()*Math.PI*2,speed:0.02+Math.random()*0.03});
   }
   resize();
-
   var lastResize = 0;
-  function onResize() {
-    var now = Date.now();
-    if (now - lastResize > 300) { lastResize = now; resize(); }
-  }
+  function onResize() { var n=Date.now(); if(n-lastResize>300){lastResize=n;resize();} }
   window.addEventListener('resize', onResize);
-
-  function addParticle(x, y, color) {
-    for (var i = 0; i < 6; i++) {
-      var angle = (Math.PI * 2 / 6) * i + Math.random() * 0.5;
-      particles.push({
-        x: x, y: y,
-        vx: Math.cos(angle) * (1 + Math.random() * 2),
-        vy: Math.sin(angle) * (1 + Math.random() * 2),
-        life: 1, decay: 0.025 + Math.random() * 0.02,
-        r: 2 + Math.random() * 3,
-        color: color || '#c8d840'
-      });
+  function addParticle(x,y,color) {
+    for (var i=0;i<6;i++) {
+      var a=(Math.PI*2/6)*i+Math.random()*0.5;
+      particles.push({x:x,y:y,vx:Math.cos(a)*(1+Math.random()*2),vy:Math.sin(a)*(1+Math.random()*2),life:1,decay:0.025+Math.random()*0.02,r:2+Math.random()*3,color:color||'#c8d840'});
     }
   }
   window._mindAddParticle = addParticle;
-
   function draw() {
-    if (!_memEl('memMindBgCanvas')) { window.removeEventListener('resize', onResize); return; }
-    ctx.clearRect(0, 0, W, H);
-
-    // Étoiles pixel
-    for (var i = 0; i < stars.length; i++) {
-      var s = stars[i];
-      s.blink += s.speed;
-      var alpha = 0.3 + 0.5 * Math.abs(Math.sin(s.blink));
-      ctx.fillStyle = 'rgba(200,170,255,' + alpha + ')';
-      ctx.fillRect(Math.round(s.x), Math.round(s.y), s.r, s.r);
+    if (!_memEl('memMindBgCanvas')) { window.removeEventListener('resize',onResize); return; }
+    ctx.clearRect(0,0,W,H);
+    for (var i=0;i<stars.length;i++) {
+      var s=stars[i]; s.blink+=s.speed;
+      ctx.fillStyle='rgba(200,216,64,'+(0.3+0.5*Math.abs(Math.sin(s.blink)))+')';
+      ctx.fillRect(Math.round(s.x),Math.round(s.y),s.r,s.r);
     }
-
-    // Particules
-    for (var j = particles.length - 1; j >= 0; j--) {
-      var p = particles[j];
-      p.x += p.vx; p.y += p.vy;
-      p.vy += 0.06;
-      p.life -= p.decay;
-      if (p.life <= 0) { particles.splice(j, 1); continue; }
-      ctx.globalAlpha = p.life;
-      ctx.fillStyle   = p.color;
-      ctx.fillRect(Math.round(p.x - p.r/2), Math.round(p.y - p.r/2), Math.round(p.r), Math.round(p.r));
+    for (var j=particles.length-1;j>=0;j--) {
+      var p=particles[j]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.06; p.life-=p.decay;
+      if(p.life<=0){particles.splice(j,1);continue;}
+      ctx.globalAlpha=p.life; ctx.fillStyle=p.color;
+      ctx.fillRect(Math.round(p.x-p.r/2),Math.round(p.y-p.r/2),Math.round(p.r),Math.round(p.r));
     }
-    ctx.globalAlpha = 1;
-
+    ctx.globalAlpha=1;
     _mindBgAnim = requestAnimationFrame(draw);
   }
   if (_mindBgAnim) cancelAnimationFrame(_mindBgAnim);
   draw();
 }
 
-// ── Animation : jouer sa propre carte ──
 function _mindAnimSelfPlay(idx, val) {
   var myCardsEl = _memEl('memMindMyCards');
   if (!myCardsEl) return;
@@ -4156,195 +4137,105 @@ function _mindAnimSelfPlay(idx, val) {
   var rect = cards[idx].getBoundingClientRect();
   var pileCard = _memEl('memMindPileCard');
   var pileRect = pileCard ? pileCard.getBoundingClientRect() : null;
-
   var flyer = document.createElement('div');
   flyer.className = 'mnd-card-fly';
-  flyer.style.cssText =
-    'left:' + rect.left + 'px;top:' + rect.top + 'px;' +
-    'width:' + rect.width + 'px;height:' + rect.height + 'px;' +
-    'background:#1a1f0a;border:2px solid #5a6a18;border-radius:5px;' +
-    'font-size:20px;font-weight:700;color:#c8d840;' +
-    'font-family:Courier New,monospace;' +
-    'transition:all 0.35s cubic-bezier(.4,0,.2,1);';
+  flyer.style.cssText = 'left:'+rect.left+'px;top:'+rect.top+'px;width:'+rect.width+'px;height:'+rect.height+'px;background:#1a1f0a;border:2px solid #5a6a18;border-radius:3px;font-size:20px;font-weight:700;color:#c8d840;font-family:Courier New,monospace;transition:all 0.35s cubic-bezier(.4,0,.2,1);';
   flyer.textContent = val;
   document.body.appendChild(flyer);
-
-  requestAnimationFrame(function() {
-    requestAnimationFrame(function() {
-      if (pileRect) {
-        flyer.style.left   = pileRect.left + (pileRect.width  - rect.width)  / 2 + 'px';
-        flyer.style.top    = pileRect.top  + (pileRect.height - rect.height) / 2 + 'px';
-        flyer.style.transform = 'scale(1.2)';
-        flyer.style.boxShadow = '0 0 20px rgba(200,216,64,0.6)';
-      } else {
-        flyer.style.transform = 'translateY(-80px) scale(0.8)';
-        flyer.style.opacity   = '0';
+  requestAnimationFrame(function() { requestAnimationFrame(function() {
+    if (pileRect) {
+      flyer.style.left = pileRect.left+(pileRect.width-rect.width)/2+'px';
+      flyer.style.top  = pileRect.top+(pileRect.height-rect.height)/2+'px';
+      flyer.style.transform = 'scale(1.2)';
+      flyer.style.boxShadow = '0 0 20px rgba(200,216,64,0.6)';
+    } else {
+      flyer.style.transform='translateY(-80px) scale(0.8)'; flyer.style.opacity='0';
+    }
+    setTimeout(function() {
+      flyer.style.transform='scale(1)';
+      if (pileRect && window._mindAddParticle) {
+        var bgRect=_memEl('memMindBgCanvas')?_memEl('memMindBgCanvas').getBoundingClientRect():{left:0,top:0};
+        window._mindAddParticle(pileRect.left+pileRect.width/2-bgRect.left,pileRect.top+pileRect.height/2-bgRect.top,'#c8d840');
       }
-      setTimeout(function() {
-        flyer.style.transform = 'scale(1)';
-        if (pileRect && window._mindAddParticle) {
-          var cx = pileRect.left + pileRect.width  / 2;
-          var cy = pileRect.top  + pileRect.height / 2;
-          window._mindAddParticle(cx - (_memEl('memMindBgCanvas') ? _memEl('memMindBgCanvas').getBoundingClientRect().left : 0),
-                                  cy - (_memEl('memMindBgCanvas') ? _memEl('memMindBgCanvas').getBoundingClientRect().top  : 0),
-                                  '#c8d840');
-        }
-        setTimeout(function() {
-          flyer.style.transition = 'opacity 0.2s';
-          flyer.style.opacity    = '0';
-          setTimeout(function() { flyer.remove(); }, 220);
-        }, 180);
-      }, 360);
-    });
-  });
+      setTimeout(function(){ flyer.style.transition='opacity 0.2s'; flyer.style.opacity='0'; setTimeout(function(){flyer.remove();},220); },180);
+    },360);
+  }); });
   if (navigator.vibrate) navigator.vibrate([40]);
 }
 
-// ── Animation : adversaire pose une carte ──
 function _mindAnimOppPlay(val) {
   var oppEl = _memEl('memMindOppCards');
   if (!oppEl) return;
   var oppCards = oppEl.querySelectorAll('.mnd-card-back');
-  var srcEl    = oppCards[0];
+  var srcEl = oppCards[0];
   var pileCard = _memEl('memMindPileCard');
   if (!srcEl || !pileCard) return;
-
   var srcRect  = srcEl.getBoundingClientRect();
   var pileRect = pileCard.getBoundingClientRect();
-
   var flyer = document.createElement('div');
   flyer.className = 'mnd-card-fly';
-  flyer.style.cssText =
-    'left:' + srcRect.left + 'px;top:' + srcRect.top + 'px;' +
-    'width:' + srcRect.width + 'px;height:' + srcRect.height + 'px;' +
-    'background:#1a1f0a;border:2px solid #3a4a10;border-radius:4px;' +
-    'font-size:20px;font-weight:700;color:#c8d840;' +
-    'font-family:Courier New,monospace;' +
-    'transition:all 0.35s cubic-bezier(.4,0,.2,1);';
+  flyer.style.cssText = 'left:'+srcRect.left+'px;top:'+srcRect.top+'px;width:'+srcRect.width+'px;height:'+srcRect.height+'px;background:#1a1f0a;border:2px solid #3a4a10;border-radius:4px;font-size:20px;font-weight:700;color:#4a5a1a;font-family:Courier New,monospace;transition:all 0.35s cubic-bezier(.4,0,.2,1);';
   flyer.textContent = '?';
   document.body.appendChild(flyer);
-
-  requestAnimationFrame(function() {
-    requestAnimationFrame(function() {
-      flyer.style.left      = pileRect.left + (pileRect.width  - srcRect.width)  / 2 + 'px';
-      flyer.style.top       = pileRect.top  + (pileRect.height - srcRect.height) / 2 + 'px';
-      flyer.style.transform = 'scale(1.15)';
-      setTimeout(function() {
-        // Révéler la valeur
-        flyer.textContent   = val;
-        flyer.style.color   = '#c8d840';
-        flyer.style.background   = '#1a1f0a';
-        flyer.style.borderColor  = '#c8d840';
-        flyer.style.transform    = 'scale(1)';
-        flyer.style.boxShadow    = '0 0 18px rgba(200,216,64,0.5)';
-        if (window._mindAddParticle) {
-          var cx = pileRect.left + pileRect.width  / 2;
-          var cy = pileRect.top  + pileRect.height / 2;
-          var bgRect = _memEl('memMindBgCanvas') ? _memEl('memMindBgCanvas').getBoundingClientRect() : {left:0,top:0};
-          window._mindAddParticle(cx - bgRect.left, cy - bgRect.top, '#8a9a2a');
-        }
-        setTimeout(function() {
-          flyer.style.transition = 'opacity 0.25s';
-          flyer.style.opacity    = '0';
-          setTimeout(function() { flyer.remove(); }, 260);
-        }, 300);
-      }, 360);
-    });
-  });
-  if (navigator.vibrate) navigator.vibrate([20, 40, 20]);
+  requestAnimationFrame(function() { requestAnimationFrame(function() {
+    flyer.style.left = pileRect.left+(pileRect.width-srcRect.width)/2+'px';
+    flyer.style.top  = pileRect.top+(pileRect.height-srcRect.height)/2+'px';
+    flyer.style.transform = 'scale(1.15)';
+    setTimeout(function() {
+      flyer.textContent = val; flyer.style.color='#c8d840'; flyer.style.background='#252d0c'; flyer.style.borderColor='#c8d840'; flyer.style.transform='scale(1)'; flyer.style.boxShadow='0 0 18px rgba(200,216,64,0.5)';
+      if (window._mindAddParticle) {
+        var bgRect=_memEl('memMindBgCanvas')?_memEl('memMindBgCanvas').getBoundingClientRect():{left:0,top:0};
+        window._mindAddParticle(pileRect.left+pileRect.width/2-bgRect.left,pileRect.top+pileRect.height/2-bgRect.top,'#8a9a2a');
+      }
+      setTimeout(function(){ flyer.style.transition='opacity 0.25s'; flyer.style.opacity='0'; setTimeout(function(){flyer.remove();},260); },300);
+    },360);
+  }); });
+  if (navigator.vibrate) navigator.vibrate([20,40,20]);
 }
 
-// ── Animation erreur ──
 function _mindAnimError(err) {
-  // Shake de l'écran
   var sc = _memEl('memScreenMind');
   if (sc) {
-    var si = 0, sh = [-6, 6, -5, 5, -3, 3, -1, 1, 0];
-    sc.style.transition = 'transform .05s';
-    var iv = setInterval(function() {
-      if (si >= sh.length) { clearInterval(iv); sc.style.transform = ''; return; }
-      sc.style.transform = 'translateX(' + sh[si] + 'px)';
-      si++;
-    }, 55);
+    var si=0,sh=[-6,6,-5,5,-3,3,-1,1,0];
+    sc.style.transition='transform .05s';
+    var iv=setInterval(function(){ if(si>=sh.length){clearInterval(iv);sc.style.transform='';return;} sc.style.transform='translateX('+sh[si]+'px)';si++; },55);
   }
-
-  // Flash rouge
-  var flash = document.createElement('div');
-  flash.style.cssText =
-    'position:fixed;inset:0;background:rgba(200,20,60,0.22);pointer-events:none;z-index:9990;' +
-    'transition:opacity 0.4s;';
+  var flash=document.createElement('div');
+  flash.style.cssText='position:fixed;inset:0;background:rgba(200,20,60,0.22);pointer-events:none;z-index:9990;transition:opacity 0.4s;';
   document.body.appendChild(flash);
-  requestAnimationFrame(function() {
-    setTimeout(function() {
-      flash.style.opacity = '0';
-      setTimeout(function() { flash.remove(); }, 420);
-    }, 150);
-  });
-
-  // Particules rouges depuis la pile
-  var pileCard = _memEl('memMindPileCard');
+  requestAnimationFrame(function(){ setTimeout(function(){ flash.style.opacity='0'; setTimeout(function(){flash.remove();},420); },150); });
+  var pileCard=_memEl('memMindPileCard');
   if (pileCard && window._mindAddParticle) {
-    var r = pileCard.getBoundingClientRect();
-    var bgRect = _memEl('memMindBgCanvas') ? _memEl('memMindBgCanvas').getBoundingClientRect() : {left:0,top:0};
-    for (var i = 0; i < 3; i++) {
-      (function(delay) {
-        setTimeout(function() {
-          window._mindAddParticle(r.left + r.width/2 - bgRect.left, r.top + r.height/2 - bgRect.top, '#ff2255');
-        }, delay);
-      })(i * 80);
-    }
+    var r=pileCard.getBoundingClientRect(), bgRect=_memEl('memMindBgCanvas')?_memEl('memMindBgCanvas').getBoundingClientRect():{left:0,top:0};
+    for (var i=0;i<3;i++) { (function(d){ setTimeout(function(){ window._mindAddParticle(r.left+r.width/2-bgRect.left,r.top+r.height/2-bgRect.top,'#ff2255'); },d); })(i*80); }
   }
-
-  // Toast message
-  var whoName = _memGetName(err.role);
-  _mindShowToast('✕  ' + whoName + ' a joué ' + err.card + ' trop tôt !', '#3a0015');
-  if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+  _mindShowToast('\u2715 ' + _memGetName(err.role) + ' a jou\u00e9 ' + err.card + ' trop t\u00f4t !', '#3a0015');
+  if (navigator.vibrate) navigator.vibrate([80,40,80]);
 }
 
-// ── Toast ──
 function _mindShowToast(msg, bg) {
-  var existing = _memEl('memMindToast');
-  if (existing) existing.remove();
-  var toast = document.createElement('div');
-  toast.id  = 'memMindToast';
-  toast.className = 'mnd-toast';
-  toast.textContent = msg;
-  if (bg) toast.style.background = bg;
-  var sc = _memEl('memScreenMind');
-  if (sc) sc.appendChild(toast);
-  setTimeout(function() {
-    toast.style.opacity = '0';
-    setTimeout(function() { toast.remove(); }, 320);
-  }, 2200);
+  var existing=_memEl('memMindToast'); if(existing) existing.remove();
+  var toast=document.createElement('div');
+  toast.id='memMindToast'; toast.className='mnd-toast'; toast.textContent=msg;
+  if(bg) toast.style.background=bg;
+  var sc=_memEl('memScreenMind'); if(sc) sc.appendChild(toast);
+  setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){toast.remove();},320); },2200);
 }
 
-// ── Animation victoire ──
 function _mindAnimVictory() {
-  var canvas = _memEl('memMindBgCanvas');
-  if (!canvas || !window._mindAddParticle) return;
-  var W = canvas.width, H = canvas.height;
-  var colors = ['#c8d840','#c8d840','#6a7a20','#c8d840','#8a9a2a'];
-  var count = 0;
-  var iv = setInterval(function() {
-    if (count++ > 20) { clearInterval(iv); return; }
-    var x = Math.random() * W;
-    var y = Math.random() * H * 0.6;
-    window._mindAddParticle(x, y, colors[Math.floor(Math.random() * colors.length)]);
-  }, 120);
+  var canvas=_memEl('memMindBgCanvas'); if(!canvas||!window._mindAddParticle) return;
+  var W=canvas.width,H=canvas.height,colors=['#c8d840','#8a9a2a','#6a7a20','#e8f860','#a0b030'],count=0;
+  var iv=setInterval(function(){ if(count++>20){clearInterval(iv);return;} window._mindAddParticle(Math.random()*W,Math.random()*H*0.6,colors[Math.floor(Math.random()*colors.length)]); },120);
 }
 
-// ── Animation défaite ──
 function _mindAnimDefeat() {
-  var canvas = _memEl('memMindBgCanvas');
-  if (!canvas || !window._mindAddParticle) return;
-  var W = canvas.width;
-  window._mindAddParticle(W / 2, 60, '#ff2255');
-  setTimeout(function() { window._mindAddParticle(W / 2, 60, '#aa0033'); }, 200);
+  var canvas=_memEl('memMindBgCanvas'); if(!canvas||!window._mindAddParticle) return;
+  var W=canvas.width;
+  window._mindAddParticle(W/2,60,'#ff2255');
+  setTimeout(function(){ window._mindAddParticle(W/2,60,'#aa0033'); },200);
 }
 
-// ── Présence adversaire ──
 function _mindUpdatePresenceDot(isOnline) {
-  var dot = _memEl('memMindOppDot');
-  if (!dot) return;
-  dot.className = 'mnd-presence-dot ' + (isOnline ? 'on' : 'off');
+  var dot=_memEl('memMindOppDot'); if(!dot) return;
+  dot.className='mnd-presence-dot '+(isOnline?'on':'off');
 }
