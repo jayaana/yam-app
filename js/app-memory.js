@@ -3885,6 +3885,7 @@ function _mindApplyState(state) {
   if (state.burned && state.burned.ts && state.burned.ts !== _mindLastBurnedTs) {
     _mindLastBurnedTs = state.burned.ts;
     var burnedList = state.burned.cards || [];
+    var burnRole   = state.burned.role;
     if (burnedList.length > 0) {
       burnedJustNow = true;
       // Les mains mises à jour sont dans state[role+'_cards'] — source de vérité unique.
