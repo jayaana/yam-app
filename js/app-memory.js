@@ -3846,9 +3846,9 @@ function _mindApplyState(state) {
 
   // Animation carte adversaire
   if (state.last_played && state.last_played.ts !== _mindLastPlayTs) {
-    _mindLastPlayTs = state.last_played.ts;
+    _mindLastPlayTs = state.last_played.ts; // toujours mettre à jour pour éviter double-rendu
     if (state.last_played.role !== _memProfile) {
-      // Rafraîchir le count adversaire depuis mind_hands puis animer + render complet
+      // Coup adverse : charger le count et animer
       _mindLoadOppCount(function(n) {
         _mindOppCount = n;
         _mindAnimOppPlay(state.last_played.card);
@@ -3856,6 +3856,9 @@ function _mindApplyState(state) {
       });
       return;
     }
+    // Mon propre coup revient via realtime : juste render, pas d'animation double
+    _mindRenderAll(state);
+    return;
   }
 
   // Animation erreur
@@ -3893,8 +3896,7 @@ function _mindApplyState(state) {
         }
       }
     }
-    _mindRenderHUD(state);
-    _mindUpdatePhase(state);
+    _mindRenderAll(state);
     return;
   }
 
@@ -3923,7 +3925,32 @@ function _mindRenderAll(state) {
   _mindRenderOppCards();
   _mindRenderMyCards(state);
   _mindUpdatePhase(state);
-  if (state.winner) _mindShowResult(state);
+  if (state.winner) {
+    _mindShowResult(state);
+  } else if (state.phase === 'mind_next') {
+    var nts = state.next_ts || 0;
+    if (nts !== _mindNextLevelTs) {
+      _mindNextLevelTs = nts;
+      _mindShowLevelBanner(state.next_level, false);
+      if (_memProfile === 'girl') {
+        setTimeout(function() {
+          if (_memLastState && _memLastState.phase === 'mind_next' && (_memLastState.next_ts||0) === nts) {
+            _mindNextLevel(_memLastState);
+          }
+        }, 2800);
+      } else {
+        // Boy recharge sa main depuis le deal dans le state
+        var boyDeal = state[_memProfile + '_deal'] || state['boy_deal'] || [];
+        if (boyDeal.length > 0) {
+          var coupleIdB = _memGetCoupleId();
+          if (coupleIdB) {
+            _mindMyCards = boyDeal.slice();
+            _mindWriteMyHand(coupleIdB, state.next_level || ((state.level||1)+1), boyDeal).catch(function(){});
+          }
+        }
+      }
+    }
+  }
 }
 
 // ── Rendu HUD ──
