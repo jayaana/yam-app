@@ -196,7 +196,7 @@ function _memRenderDualProfiles(meContainerId, oppContainerId) {
 }
 
 function _memShowScreen(id) {
-  ['memScreenLobby','memScreenMode','memScreenClassic','memScreenEcho','memScreenArchi','memScreenHanabi'].forEach(function(s) {
+  ['memScreenLobby','memScreenMode','memScreenClassic','memScreenEcho','memScreenArchi','memScreenHanabi','memScreenMind'].forEach(function(s) {
     var el = _memEl(s);
     if (el) { el.style.display = 'none'; el.classList.remove('mem-screen--active'); }
   });
@@ -243,6 +243,11 @@ function _memCleanup() {
   if (specRow) { specRow.style.display = 'none'; specRow.innerHTML = ''; }
   var hEl = _memEl('memHanabiFinalResult'); if (hEl) hEl.style.display = 'none';
   _hanabiSaved = false;
+  _mindSaved    = false;
+  _mindSelected = null;
+  if (_mindBgAnim) { cancelAnimationFrame(_mindBgAnim); _mindBgAnim = null; }
+  var mf = _memEl('memMindFinalResult'); if (mf) mf.style.display = 'none';
+  var mb = _memEl('memMindLevelBanner'); if (mb) mb.classList.add('hidden');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -394,6 +399,7 @@ function _memStartLobby() {
       _memUpdatePresenceDot('memEchoOppProfile',     isOnline);
       _memUpdatePresenceDot('memArchiOppProfile',    isOnline);
       _hanabiUpdatePresenceDot(isOnline);
+      _mindUpdatePresenceDot(isOnline);
     },
 
     onMatchFound: function(gameRow) {
@@ -475,7 +481,7 @@ function _memGoToModeSelect(gameRow) {
   if (vMe)  { vMe.textContent  = '—'; vMe.className  = 'mem-vote-chip'; }
   if (vOth) { vOth.textContent = '—'; vOth.className = 'mem-vote-chip'; }
 
-  ['classic','echo','archi','all','hanabi'].forEach(function(mode) {
+  ['classic','echo','archi','all','hanabi','mind'].forEach(function(mode) {
     var cap  = mode.charAt(0).toUpperCase() + mode.slice(1);
     var card = _memEl('memModeCard' + cap);
     if (!card) return;
@@ -490,7 +496,7 @@ function _memGoToModeSelect(gameRow) {
 function _memVoteMode(mode) {
   if (!_memMp || !_memLastState) return;
 
-  ['classic','echo','archi','all','hanabi'].forEach(function(m) {
+  ['classic','echo','archi','all','hanabi','mind'].forEach(function(m) {
     var c = _memEl('memModeCard' + m.charAt(0).toUpperCase() + m.slice(1));
     if (c) c.classList.toggle('mem-mode-card--selected', m === mode);
   });
@@ -521,6 +527,8 @@ function _memVoteMode(mode) {
       gameState = _memBuildArchiState(1, false);
     } else if (mode === 'hanabi') {
       gameState = _hanabiGetBuildState();
+    } else if (mode === 'mind') {
+      gameState = _mindBuildState(1);
     }
     _memMp.saveState(gameState);
   } else {
@@ -529,7 +537,7 @@ function _memVoteMode(mode) {
 }
 
 function _memUpdateVotes(state) {
-  var labels = {classic:'Classique+', echo:'Écho', archi:'Architecte', all:'ALL', hanabi:'Hanabi'};
+  var labels = {classic:'Classique+', echo:'Écho', archi:'Architecte', all:'ALL', hanabi:'Hanabi', mind:'The Mind'};
   var mv = state[_memProfile + '_vote'], ov = state[_memOther + '_vote'];
   var vMe = _memEl('memVoteMe'), vOth = _memEl('memVoteOther');
   if (vMe)  { vMe.textContent  = mv ? labels[mv] : '—'; vMe.className  = 'mem-vote-chip'+(mv?' mem-vote-chip--active':''); }
@@ -571,6 +579,12 @@ function _memRouteState(state, gameRow) {
     } else {
       _memLaunchMode('hanabi', gameRow);
     }
+  } else if (ph === 'mind') {
+    if (_memCurrentMode === 'mind') {
+      _mindApplyState(state);
+    } else {
+      _memLaunchMode('mind', gameRow);
+    }
   }
 }
 
@@ -596,6 +610,7 @@ function _memLaunchSingle(mode, gameRow) {
   else if (mode === 'echo')  _memStartEcho(gameRow);
   else if (mode === 'archi') _memStartArchi(gameRow);
   else if (mode === 'hanabi') _hanabiStart(gameRow);
+  else if (mode === 'mind')   _mindStart(gameRow);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2480,7 +2495,7 @@ function _hanabiGetBuildState() {
     boy_hints:   [[],[],[],[],[]],
     piles:       {blue:0,green:0,red:0,pink:0,amber:0},
     discard:     [],
-    blue_tokens: 10,
+    blue_tokens: 8,
     red_tokens:  0,
     score:       0,
     winner:      null,
@@ -2912,7 +2927,7 @@ function _hanabiApplyState(state) {
   if (bt) {
     bt.innerHTML = '';
     var blue = state.blue_tokens || 0;
-    for (var bi=0; bi<10; bi++) {
+    for (var bi=0; bi<8; bi++) {
       var tok = document.createElement('div');
       tok.style.cssText = 'width:8px;height:8px;border-radius:50%;flex-shrink:0;' +
         (bi < blue ? 'background:#7bafd4;border:1.5px solid #3a6b94;' : 'background:#ede5d6;border:1.5px solid #b0a090;');
@@ -2926,8 +2941,8 @@ function _hanabiApplyState(state) {
     rt.innerHTML = '';
     var red = state.red_tokens || 0;
     var heartMask = [0,1,0,1,0, 1,1,1,1,1, 1,1,1,1,1, 0,1,1,1,0, 0,0,1,0,0];
-    for (var ri=0; ri<4; ri++) {
-      var alive = ri < (4 - red);
+    for (var ri=0; ri<3; ri++) {
+      var alive = ri < (3 - red);
       var hWrap = document.createElement('div');
       hWrap.style.cssText = 'display:inline-grid;grid-template-columns:repeat(5,3px);grid-template-rows:repeat(5,3px);gap:0;margin-right:2px;';
       heartMask.forEach(function(px) {
@@ -3229,7 +3244,7 @@ function _hanabiConfirmPlay() {
   if (correct) {
     ns.piles[card.color] = card.num;
     ns.score = (ns.score||0) + 1;
-    if (card.num === 5 && ns.blue_tokens < 10) ns.blue_tokens++;
+    if (card.num === 5 && ns.blue_tokens < 8) ns.blue_tokens++;
     desc = 'Pose '+c.label+' '+card.num+' ✓';
     _hanabiAnimPlaySuccess(c, card.num);
   } else {
@@ -3276,7 +3291,7 @@ function _hanabiConfirmDiscard() {
 
   var card = ns[myHandKey][_hanabiSelectedCard];
   ns.discard = (ns.discard||[]).concat([card]);
-  if (ns.blue_tokens < 10) ns.blue_tokens++;
+  if (ns.blue_tokens < 8) ns.blue_tokens++;
 
   _hanabiAnimDiscardSelf(HANABI_COLOR_MAP[card.color], card.num);
 
@@ -3576,8 +3591,8 @@ function _hanabiShowToast(msg, bg, color) {
 // ── Vérifier fin de partie ──
 function _hanabiCheckEnd(ns) {
   if (ns.winner) return ns.winner;
-  // 4 erreurs → fin immédiate
-  if ((ns.red_tokens||0) >= 5) return 'lose';
+  // 3 erreurs → fin immédiate
+  if ((ns.red_tokens||0) >= 3) return 'lose';
   // Score parfait
   if ((ns.score||0) >= 25) return 'perfect';
   // Pioche vide → chacun a encore 1 tour (2 tours restants total)
@@ -3647,4 +3662,662 @@ function _hanabiScoreLabel(s) {
   if (s >= 11) return 'Correct';
   if (s >= 6)  return 'Médiocre';
   return 'Catastrophe';
+}
+
+// ═══════════════════════════════════════════════════════════
+// THE MIND — Jeu coopératif rétro
+// Niveaux 1–12 · 2 vies · sans communication
+// ═══════════════════════════════════════════════════════════
+
+var _mindBgAnim   = null;  // RAF handle canvas background
+var _mindSaved    = false;
+var _mindSelected = null;  // index carte sélectionnée (ma main)
+
+// ── Build state initial ──
+function _mindBuildState(level) {
+  var deck = [];
+  for (var i = 1; i <= 100; i++) deck.push(i);
+  // Fisher-Yates shuffle
+  for (var j = deck.length - 1; j > 0; j--) {
+    var k = Math.floor(Math.random() * (j + 1));
+    var tmp = deck[j]; deck[j] = deck[k]; deck[k] = tmp;
+  }
+  var cardsPerPlayer = level;
+  var girlCards = deck.slice(0, cardsPerPlayer).sort(function(a,b){return a-b;});
+  var boyCards  = deck.slice(cardsPerPlayer, cardsPerPlayer * 2).sort(function(a,b){return a-b;});
+  return {
+    phase:       'mind',
+    mode:        'mind',
+    level:       level,
+    lives:       2,
+    girl_cards:  girlCards,
+    boy_cards:   boyCards,
+    pile:        [],          // cartes posées dans l'ordre
+    last_played: null,        // {role, card} dernière carte jouée
+    error:       null,        // {role, card, expected} si erreur
+    winner:      null         // 'win' | 'lose'
+  };
+}
+
+// ── Lancement ──
+function _mindStart(gameRow) {
+  _mindSaved    = false;
+  _mindSelected = null;
+  _memShowScreen('memScreenMind');
+  _mindStartBgCanvas();
+
+  var u = typeof yamGetUser === 'function' ? yamGetUser() : null;
+  _memLoadAvatar(_memEl('memMindMyAvatar'),  u ? u.id         : null, _memProfile, 28);
+  _memLoadAvatar(_memEl('memMindOppAvatar'), u ? u.partner_id : null, _memOther,   28);
+  var nMe = _memEl('memMindMyName'),  nOth = _memEl('memMindOppName');
+  if (nMe)  nMe.textContent  = _memGetName(_memProfile);
+  if (nOth) nOth.textContent = _memGetName(_memOther);
+
+  // Bouton Terminer résultat
+  var doneBtn = _memEl('memMindDoneBtn');
+  if (doneBtn) doneBtn.onclick = function() {
+    var fr = _memEl('memMindFinalResult'); if (fr) fr.style.display = 'none';
+    if (_memMp && typeof _memMp.deleteGame === 'function') _memMp.deleteGame();
+    _memCleanup(); _memShowLb(true); _lbLoad();
+  };
+
+  // Bouton jouer
+  var playBtn = _memEl('memMindPlayBtn');
+  if (playBtn) {
+    playBtn.onclick = function() {
+      if (_mindSelected === null) return;
+      _mindPlayCard(_mindSelected);
+    };
+  }
+
+  if (_memLastState) _mindApplyState(_memLastState);
+
+  // Banner niveau au démarrage
+  _mindShowLevelBanner(_memLastState ? _memLastState.level : 1, true);
+}
+
+// ── Appliquer un state ──
+function _mindApplyState(state) {
+  if (!state) return;
+
+  // Niveau
+  var lvlEl = _memEl('memMindLevel');
+  if (lvlEl) lvlEl.textContent = String(state.level || 1).padStart(2,'0');
+
+  // Vies (pixel hearts)
+  var livesEl = _memEl('memMindLives');
+  if (livesEl) {
+    livesEl.innerHTML = '';
+    for (var i = 0; i < 2; i++) {
+      var heart = document.createElement('div');
+      heart.className = 'mnd-heart' + (i >= (state.lives || 0) ? ' lost' : '');
+      heart.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 12.5S1 8.5 1 4.5C1 2.57 2.57 1 4.5 1c.96 0 1.87.4 2.5 1.07C7.63 1.4 8.54 1 9.5 1 11.43 1 13 2.57 13 4.5c0 4-6 8-6 8z" fill="' + (i < (state.lives || 0) ? '#ee4488' : '#443366') + '"/></svg>';
+      livesEl.appendChild(heart);
+    }
+  }
+
+  // Pioche restante
+  var myCards  = (state[_memProfile + '_cards'] || []);
+  var oppCards = (state[_memOther   + '_cards'] || []);
+  var deckEl   = _memEl('memMindDeck');
+  if (deckEl) deckEl.textContent = String(myCards.length + oppCards.length).padStart(2,'0');
+
+  // Pile centrale
+  var pile   = state.pile || [];
+  var topNum = pile.length > 0 ? pile[pile.length - 1] : null;
+  var pileNumEl = _memEl('memMindPileNum');
+  if (pileNumEl) {
+    pileNumEl.textContent  = topNum !== null ? topNum : '?';
+    pileNumEl.className    = 'mnd-pile-num' + (topNum === null ? ' empty' : '');
+  }
+  var pileCountEl = _memEl('memMindPileCount');
+  if (pileCountEl) pileCountEl.textContent = pile.length + ' carte(s) posée(s)';
+
+  // Cartes adversaire (dos)
+  var oppCardsEl = _memEl('memMindOppCards');
+  if (oppCardsEl) {
+    oppCardsEl.innerHTML = '';
+    for (var j = 0; j < oppCards.length; j++) {
+      var back = document.createElement('div');
+      back.className = 'mnd-card-back';
+      var dot = document.createElement('div');
+      dot.className = 'mnd-card-back-dot';
+      back.appendChild(dot);
+      oppCardsEl.appendChild(back);
+    }
+    if (oppCards.length === 0) {
+      var empty = document.createElement('span');
+      empty.style.cssText = 'font-size:9px;color:#443366;letter-spacing:2px;font-family:Courier New,monospace;';
+      empty.textContent = 'AUCUNE CARTE';
+      oppCardsEl.appendChild(empty);
+    }
+  }
+
+  // Mes cartes (jouables)
+  var myCardsEl = _memEl('memMindMyCards');
+  if (myCardsEl) {
+    myCardsEl.innerHTML = '';
+    _mindSelected = null;
+    for (var ci = 0; ci < myCards.length; ci++) {
+      (function(idx, val) {
+        var card = document.createElement('div');
+        card.className = 'mnd-card';
+        card.textContent = val;
+        if (state.winner) { card.classList.add('mnd-card--disabled'); }
+        card.addEventListener('click', function() {
+          if (state.winner) return;
+          _mindSelectCard(idx, myCards.length);
+        });
+        myCardsEl.appendChild(card);
+      })(ci, myCards[ci]);
+    }
+    if (myCards.length === 0) {
+      var noCard = document.createElement('span');
+      noCard.style.cssText = 'font-size:9px;color:#443366;letter-spacing:2px;font-family:Courier New,monospace;';
+      noCard.textContent = 'AUCUNE CARTE';
+      myCardsEl.appendChild(noCard);
+    }
+  }
+
+  // Bouton jouer
+  var playBtn = _memEl('memMindPlayBtn');
+  if (playBtn) {
+    playBtn.disabled = (state.winner !== null) || (myCards.length === 0);
+    playBtn.classList.toggle('mnd-play-btn--ready', false);
+  }
+
+  // Phase message
+  _mindUpdatePhase(state);
+
+  // Animation erreur
+  if (state.error && state.error.ts !== (_mindLastErrorTs || 0)) {
+    _mindLastErrorTs = state.error.ts;
+    _mindAnimError(state.error);
+  }
+
+  // Animation carte jouée
+  if (state.last_played && state.last_played.ts !== (_mindLastPlayTs || 0)) {
+    _mindLastPlayTs = state.last_played.ts;
+    if (state.last_played.role !== _memProfile) {
+      _mindAnimOppPlay(state.last_played.card);
+    }
+  }
+
+  // Résultat
+  if (state.winner) {
+    _mindShowResult(state);
+  }
+}
+
+var _mindLastErrorTs = 0;
+var _mindLastPlayTs  = 0;
+
+// ── Sélectionner une carte ──
+function _mindSelectCard(idx, total) {
+  _mindSelected = (_mindSelected === idx) ? null : idx;
+  var myCardsEl = _memEl('memMindMyCards');
+  if (!myCardsEl) return;
+  var cards = myCardsEl.querySelectorAll('.mnd-card');
+  for (var i = 0; i < cards.length; i++) {
+    cards[i].classList.toggle('mnd-card--selected', i === _mindSelected);
+  }
+  var playBtn = _memEl('memMindPlayBtn');
+  if (playBtn) {
+    playBtn.disabled = (_mindSelected === null);
+    playBtn.classList.toggle('mnd-play-btn--ready', _mindSelected !== null);
+  }
+}
+
+// ── Jouer une carte ──
+function _mindPlayCard(idx) {
+  if (!_memMp || !_memLastState) return;
+  var state = _memLastState;
+  var myCards = (state[_memProfile + '_cards'] || []).slice();
+  if (idx >= myCards.length) return;
+
+  var card = myCards[idx];
+
+  // Animer la carte volante
+  _mindAnimSelfPlay(idx, card);
+
+  // Construire nouveau state
+  var ns = JSON.parse(JSON.stringify(state));
+  var pile = ns.pile.slice();
+
+  // Vérifier si la carte est valide (plus petite que toutes celles restantes des deux joueurs)
+  var allRemaining = (ns[_memOther + '_cards'] || []).concat(myCards.filter(function(_,i){return i!==idx;}));
+  var hasSmaller   = allRemaining.some(function(c){ return c < card; });
+
+  ns[_memProfile + '_cards'].splice(idx, 1);
+
+  if (hasSmaller) {
+    // Erreur — perdre une vie
+    ns.lives = Math.max(0, (ns.lives || 2) - 1);
+    ns.error = { role: _memProfile, card: card, ts: Date.now() };
+    pile.push(card);
+    ns.pile = pile;
+    if (ns.lives <= 0) {
+      ns.winner = 'lose';
+    }
+  } else {
+    pile.push(card);
+    ns.pile = pile;
+    ns.last_played = { role: _memProfile, card: card, ts: Date.now() };
+    // Vérifier victoire : toutes les cartes posées
+    var allCards = (ns.girl_cards || []).concat(ns.boy_cards || []);
+    if (allCards.length === 0) {
+      // Niveau terminé
+      if (ns.level >= 12) {
+        ns.winner = 'win';
+      } else {
+        // Passer au niveau suivant après délai
+        ns.winner = null;
+        ns.phase  = 'mind_next';
+        ns.next_level = ns.level + 1;
+      }
+    }
+  }
+
+  _memMp.saveState(ns);
+  _mindSelected = null;
+  var playBtn = _memEl('memMindPlayBtn');
+  if (playBtn) { playBtn.disabled = true; playBtn.classList.remove('mnd-play-btn--ready'); }
+}
+
+// ── Passer au niveau suivant ──
+function _mindNextLevel(state) {
+  var ns = _mindBuildState(state.next_level);
+  ns.lives = state.lives; // conserver les vies
+  _memMp.saveState(ns);
+  _mindShowLevelBanner(state.next_level, false);
+}
+
+// ── Mettre à jour la barre de phase ──
+function _mindUpdatePhase(state) {
+  var txt = _memEl('memMindPhaseText');
+  if (!txt) return;
+  if (state.winner === 'win') {
+    txt.textContent = 'VICTOIRE — Esprits en fusion !';
+  } else if (state.winner === 'lose') {
+    txt.textContent = 'DÉFAITE — Synchronisation perdue';
+  } else if (state.phase === 'mind_next') {
+    txt.textContent = 'Niveau ' + (state.next_level) + ' en approche…';
+    // Déclencher automatiquement le niveau suivant si on est le joueur girl
+    if (_memProfile === 'girl') {
+      setTimeout(function() {
+        if (_memLastState && _memLastState.phase === 'mind_next') {
+          _mindNextLevel(_memLastState);
+        }
+      }, 2800);
+    }
+  } else {
+    var myCards  = (state[_memProfile + '_cards'] || []).length;
+    var oppCards = (state[_memOther   + '_cards'] || []).length;
+    txt.textContent = 'NIVEAU ' + state.level + '  —  MOI ' + myCards + '  •  ADV ' + oppCards;
+  }
+}
+
+// ── Banner niveau ──
+function _mindShowLevelBanner(level, isStart) {
+  var banner = _memEl('memMindLevelBanner');
+  var numEl  = _memEl('memMindLevelBannerNum');
+  var cdEl   = _memEl('memMindLevelBannerCd');
+  if (!banner || !numEl) return;
+  numEl.textContent = level;
+  banner.classList.remove('hidden');
+  var count = 3;
+  if (cdEl) cdEl.textContent = isStart ? 'Synchronisez vos esprits…' : 'Prochain niveau dans ' + count + '…';
+  if (!isStart) {
+    var iv = setInterval(function() {
+      count--;
+      if (count <= 0) {
+        clearInterval(iv);
+        banner.classList.add('hidden');
+      } else {
+        if (cdEl) cdEl.textContent = 'Prochain niveau dans ' + count + '…';
+      }
+    }, 1000);
+    setTimeout(function() { banner.classList.add('hidden'); }, 3000);
+  } else {
+    setTimeout(function() { banner.classList.add('hidden'); }, 2500);
+  }
+}
+
+// ── Résultat ──
+function _mindShowResult(state) {
+  if (_mindSaved) return;
+  _mindSaved = true;
+
+  var fr = _memEl('memMindFinalResult');
+  if (!fr) return;
+  fr.style.display = 'flex';
+
+  var emojiEl = _memEl('memMindFinalEmoji');
+  var titleEl = _memEl('memMindFinalTitle');
+  var subEl   = _memEl('memMindFinalSub');
+
+  if (state.winner === 'win') {
+    if (emojiEl) emojiEl.textContent = '🧠';
+    if (titleEl) titleEl.textContent = 'PARFAITE SYNCHRONISATION';
+    if (subEl)   subEl.textContent   = '12 niveaux · Esprits fusionnés';
+    _mindAnimVictory();
+  } else {
+    if (emojiEl) emojiEl.textContent = '💀';
+    if (titleEl) titleEl.textContent = 'DÉSYNCHRONISÉS';
+    if (subEl)   subEl.textContent   = 'Niveau ' + (state.level || 1) + ' · Recommencez !';
+    _mindAnimDefeat();
+  }
+
+  // Sauvegarder score
+  if (_memProfile === 'girl') {
+    var cid = _memGetCoupleId();
+    var dur = Math.round((Date.now() - _memStartedAt) / 1000);
+    if (cid) {
+      sb2Post('game_scores', {
+        couple_id:   cid,
+        game_id:     'memory_mind',
+        player_role: 'girl',
+        score:       (state.level || 1) * 100,
+        moves:       (state.pile || []).length,
+        time_seconds:dur,
+        winner_role: state.winner === 'win' ? 'both' : 'none',
+        user_id:     typeof yamGetUser === 'function' ? yamGetUser().id : null
+      }).catch(function(){});
+      sb2Post('game_scores', {
+        couple_id:   cid,
+        game_id:     'memory_mind',
+        player_role: 'boy',
+        score:       (state.level || 1) * 100,
+        moves:       (state.pile || []).length,
+        time_seconds:dur,
+        winner_role: state.winner === 'win' ? 'both' : 'none',
+        user_id:     null
+      }).catch(function(){});
+    }
+  }
+  if (typeof window.yamFlameActivity === 'function') window.yamFlameActivity('memory_done');
+}
+
+// ═══════════════════════════════════════════════════════════
+// THE MIND — ANIMATIONS RÉTRO
+// ═══════════════════════════════════════════════════════════
+
+// ── Canvas background : étoiles + particules ──
+function _mindStartBgCanvas() {
+  var canvas = _memEl('memMindBgCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var W, H, stars = [], particles = [];
+
+  function resize() {
+    var sc = _memEl('memScreenMind');
+    W = canvas.width  = sc ? sc.offsetWidth  : window.innerWidth;
+    H = canvas.height = sc ? sc.offsetHeight : window.innerHeight;
+    stars = [];
+    for (var i = 0; i < 60; i++) {
+      stars.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: Math.random() < 0.7 ? 1 : 2,
+        blink: Math.random() * Math.PI * 2,
+        speed: 0.02 + Math.random() * 0.03
+      });
+    }
+  }
+  resize();
+
+  var lastResize = 0;
+  function onResize() {
+    var now = Date.now();
+    if (now - lastResize > 300) { lastResize = now; resize(); }
+  }
+  window.addEventListener('resize', onResize);
+
+  function addParticle(x, y, color) {
+    for (var i = 0; i < 6; i++) {
+      var angle = (Math.PI * 2 / 6) * i + Math.random() * 0.5;
+      particles.push({
+        x: x, y: y,
+        vx: Math.cos(angle) * (1 + Math.random() * 2),
+        vy: Math.sin(angle) * (1 + Math.random() * 2),
+        life: 1, decay: 0.025 + Math.random() * 0.02,
+        r: 2 + Math.random() * 3,
+        color: color || '#8855ff'
+      });
+    }
+  }
+  window._mindAddParticle = addParticle;
+
+  function draw() {
+    if (!_memEl('memMindBgCanvas')) { window.removeEventListener('resize', onResize); return; }
+    ctx.clearRect(0, 0, W, H);
+
+    // Étoiles pixel
+    for (var i = 0; i < stars.length; i++) {
+      var s = stars[i];
+      s.blink += s.speed;
+      var alpha = 0.3 + 0.5 * Math.abs(Math.sin(s.blink));
+      ctx.fillStyle = 'rgba(200,170,255,' + alpha + ')';
+      ctx.fillRect(Math.round(s.x), Math.round(s.y), s.r, s.r);
+    }
+
+    // Particules
+    for (var j = particles.length - 1; j >= 0; j--) {
+      var p = particles[j];
+      p.x += p.vx; p.y += p.vy;
+      p.vy += 0.06;
+      p.life -= p.decay;
+      if (p.life <= 0) { particles.splice(j, 1); continue; }
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle   = p.color;
+      ctx.fillRect(Math.round(p.x - p.r/2), Math.round(p.y - p.r/2), Math.round(p.r), Math.round(p.r));
+    }
+    ctx.globalAlpha = 1;
+
+    _mindBgAnim = requestAnimationFrame(draw);
+  }
+  if (_mindBgAnim) cancelAnimationFrame(_mindBgAnim);
+  draw();
+}
+
+// ── Animation : jouer sa propre carte ──
+function _mindAnimSelfPlay(idx, val) {
+  var myCardsEl = _memEl('memMindMyCards');
+  if (!myCardsEl) return;
+  var cards = myCardsEl.querySelectorAll('.mnd-card');
+  if (!cards[idx]) return;
+  var rect = cards[idx].getBoundingClientRect();
+  var pileCard = _memEl('memMindPileCard');
+  var pileRect = pileCard ? pileCard.getBoundingClientRect() : null;
+
+  var flyer = document.createElement('div');
+  flyer.className = 'mnd-card-fly';
+  flyer.style.cssText =
+    'left:' + rect.left + 'px;top:' + rect.top + 'px;' +
+    'width:' + rect.width + 'px;height:' + rect.height + 'px;' +
+    'background:#12083a;border:2px solid #5533cc;border-radius:5px;' +
+    'font-size:20px;font-weight:700;color:#d8c4ff;' +
+    'font-family:Courier New,monospace;' +
+    'transition:all 0.35s cubic-bezier(.4,0,.2,1);';
+  flyer.textContent = val;
+  document.body.appendChild(flyer);
+
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      if (pileRect) {
+        flyer.style.left   = pileRect.left + (pileRect.width  - rect.width)  / 2 + 'px';
+        flyer.style.top    = pileRect.top  + (pileRect.height - rect.height) / 2 + 'px';
+        flyer.style.transform = 'scale(1.2)';
+        flyer.style.boxShadow = '0 0 20px rgba(170,80,255,0.7)';
+      } else {
+        flyer.style.transform = 'translateY(-80px) scale(0.8)';
+        flyer.style.opacity   = '0';
+      }
+      setTimeout(function() {
+        flyer.style.transform = 'scale(1)';
+        if (pileRect && window._mindAddParticle) {
+          var cx = pileRect.left + pileRect.width  / 2;
+          var cy = pileRect.top  + pileRect.height / 2;
+          window._mindAddParticle(cx - (_memEl('memMindBgCanvas') ? _memEl('memMindBgCanvas').getBoundingClientRect().left : 0),
+                                  cy - (_memEl('memMindBgCanvas') ? _memEl('memMindBgCanvas').getBoundingClientRect().top  : 0),
+                                  '#aa55ff');
+        }
+        setTimeout(function() {
+          flyer.style.transition = 'opacity 0.2s';
+          flyer.style.opacity    = '0';
+          setTimeout(function() { flyer.remove(); }, 220);
+        }, 180);
+      }, 360);
+    });
+  });
+  if (navigator.vibrate) navigator.vibrate([40]);
+}
+
+// ── Animation : adversaire pose une carte ──
+function _mindAnimOppPlay(val) {
+  var oppEl = _memEl('memMindOppCards');
+  if (!oppEl) return;
+  var oppCards = oppEl.querySelectorAll('.mnd-card-back');
+  var srcEl    = oppCards[0];
+  var pileCard = _memEl('memMindPileCard');
+  if (!srcEl || !pileCard) return;
+
+  var srcRect  = srcEl.getBoundingClientRect();
+  var pileRect = pileCard.getBoundingClientRect();
+
+  var flyer = document.createElement('div');
+  flyer.className = 'mnd-card-fly';
+  flyer.style.cssText =
+    'left:' + srcRect.left + 'px;top:' + srcRect.top + 'px;' +
+    'width:' + srcRect.width + 'px;height:' + srcRect.height + 'px;' +
+    'background:#1a1040;border:2px solid #4433aa;border-radius:4px;' +
+    'font-size:20px;font-weight:700;color:#d8c4ff;' +
+    'font-family:Courier New,monospace;' +
+    'transition:all 0.35s cubic-bezier(.4,0,.2,1);';
+  flyer.textContent = '?';
+  document.body.appendChild(flyer);
+
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      flyer.style.left      = pileRect.left + (pileRect.width  - srcRect.width)  / 2 + 'px';
+      flyer.style.top       = pileRect.top  + (pileRect.height - srcRect.height) / 2 + 'px';
+      flyer.style.transform = 'scale(1.15)';
+      setTimeout(function() {
+        // Révéler la valeur
+        flyer.textContent   = val;
+        flyer.style.color   = '#c8aaff';
+        flyer.style.background   = '#12083a';
+        flyer.style.borderColor  = '#8844ff';
+        flyer.style.transform    = 'scale(1)';
+        flyer.style.boxShadow    = '0 0 18px rgba(170,80,255,0.6)';
+        if (window._mindAddParticle) {
+          var cx = pileRect.left + pileRect.width  / 2;
+          var cy = pileRect.top  + pileRect.height / 2;
+          var bgRect = _memEl('memMindBgCanvas') ? _memEl('memMindBgCanvas').getBoundingClientRect() : {left:0,top:0};
+          window._mindAddParticle(cx - bgRect.left, cy - bgRect.top, '#6633ff');
+        }
+        setTimeout(function() {
+          flyer.style.transition = 'opacity 0.25s';
+          flyer.style.opacity    = '0';
+          setTimeout(function() { flyer.remove(); }, 260);
+        }, 300);
+      }, 360);
+    });
+  });
+  if (navigator.vibrate) navigator.vibrate([20, 40, 20]);
+}
+
+// ── Animation erreur ──
+function _mindAnimError(err) {
+  // Shake de l'écran
+  var sc = _memEl('memScreenMind');
+  if (sc) {
+    var si = 0, sh = [-6, 6, -5, 5, -3, 3, -1, 1, 0];
+    sc.style.transition = 'transform .05s';
+    var iv = setInterval(function() {
+      if (si >= sh.length) { clearInterval(iv); sc.style.transform = ''; return; }
+      sc.style.transform = 'translateX(' + sh[si] + 'px)';
+      si++;
+    }, 55);
+  }
+
+  // Flash rouge
+  var flash = document.createElement('div');
+  flash.style.cssText =
+    'position:fixed;inset:0;background:rgba(200,20,60,0.22);pointer-events:none;z-index:9990;' +
+    'transition:opacity 0.4s;';
+  document.body.appendChild(flash);
+  requestAnimationFrame(function() {
+    setTimeout(function() {
+      flash.style.opacity = '0';
+      setTimeout(function() { flash.remove(); }, 420);
+    }, 150);
+  });
+
+  // Particules rouges depuis la pile
+  var pileCard = _memEl('memMindPileCard');
+  if (pileCard && window._mindAddParticle) {
+    var r = pileCard.getBoundingClientRect();
+    var bgRect = _memEl('memMindBgCanvas') ? _memEl('memMindBgCanvas').getBoundingClientRect() : {left:0,top:0};
+    for (var i = 0; i < 3; i++) {
+      (function(delay) {
+        setTimeout(function() {
+          window._mindAddParticle(r.left + r.width/2 - bgRect.left, r.top + r.height/2 - bgRect.top, '#ff2255');
+        }, delay);
+      })(i * 80);
+    }
+  }
+
+  // Toast message
+  var whoName = _memGetName(err.role);
+  _mindShowToast('✕  ' + whoName + ' a joué ' + err.card + ' trop tôt !', '#3a0015');
+  if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+}
+
+// ── Toast ──
+function _mindShowToast(msg, bg) {
+  var existing = _memEl('memMindToast');
+  if (existing) existing.remove();
+  var toast = document.createElement('div');
+  toast.id  = 'memMindToast';
+  toast.className = 'mnd-toast';
+  toast.textContent = msg;
+  if (bg) toast.style.background = bg;
+  var sc = _memEl('memScreenMind');
+  if (sc) sc.appendChild(toast);
+  setTimeout(function() {
+    toast.style.opacity = '0';
+    setTimeout(function() { toast.remove(); }, 320);
+  }, 2200);
+}
+
+// ── Animation victoire ──
+function _mindAnimVictory() {
+  var canvas = _memEl('memMindBgCanvas');
+  if (!canvas || !window._mindAddParticle) return;
+  var W = canvas.width, H = canvas.height;
+  var colors = ['#aa55ff','#cc77ff','#7733cc','#ff88ff','#44aaff'];
+  var count = 0;
+  var iv = setInterval(function() {
+    if (count++ > 20) { clearInterval(iv); return; }
+    var x = Math.random() * W;
+    var y = Math.random() * H * 0.6;
+    window._mindAddParticle(x, y, colors[Math.floor(Math.random() * colors.length)]);
+  }, 120);
+}
+
+// ── Animation défaite ──
+function _mindAnimDefeat() {
+  var canvas = _memEl('memMindBgCanvas');
+  if (!canvas || !window._mindAddParticle) return;
+  var W = canvas.width;
+  window._mindAddParticle(W / 2, 60, '#ff2255');
+  setTimeout(function() { window._mindAddParticle(W / 2, 60, '#aa0033'); }, 200);
+}
+
+// ── Présence adversaire ──
+function _mindUpdatePresenceDot(isOnline) {
+  var dot = _memEl('memMindOppDot');
+  if (!dot) return;
+  dot.className = 'mnd-presence-dot ' + (isOnline ? 'on' : 'off');
 }
