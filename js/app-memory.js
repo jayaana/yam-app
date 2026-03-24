@@ -4361,155 +4361,79 @@ function _mindShowResult(state) {
 // ═══════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════
-// THE MIND — MAINS PIXEL ART
-// Positionnement : position:absolute, centrées verticalement
-// sur la carte de pile, à gauche (adverse) et droite (moi).
-//
-// Main adverse (gauche) : invisible si inactive, remplie+clignote si active
-// Ma main (droite)      : contour discret si inactive, remplie si active
-//
-// Grille 9×13 pixels — main posée à plat, paumes face caméra,
-// doigts pointant vers le centre (adverse = doigts vers droite,
-// la mienne = doigts vers gauche via flip horizontal CSS).
+// THE MIND — CROIX SIGNAL
+// Gauche  = croix adverse  (invisible si inactive, clignote si active)
+// Droite  = ma croix       (contour si inactive, rouge pleine si active)
 // ═══════════════════════════════════════════════════════════
 
-// Grille 9 colonnes × 13 lignes
-// Représente une main vue de face, posée à plat :
-//   rangée 0-4 = les 4 doigts (+ pouce sur le côté)
-//   rangée 5-12 = la paume
-// Les doigts pointent vers la DROITE (main adverse).
-// La mienne est flippée via scaleX(-1).
-var MIND_HAND_PIXELS = [
-  // c: 0 1 2 3 4 5 6 7 8
-       [0,1,1,0,1,1,0,1,0],  // r0  — 3 doigts serrés (haut)
-       [0,1,1,1,1,1,1,1,0],  // r1
-       [0,1,1,1,1,1,1,1,0],  // r2
-       [0,1,1,1,1,1,1,1,0],  // r3
-       [1,1,1,1,1,1,1,1,0],  // r4  — pouce en bas à gauche
-       [1,1,1,1,1,1,1,1,0],  // r5
-       [0,1,1,1,1,1,1,1,1],  // r6  — paume s'élargit à droite
-       [0,1,1,1,1,1,1,1,1],  // r7
-       [0,1,1,1,1,1,1,1,1],  // r8
-       [0,0,1,1,1,1,1,1,1],  // r9
-       [0,0,1,1,1,1,1,1,0],  // r10
-       [0,0,0,1,1,1,1,0,0],  // r11 — bas de paume
-       [0,0,0,1,1,1,0,0,0]   // r12
-];
+// Dessine une croix pixel art dans un cercle (comme les images de référence)
+// opts: { filled, color, size }
+// filled=true → croix rouge pleine + cercle rouge ; filled=false → croix vide contour seulement
+function _mindDrawCrossSVG(opts) {
+  var sz   = opts.size || 44;
+  var half = sz / 2;
+  var r    = half - 2; // rayon du cercle
+  var t    = Math.round(sz * 0.13); // épaisseur des branches de la croix
+  var pad  = Math.round(sz * 0.25); // espace entre bord du cercle et extrémité croix
 
-// Génère le SVG pixel art de la main.
-// opts.px    : taille d'un pixel (défaut 5)
-// opts.color : couleur de remplissage pour mode filled
-// opts.filled: true = pleine, false = contour seulement
-// opts.flip  : true = miroir horizontal (ma main pointe à gauche)
-function _mindDrawHandSVG(opts) {
-  var px   = opts.px || 5;
-  var rows = MIND_HAND_PIXELS.length;       // 13
-  var cols = MIND_HAND_PIXELS[0].length;    // 9
-  var W    = cols * px;
-  var H    = rows * px;
-  var col  = opts.color || '#c8d840';
-  var dim  = '#3a4a10';  // couleur contour discret
-
-  var rects = '';
-  for (var r = 0; r < rows; r++) {
-    for (var c = 0; c < cols; c++) {
-      if (!MIND_HAND_PIXELS[r][c]) continue;
-      var x = c * px, y = r * px;
-      if (opts.filled) {
-        rects += '<rect x="'+x+'" y="'+y+'" width="'+px+'" height="'+px+'" fill="'+col+'"/>';
-      } else {
-        // Mode contour : ne dessiner que les pixels de bord (voisin vide)
-        var N = (r > 0)        ? MIND_HAND_PIXELS[r-1][c] : 0;
-        var S = (r < rows-1)   ? MIND_HAND_PIXELS[r+1][c] : 0;
-        var L = (c > 0)        ? MIND_HAND_PIXELS[r][c-1] : 0;
-        var R = (c < cols-1)   ? MIND_HAND_PIXELS[r][c+1] : 0;
-        if (!N || !S || !L || !R) {
-          rects += '<rect x="'+x+'" y="'+y+'" width="'+px+'" height="'+px+'" fill="'+dim+'"/>';
-        }
-      }
-    }
+  if (opts.filled) {
+    var col = opts.color || '#e8192c';
+    // Cercle rouge plein + croix blanche épaisse
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="'+sz+'" height="'+sz+'" viewBox="0 0 '+sz+' '+sz+'" style="display:block;">'
+      + '<circle cx="'+half+'" cy="'+half+'" r="'+r+'" fill="'+col+'" stroke="'+col+'" stroke-width="1"/>'
+      + '<line x1="'+(pad)+'" y1="'+(pad)+'" x2="'+(sz-pad)+'" y2="'+(sz-pad)+'" stroke="#fff" stroke-width="'+t+'" stroke-linecap="square"/>'
+      + '<line x1="'+(sz-pad)+'" y1="'+(pad)+'" x2="'+(pad)+'" y2="'+(sz-pad)+'" stroke="#fff" stroke-width="'+t+'" stroke-linecap="square"/>'
+      + '</svg>';
+  } else {
+    var outlineCol = opts.outlineColor || '#4a5a30';
+    var crossCol   = opts.outlineColor || '#4a5a30';
+    // Cercle contour + croix contour (vide)
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="'+sz+'" height="'+sz+'" viewBox="0 0 '+sz+' '+sz+'" style="display:block;">'
+      + '<circle cx="'+half+'" cy="'+half+'" r="'+r+'" fill="none" stroke="'+outlineCol+'" stroke-width="2"/>'
+      + '<line x1="'+(pad)+'" y1="'+(pad)+'" x2="'+(sz-pad)+'" y2="'+(sz-pad)+'" stroke="'+crossCol+'" stroke-width="'+(t-1)+'" stroke-linecap="square"/>'
+      + '<line x1="'+(sz-pad)+'" y1="'+(pad)+'" x2="'+(pad)+'" y2="'+(sz-pad)+'" stroke="'+crossCol+'" stroke-width="'+(t-1)+'" stroke-linecap="square"/>'
+      + '</svg>';
   }
-
-  // flip = scaleX(-1) centré sur W/2
-  var transform = opts.flip
-    ? 'transform="translate('+W+',0) scale(-1,1)"'
-    : '';
-
-  return '<svg xmlns="http://www.w3.org/2000/svg"'
-    + ' width="'+W+'" height="'+H+'"'
-    + ' viewBox="0 0 '+W+' '+H+'"'
-    + ' style="display:block;image-rendering:pixelated;">'
-    + '<g '+transform+'>' + rects + '</g>'
-    + '</svg>';
 }
 
-// ── Injection des mains dans le DOM ──
-// Stratégie : on crée un wrapper position:relative autour de la zone de pile
-// et on place les mains en position:absolute à gauche et à droite de la carte.
+// Crée (ou met à jour) les deux éléments main autour de la pile centrale
 function _mindInjectHands() {
   var pile = _memEl('memMindPileCard');
   if (!pile) return;
+  var parent = pile.parentNode;
+  if (!parent) return;
 
-  // Nettoyer les anciennes mains si elles existent
-  var oldL = _memEl('memMindOppHand');
-  var oldR = _memEl('memMindMyHand');
-  if (oldL) oldL.remove();
-  if (oldR) oldR.remove();
+  // Supprimer si déjà présents
+  var existing = parent.querySelectorAll('.mnd-hand-btn');
+  for (var i = 0; i < existing.length; i++) existing[i].remove();
 
-  // Le wrapper doit être position:relative pour l'ancrage absolu
-  // On cherche un ancêtre qui contient la pile et a une largeur raisonnable
-  // On utilise le parent direct de la pile
-  var anchor = pile.parentNode;
-  if (!anchor) return;
-
-  // S'assurer que l'ancre a position relative (si pas déjà)
-  var pos = window.getComputedStyle(anchor).position;
-  if (pos === 'static') anchor.style.position = 'relative';
-
-  // Dimensions de la main SVG (9 cols × 5px = 45px, 13 rows × 5px = 65px)
-  var PX = 5;
-  var HW = 9  * PX;  // 45px largeur
-  var HH = 13 * PX;  // 65px hauteur
-
-  // ── Main adverse (gauche de la pile) ──
-  // Invisible par défaut — n'apparaît que si l'adversaire l'active
+  // --- Croix adverse (gauche) ---
   var oppHand = document.createElement('div');
   oppHand.id = 'memMindOppHand';
+  oppHand.className = 'mnd-hand-btn';
   oppHand.style.cssText = [
-    'position:absolute;',
-    'top:50%;',
-    'transform:translateY(-50%);',
-    'left:-'+(HW+14)+'px;',   // 14px gap entre main et carte
-    'width:'+HW+'px;',
-    'height:'+HH+'px;',
-    'display:flex;align-items:center;justify-content:center;',
-    'visibility:hidden;',
-    'transition:opacity 0.15s;',
-    'pointer-events:none;'
+    'width:50px;height:50px;display:flex;align-items:center;justify-content:center;',
+    'cursor:default;flex-shrink:0;visibility:hidden;'
   ].join('');
-  oppHand.innerHTML = _mindDrawHandSVG({ filled: true, color: '#c8d840', px: PX });
+  oppHand.innerHTML = _mindDrawCrossSVG({ filled: true, color: '#e8192c', size: 44 });
 
-  // ── Ma main (droite de la pile) ──
-  // Contour discret par défaut, remplie quand active
+  // --- Ma croix (droite) ---
   var myHand = document.createElement('div');
   myHand.id = 'memMindMyHand';
+  myHand.className = 'mnd-hand-btn';
   myHand.style.cssText = [
-    'position:absolute;',
-    'top:50%;',
-    'transform:translateY(-50%);',
-    'right:-'+(HW+14)+'px;',  // 14px gap entre carte et main
-    'width:'+HW+'px;',
-    'height:'+HH+'px;',
-    'display:flex;align-items:center;justify-content:center;',
-    'cursor:pointer;',
-    'transition:opacity 0.15s;'
+    'width:50px;height:50px;display:flex;align-items:center;justify-content:center;',
+    'cursor:pointer;flex-shrink:0;transition:transform .12s;'
   ].join('');
-  myHand.innerHTML = _mindDrawHandSVG({ filled: false, px: PX, flip: true });
-  myHand.title = 'Activer / désactiver le signal main';
+  myHand.innerHTML = _mindDrawCrossSVG({ filled: false, outlineColor: '#4a5a1a', size: 44 });
+  myHand.title = 'Signal croix';
   myHand.addEventListener('click', _mindToggleMyHand);
 
-  anchor.appendChild(oppHand);
-  anchor.appendChild(myHand);
+  // Insérer : oppHand | pile | myHand
+  parent.insertBefore(oppHand, pile);
+  var after = pile.nextSibling;
+  if (after) parent.insertBefore(myHand, after);
+  else parent.appendChild(myHand);
 }
 
 // Toggle ma propre main + push dans le state partagé
@@ -4517,61 +4441,55 @@ function _mindToggleMyHand() {
   if (!_memMp || !_memLastState) return;
   _mindMyHandActive = !_mindMyHandActive;
   _mindRenderMyHandEl();
+  // Sauvegarder dans le state partagé
   var ns = JSON.parse(JSON.stringify(_memLastState));
   ns[_memProfile + '_hand_active'] = _mindMyHandActive;
   _memMp.saveState(ns);
-  if (navigator.vibrate) navigator.vibrate(_mindMyHandActive ? [30,20,30] : [40]);
 }
 
-// Mise à jour visuelle de MA main (droite)
+// Mise à jour visuelle de MA croix
 function _mindRenderMyHandEl() {
   var el = _memEl('memMindMyHand'); if (!el) return;
   if (_mindMyHandActive) {
-    el.innerHTML = _mindDrawHandSVG({ filled: true, color: '#c8d840', px: 5, flip: true });
-    el.style.filter = 'drop-shadow(0 0 4px rgba(200,216,64,0.6))';
+    el.innerHTML = _mindDrawCrossSVG({ filled: true, color: '#e8192c', size: 44 });
+    el.style.transform = 'scale(1.15)';
   } else {
-    el.innerHTML = _mindDrawHandSVG({ filled: false, px: 5, flip: true });
-    el.style.filter = 'none';
+    el.innerHTML = _mindDrawCrossSVG({ filled: false, outlineColor: '#4a5a1a', size: 44 });
+    el.style.transform = 'scale(1)';
   }
 }
 
-// Mise à jour visuelle de la main ADVERSE (gauche)
+// Mise à jour visuelle de la croix ADVERSE (clignote si active, invisible sinon)
 function _mindRenderOppHandEl(active) {
   var el = _memEl('memMindOppHand'); if (!el) return;
   if (_mindHandBlinkInt) { clearInterval(_mindHandBlinkInt); _mindHandBlinkInt = null; }
   if (!active) {
     el.style.visibility = 'hidden';
     el.style.opacity = '1';
-    el.style.filter = 'none';
     return;
   }
   el.style.visibility = 'visible';
-  el.innerHTML = _mindDrawHandSVG({ filled: true, color: '#c8d840', px: 5 });
-  el.style.filter = 'drop-shadow(0 0 4px rgba(200,216,64,0.6))';
+  el.innerHTML = _mindDrawCrossSVG({ filled: true, color: '#e8192c', size: 44 });
   // Clignotement
-  var bright = true;
+  var visible = true;
   _mindHandBlinkInt = setInterval(function() {
-    var e = _memEl('memMindOppHand');
-    if (!e) { clearInterval(_mindHandBlinkInt); _mindHandBlinkInt = null; return; }
-    bright = !bright;
-    e.style.opacity = bright ? '1' : '0.12';
-  }, 420);
+    if (!_memEl('memMindOppHand')) { clearInterval(_mindHandBlinkInt); _mindHandBlinkInt = null; return; }
+    visible = !visible;
+    el.style.opacity = visible ? '1' : '0.15';
+  }, 400);
 }
 
 // Appliquer l'état des mains depuis le state partagé entrant
 function _mindApplyHandState(state) {
-  if (!state) return;
-  var oppActive = !!(state[_memOther   + '_hand_active']);
+  var oppActive = !!(state[_memOther + '_hand_active']);
   var myActive  = !!(state[_memProfile + '_hand_active']);
-
-  // S'assurer que les éléments existent (injectés au démarrage)
-  if (!_memEl('memMindMyHand')) _mindInjectHands();
 
   // Ma main : sync depuis le state (utile à la reconnexion)
   if (myActive !== _mindMyHandActive) {
     _mindMyHandActive = myActive;
     _mindRenderMyHandEl();
   }
+
   // Main adverse : màj seulement si changement
   if (oppActive !== _mindOppHandActive) {
     _mindOppHandActive = oppActive;
