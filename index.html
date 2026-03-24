@@ -3729,10 +3729,14 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       border-color: #22c55e !important;
       border-width: 2.5px !important;
     }
-    /* ALL — même style que les autres cartes DUEL */
+    /* ALL — même style et même taille que les autres cartes DUEL */
     #memScreenMode .mem-mode-card--all {
       background: var(--s1) !important;
       border-color: var(--border) !important;
+      grid-column: auto !important;
+      width: auto !important;
+      min-width: 0 !important;
+      max-width: none !important;
     }
     #memScreenMode .mem-mode-card--all .mem-mode-card-title {
       color: var(--text) !important;
