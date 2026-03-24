@@ -4346,6 +4346,206 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       border-color: #c8d840 !important;
       border-width: 2.5px !important;
     }
+
+    /* ══════════════════════════════════════════════
+       THE MIND — THÈME CLAIR (pastel)
+       Surcharge toutes les couleurs arcade/sombre
+       ══════════════════════════════════════════════ */
+    body.light #memScreenMind {
+      background: #fdf6ff;
+    }
+    body.light #memMindBgCanvas {
+      opacity: 0.18;
+    }
+    body.light #memScreenMind::after {
+      opacity: 0.08;
+    }
+
+    /* HUD */
+    body.light .mnd-hud {
+      background: #f3e8ff;
+      border-bottom: 2px solid #d8b4fe;
+    }
+    body.light .mnd-hud-val {
+      color: #7c3aed;
+      text-shadow: 0 0 8px rgba(124,58,237,0.25);
+    }
+    body.light .mnd-hud-lbl {
+      color: #a78bfa;
+    }
+
+    /* Cœurs */
+    body.light .mnd-heart svg path,
+    body.light .mnd-heart svg rect,
+    body.light .mnd-heart svg polygon { fill: #f472b6; }
+
+    /* Bande de phase */
+    body.light .mnd-phase-bar {
+      background: #fdf4ff;
+      border-bottom: 1px solid #e9d5ff;
+      color: #a855f7;
+    }
+    body.light .mnd-phase-bar .mnd-blink {
+      background: #f472b6;
+    }
+
+    /* Zone adversaire */
+    body.light .mnd-opp-zone {
+      border-bottom: 1px solid #f0e6ff;
+    }
+    body.light .mnd-avatar {
+      border: 2px solid #d8b4fe;
+      background: #f3e8ff;
+    }
+    body.light .mnd-presence-dot.on {
+      background: #34d399;
+      box-shadow: 0 0 4px rgba(52,211,153,0.6);
+    }
+    body.light .mnd-presence-dot.off {
+      background: #d1d5db;
+    }
+    body.light .mnd-presence-dot {
+      border-color: #fdf6ff;
+    }
+    body.light .mnd-player-name {
+      color: #7c3aed;
+    }
+    body.light .mnd-player-sub {
+      color: #c4b5fd;
+    }
+
+    /* Dos carte adversaire */
+    body.light .mnd-card-back {
+      background: #fdf4ff;
+      border: 2px solid #d8b4fe;
+    }
+    body.light .mnd-card-back::before {
+      border: 1px solid #e9d5ff;
+    }
+    body.light .mnd-card-back-dot {
+      background: #c4b5fd;
+    }
+
+    /* Pile centrale */
+    body.light .mnd-pile-label {
+      color: #a78bfa;
+    }
+    body.light .mnd-pile-card {
+      background: #fdf4ff;
+      border: 2px solid #a855f7;
+      box-shadow: 0 0 16px rgba(168,85,247,0.2), inset 0 0 8px rgba(168,85,247,0.06);
+    }
+    body.light .mnd-pile-card::before {
+      border: 1px solid #e9d5ff;
+    }
+    body.light .mnd-pile-num {
+      color: #7c3aed;
+      text-shadow: 0 0 10px rgba(124,58,237,0.3);
+    }
+    body.light .mnd-pile-num.empty {
+      color: #ddd6fe;
+      text-shadow: none;
+    }
+    body.light .mnd-pile-count {
+      color: #c4b5fd;
+    }
+
+    /* Mes cartes */
+    body.light .mnd-my-zone {
+      border-top: 1px solid #f0e6ff;
+      background: #fdf4ff;
+    }
+    body.light .mnd-card {
+      background: #ffffff;
+      border: 2px solid #a855f7;
+      border-bottom: 5px solid #ddd6fe;
+      color: #7c3aed;
+      text-shadow: none;
+    }
+    body.light .mnd-card.mnd-card--selected {
+      border-color: #7c3aed;
+      border-bottom-color: #a855f7;
+      background: #f3e8ff;
+      box-shadow: 0 0 14px rgba(124,58,237,0.3);
+    }
+
+    /* Bouton jouer */
+    body.light .mnd-actions {
+      background: #fdf4ff;
+      border-top: 2px solid #f0e6ff;
+    }
+    body.light .mnd-play-btn {
+      background: #fdf4ff;
+      border: 2px solid #a855f7;
+      border-bottom: 5px solid #e9d5ff;
+      color: #a855f7;
+    }
+    body.light .mnd-play-btn.mnd-play-btn--ready {
+      background: #f3e8ff;
+      border-color: #7c3aed;
+      border-bottom-color: #c4b5fd;
+      color: #7c3aed;
+      box-shadow: 0 0 14px rgba(124,58,237,0.22);
+      animation: mnd-pulse-btn-light 1.4s ease-in-out infinite;
+    }
+    @keyframes mnd-pulse-btn-light {
+      0%,100% { box-shadow: 0 0 8px rgba(124,58,237,0.15); }
+      50%      { box-shadow: 0 0 20px rgba(124,58,237,0.40); }
+    }
+
+    /* Toast */
+    body.light .mnd-toast {
+      background: #fdf4ff;
+      border: 2px solid #7c3aed;
+      color: #7c3aed;
+    }
+
+    /* Résultat final */
+    body.light #memMindFinalResult {
+      background: rgba(253,246,255,0.97);
+    }
+    body.light .mnd-final-title {
+      color: #7c3aed;
+      text-shadow: 0 0 10px rgba(124,58,237,0.2);
+    }
+    body.light .mnd-final-sub {
+      color: #c4b5fd;
+    }
+
+    /* Banner niveau */
+    body.light .mnd-level-banner {
+      background: rgba(253,246,255,0.95);
+    }
+    body.light .mnd-level-num {
+      color: #7c3aed;
+      text-shadow: 0 0 20px rgba(124,58,237,0.35);
+    }
+    body.light .mnd-level-txt {
+      color: #a855f7;
+    }
+    body.light .mnd-level-cd {
+      color: #c4b5fd;
+    }
+
+    /* Carte sélection de mode */
+    body.light #memScreenMode .mem-mode-card--mind {
+      background: #fdf4ff !important;
+      border-color: #d8b4fe !important;
+    }
+    body.light #memScreenMode .mem-mode-card--mind .mem-mode-card-title {
+      color: #7c3aed !important;
+    }
+    body.light #memScreenMode .mem-mode-card--mind .mem-mode-card-desc {
+      color: #a78bfa !important;
+    }
+    body.light #memScreenMode .mem-mode-card--mind.mem-mode-card--selected,
+    body.light #memScreenMode .mem-mode-card--mind.mem-mode-card--matched {
+      border-color: #7c3aed !important;
+    }
+
+    /* Croix signal — thème clair */
+    body.light #memMindMyHand svg circle { stroke: #a855f7 !important; }
+    body.light #memMindMyHand svg line   { stroke: #a855f7 !important; }
     </style>
 
     <div id="memScreenMind" class="mem-screen" style="display:none;flex-direction:column;">
