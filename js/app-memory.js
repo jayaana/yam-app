@@ -3751,7 +3751,7 @@ function _mindApplyState(state) {
     for (var i = 0; i < 2; i++) {
       var heart = document.createElement('div');
       heart.className = 'mnd-heart' + (i >= (state.lives || 0) ? ' lost' : '');
-      heart.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 12.5S1 8.5 1 4.5C1 2.57 2.57 1 4.5 1c.96 0 1.87.4 2.5 1.07C7.63 1.4 8.54 1 9.5 1 11.43 1 13 2.57 13 4.5c0 4-6 8-6 8z" fill="' + (i < (state.lives || 0) ? '#ee4488' : '#443366') + '"/></svg>';
+      heart.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 12.5S1 8.5 1 4.5C1 2.57 2.57 1 4.5 1c.96 0 1.87.4 2.5 1.07C7.63 1.4 8.54 1 9.5 1 11.43 1 13 2.57 13 4.5c0 4-6 8-6 8z" fill="' + (i < (state.lives || 0) ? '#ee4488' : '#2a3a0a') + '"/></svg>';
       livesEl.appendChild(heart);
     }
   }
@@ -3787,7 +3787,7 @@ function _mindApplyState(state) {
     }
     if (oppCards.length === 0) {
       var empty = document.createElement('span');
-      empty.style.cssText = 'font-size:9px;color:#443366;letter-spacing:2px;font-family:Courier New,monospace;';
+      empty.style.cssText = 'font-size:9px;color:#2a3a0a;letter-spacing:2px;font-family:Courier New,monospace;';
       empty.textContent = 'AUCUNE CARTE';
       oppCardsEl.appendChild(empty);
     }
@@ -3813,7 +3813,7 @@ function _mindApplyState(state) {
     }
     if (myCards.length === 0) {
       var noCard = document.createElement('span');
-      noCard.style.cssText = 'font-size:9px;color:#443366;letter-spacing:2px;font-family:Courier New,monospace;';
+      noCard.style.cssText = 'font-size:9px;color:#2a3a0a;letter-spacing:2px;font-family:Courier New,monospace;';
       noCard.textContent = 'AUCUNE CARTE';
       myCardsEl.appendChild(noCard);
     }
@@ -4082,7 +4082,7 @@ function _mindStartBgCanvas() {
         vy: Math.sin(angle) * (1 + Math.random() * 2),
         life: 1, decay: 0.025 + Math.random() * 0.02,
         r: 2 + Math.random() * 3,
-        color: color || '#8855ff'
+        color: color || '#c8d840'
       });
     }
   }
@@ -4135,8 +4135,8 @@ function _mindAnimSelfPlay(idx, val) {
   flyer.style.cssText =
     'left:' + rect.left + 'px;top:' + rect.top + 'px;' +
     'width:' + rect.width + 'px;height:' + rect.height + 'px;' +
-    'background:#12083a;border:2px solid #5533cc;border-radius:5px;' +
-    'font-size:20px;font-weight:700;color:#d8c4ff;' +
+    'background:#1a1f0a;border:2px solid #5a6a18;border-radius:5px;' +
+    'font-size:20px;font-weight:700;color:#c8d840;' +
     'font-family:Courier New,monospace;' +
     'transition:all 0.35s cubic-bezier(.4,0,.2,1);';
   flyer.textContent = val;
@@ -4148,7 +4148,7 @@ function _mindAnimSelfPlay(idx, val) {
         flyer.style.left   = pileRect.left + (pileRect.width  - rect.width)  / 2 + 'px';
         flyer.style.top    = pileRect.top  + (pileRect.height - rect.height) / 2 + 'px';
         flyer.style.transform = 'scale(1.2)';
-        flyer.style.boxShadow = '0 0 20px rgba(170,80,255,0.7)';
+        flyer.style.boxShadow = '0 0 20px rgba(200,216,64,0.6)';
       } else {
         flyer.style.transform = 'translateY(-80px) scale(0.8)';
         flyer.style.opacity   = '0';
@@ -4160,7 +4160,7 @@ function _mindAnimSelfPlay(idx, val) {
           var cy = pileRect.top  + pileRect.height / 2;
           window._mindAddParticle(cx - (_memEl('memMindBgCanvas') ? _memEl('memMindBgCanvas').getBoundingClientRect().left : 0),
                                   cy - (_memEl('memMindBgCanvas') ? _memEl('memMindBgCanvas').getBoundingClientRect().top  : 0),
-                                  '#aa55ff');
+                                  '#c8d840');
         }
         setTimeout(function() {
           flyer.style.transition = 'opacity 0.2s';
@@ -4190,8 +4190,8 @@ function _mindAnimOppPlay(val) {
   flyer.style.cssText =
     'left:' + srcRect.left + 'px;top:' + srcRect.top + 'px;' +
     'width:' + srcRect.width + 'px;height:' + srcRect.height + 'px;' +
-    'background:#1a1040;border:2px solid #4433aa;border-radius:4px;' +
-    'font-size:20px;font-weight:700;color:#d8c4ff;' +
+    'background:#1a1f0a;border:2px solid #3a4a10;border-radius:4px;' +
+    'font-size:20px;font-weight:700;color:#c8d840;' +
     'font-family:Courier New,monospace;' +
     'transition:all 0.35s cubic-bezier(.4,0,.2,1);';
   flyer.textContent = '?';
@@ -4205,16 +4205,16 @@ function _mindAnimOppPlay(val) {
       setTimeout(function() {
         // Révéler la valeur
         flyer.textContent   = val;
-        flyer.style.color   = '#c8aaff';
-        flyer.style.background   = '#12083a';
-        flyer.style.borderColor  = '#8844ff';
+        flyer.style.color   = '#c8d840';
+        flyer.style.background   = '#1a1f0a';
+        flyer.style.borderColor  = '#c8d840';
         flyer.style.transform    = 'scale(1)';
-        flyer.style.boxShadow    = '0 0 18px rgba(170,80,255,0.6)';
+        flyer.style.boxShadow    = '0 0 18px rgba(200,216,64,0.5)';
         if (window._mindAddParticle) {
           var cx = pileRect.left + pileRect.width  / 2;
           var cy = pileRect.top  + pileRect.height / 2;
           var bgRect = _memEl('memMindBgCanvas') ? _memEl('memMindBgCanvas').getBoundingClientRect() : {left:0,top:0};
-          window._mindAddParticle(cx - bgRect.left, cy - bgRect.top, '#6633ff');
+          window._mindAddParticle(cx - bgRect.left, cy - bgRect.top, '#8a9a2a');
         }
         setTimeout(function() {
           flyer.style.transition = 'opacity 0.25s';
@@ -4296,7 +4296,7 @@ function _mindAnimVictory() {
   var canvas = _memEl('memMindBgCanvas');
   if (!canvas || !window._mindAddParticle) return;
   var W = canvas.width, H = canvas.height;
-  var colors = ['#aa55ff','#cc77ff','#7733cc','#ff88ff','#44aaff'];
+  var colors = ['#c8d840','#c8d840','#6a7a20','#c8d840','#8a9a2a'];
   var count = 0;
   var iv = setInterval(function() {
     if (count++ > 20) { clearInterval(iv); return; }
