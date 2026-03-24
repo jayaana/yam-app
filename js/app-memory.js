@@ -3879,11 +3879,13 @@ function _mindApplyState(state) {
       _mindNextLevelTs = nts;
       _mindShowLevelBanner(state.next_level, false);
       if (_memProfile === 'girl') {
-        setTimeout(function() {
-          if (_memLastState && _memLastState.phase === 'mind_next' && (_memLastState.next_ts||0) === nts) {
-            _mindNextLevel(_memLastState);
-          }
-        }, 2800);
+        (function(capturedNts) {
+          setTimeout(function() {
+            if (_memLastState && _memLastState.phase === 'mind_next' && (_memLastState.next_ts||0) === capturedNts) {
+              _mindNextLevel(_memLastState);
+            }
+          }, 2800);
+        })(nts);
       } else {
         // Boy recharge ses cartes depuis le deal inclus dans mind_next
         var boyNextDeal = state[_memProfile + '_deal'] || [];
@@ -3896,7 +3898,13 @@ function _mindApplyState(state) {
         }
       }
     }
-    _mindRenderAll(state);
+    // Rendu direct sans passer par _mindRenderAll pour éviter que le bloc mind_next
+    // dans _mindRenderAll ne tente de re-déclencher le setTimeout (double-fire ou annulation)
+    _mindRenderHUD(state);
+    _mindRenderPile(state);
+    _mindRenderOppCards();
+    _mindRenderMyCards(state);
+    _mindUpdatePhase(state);
     return;
   }
 
@@ -3927,29 +3935,6 @@ function _mindRenderAll(state) {
   _mindUpdatePhase(state);
   if (state.winner) {
     _mindShowResult(state);
-  } else if (state.phase === 'mind_next') {
-    var nts = state.next_ts || 0;
-    if (nts !== _mindNextLevelTs) {
-      _mindNextLevelTs = nts;
-      _mindShowLevelBanner(state.next_level, false);
-      if (_memProfile === 'girl') {
-        setTimeout(function() {
-          if (_memLastState && _memLastState.phase === 'mind_next' && (_memLastState.next_ts||0) === nts) {
-            _mindNextLevel(_memLastState);
-          }
-        }, 2800);
-      } else {
-        // Boy recharge sa main depuis le deal dans le state
-        var boyDeal = state[_memProfile + '_deal'] || state['boy_deal'] || [];
-        if (boyDeal.length > 0) {
-          var coupleIdB = _memGetCoupleId();
-          if (coupleIdB) {
-            _mindMyCards = boyDeal.slice();
-            _mindWriteMyHand(coupleIdB, state.next_level || ((state.level||1)+1), boyDeal).catch(function(){});
-          }
-        }
-      }
-    }
   }
 }
 
@@ -4056,10 +4041,12 @@ function _mindPlayCard(idx) {
   _mindSelected = null;
   var playBtn = _memEl('memMindPlayBtn');
   if (playBtn) { playBtn.disabled = true; playBtn.classList.remove('mnd-play-btn--ready'); }
-  _mindAnimSelfPlay(idx, card);
 
-  // Retirer la carte localement
+  // Retirer la carte localement AVANT l'animation pour que le DOM soit à jour immédiatement
   _mindMyCards.splice(idx, 1);
+  _mindRenderMyCards(_memLastState || {});
+
+  _mindAnimSelfPlay(idx, card);
 
   // PATCH mind_hands : mettre à jour mes cartes restantes
   var coupleId = _memGetCoupleId();
