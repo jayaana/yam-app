@@ -3699,6 +3699,7 @@ var _mindLastBurnedTs = 0;
 var _mindMyCards     = [];   // cartes locales lues depuis mind_hands
 var _mindOppCount    = 0;    // nb cartes adversaire (lu depuis mind_hands)
 var _mindOppCards    = [];   // vraies cartes adversaire (lues depuis mind_hands)
+var _mindOppPatchedTs  = 0;    // timestamp du dernier patch local de la main adv (anti race-condition)
 
 // ── Helpers Supabase directs ──
 function _mindFetch(params) {
@@ -3792,6 +3793,7 @@ function _mindStart(gameRow) {
   _mindOppCards     = [];
   _mindOppCount     = 0;
   _mindLastBurnedTs = 0;
+  _mindOppPatchedTs  = 0;
   _memShowScreen('memScreenMind');
   _mindStartBgCanvas();
 
@@ -3916,7 +3918,7 @@ function _mindApplyState(state) {
         if (cid) _mindWriteMyHand(cid, state.next_level, _mindMyCards).catch(function(){});
       }
 
-      // Toujours recharger le count adversaire AVANT le render (fix nb cartes incorrect côté girl/boy)
+      // Recharger le count adversaire avant render (fix cartes grisées côté boy)
       _mindLoadOppCount(function(n) {
         _mindOppCount = n;
         _mindRenderAll(state);
@@ -4136,21 +4138,16 @@ function _mindPlayCard(idx) {
   var ns  = JSON.parse(JSON.stringify(state));
   var pile = ns.pile.slice();
   var top  = pile.length ? pile[pile.length - 1] : 0;
+  pile.push(card);
+  ns.pile = pile;
 
   var isError = (card < top);
 
   if (isError) {
     // ── Erreur : ordre cassé ──
-    // La carte jouée hors ordre est défaussée : elle NE rejoint PAS la pile visible.
-    // On la remet dans _mindMyCards pour que les calculs suivants restent cohérents.
-    _mindMyCards.splice(idx, 0, card);
-    _mindRenderMyCards();
-
     ns.lives = Math.max(0, (ns.lives || 5) - 1);
     ns.error = { role: _memProfile, card: card, ts: Date.now() };
     ns.last_played = null;
-    // pile inchangée (on ne push PAS la carte erronée)
-    ns.pile = pile;
     if (ns.lives <= 0) ns.winner = 'lose';
     // Déverrouiller après l'animation d'erreur (gérée dans _mindApplyState via realtime)
     // Mais si le realtime est lent, on déverrouille quand même après 1.5s
@@ -4158,10 +4155,6 @@ function _mindPlayCard(idx) {
     _memMp.saveState(ns);
     return;
   }
-
-  // Coup valide : on ajoute la carte à la pile
-  pile.push(card);
-  ns.pile = pile;
 
   // ── Coup valide ──
   ns.error       = null;
@@ -4181,9 +4174,9 @@ function _mindPlayCard(idx) {
       if (coupleIdBurn) {
         _mindPatch('couple_id=eq.' + coupleIdBurn + '&role=eq.' + _memOther, { cards: newOppCards }).catch(function(){});
       }
-      // Ajouter les cartes brûlées à la pile (elles sont défaussées dans l'ordre)
-      burnedCards.sort(function(a,b){return a-b;});
-      for (var bi = 0; bi < burnedCards.length; bi++) { pile.push(burnedCards[bi]); }
+      // Les cartes brûlées sont signalées via ns.burned.cards pour le toast,
+      // mais ne sont PAS pushées dans la pile (elles ne comptent pas comme jouées
+      // et ne doivent pas apparaître comme top de pile).
       ns.pile = pile;
       // Perdre 1 PV
       ns.lives = Math.max(0, (ns.lives || 5) - 1);
@@ -4191,6 +4184,7 @@ function _mindPlayCard(idx) {
       ns.burned = { cards: burnedCards, role: _memOther, ts: Date.now() };
       if (ns.lives <= 0) { ns.winner = 'lose'; }
       _mindOppCards = newOppCards;
+      _mindOppPatchedTs = Date.now();  // marquer patch local (anti race-condition)
       _mindOppCount = newOppCards.length;
     } else {
       ns.burned = null;
@@ -4220,9 +4214,13 @@ function _mindPlayCard(idx) {
     _memMp.saveState(ns);
   }
 
-  // Recharger les cartes adversaire depuis mind_hands (source de vérité) avant calcul
+  // Recharger les cartes adversaire depuis mind_hands avant calcul.
+  // SAUF si un patch local vient d'être appliqué (<3s) : dans ce cas
+  // mind_hands n'a pas encore été mis à jour côté serveur (race condition) —
+  // on fait confiance à _mindOppCards local qui est déjà à jour.
   var coupleIdOpp = _memGetCoupleId();
-  if (coupleIdOpp) {
+  var recentPatch = (Date.now() - _mindOppPatchedTs) < 3000;
+  if (coupleIdOpp && !recentPatch) {
     _mindFetch('couple_id=eq.' + coupleIdOpp + '&role=eq.' + _memOther)
       .then(function(rows) {
         var fresh = (rows && rows[0] && rows[0].cards) ? rows[0].cards : [];
@@ -4235,6 +4233,7 @@ function _mindPlayCard(idx) {
         _mindDoPlayWithOppCards(_mindOppCards.slice());
       });
   } else {
+    // Patch récent ou pas de coupleId → utiliser _mindOppCards local
     _mindDoPlayWithOppCards(_mindOppCards.slice());
   }
 }
