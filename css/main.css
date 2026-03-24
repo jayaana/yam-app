@@ -2271,7 +2271,7 @@ body:not(.prank-flip) > *:not(#prankFlipBanner):not(#prankGotcha):not(#prankLock
 
 /* Cartes de modes */
 .mem-mode-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.mem-mode-card { background: var(--s1); border: 2px solid var(--border); border-radius: 16px; padding: 16px 12px; text-align: center; cursor: pointer; transition: border-color 0.2s, transform 0.15s, background 0.2s; -webkit-tap-highlight-color: transparent; }
+.mem-mode-card { background: var(--s1); border: 2px solid var(--border); border-radius: 16px; padding: 10px 10px; text-align: center; cursor: pointer; transition: border-color 0.2s, transform 0.15s, background 0.2s; -webkit-tap-highlight-color: transparent; }
 .mem-mode-card:active { transform: scale(0.97); }
 .mem-mode-card--selected { border-color: var(--accent); background: rgba(231,90,124,0.06); }
 .mem-mode-card--matched { border-color: #22c55e; background: rgba(34,197,94,0.07); animation: modeMatch 0.4s ease; }
