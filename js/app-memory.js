@@ -4211,9 +4211,12 @@ function _mindPlayCard(idx) {
       ns.burned = null;
     }
 
-    // Vérifier fin de niveau : level*2 cartes au total dans la pile
-    var totalCards = (ns.level || 1) * 2;
-    if (pile.length >= totalCards) {
+    // Vérifier fin de niveau : toutes les mains sont vides.
+    // On ne compte plus les cartes dans la pile car les burned cards
+    // n'y sont plus pushées — le count serait faux après un burn.
+    var myCardsEmpty  = (ns[_memProfile + '_cards'] || []).length === 0;
+    var oppCardsEmpty = (ns[_memOther   + '_cards'] || []).length === 0;
+    if (myCardsEmpty && oppCardsEmpty) {
       if (ns.level >= 12) {
         ns.winner = 'win';
       } else {
