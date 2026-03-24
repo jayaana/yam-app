@@ -3821,9 +3821,12 @@ function _mindApplyState(state) {
   }
 
   // Bouton jouer
+  // Ne pas réactiver si c'est nous qui venons juste de jouer (évite double-tap)
   var playBtn = _memEl('memMindPlayBtn');
   if (playBtn) {
-    playBtn.disabled = (state.winner !== null) || (myCards.length === 0);
+    var justPlayed = state.last_played && state.last_played.role === _memProfile
+                     && (Date.now() - (state.last_played.ts || 0)) < 1500;
+    playBtn.disabled = (state.winner !== null) || (myCards.length === 0) || justPlayed;
     playBtn.classList.toggle('mnd-play-btn--ready', false);
   }
 
@@ -3892,52 +3895,60 @@ function _mindPlayCard(idx) {
 
   var card = myCards[idx];
 
-  // Animer la carte volante
+  // Animer la carte volante immédiatement (UX)
   _mindAnimSelfPlay(idx, card);
 
+  // Bloquer le bouton immédiatement pour éviter double-tap
+  _mindSelected = null;
+  var playBtn = _memEl('memMindPlayBtn');
+  if (playBtn) { playBtn.disabled = true; playBtn.classList.remove('mnd-play-btn--ready'); }
+
   // Construire nouveau state
+  // IMPORTANT : on ne touche QUE son propre champ de cartes.
+  // Les cartes de l'adversaire sont préservées telles quelles dans le state partagé.
   var ns = JSON.parse(JSON.stringify(state));
   var pile = ns.pile.slice();
 
-  // Vérifier si la carte est valide (plus petite que toutes celles restantes des deux joueurs)
-  var allRemaining = (ns[_memOther + '_cards'] || []).concat(myCards.filter(function(_,i){return i!==idx;}));
-  var hasSmaller   = allRemaining.some(function(c){ return c < card; });
+  // Retirer la carte de ma main
+  var newMyCards = myCards.filter(function(_, i) { return i !== idx; });
+  ns[_memProfile + '_cards'] = newMyCards;
 
-  ns[_memProfile + '_cards'].splice(idx, 1);
+  // Vérifier si la carte est valide :
+  // la plus petite carte de TOUTES les mains restantes doit être >= card
+  var oppCards    = (ns[_memOther + '_cards'] || []);
+  var allRemaining = oppCards.concat(newMyCards);
+  var hasSmaller   = allRemaining.some(function(c) { return c < card; });
+
+  pile.push(card);
+  ns.pile = pile;
 
   if (hasSmaller) {
     // Erreur — perdre une vie
     ns.lives = Math.max(0, (ns.lives || 2) - 1);
     ns.error = { role: _memProfile, card: card, ts: Date.now() };
-    pile.push(card);
-    ns.pile = pile;
+    ns.last_played = null;
     if (ns.lives <= 0) {
       ns.winner = 'lose';
     }
   } else {
-    pile.push(card);
-    ns.pile = pile;
     ns.last_played = { role: _memProfile, card: card, ts: Date.now() };
-    // Vérifier victoire : toutes les cartes posées
-    var allCards = (ns.girl_cards || []).concat(ns.boy_cards || []);
-    if (allCards.length === 0) {
-      // Niveau terminé
+    ns.error = null;
+
+    // Victoire de niveau : les deux mains sont vides
+    var allLeft = (ns.girl_cards || []).length + (ns.boy_cards || []).length;
+    if (allLeft === 0) {
       if (ns.level >= 12) {
         ns.winner = 'win';
       } else {
-        // Passer au niveau suivant après délai
-        ns.winner   = null;
-        ns.phase    = 'mind_next';
+        ns.winner     = null;
+        ns.phase      = 'mind_next';
         ns.next_level = ns.level + 1;
-        ns.next_ts  = Date.now();
+        ns.next_ts    = Date.now();
       }
     }
   }
 
   _memMp.saveState(ns);
-  _mindSelected = null;
-  var playBtn = _memEl('memMindPlayBtn');
-  if (playBtn) { playBtn.disabled = true; playBtn.classList.remove('mnd-play-btn--ready'); }
 }
 
 // ── Passer au niveau suivant ──
