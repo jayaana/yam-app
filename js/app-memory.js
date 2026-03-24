@@ -4414,7 +4414,7 @@ function _mindInjectHands() {
   wrap.style.cssText = 'display:flex;flex-direction:row;align-items:center;justify-content:center;gap:12px;width:100%;';
 
   var light = document.body.classList.contains('light');
-  var outlineCol = light ? '#c4b5fd' : '#4a5a1a';
+  var outlineCol = light ? '#e8a898' : '#4a5a1a';
 
   // --- Croix adverse (gauche) ---
   var oppHand = document.createElement('div');
@@ -4458,7 +4458,7 @@ function _mindRenderMyHandEl() {
     el.innerHTML = _mindDrawCrossSVG({ filled: true, color: '#e8192c', size: 44 });
     el.style.transform = 'scale(1.15)';
   } else {
-    el.innerHTML = _mindDrawCrossSVG({ filled: false, outlineColor: light ? '#c4b5fd' : '#4a5a1a', size: 44 });
+    el.innerHTML = _mindDrawCrossSVG({ filled: false, outlineColor: light ? '#e8a898' : '#4a5a1a', size: 44 });
     el.style.transform = 'scale(1)';
   }
 }
@@ -4505,23 +4505,23 @@ function _mindApplyHandState(state) {
 function _mindTheme() {
   var light = document.body.classList.contains('light');
   return light ? {
-    particle:    '#a855f7',
-    particleAlt: '#f472b6',
+    particle:    '#e57373',
+    particleAlt: '#f4a261',
     flyBg:       '#ffffff',
-    flyBorder:   '#a855f7',
-    flyColor:    '#7c3aed',
-    flyBgOpp:    '#fdf4ff',
-    flyBorderOpp:'#d8b4fe',
-    flyColorOpp: '#c4b5fd',
-    flyBgReveal: '#f3e8ff',
-    flyBorderReveal:'#7c3aed',
-    flyColorReveal: '#7c3aed',
-    flyGlow:     'rgba(124,58,237,0.35)',
-    flyGlowReveal:'rgba(124,58,237,0.3)',
+    flyBorder:   '#e8a898',
+    flyColor:    '#c0392b',
+    flyBgOpp:    '#fef5f0',
+    flyBorderOpp:'#f4bfbf',
+    flyColorOpp: '#d98080',
+    flyBgReveal: '#fce8e8',
+    flyBorderReveal:'#c0392b',
+    flyColorReveal: '#c0392b',
+    flyGlow:     'rgba(192,57,43,0.25)',
+    flyGlowReveal:'rgba(192,57,43,0.22)',
     errorParticle:'#f43f5e',
-    toastBg:     '#fff0f7',
-    starColor:   'rgba(168,85,247,',
-    victory:     ['#a855f7','#f472b6','#c084fc','#e879f9','#d946ef'],
+    toastBg:     '#fffaf7',
+    starColor:   'rgba(224,120,96,',
+    victory:     ['#e57373','#f4a261','#e8c97a','#81c784','#64b5f6'],
     defeat1:     '#f43f5e',
     defeat2:     '#e11d48'
   } : {
