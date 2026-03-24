@@ -3668,25 +3668,64 @@ function _hanabiScoreLabel(s) {
 
 // ═══════════════════════════════════════════════════════════
 // THE MIND — Jeu coopératif rétro
-// Architecture : state partagé = actions uniquement.
-// Chaque joueur gère ses cartes LOCALEMENT.
-// Le state ne contient que : pile, lives, level, events.
+//
+// Architecture 2 tables :
+//   • memory_games  (existante) → état partagé : pile, lives,
+//                                 level, events, winner
+//   • mind_hands    (nouvelle)  → une ligne par joueur :
+//                                 couple_id, role, level, cards (json)
+//     Chaque joueur écrit UNIQUEMENT sa propre ligne.
+//     On lit la ligne adversaire pour compter ses cartes (dos).
+//     → Plus aucune collision possible.
+//
+// Flux :
+//   1. girl buildState → memory_games + mind_hands (2 lignes)
+//   2. Chaque joueur lit ses cartes depuis mind_hands à l'init
+//   3. Quand on joue : PATCH mind_hands (retirer sa carte)
+//                    + PATCH memory_games (pile, event)
+//   4. onStateUpdate (memory_games) → rafraîchir UI + lire mind_hands adversaire
 // ═══════════════════════════════════════════════════════════
 
-// ── Variables locales (ne transitent PAS par le state partagé) ──
-var _mindMyCards      = [];   // mes cartes courantes (local)
-var _mindBgAnim       = null;
-var _mindSaved        = false;
-var _mindSelected     = null;
-var _mindNextLevelTs  = 0;
-var _mindLastErrorTs  = 0;
-var _mindLastPlayTs   = 0;
-var _mindLevel        = 1;
-var _mindLocked       = false; // bloque les actions pendant animation
+var MIND_HANDS_TABLE  = 'mind_hands';
 
-// ── Build state initial (émis par girl uniquement) ──
-// Le state partagé NE contient PAS les cartes des joueurs.
-// Chaque joueur reçoit ses cartes via girl_deal / boy_deal (lus une seule fois).
+var _mindBgAnim      = null;
+var _mindSaved       = false;
+var _mindSelected    = null;
+var _mindLocked      = false;
+var _mindLastErrorTs = 0;
+var _mindLastPlayTs  = 0;
+var _mindNextLevelTs = 0;
+var _mindMyCards     = [];   // cartes locales lues depuis mind_hands
+var _mindOppCount    = 0;    // nb cartes adversaire (lu depuis mind_hands)
+
+// ── Helpers Supabase directs ──
+function _mindFetch(params) {
+  return fetch(SB_URL + '/rest/v1/' + MIND_HANDS_TABLE + '?' + params, {
+    headers: sb2Headers()
+  }).then(function(r) { return r.json(); });
+}
+function _mindPatch(params, body) {
+  return fetch(SB_URL + '/rest/v1/' + MIND_HANDS_TABLE + '?' + params, {
+    method: 'PATCH',
+    headers: sb2Headers({ 'Prefer': 'return=minimal' }),
+    body: JSON.stringify(body)
+  });
+}
+function _mindUpsert(body) {
+  return fetch(SB_URL + '/rest/v1/' + MIND_HANDS_TABLE + '?on_conflict=couple_id,role', {
+    method: 'POST',
+    headers: sb2Headers({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+    body: JSON.stringify(body)
+  });
+}
+function _mindDeleteHands(coupleId) {
+  return fetch(SB_URL + '/rest/v1/' + MIND_HANDS_TABLE + '?couple_id=eq.' + coupleId, {
+    method: 'DELETE',
+    headers: sb2Headers()
+  }).catch(function() {});
+}
+
+// ── Build state initial ──
 function _mindBuildState(level) {
   var deck = [];
   for (var i = 1; i <= 100; i++) deck.push(i);
@@ -3695,22 +3734,51 @@ function _mindBuildState(level) {
     var tmp = deck[j]; deck[j] = deck[k]; deck[k] = tmp;
   }
   var n = level;
-  var girlDeal = deck.slice(0, n).sort(function(a,b){return a-b;});
-  var boyDeal  = deck.slice(n, n*2).sort(function(a,b){return a-b;});
+  // On stocke les deals ici temporairement pour que _mindStart puisse les insérer dans mind_hands
+  _mindPendingGirlCards = deck.slice(0, n).sort(function(a,b){return a-b;});
+  _mindPendingBoyCards  = deck.slice(n, n*2).sort(function(a,b){return a-b;});
   return {
-    phase:     'mind',
-    mode:      'mind',
-    level:     level,
-    lives:     2,
-    pile:      [],       // valeurs posées
-    girl_deal: girlDeal, // cartes initiales girl — lues une seule fois au démarrage
-    boy_deal:  boyDeal,  // cartes initiales boy  — lues une seule fois au démarrage
-    girl_remaining: n,   // nb cartes restantes girl (compteur public)
-    boy_remaining:  n,   // nb cartes restantes boy  (compteur public)
-    last_played: null,   // {role, card, ts}
-    error:       null,   // {role, card, ts}
+    phase:       'mind',
+    mode:        'mind',
+    level:       level,
+    lives:       2,
+    pile:        [],
+    last_played: null,
+    error:       null,
     winner:      null
   };
+}
+var _mindPendingGirlCards = [];
+var _mindPendingBoyCards  = [];
+
+// ── Écrire les mains dans mind_hands (appelé par girl uniquement) ──
+function _mindWriteHands(coupleId, level) {
+  return Promise.all([
+    _mindUpsert({ couple_id: coupleId, role: 'girl', level: level, cards: _mindPendingGirlCards }),
+    _mindUpsert({ couple_id: coupleId, role: 'boy',  level: level, cards: _mindPendingBoyCards  })
+  ]);
+}
+
+// ── Lire mes cartes depuis mind_hands ──
+function _mindLoadMyCards(cb) {
+  var coupleId = _memGetCoupleId();
+  if (!coupleId) { cb([]); return; }
+  _mindFetch('couple_id=eq.' + coupleId + '&role=eq.' + _memProfile)
+    .then(function(rows) {
+      var cards = (Array.isArray(rows) && rows[0] && rows[0].cards) ? rows[0].cards : [];
+      cb(cards);
+    }).catch(function() { cb([]); });
+}
+
+// ── Lire le nb de cartes adversaire ──
+function _mindLoadOppCount(cb) {
+  var coupleId = _memGetCoupleId();
+  if (!coupleId) { cb(0); return; }
+  _mindFetch('couple_id=eq.' + coupleId + '&role=eq.' + _memOther)
+    .then(function(rows) {
+      var cards = (Array.isArray(rows) && rows[0] && rows[0].cards) ? rows[0].cards : [];
+      cb(cards.length);
+    }).catch(function() { cb(0); });
 }
 
 // ── Lancement ──
@@ -3719,6 +3787,7 @@ function _mindStart(gameRow) {
   _mindSelected = null;
   _mindLocked   = false;
   _mindMyCards  = [];
+  _mindOppCount = 0;
   _memShowScreen('memScreenMind');
   _mindStartBgCanvas();
 
@@ -3732,6 +3801,7 @@ function _mindStart(gameRow) {
   var doneBtn = _memEl('memMindDoneBtn');
   if (doneBtn) doneBtn.onclick = function() {
     var fr = _memEl('memMindFinalResult'); if (fr) fr.style.display = 'none';
+    var cid = _memGetCoupleId(); if (cid) _mindDeleteHands(cid);
     if (_memMp && typeof _memMp.deleteGame === 'function') _memMp.deleteGame();
     _memCleanup(); _memShowLb(true); _lbLoad();
   };
@@ -3742,56 +3812,52 @@ function _mindStart(gameRow) {
     _mindPlayCard(_mindSelected);
   };
 
-  if (_memLastState) _mindApplyState(_memLastState);
-  _mindShowLevelBanner(_memLastState ? _memLastState.level : 1, true);
+  // Girl écrit les mains dans mind_hands au démarrage
+  var state = gameRow && gameRow.state ? gameRow.state : (_memLastState || {});
+  if (_memProfile === 'girl' && _mindPendingGirlCards.length > 0) {
+    var coupleId = _memGetCoupleId();
+    if (coupleId) {
+      _mindWriteHands(coupleId, state.level || 1).then(function() {
+        _mindLoadMyCards(function(cards) {
+          _mindMyCards = cards;
+          _mindLoadOppCount(function(n) {
+            _mindOppCount = n;
+            if (_memLastState) _mindApplyState(_memLastState);
+            _mindShowLevelBanner(state.level || 1, true);
+          });
+        });
+      });
+    }
+  } else {
+    // Boy ou reprise : charger depuis mind_hands
+    _mindLoadMyCards(function(cards) {
+      _mindMyCards = cards;
+      _mindLoadOppCount(function(n) {
+        _mindOppCount = n;
+        if (_memLastState) _mindApplyState(_memLastState);
+        _mindShowLevelBanner(state.level || 1, true);
+      });
+    });
+  }
 }
 
 // ── Appliquer un state entrant ──
 function _mindApplyState(state) {
   if (!state) return;
 
-  // Initialiser mes cartes locales depuis le deal (une seule fois par niveau)
-  var myDealKey = _memProfile + '_deal';
-  if (state[myDealKey] && _mindMyCards.length === 0 && !state.winner) {
-    _mindMyCards = state[myDealKey].slice();
-    _mindLevel   = state.level;
-  }
-
-  // Si nouveau niveau reçu (next_ts changé), réinitialiser mes cartes
-  if (state.phase === 'mind_next') {
-    var nts = state.next_ts || 0;
-    if (nts !== _mindNextLevelTs) {
-      _mindNextLevelTs = nts;
-      // Girl déclenche la construction du niveau suivant
-      if (_memProfile === 'girl') {
-        setTimeout(function() {
-          if (_memLastState && _memLastState.phase === 'mind_next' && (_memLastState.next_ts||0) === nts) {
-            _mindNextLevel(_memLastState);
-          }
-        }, 2500);
-      }
-    }
-    // Dans tous les cas afficher le banner et bloquer
-    _mindShowLevelBanner(state.next_level, false);
-    _mindRenderHUD(state);
-    _mindUpdatePhase(state);
-    return;
-  }
-
-  // Nouveau niveau : réinitialiser cartes locales depuis le deal
-  if (state.level !== _mindLevel && state[myDealKey]) {
-    _mindMyCards = state[myDealKey].slice();
-    _mindLevel   = state.level;
-    _mindSelected = null;
-    _mindLocked   = false;
-    _mindShowLevelBanner(state.level, false);
-  }
-
-  // Animation carte adversaire posée
+  // Animation carte adversaire
   if (state.last_played && state.last_played.ts !== _mindLastPlayTs) {
     _mindLastPlayTs = state.last_played.ts;
     if (state.last_played.role !== _memProfile) {
-      _mindAnimOppPlay(state.last_played.card);
+      // Rafraîchir le count adversaire depuis mind_hands puis animer
+      _mindLoadOppCount(function(n) {
+        _mindOppCount = n;
+        _mindAnimOppPlay(state.last_played.card);
+        _mindRenderOppCards();
+        _mindRenderHUD(state);
+        _mindUpdatePhase(state);
+      });
+      return;
     }
   }
 
@@ -3799,24 +3865,62 @@ function _mindApplyState(state) {
   if (state.error && state.error.ts !== _mindLastErrorTs) {
     _mindLastErrorTs = state.error.ts;
     _mindAnimError(state.error);
-    // Après erreur : débloquer après délai
     _mindLocked = true;
-    setTimeout(function() { _mindLocked = false; _mindRenderMyCards(state); }, 1200);
+    setTimeout(function() {
+      _mindLocked = false;
+      _mindRenderMyCards(state);
+    }, 1200);
   }
 
-  _mindRenderHUD(state);
-  _mindRenderOppCards(state);
-  _mindRenderMyCards(state);
-  _mindRenderPile(state);
-  _mindUpdatePhase(state);
+  // Passage niveau suivant
+  if (state.phase === 'mind_next') {
+    var nts = state.next_ts || 0;
+    if (nts !== _mindNextLevelTs) {
+      _mindNextLevelTs = nts;
+      _mindShowLevelBanner(state.next_level, false);
+      if (_memProfile === 'girl') {
+        setTimeout(function() {
+          if (_memLastState && _memLastState.phase === 'mind_next' && (_memLastState.next_ts||0) === nts) {
+            _mindNextLevel(_memLastState);
+          }
+        }, 2800);
+      } else {
+        // Boy recharge ses cartes quand le state du nouveau niveau arrive
+      }
+    }
+    _mindRenderHUD(state);
+    _mindUpdatePhase(state);
+    return;
+  }
 
+  // Nouveau niveau reçu par boy : recharger ses cartes
+  if (state.phase === 'mind' && state.level && _mindMyCards.length === 0 && !state.winner) {
+    _mindLoadMyCards(function(cards) {
+      _mindMyCards = cards;
+      _mindLoadOppCount(function(n) {
+        _mindOppCount = n;
+        _mindRenderAll(state);
+      });
+    });
+    return;
+  }
+
+  _mindRenderAll(state);
+}
+
+function _mindRenderAll(state) {
+  _mindRenderHUD(state);
+  _mindRenderPile(state);
+  _mindRenderOppCards();
+  _mindRenderMyCards(state);
+  _mindUpdatePhase(state);
   if (state.winner) _mindShowResult(state);
 }
 
 // ── Rendu HUD ──
 function _mindRenderHUD(state) {
   var lvlEl = _memEl('memMindLevel');
-  if (lvlEl) lvlEl.textContent = String(state.level || 1).padStart(2,'0');
+  if (lvlEl) lvlEl.textContent = String(state.level || 1).padStart(2, '0');
 
   var livesEl = _memEl('memMindLives');
   if (livesEl) {
@@ -3830,75 +3934,62 @@ function _mindRenderHUD(state) {
   }
 
   var deckEl = _memEl('memMindDeck');
-  if (deckEl) {
-    var total = (_mindMyCards.length) + (state[_memOther + '_remaining'] || 0);
-    deckEl.textContent = String(total).padStart(2,'0');
-  }
+  if (deckEl) deckEl.textContent = String(_mindMyCards.length + _mindOppCount).padStart(2, '0');
 }
 
 // ── Rendu pile ──
 function _mindRenderPile(state) {
-  var pile = state.pile || [];
+  var pile   = state.pile || [];
   var topNum = pile.length ? pile[pile.length-1] : null;
-  var pileNumEl = _memEl('memMindPileNum');
-  if (pileNumEl) {
-    pileNumEl.textContent = topNum !== null ? topNum : '?';
-    pileNumEl.className   = 'mnd-pile-num' + (topNum === null ? ' empty' : '');
-  }
-  var pileCountEl = _memEl('memMindPileCount');
-  if (pileCountEl) pileCountEl.textContent = pile.length + ' carte(s) posée(s)';
+  var pEl = _memEl('memMindPileNum');
+  if (pEl) { pEl.textContent = topNum !== null ? topNum : '?'; pEl.className = 'mnd-pile-num' + (topNum === null ? ' empty' : ''); }
+  var cEl = _memEl('memMindPileCount');
+  if (cEl) cEl.textContent = pile.length + ' carte(s) posée(s)';
 }
 
-// ── Rendu cartes adversaire (dos) ──
-function _mindRenderOppCards(state) {
-  var oppCardsEl = _memEl('memMindOppCards');
-  if (!oppCardsEl) return;
-  var n = state[_memOther + '_remaining'] || 0;
-  oppCardsEl.innerHTML = '';
-  for (var j = 0; j < n; j++) {
+// ── Rendu cartes adversaire ──
+function _mindRenderOppCards() {
+  var el = _memEl('memMindOppCards');
+  if (!el) return;
+  el.innerHTML = '';
+  for (var j = 0; j < _mindOppCount; j++) {
     var back = document.createElement('div');
     back.className = 'mnd-card-back';
-    var dot = document.createElement('div');
-    dot.className = 'mnd-card-back-dot';
-    back.appendChild(dot);
-    oppCardsEl.appendChild(back);
+    var dot = document.createElement('div'); dot.className = 'mnd-card-back-dot';
+    back.appendChild(dot); el.appendChild(back);
   }
-  if (n === 0) {
+  if (_mindOppCount === 0) {
     var empty = document.createElement('span');
     empty.style.cssText = 'font-size:9px;color:#2a3a0a;letter-spacing:2px;font-family:Courier New,monospace;';
-    empty.textContent = 'AUCUNE CARTE';
-    oppCardsEl.appendChild(empty);
+    empty.textContent = 'AUCUNE CARTE'; el.appendChild(empty);
   }
 }
 
 // ── Rendu mes cartes ──
 function _mindRenderMyCards(state) {
-  var myCardsEl = _memEl('memMindMyCards');
-  if (!myCardsEl) return;
-  myCardsEl.innerHTML = '';
+  var el = _memEl('memMindMyCards');
+  if (!el) return;
+  el.innerHTML = '';
   _mindSelected = null;
-
   var playBtn = _memEl('memMindPlayBtn');
   if (playBtn) { playBtn.disabled = true; playBtn.classList.remove('mnd-play-btn--ready'); }
+
+  var locked = !!(state && state.winner) || _mindLocked;
 
   if (_mindMyCards.length === 0) {
     var noCard = document.createElement('span');
     noCard.style.cssText = 'font-size:9px;color:#2a3a0a;letter-spacing:2px;font-family:Courier New,monospace;';
-    noCard.textContent = 'AUCUNE CARTE';
-    myCardsEl.appendChild(noCard);
+    noCard.textContent = 'AUCUNE CARTE'; el.appendChild(noCard);
     return;
   }
 
-  var locked = !!(state.winner) || _mindLocked;
   for (var ci = 0; ci < _mindMyCards.length; ci++) {
     (function(idx, val) {
       var card = document.createElement('div');
       card.className = 'mnd-card' + (locked ? ' mnd-card--disabled' : '');
       card.textContent = val;
-      if (!locked) {
-        card.addEventListener('click', function() { _mindSelectCard(idx); });
-      }
-      myCardsEl.appendChild(card);
+      if (!locked) card.addEventListener('click', function() { _mindSelectCard(idx); });
+      el.appendChild(card);
     })(ci, _mindMyCards[ci]);
   }
 }
@@ -3907,10 +3998,8 @@ function _mindRenderMyCards(state) {
 function _mindSelectCard(idx) {
   if (_mindLocked) return;
   _mindSelected = (_mindSelected === idx) ? null : idx;
-  var cards = (_memEl('memMindMyCards') || {}).querySelectorAll('.mnd-card');
-  for (var i = 0; i < cards.length; i++) {
-    cards[i].classList.toggle('mnd-card--selected', i === _mindSelected);
-  }
+  var cards = (_memEl('memMindMyCards')||{}).querySelectorAll('.mnd-card');
+  for (var i = 0; i < cards.length; i++) cards[i].classList.toggle('mnd-card--selected', i === _mindSelected);
   var playBtn = _memEl('memMindPlayBtn');
   if (playBtn) {
     playBtn.disabled = (_mindSelected === null);
@@ -3926,105 +4015,91 @@ function _mindPlayCard(idx) {
   var state = _memLastState;
   var card  = _mindMyCards[idx];
 
-  // Bloquer immédiatement
+  // Bloquer + animer immédiatement
   _mindLocked   = true;
   _mindSelected = null;
   var playBtn = _memEl('memMindPlayBtn');
   if (playBtn) { playBtn.disabled = true; playBtn.classList.remove('mnd-play-btn--ready'); }
-
-  // Animation locale immédiate
   _mindAnimSelfPlay(idx, card);
 
-  // Retirer la carte de ma main locale
+  // Retirer la carte localement
   _mindMyCards.splice(idx, 1);
 
-  // Construire le nouveau state
-  // On ne touche QUE les champs publics : pile, lives, counters, events
-  var ns         = JSON.parse(JSON.stringify(state));
-  var pile       = ns.pile.slice();
-  var topPile    = pile.length ? pile[pile.length-1] : 0;
-  var oppRemain  = ns[_memOther + '_remaining'] || 0;
+  // PATCH mind_hands : mettre à jour mes cartes restantes
+  var coupleId = _memGetCoupleId();
+  if (coupleId) {
+    _mindPatch(
+      'couple_id=eq.' + coupleId + '&role=eq.' + _memProfile,
+      { cards: _mindMyCards }
+    ).catch(function() {});
+  }
 
-  // Erreur si la carte posée est plus grande que le top de pile ET qu'une carte
-  // plus petite existe chez l'adversaire (on ne connaît pas ses cartes exactes,
-  // mais on sait combien il en a — l'erreur est détectée après par le state)
-  // → ici on fait confiance au joueur, l'erreur sera détectée côté serveur/state
-  // En pratique : erreur si card < topPile (incohérence d'ordre)
-  // La vraie règle The Mind : erreur si on joue alors qu'une carte plus petite
-  // existe CHEZ L'AUTRE. On ne peut pas le savoir localement → on envoie l'action
-  // et on laisse l'autre joueur (ou le state) détecter.
-  // SIMPLIFICATION FONCTIONNELLE : on envoie l'action, le state note le résultat.
+  // Construire le nouveau state partagé
+  var ns   = JSON.parse(JSON.stringify(state));
+  var pile = ns.pile.slice();
+  var top  = pile.length ? pile[pile.length-1] : 0;
 
   pile.push(card);
   ns.pile = pile;
-  ns[_memProfile + '_remaining'] = _mindMyCards.length;
 
-  // Vérifier si le joueur qui vient de jouer a commis une erreur :
-  // une carte plus petite que 'card' existait-elle quelque part ?
-  // On stocke la vraie main de chaque joueur dans girl_deal/boy_deal au départ,
-  // mais elles sont effacées après distribution. Pas de référence côté state.
-  // → On utilise une heuristique : erreur détectée si card < topPile (ordre cassé)
-  var isError = (card < topPile);
+  // Erreur si la carte est plus petite que le top de la pile (ordre cassé)
+  var isError = card < top;
 
   if (isError) {
     ns.lives = Math.max(0, (ns.lives||2) - 1);
     ns.error = { role: _memProfile, card: card, ts: Date.now() };
     ns.last_played = null;
     if (ns.lives <= 0) ns.winner = 'lose';
-    // Débloquer après animation
-    setTimeout(function() { _mindLocked = false; _mindRenderMyCards(ns); }, 1200);
+    setTimeout(function() { _mindLocked = false; _mindRenderMyCards(_memLastState || ns); }, 1200);
   } else {
     ns.error       = null;
     ns.last_played = { role: _memProfile, card: card, ts: Date.now() };
-    // Niveau terminé si les deux joueurs n'ont plus de cartes
-    var myRemain  = _mindMyCards.length;
-    var oppRemain2 = ns[_memOther + '_remaining'];
-    if (myRemain === 0 && oppRemain2 === 0) {
-      if (ns.level >= 12) {
-        ns.winner = 'win';
-      } else {
-        ns.phase      = 'mind_next';
-        ns.next_level = ns.level + 1;
-        ns.next_ts    = Date.now();
-        ns.winner     = null;
+    // Victoire de niveau ? On vérifie via mind_hands
+    _mindLoadOppCount(function(oppN) {
+      _mindOppCount = oppN;
+      if (_mindMyCards.length === 0 && oppN === 0) {
+        if (ns.level >= 12) {
+          ns.winner = 'win';
+        } else {
+          ns.phase      = 'mind_next';
+          ns.next_level = ns.level + 1;
+          ns.next_ts    = Date.now();
+          ns.winner     = null;
+        }
       }
-    }
-    // Débloquer après courte pause
-    setTimeout(function() { _mindLocked = false; _mindRenderMyCards(_memLastState || ns); }, 600);
+      _memMp.saveState(ns);
+    });
+    setTimeout(function() { _mindLocked = false; _mindRenderMyCards(_memLastState || ns); }, 500);
+    return; // saveState appelé dans le callback ci-dessus
   }
-
-  // Effacer les deals du state (plus utiles, économiser bande passante)
-  delete ns.girl_deal;
-  delete ns.boy_deal;
 
   _memMp.saveState(ns);
 }
 
 // ── Niveau suivant ──
 function _mindNextLevel(state) {
-  var ns     = _mindBuildState(state.next_level);
-  ns.lives   = state.lives;
-  // Réinitialiser ma main locale depuis le nouveau deal
-  _mindMyCards = ns[_memProfile + '_deal'].slice();
-  _mindLevel   = ns.level;
-  _mindLocked  = false;
-  _mindSelected = null;
-  _memMp.saveState(ns);
+  var coupleId = _memGetCoupleId();
+  if (!coupleId) return;
+  var ns = _mindBuildState(state.next_level);
+  ns.lives = state.lives;
+  // Girl écrit les nouvelles mains puis sauvegarde le state
+  _mindWriteHands(coupleId, state.next_level).then(function() {
+    _mindMyCards  = _mindPendingGirlCards.slice();
+    _mindOppCount = _mindPendingBoyCards.length;
+    _mindLocked   = false;
+    _mindSelected = null;
+    _memMp.saveState(ns);
+  });
 }
 
 // ── Phase message ──
 function _mindUpdatePhase(state) {
   var txt = _memEl('memMindPhaseText');
   if (!txt) return;
-  if (state.winner === 'win') {
-    txt.textContent = 'VICTOIRE — Esprits en fusion !';
-  } else if (state.winner === 'lose') {
-    txt.textContent = 'DEFAITE — Synchronisation perdue';
-  } else if (state.phase === 'mind_next') {
-    txt.textContent = 'NIVEAU ' + state.next_level + ' EN APPROCHE…';
-  } else {
-    txt.textContent = 'NIVEAU ' + (state.level||1) + '  —  MOI ' + _mindMyCards.length + '  \u2022  ADV ' + (state[_memOther+'_remaining']||0);
-  }
+  if (state.winner === 'win')        txt.textContent = 'VICTOIRE \u2014 Esprits en fusion !';
+  else if (state.winner === 'lose')  txt.textContent = 'D\u00c9FAITE \u2014 Synchronisation perdue';
+  else if (state.phase === 'mind_next') txt.textContent = 'NIVEAU ' + state.next_level + ' EN APPROCHE\u2026';
+  else txt.textContent = 'NIVEAU ' + (state.level||1) + '  \u2014  MOI ' + _mindMyCards.length + '  \u2022  ADV ' + _mindOppCount;
 }
 
 // ── Banner niveau ──
@@ -4044,9 +4119,9 @@ function _mindShowLevelBanner(level, isStart) {
     var iv = setInterval(function() {
       count--;
       if (count <= 0) { clearInterval(iv); banner.classList.add('hidden'); }
-      else if (cdEl)  { cdEl.textContent = 'Prochain niveau dans ' + count + '\u2026'; }
+      else if (cdEl) cdEl.textContent = 'Prochain niveau dans ' + count + '\u2026';
     }, 1000);
-    setTimeout(function() { banner.classList.add('hidden'); }, 3200);
+    setTimeout(function() { banner.classList.add('hidden'); }, 3500);
   }
 }
 
@@ -4054,28 +4129,27 @@ function _mindShowLevelBanner(level, isStart) {
 function _mindShowResult(state) {
   if (_mindSaved) return;
   _mindSaved = true;
-  var fr = _memEl('memMindFinalResult');
-  if (!fr) return;
+  var fr = _memEl('memMindFinalResult'); if (!fr) return;
   fr.style.display = 'flex';
-  var emojiEl = _memEl('memMindFinalEmoji');
-  var titleEl = _memEl('memMindFinalTitle');
-  var subEl   = _memEl('memMindFinalSub');
+  var eEl = _memEl('memMindFinalEmoji'), tEl = _memEl('memMindFinalTitle'), sEl = _memEl('memMindFinalSub');
   if (state.winner === 'win') {
-    if (emojiEl) emojiEl.textContent = '\uD83E\uDDE0';
-    if (titleEl) titleEl.textContent = 'PARFAITE SYNCHRONISATION';
-    if (subEl)   subEl.textContent   = '12 niveaux \u00b7 Esprits fusionn\u00e9s';
+    if (eEl) eEl.textContent = '\uD83E\uDDE0';
+    if (tEl) tEl.textContent = 'PARFAITE SYNCHRONISATION';
+    if (sEl) sEl.textContent = '12 niveaux \u00b7 Esprits fusionn\u00e9s';
     _mindAnimVictory();
   } else {
-    if (emojiEl) emojiEl.textContent = '\uD83D\uDC80';
-    if (titleEl) titleEl.textContent = 'DESYNCHRONISES';
-    if (subEl)   subEl.textContent   = 'Niveau ' + (state.level||1) + ' \u00b7 Recommencez !';
+    if (eEl) eEl.textContent = '\uD83D\uDC80';
+    if (tEl) tEl.textContent = 'D\u00c9SYNCHRONIS\u00c9S';
+    if (sEl) sEl.textContent = 'Niveau ' + (state.level||1) + ' \u00b7 Recommencez !';
     _mindAnimDefeat();
   }
   if (_memProfile === 'girl') {
     var cid = _memGetCoupleId(), dur = Math.round((Date.now()-_memStartedAt)/1000);
     if (cid) {
-      sb2Post('game_scores',{couple_id:cid,game_id:'memory_mind',player_role:'girl',score:(state.level||1)*100,moves:(state.pile||[]).length,time_seconds:dur,winner_role:state.winner==='win'?'both':'none',user_id:typeof yamGetUser==='function'?yamGetUser().id:null}).catch(function(){});
-      sb2Post('game_scores',{couple_id:cid,game_id:'memory_mind',player_role:'boy', score:(state.level||1)*100,moves:(state.pile||[]).length,time_seconds:dur,winner_role:state.winner==='win'?'both':'none',user_id:null}).catch(function(){});
+      var sc = (state.level||1)*100, pile = (state.pile||[]).length, wr = state.winner==='win'?'both':'none';
+      var uid = typeof yamGetUser==='function' ? yamGetUser().id : null;
+      sb2Post('game_scores',{couple_id:cid,game_id:'memory_mind',player_role:'girl',score:sc,moves:pile,time_seconds:dur,winner_role:wr,user_id:uid}).catch(function(){});
+      sb2Post('game_scores',{couple_id:cid,game_id:'memory_mind',player_role:'boy', score:sc,moves:pile,time_seconds:dur,winner_role:wr,user_id:null}).catch(function(){});
     }
   }
   if (typeof window.yamFlameActivity==='function') window.yamFlameActivity('memory_done');
@@ -4086,8 +4160,7 @@ function _mindShowResult(state) {
 // ═══════════════════════════════════════════════════════════
 
 function _mindStartBgCanvas() {
-  var canvas = _memEl('memMindBgCanvas');
-  if (!canvas) return;
+  var canvas = _memEl('memMindBgCanvas'); if (!canvas) return;
   var ctx = canvas.getContext('2d');
   var W, H, stars = [], particles = [];
   function resize() {
@@ -4095,144 +4168,94 @@ function _mindStartBgCanvas() {
     W = canvas.width  = sc ? sc.offsetWidth  : window.innerWidth;
     H = canvas.height = sc ? sc.offsetHeight : window.innerHeight;
     stars = [];
-    for (var i = 0; i < 60; i++) stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()<0.7?1:2,blink:Math.random()*Math.PI*2,speed:0.02+Math.random()*0.03});
+    for (var i=0;i<60;i++) stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()<0.7?1:2,blink:Math.random()*Math.PI*2,speed:0.02+Math.random()*0.03});
   }
   resize();
-  var lastResize = 0;
-  function onResize() { var n=Date.now(); if(n-lastResize>300){lastResize=n;resize();} }
-  window.addEventListener('resize', onResize);
-  function addParticle(x,y,color) {
-    for (var i=0;i<6;i++) {
-      var a=(Math.PI*2/6)*i+Math.random()*0.5;
-      particles.push({x:x,y:y,vx:Math.cos(a)*(1+Math.random()*2),vy:Math.sin(a)*(1+Math.random()*2),life:1,decay:0.025+Math.random()*0.02,r:2+Math.random()*3,color:color||'#c8d840'});
-    }
+  var lastR=0;
+  function onResize(){var n=Date.now();if(n-lastR>300){lastR=n;resize();}}
+  window.addEventListener('resize',onResize);
+  function addParticle(x,y,color){
+    for(var i=0;i<6;i++){var a=(Math.PI*2/6)*i+Math.random()*0.5;particles.push({x:x,y:y,vx:Math.cos(a)*(1+Math.random()*2),vy:Math.sin(a)*(1+Math.random()*2),life:1,decay:0.025+Math.random()*0.02,r:2+Math.random()*3,color:color||'#c8d840'});}
   }
   window._mindAddParticle = addParticle;
   function draw() {
     if (!_memEl('memMindBgCanvas')) { window.removeEventListener('resize',onResize); return; }
     ctx.clearRect(0,0,W,H);
-    for (var i=0;i<stars.length;i++) {
-      var s=stars[i]; s.blink+=s.speed;
-      ctx.fillStyle='rgba(200,216,64,'+(0.3+0.5*Math.abs(Math.sin(s.blink)))+')';
-      ctx.fillRect(Math.round(s.x),Math.round(s.y),s.r,s.r);
-    }
-    for (var j=particles.length-1;j>=0;j--) {
-      var p=particles[j]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.06; p.life-=p.decay;
-      if(p.life<=0){particles.splice(j,1);continue;}
-      ctx.globalAlpha=p.life; ctx.fillStyle=p.color;
-      ctx.fillRect(Math.round(p.x-p.r/2),Math.round(p.y-p.r/2),Math.round(p.r),Math.round(p.r));
-    }
+    for(var i=0;i<stars.length;i++){var s=stars[i];s.blink+=s.speed;ctx.fillStyle='rgba(200,216,64,'+(0.3+0.5*Math.abs(Math.sin(s.blink)))+')';ctx.fillRect(Math.round(s.x),Math.round(s.y),s.r,s.r);}
+    for(var j=particles.length-1;j>=0;j--){var p=particles[j];p.x+=p.vx;p.y+=p.vy;p.vy+=0.06;p.life-=p.decay;if(p.life<=0){particles.splice(j,1);continue;}ctx.globalAlpha=p.life;ctx.fillStyle=p.color;ctx.fillRect(Math.round(p.x-p.r/2),Math.round(p.y-p.r/2),Math.round(p.r),Math.round(p.r));}
     ctx.globalAlpha=1;
-    _mindBgAnim = requestAnimationFrame(draw);
+    _mindBgAnim=requestAnimationFrame(draw);
   }
-  if (_mindBgAnim) cancelAnimationFrame(_mindBgAnim);
+  if(_mindBgAnim) cancelAnimationFrame(_mindBgAnim);
   draw();
 }
 
 function _mindAnimSelfPlay(idx, val) {
-  var myCardsEl = _memEl('memMindMyCards');
-  if (!myCardsEl) return;
-  var cards = myCardsEl.querySelectorAll('.mnd-card');
-  if (!cards[idx]) return;
-  var rect = cards[idx].getBoundingClientRect();
-  var pileCard = _memEl('memMindPileCard');
-  var pileRect = pileCard ? pileCard.getBoundingClientRect() : null;
-  var flyer = document.createElement('div');
-  flyer.className = 'mnd-card-fly';
-  flyer.style.cssText = 'left:'+rect.left+'px;top:'+rect.top+'px;width:'+rect.width+'px;height:'+rect.height+'px;background:#1a1f0a;border:2px solid #5a6a18;border-radius:3px;font-size:20px;font-weight:700;color:#c8d840;font-family:Courier New,monospace;transition:all 0.35s cubic-bezier(.4,0,.2,1);';
-  flyer.textContent = val;
-  document.body.appendChild(flyer);
-  requestAnimationFrame(function() { requestAnimationFrame(function() {
-    if (pileRect) {
-      flyer.style.left = pileRect.left+(pileRect.width-rect.width)/2+'px';
-      flyer.style.top  = pileRect.top+(pileRect.height-rect.height)/2+'px';
-      flyer.style.transform = 'scale(1.2)';
-      flyer.style.boxShadow = '0 0 20px rgba(200,216,64,0.6)';
-    } else {
-      flyer.style.transform='translateY(-80px) scale(0.8)'; flyer.style.opacity='0';
-    }
-    setTimeout(function() {
+  var myEl=_memEl('memMindMyCards'); if(!myEl) return;
+  var cards=myEl.querySelectorAll('.mnd-card'); if(!cards[idx]) return;
+  var rect=cards[idx].getBoundingClientRect();
+  var pileCard=_memEl('memMindPileCard'), pileRect=pileCard?pileCard.getBoundingClientRect():null;
+  var flyer=document.createElement('div'); flyer.className='mnd-card-fly';
+  flyer.style.cssText='left:'+rect.left+'px;top:'+rect.top+'px;width:'+rect.width+'px;height:'+rect.height+'px;background:#1a1f0a;border:2px solid #5a6a18;border-radius:3px;font-size:20px;font-weight:700;color:#c8d840;font-family:Courier New,monospace;transition:all 0.35s cubic-bezier(.4,0,.2,1);';
+  flyer.textContent=val; document.body.appendChild(flyer);
+  requestAnimationFrame(function(){requestAnimationFrame(function(){
+    if(pileRect){flyer.style.left=pileRect.left+(pileRect.width-rect.width)/2+'px';flyer.style.top=pileRect.top+(pileRect.height-rect.height)/2+'px';flyer.style.transform='scale(1.2)';flyer.style.boxShadow='0 0 20px rgba(200,216,64,0.6)';}
+    else{flyer.style.transform='translateY(-80px) scale(0.8)';flyer.style.opacity='0';}
+    setTimeout(function(){
       flyer.style.transform='scale(1)';
-      if (pileRect && window._mindAddParticle) {
-        var bgRect=_memEl('memMindBgCanvas')?_memEl('memMindBgCanvas').getBoundingClientRect():{left:0,top:0};
-        window._mindAddParticle(pileRect.left+pileRect.width/2-bgRect.left,pileRect.top+pileRect.height/2-bgRect.top,'#c8d840');
-      }
-      setTimeout(function(){ flyer.style.transition='opacity 0.2s'; flyer.style.opacity='0'; setTimeout(function(){flyer.remove();},220); },180);
+      if(pileRect&&window._mindAddParticle){var bg=_memEl('memMindBgCanvas')?_memEl('memMindBgCanvas').getBoundingClientRect():{left:0,top:0};window._mindAddParticle(pileRect.left+pileRect.width/2-bg.left,pileRect.top+pileRect.height/2-bg.top,'#c8d840');}
+      setTimeout(function(){flyer.style.transition='opacity 0.2s';flyer.style.opacity='0';setTimeout(function(){flyer.remove();},220);},180);
     },360);
-  }); });
-  if (navigator.vibrate) navigator.vibrate([40]);
+  });});
+  if(navigator.vibrate) navigator.vibrate([40]);
 }
 
 function _mindAnimOppPlay(val) {
-  var oppEl = _memEl('memMindOppCards');
-  if (!oppEl) return;
-  var oppCards = oppEl.querySelectorAll('.mnd-card-back');
-  var srcEl = oppCards[0];
-  var pileCard = _memEl('memMindPileCard');
-  if (!srcEl || !pileCard) return;
-  var srcRect  = srcEl.getBoundingClientRect();
-  var pileRect = pileCard.getBoundingClientRect();
-  var flyer = document.createElement('div');
-  flyer.className = 'mnd-card-fly';
-  flyer.style.cssText = 'left:'+srcRect.left+'px;top:'+srcRect.top+'px;width:'+srcRect.width+'px;height:'+srcRect.height+'px;background:#1a1f0a;border:2px solid #3a4a10;border-radius:4px;font-size:20px;font-weight:700;color:#4a5a1a;font-family:Courier New,monospace;transition:all 0.35s cubic-bezier(.4,0,.2,1);';
-  flyer.textContent = '?';
-  document.body.appendChild(flyer);
-  requestAnimationFrame(function() { requestAnimationFrame(function() {
-    flyer.style.left = pileRect.left+(pileRect.width-srcRect.width)/2+'px';
-    flyer.style.top  = pileRect.top+(pileRect.height-srcRect.height)/2+'px';
-    flyer.style.transform = 'scale(1.15)';
-    setTimeout(function() {
-      flyer.textContent = val; flyer.style.color='#c8d840'; flyer.style.background='#252d0c'; flyer.style.borderColor='#c8d840'; flyer.style.transform='scale(1)'; flyer.style.boxShadow='0 0 18px rgba(200,216,64,0.5)';
-      if (window._mindAddParticle) {
-        var bgRect=_memEl('memMindBgCanvas')?_memEl('memMindBgCanvas').getBoundingClientRect():{left:0,top:0};
-        window._mindAddParticle(pileRect.left+pileRect.width/2-bgRect.left,pileRect.top+pileRect.height/2-bgRect.top,'#8a9a2a');
-      }
-      setTimeout(function(){ flyer.style.transition='opacity 0.25s'; flyer.style.opacity='0'; setTimeout(function(){flyer.remove();},260); },300);
+  var oppEl=_memEl('memMindOppCards'); if(!oppEl) return;
+  var oppCards=oppEl.querySelectorAll('.mnd-card-back'); var srcEl=oppCards[0];
+  var pileCard=_memEl('memMindPileCard'); if(!srcEl||!pileCard) return;
+  var sr=srcEl.getBoundingClientRect(), pr=pileCard.getBoundingClientRect();
+  var flyer=document.createElement('div'); flyer.className='mnd-card-fly';
+  flyer.style.cssText='left:'+sr.left+'px;top:'+sr.top+'px;width:'+sr.width+'px;height:'+sr.height+'px;background:#1a1f0a;border:2px solid #3a4a10;border-radius:4px;font-size:20px;font-weight:700;color:#4a5a1a;font-family:Courier New,monospace;transition:all 0.35s cubic-bezier(.4,0,.2,1);';
+  flyer.textContent='?'; document.body.appendChild(flyer);
+  requestAnimationFrame(function(){requestAnimationFrame(function(){
+    flyer.style.left=pr.left+(pr.width-sr.width)/2+'px'; flyer.style.top=pr.top+(pr.height-sr.height)/2+'px'; flyer.style.transform='scale(1.15)';
+    setTimeout(function(){
+      flyer.textContent=val;flyer.style.color='#c8d840';flyer.style.background='#252d0c';flyer.style.borderColor='#c8d840';flyer.style.transform='scale(1)';flyer.style.boxShadow='0 0 18px rgba(200,216,64,0.5)';
+      if(window._mindAddParticle){var bg=_memEl('memMindBgCanvas')?_memEl('memMindBgCanvas').getBoundingClientRect():{left:0,top:0};window._mindAddParticle(pr.left+pr.width/2-bg.left,pr.top+pr.height/2-bg.top,'#8a9a2a');}
+      setTimeout(function(){flyer.style.transition='opacity 0.25s';flyer.style.opacity='0';setTimeout(function(){flyer.remove();},260);},300);
     },360);
-  }); });
-  if (navigator.vibrate) navigator.vibrate([20,40,20]);
+  });});
+  if(navigator.vibrate) navigator.vibrate([20,40,20]);
 }
 
 function _mindAnimError(err) {
-  var sc = _memEl('memScreenMind');
-  if (sc) {
-    var si=0,sh=[-6,6,-5,5,-3,3,-1,1,0];
-    sc.style.transition='transform .05s';
-    var iv=setInterval(function(){ if(si>=sh.length){clearInterval(iv);sc.style.transform='';return;} sc.style.transform='translateX('+sh[si]+'px)';si++; },55);
-  }
-  var flash=document.createElement('div');
-  flash.style.cssText='position:fixed;inset:0;background:rgba(200,20,60,0.22);pointer-events:none;z-index:9990;transition:opacity 0.4s;';
-  document.body.appendChild(flash);
-  requestAnimationFrame(function(){ setTimeout(function(){ flash.style.opacity='0'; setTimeout(function(){flash.remove();},420); },150); });
-  var pileCard=_memEl('memMindPileCard');
-  if (pileCard && window._mindAddParticle) {
-    var r=pileCard.getBoundingClientRect(), bgRect=_memEl('memMindBgCanvas')?_memEl('memMindBgCanvas').getBoundingClientRect():{left:0,top:0};
-    for (var i=0;i<3;i++) { (function(d){ setTimeout(function(){ window._mindAddParticle(r.left+r.width/2-bgRect.left,r.top+r.height/2-bgRect.top,'#ff2255'); },d); })(i*80); }
-  }
-  _mindShowToast('\u2715 ' + _memGetName(err.role) + ' a jou\u00e9 ' + err.card + ' trop t\u00f4t !', '#3a0015');
-  if (navigator.vibrate) navigator.vibrate([80,40,80]);
+  var sc=_memEl('memScreenMind');
+  if(sc){var si=0,sh=[-6,6,-5,5,-3,3,-1,1,0];sc.style.transition='transform .05s';var iv=setInterval(function(){if(si>=sh.length){clearInterval(iv);sc.style.transform='';return;}sc.style.transform='translateX('+sh[si]+'px)';si++;},55);}
+  var flash=document.createElement('div');flash.style.cssText='position:fixed;inset:0;background:rgba(200,20,60,0.22);pointer-events:none;z-index:9990;transition:opacity 0.4s;';document.body.appendChild(flash);
+  requestAnimationFrame(function(){setTimeout(function(){flash.style.opacity='0';setTimeout(function(){flash.remove();},420);},150);});
+  var pc=_memEl('memMindPileCard');
+  if(pc&&window._mindAddParticle){var r=pc.getBoundingClientRect(),bg=_memEl('memMindBgCanvas')?_memEl('memMindBgCanvas').getBoundingClientRect():{left:0,top:0};for(var i=0;i<3;i++){(function(d){setTimeout(function(){window._mindAddParticle(r.left+r.width/2-bg.left,r.top+r.height/2-bg.top,'#ff2255');},d);})(i*80);}}
+  _mindShowToast('\u2715 '+_memGetName(err.role)+' a jou\u00e9 '+err.card+' trop t\u00f4t !','#3a0015');
+  if(navigator.vibrate) navigator.vibrate([80,40,80]);
 }
 
 function _mindShowToast(msg, bg) {
-  var existing=_memEl('memMindToast'); if(existing) existing.remove();
-  var toast=document.createElement('div');
-  toast.id='memMindToast'; toast.className='mnd-toast'; toast.textContent=msg;
-  if(bg) toast.style.background=bg;
-  var sc=_memEl('memScreenMind'); if(sc) sc.appendChild(toast);
-  setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){toast.remove();},320); },2200);
+  var e=_memEl('memMindToast'); if(e) e.remove();
+  var t=document.createElement('div'); t.id='memMindToast'; t.className='mnd-toast'; t.textContent=msg; if(bg) t.style.background=bg;
+  var sc=_memEl('memScreenMind'); if(sc) sc.appendChild(t);
+  setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove();},320);},2200);
 }
 
 function _mindAnimVictory() {
   var canvas=_memEl('memMindBgCanvas'); if(!canvas||!window._mindAddParticle) return;
   var W=canvas.width,H=canvas.height,colors=['#c8d840','#8a9a2a','#6a7a20','#e8f860','#a0b030'],count=0;
-  var iv=setInterval(function(){ if(count++>20){clearInterval(iv);return;} window._mindAddParticle(Math.random()*W,Math.random()*H*0.6,colors[Math.floor(Math.random()*colors.length)]); },120);
+  var iv=setInterval(function(){if(count++>20){clearInterval(iv);return;}window._mindAddParticle(Math.random()*W,Math.random()*H*0.6,colors[Math.floor(Math.random()*colors.length)]);},120);
 }
 
 function _mindAnimDefeat() {
   var canvas=_memEl('memMindBgCanvas'); if(!canvas||!window._mindAddParticle) return;
-  var W=canvas.width;
-  window._mindAddParticle(W/2,60,'#ff2255');
-  setTimeout(function(){ window._mindAddParticle(W/2,60,'#aa0033'); },200);
+  var W=canvas.width; window._mindAddParticle(W/2,60,'#ff2255'); setTimeout(function(){window._mindAddParticle(W/2,60,'#aa0033');},200);
 }
 
 function _mindUpdatePresenceDot(isOnline) {
