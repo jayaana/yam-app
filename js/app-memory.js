@@ -3862,6 +3862,46 @@ function _mindApplyState(state) {
     return;
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // BURNED CARDS — traité EN PREMIER et TOUJOURS, avant tout autre bloc.
+  //
+  // Raison : burned peut arriver dans le même state que last_played (coup
+  // qui brûle des cartes) ET que mind_next (dernier coup du niveau qui brûle).
+  // Si on laisse ces blocs faire un `return` avant, l'animation ne se joue
+  // jamais (Bug 1 & Bug 2).  On pose un flag pour adapter le comportement
+  // des blocs suivants sans les court-circuiter.
+  // ══════════════════════════════════════════════════════════════════════
+  var burnedJustNow = false;
+  if (state.burned && state.burned.ts && state.burned.ts !== _mindLastBurnedTs) {
+    _mindLastBurnedTs = state.burned.ts;
+    var burnedList = state.burned.cards || [];
+    var burnRole   = state.burned.role;
+    if (burnedList.length > 0) {
+      burnedJustNow = true;
+      if (burnRole === _memProfile) {
+        // Mes cartes brûlées : les retirer de _mindMyCards
+        var burnedSet = burnedList.slice();
+        _mindMyCards = _mindMyCards.filter(function(c) {
+          var bi = burnedSet.indexOf(c);
+          if (bi !== -1) { burnedSet.splice(bi, 1); return false; }
+          return true;
+        });
+      } else {
+        // Cartes adversaire brûlées : mettre à jour notre état local
+        var newOppAfterBurn = _mindOppCards.filter(function(c) { return burnedList.indexOf(c) === -1; });
+        _mindOppCards = newOppAfterBurn;
+        _mindOppCount = newOppAfterBurn.length;
+      }
+      // Toast + flash rouge
+      _mindShowToast('🔥 ' + _memGetName(burnRole) + ' avait ' + burnedList.join(', ') + ' — défaussé ! -1 ❤️', '#3a1500');
+      if (navigator.vibrate) navigator.vibrate([60, 40, 60, 40, 60]);
+      var flash = document.createElement('div');
+      flash.style.cssText = 'position:fixed;inset:0;background:rgba(200,60,20,0.18);pointer-events:none;z-index:9990;transition:opacity 0.4s;';
+      document.body.appendChild(flash);
+      requestAnimationFrame(function(){ setTimeout(function(){ flash.style.opacity='0'; setTimeout(function(){ flash.remove(); }, 420); }, 200); });
+    }
+  }
+
   // ── 2. Nouveau niveau (phase mind_next) ──
   if (state.phase === 'mind_next') {
     var nts = state.next_ts || 0;
@@ -3869,7 +3909,6 @@ function _mindApplyState(state) {
       _mindNextLevelTs = nts;
       _mindLocked = true;
 
-      // Recharger ma main depuis le deal du prochain niveau (déjà dans le state)
       var myNextDeal = state[_memProfile + '_deal'] || [];
       if (myNextDeal.length > 0) {
         _mindMyCards = myNextDeal.slice();
@@ -3877,23 +3916,24 @@ function _mindApplyState(state) {
         if (cid) _mindWriteMyHand(cid, state.next_level, _mindMyCards).catch(function(){});
       }
 
-      // FIX BUG 1 : recharger le count adversaire depuis mind_hands pour que le render
-      // soit correct dès le banner (évite _mindOppCount=0 qui laisse le jeu bloqué)
+      // Recharger le count adversaire avant render (fix cartes grisées côté boy)
       _mindLoadOppCount(function(n) {
         _mindOppCount = n;
         _mindRenderAll(state);
       });
 
-      _mindShowLevelBanner(state.next_level, false);
+      // Si des cartes viennent d'être brûlées, laisser le toast s'afficher
+      // 1.8s avant le banner de niveau suivant (Bug 1 : transition trop brutale)
+      var bannerDelay = burnedJustNow ? 1800 : 0;
+      setTimeout(function() { _mindShowLevelBanner(state.next_level, false); }, bannerDelay);
 
-      // Après le banner (2.8s) : la girl pousse le nouveau state, le boy attend le realtime
       if (_memProfile === 'girl') {
         (function(capturedNts) {
           setTimeout(function() {
             if (_memLastState && _memLastState.phase === 'mind_next' && (_memLastState.next_ts||0) === capturedNts) {
               _mindNextLevel(_memLastState);
             }
-          }, 2800);
+          }, 2800 + bannerDelay);
         })(nts);
       }
     } else {
@@ -3902,9 +3942,9 @@ function _mindApplyState(state) {
     return;
   }
 
-  // ── 2b. Transition mind_next → mind (state 'mind' normal) ──
-  // FIX BUG 1 : quand le boy reçoit le state 'mind' poussé par la girl après le banner,
-  // _mindLocked peut être encore true depuis la phase mind_next. On le libère ici.
+  // ── 2b. Transition mind_next → mind ──
+  // Quand le boy reçoit le state 'mind' poussé par la girl après le banner,
+  // _mindLocked est encore true. On le libère en rechargeant le count adversaire.
   if (state.phase === 'mind' && _mindLocked && _mindNextLevelTs > 0) {
     _mindLoadOppCount(function(n) {
       _mindOppCount = n;
@@ -3928,58 +3968,30 @@ function _mindApplyState(state) {
   }
 
   // ── 4. Coup joué (le mien revient via realtime, ou coup adverse) ──
+  // Bug 2 fix : si burned vient d'être traité dans ce même state, on ne skip PAS
+  // le render final — on déverrouille et render normalement (sans return anticipé
+  // qui ferait ignorer les changements de main déjà appliqués).
   if (state.last_played && state.last_played.ts !== _mindLastPlayTs) {
     _mindLastPlayTs = state.last_played.ts;
 
     if (state.last_played.role !== _memProfile) {
-      // Coup adverse : recharger le count adversaire puis animer + render
+      // Coup adverse : recharger le count puis animer (sauf si burned s'en est déjà chargé)
       _mindLoadOppCount(function(n) {
         _mindOppCount = n;
-        _mindAnimOppPlay(state.last_played.card);
+        if (!burnedJustNow) _mindAnimOppPlay(state.last_played.card);
         _mindLocked = false;
         _mindRenderAll(state);
       });
       return;
     }
 
-    // Mon propre coup est revenu via realtime :
-    // déverrouiller et render (la carte a déjà été retirée localement dans _mindPlayCard)
+    // Mon propre coup revenu via realtime
     _mindLocked = false;
     _mindRenderAll(state);
     return;
   }
 
-  // ── 5. Burned cards (cartes révélées et défaussées) ──
-  if (state.burned && state.burned.ts && state.burned.ts !== _mindLastBurnedTs) {
-    _mindLastBurnedTs = state.burned.ts;
-    var burnedList = state.burned.cards || [];
-    var burnRole   = state.burned.role;
-    if (burnedList.length > 0) {
-      // ── FIX BUG 3 : si c'est MA main qui est défaussée, retirer les cartes localement ──
-      if (burnRole === _memProfile) {
-        var burnedSet = burnedList.slice();
-        _mindMyCards = _mindMyCards.filter(function(c) {
-          var idx = burnedSet.indexOf(c);
-          if (idx !== -1) { burnedSet.splice(idx, 1); return false; }
-          return true;
-        });
-      } else {
-        // C'est la main adverse : mettre à jour _mindOppCards et _mindOppCount
-        var newOppAfterBurn = _mindOppCards.filter(function(c) { return burnedList.indexOf(c) === -1; });
-        _mindOppCards = newOppAfterBurn;
-        _mindOppCount = newOppAfterBurn.length;
-      }
-      _mindShowToast('🔥 ' + _memGetName(burnRole) + ' avait ' + burnedList.join(', ') + ' — défaussé ! -1 ❤️', '#3a1500');
-      if (navigator.vibrate) navigator.vibrate([60, 40, 60, 40, 60]);
-      // Flash rouge
-      var flash = document.createElement('div');
-      flash.style.cssText = 'position:fixed;inset:0;background:rgba(200,60,20,0.18);pointer-events:none;z-index:9990;transition:opacity 0.4s;';
-      document.body.appendChild(flash);
-      requestAnimationFrame(function(){ setTimeout(function(){ flash.style.opacity='0'; setTimeout(function(){ flash.remove(); }, 420); }, 200); });
-    }
-  }
-
-  // ── 6. Render de base (init, reconnexion, etc.) ──
+  // ── 5. Render de base (init, reconnexion, burned seul, etc.) ──
   _mindRenderAll(state);
 }
 
@@ -4045,11 +4057,21 @@ function _mindRenderMyCards() {
   var el = _memEl('memMindMyCards');
   if (!el) return;
   el.innerHTML = '';
-  _mindSelected = null;
-  var playBtn = _memEl('memMindPlayBtn');
-  if (playBtn) { playBtn.disabled = true; playBtn.classList.remove('mnd-play-btn--ready'); }
 
   var locked = _mindLocked;
+
+  // Bug 3 fix : préserver la sélection si la carte existe encore et qu'on n'est pas locked.
+  // On ne reset _mindSelected que si la carte n'existe plus (index hors bornes) ou si locked.
+  if (locked || _mindSelected === null || _mindSelected >= _mindMyCards.length) {
+    _mindSelected = null;
+  }
+
+  var playBtn = _memEl('memMindPlayBtn');
+  if (playBtn) {
+    playBtn.disabled = (locked || _mindSelected === null);
+    if (locked || _mindSelected === null) playBtn.classList.remove('mnd-play-btn--ready');
+    else playBtn.classList.add('mnd-play-btn--ready');
+  }
 
   if (_mindMyCards.length === 0) {
     var noCard = document.createElement('span');
@@ -4061,7 +4083,8 @@ function _mindRenderMyCards() {
   for (var ci = 0; ci < _mindMyCards.length; ci++) {
     (function(idx, val) {
       var card = document.createElement('div');
-      card.className = 'mnd-card' + (locked ? ' mnd-card--disabled' : '');
+      var isSelected = (idx === _mindSelected);
+      card.className = 'mnd-card' + (locked ? ' mnd-card--disabled' : '') + (isSelected ? ' mnd-card--selected' : '');
       card.textContent = val;
       if (!locked) card.addEventListener('click', function() { _mindSelectCard(idx); });
       el.appendChild(card);
