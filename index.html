@@ -4353,17 +4353,26 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
        ZÉRO violet
        ══════════════════════════════════════════════ */
     body.light #memScreenMind {
-      background: #fdf8f5;
+      background: #fdf8f5 !important;
+      color: #5a3e36 !important;
     }
     /* Désactiver les scanlines en mode clair (illisible) */
     body.light #memScreenMind::before {
-      display: none;
+      display: none !important;
     }
     body.light #memMindBgCanvas {
-      opacity: 0.10;
+      opacity: 0.08;
     }
     body.light #memScreenMind::after {
-      opacity: 0.04;
+      opacity: 0.03;
+    }
+    /* Toutes les zones internes qui héritent du fond sombre */
+    body.light .mnd-pile-zone {
+      background: #fdf8f5 !important;
+    }
+    body.light .mnd-opp-zone {
+      background: #fdf8f5 !important;
+      border-bottom: 1px solid #f0e0d8 !important;
     }
 
     /* HUD */
@@ -4386,7 +4395,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 
     /* Bande de phase */
     body.light .mnd-phase-bar {
-      background: #fef5f0;
+      background: #fef5f0 !important;
       border-bottom: 1px solid #f5d0c0;
       color: #c05a3a;
     }
@@ -4395,9 +4404,6 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     }
 
     /* Zone adversaire */
-    body.light .mnd-opp-zone {
-      border-bottom: 1px solid #f0e8e0;
-    }
     body.light .mnd-avatar {
       border: 2px solid #f4bfbf;
       background: #fce8e8;
@@ -4458,7 +4464,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     /* Mes cartes */
     body.light .mnd-my-zone {
       border-top: 1px solid #f0e0d8;
-      background: #fef5f0;
+      background: #fef5f0 !important;
     }
     body.light .mnd-card {
       background: #ffffff;
@@ -4480,7 +4486,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 
     /* Bouton jouer */
     body.light .mnd-actions {
-      background: #fef5f0;
+      background: #fef5f0 !important;
       border-top: 2px solid #f0e0d8;
     }
     body.light .mnd-play-btn {
