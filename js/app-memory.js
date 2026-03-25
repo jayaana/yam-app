@@ -2497,7 +2497,7 @@ function _hanabiGetBuildState() {
     boy_hints:   [[],[],[],[],[]],
     piles:       {blue:0,green:0,red:0,pink:0,amber:0},
     discard:     [],
-    blue_tokens: 8,
+    blue_tokens: 10,
     red_tokens:  0,
     score:       0,
     winner:      null,
@@ -2929,7 +2929,7 @@ function _hanabiApplyState(state) {
   if (bt) {
     bt.innerHTML = '';
     var blue = state.blue_tokens || 0;
-    for (var bi=0; bi<8; bi++) {
+    for (var bi=0; bi<10; bi++) {
       var tok = document.createElement('div');
       tok.style.cssText = 'width:8px;height:8px;border-radius:50%;flex-shrink:0;' +
         (bi < blue ? 'background:#7bafd4;border:1.5px solid #3a6b94;' : 'background:#ede5d6;border:1.5px solid #b0a090;');
@@ -2943,8 +2943,8 @@ function _hanabiApplyState(state) {
     rt.innerHTML = '';
     var red = state.red_tokens || 0;
     var heartMask = [0,1,0,1,0, 1,1,1,1,1, 1,1,1,1,1, 0,1,1,1,0, 0,0,1,0,0];
-    for (var ri=0; ri<3; ri++) {
-      var alive = ri < (3 - red);
+    for (var ri=0; ri<4; ri++) {
+      var alive = ri < (4 - red);
       var hWrap = document.createElement('div');
       hWrap.style.cssText = 'display:inline-grid;grid-template-columns:repeat(5,3px);grid-template-rows:repeat(5,3px);gap:0;margin-right:2px;';
       heartMask.forEach(function(px) {
@@ -3246,7 +3246,7 @@ function _hanabiConfirmPlay() {
   if (correct) {
     ns.piles[card.color] = card.num;
     ns.score = (ns.score||0) + 1;
-    if (card.num === 5 && ns.blue_tokens < 8) ns.blue_tokens++;
+    if (card.num === 5 && ns.blue_tokens < 10) ns.blue_tokens++;
     desc = 'Pose '+c.label+' '+card.num+' ✓';
     _hanabiAnimPlaySuccess(c, card.num);
   } else {
@@ -3293,7 +3293,7 @@ function _hanabiConfirmDiscard() {
 
   var card = ns[myHandKey][_hanabiSelectedCard];
   ns.discard = (ns.discard||[]).concat([card]);
-  if (ns.blue_tokens < 8) ns.blue_tokens++;
+  if (ns.blue_tokens < 10) ns.blue_tokens++;
 
   _hanabiAnimDiscardSelf(HANABI_COLOR_MAP[card.color], card.num);
 
@@ -3594,7 +3594,7 @@ function _hanabiShowToast(msg, bg, color) {
 function _hanabiCheckEnd(ns) {
   if (ns.winner) return ns.winner;
   // 3 erreurs → fin immédiate
-  if ((ns.red_tokens||0) >= 3) return 'lose';
+  if ((ns.red_tokens||0) >= 4) return 'lose';
   // Score parfait
   if ((ns.score||0) >= 25) return 'perfect';
   // Pioche vide → chacun a encore 1 tour (2 tours restants total)
@@ -4473,14 +4473,8 @@ function _mindRenderOppHandEl(active) {
     return;
   }
   el.style.visibility = 'visible';
+  el.style.opacity = '1';
   el.innerHTML = _mindDrawCrossSVG({ filled: true, color: '#e8192c', size: 44 });
-  // Clignotement
-  var visible = true;
-  _mindHandBlinkInt = setInterval(function() {
-    if (!_memEl('memMindOppHand')) { clearInterval(_mindHandBlinkInt); _mindHandBlinkInt = null; return; }
-    visible = !visible;
-    el.style.opacity = visible ? '1' : '0.15';
-  }, 400);
 }
 
 // Appliquer l'état des mains depuis le state partagé entrant
