@@ -3850,3 +3850,94 @@ window.yamToggleAccountModal = function() {
     window.setProfile=function(p){orig.apply(this,arguments);setTimeout(initDefaultAvatars,100);};
   })();
 })();
+
+
+// ═════════════════════════════════════════════════════════════════
+// Login V2 — UI helpers + splash + reset password
+// ← migré depuis app-inline.js BLOC 6 (manquait dans la migration initiale)
+// ═════════════════════════════════════════════════════════════════
+
+var _v2SelectedJoinRole = null;
+
+window.v2SelectJoinRole = function(role){
+  _v2SelectedJoinRole = role;
+  var g = document.getElementById('v2JoinRoleGirl');
+  var b = document.getElementById('v2JoinRoleBoy');
+  if(g) g.classList.toggle('selected', role === 'girl');
+  if(b) b.classList.toggle('selected', role === 'boy');
+};
+
+window.v2SetError = function(msg){
+  var el = document.getElementById('v2LoginError');
+  if(el) el.textContent = msg || '';
+};
+
+window.v2SetLoading = function(on){
+  var el = document.getElementById('v2LoginLoader');
+  if(el) el.style.display = on ? 'block' : 'none';
+  document.querySelectorAll('.v2-btn').forEach(function(b){ b.disabled = !!on; });
+};
+
+window.v2CopyCode = function(el, code){
+  var done = function(){ el.textContent = '✅ Copié !'; setTimeout(function(){ el.textContent = code; }, 2000); };
+  if(navigator.clipboard){ navigator.clipboard.writeText(code).then(done).catch(done); }
+  else { done(); }
+};
+
+// yamSplashOpen — ouvre le modal de connexion
+window.yamSplashOpen = function(){
+  if(window.v2ShowLogin){
+    window.v2ShowLogin();
+  } else {
+    var _retry = 0;
+    var _iv = setInterval(function(){
+      if(window.v2ShowLogin){ clearInterval(_iv); window.v2ShowLogin(); }
+      else if(++_retry > 20){ clearInterval(_iv); }
+    }, 100);
+  }
+};
+
+// Gestion reset password via token dans le hash/query au chargement
+(function(){
+  function checkV2Session(){
+    try{ var s = JSON.parse(localStorage.getItem('yam_session_v3')||'null'); return !!(s && s.access_token && s.user); }catch(e){ return false; }
+  }
+
+  var _hash = window.location.hash || '';
+  var _search = window.location.search || '';
+  var _isReset = _hash.includes('type=recovery') || _search.includes('type=recovery') || _search.includes('token_hash');
+
+  if(_isReset){
+    var _params = {};
+    _search.replace(/^\?/,'').split('&').forEach(function(p){ var kv=p.split('='); if(kv[0]) _params[decodeURIComponent(kv[0])]=decodeURIComponent(kv[1]||''); });
+    _hash.replace(/^#/,'').split('&').forEach(function(p){ var kv=p.split('='); if(kv[0]) _params[decodeURIComponent(kv[0])]=decodeURIComponent(kv[1]||''); });
+    if(_params['token_hash'] && !_params['access_token']){
+      window._yamResetTokenHash = _params['token_hash'];
+      window._yamResetToken = null;
+    } else {
+      window._yamResetToken = _params['access_token'] || null;
+    }
+    history.replaceState(null, '', window.location.pathname);
+    window.addEventListener('load', function(){
+      var overlay = document.getElementById('v2LoginOverlay');
+      if(overlay) overlay.classList.add('active');
+      ['v2FormLogin','v2FormForgot','v2FormRegister','v2FormJoin'].forEach(function(id){
+        var el = document.getElementById(id); if(el) el.style.display = 'none';
+      });
+      var tabs = document.getElementById('v2LoginTabs');
+      if(tabs) tabs.style.display = 'none';
+      var resetForm = document.getElementById('v2FormReset');
+      if(resetForm) resetForm.style.display = '';
+    });
+  } else if(!checkV2Session()){
+    // Pas de session → afficher le splash
+    window.addEventListener('DOMContentLoaded', function(){
+      var sp = document.getElementById('yamSplashScreen');
+      if(sp) sp.style.display = 'block';
+      document.body.classList.add('splash-active');
+    });
+  } else {
+    // Session active → appliquer les noms dynamiques
+    window.addEventListener('load', function(){ setTimeout(function(){ if(typeof v2ApplyDynamicNames === 'function') v2ApplyDynamicNames(); }, 200); });
+  }
+})();
