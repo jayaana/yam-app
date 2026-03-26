@@ -1247,7 +1247,7 @@ document.addEventListener('DOMContentLoaded', function(){
       })
       .subscribe(function(status){
         if (status === 'SUBSCRIBED'){
-          yamLog('[CwLive] RT connecté'); console.log('[RT] ✅ Cowatch live connecté', { channel: 'cowatch_sessions', status: 'SUBSCRIBED' });
+          yamLog('[CwLive] RT connecté'); console.warn('[RT] ✅ Cowatch live connecté — Realtime actif');
           _stopFallbackPoll();   // RT OK → on arrête le poll
           _checkLive();          // état initial
         } else if (['CHANNEL_ERROR','TIMED_OUT','CLOSED'].indexOf(status) !== -1){
@@ -1286,15 +1286,19 @@ document.addEventListener('DOMContentLoaded', function(){
      pas encore appelé → CHANNEL_ERROR immédiat puis reconnexion sur rt_ready.
      Les deux events fiables suffisent (même pattern que jx_lobby dashboard). ── */
 
-  /* yam:rt_ready : RT initialisé + JWT setAuth OK → connecter le channel */
+  /* yam:rt_ready : RT initialisé + JWT setAuth OK → connecter le channel.
+     C'est le seul point d'entrée au démarrage. */
   document.addEventListener('yam:rt_ready', function(){
     _initCwLive();
   });
 
-  /* yam:session_ready : après login → init (rt_ready suit juste après, mais
-     on garde les deux pour couvrir les cas de refresh de session) */
+  /* yam:session_ready : uniquement si _yamRT n'est pas encore prêt
+     (cas rare : session_ready sans rt_ready — ex: refresh manuel).
+     Si rt_ready a déjà créé le channel, on ne retouche pas. */
   document.addEventListener('yam:session_ready', function(){
-    setTimeout(_initCwLive, 800);
+    setTimeout(function(){
+      if (!_rtChannel && !_liveIv) _initCwLive();
+    }, 800);
   });
 
   /* Exposé pour debug console */
