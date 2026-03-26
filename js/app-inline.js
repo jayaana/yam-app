@@ -1247,11 +1247,11 @@ document.addEventListener('DOMContentLoaded', function(){
       })
       .subscribe(function(status){
         if (status === 'SUBSCRIBED'){
-          yamLog('[CwLive] RT connecté'); console.warn('[RT] ✅ Cowatch live connecté — Realtime actif');
+          yamLog('[CwLive] RT connecté'); console.log('[RT] ✅ Cowatch live connecté', { channel: 'cowatch_sessions', status: 'SUBSCRIBED' });
           _stopFallbackPoll();   // RT OK → on arrête le poll
           _checkLive();          // état initial
         } else if (['CHANNEL_ERROR','TIMED_OUT','CLOSED'].indexOf(status) !== -1){
-          yamLog('[CwLive] RT ' + status + ' — fallback poll');
+          yamLog('[CwLive] RT ' + status + ' — fallback poll'); console.warn('[RT] Cowatch live channel perdu — fallback poll 5s');
           _rtChannel = null;
           _startFallbackPoll();  // RT KO → on bascule sur le poll
         }
