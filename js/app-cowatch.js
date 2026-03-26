@@ -816,10 +816,25 @@
   window.openCowatchModal=function(){
     var ov=document.getElementById('cwOv');if(!ov)return;
     ov.classList.add('on');document.body.classList.add('subview-active');
-    _myRole=typeof getProfile==='function'?getProfile():null;
-    _coupleId=_getCoupleId();
-    if(!_coupleId){var u=typeof yamGetUser==='function'?yamGetUser():null;if(u)_coupleId=u.couple_id||null;}
-    _afterBeta();
+    function _init(){
+      _myRole=typeof getProfile==='function'?getProfile():null;
+      _coupleId=_getCoupleId();
+      if(!_coupleId){var u=typeof yamGetUser==='function'?yamGetUser():null;if(u)_coupleId=u.couple_id||null;}
+      if(!_coupleId){
+        // yamGetUser pas encore prêt — attendre yam:session_ready
+        document.addEventListener('yam:session_ready',function _onReady(){
+          document.removeEventListener('yam:session_ready',_onReady);
+          _myRole=typeof getProfile==='function'?getProfile():null;
+          _coupleId=_getCoupleId();
+          if(!_coupleId){var u2=typeof yamGetUser==='function'?yamGetUser():null;if(u2)_coupleId=u2.couple_id||null;}
+          _afterBeta();
+        },{once:true});
+        _sc('cwScLobby');
+        return;
+      }
+      _afterBeta();
+    }
+    _init();
   };
 
   var _afterBetaPending = false;
@@ -855,6 +870,9 @@
 
   // ── Lancer ─────────────────────────────────────────────────────────
   window._cwLaunch=function(){
+    // Récupération tardive si _coupleId/_myRole toujours null au moment du clic
+    if(!_coupleId){var _uf=typeof yamGetUser==='function'?yamGetUser():null;if(_uf)_coupleId=_uf.couple_id||null;}
+    if(!_myRole){_myRole=typeof getProfile==='function'?getProfile():null;}
     var url=document.getElementById('cwUrlIn').value.trim();
     var ytId=_ytId(url);if(!ytId||!_coupleId||!_myRole)return;
     fetch(SB_URL+'/rest/v1/'+TABLE+'?couple_id=eq.'+encodeURIComponent(_coupleId),{
