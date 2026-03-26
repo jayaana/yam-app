@@ -1167,40 +1167,141 @@ document.addEventListener('DOMContentLoaded', function(){
 
 
 // ══════════════════════════════════════════════════════════════════
-// BLOC 14 — Cowatch live poll
+// BLOC 14 — Cowatch live — Realtime INSERT/UPDATE + fallback poll 5s
+// ══════════════════════════════════════════════════════════════════
+// Surveille cowatch_sessions via Supabase Realtime.
+// Les sessions sont fermées par PATCH active=false (UPDATE), jamais par DELETE.
+// → event:'*' sur cowatch_sessions suffit : INSERT (création) + UPDATE (active→false).
+// Pas besoin de REPLICA IDENTITY FULL car le filtre couple_id est sur INSERT/UPDATE,
+// pas sur DELETE.
+// Fallback poll 5s si Realtime indispo (même pattern que jx_lobby dans dashboard).
 // ══════════════════════════════════════════════════════════════════
 (function(){
-  var TABLE='cowatch_sessions', _liveIv=null;
+  var TABLE      = 'cowatch_sessions';
+  var _liveIv    = null;   // fallback poll interval
+  var _rtChannel = null;   // channel Realtime actif
 
+  /* ── Logique métier commune : pill + navJeux glow ── */
   function _checkLive(){
-    var u=typeof v2GetUser==='function'?v2GetUser():null;
-    var coupleId=u?u.couple_id:null;
-    var pill=document.getElementById('cwLivePill');
-    if(!pill) return;
-    if(!coupleId){pill.style.display='none';return;}
-    fetch(SB_URL+'/rest/v1/'+TABLE+'?couple_id=eq.'+encodeURIComponent(coupleId)+'&active=eq.true&order=updated_at.desc&limit=1',{headers:sb2Headers()})
-    .then(function(r){return r.json();})
-    .then(function(rows){
-      var show=!!(rows&&rows.length&&rows[0].active);
-      var modalOpen=document.getElementById('cwOv')&&document.getElementById('cwOv').classList.contains('on');
-      pill.style.display=(show&&!modalOpen)?'inline-flex':'none';
+    var u = typeof v2GetUser === 'function' ? v2GetUser() : null;
+    var coupleId = u ? u.couple_id : null;
+    var pill = document.getElementById('cwLivePill');
+    if (!pill) return;
+    if (!coupleId) { pill.style.display = 'none'; return; }
 
-      /* ── Faire clignoter #navJeux en doré si partenaire en session cowatch ──
-         On réutilise ici la même classe que le lobby jeux multi.
-         Retiré quand l'onglet Jeux est actif (l'utilisateur est déjà sur place). ── */
-      var navJeuxEl = document.getElementById('navJeux');
-      if (navJeuxEl) {
-        var cwModalOpen = document.getElementById('cwOv') && document.getElementById('cwOv').classList.contains('on');
-        var shouldGlow = show && !cwModalOpen && window._currentTab !== 'jeux';
-        navJeuxEl.classList.toggle('partner-in-lobby', shouldGlow);
-      }
+    fetch(
+      SB_URL + '/rest/v1/' + TABLE +
+      '?couple_id=eq.' + encodeURIComponent(coupleId) +
+      '&active=eq.true&order=updated_at.desc&limit=1',
+      { headers: sb2Headers() }
+    )
+    .then(function(r){ return r.json(); })
+    .then(function(rows){
+      _applyLiveState(!!(rows && rows.length && rows[0].active));
     }).catch(function(){});
   }
 
-  document.addEventListener('DOMContentLoaded',function(){
-    _liveIv=setInterval(_checkLive,5000);
+  /* ── Applique l'état live : pill + navJeux ── */
+  function _applyLiveState(show){
+    var pill      = document.getElementById('cwLivePill');
+    var modalOpen = document.getElementById('cwOv') &&
+                    document.getElementById('cwOv').classList.contains('on');
+
+    if (pill) pill.style.display = (show && !modalOpen) ? 'inline-flex' : 'none';
+
+    var navJeuxEl = document.getElementById('navJeux');
+    if (navJeuxEl) {
+      var shouldGlow = show && !modalOpen && window._currentTab !== 'jeux';
+      navJeuxEl.classList.toggle('partner-in-lobby', shouldGlow);
+    }
+  }
+
+  /* ── Fallback poll 5s ── */
+  function _startFallbackPoll(){
+    if (_liveIv) return;
     _checkLive();
+    _liveIv = setInterval(_checkLive, 5000);
+    yamLog('[CwLive] fallback poll actif');
+  }
+  function _stopFallbackPoll(){
+    if (_liveIv){ clearInterval(_liveIv); _liveIv = null; }
+  }
+
+  /* ── Realtime ── */
+  function _subscribeRT(coupleId){
+    if (!window._yamRT || !coupleId) { _startFallbackPoll(); return; }
+    if (_rtChannel) return; // déjà abonné
+
+    _rtChannel = window._yamRT
+      .channel('cw_live_' + coupleId)
+      .on('postgres_changes', {
+        event:  '*',       // INSERT (session créée) + UPDATE (active→false)
+        schema: 'public',
+        table:  TABLE,
+        filter: 'couple_id=eq.' + coupleId,
+      }, function(payload){
+        yamLog('[CwLive] RT event', payload.eventType);
+        /* Re-fetch pour avoir l'état exact (évite de lire payload.new qui
+           peut être vide sur certaines configs Supabase Realtime) */
+        _checkLive();
+      })
+      .subscribe(function(status){
+        if (status === 'SUBSCRIBED'){
+          yamLog('[CwLive] RT connecté');
+          _stopFallbackPoll();   // RT OK → on arrête le poll
+          _checkLive();          // état initial
+        } else if (['CHANNEL_ERROR','TIMED_OUT','CLOSED'].indexOf(status) !== -1){
+          yamLog('[CwLive] RT ' + status + ' — fallback poll');
+          _rtChannel = null;
+          _startFallbackPoll();  // RT KO → on bascule sur le poll
+        }
+      });
+
+    window._yamRTChannels['cw_live'] = _rtChannel;
+  }
+
+  function _closeRT(){
+    if (_rtChannel){
+      try { if (window._yamRT) window._yamRT.removeChannel(_rtChannel); } catch(e){}
+      delete window._yamRTChannels['cw_live'];
+      _rtChannel = null;
+    }
+  }
+
+  /* ── Init : appelée après login (session_ready) ── */
+  function _initCwLive(){
+    var u = typeof v2GetUser === 'function' ? v2GetUser() : null;
+    if (!u || !u.couple_id) return;
+    _closeRT();
+    _stopFallbackPoll();
+    if (window._yamRT){
+      _subscribeRT(u.couple_id);
+    } else {
+      _startFallbackPoll();
+    }
+  }
+
+  /* ── Démarrage ── */
+  document.addEventListener('DOMContentLoaded', function(){
+    /* Tentative immédiate si session déjà active au chargement */
+    setTimeout(function(){
+      if (window._yamRT){ _initCwLive(); }
+      else { _startFallbackPoll(); }
+    }, 600);
   });
+
+  /* yam:rt_ready : RT initialisé → (re)connecter le channel */
+  document.addEventListener('yam:rt_ready', function(){
+    _initCwLive();
+  });
+
+  /* yam:session_ready : après login → init */
+  document.addEventListener('yam:session_ready', function(){
+    setTimeout(_initCwLive, 800);
+  });
+
+  /* Exposé pour debug console */
+  window._cwLiveCheck = _checkLive;
 })();
 
 
