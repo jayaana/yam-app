@@ -1281,21 +1281,18 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   }
 
-  /* ── Démarrage ── */
-  document.addEventListener('DOMContentLoaded', function(){
-    /* Tentative immédiate si session déjà active au chargement */
-    setTimeout(function(){
-      if (window._yamRT){ _initCwLive(); }
-      else { _startFallbackPoll(); }
-    }, 600);
-  });
+  /* ── Démarrage ──
+     On n'essaie PAS au DOMContentLoaded : _yamRT existe mais setAuth n'est
+     pas encore appelé → CHANNEL_ERROR immédiat puis reconnexion sur rt_ready.
+     Les deux events fiables suffisent (même pattern que jx_lobby dashboard). ── */
 
-  /* yam:rt_ready : RT initialisé → (re)connecter le channel */
+  /* yam:rt_ready : RT initialisé + JWT setAuth OK → connecter le channel */
   document.addEventListener('yam:rt_ready', function(){
     _initCwLive();
   });
 
-  /* yam:session_ready : après login → init */
+  /* yam:session_ready : après login → init (rt_ready suit juste après, mais
+     on garde les deux pour couvrir les cas de refresh de session) */
   document.addEventListener('yam:session_ready', function(){
     setTimeout(_initCwLive, 800);
   });
