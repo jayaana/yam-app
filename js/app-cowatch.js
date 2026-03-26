@@ -22,7 +22,7 @@
   var _currentYtId=null;
   var _savedPlaylist=[];
   var _launchedFromLink=false;
-  var _coControl=false;_lastCmdTs=0; // mode co-contrôle actif
+  var _coControl=false,_lastCmdTs=0; // mode co-contrôle actif
   // Edge Function proxy — évite les erreurs CORS
   var SB2_EDGE_PIPED = SB_URL + '/functions/v1/piped-search';
   var _pipedIdx=0;
@@ -896,11 +896,24 @@
 
   window._cwJoin=function(){
     if(!_sessionId)return;_isHost=false;
-    fetch(SB_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId),{
-      method:'PATCH',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=representation'}),
-      body:JSON.stringify({state:{joined:true,playing:false,currentTime:0,ts:0,reactions:[]}})
-    }).then(function(r){return r.json();})
-    .then(function(rows){if(!rows||!rows.length)return;_startPlayer(rows[0].yt_id);})
+    // Lire la session d'abord pour préserver currentYtId/co_control dans le state
+    fetch(SB_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId)+'&select=yt_id,state,playlist,playlist_index',{headers:sb2Headers()})
+    .then(function(r){return r.json();})
+    .then(function(rows){
+      if(!rows||!rows.length)throw new Error('session not found');
+      var row=rows[0];
+      var cur=row.state||{};
+      var spl=row.playlist||[];var sidx=typeof row.playlist_index==='number'?row.playlist_index:0;
+      if(spl.length>0){_playlist=spl;_plIndex=sidx;}
+      var merged={playing:false,currentTime:0,ts:0,reactions:[],joined:true,
+        currentYtId:cur.currentYtId||row.yt_id,
+        co_control:cur.co_control||false};
+      return fetch(SB_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId),{
+        method:'PATCH',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
+        body:JSON.stringify({state:merged})
+      }).then(function(){return row.yt_id;});
+    })
+    .then(function(ytId){_startPlayer(ytId);})
     .catch(function(){if(typeof showToast==='function')showToast('Erreur r\u00e9seau','error');});
   };
 
@@ -1493,7 +1506,6 @@
     }).catch(function(){});
   }
 
-  var _lastCmdTs=0;
   function _applyCmd(state){
     if(!_isHost||!_player||!state.cmd)return;
     var cmd=state.cmd;
@@ -1515,10 +1527,7 @@
     _coControl=!_coControl;
     _applyCoControlUI(_coControl);
     _startSyncPoll(); // redémarrer avec le bon intervalle
-    // Broadcaster le flag dans state
-    if(!_player)return;
-    var P=window.YT?window.YT.PlayerState:{};
-    var playing=_player.getPlayerState()===(P.PLAYING||1);
+    // Broadcaster le flag dans state — sans bloquer sur _player
     fetch(SB_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId)+'&select=state',{headers:sb2Headers()})
     .then(function(r){return r.json();})
     .then(function(rows){
