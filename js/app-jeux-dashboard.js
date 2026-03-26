@@ -487,6 +487,12 @@
       var btn = _getPlayBtn();
       if (btn) btn.classList.add('jx-play-btn--lobby');
 
+      /* ── Faire clignoter #navJeux en doré — seulement si l'utilisateur n'est pas sur l'onglet Jeux ── */
+      if (window._currentTab !== 'jeux') {
+        var navJeux = document.getElementById('navJeux');
+        if (navJeux) navJeux.classList.add('partner-in-lobby');
+      }
+
       /* Retire l'ancien si le jeu a changé */
       if (_activeChip && _activeChip !== entry.chip) _deactivateEntry(_activeEntry);
       _activeChip  = entry.chip;
@@ -524,6 +530,10 @@
     function _deactivate() {
       var btn = _getPlayBtn();
       if (btn) btn.classList.remove('jx-play-btn--lobby');
+
+      /* ── Retirer le clignotement doré sur #navJeux ── */
+      var navJeux = document.getElementById('navJeux');
+      if (navJeux) navJeux.classList.remove('partner-in-lobby');
       if (_activeEntry) { _deactivateEntry(_activeEntry); _activeEntry = null; }
       _activeChip = null;
     }
@@ -663,3 +673,28 @@
   }());
 
 })();
+
+
+/* ══════════════════════════════════════════════════════════════
+   SYNC navJeux.partner-in-lobby ↔ tab courant
+   Quand l'utilisateur navigue vers l'onglet Jeux, on retire
+   le clignotement (il voit déjà le lobby) mais on le remet
+   s'il repasse sur un autre onglet et que le lobby est toujours actif.
+══════════════════════════════════════════════════════════════ */
+(function () {
+  var _origYamSwitchTab = window.yamSwitchTab;
+  window.yamSwitchTab = function (tab) {
+    if (_origYamSwitchTab) _origYamSwitchTab.apply(this, arguments);
+    var navJeux = document.getElementById('navJeux');
+    if (!navJeux) return;
+    if (tab === 'jeux') {
+      /* On l'onglet Jeux : retirer le clignotement */
+      navJeux.classList.remove('partner-in-lobby');
+    } else {
+      /* On quitte l'onglet Jeux : remettre si lobby encore actif */
+      if (window._jxLobbyPresence && typeof window._jxLobbyPresence.check === 'function') {
+        window._jxLobbyPresence.check();
+      }
+    }
+  };
+}());
