@@ -917,12 +917,12 @@ window.yamPushNotify = async function(opts) {
         }, function() { presencePoll(); })
         .subscribe(function(status) {
           if (status === 'SUBSCRIBED') {
-            yamLog('[RT] présence connectée'); console.warn('[RT] ✅ Présence connectée — Realtime actif');
+            yamLog('[RT] présence connectée'); console.log('[RT] ✅ Présence connectée', { channel: 'presence', status: 'SUBSCRIBED' });
             clearInterval(_pollIv); _pollIv = null;
             _stopFallback();
             presencePoll();
           } else if (['CHANNEL_ERROR','TIMED_OUT','CLOSED'].includes(status)) {
-            yamLog('[RT] présence ' + status + ' — fallback');
+            yamLog('[RT] présence ' + status + ' — fallback'); console.warn('[RT] Présence channel perdu — fallback poll 10s');
             delete window._yamRTChannels['presence'];
             _startFallback();
           }
