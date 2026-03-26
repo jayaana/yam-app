@@ -1209,11 +1209,11 @@ document.addEventListener('DOMContentLoaded', function(){
 
     if (pill) pill.style.display = (show && !modalOpen) ? 'inline-flex' : 'none';
 
-    var navJeuxEl = document.getElementById('navJeux');
-    if (navJeuxEl) {
-      var shouldGlow = show && !modalOpen && window._currentTab !== 'jeux';
-      navJeuxEl.classList.toggle('partner-in-lobby', shouldGlow);
-    }
+    /* Stocker l'état cowatch dans un flag global partagé avec le dashboard jeux.
+       La classe est ensuite appliquée par _yamSyncNavJeux() qui tient compte
+       des DEUX sources (cowatch ET lobbies jeux multi). */
+    window._cwLobbyActive = !!(show && !modalOpen);
+    _yamSyncNavJeux();
   }
 
   /* ── Fallback poll 5s ── */
@@ -1304,6 +1304,18 @@ document.addEventListener('DOMContentLoaded', function(){
   /* Exposé pour debug console */
   window._cwLiveCheck = _checkLive;
 
+  /* ── Fonction centrale de sync navJeux.partner-in-lobby ──
+     Tient compte des DEUX sources : cowatch (_cwLobbyActive) ET
+     lobbies jeux multi (_jxLobbyActive). La classe est ajoutée si
+     l'une OU l'autre est active, et seulement si on n'est pas sur l'onglet Jeux. ── */
+  window._yamSyncNavJeux = function(){
+    var navJeux = document.getElementById('navJeux');
+    if (!navJeux) return;
+    var anyActive = !!(window._cwLobbyActive || window._jxLobbyActive);
+    var onJeuxTab = window._currentTab === 'jeux';
+    navJeux.classList.toggle('partner-in-lobby', anyActive && !onJeuxTab);
+  };
+
   /* ── Sync navJeux.partner-in-lobby ↔ tab courant (cowatch uniquement)
      Quand l'utilisateur entre sur l'onglet Jeux → retire le glow cowatch.
      Quand il le quitte → relance _checkLive pour le remettre si session encore active.
@@ -1312,13 +1324,11 @@ document.addEventListener('DOMContentLoaded', function(){
     var _origSwitch = window.yamSwitchTab;
     window.yamSwitchTab = function(tab){
       if (_origSwitch) _origSwitch.apply(this, arguments);
-      var navJeux = document.getElementById('navJeux');
-      if (!navJeux) return;
       if (tab === 'jeux'){
-        /* On entre sur l'onglet Jeux → retirer le glow cowatch */
-        navJeux.classList.remove('partner-in-lobby');
+        /* On entre sur Jeux → sync immédiate (retire le glow) */
+        window._yamSyncNavJeux && window._yamSyncNavJeux();
       } else {
-        /* On quitte l'onglet Jeux → re-vérifier si session cowatch encore active */
+        /* On quitte Jeux → re-fetch cowatch pour mettre à jour _cwLobbyActive */
         _checkLive();
       }
     };
