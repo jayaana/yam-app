@@ -410,7 +410,7 @@ window.v2DoResetPassword = function(){
 
   fetch(SB_EDGE_AUTH, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'apikey': SB_ANON_KEY },
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SB_ANON_KEY },
     body: JSON.stringify(payload),
   })
   .then(function(r){ return r.json(); })
