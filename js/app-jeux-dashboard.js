@@ -610,9 +610,9 @@
           .subscribe(function (status) {
             if (status === 'SUBSCRIBED') {
               yamLog('[LobbyPresence] RT ' + entry.presence + ' connecté');
-              console.warn('[RT] ✅ Lobby ' + entry.presence + ' connecté — Realtime actif');
+              console.log('[RT] ✅ Lobby ' + entry.presence + ' connecté', { channel: entry.presence, status: 'SUBSCRIBED' });
             } else if (['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].indexOf(status) !== -1) {
-              yamLog('[LobbyPresence] RT ' + entry.presence + ' ' + status + ' — fallback poll');
+              yamLog('[LobbyPresence] RT ' + entry.presence + ' ' + status + ' — fallback poll'); console.warn('[RT] Lobby ' + entry.presence + ' channel perdu — fallback poll 5s');
               _startFallbackPoll();
             }
           });
