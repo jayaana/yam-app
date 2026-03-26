@@ -601,6 +601,7 @@ function applyThemeToggle() {
   }
 })();
 
+window.applyThemeToggle = applyThemeToggle;
 document.getElementById('themeToggle')     && document.getElementById('themeToggle').addEventListener('click', applyThemeToggle);
 document.getElementById('floatingThemeBtn') && document.getElementById('floatingThemeBtn').addEventListener('click', applyThemeToggle);
 
