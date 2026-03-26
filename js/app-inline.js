@@ -1184,6 +1184,16 @@ document.addEventListener('DOMContentLoaded', function(){
       var show=!!(rows&&rows.length&&rows[0].active);
       var modalOpen=document.getElementById('cwOv')&&document.getElementById('cwOv').classList.contains('on');
       pill.style.display=(show&&!modalOpen)?'inline-flex':'none';
+
+      /* ── Faire clignoter #navJeux en doré si partenaire en session cowatch ──
+         On réutilise ici la même classe que le lobby jeux multi.
+         Retiré quand l'onglet Jeux est actif (l'utilisateur est déjà sur place). ── */
+      var navJeuxEl = document.getElementById('navJeux');
+      if (navJeuxEl) {
+        var cwModalOpen = document.getElementById('cwOv') && document.getElementById('cwOv').classList.contains('on');
+        var shouldGlow = show && !cwModalOpen && window._currentTab !== 'jeux';
+        navJeuxEl.classList.toggle('partner-in-lobby', shouldGlow);
+      }
     }).catch(function(){});
   }
 
