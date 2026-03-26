@@ -3884,18 +3884,18 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 
     <!-- ══ ÉCRAN : THE MIND ══ -->
     <style>
-    /* ── The Mind — Game Boy DMG palette ──
-       BG:     #0f1208  (écran éteint)
-       Dark:   #1a1f0a  (fond cellules sombres)
-       Mid:    #4a5a1a  (éléments médium)
-       Light:  #8a9a2a  (éléments actifs)
-       Bright: #c8d840  (texte principal / glow)
-       Scanline overlay + grain LCD
-    */
+    /* ══════════════════════════════════════════════
+       THE MIND — DA Rétro Arcade coloré
+       Dark  : fond nuit #0d0a1a, rouge #e8192c, orange #f5a623, cyan #00d4ff
+       Light : fond crème #fff5f0, rouge #cc1a1a, orange #e8721a
+       Zéro violet
+       ══════════════════════════════════════════════ */
+
+    /* ── Fond général ── */
     #memScreenMind {
       font-family: 'Courier New', monospace !important;
-      background: #0f1208 !important;
-      color: #c8d840 !important;
+      background: #0d0a1a !important;
+      color: #ffe0b2 !important;
       display: flex;
       flex-direction: column;
       min-height: 100%;
@@ -3903,7 +3903,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       overflow: hidden;
     }
 
-    /* Scanlines LCD Game Boy */
+    /* Scanlines CRT subtiles */
     #memScreenMind::before {
       content: '';
       position: fixed;
@@ -3911,28 +3911,27 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       background: repeating-linear-gradient(
         0deg,
         transparent,
-        transparent 3px,
-        rgba(0,0,0,0.22) 3px,
-        rgba(0,0,0,0.22) 4px
+        transparent 2px,
+        rgba(0,0,0,0.15) 2px,
+        rgba(0,0,0,0.15) 3px
       );
       pointer-events: none;
       z-index: 100;
     }
-    /* Grain LCD */
+    /* Vignette bords */
     #memScreenMind::after {
       content: '';
       position: fixed;
       inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.55) 100%);
       pointer-events: none;
       z-index: 99;
-      opacity: 0.5;
     }
 
-    /* HUD */
+    /* ── HUD ── */
     .mnd-hud {
-      background: #0a0d04;
-      border-bottom: 2px solid #3a4a10;
+      background: #130818;
+      border-bottom: 3px solid #e8192c;
       padding: 7px 12px;
       display: flex;
       align-items: center;
@@ -3940,6 +3939,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       gap: 8px;
       position: relative;
       z-index: 10;
+      box-shadow: 0 3px 12px rgba(232,25,44,0.35);
     }
     .mnd-hud-block {
       display: flex;
@@ -3948,17 +3948,17 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       gap: 1px;
     }
     .mnd-hud-val {
-      font-size: 18px;
+      font-size: 20px;
       font-weight: 700;
-      color: #c8d840;
+      color: #f5a623;
       letter-spacing: 2px;
       font-family: 'Courier New', monospace;
       line-height: 1;
-      text-shadow: 0 0 8px rgba(200,216,64,0.5);
+      text-shadow: 0 0 8px rgba(245,166,35,0.7);
     }
     .mnd-hud-lbl {
       font-size: 7px;
-      color: #4a5a1a;
+      color: #7a4a5a;
       text-transform: uppercase;
       letter-spacing: 2px;
       font-family: 'Courier New', monospace;
@@ -3980,34 +3980,36 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     }
     .mnd-heart svg { display: block; }
 
-    /* Bande de phase */
+    /* ── Phase bar ── */
     .mnd-phase-bar {
-      background: #0a0d04;
-      border-bottom: 1px solid #2a3a0a;
+      background: #1a0a0d;
+      border-bottom: 1px solid #3a1020;
       padding: 5px 12px;
       text-align: center;
       font-size: 9px;
-      color: #8a9a2a;
+      color: #00d4ff;
       letter-spacing: 3px;
       text-transform: uppercase;
       font-family: 'Courier New', monospace;
       position: relative;
       z-index: 10;
+      text-shadow: 0 0 6px rgba(0,212,255,0.5);
     }
     .mnd-phase-bar .mnd-blink {
       display: inline-block;
       width: 6px; height: 6px;
-      background: #c8d840;
+      background: #e8192c;
       vertical-align: middle;
       margin-right: 6px;
       animation: mnd-blink 0.8s step-end infinite;
+      box-shadow: 0 0 4px rgba(232,25,44,0.8);
     }
     @keyframes mnd-blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
-    /* Zone adversaire */
+    /* ── Zone adversaire ── */
     .mnd-opp-zone {
       padding: 8px 12px 6px;
-      border-bottom: 1px solid #1e280a;
+      border-bottom: 1px solid #2a0a12;
       position: relative;
       z-index: 10;
     }
@@ -4019,31 +4021,32 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     }
     .mnd-avatar {
       width: 28px; height: 28px;
-      border: 2px solid #3a4a10;
-      background: #1a1f0a;
+      border: 2px solid #e8192c;
+      background: #1a0808;
       overflow: hidden;
       flex-shrink: 0;
       position: relative;
+      box-shadow: 0 0 6px rgba(232,25,44,0.4);
     }
     .mnd-avatar img { width:100%; height:100%; object-fit:cover; }
     .mnd-presence-dot {
       position: absolute;
       bottom: -3px; right: -3px;
       width: 7px; height: 7px;
-      border: 1.5px solid #0f1208;
+      border: 1.5px solid #0d0a1a;
     }
-    .mnd-presence-dot.on  { background: #c8d840; box-shadow: 0 0 4px rgba(200,216,64,0.7); }
-    .mnd-presence-dot.off { background: #2a3a0a; }
+    .mnd-presence-dot.on  { background: #00d4ff; box-shadow: 0 0 5px rgba(0,212,255,0.8); }
+    .mnd-presence-dot.off { background: #3a1020; }
     .mnd-player-name {
       font-size: 10px;
       font-weight: 700;
-      color: #c8d840;
+      color: #ffe0b2;
       letter-spacing: 1px;
       font-family: 'Courier New', monospace;
     }
     .mnd-player-sub {
       font-size: 7px;
-      color: #4a5a1a;
+      color: #6a3040;
       text-transform: uppercase;
       letter-spacing: 1.5px;
     }
@@ -4057,8 +4060,8 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     /* Dos carte adversaire */
     .mnd-card-back {
       width: 38px; height: 54px;
-      background: #1a1f0a;
-      border: 2px solid #3a4a10;
+      background: #1a0808;
+      border: 2px solid #e8192c;
       border-radius: 3px;
       display: flex;
       align-items: center;
@@ -4066,20 +4069,22 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       position: relative;
       overflow: hidden;
       flex-shrink: 0;
+      box-shadow: 0 0 6px rgba(232,25,44,0.25);
     }
     .mnd-card-back::before {
       content: '';
       position: absolute;
-      inset: 3px;
-      border: 1px solid #2a3a0a;
+      inset: 4px;
+      border: 1px solid #3a1020;
       border-radius: 1px;
     }
     .mnd-card-back-dot {
       width: 6px; height: 6px;
-      background: #3a4a10;
+      background: #e8192c;
+      box-shadow: 0 0 4px rgba(232,25,44,0.6);
     }
 
-    /* Pile centrale */
+    /* ── Pile centrale ── */
     .mnd-pile-zone {
       flex: 1;
       display: flex;
@@ -4093,57 +4098,57 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     }
     .mnd-pile-label {
       font-size: 8px;
-      color: #4a5a1a;
+      color: #5a2a38;
       letter-spacing: 3px;
       text-transform: uppercase;
       font-family: 'Courier New', monospace;
     }
     .mnd-pile-card {
-      width: 64px; height: 90px;
-      background: #0a0d04;
-      border: 2px solid #6a7a20;
+      width: 72px; height: 100px;
+      background: #0d0a1a;
+      border: 3px solid #e8192c;
       border-radius: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
       overflow: hidden;
-      box-shadow: 0 0 14px rgba(200,216,64,0.18), inset 0 0 8px rgba(0,0,0,0.5);
+      box-shadow: 0 0 20px rgba(232,25,44,0.4), 0 0 40px rgba(232,25,44,0.15), inset 0 0 10px rgba(0,0,0,0.6);
     }
     .mnd-pile-card::before {
       content: '';
       position: absolute;
       inset: 4px;
-      border: 1px solid #2a3a0a;
+      border: 1px solid #3a1020;
       border-radius: 2px;
       pointer-events: none;
     }
     .mnd-pile-num {
-      font-size: 36px;
+      font-size: 40px;
       font-weight: 700;
-      color: #c8d840;
+      color: #ffffff;
       font-family: 'Courier New', monospace;
       line-height: 1;
-      text-shadow: 0 0 10px rgba(200,216,64,0.6);
+      text-shadow: 0 0 12px rgba(245,166,35,0.9), 0 0 24px rgba(232,25,44,0.5);
       z-index: 1;
     }
     .mnd-pile-num.empty {
-      font-size: 22px;
-      color: #2a3a0a;
+      font-size: 26px;
+      color: #2a0a12;
       text-shadow: none;
     }
     .mnd-pile-count {
       font-size: 9px;
-      color: #4a5a1a;
+      color: #5a2a38;
       letter-spacing: 2px;
       font-family: 'Courier New', monospace;
     }
 
-    /* Mes cartes */
+    /* ── Mes cartes ── */
     .mnd-my-zone {
       padding: 8px 12px;
-      border-top: 1px solid #1e280a;
-      background: #0a0d04;
+      border-top: 1px solid #2a0a12;
+      background: #100814;
       position: relative;
       z-index: 10;
     }
@@ -4163,23 +4168,23 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     /* Carte jouable */
     .mnd-card {
       width: 44px; height: 62px;
-      background: #1a1f0a;
-      border: 2px solid #5a6a18;
-      border-bottom: 5px solid #2a3a0a;
+      background: #1a1020;
+      border: 2px solid #f5a623;
+      border-bottom: 5px solid #7a3a00;
       border-radius: 3px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 700;
-      color: #c8d840;
+      color: #ffe0b2;
       font-family: 'Courier New', monospace;
       cursor: pointer;
       position: relative;
       transition: transform 0.1s, border-bottom-width 0.1s, box-shadow 0.1s;
       -webkit-tap-highlight-color: transparent;
       flex-shrink: 0;
-      text-shadow: 0 0 6px rgba(200,216,64,0.4);
+      text-shadow: 0 0 6px rgba(245,166,35,0.5);
       user-select: none;
     }
     .mnd-card:active {
@@ -4187,12 +4192,14 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       border-bottom-width: 2px;
     }
     .mnd-card.mnd-card--selected {
-      border-color: #c8d840;
-      border-bottom-color: #6a7a20;
-      background: #252d0c;
-      box-shadow: 0 0 12px rgba(200,216,64,0.45);
-      transform: translateY(-4px);
+      border-color: #ffffff;
+      border-bottom-color: #f5a623;
+      background: #2a1830;
+      box-shadow: 0 0 16px rgba(245,166,35,0.6), 0 0 8px rgba(232,25,44,0.3);
+      transform: translateY(-5px);
       border-bottom-width: 5px;
+      color: #ffffff;
+      text-shadow: 0 0 10px rgba(245,166,35,0.9);
     }
     .mnd-card--disabled {
       opacity: 0.3;
@@ -4200,22 +4207,22 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       pointer-events: none;
     }
 
-    /* Bouton jouer */
+    /* ── Bouton jouer ── */
     .mnd-actions {
-      padding: 8px 12px 10px;
-      background: #0a0d04;
-      border-top: 2px solid #1e280a;
+      padding: 8px 12px 4px;
+      background: #100814;
+      border-top: 2px solid #2a0a12;
       position: relative;
       z-index: 10;
     }
     .mnd-play-btn {
       width: 100%;
       height: 46px;
-      background: #1a1f0a;
-      border: 2px solid #5a6a18;
-      border-bottom: 5px solid #0a0d04;
+      background: #1a0818;
+      border: 2px solid #5a2030;
+      border-bottom: 5px solid #0a0410;
       border-radius: 3px;
-      color: #8a9a2a;
+      color: #5a3040;
       font-size: 12px;
       font-weight: 700;
       font-family: 'Courier New', monospace;
@@ -4238,16 +4245,32 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       cursor: default;
     }
     .mnd-play-btn.mnd-play-btn--ready {
-      background: #252d0c;
-      border-color: #c8d840;
-      border-bottom-color: #4a5a10;
-      color: #c8d840;
-      box-shadow: 0 0 14px rgba(200,216,64,0.3);
-      animation: mnd-pulse-btn 1.4s ease-in-out infinite;
+      background: #2a0810;
+      border-color: #e8192c;
+      border-bottom-color: #7a0810;
+      color: #ffffff;
+      box-shadow: 0 0 18px rgba(232,25,44,0.5);
+      animation: mnd-pulse-btn 1.2s ease-in-out infinite;
+      text-shadow: 0 0 8px rgba(232,25,44,0.8);
     }
     @keyframes mnd-pulse-btn {
-      0%,100% { box-shadow: 0 0 8px rgba(200,216,64,0.2); }
-      50%      { box-shadow: 0 0 20px rgba(200,216,64,0.55); }
+      0%,100% { box-shadow: 0 0 8px rgba(232,25,44,0.3); }
+      50%      { box-shadow: 0 0 24px rgba(232,25,44,0.7), 0 0 8px rgba(245,166,35,0.3); }
+    }
+
+    /* ── Canvas FX sous le bouton ── */
+    .mnd-fx-zone {
+      padding: 0 12px 8px;
+      background: #100814;
+      position: relative;
+      z-index: 10;
+    }
+    #memMindFxCanvas {
+      width: 100%;
+      height: 56px;
+      display: block;
+      border-radius: 3px;
+      border: 1px solid #2a0a12;
     }
 
     /* Canvas background */
@@ -4258,18 +4281,18 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       height: 100%;
       pointer-events: none;
       z-index: 1;
-      opacity: 0.5;
+      opacity: 0.6;
     }
 
-    /* Toast */
+    /* ── Toast ── */
     .mnd-toast {
       position: absolute;
       left: 50%;
       transform: translateX(-50%);
       top: 50%;
-      background: #0a0d04;
-      border: 2px solid #c8d840;
-      color: #c8d840;
+      background: #0d0a1a;
+      border: 2px solid #e8192c;
+      color: #ffffff;
       font-size: 11px;
       font-weight: 700;
       font-family: 'Courier New', monospace;
@@ -4281,14 +4304,15 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       white-space: nowrap;
       transition: opacity 0.3s;
       text-align: center;
+      box-shadow: 0 0 16px rgba(232,25,44,0.5);
     }
 
-    /* Résultat final */
+    /* ── Résultat final ── */
     #memMindFinalResult {
       position: absolute;
       inset: 0;
       z-index: 300;
-      background: rgba(10,13,4,0.96);
+      background: rgba(13,10,26,0.96);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -4301,26 +4325,26 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     .mnd-final-title {
       font-size: 16px;
       font-weight: 700;
-      color: #c8d840;
+      color: #f5a623;
       font-family: 'Courier New', monospace;
       letter-spacing: 1px;
       text-align: center;
-      text-shadow: 0 0 10px rgba(200,216,64,0.5);
+      text-shadow: 0 0 12px rgba(245,166,35,0.6);
     }
     .mnd-final-sub {
       font-size: 10px;
-      color: #4a5a1a;
+      color: #5a2a38;
       font-family: 'Courier New', monospace;
       letter-spacing: 2px;
       text-align: center;
     }
 
-    /* Banner niveau */
+    /* ── Banner niveau ── */
     .mnd-level-banner {
       position: absolute;
       inset: 0;
       z-index: 250;
-      background: rgba(10,13,4,0.94);
+      background: rgba(13,10,26,0.95);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -4330,30 +4354,32 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     }
     .mnd-level-banner.hidden { display: none; }
     .mnd-level-num {
-      font-size: 64px;
+      font-size: 72px;
       font-weight: 700;
-      color: #c8d840;
+      color: #f5a623;
       font-family: 'Courier New', monospace;
-      text-shadow: 0 0 20px rgba(200,216,64,0.7);
+      text-shadow: 0 0 24px rgba(245,166,35,0.8), 0 0 8px rgba(232,25,44,0.5);
       line-height: 1;
       animation: mnd-pop 0.3s ease;
     }
     .mnd-level-txt {
       font-size: 10px;
-      color: #8a9a2a;
+      color: #e8192c;
       letter-spacing: 4px;
       text-transform: uppercase;
       font-family: 'Courier New', monospace;
+      text-shadow: 0 0 6px rgba(232,25,44,0.6);
     }
     .mnd-level-cd {
       font-size: 10px;
-      color: #4a5a1a;
+      color: #00d4ff;
       letter-spacing: 3px;
       font-family: 'Courier New', monospace;
       margin-top: 4px;
+      text-shadow: 0 0 6px rgba(0,212,255,0.5);
     }
 
-    /* Animations carte */
+    /* ── Animations carte ── */
     .mnd-card-fly {
       position: fixed;
       pointer-events: none;
@@ -4366,220 +4392,179 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       justify-content: center;
     }
 
-    /* Carte The Mind dans la sélection de mode */
+    /* ── Carte sélection de mode ── */
     #memScreenMode .mem-mode-card--mind .mem-mode-card-title {
-      color: #7a8a1a !important;
+      color: #e8192c !important;
     }
 
     /* ══════════════════════════════════════════════
-       THE MIND — THÈME CLAIR (pastel doux)
-       Palette : rose poudré + bleu céruléen + menthe
+       THE MIND — THÈME CLAIR
+       Fond crème chaud, rouge vif, orange, cyan foncé
        ZÉRO violet
        ══════════════════════════════════════════════ */
     body.light #memScreenMind {
-      background: #fdf8f5 !important;
-      color: #5a3e36 !important;
+      background: #fff5f0 !important;
+      color: #3a1a10 !important;
     }
-    /* Désactiver les scanlines en mode clair (illisible) */
-    body.light #memScreenMind::before {
-      display: none !important;
-    }
-    body.light #memMindBgCanvas {
-      opacity: 0.08;
-    }
-    body.light #memScreenMind::after {
-      opacity: 0.03;
-    }
-    /* Toutes les zones internes qui héritent du fond sombre */
-    body.light .mnd-pile-zone {
-      background: #fdf8f5 !important;
-    }
-    body.light .mnd-opp-zone {
-      background: #fdf8f5 !important;
-      border-bottom: 1px solid #f0e0d8 !important;
-    }
+    body.light #memScreenMind::before { display: none !important; }
+    body.light #memScreenMind::after { opacity: 0.04; }
+    body.light #memMindBgCanvas { opacity: 0.1; }
 
     /* HUD */
     body.light .mnd-hud {
-      background: #fce8e8;
-      border-bottom: 2px solid #f4bfbf;
+      background: #fce8e0;
+      border-bottom: 3px solid #cc1a1a;
+      box-shadow: 0 3px 10px rgba(204,26,26,0.15);
     }
     body.light .mnd-hud-val {
-      color: #c0392b;
+      color: #e8721a;
       text-shadow: none;
     }
-    body.light .mnd-hud-lbl {
-      color: #d98080;
-    }
+    body.light .mnd-hud-lbl { color: #b06050; }
 
     /* Cœurs */
     body.light .mnd-heart svg path,
     body.light .mnd-heart svg rect,
-    body.light .mnd-heart svg polygon { fill: #e57373; }
+    body.light .mnd-heart svg polygon { fill: #cc1a1a; }
 
-    /* Bande de phase */
+    /* Phase bar */
     body.light .mnd-phase-bar {
-      background: #fef5f0 !important;
-      border-bottom: 1px solid #f5d0c0;
-      color: #c05a3a;
+      background: #fff0e8 !important;
+      border-bottom: 1px solid #f5ccc0;
+      color: #0077aa;
+      text-shadow: none;
     }
     body.light .mnd-phase-bar .mnd-blink {
-      background: #e57373;
+      background: #cc1a1a;
+      box-shadow: none;
     }
 
     /* Zone adversaire */
+    body.light .mnd-opp-zone {
+      background: #fff5f0 !important;
+      border-bottom: 1px solid #f0ddd8;
+    }
     body.light .mnd-avatar {
-      border: 2px solid #f4bfbf;
-      background: #fce8e8;
+      border: 2px solid #cc1a1a;
+      background: #fce8e0;
+      box-shadow: none;
     }
     body.light .mnd-presence-dot.on {
-      background: #4caf88;
-      box-shadow: 0 0 4px rgba(76,175,136,0.5);
+      background: #0099aa;
+      box-shadow: 0 0 4px rgba(0,153,170,0.5);
     }
-    body.light .mnd-presence-dot.off {
-      background: #d0ccc8;
-    }
-    body.light .mnd-presence-dot {
-      border-color: #fdf8f5;
-    }
-    body.light .mnd-player-name {
-      color: #5a3e36;
-    }
-    body.light .mnd-player-sub {
-      color: #b08070;
-    }
+    body.light .mnd-presence-dot.off { background: #d0c0bc; }
+    body.light .mnd-presence-dot { border-color: #fff5f0; }
+    body.light .mnd-player-name { color: #3a1a10; }
+    body.light .mnd-player-sub  { color: #b07060; }
 
     /* Dos carte adversaire */
     body.light .mnd-card-back {
-      background: #fef0e8;
-      border: 2px solid #e8b8a0;
+      background: #fce8e0;
+      border: 2px solid #cc1a1a;
+      box-shadow: none;
     }
-    body.light .mnd-card-back::before {
-      border: 1px solid #f5d0c0;
-    }
+    body.light .mnd-card-back::before { border: 1px solid #f5ccc0; }
     body.light .mnd-card-back-dot {
-      background: #e8b8a0;
+      background: #cc1a1a;
+      box-shadow: none;
     }
 
     /* Pile centrale */
-    body.light .mnd-pile-label {
-      color: #b08070;
-    }
+    body.light .mnd-pile-zone { background: #fff5f0 !important; }
+    body.light .mnd-pile-label { color: #b07060; }
     body.light .mnd-pile-card {
-      background: #fffaf7;
-      border: 2px solid #e8a898;
-      box-shadow: 0 4px 16px rgba(200,100,80,0.12), inset 0 0 6px rgba(200,100,80,0.04);
+      background: #ffffff;
+      border: 3px solid #cc1a1a;
+      box-shadow: 0 4px 16px rgba(204,26,26,0.15), inset 0 0 6px rgba(204,26,26,0.04);
     }
-    body.light .mnd-pile-card::before {
-      border: 1px solid #f5d0c0;
-    }
+    body.light .mnd-pile-card::before { border: 1px solid #f5ccc0; }
     body.light .mnd-pile-num {
-      color: #c0392b;
+      color: #cc1a1a;
       text-shadow: none;
     }
-    body.light .mnd-pile-num.empty {
-      color: #e8c8c0;
-      text-shadow: none;
-    }
-    body.light .mnd-pile-count {
-      color: #b08070;
-    }
+    body.light .mnd-pile-num.empty { color: #f0ccc0; text-shadow: none; }
+    body.light .mnd-pile-count { color: #b07060; }
 
     /* Mes cartes */
     body.light .mnd-my-zone {
-      border-top: 1px solid #f0e0d8;
-      background: #fef5f0 !important;
+      border-top: 1px solid #f0ddd8;
+      background: #fff0e8 !important;
     }
     body.light .mnd-card {
       background: #ffffff;
-      border: 2px solid #e8a898;
-      border-bottom: 5px solid #f5d0c0;
-      color: #c0392b;
+      border: 2px solid #e8721a;
+      border-bottom: 5px solid #f5ccc0;
+      color: #cc1a1a;
       text-shadow: none;
     }
     body.light .mnd-card.mnd-card--selected {
-      border-color: #c0392b;
-      border-bottom-color: #e8a898;
-      background: #fce8e8;
-      box-shadow: 0 4px 14px rgba(192,57,43,0.18);
-      transform: translateY(-4px);
+      border-color: #cc1a1a;
+      border-bottom-color: #e8721a;
+      background: #fce8e0;
+      box-shadow: 0 4px 14px rgba(204,26,26,0.22);
+      transform: translateY(-5px);
     }
-    body.light .mnd-card--disabled {
-      opacity: 0.45;
-    }
+    body.light .mnd-card--disabled { opacity: 0.4; }
 
     /* Bouton jouer */
     body.light .mnd-actions {
-      background: #fef5f0 !important;
-      border-top: 2px solid #f0e0d8;
+      background: #fff0e8 !important;
+      border-top: 2px solid #f0ddd8;
     }
     body.light .mnd-play-btn {
-      background: #fef5f0;
+      background: #fff5f0;
       border: 2px solid #e8a898;
-      border-bottom: 5px solid #f5d0c0;
+      border-bottom: 5px solid #f5ccc0;
       color: #b06050;
     }
     body.light .mnd-play-btn.mnd-play-btn--ready {
-      background: #fce8e8;
-      border-color: #c0392b;
+      background: #fce8e0;
+      border-color: #cc1a1a;
       border-bottom-color: #e8a898;
-      color: #c0392b;
-      box-shadow: 0 4px 14px rgba(192,57,43,0.18);
-      animation: mnd-pulse-btn-light 1.4s ease-in-out infinite;
+      color: #cc1a1a;
+      box-shadow: 0 4px 16px rgba(204,26,26,0.22);
+      animation: mnd-pulse-btn-light 1.2s ease-in-out infinite;
+      text-shadow: none;
     }
     @keyframes mnd-pulse-btn-light {
-      0%,100% { box-shadow: 0 2px 8px rgba(192,57,43,0.12); }
-      50%      { box-shadow: 0 4px 20px rgba(192,57,43,0.28); }
+      0%,100% { box-shadow: 0 2px 8px rgba(204,26,26,0.12); }
+      50%      { box-shadow: 0 4px 20px rgba(204,26,26,0.3); }
     }
+
+    /* Canvas FX light */
+    body.light .mnd-fx-zone { background: #fff0e8 !important; }
+    body.light #memMindFxCanvas { border-color: #f0ddd8; opacity: 0.7; }
 
     /* Toast */
     body.light .mnd-toast {
-      background: #fffaf7;
-      border: 2px solid #c0392b;
-      color: #c0392b;
+      background: #ffffff;
+      border: 2px solid #cc1a1a;
+      color: #cc1a1a;
+      box-shadow: 0 4px 14px rgba(204,26,26,0.18);
     }
 
     /* Résultat final */
-    body.light #memMindFinalResult {
-      background: rgba(253,248,245,0.97);
-    }
-    body.light .mnd-final-title {
-      color: #c0392b;
-      text-shadow: none;
-    }
-    body.light .mnd-final-sub {
-      color: #b08070;
-    }
+    body.light #memMindFinalResult { background: rgba(255,245,240,0.97); }
+    body.light .mnd-final-title { color: #cc1a1a; text-shadow: none; }
+    body.light .mnd-final-sub   { color: #b07060; }
 
     /* Banner niveau */
-    body.light .mnd-level-banner {
-      background: rgba(253,248,245,0.96);
-    }
-    body.light .mnd-level-num {
-      color: #c0392b;
-      text-shadow: none;
-    }
-    body.light .mnd-level-txt {
-      color: #d98080;
-    }
-    body.light .mnd-level-cd {
-      color: #b08070;
-    }
+    body.light .mnd-level-banner { background: rgba(255,245,240,0.97); }
+    body.light .mnd-level-num { color: #cc1a1a; text-shadow: none; }
+    body.light .mnd-level-txt { color: #e8721a; }
+    body.light .mnd-level-cd  { color: #0077aa; }
 
-    /* Carte sélection de mode */
+    /* Sélection mode */
     body.light #memScreenMode .mem-mode-card--mind {
-      background: #fef5f0 !important;
-      border-color: #e8b8a0 !important;
+      background: #fff0e8 !important;
+      border-color: #e8a898 !important;
     }
-    body.light #memScreenMode .mem-mode-card--mind .mem-mode-card-title {
-      color: #c0392b !important;
-    }
-    body.light #memScreenMode .mem-mode-card--mind .mem-mode-card-desc {
-      color: #b08070 !important;
-    }
+    body.light #memScreenMode .mem-mode-card--mind .mem-mode-card-title { color: #cc1a1a !important; }
+    body.light #memScreenMode .mem-mode-card--mind .mem-mode-card-desc  { color: #b07060 !important; }
     body.light #memScreenMode .mem-mode-card--mind.mem-mode-card--selected,
     body.light #memScreenMode .mem-mode-card--mind.mem-mode-card--matched {
-      border-color: #c0392b !important;
+      border-color: #cc1a1a !important;
     }
 
     /* Croix signal — thème clair */
@@ -4649,11 +4634,14 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
         <div class="mnd-my-cards" id="memMindMyCards"></div>
       </div>
 
-      <!-- Bouton jouer -->
+      <!-- Bouton jouer + canvas FX flammes -->
       <div class="mnd-actions">
         <button class="mnd-play-btn" id="memMindPlayBtn" disabled>
           <span>&#9654;</span><span>JOUER LA CARTE</span>
         </button>
+      </div>
+      <div class="mnd-fx-zone">
+        <canvas id="memMindFxCanvas"></canvas>
       </div>
 
       <!-- Banner niveau -->
@@ -4668,7 +4656,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
         <div class="mnd-final-emoji" id="memMindFinalEmoji">&#129504;</div>
         <div class="mnd-final-title" id="memMindFinalTitle"></div>
         <div class="mnd-final-sub"   id="memMindFinalSub"></div>
-        <button class="mem-btn-ghost" id="memMindDoneBtn" style="margin-top:16px;color:#8a9a2a;border-color:#3a4a10;">Terminer</button>
+        <button class="mem-btn-ghost" id="memMindDoneBtn" style="margin-top:16px;color:#f5a623;border-color:#5a2030;">Terminer</button>
       </div>
     </div>
 
