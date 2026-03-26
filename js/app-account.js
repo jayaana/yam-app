@@ -3769,6 +3769,29 @@ window.yamToggleAccountModal = function() {
   patchClose();
 })();
 
+// MutationObserver sur les subviews — maintient subview-active en sync avec la réalité
+// ← manquait dans la migration du BLOC 9
+(function() {
+  var SUBVIEW_IDS = ['gamesView','quizView','memoryView','penduView','puzzleView','snakeView','skyjoView','ochoView','prankMenu'];
+  function updateSubviewState() {
+    var anyActive = SUBVIEW_IDS.some(function(id) {
+      var el = document.getElementById(id);
+      return el && (el.classList.contains('active') || el.classList.contains('show') || el.style.display === 'flex' || el.style.display === 'block');
+    });
+    document.body.classList.toggle('subview-active', anyActive);
+  }
+  function watchSubviews() {
+    var obs = new MutationObserver(updateSubviewState);
+    SUBVIEW_IDS.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) obs.observe(el, { attributes: true, attributeFilter: ['class', 'style'] });
+    });
+    updateSubviewState();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watchSubviews);
+  else setTimeout(watchSubviews, 300);
+})();
+
 // Patch openPrankMenu : activer subview-active seulement si le partenaire existe
 // ← migré depuis app-inline.js BLOC 9
 (function() {
