@@ -4133,37 +4133,6 @@ body.light #navMusique.music-sync .nav-note-boy  { filter: drop-shadow(0 0 4px r
   color: #f5c518;
 }
 
-/* ══════════════════════════════════════════
-   BOUTON JEUX NAV — partenaire en lobby
-   Classe .partner-in-lobby sur #navJeux
-   Ajoutée par app-jeux-dashboard.js (ocho/skyjo/memory)
-   ET app-inline.js BLOC 14 (cowatch)
-   Retirée quand tab === 'jeux' — même logique que .music-playing
-══════════════════════════════════════════ */
-@keyframes navJeuxLobbyBounce {
-  0%   { transform: translateY(0)    scale(1);    }
-  20%  { transform: translateY(-3px) scale(1.14); }
-  40%  { transform: translateY(1px)  scale(1.07); }
-  60%  { transform: translateY(-2px) scale(1.11); }
-  80%  { transform: translateY(1px)  scale(1.06); }
-  100% { transform: translateY(0)    scale(1);    }
-}
-@keyframes navJeuxLobbyGlow {
-  0%, 100% { filter: drop-shadow(0 0 3px #f5c518); }
-  50%      { filter: drop-shadow(0 0 8px #f5c518) drop-shadow(0 0 14px rgba(245,197,24,0.5)); }
-}
-#navJeux.partner-in-lobby svg {
-  animation: navJeuxLobbyBounce 0.9s ease-in-out infinite,
-             navJeuxLobbyGlow   1.6s ease-in-out infinite;
-  color: #f5c518;
-}
-#navJeux.partner-in-lobby {
-  color: #f5c518;
-}
-body.light #navJeux.partner-in-lobby svg {
-  filter: drop-shadow(0 0 5px rgba(200,150,0,0.8));
-}
-
 /* ── Badge non-lus sur l'icône Messages ── */
 @keyframes navMsgDotPulse {
   0%,100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(255,68,68,0.5); }
@@ -4406,12 +4375,14 @@ body.dm-chat-active #hiddenPage {
 .dm-tp-name { font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: 0.2px; }
 .dm-tp-chevron { color: var(--muted); }
 .dm-topbar-theme {
-  width: 36px; height: 36px; border-radius: 50%; border: none;
-  background: transparent; color: var(--muted); cursor: pointer;
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--s2); color: var(--muted); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
 }
-.dm-topbar-theme:hover { background: var(--s2); color: var(--text); }
+.dm-topbar-theme:hover { background: var(--s1); color: var(--text); }
 
 /* Avatars */
 .dm-avatar {
