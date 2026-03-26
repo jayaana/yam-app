@@ -1302,6 +1302,26 @@ document.addEventListener('DOMContentLoaded', function(){
 
   /* Exposé pour debug console */
   window._cwLiveCheck = _checkLive;
+
+  /* ── Sync navJeux.partner-in-lobby ↔ tab courant (cowatch uniquement)
+     Quand l'utilisateur entre sur l'onglet Jeux → retire le glow cowatch.
+     Quand il le quitte → relance _checkLive pour le remettre si session encore active.
+     Patch chaîné sur yamSwitchTab (le dashboard fait la même chose pour les lobbies jeux). ── */
+  (function(){
+    var _origSwitch = window.yamSwitchTab;
+    window.yamSwitchTab = function(tab){
+      if (_origSwitch) _origSwitch.apply(this, arguments);
+      var navJeux = document.getElementById('navJeux');
+      if (!navJeux) return;
+      if (tab === 'jeux'){
+        /* On entre sur l'onglet Jeux → retirer le glow cowatch */
+        navJeux.classList.remove('partner-in-lobby');
+      } else {
+        /* On quitte l'onglet Jeux → re-vérifier si session cowatch encore active */
+        _checkLive();
+      }
+    };
+  }());
 })();
 
 
