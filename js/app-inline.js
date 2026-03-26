@@ -1417,7 +1417,6 @@ document.addEventListener('DOMContentLoaded', function(){
   _on('themeToggleDm1',   'click', function(){ window.applyThemeToggle && window.applyThemeToggle(); });
   _on('themeToggleDm2',   'click', function(){ window.applyThemeToggle && window.applyThemeToggle(); });
   _on('themeToggleGames', 'click', function(){ window.applyThemeToggle && window.applyThemeToggle(); });
-  _on('themeTogglePranks','click', function(){ window.applyThemeToggle && window.applyThemeToggle(); });
 
   // ── Login V2 ──
   _on('v2BtnLogin',      'click', function(){ window.v2DoLogin && window.v2DoLogin(); });
