@@ -4622,65 +4622,147 @@ function _mindStartFxCanvas() {
   var canvas = _memEl('memMindFxCanvas'); if (!canvas) return;
   var ctx = canvas.getContext('2d');
   var W, H;
-  var COLS = [
-    '#e8192c', '#f5a623', '#ffe0b2', '#ffffff',
-    '#e8192c', '#f5a623', '#e84a1a', '#00d4ff',
-  ];
+
   function resize() {
     W = canvas.width  = canvas.offsetWidth  || canvas.clientWidth  || 280;
     H = canvas.height = canvas.offsetHeight || canvas.clientHeight || 56;
   }
   resize();
 
-  // Colonnes de flammes indépendantes
-  var NUM_COLS = Math.floor(W / 4);
-  var flames = [];
-  for (var i = 0; i < NUM_COLS; i++) {
-    flames.push({
-      x:      i * 4,
-      height: 4 + Math.random() * (H - 8),
-      speed:  0.4 + Math.random() * 0.8,
-      phase:  Math.random() * Math.PI * 2,
-      ci:     Math.floor(Math.random() * 3), // rouge/orange/crème
-    });
+  // ── Cartes volantes pixel art ──
+  // Chaque carte est un petit rectangle pixelisé (recto chiffre ou dos)
+  // qui part du bas, monte en diagonale en tournant, puis fade et reboucle.
+  var CARD_W = 14;  // px
+  var CARD_H = 20;  // px
+  var NUM_CARDS = 9;
+
+  // Couleurs thème dark / light
+  function _col() {
+    var l = document.body.classList.contains('light');
+    return {
+      face:    l ? '#ffffff'  : '#1a0818',
+      border:  l ? '#cc1a1a'  : '#f5a623',
+      num:     l ? '#cc1a1a'  : '#ffe0b2',
+      back:    l ? '#fce8e0'  : '#1a0808',
+      backBdr: l ? '#e8721a'  : '#e8192c',
+      backDot: l ? '#e8721a'  : '#e8192c',
+      cyan:    l ? '#0077aa'  : '#00d4ff',
+    };
+  }
+
+  function _spawn() {
+    var isFace = Math.random() < 0.55;  // 55% recto (chiffre visible)
+    return {
+      x:      Math.random() * (W - CARD_W),
+      y:      H + CARD_H + Math.random() * 20,  // commence sous le canvas
+      vx:     (Math.random() - 0.5) * 0.6,       // dérive latérale légère
+      vy:     -(0.5 + Math.random() * 0.8),       // monte
+      rot:    Math.random() * Math.PI * 2,
+      vrot:   (Math.random() - 0.5) * 0.04,       // tourne lentement
+      alpha:  0,
+      life:   0,                                   // 0→1→0
+      speed:  0.004 + Math.random() * 0.006,       // vitesse du cycle de vie
+      val:    Math.floor(Math.random() * 100) + 1, // chiffre 1-100
+      face:   isFace,
+      scale:  0.7 + Math.random() * 0.6,
+      delay:  Math.random() * 180,                 // frames de délai avant spawn
+    };
+  }
+
+  var cards = [];
+  for (var i = 0; i < NUM_CARDS; i++) {
+    var card = _spawn();
+    card.delay = i * 20;  // décalage initial pour que ça ne parte pas tous ensemble
+    cards.push(card);
+  }
+
+  function _drawCard(card, col) {
+    var cw = CARD_W * card.scale;
+    var ch = CARD_H * card.scale;
+    ctx.save();
+    ctx.translate(Math.round(card.x + cw / 2), Math.round(card.y + ch / 2));
+    ctx.rotate(card.rot);
+    ctx.globalAlpha = card.alpha;
+
+    if (card.face) {
+      // ── Recto : fond clair + chiffre ──
+      // Fond
+      ctx.fillStyle = col.face;
+      ctx.fillRect(-cw/2, -ch/2, cw, ch);
+      // Bordure pixel (2px)
+      ctx.strokeStyle = col.border;
+      ctx.lineWidth = Math.max(1, Math.round(card.scale * 1.5));
+      ctx.strokeRect(-cw/2 + 1, -ch/2 + 1, cw - 2, ch - 2);
+      // Chiffre centré
+      ctx.fillStyle = col.num;
+      ctx.font = 'bold ' + Math.round(cw * 0.55) + 'px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(card.val), 0, 0);
+    } else {
+      // ── Dos : fond sombre + bordure + petit carré central ──
+      ctx.fillStyle = col.back;
+      ctx.fillRect(-cw/2, -ch/2, cw, ch);
+      ctx.strokeStyle = col.backBdr;
+      ctx.lineWidth = Math.max(1, Math.round(card.scale * 1.5));
+      ctx.strokeRect(-cw/2 + 1, -ch/2 + 1, cw - 2, ch - 2);
+      // Carré intérieur pixel art
+      var inset = Math.round(cw * 0.22);
+      ctx.strokeStyle = col.backBdr;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(-cw/2 + inset, -ch/2 + inset, cw - inset*2, ch - inset*2);
+      // Point central
+      var dp = Math.round(card.scale * 2);
+      ctx.fillStyle = col.backDot;
+      ctx.fillRect(-dp/2, -dp/2, dp, dp);
+    }
+
+    ctx.restore();
   }
 
   function draw() {
     if (!_memEl('memMindFxCanvas')) { return; }
-    var light = document.body.classList.contains('light');
+    var col = _col();
     ctx.clearRect(0, 0, W, H);
 
-    for (var i = 0; i < flames.length; i++) {
-      var fl = flames[i];
-      fl.phase += fl.speed * 0.08;
-      fl.height = Math.max(4, Math.min(H - 2,
-        fl.height + (Math.sin(fl.phase) * 1.5)
-      ));
+    for (var i = 0; i < cards.length; i++) {
+      var card = cards[i];
 
-      // Gradient du bas vers le haut : base rouge → milieu orange → pointe transparente
-      var grad = ctx.createLinearGradient(fl.x, H, fl.x, H - fl.height);
-      if (light) {
-        grad.addColorStop(0,   'rgba(204,26,26,0.85)');
-        grad.addColorStop(0.4, 'rgba(232,114,26,0.7)');
-        grad.addColorStop(0.75,'rgba(255,200,100,0.4)');
-        grad.addColorStop(1,   'rgba(255,200,100,0)');
+      // Délai avant activation
+      if (card.delay > 0) { card.delay--; continue; }
+
+      // Cycle de vie 0→1→0
+      card.life += card.speed;
+
+      if (card.life < 0.2) {
+        // Fade in
+        card.alpha = card.life / 0.2;
+      } else if (card.life < 0.75) {
+        // Vie pleine
+        card.alpha = 1;
+      } else if (card.life < 1) {
+        // Fade out
+        card.alpha = (1 - card.life) / 0.25;
       } else {
-        grad.addColorStop(0,   'rgba(232,25,44,0.9)');
-        grad.addColorStop(0.4, 'rgba(245,166,35,0.75)');
-        grad.addColorStop(0.75,'rgba(255,224,178,0.35)');
-        grad.addColorStop(1,   'rgba(255,224,178,0)');
+        // Reboucler
+        cards[i] = _spawn();
+        continue;
       }
-      ctx.fillStyle = grad;
-      // Pixel art : rectangles de 3-4px de large
-      var pw = 3;
-      ctx.fillRect(fl.x, H - fl.height, pw, fl.height);
 
-      // Pixel scintillant au sommet
-      if (Math.random() < 0.18) {
-        ctx.fillStyle = light ? 'rgba(255,255,255,0.7)' : 'rgba(0,212,255,0.6)';
-        ctx.fillRect(fl.x, H - fl.height - 2, 2, 2);
-      }
+      // Mouvement
+      card.x   += card.vx;
+      card.y   += card.vy;
+      card.rot += card.vrot;
+
+      // Légère accélération vers le haut (comme si soulevée par le vent)
+      card.vy -= 0.004;
+
+      // Clamp alpha
+      card.alpha = Math.max(0, Math.min(1, card.alpha));
+
+      _drawCard(card, col);
     }
+
     _mindFxAnim = requestAnimationFrame(draw);
   }
 
