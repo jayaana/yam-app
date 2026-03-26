@@ -246,6 +246,7 @@ function _memCleanup() {
   _mindSaved    = false;
   _mindSelected = null;
   if (_mindBgAnim) { cancelAnimationFrame(_mindBgAnim); _mindBgAnim = null; }
+  if (typeof _mindStopFxCanvas === 'function') _mindStopFxCanvas();
   if (_mindHandBlinkInt) { clearInterval(_mindHandBlinkInt); _mindHandBlinkInt = null; }
   _mindMyHandActive = false; _mindOppHandActive = false;
   var mf = _memEl('memMindFinalResult'); if (mf) mf.style.display = 'none';
@@ -3810,6 +3811,7 @@ function _mindStart(gameRow) {
   if (_mindHandBlinkInt) { clearInterval(_mindHandBlinkInt); _mindHandBlinkInt = null; }
   _memShowScreen('memScreenMind');
   _mindStartBgCanvas();
+  setTimeout(_mindStartFxCanvas, 50);
   // Injecter les mains pixel art après le rendu DOM (pile déjà présente dans le HTML)
   setTimeout(function() { _mindInjectHands(); }, 0);
 
@@ -4498,81 +4500,197 @@ function _mindApplyHandState(state) {
 // ── Couleurs thème courant pour les animations Mind ──
 function _mindTheme() {
   var light = document.body.classList.contains('light');
-  return light ? {
-    particle:    '#e57373',
-    particleAlt: '#f4a261',
-    flyBg:       '#ffffff',
-    flyBorder:   '#e8a898',
-    flyColor:    '#c0392b',
-    flyBgOpp:    '#fef5f0',
-    flyBorderOpp:'#f4bfbf',
-    flyColorOpp: '#d98080',
-    flyBgReveal: '#fce8e8',
-    flyBorderReveal:'#c0392b',
-    flyColorReveal: '#c0392b',
-    flyGlow:     'rgba(192,57,43,0.25)',
-    flyGlowReveal:'rgba(192,57,43,0.22)',
-    errorParticle:'#f43f5e',
-    toastBg:     '#fffaf7',
-    starColor:   'rgba(224,120,96,',
-    victory:     ['#e57373','#f4a261','#e8c97a','#81c784','#64b5f6'],
-    defeat1:     '#f43f5e',
-    defeat2:     '#e11d48'
-  } : {
-    particle:    '#c8d840',
-    particleAlt: '#8a9a2a',
-    flyBg:       '#1a1f0a',
-    flyBorder:   '#5a6a18',
-    flyColor:    '#c8d840',
-    flyBgOpp:    '#1a1f0a',
-    flyBorderOpp:'#3a4a10',
-    flyColorOpp: '#4a5a1a',
-    flyBgReveal: '#252d0c',
-    flyBorderReveal:'#c8d840',
-    flyColorReveal: '#c8d840',
-    flyGlow:     'rgba(200,216,64,0.6)',
-    flyGlowReveal:'rgba(200,216,64,0.5)',
-    errorParticle:'#ff2255',
-    toastBg:     '#3a0015',
-    starColor:   'rgba(200,216,64,',
-    victory:     ['#c8d840','#8a9a2a','#6a7a20','#e8f860','#a0b030'],
-    defeat1:     '#ff2255',
-    defeat2:     '#aa0033'
+  if (light) return {
+    particle:       '#cc1a1a',
+    particleAlt:    '#e8721a',
+    flyBg:          '#ffffff',
+    flyBorder:      '#cc1a1a',
+    flyColor:       '#cc1a1a',
+    flyBgOpp:       '#fce8e0',
+    flyBorderOpp:   '#e8a898',
+    flyColorOpp:    '#b07060',
+    flyBgReveal:    '#fce8e0',
+    flyBorderReveal:'#cc1a1a',
+    flyColorReveal: '#cc1a1a',
+    flyGlow:        'rgba(204,26,26,0.5)',
+    flyGlowReveal:  'rgba(204,26,26,0.5)',
+    starColor:      'rgba(232,114,26,',
+  };
+  return {
+    particle:       '#f5a623',
+    particleAlt:    '#e8192c',
+    flyBg:          '#1a1020',
+    flyBorder:      '#f5a623',
+    flyColor:       '#ffe0b2',
+    flyBgOpp:       '#1a0808',
+    flyBorderOpp:   '#e8192c',
+    flyColorOpp:    '#5a2a38',
+    flyBgReveal:    '#2a0810',
+    flyBorderReveal:'#e8192c',
+    flyColorReveal: '#ffffff',
+    flyGlow:        'rgba(245,166,35,0.7)',
+    flyGlowReveal:  'rgba(232,25,44,0.7)',
+    starColor:      'rgba(232,25,44,',
   };
 }
 
 function _mindStartBgCanvas() {
   var canvas = _memEl('memMindBgCanvas'); if (!canvas) return;
   var ctx = canvas.getContext('2d');
-  var W, H, stars = [], particles = [];
+  var W, H, sparks = [], particles = [];
+  // Couleurs des étincelles : rouge, orange, cyan — style rétro arcade
+  var SPARK_COLORS = [
+    'rgba(232,25,44,',   // rouge
+    'rgba(245,166,35,',  // orange
+    'rgba(0,212,255,',   // cyan
+    'rgba(255,224,178,', // crème
+  ];
   function resize() {
     var sc = _memEl('memScreenMind');
     W = canvas.width  = sc ? sc.offsetWidth  : window.innerWidth;
     H = canvas.height = sc ? sc.offsetHeight : window.innerHeight;
-    stars = [];
-    for (var i=0;i<60;i++) stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()<0.7?1:2,blink:Math.random()*Math.PI*2,speed:0.02+Math.random()*0.03});
+    sparks = [];
+    for (var i = 0; i < 45; i++) {
+      sparks.push({
+        x:     Math.random() * W,
+        y:     Math.random() * H,
+        r:     Math.random() < 0.6 ? 1 : 2,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.015 + Math.random() * 0.025,
+        ci:    Math.floor(Math.random() * SPARK_COLORS.length),
+        // dérive lente
+        vx:   (Math.random() - 0.5) * 0.08,
+        vy:   -0.05 - Math.random() * 0.1,
+      });
+    }
   }
   resize();
-  var lastR=0;
-  function onResize(){var n=Date.now();if(n-lastR>300){lastR=n;resize();}}
-  window.addEventListener('resize',onResize);
-  function addParticle(x,y,color){
-    for(var i=0;i<6;i++){var a=(Math.PI*2/6)*i+Math.random()*0.5;particles.push({x:x,y:y,vx:Math.cos(a)*(1+Math.random()*2),vy:Math.sin(a)*(1+Math.random()*2),life:1,decay:0.025+Math.random()*0.02,r:2+Math.random()*3,color:color||_mindTheme().particle});}
+  var lastR = 0;
+  function onResize() { var n = Date.now(); if (n - lastR > 300) { lastR = n; resize(); } }
+  window.addEventListener('resize', onResize);
+
+  function addParticle(x, y, color) {
+    for (var i = 0; i < 8; i++) {
+      var a = (Math.PI * 2 / 8) * i + Math.random() * 0.4;
+      particles.push({
+        x: x, y: y,
+        vx: Math.cos(a) * (1.5 + Math.random() * 2.5),
+        vy: Math.sin(a) * (1.5 + Math.random() * 2.5),
+        life: 1, decay: 0.022 + Math.random() * 0.02,
+        r: 2 + Math.random() * 3,
+        color: color || _mindTheme().particle
+      });
+    }
   }
   window._mindAddParticle = addParticle;
+
   function draw() {
-    if (!_memEl('memMindBgCanvas')) { window.removeEventListener('resize',onResize); return; }
-    ctx.clearRect(0,0,W,H);
-    var sc=_mindTheme().starColor;
-    for(var i=0;i<stars.length;i++){var s=stars[i];s.blink+=s.speed;ctx.fillStyle=sc+(0.3+0.5*Math.abs(Math.sin(s.blink)))+')';ctx.fillRect(Math.round(s.x),Math.round(s.y),s.r,s.r);}
-    for(var j=particles.length-1;j>=0;j--){var p=particles[j];p.x+=p.vx;p.y+=p.vy;p.vy+=0.06;p.life-=p.decay;if(p.life<=0){particles.splice(j,1);continue;}ctx.globalAlpha=p.life;ctx.fillStyle=p.color;ctx.fillRect(Math.round(p.x-p.r/2),Math.round(p.y-p.r/2),Math.round(p.r),Math.round(p.r));}
-    ctx.globalAlpha=1;
-    _mindBgAnim=requestAnimationFrame(draw);
+    if (!_memEl('memMindBgCanvas')) { window.removeEventListener('resize', onResize); return; }
+    ctx.clearRect(0, 0, W, H);
+    // Étincelles flottantes
+    for (var i = 0; i < sparks.length; i++) {
+      var s = sparks[i];
+      s.phase += s.speed;
+      s.x += s.vx; s.y += s.vy;
+      // Reboucler
+      if (s.x < 0) s.x = W; if (s.x > W) s.x = 0;
+      if (s.y < 0) s.y = H; if (s.y > H) s.y = 0;
+      var alpha = 0.2 + 0.6 * Math.abs(Math.sin(s.phase));
+      ctx.fillStyle = SPARK_COLORS[s.ci] + alpha + ')';
+      ctx.fillRect(Math.round(s.x), Math.round(s.y), s.r, s.r);
+    }
+    // Particules explosion
+    for (var j = particles.length - 1; j >= 0; j--) {
+      var p = particles[j];
+      p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.life -= p.decay;
+      if (p.life <= 0) { particles.splice(j, 1); continue; }
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle = p.color;
+      ctx.fillRect(Math.round(p.x - p.r / 2), Math.round(p.y - p.r / 2), Math.round(p.r), Math.round(p.r));
+    }
+    ctx.globalAlpha = 1;
+    _mindBgAnim = requestAnimationFrame(draw);
   }
-  if(_mindBgAnim) cancelAnimationFrame(_mindBgAnim);
+  if (_mindBgAnim) cancelAnimationFrame(_mindBgAnim);
   draw();
 }
 
+
+// ── The Mind — Canvas flammes pixel art sous le bouton ──
+var _mindFxAnim = null;
+function _mindStartFxCanvas() {
+  var canvas = _memEl('memMindFxCanvas'); if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var W, H;
+  var COLS = [
+    '#e8192c', '#f5a623', '#ffe0b2', '#ffffff',
+    '#e8192c', '#f5a623', '#e84a1a', '#00d4ff',
+  ];
+  function resize() {
+    W = canvas.width  = canvas.offsetWidth  || canvas.clientWidth  || 280;
+    H = canvas.height = canvas.offsetHeight || canvas.clientHeight || 56;
+  }
+  resize();
+
+  // Colonnes de flammes indépendantes
+  var NUM_COLS = Math.floor(W / 4);
+  var flames = [];
+  for (var i = 0; i < NUM_COLS; i++) {
+    flames.push({
+      x:      i * 4,
+      height: 4 + Math.random() * (H - 8),
+      speed:  0.4 + Math.random() * 0.8,
+      phase:  Math.random() * Math.PI * 2,
+      ci:     Math.floor(Math.random() * 3), // rouge/orange/crème
+    });
+  }
+
+  function draw() {
+    if (!_memEl('memMindFxCanvas')) { return; }
+    var light = document.body.classList.contains('light');
+    ctx.clearRect(0, 0, W, H);
+
+    for (var i = 0; i < flames.length; i++) {
+      var fl = flames[i];
+      fl.phase += fl.speed * 0.08;
+      fl.height = Math.max(4, Math.min(H - 2,
+        fl.height + (Math.sin(fl.phase) * 1.5)
+      ));
+
+      // Gradient du bas vers le haut : base rouge → milieu orange → pointe transparente
+      var grad = ctx.createLinearGradient(fl.x, H, fl.x, H - fl.height);
+      if (light) {
+        grad.addColorStop(0,   'rgba(204,26,26,0.85)');
+        grad.addColorStop(0.4, 'rgba(232,114,26,0.7)');
+        grad.addColorStop(0.75,'rgba(255,200,100,0.4)');
+        grad.addColorStop(1,   'rgba(255,200,100,0)');
+      } else {
+        grad.addColorStop(0,   'rgba(232,25,44,0.9)');
+        grad.addColorStop(0.4, 'rgba(245,166,35,0.75)');
+        grad.addColorStop(0.75,'rgba(255,224,178,0.35)');
+        grad.addColorStop(1,   'rgba(255,224,178,0)');
+      }
+      ctx.fillStyle = grad;
+      // Pixel art : rectangles de 3-4px de large
+      var pw = 3;
+      ctx.fillRect(fl.x, H - fl.height, pw, fl.height);
+
+      // Pixel scintillant au sommet
+      if (Math.random() < 0.18) {
+        ctx.fillStyle = light ? 'rgba(255,255,255,0.7)' : 'rgba(0,212,255,0.6)';
+        ctx.fillRect(fl.x, H - fl.height - 2, 2, 2);
+      }
+    }
+    _mindFxAnim = requestAnimationFrame(draw);
+  }
+
+  if (_mindFxAnim) cancelAnimationFrame(_mindFxAnim);
+  draw();
+}
+
+function _mindStopFxCanvas() {
+  if (_mindFxAnim) { cancelAnimationFrame(_mindFxAnim); _mindFxAnim = null; }
+}
 function _mindAnimSelfPlay(idx, val) {
   var th=_mindTheme();
   var myEl=_memEl('memMindMyCards'); if(!myEl) return;
