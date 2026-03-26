@@ -146,6 +146,63 @@ if ('serviceWorker' in navigator) {
 
 
 // ══════════════════════════════════════════════════════════════════
+// BLOC 6b — Reset password + affichage splash si pas de session
+// ← logique extraite du BLOC 6 original, reste ici car doit
+//   s'exécuter EN DERNIER (après que toutes les fonctions login
+//   soient définies dans app-account.js)
+// ══════════════════════════════════════════════════════════════════
+(function(){
+  function checkV2Session(){
+    try{
+      var s = JSON.parse(localStorage.getItem('yam_session_v3')||'null');
+      if(s && s.access_token && s.user) return true;
+    }catch(e){}
+    return false;
+  }
+
+  var _hash   = window.location.hash   || '';
+  var _search = window.location.search || '';
+  var _isReset = _hash.includes('type=recovery') || _search.includes('type=recovery') || _search.includes('token_hash');
+
+  if(_isReset){
+    var _params = {};
+    _search.replace(/^\?/,'').split('&').forEach(function(p){
+      var kv = p.split('='); if(kv[0]) _params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]||'');
+    });
+    _hash.replace(/^#/,'').split('&').forEach(function(p){
+      var kv = p.split('='); if(kv[0]) _params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]||'');
+    });
+    if(_params['token_hash'] && !_params['access_token']){
+      window._yamResetTokenHash = _params['token_hash'];
+      window._yamResetToken = null;
+    } else {
+      window._yamResetToken = _params['access_token'] || null;
+    }
+    history.replaceState(null, '', window.location.pathname);
+    window.addEventListener('load', function(){
+      var overlay = document.getElementById('v2LoginOverlay');
+      if(overlay) overlay.classList.add('active');
+      ['v2FormLogin','v2FormForgot','v2FormRegister','v2FormJoin'].forEach(function(id){
+        var el = document.getElementById(id); if(el) el.style.display = 'none';
+      });
+      var tabs = document.getElementById('v2LoginTabs');
+      if(tabs) tabs.style.display = 'none';
+      var resetForm = document.getElementById('v2FormReset');
+      if(resetForm) resetForm.style.display = '';
+    });
+  } else if(!checkV2Session()){
+    var _sp = document.getElementById('yamSplashScreen');
+    if(_sp) _sp.style.display = 'block';
+    document.body.classList.add('splash-active');
+  } else {
+    window.addEventListener('load', function(){
+      setTimeout(function(){ if(typeof v2ApplyDynamicNames === 'function') v2ApplyDynamicNames(); }, 200);
+    });
+  }
+})();
+
+
+// ══════════════════════════════════════════════════════════════════
 // BLOC 10 — DM online status observer
 // ══════════════════════════════════════════════════════════════════
 (function(){
