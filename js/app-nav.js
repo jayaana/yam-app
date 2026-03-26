@@ -1455,7 +1455,7 @@ setTimeout(function(){
           })
           .subscribe(function(status){
             if(status === 'SUBSCRIBED'){
-              yamLog('[RT] #79 now_listening connecté'); console.warn('[RT] ✅ Now Listening connecté — Realtime actif');
+              yamLog('[RT] #79 now_listening connecté'); console.log('[RT] ✅ Now Listening connecté', { channel: 'now_listening', status: 'SUBSCRIBED' });
               window._nlRTActive = true;
               // Stoppe le poll adaptatif nl — Realtime prend le relais
               if(_timers.nl){ _CI(_timers.nl); _timers.nl = null; }
@@ -1463,7 +1463,7 @@ setTimeout(function(){
               _stopNlFallback();
               if(window.nlPoll) window.nlPoll(); // appel initial
             } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
-              yamLog('[RT] #79 now_listening ' + status + ' — fallback poll');
+              yamLog('[RT] #79 now_listening ' + status + ' — fallback poll'); console.warn('[RT] Now Listening channel perdu — fallback poll 8s');
               window._nlRTActive = false;
               _startNlFallback();
             }
@@ -1485,13 +1485,13 @@ setTimeout(function(){
           })
           .subscribe(function(status){
             if(status === 'SUBSCRIBED'){
-              yamLog('[RT] #81 song_plays connecté'); console.warn('[RT] ✅ Song Plays connecté — Realtime actif');
+              yamLog('[RT] #81 song_plays connecté'); console.log('[RT] ✅ Song Plays connecté', { channel: 'song_plays', status: 'SUBSCRIBED' });
               window._playsRTActive = true;
               // Stoppe le poll 30s
               if(window._playsIv != null){ _CI(window._playsIv); window._playsIv = null; }
               _stopPlaysFallback();
             } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
-              yamLog('[RT] #81 song_plays ' + status + ' — fallback poll');
+              yamLog('[RT] #81 song_plays ' + status + ' — fallback poll'); console.warn('[RT] Song Plays channel perdu — fallback poll 30s');
               window._playsRTActive = false;
               _startPlaysFallback();
             }
