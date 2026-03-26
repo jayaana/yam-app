@@ -487,11 +487,9 @@
       var btn = _getPlayBtn();
       if (btn) btn.classList.add('jx-play-btn--lobby');
 
-      /* ── Faire clignoter #navJeux en doré — seulement si l'utilisateur n'est pas sur l'onglet Jeux ── */
-      if (window._currentTab !== 'jeux') {
-        var navJeux = document.getElementById('navJeux');
-        if (navJeux) navJeux.classList.add('partner-in-lobby');
-      }
+      /* ── Signaler lobby jeux actif et synchroniser navJeux ── */
+      window._jxLobbyActive = true;
+      if (window._yamSyncNavJeux) window._yamSyncNavJeux();
 
       /* Retire l'ancien si le jeu a changé */
       if (_activeChip && _activeChip !== entry.chip) _deactivateEntry(_activeEntry);
@@ -531,9 +529,9 @@
       var btn = _getPlayBtn();
       if (btn) btn.classList.remove('jx-play-btn--lobby');
 
-      /* ── Retirer le clignotement doré sur #navJeux ── */
-      var navJeux = document.getElementById('navJeux');
-      if (navJeux) navJeux.classList.remove('partner-in-lobby');
+      /* ── Signaler fin lobby jeux et synchroniser navJeux ── */
+      window._jxLobbyActive = false;
+      if (window._yamSyncNavJeux) window._yamSyncNavJeux();
       if (_activeEntry) { _deactivateEntry(_activeEntry); _activeEntry = null; }
       _activeChip = null;
     }
@@ -689,10 +687,10 @@
     var navJeux = document.getElementById('navJeux');
     if (!navJeux) return;
     if (tab === 'jeux') {
-      /* On l'onglet Jeux : retirer le clignotement */
-      navJeux.classList.remove('partner-in-lobby');
+      /* On entre sur Jeux → sync immédiate (retire le glow) */
+      if (window._yamSyncNavJeux) window._yamSyncNavJeux();
     } else {
-      /* On quitte l'onglet Jeux : remettre si lobby encore actif */
+      /* On quitte Jeux → re-vérifier les lobbies jeux multi */
       if (window._jxLobbyPresence && typeof window._jxLobbyPresence.check === 'function') {
         window._jxLobbyPresence.check();
       }
