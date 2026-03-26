@@ -1006,7 +1006,7 @@
     if(window.YT&&window.YT.Player){_ytReady=true;cb();return;}
     if(!document.getElementById('yt-api-sc')){
       var s=document.createElement('script');s.id='yt-api-sc';
-      s.src='https://www.youtube-nocookie.com/iframe_api';document.head.appendChild(s);
+      s.src='https://www.youtube.com/iframe_api';document.head.appendChild(s);
     }
   }
 
