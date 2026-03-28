@@ -6617,40 +6617,85 @@ body.light #rappelOverlay.open { background: rgba(0,0,0,0.22); }
 }
 
 /* ── #98 — Section peek (suivante, partiellement visible) ─────── */
+/* ── Sections peek : flou couvrant toute la moitié basse ─── */
 .nid-peek {
   position: relative;
   pointer-events: none;
   user-select: none;
+  overflow: hidden;
 }
+/* Couche de flou sur le contenu */
+.nid-peek::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 0;
+  height: 60%;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  pointer-events: none;
+  z-index: 1;
+  border-radius: 0 0 14px 14px;
+}
+/* Fondu par-dessus le flou */
 .nid-peek::after {
   content: '';
   position: absolute;
   left: 0; right: 0; bottom: 0;
-  height: 72%;
-  background: linear-gradient(to bottom, transparent 0%, var(--bg) 90%);
+  height: 85%;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(var(--bg-rgb, 242,242,247), 0.55) 40%,
+    var(--bg) 75%
+  );
   border-radius: 0 0 14px 14px;
   pointer-events: none;
   z-index: 2;
 }
+/* Label pulsant */
 .nid-peek-lbl {
   position: absolute;
-  bottom: 8px;
+  bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 3;
   background: var(--s1);
-  border: 1px solid var(--border);
+  border: 1.5px solid rgba(231,90,124,0.35);
   border-radius: 20px;
-  padding: 5px 13px;
+  padding: 6px 14px;
   font-size: 11px;
-  font-weight: 600;
-  color: var(--muted);
+  font-weight: 700;
+  color: var(--accent);
   white-space: nowrap;
-  box-shadow: var(--sh-sm);
   pointer-events: none;
-  max-width: 90%;
+  max-width: 88%;
   overflow: hidden;
   text-overflow: ellipsis;
+  animation: nidPeekPulse 2.8s ease-in-out infinite;
+  box-shadow: 0 2px 12px rgba(231,90,124,0.18);
+}
+@keyframes nidPeekPulse {
+  0%, 100% {
+    box-shadow: 0 2px 12px rgba(231,90,124,0.18);
+    transform: translateX(-50%) translateY(0);
+    border-color: rgba(231,90,124,0.35);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(231,90,124,0.38);
+    transform: translateX(-50%) translateY(-3px);
+    border-color: rgba(231,90,124,0.65);
+  }
+}
+/* Thème dark : adapter la couleur du dégradé */
+body:not(.light) .nid-peek::after,
+html:not(.light) .nid-peek::after {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(26,22,20,0.55) 40%,
+    #1a1614 75%
+  );
 }
 
 /* ── #98 — Sections cachées ──────────────────────────────────── */
@@ -6728,4 +6773,29 @@ body.light #rappelOverlay.open { background: rgba(0,0,0,0.22); }
   font-size: 11.5px;
   color: var(--muted);
   line-height: 1.5;
+}
+
+/* ── Toast de progression (milestones nid) — affiché en haut ── */
+#nidToast {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  background: var(--s1);
+  border: 1.5px solid rgba(231,90,124,0.4);
+  border-radius: 50px;
+  padding: 11px 22px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  z-index: 100001;
+  opacity: 0;
+  transition: opacity 0.28s, transform 0.28s;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 24px rgba(231,90,124,0.22);
+}
+#nidToast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
