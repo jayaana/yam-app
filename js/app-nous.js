@@ -186,37 +186,29 @@ function _nidCreateFloatLabel(section, prevId) {
   lbl.textContent = 'Remplissez "' + prevName + '" pour débloquer';
   document.body.appendChild(lbl);
 
-  var NAV_H = 64 + 8; // hauteur nav + marge
-
-  function _isModalOpen() {
-    var els = document.querySelectorAll('[id*="Modal"],[id*="Overlay"],[class*="overlay"]');
-    for (var i = 0; i < els.length; i++) {
-      var cs = window.getComputedStyle(els[i]);
-      if (parseInt(cs.zIndex) >= 1000 && cs.display !== 'none' && cs.visibility !== 'hidden') return true;
-    }
-    return false;
-  }
-
   function _place() {
     var sr = section.getBoundingClientRect();
     var lw = lbl.offsetWidth || 240;
     var lh = lbl.offsetHeight || 34;
-    // Centre horizontal sur la section
-    var left = Math.round(sr.left + sr.width / 2 - lw / 2);
-    // Positionné 40px au-dessus du bas de la section
-    var top = Math.round(sr.bottom - 42);
-    // Jamais sous la barre nav
-    var maxTop = window.innerHeight - NAV_H - lh;
-    if (top > maxTop) top = maxTop;
-    lbl.style.left = left + 'px';
-    lbl.style.top  = top + 'px';
-    // Masquer si section hors vue ou modale ouverte
-    var visible = sr.bottom > 60 && sr.top < (window.innerHeight - NAV_H + 20);
-    lbl.style.display = (visible && !_isModalOpen()) ? '' : 'none';
+    var navH = 72; // nav bar height + marge
+
+    // Centré horizontalement sur la section
+    lbl.style.left = Math.round(sr.left + sr.width / 2 - lw / 2) + 'px';
+
+    // Positionné dans la section, jamais sous la nav
+    var ideal = Math.round(sr.bottom - 44);
+    var max   = window.innerHeight - navH - lh;
+    lbl.style.top = Math.min(ideal, max) + 'px';
+
+    // Visible seulement si la section est dans le viewport (au-dessus de la nav)
+    var inView = sr.bottom > 40 && sr.top < (window.innerHeight - navH);
+    lbl.style.display = inView ? '' : 'none';
+
     window._nidFloatRaf = requestAnimationFrame(_place);
   }
   _place();
 }
+
 
 
 // Signal : une section vient d'être remplie pour la première fois
