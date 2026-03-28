@@ -104,35 +104,249 @@ window._nousBlockScroll = function() { _blockBackgroundScroll(); };
 window._nousUnblockScroll = function() { _unblockBackgroundScroll(); };
 
 
+
 // ════════════════════════════════════════════════════════════════════
-// 0. ACCÈS DIRECT + ÉTAT SOLO (#98)
+// #98 — LE NID : Progression des sections (sans toucher à index.html)
+// Sections progressives : mémo → petits mots → souvenirs → activités → livres
+// La section suivante est en "peek" (visible mais flouée).
+// Toutes les autres sont cachées jusqu'à leur tour.
+// Stockage : photo_descs (category=nous_progress, slot=nest)
+// ════════════════════════════════════════════════════════════════════
+var _NID_SECTIONS = ['memoCoupleSection','postitsSection','souvenirsSection','activitesSection','Books'];
+var _NID_LABELS   = {
+  memoCoupleSection: 'Mémo',
+  postitsSection:    'Petits mots',
+  souvenirsSection:  'Souvenirs',
+  activitesSection:  'Activités',
+  Books:             'Bibliothèque'
+};
+var _NID_PROGRESS  = null;  // {unlocked:['memoCoupleSection',...], milestones_claimed:[25,...]}
+var _NID_PROG_ID   = null;
+
+function _nidCoupleId(){ var u=(typeof yamGetUser==='function')?yamGetUser():null; return u?u.couple_id:null; }
+
+// ── Charger la progression ──
+function _nidLoad(cb) {
+  var cid = _nidCoupleId();
+  if (!cid) { _NID_PROGRESS={unlocked:['memoCoupleSection'],milestones_claimed:[]}; if(cb) cb(); return; }
+  fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+cid+'&category=eq.nous_progress&slot=eq.nest&limit=1',{headers:sb2Headers()})
+    .then(function(r){return r.ok?r.json():[];})
+    .then(function(rows){
+      if(rows&&rows[0]){ _NID_PROG_ID=rows[0].id; try{_NID_PROGRESS=JSON.parse(rows[0].description||'{}');}catch(e){_NID_PROGRESS={};} }
+      else { _NID_PROG_ID=null; _NID_PROGRESS={}; }
+      if(!_NID_PROGRESS.unlocked||!_NID_PROGRESS.unlocked.length) _NID_PROGRESS.unlocked=['memoCoupleSection'];
+      if(!_NID_PROGRESS.milestones_claimed) _NID_PROGRESS.milestones_claimed=[];
+      if(cb) cb();
+    }).catch(function(){ _NID_PROGRESS={unlocked:['memoCoupleSection'],milestones_claimed:[]}; if(cb) cb(); });
+}
+
+function _nidSave() {
+  var cid=_nidCoupleId(); if(!cid||!_NID_PROGRESS) return;
+  var body={couple_id:cid,category:'nous_progress',slot:'nest',description:JSON.stringify(_NID_PROGRESS)};
+  if(_NID_PROG_ID) {
+    fetch(SB_URL+'/rest/v1/photo_descs?id=eq.'+_NID_PROG_ID,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(body)});
+  } else {
+    fetch(SB_URL+'/rest/v1/photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'return=representation','Content-Type':'application/json'}),body:JSON.stringify(body)})
+      .then(function(r){return r.ok?r.json():[];}).then(function(rows){if(rows&&rows[0])_NID_PROG_ID=rows[0].id;});
+  }
+}
+
+// ── Appliquer les états visuels ──
+function _nidApply() {
+  if (!_NID_PROGRESS) return;
+  var unlocked = _NID_PROGRESS.unlocked || ['memoCoupleSection'];
+
+  _NID_SECTIONS.forEach(function(id, idx) {
+    var el = document.getElementById(id);
+    if (!el) return;
+
+    var isUnlocked = unlocked.indexOf(id) !== -1;
+    var nextUnlockedIdx = unlocked.length; // index de la prochaine section à déverrouiller
+    var isPeek = (idx === nextUnlockedIdx); // la section juste après la dernière déverrouillée
+
+    // Nettoyer les classes précédentes
+    el.classList.remove('nid-section-peek','nid-section-hidden');
+    var existing = el.querySelector('.nid-peek-label');
+    if (existing) existing.remove();
+
+    if (isUnlocked) {
+      el.style.display = '';
+      el.style.pointerEvents = '';
+    } else if (isPeek) {
+      el.style.display = '';
+      el.style.pointerEvents = '';
+      el.classList.add('nid-section-peek');
+      var lbl = document.createElement('div');
+      lbl.className = 'nid-peek-label';
+      lbl.textContent = '🔒 ' + (_NID_LABELS[id] || id);
+      el.appendChild(lbl);
+    } else {
+      el.classList.add('nid-section-hidden');
+    }
+  });
+
+  _nidUpdateBar();
+}
+
+// ── Signal : une section vient d'être remplie ──
+window._nousSignalNewContent = function(sectionId) {
+  if (!_NID_PROGRESS) { _nidLoad(function(){ window._nousSignalNewContent(sectionId); }); return; }
+  var unlocked = _NID_PROGRESS.unlocked;
+  if (unlocked.indexOf(sectionId) !== -1) return; // déjà déverrouillée
+
+  unlocked.push(sectionId);
+  _nidSave();
+
+  // Animer la révélation
+  var el = document.getElementById(sectionId);
+  if (el) {
+    el.classList.remove('nid-section-peek','nid-section-hidden');
+    var lbl = el.querySelector('.nid-peek-label');
+    if (lbl) lbl.remove();
+    el.style.display = '';
+    el.style.pointerEvents = '';
+    el.classList.add('nid-section-reveal');
+    setTimeout(function(){ el.classList.remove('nid-section-reveal'); }, 600);
+    if (typeof showToast === 'function') {
+      var name = _NID_LABELS[sectionId] || sectionId;
+      showToast('Nouvelle section débloquée : ' + name + ' 🎉', 'success');
+    }
+  }
+
+  // Mettre la NOUVELLE section suivante en peek
+  _nidApply();
+  _nidCheckMilestones();
+};
+
+// ── Barre de progression ──
+function _nidCalcPct() {
+  if (!_NID_PROGRESS) return 0;
+  return Math.round((_NID_PROGRESS.unlocked.length / _NID_SECTIONS.length) * 100);
+}
+
+function _nidUpdateBar() {
+  var bar = document.getElementById('nousNestBar'); if (!bar) return;
+  var pct = _nidCalcPct();
+  var fill = bar.querySelector('.nous-nest-bar-fill');
+  var label = bar.querySelector('.nous-nest-bar-label');
+  var pctEl = bar.querySelector('.nous-nest-bar-pct');
+  if (fill) fill.style.width = pct + '%';
+  if (pctEl) pctEl.textContent = pct + '%';
+  if (label) {
+    label.textContent = pct < 25 ? 'Premiers pas 🌱'
+      : pct < 50 ? 'Ça pousse 🌿'
+      : pct < 75 ? 'Douillet ☀️'
+      : pct < 100 ? 'Presque parfait 🌸'
+      : 'Nid complet 🪺';
+  }
+  // Milestones visuels
+  bar.querySelectorAll('.nous-nest-milestone').forEach(function(el){
+    var m = parseInt(el.dataset.m);
+    el.classList.toggle('reached', pct >= m);
+  });
+  bar.style.display = 'block';
+}
+window._nousUpdateNestBar = _nidUpdateBar;
+
+// ── Injecter la barre ──
+function _nidInjectBar() {
+  var wrapper = document.getElementById('nousContentWrapper');
+  if (!wrapper || document.getElementById('nousNestBar')) return;
+  var bar = document.createElement('div');
+  bar.id = 'nousNestBar';
+  bar.className = 'nous-nest-bar';
+  bar.style.display = 'none';
+  bar.innerHTML =
+    '<div class="nous-nest-bar-top">' +
+      '<span class="nous-nest-bar-icon">🪺</span>' +
+      '<span class="nous-nest-bar-label">Premiers pas 🌱</span>' +
+      '<span class="nous-nest-bar-pct">0%</span>' +
+    '</div>' +
+    '<div class="nous-nest-bar-milestones">' +
+      '<span class="nous-nest-milestone" data-m="25">🌱</span>' +
+      '<span class="nous-nest-milestone" data-m="50">🌿</span>' +
+      '<span class="nous-nest-milestone" data-m="75">🌸</span>' +
+      '<span class="nous-nest-milestone" data-m="100">🪺</span>' +
+    '</div>' +
+    '<div class="nous-nest-bar-track"><div class="nous-nest-bar-fill"></div></div>';
+  // Insérer juste après nousProfilSection
+  var profil = document.getElementById('nousProfilSection');
+  if (profil && profil.nextSibling) { wrapper.insertBefore(bar, profil.nextSibling); }
+  else { wrapper.insertBefore(bar, wrapper.firstChild); }
+}
+
+// ── Paliers de récompense ──
+function _nidCheckMilestones() {
+  var pct = _nidCalcPct();
+  var claimed = _NID_PROGRESS.milestones_claimed || [];
+  [25,50,75,100].forEach(function(m){
+    if (pct >= m && claimed.indexOf(m) === -1) {
+      claimed.push(m);
+      _NID_PROGRESS.milestones_claimed = claimed;
+      _nidSave();
+      setTimeout(function(){
+        if (typeof window.yamFlameActivity === 'function') window.yamFlameActivity('nest_milestone');
+        if (typeof showToast === 'function') {
+          var msgs={25:'Palier 25% 🌱 Flamme +5pts !',50:'Palier 50% 🌿 Continuez !',75:'Palier 75% 🌸 Presque là !',100:'Nid complet ! 🪺 Bravo à vous deux !'};
+          showToast(msgs[m]||'Palier atteint !','success');
+        }
+      }, 700);
+    }
+  });
+}
+
+// ── Page solo (pas de partenaire lié) ──
+function _nidShowSolo() {
+  var overlay = document.getElementById('nousLockOverlay');
+  var content = document.getElementById('nousContentWrapper');
+  if (content) content.style.display = 'none';
+  if (!overlay) return;
+  overlay.className = 'nous-solo-active';
+  overlay.innerHTML =
+    '<div class="nous-solo-welcome">' +
+      '<div class="nous-solo-illustration">🏡</div>' +
+      '<h2 class="nous-solo-title">Votre nid vous attend</h2>' +
+      '<p class="nous-solo-subtitle">Reliez-vous à votre partenaire pour construire votre espace à deux — photos, souvenirs, petits mots et bien plus.</p>' +
+      '<div class="nous-solo-code-wrap">' +
+        '<div class="nous-solo-code-label">Votre code couple</div>' +
+        '<button class="nous-solo-code-btn" id="nidSoloBtn">👩‍❤️‍👨 Voir mon code</button>' +
+      '</div>' +
+      '<p class="nous-solo-hint">Partagez votre code avec votre partenaire, ou entrez le sien dans les paramètres.</p>' +
+    '</div>';
+  var btn = document.getElementById('nidSoloBtn');
+  if (btn) btn.addEventListener('click', function(){
+    if (typeof window.yamToggleAccountModal === 'function') window.yamToggleAccountModal();
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 0. ACCÈS DIRECT — Beta gate supprimé
 // ════════════════════════════════════════════════════════════════════
 (function(){
 
+  // Affiche le contenu directement, sans code d'accès
   function _nousShowContent() {
     var overlay = document.getElementById('nousLockOverlay');
     var content = document.getElementById('nousContentWrapper');
-    if (overlay) overlay.style.display = 'none';
+    if (overlay) { overlay.className = ''; overlay.style.display = 'none'; }
     if (content) content.style.display = 'block';
     if (!window._nousContentLoaded) {
       window._nousContentLoaded = true;
+      // #98 — Injecter la barre, charger la progression, appliquer les états
+      _nidInjectBar();
+      _nidLoad(function(){ _nidApply(); });
       _nousInitAll();
       setTimeout(function(){ document.dispatchEvent(new Event('nousContentReady')); }, 300);
+    } else {
+      // Retour sur l'onglet — refresh de la barre seulement
+      _nidUpdateBar();
     }
-    // Mettre à jour la barre de progression à chaque retour sur l'onglet
-    setTimeout(function(){ _nousUpdateNestBar(); }, 400);
   }
 
   // Point d'entrée appelé par yamSwitchTab
   window.nousCheckLock = function() {
-    var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
-    var hasPartner = u && u.partner_pseudo && u.partner_pseudo.trim() !== '';
-
-    if (!u || !hasPartner) {
-      // ── État solo : page d'accueil douce ──
-      _nousShowSoloWelcome(u);
-      return;
-    }
+    var u = (typeof yamGetUser==='function') ? yamGetUser() : null;
+    if (!u || !u.partner_pseudo || !u.partner_pseudo.trim()) { _nidShowSolo(); return; }
     _nousShowContent();
   };
 
@@ -143,269 +357,141 @@ window._nousUnblockScroll = function() { _unblockBackgroundScroll(); };
     if (window._currentTab === 'nous') window.nousCheckLock();
   }, 800);
 
-
-  function _nousShowSoloWelcome(u) {
-    var overlay = document.getElementById('nousLockOverlay');
-    var contentWrap = document.getElementById('nousContentWrapper');
-    if (contentWrap) contentWrap.style.display = 'none';
-    if (!overlay) return;
-    overlay.style.display = 'flex';
-    overlay.innerHTML =
-      '<div class="nous-solo-welcome">' +
-        '<div class="nous-solo-illustration">🏡</div>' +
-        '<h2 class="nous-solo-title">Votre nid vous attend</h2>' +
-        '<p class="nous-solo-subtitle">Reliez-vous à votre partenaire pour construire votre espace à deux — photos, souvenirs, petits mots et bien plus.</p>' +
-        '<div class="nous-solo-code-wrap">' +
-          '<div class="nous-solo-code-label">Votre code couple</div>' +
-          '<button class="nous-solo-code-btn" id="nousSoloCodeBtn">👩‍❤️‍👨 Voir mon code</button>' +
-        '</div>' +
-        '<p class="nous-solo-hint">Partagez votre code avec votre partenaire, ou entrez le sien dans les paramètres.</p>' +
-      '</div>';
-    // CSP-safe : addEventListener uniquement, pas onclick inline
-    var soloBtn = document.getElementById('nousSoloCodeBtn');
-    if (soloBtn) soloBtn.addEventListener('click', function() {
-      if (typeof window.yamToggleAccountModal === 'function') window.yamToggleAccountModal();
-    });
-  }
-
 })();
 
 
-
 // ════════════════════════════════════════════════════════════════════
-
+// 1. INIT CENTRALE — appelée une seule fois au premier affichage
 // ════════════════════════════════════════════════════════════════════
-// #98 — LE NID : Progression douce + encouragements
-// Principe : pas de blur/cadenas. On détecte les sections vides après
-// chargement et on injecte un encart chaleureux dans chacune.
-// Stockage progression : photo_descs (category=nous_progress)
-// ════════════════════════════════════════════════════════════════════
+// ── Edge Function yam-init (#59) ─────────────────────────────────────────
+// URL construite localement (SB_URL est global depuis app-core.js)
+var SB2_EDGE_YAM_INIT = null; // initialisé au premier appel (SB_URL dispo)
 
-var _nidProgress = null;
-var _nidProgressId = null;
-var _NID_ORDER = ['photos', 'petits_mots', 'souvenirs', 'histoire', 'memo', 'activites', 'livres'];
-var _NID_ENCOURAGEMENTS = {
-  souvenirs:  { emoji: '📸', titre: 'Vos premiers souvenirs vous attendent',  texte: 'Capturez un moment, une photo, un endroit — construisez votre album à deux.',  btn: 'Ajouter un souvenir',  fn: 'nousOpenSouvenirGestion' },
-  histoire:   { emoji: '📖', titre: 'Écrivez votre premier chapitre',         texte: 'Une date, une anecdote, un moment fondateur — votre histoire mérite d’être racontée.', btn: 'Ajouter un chapitre', fn: 'histoireOpenGestion' },
-  memo:       { emoji: '📝', titre: 'Votre espace de notes partagé',          texte: 'Une liste de courses, une idée en commun, un rêve à noter — c’est là que ça vit.',   btn: 'Ouvrir le mémo',    fn: 'openMemoTodoEdit' },
-  activites:  { emoji: '✨', titre: 'Créez votre première activité ensemble', texte: 'Une sortie, un projet, un défi — transformez vos envies en étapes concrètes.',        btn: 'Créer une activité', fn: 'nousOpenActiviteModal' },
-  livres:     { emoji: '📚', titre: 'Votre bibliothèque de couple',           texte: 'Un livre lu ensemble, une recommandation, un univers partagé — ajoutez votre première pochette.', btn: 'Ajouter un livre', fn: 'livresOpenEdit' },
-  petits_mots:{ emoji: '💌', titre: 'Glissez un premier mot doux',            texte: 'Un message surprise que l’autre découvrira au prochain passage — ça ne prend qu’une minute.', btn: 'Écrire un mot', fn: 'petitsMotsOpenEditor' }
-};
+// Injecte les données batchées dans les structures existantes de l'app,
+// exactement comme si chaque fonction avait fait sa propre requête.
+function _nousApplyBatchData(d) {
+  var coupleId = (yamGetUser()||{}).couple_id;
+  if(!coupleId) return;
 
-// ── Charger/sauver la progression ──
-function _nidLoad(cb) {
-  var u = (typeof yamGetUser==='function') ? yamGetUser() : null;
-  var coupleId = u ? u.couple_id : null;
-  if (!coupleId) { _nidProgress = {unlocked:['photos','petits_mots'],milestones_claimed:[]}; if(cb) cb(); return; }
-  fetch(SB_URL + '/rest/v1/photo_descs?couple_id=eq.' + coupleId + '&category=eq.nous_progress&limit=1', { headers: sb2Headers() })
-    .then(function(r){ return r.ok ? r.json() : []; })
-    .then(function(rows) {
-      if (rows && rows[0]) {
-        _nidProgressId = rows[0].id;
-        try { _nidProgress = JSON.parse(rows[0].description || '{}'); } catch(e) { _nidProgress = {}; }
-      } else {
-        _nidProgressId = null; _nidProgress = {};
+  // 1. Titres sections
+  if(Array.isArray(d.sectionTitles)) {
+    d.sectionTitles.forEach(function(row) {
+      if(row.slot === 'elle_title' || row.slot === '0' || row.slot === 0) {
+        var el = document.getElementById('elleSectionTitle');
+        if(el && row.description) el.textContent = row.description;
+      } else if(row.slot === 'lui_title' || row.slot === '99' || row.slot === 99) {
+        var el2 = document.getElementById('luiSectionTitle');
+        if(el2 && row.description) el2.textContent = row.description;
       }
-      if (!_nidProgress.unlocked)           _nidProgress.unlocked = ['photos','petits_mots'];
-      if (!_nidProgress.milestones_claimed) _nidProgress.milestones_claimed = [];
-      if (cb) cb();
-    }).catch(function(){ _nidProgress = {unlocked:['photos','petits_mots'],milestones_claimed:[]}; if(cb) cb(); });
-}
-
-function _nidSave() {
-  var u = (typeof yamGetUser==='function') ? yamGetUser() : null;
-  var coupleId = u ? u.couple_id : null;
-  if (!coupleId || !_nidProgress) return;
-  var body = { couple_id: coupleId, category: 'nous_progress', description: JSON.stringify(_nidProgress), slot: 'nest' };
-  if (_nidProgressId) {
-    fetch(SB_URL + '/rest/v1/photo_descs?id=eq.' + _nidProgressId, { method: 'PATCH', headers: sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}), body: JSON.stringify(body) });
-  } else {
-    fetch(SB_URL + '/rest/v1/photo_descs', { method: 'POST', headers: sb2Headers({'Prefer':'return=representation','Content-Type':'application/json'}), body: JSON.stringify(body) })
-      .then(function(r){ return r.ok ? r.json() : []; })
-      .then(function(rows){ if(rows && rows[0]) _nidProgressId = rows[0].id; });
-  }
-}
-
-// ── Calculer le % de sections "actives" ──
-function _nidCalcPercent() {
-  var unlocked = (_nidProgress && _nidProgress.unlocked) ? _nidProgress.unlocked : ['photos','petits_mots'];
-  return Math.round((unlocked.length / _NID_ORDER.length) * 100);
-}
-
-// ── Signal : une section vient d'être remplie ──
-window._nousSignalNewContent = function(section) {
-  if (!_nidProgress) { _nidLoad(function(){ window._nousSignalNewContent(section); }); return; }
-  var unlocked = _nidProgress.unlocked || [];
-  var changed = false;
-  if (unlocked.indexOf(section) === -1) {
-    unlocked.push(section);
-    _nidProgress.unlocked = unlocked;
-    changed = true;
-    // Supprimer l'encart d'encouragement de cette section
-    var encart = document.getElementById('nid-encart-' + section);
-    if (encart) {
-      encart.style.transition = 'opacity 0.4s, max-height 0.4s';
-      encart.style.opacity = '0';
-      encart.style.maxHeight = '0';
-      setTimeout(function(){ if(encart.parentNode) encart.parentNode.removeChild(encart); }, 420);
-    }
-  }
-  // Déverrouiller la section suivante dans l'ordre
-  var idx = _NID_ORDER.indexOf(section);
-  if (idx >= 0 && idx < _NID_ORDER.length - 1) {
-    var next = _NID_ORDER[idx + 1];
-    if (unlocked.indexOf(next) === -1) {
-      unlocked.push(next);
-      _nidProgress.unlocked = unlocked;
-      changed = true;
-      // Révéler l'encart de la section suivante (si elle est encore vide)
-      var nextEncart = document.getElementById('nid-encart-' + next);
-      if (nextEncart) {
-        nextEncart.classList.add('nid-encart-reveal');
-        if (typeof showToast === 'function') showToast('Votre nid s’agrandit 🪺', 'success');
-      }
-    }
-  }
-  if (changed) { _nidSave(); _nousUpdateNestBar(); _nousCheckMilestones(); }
-};
-
-// ── Injecter un encart d'encouragement dans une section vide ──
-function _nidInjectEncart(section, containerEl) {
-  if (!containerEl) return;
-  if (document.getElementById('nid-encart-' + section)) return; // déjà injecté
-  var enc = _NID_ENCOURAGEMENTS[section]; if (!enc) return;
-  var div = document.createElement('div');
-  div.id = 'nid-encart-' + section;
-  div.className = 'nid-encart';
-  div.innerHTML =
-    '<span class="nid-encart-emoji">' + enc.emoji + '</span>' +
-    '<div class="nid-encart-body">' +
-      '<div class="nid-encart-titre">' + escHtml(enc.titre) + '</div>' +
-      '<div class="nid-encart-texte">' + escHtml(enc.texte) + '</div>' +
-    '</div>' +
-    '<button class="nid-encart-btn" id="nid-encart-btn-' + section + '">' + escHtml(enc.btn) + '</button>';
-  containerEl.appendChild(div);
-  // Attacher le bouton CTA (CSP-safe)
-  var btn = document.getElementById('nid-encart-btn-' + section);
-  if (btn && enc.fn) {
-    btn.addEventListener('click', function() {
-      if (typeof window[enc.fn] === 'function') window[enc.fn](null);
     });
   }
-  // Animation d'entrée légère
-  requestAnimationFrame(function(){
-    div.classList.add('nid-encart-visible');
-  });
+
+  // 2+3. Banners + descs Elle
+  if(Array.isArray(d.elleBanners)) {
+    d.elleBanners.forEach(function(row) {
+      var el = document.getElementById('elle-banner-'+row.slot);
+      if(el) el.textContent = row.description;
+      var lbl = document.querySelector('#elle-empty-'+row.slot+' .lui-img-empty-lbl');
+      if(lbl) lbl.textContent = row.description;
+    });
+  }
+  if(Array.isArray(d.elleDescs)) {
+    d.elleDescs.forEach(function(row) {
+      var el = document.getElementById('elle-desc-'+row.slot);
+      if(el) el.textContent = row.description;
+    });
+  }
+
+  // 4+5. Banners + descs Lui
+  if(Array.isArray(d.luiBanners)) {
+    d.luiBanners.forEach(function(row) {
+      var el = document.getElementById('lui-banner-'+row.slot);
+      if(el) el.textContent = row.description;
+      var lbl = document.querySelector('#lui-empty-'+row.slot+' .lui-img-empty-lbl');
+      if(lbl) lbl.textContent = row.description;
+    });
+  }
+  if(Array.isArray(d.luiDescs)) {
+    d.luiDescs.forEach(function(row) {
+      var el = document.getElementById('lui-desc-'+row.slot);
+      if(el) el.textContent = row.description;
+    });
+  }
+
+  // 6. Likes coeurs
+  if(Array.isArray(d.likeCounters)) {
+    var elGirl = document.getElementById('likeNumGirl');
+    var elBoy  = document.getElementById('likeNumBoy');
+    var foundGirl = false; var foundBoy = false;
+    d.likeCounters.forEach(function(r) {
+      if(r.role==='girl'&&elGirl){ elGirl.textContent=fmtLikes(r.total); foundGirl=true; }
+      if(r.role==='boy' &&elBoy) { elBoy.textContent =fmtLikes(r.total); foundBoy=true;  }
+    });
+    if(!foundGirl&&elGirl) elGirl.textContent='0';
+    if(!foundBoy &&elBoy)  elBoy.textContent ='0';
+  }
+
+  // 7. Petits mots
+  if(Array.isArray(d.petitsMots) && typeof window._petitsMotsApply === 'function') {
+    window._petitsMotsApply(d.petitsMots);
+  }
+
+  // 8+9. Mémo note + todos
+  if(typeof window._memoNoteApply === 'function')  window._memoNoteApply(d.memoNote  || []);
+  if(typeof window._memoTodosApply === 'function') window._memoTodosApply(d.memoTodos || []);
+
+  // 10. Souvenirs
+  if(Array.isArray(d.memories)) {
+    window._souvenirAllRows = d.memories;
+    if(typeof window._renderSouvenirRowsPublic === 'function') window._renderSouvenirRowsPublic(d.memories);
+  }
+
+  // 11. Activités
+  if(Array.isArray(d.activites)) {
+    window._activiteAllRows = d.activites;
+    if(typeof window._renderActivitesHomePublic === 'function') window._renderActivitesHomePublic();
+  }
+
+  // 12. Livres
+  if(Array.isArray(d.livres)) {
+    window._livresAllRows = d.livres;
+    if(typeof window._renderLivresSliderPublic === 'function') window._renderLivresSliderPublic();
+  }
 }
 
-// ── Après chargement : scanner les sections vides et injecter les encarts ──
-window._nousInjectEncarts = function() {
-  if (!_nidProgress) return;
-  var unlocked = _nidProgress.unlocked || ['photos','petits_mots'];
+// Tentative batch — si succès, skip les fetches individuels ; si échec, fallback classique.
+function _nousInitBatch(onSuccess, onFallback) {
+  var u = (typeof yamGetUser==='function') ? yamGetUser() : null;
+  if(!u || !u.couple_id) { onFallback(); return; }
 
-  // Souvenirs vides
-  var souvenirEmpty = document.getElementById('souvenirsEmpty');
-  if (souvenirEmpty && souvenirEmpty.style.display !== 'none') {
-    _nidInjectEncart('souvenirs', souvenirEmpty.parentNode);
-  }
-  // Notre Histoire vide
-  var histoireBulle = document.getElementById('histoireBulle');
-  if (histoireBulle && !histoireBulle.querySelector('.histoire-bulle-texte:not(:empty)')) {
-    var histContainer = document.getElementById('histoireSection') || (histoireBulle && histoireBulle.parentNode);
-    if (histContainer) _nidInjectEncart('histoire', histContainer);
-  }
-  // Activités vides
-  var activitesContainer = document.getElementById('activitesContainer');
-  if (activitesContainer && activitesContainer.querySelectorAll('.activite-card').length === 0) {
-    _nidInjectEncart('activites', activitesContainer.parentNode || activitesContainer);
-  }
-  // Livres vides
-  var livresSlider = document.getElementById('livresSlider');
-  if (livresSlider && livresSlider.querySelectorAll('.livre-card').length === 0) {
-    _nidInjectEncart('livres', livresSlider.parentNode || livresSlider);
-  }
-  // Petits mots vides
-  var postitEmpty = document.querySelector('.postit-empty');
-  if (postitEmpty) {
-    _nidInjectEncart('petits_mots', postitEmpty.parentNode);
-  }
-};
+  if(!SB2_EDGE_YAM_INIT) SB2_EDGE_YAM_INIT = SB_URL + '/functions/v1/yam-init';
 
-// ── Mettre à jour la barre de progression "Notre Nid" ──
-window._nousUpdateNestBar = function() {
-  var bar = document.getElementById('nousNestBar');
-  if (!bar) return;
-  if (!_nidProgress) { _nidLoad(function(){ window._nousUpdateNestBar(); }); return; }
-  var pct = _nidCalcPercent();
-  var fill = bar.querySelector('.nous-nest-bar-fill');
-  var label = bar.querySelector('.nous-nest-bar-label');
-  var pctEl = bar.querySelector('.nous-nest-bar-pct');
-  if (fill) {
-    fill.style.width = pct + '%';
-    // Couleur selon avancement
-    if (pct >= 100) fill.style.background = 'linear-gradient(90deg,#3ecf8e,#27ae74)';
-    else if (pct >= 75) fill.style.background = 'linear-gradient(90deg,var(--accent),#f59e6a)';
-    else fill.style.background = 'linear-gradient(90deg,var(--accent),#f59e6a)';
-  }
-  if (pctEl) pctEl.textContent = pct + '%';
-  if (label) {
-    var msg = pct < 25 ? 'Les fondations 🌱'
-            : pct < 50 ? 'Ça pousse 🌿'
-            : pct < 75 ? 'Presque douillet ☀️'
-            : pct < 100 ? 'Presque parfait 🌸'
-            : 'Nid complet 🪺';
-    label.textContent = msg;
-  }
-  bar.style.display = 'block';
-};
+  var token = '';
+  try { token = yamGetAccessToken ? yamGetAccessToken() : ''; } catch(e){}
+  if(!token) { onFallback(); return; }
 
-// ── Injecter la barre de progression dans le DOM ──
-function _nousInjectNestBar() {
-  var wrapper = document.getElementById('nousContentWrapper');
-  if (!wrapper || document.getElementById('nousNestBar')) return;
-  var bar = document.createElement('div');
-  bar.id = 'nousNestBar';
-  bar.className = 'nous-nest-bar';
-  bar.style.display = 'none';
-  bar.innerHTML =
-    '<div class="nous-nest-bar-top">' +
-      '<span class="nous-nest-bar-icon">🪺</span>' +
-      '<span class="nous-nest-bar-label">Les fondations 🌱</span>' +
-      '<span class="nous-nest-bar-pct">0%</span>' +
-    '</div>' +
-    '<div class="nous-nest-bar-track"><div class="nous-nest-bar-fill"></div></div>';
-  wrapper.insertBefore(bar, wrapper.firstChild);
-}
+  var profile = (typeof getProfile==='function') ? getProfile() : 'girl';
 
-// ── Vérifier et déclencher les paliers ──
-function _nousCheckMilestones() {
-  if (!_nidProgress) return;
-  var pct = _nidCalcPercent();
-  var claimed = _nidProgress.milestones_claimed || [];
-  [25, 50, 75, 100].forEach(function(milestone) {
-    if (pct >= milestone && claimed.indexOf(milestone) === -1) {
-      claimed.push(milestone);
-      _nidProgress.milestones_claimed = claimed;
-      _nidSave();
-      setTimeout(function() {
-        if (typeof window.yamFlameActivity === 'function') window.yamFlameActivity('nest_milestone');
-        if (typeof showToast === 'function') {
-          var msgs = { 25:'Premier palier 🌱 +5 points de flamme !', 50:'À mi-chemin 🌿 Le nid se construit !', 75:'Presque là 🌸 Encore un effort !', 100:'🪺 Nid complet ! Votre histoire est magnifique !' };
-          showToast(msgs[milestone] || 'Palier atteint !', 'success');
-        }
-      }, 600);
+  fetch(SB2_EDGE_YAM_INIT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (yamGetAccessToken ? yamGetAccessToken() : '') },
+    body: JSON.stringify({ couple_id: u.couple_id, profile: profile })
+  })
+  .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+  .then(function(res) {
+    if(res && res.ok && res.data) {
+      _nousApplyBatchData(res.data);
+      onSuccess();
+    } else {
+      onFallback();
     }
+  })
+  .catch(function() {
+    onFallback();
   });
 }
 
 function _nousInitAll() {
-  // ── #98 Le Nid : barre de progression ──
-  _nousInjectNestBar();
-  _nidLoad(function() {
-    window._nousUpdateNestBar();
-  });
-
   _nousLoadProfil();
   // ── Images (Storage — pas batchable, pas de requête REST) ──
   elleLoadImages();
@@ -423,8 +509,6 @@ function _nousInitAll() {
       nousLoadSouvenirs();
       nousLoadActivites();
       livresLoad();
-      // #98 — Injecter encarts d'encouragement après chargement des sections
-      setTimeout(function(){ window._nousInjectEncarts(); }, 800);
     },
     function() {
       // Fallback — comportement original intact
@@ -446,7 +530,6 @@ function _nousInitAll() {
       nousLoadSouvenirs();
       nousLoadActivites();
       livresLoad();
-      setTimeout(function(){ window._nousInjectEncarts(); }, 800);
     }
   );
 
@@ -1373,10 +1456,9 @@ function _startReasonAuto(){
     var data = { couple_id:coupleId, author:profile, title:title||'Sans titre', text:text, icon:icon, color:color };
     var btn = document.getElementById('petitsMotsSaveBtn'); if(btn){ btn.textContent='...'; btn.disabled=true; }
     var done = function(){ if(btn){ btn.textContent='Sauvegarder'; btn.disabled=false; } window.closePetitsMotsEditor(); _renderPetitsMotsGestion(); _petitsMotsLoad();
-      // Le NEW apparaît côté receveur — on marque via une clé partagée couple
-      // Le receveur le verra à sa prochaine ouverture
       if(typeof window.yamMarkNew==='function') window.yamMarkNew('petit_mot');
       if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('petit_mot');
+      if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('postitsSection');
     };
     if(_editingMot&&_editingMot.id){
       fetch(SB_URL+'/rest/v1/petits_mots?id=eq.'+_editingMot.id+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done).catch(done);
@@ -1616,76 +1698,41 @@ document.addEventListener('yam:session_ready', function(){
 });
 
 
+// ════════════════════════════════════════════════════════════════════
 
-// ── Realtime activités (#101) ────────────────────────────────────────────────
+// ── Realtime activités (#101) ─────────────────────────────────────────────
 var _activitesRTChannel = null;
-var _activitesPollIv = null;
+var _activitesPollIv    = null;
 
 function _startActivitesRealtime(coupleId) {
   if (!window._yamRT || !coupleId || _activitesRTChannel) return;
-
   _activitesRTChannel = window._yamRT
     .channel('activites-' + coupleId)
-    .on('postgres_changes', {
-      event: 'UPDATE',
-      schema: 'public',
-      table: 'activites',
-      filter: 'couple_id=eq.' + coupleId
-    }, function(payload) {
-      // Si l'overlay activité est ouvert, rafraîchir en direct
-      var overlay = document.getElementById('activiteGestionOverlay');
-      var overlayOpen = overlay && overlay.classList.contains('open');
-      window.nousInvalidateActivitesCache();
-      window.nousLoadActivites(true);
-    })
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'activites', filter: 'couple_id=eq.' + coupleId },
+      function() { window.nousInvalidateActivitesCache(); window.nousLoadActivites(true); })
     .subscribe(function(status) {
       if (status === 'SUBSCRIBED') {
         if (_activitesPollIv) { clearInterval(_activitesPollIv); _activitesPollIv = null; }
-        console.warn('[RT] ✅ Activités connecté — Realtime actif');
+        console.warn('[RT] ✅ Activités connecté');
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         if (!_activitesPollIv) {
-          _activitesPollIv = setInterval(function(){
-            window.nousInvalidateActivitesCache();
-            window.nousLoadActivites(true);
-          }, 10000);
-          console.warn('[RT] Activités channel perdu — fallback poll 10s');
+          _activitesPollIv = setInterval(function(){ window.nousInvalidateActivitesCache(); window.nousLoadActivites(true); }, 10000);
+          console.warn('[RT] Activités — fallback poll 10s');
         }
       }
     });
-
   window._yamRTChannels['activites'] = _activitesRTChannel;
 }
-
-// Exposer pour yamClearAllPolls()
 window._yamStopActivitesPoll = function() {
   if (_activitesPollIv) { clearInterval(_activitesPollIv); _activitesPollIv = null; }
-  if (_activitesRTChannel && window._yamRT) {
-    try { window._yamRT.removeChannel(_activitesRTChannel); } catch(e){}
-    _activitesRTChannel = null;
-  }
+  if (_activitesRTChannel && window._yamRT) { try { window._yamRT.removeChannel(_activitesRTChannel); } catch(e){} _activitesRTChannel = null; }
 };
-
-// Lancer Realtime ou fallback poll selon disponibilité
-(function() {
-  var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
-  var coupleId = u ? u.couple_id : null;
-  if (window._yamRT && coupleId) {
-    _startActivitesRealtime(coupleId);
-  }
-})();
-
-// Relancer après reconnexion
+(function(){ var u=(typeof yamGetUser==='function')?yamGetUser():null; var cid=u?u.couple_id:null; if(window._yamRT&&cid) _startActivitesRealtime(cid); })();
 document.addEventListener('yam:session_ready', function(){
-  var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
-  var coupleId = u ? u.couple_id : null;
-  if (window._yamRT && coupleId) {
-    _activitesRTChannel = null;
-    _startActivitesRealtime(coupleId);
-  }
+  var u=(typeof yamGetUser==='function')?yamGetUser():null; var cid=u?u.couple_id:null;
+  if(window._yamRT&&cid){ _activitesRTChannel=null; _startActivitesRealtime(cid); }
 });
 
-
-// ════════════════════════════════════════════════════════════════════
 // 11. MÉMO COUPLE — Note unique + Todo list, sans PIN
 //     • Clic Note  → vue lecture (openMemoNoteView) → bouton Modifier → openMemoNoteEdit
 //     • Clic Todo  → vue lecture cochable (openMemoTodoView) → bouton Modifier → openMemoTodoEdit
@@ -1964,14 +2011,13 @@ document.addEventListener('yam:session_ready', function(){
       } else {
         items.forEach(function(item){
           var row=document.createElement('div'); row.className='todo-item';
-          var _cbHtml = (item.done && item.checked_by) ? '<div class="todo-checked-by">par '+escHtml(item.checked_by)+'</div>' : '';
+          var _cbHtml=(item.done&&item.checked_by)?'<div class="todo-checked-by">par '+escHtml(item.checked_by)+'</div>':'';
           row.innerHTML='<div class="todo-check'+(item.done?' done':'')+'">'+(item.done?'✓':'')+'</div><div class="todo-text-wrap"><div class="todo-text'+(item.done?' done':'')+'">' +escHtml(item.text)+'</div>'+_cbHtml+'</div><div class="todo-del">✕</div>';
           (function(it){
             row.querySelector('.todo-check').addEventListener('click',function(){
-              var _willBeDone = !it.done;
-              var _patch = {done: _willBeDone};
-              if (_willBeDone) _patch.checked_by = (typeof yamGetPseudo==='function') ? yamGetPseudo() : null;
-              else _patch.checked_by = null;
+              var _patch={done:!it.done};
+              if(!it.done) _patch.checked_by=(typeof yamGetPseudo==='function')?yamGetPseudo():null;
+              else _patch.checked_by=null;
               fetch(SB_URL+'/rest/v1/memo_todos?id=eq.'+it.id+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(_patch)}).then(_loadTodoFull);
             });
             row.querySelector('.todo-del').addEventListener('click',function(e){ e.stopPropagation();
@@ -1990,7 +2036,8 @@ document.addEventListener('yam:session_ready', function(){
     var txt = input.value.trim(); if(!txt) return; input.value='';
     fetch(SB_URL+'/rest/v1/memo_todos',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,text:txt,done:false})}).then(function(){
       _loadTodoFull();
-      if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh('memo_todo'); if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('memo');
+      if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh('memo_todo');
+      if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('memoCoupleSection');
     });
   };
 
@@ -2070,18 +2117,16 @@ document.addEventListener('yam:session_ready', function(){
   }
   window._renderSouvenirRowsPublic = function(rows) { _renderSouvenirRows(rows); };
 
-  // ── Détection anniversaire : J+0 à J+7 (même jour+mois, ignore l'année) ──
-  function _getAnniversaryYears(dateStr) {
+  // Détecte si un souvenir a son anniversaire dans la fenêtre J+0 à J+7
+  function _souvenirAnnivYears(dateStr) {
     if (!dateStr) return null;
-    var today = new Date();
-    var todayM = today.getMonth(), todayD = today.getDate();
-    var todayY = today.getFullYear();
-    for (var offset = 0; offset <= 7; offset++) {
-      var check = new Date(today.getFullYear(), today.getMonth(), today.getDate() + offset);
-      var mem = new Date(dateStr + 'T12:00:00');
-      if (mem.getMonth() === check.getMonth() && mem.getDate() === check.getDate()) {
-        var years = todayY - mem.getFullYear();
-        return years > 0 ? years : null; // ignorer si même année (0 an)
+    var today = new Date(), ty = today.getFullYear();
+    for (var o = 0; o <= 7; o++) {
+      var d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + o);
+      var m = new Date(dateStr + 'T12:00:00');
+      if (m.getMonth() === d.getMonth() && m.getDate() === d.getDate()) {
+        var yrs = ty - m.getFullYear();
+        return yrs > 0 ? yrs : null;
       }
     }
     return null;
@@ -2100,84 +2145,50 @@ document.addEventListener('yam:session_ready', function(){
       emptyEl.style.display='block'; return;
     }
     emptyEl.style.display='none';
-
-    // ── Anniversaires en tête (J+0 à J+7), triés par proximité ──
-    var anniversaires = rows
-      .map(function(s){ return {s:s, years:_getAnniversaryYears(s.date)}; })
-      .filter(function(x){ return x.years !== null; })
+    // Anniversaires (J+0 à J+7) en tête
+    var annivMap = {};
+    rows.forEach(function(s){ var y=_souvenirAnnivYears(s.date); if(y) annivMap[s.id]=y; });
+    var annivRows = rows.filter(function(s){ return annivMap[s.id]; })
       .sort(function(a,b){
-        // Proximité de date (nb de jours avant l'anniversaire)
-        function _dayOffset(dateStr) {
-          var today = new Date(); var mem = new Date(dateStr+'T12:00:00');
-          for (var o = 0; o <= 7; o++) {
-            var c = new Date(today.getFullYear(), today.getMonth(), today.getDate()+o);
-            if (mem.getMonth()===c.getMonth() && mem.getDate()===c.getDate()) return o;
-          }
-          return 8;
-        }
-        return _dayOffset(a.s.date) - _dayOffset(b.s.date);
+        function off(ds){ var t=new Date(); for(var o=0;o<=7;o++){var d=new Date(t.getFullYear(),t.getMonth(),t.getDate()+o),m=new Date(ds+'T12:00:00'); if(m.getMonth()===d.getMonth()&&m.getDate()===d.getDate()) return o;} return 8; }
+        return off(a.date)-off(b.date);
       });
-
-    var annivIds = {};
-    anniversaires.forEach(function(x){ annivIds[x.s.id] = x.years; });
-
-    // Injecter les anniversaires en tête du scroll "récents"
-    if (anniversaires.length) {
-      recentRow.style.display = 'block';
-      anniversaires.forEach(function(x){
-        recentScroll.appendChild(_buildSouvenirCard(x.s, x.years));
-      });
-    }
-
+    var annivIds = {}; annivRows.forEach(function(s){ annivIds[s.id]=true; });
+    if(annivRows.length){ recentRow.style.display='block'; annivRows.forEach(function(s){ recentScroll.appendChild(_buildSouvenirCard(s,annivMap[s.id])); }); }
     // Favoris (hors anniversaires)
-    var favs   = rows.filter(function(s){ return s.is_fav && !annivIds[s.id]; });
-    // Récents (hors anniversaires, hors favoris)
-    var recent = rows.filter(function(s){ return !s.is_fav && !annivIds[s.id]; }).slice(0, 5);
-
-    if(favs.length){
-      favRow.style.display='block';
-      favs.forEach(function(s){ favScroll.appendChild(_buildSouvenirCard(s, null)); });
-    } else { favRow.style.display='none'; }
-
-    if(recent.length){
-      recentRow.style.display='block';
-      recent.forEach(function(s){ recentScroll.appendChild(_buildSouvenirCard(s, null)); });
-    } else if (!anniversaires.length) { recentRow.style.display='none'; }
+    var favs = rows.filter(function(s){ return s.is_fav && !annivIds[s.id]; });
+    var recent = rows.filter(function(s){ return !s.is_fav && !annivIds[s.id]; }).slice(0,5);
+    if(favs.length){ favRow.style.display='block'; favs.forEach(function(s){ favScroll.appendChild(_buildSouvenirCard(s,null)); }); } else { favRow.style.display='none'; }
+    if(recent.length){ recentRow.style.display='block'; recent.forEach(function(s){ recentScroll.appendChild(_buildSouvenirCard(s,null)); }); } else if(!annivRows.length){ recentRow.style.display='none'; }
   }
 
-
   function _buildSouvenirCard(s, anniversaryYears){
-    var card=document.createElement('div'); card.className='souvenir-card';
-    if (anniversaryYears !== null && anniversaryYears !== undefined) {
-      card.classList.add('souvenir-card--anniv');
-    }
+    var card=document.createElement('div'); card.className='souvenir-card'+(anniversaryYears?' souvenir-card--anniv':'');
     var photoUrl=s.photo_url||'';
     var dateStr=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'';
     var photoStyle=photoUrl?'background-image:url('+escHtml(photoUrl)+');':'';
     var pencilSVG='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
-    var annivBadge = (anniversaryYears !== null && anniversaryYears !== undefined)
-      ? '<div class="souvenir-anniv-badge">📅 Il y a ' + anniversaryYears + ' an' + (anniversaryYears > 1 ? 's' : '') + '</div>'
-      : '';
     card.innerHTML=
-      '<div class="souvenir-photo" style="'+photoStyle+'">'+
-      (photoUrl?'':'<span style="font-size:28px;opacity:0.3;">&#128247;</span>')+
-      (s.lieu?'<div class="souvenir-lieu">&#128205; '+escHtml(s.lieu)+'</div>':'')+
-      '</div>'+
-      '<div class="souvenir-info">'+
-      '<div class="souvenir-info-text">'+
-      '<div class="souvenir-name">'+escHtml(s.title||'Souvenir')+'</div>'+
-      (dateStr?'<div class="souvenir-date">'+escHtml(dateStr)+'</div>':'')+
-      annivBadge+
-      '</div>'+
-      '<div class="souvenir-edit-icon">'+pencilSVG+'</div>'+
-      '</div>';
+      '<div class="souvenir-photo" style="'+photoStyle+'">'
+      +(photoUrl?'':'<span style="font-size:28px;opacity:0.3;">&#128247;</span>')
+      +(s.lieu?'<div class="souvenir-lieu">&#128205; '+escHtml(s.lieu)+'</div>':'')
+      +'</div>'
+      +'<div class="souvenir-info">'
+      +'<div class="souvenir-info-text">'
+      +'<div class="souvenir-name">'+escHtml(s.title||'Souvenir')+'</div>'
+      +(dateStr?'<div class="souvenir-date">'+escHtml(dateStr)+'</div>':'')
+      +(anniversaryYears?'<div class="souvenir-anniv-badge">📅 Il y a '+anniversaryYears+' an'+(anniversaryYears>1?'s':'')+'</div>':'')
+      +'</div>'
+      +'<div class="souvenir-edit-icon">'+pencilSVG+'</div>'
+      +'</div>';
     card.querySelector('.souvenir-edit-icon').addEventListener('click',function(e){ e.stopPropagation(); nousOpenSouvenirModal(s); });
+    // Badge NEW — posé sur la card racine (position:relative, sans overflow:hidden)
+    // .souvenir-photo a overflow:hidden pour rogner la photo → badge invisible si posé dessus
     if(s.id && typeof window.yamIsNew==='function' && window.yamIsNew('souvenir_'+s.id)){
       if(typeof window.yamShowNewBadge==='function') window.yamShowNewBadge(card, true);
     }
     return card;
   }
-
 
   // Flag : indique si souvenirModal a été ouvert depuis la liste de gestion
   var _souvenirFromGestion = false;
@@ -2432,7 +2443,9 @@ document.addEventListener('yam:session_ready', function(){
     var id=modal.dataset.souvenirId; if(!id) return;
     if(!confirm('Supprimer ce souvenir ?')) return;
     fetch(SB_URL+'/rest/v1/memories?id=eq.'+id,{method:'DELETE',headers:sb2Headers()})
-    .then(function(){ window.closeSouvenirModal(); window.nousLoadSouvenirs(); if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('souvenirs'); }).catch(function(){});
+    .then(function(){ window.closeSouvenirModal(); window.nousLoadSouvenirs();
+        if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('souvenirsSection');
+      }).catch(function(){});
   };
 
   var _souvenirM=document.getElementById('souvenirModal');
@@ -2819,7 +2832,9 @@ document.addEventListener('yam:session_ready', function(){
     if(!confirm('Supprimer cette activité ?')) return;
     var coupleId=_getCoupleId(); if(!coupleId) return;
     fetch(SB_URL+'/rest/v1/activites?id=eq.'+id+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()})
-    .then(function(){ window.closeActiviteModal(); window.nousLoadActivites(); if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('activites'); }).catch(function(){});
+    .then(function(){ window.closeActiviteModal(); window.nousLoadActivites();
+        if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('activitesSection');
+      }).catch(function(){});
   };
 
   window.nousAddSuggestedActivite=function(){
@@ -3074,161 +3089,127 @@ document.addEventListener('yam:session_ready', function(){
   };
 
   // ── Modale chapitre complet — positionnée absolue sur la bulle ──
+  // ── Lecteur immersif (#100) ──
+  var _readerIdx = 0;
 
-  // ── Variables du lecteur immersif ──
-  var _histoireReaderIndex = 0; // index indépendant de _histoireSelectedIndex
-
-  window.histoireOpenChapterModal = function(startIndex){
+  window.histoireOpenChapterModal = function(startIdx) {
     var sorted = _histoireAllRows.slice().sort(function(a,b){
       if((a.sort_order||0)!=(b.sort_order||0)) return (a.sort_order||0)-(b.sort_order||0);
       return (a.created_at||'').localeCompare(b.created_at||'');
     });
     if (!sorted.length) return;
-    _histoireReaderIndex = (typeof startIndex === 'number') ? startIndex : _histoireSelectedIndex;
-    _histoireReaderIndex = Math.max(0, Math.min(_histoireReaderIndex, sorted.length - 1));
+    _readerIdx = (typeof startIdx === 'number') ? startIdx : _histoireSelectedIndex;
+    _readerIdx = Math.max(0, Math.min(_readerIdx, sorted.length - 1));
 
-    // Masquer l'ancien modal statique si présent (évite conflits de z-index)
-    var oldStaticModal = document.getElementById('histoireChapterModal');
-    if (oldStaticModal) oldStaticModal.style.display = 'none';
+    // Masquer l'ancien modal statique
+    var legacyModal = document.getElementById('histoireChapterModal');
+    if (legacyModal) legacyModal.style.display = 'none';
 
-    // Créer ou récupérer le lecteur immersif
-    var existing = document.getElementById('histoireImmersifOverlay');
+    var existing = document.getElementById('histoireReaderOverlay');
     if (existing) existing.remove();
 
     var overlay = document.createElement('div');
-    overlay.id = 'histoireImmersifOverlay';
-    overlay.className = 'histoire-immersif-overlay';
+    overlay.id  = 'histoireReaderOverlay';
+    overlay.className = 'histoire-reader-overlay';
 
-    function _renderReader() {
-      var item = sorted[_histoireReaderIndex];
+    function _build() {
+      var item = sorted[_readerIdx];
       if (!item) return;
-      var hasPrev = _histoireReaderIndex > 0;
-      var hasNext = _histoireReaderIndex < sorted.length - 1;
-      var progress = sorted.length > 1
-        ? Math.round((_histoireReaderIndex / (sorted.length - 1)) * 100)
-        : 100;
+      var hasPrev = _readerIdx > 0;
+      var hasNext = _readerIdx < sorted.length - 1;
+      var pct = sorted.length > 1 ? Math.round(_readerIdx / (sorted.length - 1) * 100) : 100;
 
       overlay.innerHTML =
-        '<div class="histoire-immersif-backdrop"></div>' +
-        '<div class="histoire-immersif-card">' +
-          '<button class="histoire-immersif-close" aria-label="Fermer">' +
-            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
-          '</button>' +
-          '<div class="histoire-immersif-progress-track"><div class="histoire-immersif-progress-fill" style="width:' + progress + '%"></div></div>' +
-          '<div class="histoire-immersif-body">' +
-            '<div class="histoire-immersif-chapeau">' +
-              (item.emoji ? '<span class="histoire-immersif-emoji">' + escHtml(item.emoji) + '</span>' : '') +
-              (item.date_label ? '<span class="histoire-immersif-date">' + escHtml(item.date_label) + '</span>' : '') +
-            '</div>' +
-            '<h2 class="histoire-immersif-titre">' + escHtml(item.title || '') + '</h2>' +
-            '<p class="histoire-immersif-texte">' + escHtml(item.text || '') + '</p>' +
-            '<div class="histoire-immersif-counter">' + (_histoireReaderIndex + 1) + ' / ' + sorted.length + '</div>' +
+        '<div class="histoire-reader-backdrop"></div>' +
+        '<div class="histoire-reader-card">' +
+          '<div class="histoire-reader-handle"></div>' +
+          '<div class="histoire-reader-progress-track">' +
+            '<div class="histoire-reader-progress-fill" style="width:' + pct + '%"></div>' +
           '</div>' +
-          '<div class="histoire-immersif-nav">' +
-            '<button class="histoire-immersif-nav-btn' + (hasPrev ? '' : ' hidden') + '" id="hiNavPrev">' +
-              '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15,18 9,12 15,6"/></svg>' +
+          '<div class="histoire-reader-body">' +
+            '<div class="histoire-reader-chapeau">' +
+              (item.emoji ? '<span class="histoire-reader-emoji">' + escHtml(item.emoji) + '</span>' : '') +
+              (item.date_label ? '<span class="histoire-reader-date">' + escHtml(item.date_label) + '</span>' : '') +
+            '</div>' +
+            '<div class="histoire-reader-titre">' + escHtml(item.title || '') + '</div>' +
+            '<div class="histoire-reader-texte">' + escHtml(item.text || '') + '</div>' +
+            '<div class="histoire-reader-counter">' + (_readerIdx + 1) + ' / ' + sorted.length + '</div>' +
+          '</div>' +
+          '<div class="histoire-reader-nav">' +
+            '<button class="histoire-reader-btn' + (hasPrev ? '' : ' hidden') + '" id="hrPrev">' +
+              '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15,18 9,12 15,6"/></svg>' +
               'Précédent' +
             '</button>' +
-            '<button class="histoire-immersif-nav-btn histoire-immersif-nav-btn--next' + (hasNext ? '' : ' hidden') + '" id="hiNavNext">' +
+            '<button class="histoire-reader-btn histoire-reader-btn--next' + (hasNext ? '' : ' hidden') + '" id="hrNext">' +
               'Suivant' +
-              '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9,18 15,12 9,6"/></svg>' +
+              '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9,18 15,12 9,6"/></svg>' +
             '</button>' +
           '</div>' +
         '</div>';
 
-      // Événements navigation
-      var btnClose = overlay.querySelector('.histoire-immersif-close');
-      if (btnClose) btnClose.addEventListener('click', window.histoireCloseChapterModal);
-
-      var btnPrev = overlay.querySelector('#hiNavPrev');
-      if (btnPrev) btnPrev.addEventListener('click', function() {
-        if (_histoireReaderIndex > 0) { _histoireReaderIndex--; _animateReader('right'); }
-      });
-
-      var btnNext = overlay.querySelector('#hiNavNext');
-      if (btnNext) btnNext.addEventListener('click', function() {
-        if (_histoireReaderIndex < sorted.length - 1) { _histoireReaderIndex++; _animateReader('left'); }
-      });
-
-      // Clic backdrop = fermer
-      var backdrop = overlay.querySelector('.histoire-immersif-backdrop');
-      if (backdrop) backdrop.addEventListener('click', window.histoireCloseChapterModal);
+      overlay.querySelector('.histoire-reader-backdrop').addEventListener('click', window.histoireCloseChapterModal);
+      var btnPrev = overlay.querySelector('#hrPrev');
+      var btnNext = overlay.querySelector('#hrNext');
+      if (btnPrev) btnPrev.addEventListener('click', function(){ if (_readerIdx > 0) { _readerIdx--; _slide('right'); } });
+      if (btnNext) btnNext.addEventListener('click', function(){ if (_readerIdx < sorted.length - 1) { _readerIdx++; _slide('left'); } });
     }
 
-    function _animateReader(dir) {
-      // Sortie de la card courante
-      var card = overlay.querySelector('.histoire-immersif-card');
-      if (card) {
-        card.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
-        card.style.opacity = '0';
-        card.style.transform = 'translateX(' + (dir === 'left' ? '-20px' : '20px') + ')';
-      }
-      // Après la sortie, reconstruire et entrer
+    function _slide(dir) {
+      var card = overlay.querySelector('.histoire-reader-card');
+      if (!card) return;
+      card.style.transition = 'opacity 0.14s ease, transform 0.14s ease';
+      card.style.opacity = '0';
+      card.style.transform = 'translateX(' + (dir === 'left' ? '-18px' : '18px') + ')';
       setTimeout(function() {
-        _renderReader();
-        var newCard = overlay.querySelector('.histoire-immersif-card');
-        if (newCard) {
-          // Position de départ (côté opposé)
-          newCard.style.transition = 'none';
-          newCard.style.opacity = '0';
-          newCard.style.transform = 'translateX(' + (dir === 'left' ? '20px' : '-20px') + ')';
-          // Double RAF pour garantir que le navigateur a appliqué le style "none"
-          requestAnimationFrame(function() {
-            requestAnimationFrame(function() {
-              newCard.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
-              newCard.style.opacity = '1';
-              newCard.style.transform = 'translateX(0)';
-            });
-          });
-        }
-      }, 160);
+        _build();
+        var nc = overlay.querySelector('.histoire-reader-card');
+        if (!nc) return;
+        nc.style.transition = 'none';
+        nc.style.opacity = '0';
+        nc.style.transform = 'translateX(' + (dir === 'left' ? '18px' : '-18px') + ')';
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){
+          nc.style.transition = 'opacity 0.18s ease, transform 0.18s ease';
+          nc.style.opacity = '1';
+          nc.style.transform = 'translateX(0)';
+        }); });
+      }, 150);
     }
 
     // Swipe tactile
-    var _touchStartX = 0;
-    overlay.addEventListener('touchstart', function(e) { _touchStartX = e.touches[0].clientX; }, {passive:true});
-    overlay.addEventListener('touchend', function(e) {
-      var dx = e.changedTouches[0].clientX - _touchStartX;
-      if (Math.abs(dx) > 50) {
-        if (dx < 0 && _histoireReaderIndex < sorted.length - 1) { _histoireReaderIndex++; _animateReader('left'); }
-        else if (dx > 0 && _histoireReaderIndex > 0) { _histoireReaderIndex--; _animateReader('right'); }
+    var _tx = 0;
+    overlay.addEventListener('touchstart', function(e){ _tx = e.touches[0].clientX; }, {passive:true});
+    overlay.addEventListener('touchend', function(e){
+      var dx = e.changedTouches[0].clientX - _tx;
+      if (Math.abs(dx) > 48) {
+        if (dx < 0 && _readerIdx < sorted.length - 1) { _readerIdx++; _slide('left'); }
+        else if (dx > 0 && _readerIdx > 0) { _readerIdx--; _slide('right'); }
       }
     }, {passive:true});
 
-    // Touches clavier
-    function _hiKeyHandler(e) {
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-        if (_histoireReaderIndex < sorted.length - 1) { _histoireReaderIndex++; _animateReader('left'); }
-      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-        if (_histoireReaderIndex > 0) { _histoireReaderIndex--; _animateReader('right'); }
-      } else if (e.key === 'Escape') { window.histoireCloseChapterModal(); }
+    // Clavier
+    function _kh(e) {
+      if (e.key === 'ArrowRight' && _readerIdx < sorted.length - 1) { _readerIdx++; _slide('left'); }
+      else if (e.key === 'ArrowLeft' && _readerIdx > 0) { _readerIdx--; _slide('right'); }
+      else if (e.key === 'Escape') window.histoireCloseChapterModal();
     }
-    document.addEventListener('keydown', _hiKeyHandler);
-    overlay._hiKeyHandler = _hiKeyHandler;
+    document.addEventListener('keydown', _kh);
+    overlay._kh = _kh;
 
-    _renderReader();
+    _build();
     document.body.appendChild(overlay);
     _blockBackgroundScroll();
-
-    // Animation d'ouverture
-    requestAnimationFrame(function() {
-      overlay.classList.add('open');
-    });
+    requestAnimationFrame(function(){ overlay.classList.add('open'); });
   };
 
-  window.histoireCloseChapterModal = function(){
-    var overlay = document.getElementById('histoireImmersifOverlay');
+  window.histoireCloseChapterModal = function() {
+    var overlay = document.getElementById('histoireReaderOverlay');
     if (overlay) {
-      if (overlay._hiKeyHandler) document.removeEventListener('keydown', overlay._hiKeyHandler);
+      if (overlay._kh) document.removeEventListener('keydown', overlay._kh);
       overlay.classList.remove('open');
-      setTimeout(function() { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 260);
+      setTimeout(function(){ if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 260);
     }
-    // Rétro-compatibilité avec l'ancien modal statique
-    var oldModal = document.getElementById('histoireChapterModal');
-    if (oldModal) oldModal.style.display = 'none';
     _unblockBackgroundScroll();
   };
-
 
   // ── Overlay gestion (inchangé) ──
   window.histoireOpenGestion = function(){
@@ -3334,7 +3315,7 @@ document.addEventListener('yam:session_ready', function(){
     if(!confirm('Supprimer ce chapitre ?')) return;
     var coupleId = _getCoupleId();
     fetch(SB_URL+'/rest/v1/histoire?id=eq.'+_histoireEditingId+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()})
-    .then(function(){ window.histoireCloseItemModal(); window.histoireLoad(); if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('histoire'); }).catch(function(){});
+    .then(function(){ window.histoireCloseItemModal(); window.histoireLoad(); }).catch(function(){});
   };
 
   // Click-dehors modal item
@@ -3707,7 +3688,9 @@ document.addEventListener('yam:session_ready', function(){
     if(!confirm('Supprimer ce livre ?')) return;
     var coupleId = _getCoupleId(); if(!coupleId) return;
     fetch(SB_URL+'/rest/v1/books?id=eq.'+_livreEditingId+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()})
-    .then(function(){ window.livresCloseEdit(); window.livresLoad(); if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('livres'); }).catch(function(){});
+    .then(function(){ window.livresCloseEdit(); window.livresLoad();
+        if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('Books');
+      }).catch(function(){});
   };
 
   // ── Idée du jour Groq — 5 idées générées 1x/jour, navigation → ──
