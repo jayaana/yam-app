@@ -1813,7 +1813,77 @@ document.addEventListener('yam:session_ready', function(){
 
 // ════════════════════════════════════════════════════════════════════
 
-// ── Realtime activités (#101) ──────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════
+// REALTIME — Tous les canaux Nous (memo, petits mots, souvenirs,
+//             activités, livres, histoire, photo_descs)
+// Pattern : event:'*' + fallback poll 10s sur CHANNEL_ERROR
+// ════════════════════════════════════════════════════════════════════
+
+// ── Realtime memo ──────────────────────────────────────────
+var _memoRTCh = null, _memoPollIv = null;
+function _startMemoRT(cid) {
+  if(!window._yamRT||!cid||_memoRTCh) return;
+  _memoRTCh = window._yamRT.channel('memo-'+cid)
+    .on('postgres_changes',{event:'*',schema:'public',table:'memo_notes',filter:'couple_id=eq.'+cid},
+        function(){ if(typeof renderMemoCouple==='function') renderMemoCouple(); })
+    .subscribe(function(s){
+      if(s==='SUBSCRIBED'){ if(_memoPollIv){clearInterval(_memoPollIv);_memoPollIv=null;} }
+      else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){
+        if(!_memoPollIv) _memoPollIv=setInterval(function(){ if(typeof renderMemoCouple==='function') renderMemoCouple(); },10000);
+      }
+    });
+  window._yamRTChannels['memo']=_memoRTCh;
+}
+
+// ── Realtime memoTodo ──────────────────────────────────────────
+var _memoTodoRTCh = null, _memoTodoPollIv = null;
+function _startMemotodoRT(cid) {
+  if(!window._yamRT||!cid||_memoTodoRTCh) return;
+  _memoTodoRTCh = window._yamRT.channel('memoTodo-'+cid)
+    .on('postgres_changes',{event:'*',schema:'public',table:'memo_todos',filter:'couple_id=eq.'+cid},
+        function(){ if(typeof _loadTodoFull==='function') _loadTodoFull(); })
+    .subscribe(function(s){
+      if(s==='SUBSCRIBED'){ if(_memoTodoPollIv){clearInterval(_memoTodoPollIv);_memoTodoPollIv=null;} }
+      else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){
+        if(!_memoTodoPollIv) _memoTodoPollIv=setInterval(function(){ if(typeof _loadTodoFull==='function') _loadTodoFull(); },10000);
+      }
+    });
+  window._yamRTChannels['memoTodo']=_memoTodoRTCh;
+}
+
+// ── Realtime petitsMots ──────────────────────────────────────────
+var _petitsMotsRTCh = null, _petitsMotsPollIv = null;
+function _startPetitsmotsRT(cid) {
+  if(!window._yamRT||!cid||_petitsMotsRTCh) return;
+  _petitsMotsRTCh = window._yamRT.channel('petitsMots-'+cid)
+    .on('postgres_changes',{event:'*',schema:'public',table:'petits_mots',filter:'couple_id=eq.'+cid},
+        function(){ if(typeof window._petitsMotsLoad==='function') window._petitsMotsLoad(); })
+    .subscribe(function(s){
+      if(s==='SUBSCRIBED'){ if(_petitsMotsPollIv){clearInterval(_petitsMotsPollIv);_petitsMotsPollIv=null;} }
+      else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){
+        if(!_petitsMotsPollIv) _petitsMotsPollIv=setInterval(function(){ if(typeof window._petitsMotsLoad==='function') window._petitsMotsLoad(); },10000);
+      }
+    });
+  window._yamRTChannels['petitsMots']=_petitsMotsRTCh;
+}
+
+// ── Realtime souvenirs ──────────────────────────────────────────
+var _souvenirsRTCh = null, _souvenirsPollIv = null;
+function _startSouvenirsRT(cid) {
+  if(!window._yamRT||!cid||_souvenirsRTCh) return;
+  _souvenirsRTCh = window._yamRT.channel('souvenirs-'+cid)
+    .on('postgres_changes',{event:'*',schema:'public',table:'memories',filter:'couple_id=eq.'+cid},
+        function(){ if(typeof window.nousLoadSouvenirs==='function') window.nousLoadSouvenirs(true); })
+    .subscribe(function(s){
+      if(s==='SUBSCRIBED'){ if(_souvenirsPollIv){clearInterval(_souvenirsPollIv);_souvenirsPollIv=null;} }
+      else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){
+        if(!_souvenirsPollIv) _souvenirsPollIv=setInterval(function(){ if(typeof window.nousLoadSouvenirs==='function') window.nousLoadSouvenirs(true); },10000);
+      }
+    });
+  window._yamRTChannels['souvenirs']=_souvenirsRTCh;
+}
+
+// ── Realtime activites ──────────────────────────────────────────
 var _activitesRTCh = null, _activitesPollIv = null;
 function _startActivitesRT(cid) {
   if(!window._yamRT||!cid||_activitesRTCh) return;
@@ -1828,9 +1898,81 @@ function _startActivitesRT(cid) {
     });
   window._yamRTChannels['activites']=_activitesRTCh;
 }
-window._yamStopActivitesPoll=function(){ if(_activitesPollIv){clearInterval(_activitesPollIv);_activitesPollIv=null;} if(_activitesRTCh&&window._yamRT){try{window._yamRT.removeChannel(_activitesRTCh);}catch(e){}_activitesRTCh=null;} };
-(function(){ var u=(typeof yamGetUser==='function')?yamGetUser():null; if(window._yamRT&&u&&u.couple_id) _startActivitesRT(u.couple_id); })();
-document.addEventListener('yam:session_ready',function(){ var u=(typeof yamGetUser==='function')?yamGetUser():null; if(window._yamRT&&u&&u.couple_id){_activitesRTCh=null;_startActivitesRT(u.couple_id);} });
+
+// ── Realtime livres ──────────────────────────────────────────
+var _livresRTCh = null, _livresPollIv = null;
+function _startLivresRT(cid) {
+  if(!window._yamRT||!cid||_livresRTCh) return;
+  _livresRTCh = window._yamRT.channel('livres-'+cid)
+    .on('postgres_changes',{event:'*',schema:'public',table:'books',filter:'couple_id=eq.'+cid},
+        function(){ if(typeof window.livresLoad==='function') window.livresLoad(); })
+    .subscribe(function(s){
+      if(s==='SUBSCRIBED'){ if(_livresPollIv){clearInterval(_livresPollIv);_livresPollIv=null;} }
+      else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){
+        if(!_livresPollIv) _livresPollIv=setInterval(function(){ if(typeof window.livresLoad==='function') window.livresLoad(); },10000);
+      }
+    });
+  window._yamRTChannels['livres']=_livresRTCh;
+}
+
+// ── Realtime histoire ──────────────────────────────────────────
+var _histoireRTCh = null, _histoirePollIv = null;
+function _startHistoireRT(cid) {
+  if(!window._yamRT||!cid||_histoireRTCh) return;
+  _histoireRTCh = window._yamRT.channel('histoire-'+cid)
+    .on('postgres_changes',{event:'*',schema:'public',table:'histoire',filter:'couple_id=eq.'+cid},
+        function(){ if(typeof window.histoireLoad==='function') window.histoireLoad(); })
+    .subscribe(function(s){
+      if(s==='SUBSCRIBED'){ if(_histoirePollIv){clearInterval(_histoirePollIv);_histoirePollIv=null;} }
+      else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){
+        if(!_histoirePollIv) _histoirePollIv=setInterval(function(){ if(typeof window.histoireLoad==='function') window.histoireLoad(); },10000);
+      }
+    });
+  window._yamRTChannels['histoire']=_histoireRTCh;
+}
+
+// ── Realtime photoDescs ──────────────────────────────────────────
+var _photoDescsRTCh = null, _photoDescsPollIv = null;
+function _startPhotodescsRT(cid) {
+  if(!window._yamRT||!cid||_photoDescsRTCh) return;
+  _photoDescsRTCh = window._yamRT.channel('photoDescs-'+cid)
+    .on('postgres_changes',{event:'*',schema:'public',table:'photo_descs',filter:'couple_id=eq.'+cid},
+        function(){ if(typeof window.elleLoadImages==='function'){window.elleLoadImages();window.luiLoadImages();}; })
+    .subscribe(function(s){
+      if(s==='SUBSCRIBED'){ if(_photoDescsPollIv){clearInterval(_photoDescsPollIv);_photoDescsPollIv=null;} }
+      else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){
+        if(!_photoDescsPollIv) _photoDescsPollIv=setInterval(function(){ if(typeof window.elleLoadImages==='function'){window.elleLoadImages();window.luiLoadImages();}; },10000);
+      }
+    });
+  window._yamRTChannels['photoDescs']=_photoDescsRTCh;
+}
+
+// Init au chargement
+(function(){
+  var u=(typeof yamGetUser==='function')?yamGetUser():null;
+  _startMemoRT(u&&u.couple_id?u.couple_id:null);
+  _startMemotodoRT(u&&u.couple_id?u.couple_id:null);
+  _startPetitsmotsRT(u&&u.couple_id?u.couple_id:null);
+  _startSouvenirsRT(u&&u.couple_id?u.couple_id:null);
+  _startActivitesRT(u&&u.couple_id?u.couple_id:null);
+  _startLivresRT(u&&u.couple_id?u.couple_id:null);
+  _startHistoireRT(u&&u.couple_id?u.couple_id:null);
+  _startPhotodescsRT(u&&u.couple_id?u.couple_id:null);
+})();
+
+// Init après session prête
+document.addEventListener('yam:session_ready',function(){
+  var u=(typeof yamGetUser==='function')?yamGetUser():null;
+  if(!u||!u.couple_id) return;
+  _memoRTCh=null; _startMemoRT(u.couple_id);
+  _memoTodoRTCh=null; _startMemotodoRT(u.couple_id);
+  _petitsMotsRTCh=null; _startPetitsmotsRT(u.couple_id);
+  _souvenirsRTCh=null; _startSouvenirsRT(u.couple_id);
+  _activitesRTCh=null; _startActivitesRT(u.couple_id);
+  _livresRTCh=null; _startLivresRT(u.couple_id);
+  _histoireRTCh=null; _startHistoireRT(u.couple_id);
+  _photoDescsRTCh=null; _startPhotodescsRT(u.couple_id);
+});
 
 // 11. MÉMO COUPLE — Note unique + Todo list, sans PIN
 //     • Clic Note  → vue lecture (openMemoNoteView) → bouton Modifier → openMemoNoteEdit
@@ -2928,33 +3070,10 @@ document.addEventListener('yam:session_ready',function(){ var u=(typeof yamGetUs
   window.activiteDelete=function(){
     var modal=document.getElementById('activiteModal'); if(!modal) return;
     var id=modal.dataset.actId; if(!id) return;
+    if(!confirm('Supprimer cette activité ?')) return;
     var coupleId=_getCoupleId(); if(!coupleId) return;
-    // iOS bloque confirm() dans les PWA → utiliser une confirmation inline
-    var btn = document.getElementById('activiteDeleteBtn');
-    if(btn && btn.dataset.confirmStep !== '1') {
-      btn.dataset.confirmStep = '1';
-      var orig = btn.textContent;
-      btn.textContent = 'Confirmer ?';
-      btn.style.background = '#e05555';
-      btn.style.color = '#fff';
-      setTimeout(function(){
-        if(btn.dataset.confirmStep === '1') {
-          btn.dataset.confirmStep = '';
-          btn.textContent = orig;
-          btn.style.background = '';
-          btn.style.color = '';
-        }
-      }, 3000);
-      return;
-    }
-    // 2e clic = confirmer
-    if(btn) { btn.dataset.confirmStep = ''; btn.textContent = 'Supprimer 🗑️'; btn.style.background = ''; btn.style.color = ''; }
     fetch(SB_URL+'/rest/v1/activites?id=eq.'+id+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()})
-    .then(function(){
-      window.nousInvalidateActivitesCache();
-      window.closeActiviteModal();
-      window.nousLoadActivites(true);
-    }).catch(function(){});
+    .then(function(){ window.closeActiviteModal(); window.nousLoadActivites(); if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('activitesSection'); }).catch(function(){});
   };
 
   window.nousAddSuggestedActivite=function(){
@@ -2963,14 +3082,8 @@ document.addEventListener('yam:session_ready',function(){ var u=(typeof yamGetUs
     var coupleId=_getCoupleId(); if(!coupleId) return;
     var data={ couple_id:coupleId, title:sugg.titre, description:sugg.desc, emoji:sugg.emoji, steps:JSON.stringify(sugg.steps.map(function(s){ return {text:s,done:false}; })), is_suggested:true };
     fetch(SB_URL+'/rest/v1/activites',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
-    .then(function(){
-      window.nousInvalidateActivitesCache();
-      window.nousLoadActivites(true);
-      if(typeof window._nousSignalNewContent==='function') {
-        window._nousSignalNewContent('activitesSection');
-        window._nousSignalNewContent('Books');
-      }
-    }).catch(function(){});
+    .then(function(){ window.nousLoadActivites(); if(typeof window.nousSignalNew==='function') window.nousSignalNew(); })
+    .catch(function(){});
   };
 
   var _activiteM=document.getElementById('activiteModal');
@@ -3087,10 +3200,6 @@ document.addEventListener('yam:session_ready',function(){ var u=(typeof yamGetUs
       var card = document.getElementById('activiteIaSuggCard');
       if(card) card.style.display = 'none';
       window.nousInvalidateActivitesCache(); window.nousLoadActivites(true);
-      if(typeof window._nousSignalNewContent==='function') {
-        window._nousSignalNewContent('activitesSection');
-        window._nousSignalNewContent('Books');
-      }
     }).catch(function(){});
   };
 
