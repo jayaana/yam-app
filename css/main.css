@@ -6658,38 +6658,31 @@ body.light #rappelOverlay.open { background: rgba(0,0,0,0.22); }
   pointer-events: none;
   z-index: 2;
 }
-/* Label pulsant — au-dessus de tout */
-.nid-peek-lbl {
-  position: absolute !important;
-  bottom: 12px !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  z-index: 10 !important;
+/* Label peek — position:fixed sur body, hors du backdrop-filter de la section */
+#nidPeekFloat {
+  position: fixed !important;
+  z-index: 99998;
   background: var(--s1);
-  border: 1.5px solid rgba(231,90,124,0.35);
+  border: 1.5px solid rgba(231,90,124,0.55);
   border-radius: 20px;
-  padding: 6px 14px;
-  font-size: 11px;
+  padding: 7px 16px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--accent);
   white-space: nowrap;
   pointer-events: none;
-  max-width: 88%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  box-shadow: 0 3px 18px rgba(231,90,124,0.26);
   animation: nidPeekPulse 2.8s ease-in-out infinite;
-  box-shadow: 0 2px 12px rgba(231,90,124,0.18);
+  /* Pas de transform — position calculée en JS */
 }
 @keyframes nidPeekPulse {
   0%, 100% {
-    box-shadow: 0 2px 12px rgba(231,90,124,0.18);
-    transform: translateX(-50%) translateY(0) !important;
-    border-color: rgba(231,90,124,0.35);
+    box-shadow: 0 3px 18px rgba(231,90,124,0.26);
+    border-color: rgba(231,90,124,0.45);
   }
   50% {
-    box-shadow: 0 4px 22px rgba(231,90,124,0.42);
-    transform: translateX(-50%) translateY(-3px) !important;
-    border-color: rgba(231,90,124,0.68);
+    box-shadow: 0 5px 26px rgba(231,90,124,0.50);
+    border-color: rgba(231,90,124,0.80);
   }
 }
 /* Thème dark */
