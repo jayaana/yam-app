@@ -143,6 +143,31 @@ window._nousUnblockScroll = function() { _unblockBackgroundScroll(); };
     if (window._currentTab === 'nous') window.nousCheckLock();
   }, 800);
 
+
+  function _nousShowSoloWelcome(u) {
+    var overlay = document.getElementById('nousLockOverlay');
+    var contentWrap = document.getElementById('nousContentWrapper');
+    if (contentWrap) contentWrap.style.display = 'none';
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    overlay.innerHTML =
+      '<div class="nous-solo-welcome">' +
+        '<div class="nous-solo-illustration">🏡</div>' +
+        '<h2 class="nous-solo-title">Votre nid vous attend</h2>' +
+        '<p class="nous-solo-subtitle">Reliez-vous à votre partenaire pour construire votre espace à deux — photos, souvenirs, petits mots et bien plus.</p>' +
+        '<div class="nous-solo-code-wrap">' +
+          '<div class="nous-solo-code-label">Votre code couple</div>' +
+          '<button class="nous-solo-code-btn" id="nousSoloCodeBtn">👩‍❤️‍👨 Voir mon code</button>' +
+        '</div>' +
+        '<p class="nous-solo-hint">Partagez votre code avec votre partenaire, ou entrez le sien dans les paramètres.</p>' +
+      '</div>';
+    // CSP-safe : addEventListener uniquement, pas onclick inline
+    var soloBtn = document.getElementById('nousSoloCodeBtn');
+    if (soloBtn) soloBtn.addEventListener('click', function() {
+      if (typeof window.yamToggleAccountModal === 'function') window.yamToggleAccountModal();
+    });
+  }
+
 })();
 
 
@@ -150,32 +175,29 @@ window._nousUnblockScroll = function() { _unblockBackgroundScroll(); };
 // ════════════════════════════════════════════════════════════════════
 
 // ════════════════════════════════════════════════════════════════════
-// #98 — LE NID : Progression couple + État solo
-// Stockage : photo_descs (category=nous_progress, couple_id)
-// JSON stocké dans le champ description : {unlocked:[...], milestones_claimed:[25,50,...]}
+// #98 — LE NID : Progression douce + encouragements
+// Principe : pas de blur/cadenas. On détecte les sections vides après
+// chargement et on injecte un encart chaleureux dans chacune.
+// Stockage progression : photo_descs (category=nous_progress)
 // ════════════════════════════════════════════════════════════════════
 
-// Ordre de déverrouillage des sections
-var _NID_SECTIONS = ['photos', 'petits_mots', 'souvenirs', 'histoire', 'memo', 'activites', 'livres'];
-var _NID_LABELS   = {
-  photos:     'Photos',
-  petits_mots:'Petits mots',
-  souvenirs:  'Souvenirs',
-  histoire:   'Notre Histoire',
-  memo:       'Mémo',
-  activites:  'Activités',
-  livres:     'Livres'
+var _nidProgress = null;
+var _nidProgressId = null;
+var _NID_ORDER = ['photos', 'petits_mots', 'souvenirs', 'histoire', 'memo', 'activites', 'livres'];
+var _NID_ENCOURAGEMENTS = {
+  souvenirs:  { emoji: '📸', titre: 'Vos premiers souvenirs vous attendent',  texte: 'Capturez un moment, une photo, un endroit — construisez votre album à deux.',  btn: 'Ajouter un souvenir',  fn: 'nousOpenSouvenirGestion' },
+  histoire:   { emoji: '📖', titre: 'Écrivez votre premier chapitre',         texte: 'Une date, une anecdote, un moment fondateur — votre histoire mérite d’être racontée.', btn: 'Ajouter un chapitre', fn: 'histoireOpenGestion' },
+  memo:       { emoji: '📝', titre: 'Votre espace de notes partagé',          texte: 'Une liste de courses, une idée en commun, un rêve à noter — c’est là que ça vit.',   btn: 'Ouvrir le mémo',    fn: 'openMemoTodoEdit' },
+  activites:  { emoji: '✨', titre: 'Créez votre première activité ensemble', texte: 'Une sortie, un projet, un défi — transformez vos envies en étapes concrètes.',        btn: 'Créer une activité', fn: 'nousOpenActiviteModal' },
+  livres:     { emoji: '📚', titre: 'Votre bibliothèque de couple',           texte: 'Un livre lu ensemble, une recommandation, un univers partagé — ajoutez votre première pochette.', btn: 'Ajouter un livre', fn: 'livresOpenEdit' },
+  petits_mots:{ emoji: '💌', titre: 'Glissez un premier mot doux',            texte: 'Un message surprise que l’autre découvrira au prochain passage — ça ne prend qu’une minute.', btn: 'Écrire un mot', fn: 'petitsMotsOpenEditor' }
 };
 
-// Cache local de la progression
-var _nidProgress = null; // {unlocked:[], milestones_claimed:[]}
-var _nidProgressId = null; // id de la row photo_descs
-
-// ── Charger la progression depuis Supabase ──
+// ── Charger/sauver la progression ──
 function _nidLoad(cb) {
   var u = (typeof yamGetUser==='function') ? yamGetUser() : null;
   var coupleId = u ? u.couple_id : null;
-  if (!coupleId) { if(cb) cb(); return; }
+  if (!coupleId) { _nidProgress = {unlocked:['photos','petits_mots'],milestones_claimed:[]}; if(cb) cb(); return; }
   fetch(SB_URL + '/rest/v1/photo_descs?couple_id=eq.' + coupleId + '&category=eq.nous_progress&limit=1', { headers: sb2Headers() })
     .then(function(r){ return r.ok ? r.json() : []; })
     .then(function(rows) {
@@ -183,16 +205,14 @@ function _nidLoad(cb) {
         _nidProgressId = rows[0].id;
         try { _nidProgress = JSON.parse(rows[0].description || '{}'); } catch(e) { _nidProgress = {}; }
       } else {
-        _nidProgressId = null;
-        _nidProgress = {};
+        _nidProgressId = null; _nidProgress = {};
       }
-      if (!_nidProgress.unlocked)           _nidProgress.unlocked = ['photos', 'petits_mots'];
+      if (!_nidProgress.unlocked)           _nidProgress.unlocked = ['photos','petits_mots'];
       if (!_nidProgress.milestones_claimed) _nidProgress.milestones_claimed = [];
       if (cb) cb();
     }).catch(function(){ _nidProgress = {unlocked:['photos','petits_mots'],milestones_claimed:[]}; if(cb) cb(); });
 }
 
-// ── Sauvegarder la progression ──
 function _nidSave() {
   var u = (typeof yamGetUser==='function') ? yamGetUser() : null;
   var coupleId = u ? u.couple_id : null;
@@ -207,66 +227,110 @@ function _nidSave() {
   }
 }
 
-// ── Calculer le % de remplissage global (indépendant des déverrouillages) ──
+// ── Calculer le % de sections "actives" ──
 function _nidCalcPercent() {
-  // Chaque section remplit 1/7 du nid si elle a du contenu
-  var sections = _NID_SECTIONS;
-  var filled = 0;
   var unlocked = (_nidProgress && _nidProgress.unlocked) ? _nidProgress.unlocked : ['photos','petits_mots'];
-  // On compte les sections déverrouillées comme "potentiellement remplies"
-  sections.forEach(function(s) { if (unlocked.indexOf(s) !== -1) filled++; });
-  return Math.round((filled / sections.length) * 100);
+  return Math.round((unlocked.length / _NID_ORDER.length) * 100);
 }
 
-// ── Vérifier si on doit déverrouiller la section suivante ──
+// ── Signal : une section vient d'être remplie ──
 window._nousSignalNewContent = function(section) {
   if (!_nidProgress) { _nidLoad(function(){ window._nousSignalNewContent(section); }); return; }
   var unlocked = _nidProgress.unlocked || [];
-  // Si la section n'est pas encore déverrouillée, l'ajouter
+  var changed = false;
   if (unlocked.indexOf(section) === -1) {
     unlocked.push(section);
     _nidProgress.unlocked = unlocked;
+    changed = true;
+    // Supprimer l'encart d'encouragement de cette section
+    var encart = document.getElementById('nid-encart-' + section);
+    if (encart) {
+      encart.style.transition = 'opacity 0.4s, max-height 0.4s';
+      encart.style.opacity = '0';
+      encart.style.maxHeight = '0';
+      setTimeout(function(){ if(encart.parentNode) encart.parentNode.removeChild(encart); }, 420);
+    }
   }
   // Déverrouiller la section suivante dans l'ordre
-  var currentIdx = _NID_SECTIONS.indexOf(section);
-  var nextSection = (currentIdx >= 0 && currentIdx < _NID_SECTIONS.length - 1) ? _NID_SECTIONS[currentIdx + 1] : null;
-  if (nextSection && unlocked.indexOf(nextSection) === -1) {
-    unlocked.push(nextSection);
-    _nidProgress.unlocked = unlocked;
-    // Animation de révélation + toast
-    setTimeout(function(){
-      _nousRevealSection(nextSection);
-      if (typeof showToast === 'function') showToast('Votre nid s\'agrandit 🪺 — ' + (_NID_LABELS[nextSection]||nextSection) + ' débloquée !', 'success');
-    }, 400);
+  var idx = _NID_ORDER.indexOf(section);
+  if (idx >= 0 && idx < _NID_ORDER.length - 1) {
+    var next = _NID_ORDER[idx + 1];
+    if (unlocked.indexOf(next) === -1) {
+      unlocked.push(next);
+      _nidProgress.unlocked = unlocked;
+      changed = true;
+      // Révéler l'encart de la section suivante (si elle est encore vide)
+      var nextEncart = document.getElementById('nid-encart-' + next);
+      if (nextEncart) {
+        nextEncart.classList.add('nid-encart-reveal');
+        if (typeof showToast === 'function') showToast('Votre nid s’agrandit 🪺', 'success');
+      }
+    }
   }
-  _nidSave();
-  _nousUpdateNestBar();
-  _nousCheckMilestones();
+  if (changed) { _nidSave(); _nousUpdateNestBar(); _nousCheckMilestones(); }
 };
 
-// ── Animation de révélation d'une section ──
-function _nousRevealSection(section) {
-  var el = document.querySelector('[data-nid-section="'+section+'"]');
-  if (!el) return;
-  el.classList.remove('nous-section-locked');
-  el.classList.add('nous-section-unlocking');
-  setTimeout(function(){ el.classList.remove('nous-section-unlocking'); }, 700);
-}
-
-// ── Appliquer l'état verrouillé/déverrouillé sur les sections ──
-function _nousApplyLockStates() {
-  if (!_nidProgress) return;
-  var unlocked = _nidProgress.unlocked || ['photos','petits_mots'];
-  _NID_SECTIONS.forEach(function(section) {
-    var el = document.querySelector('[data-nid-section="'+section+'"]');
-    if (!el) return;
-    if (unlocked.indexOf(section) !== -1) {
-      el.classList.remove('nous-section-locked');
-    } else {
-      el.classList.add('nous-section-locked');
-    }
+// ── Injecter un encart d'encouragement dans une section vide ──
+function _nidInjectEncart(section, containerEl) {
+  if (!containerEl) return;
+  if (document.getElementById('nid-encart-' + section)) return; // déjà injecté
+  var enc = _NID_ENCOURAGEMENTS[section]; if (!enc) return;
+  var div = document.createElement('div');
+  div.id = 'nid-encart-' + section;
+  div.className = 'nid-encart';
+  div.innerHTML =
+    '<span class="nid-encart-emoji">' + enc.emoji + '</span>' +
+    '<div class="nid-encart-body">' +
+      '<div class="nid-encart-titre">' + escHtml(enc.titre) + '</div>' +
+      '<div class="nid-encart-texte">' + escHtml(enc.texte) + '</div>' +
+    '</div>' +
+    '<button class="nid-encart-btn" id="nid-encart-btn-' + section + '">' + escHtml(enc.btn) + '</button>';
+  containerEl.appendChild(div);
+  // Attacher le bouton CTA (CSP-safe)
+  var btn = document.getElementById('nid-encart-btn-' + section);
+  if (btn && enc.fn) {
+    btn.addEventListener('click', function() {
+      if (typeof window[enc.fn] === 'function') window[enc.fn](null);
+    });
+  }
+  // Animation d'entrée légère
+  requestAnimationFrame(function(){
+    div.classList.add('nid-encart-visible');
   });
 }
+
+// ── Après chargement : scanner les sections vides et injecter les encarts ──
+window._nousInjectEncarts = function() {
+  if (!_nidProgress) return;
+  var unlocked = _nidProgress.unlocked || ['photos','petits_mots'];
+
+  // Souvenirs vides
+  var souvenirEmpty = document.getElementById('souvenirsEmpty');
+  if (souvenirEmpty && souvenirEmpty.style.display !== 'none') {
+    _nidInjectEncart('souvenirs', souvenirEmpty.parentNode);
+  }
+  // Notre Histoire vide
+  var histoireBulle = document.getElementById('histoireBulle');
+  if (histoireBulle && !histoireBulle.querySelector('.histoire-bulle-texte:not(:empty)')) {
+    var histContainer = document.getElementById('histoireSection') || (histoireBulle && histoireBulle.parentNode);
+    if (histContainer) _nidInjectEncart('histoire', histContainer);
+  }
+  // Activités vides
+  var activitesContainer = document.getElementById('activitesContainer');
+  if (activitesContainer && activitesContainer.querySelectorAll('.activite-card').length === 0) {
+    _nidInjectEncart('activites', activitesContainer.parentNode || activitesContainer);
+  }
+  // Livres vides
+  var livresSlider = document.getElementById('livresSlider');
+  if (livresSlider && livresSlider.querySelectorAll('.livre-card').length === 0) {
+    _nidInjectEncart('livres', livresSlider.parentNode || livresSlider);
+  }
+  // Petits mots vides
+  var postitEmpty = document.querySelector('.postit-empty');
+  if (postitEmpty) {
+    _nidInjectEncart('petits_mots', postitEmpty.parentNode);
+  }
+};
 
 // ── Mettre à jour la barre de progression "Notre Nid" ──
 window._nousUpdateNestBar = function() {
@@ -277,44 +341,24 @@ window._nousUpdateNestBar = function() {
   var fill = bar.querySelector('.nous-nest-bar-fill');
   var label = bar.querySelector('.nous-nest-bar-label');
   var pctEl = bar.querySelector('.nous-nest-bar-pct');
-  if (fill) fill.style.width = pct + '%';
+  if (fill) {
+    fill.style.width = pct + '%';
+    // Couleur selon avancement
+    if (pct >= 100) fill.style.background = 'linear-gradient(90deg,#3ecf8e,#27ae74)';
+    else if (pct >= 75) fill.style.background = 'linear-gradient(90deg,var(--accent),#f59e6a)';
+    else fill.style.background = 'linear-gradient(90deg,var(--accent),#f59e6a)';
+  }
   if (pctEl) pctEl.textContent = pct + '%';
   if (label) {
-    var msg = pct < 25 ? 'Les fondations 🌱' : pct < 50 ? 'Ça pousse 🌿' : pct < 75 ? 'Presque douillet ☀️' : pct < 100 ? 'Presque parfait 🌸' : 'Nid complet 🪺✨';
+    var msg = pct < 25 ? 'Les fondations 🌱'
+            : pct < 50 ? 'Ça pousse 🌿'
+            : pct < 75 ? 'Presque douillet ☀️'
+            : pct < 100 ? 'Presque parfait 🌸'
+            : 'Nid complet 🪺';
     label.textContent = msg;
   }
   bar.style.display = 'block';
-  _nousApplyLockStates();
 };
-
-// ── Vérifier et déclencher les paliers ──
-function _nousCheckMilestones() {
-  if (!_nidProgress) return;
-  var pct = _nidCalcPercent();
-  var claimed = _nidProgress.milestones_claimed || [];
-  [25, 50, 75, 100].forEach(function(milestone) {
-    if (pct >= milestone && claimed.indexOf(milestone) === -1) {
-      claimed.push(milestone);
-      _nidProgress.milestones_claimed = claimed;
-      _nidSave();
-      // Récompense palier
-      setTimeout(function() {
-        if (typeof window.yamFlameActivity === 'function') window.yamFlameActivity('nest_milestone');
-        if (typeof showToast === 'function') {
-          var msgs = {
-            25:  'Premier palier 🌱 +5 points de flamme !',
-            50:  'À mi-chemin 🌿 Votre nid grandit vite !',
-            75:  'Presque là 🌸 Encore un effort !',
-            100: '🪺✨ Nid complet ! Votre histoire est magnifique !'
-          };
-          showToast(msgs[milestone] || 'Palier atteint !', 'success');
-        }
-        // Confettis légers
-        if (typeof window._yamConfetti === 'function') window._yamConfetti();
-      }, 600);
-    }
-  });
-}
 
 // ── Injecter la barre de progression dans le DOM ──
 function _nousInjectNestBar() {
@@ -334,161 +378,29 @@ function _nousInjectNestBar() {
   wrapper.insertBefore(bar, wrapper.firstChild);
 }
 
-// ── Page d'accueil solo ──
-function _nousShowSoloWelcome(u) {
-  var overlay = document.getElementById('nousLockOverlay');
-  var content = document.getElementById('nousContentWrapper');
-  if (content) content.style.display = 'none';
-
-  if (!overlay) return;
-  overlay.style.display = 'flex';
-  overlay.innerHTML =
-    '<div class="nous-solo-welcome">' +
-      '<div class="nous-solo-illustration">🏡</div>' +
-      '<h2 class="nous-solo-title">Votre nid vous attend</h2>' +
-      '<p class="nous-solo-subtitle">Reliez-vous à votre partenaire pour construire votre espace à deux — photos, souvenirs, petits mots et bien plus.</p>' +
-      '<div class="nous-solo-code-wrap">' +
-        '<div class="nous-solo-code-label">Votre code couple</div>' +
-        '<div class="nous-solo-code" onclick="if(typeof window.yamToggleAccountModal===\'function\') window.yamToggleAccountModal();">' +
-          '💑 Voir mon code' +
-        '</div>' +
-      '</div>' +
-      '<p class="nous-solo-hint">Partagez votre code avec votre partenaire, ou entrez le sien dans les paramètres.</p>' +
-    '</div>';
-}
-
-// 1. INIT CENTRALE — appelée une seule fois au premier affichage
-// ════════════════════════════════════════════════════════════════════
-// ── Edge Function yam-init (#59) ─────────────────────────────────────────
-// URL construite localement (SB_URL est global depuis app-core.js)
-var SB2_EDGE_YAM_INIT = null; // initialisé au premier appel (SB_URL dispo)
-
-// Injecte les données batchées dans les structures existantes de l'app,
-// exactement comme si chaque fonction avait fait sa propre requête.
-function _nousApplyBatchData(d) {
-  var coupleId = (yamGetUser()||{}).couple_id;
-  if(!coupleId) return;
-
-  // 1. Titres sections
-  if(Array.isArray(d.sectionTitles)) {
-    d.sectionTitles.forEach(function(row) {
-      if(row.slot === 'elle_title' || row.slot === '0' || row.slot === 0) {
-        var el = document.getElementById('elleSectionTitle');
-        if(el && row.description) el.textContent = row.description;
-      } else if(row.slot === 'lui_title' || row.slot === '99' || row.slot === 99) {
-        var el2 = document.getElementById('luiSectionTitle');
-        if(el2 && row.description) el2.textContent = row.description;
-      }
-    });
-  }
-
-  // 2+3. Banners + descs Elle
-  if(Array.isArray(d.elleBanners)) {
-    d.elleBanners.forEach(function(row) {
-      var el = document.getElementById('elle-banner-'+row.slot);
-      if(el) el.textContent = row.description;
-      var lbl = document.querySelector('#elle-empty-'+row.slot+' .lui-img-empty-lbl');
-      if(lbl) lbl.textContent = row.description;
-    });
-  }
-  if(Array.isArray(d.elleDescs)) {
-    d.elleDescs.forEach(function(row) {
-      var el = document.getElementById('elle-desc-'+row.slot);
-      if(el) el.textContent = row.description;
-    });
-  }
-
-  // 4+5. Banners + descs Lui
-  if(Array.isArray(d.luiBanners)) {
-    d.luiBanners.forEach(function(row) {
-      var el = document.getElementById('lui-banner-'+row.slot);
-      if(el) el.textContent = row.description;
-      var lbl = document.querySelector('#lui-empty-'+row.slot+' .lui-img-empty-lbl');
-      if(lbl) lbl.textContent = row.description;
-    });
-  }
-  if(Array.isArray(d.luiDescs)) {
-    d.luiDescs.forEach(function(row) {
-      var el = document.getElementById('lui-desc-'+row.slot);
-      if(el) el.textContent = row.description;
-    });
-  }
-
-  // 6. Likes coeurs
-  if(Array.isArray(d.likeCounters)) {
-    var elGirl = document.getElementById('likeNumGirl');
-    var elBoy  = document.getElementById('likeNumBoy');
-    var foundGirl = false; var foundBoy = false;
-    d.likeCounters.forEach(function(r) {
-      if(r.role==='girl'&&elGirl){ elGirl.textContent=fmtLikes(r.total); foundGirl=true; }
-      if(r.role==='boy' &&elBoy) { elBoy.textContent =fmtLikes(r.total); foundBoy=true;  }
-    });
-    if(!foundGirl&&elGirl) elGirl.textContent='0';
-    if(!foundBoy &&elBoy)  elBoy.textContent ='0';
-  }
-
-  // 7. Petits mots
-  if(Array.isArray(d.petitsMots) && typeof window._petitsMotsApply === 'function') {
-    window._petitsMotsApply(d.petitsMots);
-  }
-
-  // 8+9. Mémo note + todos
-  if(typeof window._memoNoteApply === 'function')  window._memoNoteApply(d.memoNote  || []);
-  if(typeof window._memoTodosApply === 'function') window._memoTodosApply(d.memoTodos || []);
-
-  // 10. Souvenirs
-  if(Array.isArray(d.memories)) {
-    window._souvenirAllRows = d.memories;
-    if(typeof window._renderSouvenirRowsPublic === 'function') window._renderSouvenirRowsPublic(d.memories);
-  }
-
-  // 11. Activités
-  if(Array.isArray(d.activites)) {
-    window._activiteAllRows = d.activites;
-    if(typeof window._renderActivitesHomePublic === 'function') window._renderActivitesHomePublic();
-  }
-
-  // 12. Livres
-  if(Array.isArray(d.livres)) {
-    window._livresAllRows = d.livres;
-    if(typeof window._renderLivresSliderPublic === 'function') window._renderLivresSliderPublic();
-  }
-}
-
-// Tentative batch — si succès, skip les fetches individuels ; si échec, fallback classique.
-function _nousInitBatch(onSuccess, onFallback) {
-  var u = (typeof yamGetUser==='function') ? yamGetUser() : null;
-  if(!u || !u.couple_id) { onFallback(); return; }
-
-  if(!SB2_EDGE_YAM_INIT) SB2_EDGE_YAM_INIT = SB_URL + '/functions/v1/yam-init';
-
-  var token = '';
-  try { token = yamGetAccessToken ? yamGetAccessToken() : ''; } catch(e){}
-  if(!token) { onFallback(); return; }
-
-  var profile = (typeof getProfile==='function') ? getProfile() : 'girl';
-
-  fetch(SB2_EDGE_YAM_INIT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (yamGetAccessToken ? yamGetAccessToken() : '') },
-    body: JSON.stringify({ couple_id: u.couple_id, profile: profile })
-  })
-  .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
-  .then(function(res) {
-    if(res && res.ok && res.data) {
-      _nousApplyBatchData(res.data);
-      onSuccess();
-    } else {
-      onFallback();
+// ── Vérifier et déclencher les paliers ──
+function _nousCheckMilestones() {
+  if (!_nidProgress) return;
+  var pct = _nidCalcPercent();
+  var claimed = _nidProgress.milestones_claimed || [];
+  [25, 50, 75, 100].forEach(function(milestone) {
+    if (pct >= milestone && claimed.indexOf(milestone) === -1) {
+      claimed.push(milestone);
+      _nidProgress.milestones_claimed = claimed;
+      _nidSave();
+      setTimeout(function() {
+        if (typeof window.yamFlameActivity === 'function') window.yamFlameActivity('nest_milestone');
+        if (typeof showToast === 'function') {
+          var msgs = { 25:'Premier palier 🌱 +5 points de flamme !', 50:'À mi-chemin 🌿 Le nid se construit !', 75:'Presque là 🌸 Encore un effort !', 100:'🪺 Nid complet ! Votre histoire est magnifique !' };
+          showToast(msgs[milestone] || 'Palier atteint !', 'success');
+        }
+      }, 600);
     }
-  })
-  .catch(function() {
-    onFallback();
   });
 }
 
 function _nousInitAll() {
-  // ── #98 Le Nid : barre de progression + états verrouillés ──
+  // ── #98 Le Nid : barre de progression ──
   _nousInjectNestBar();
   _nidLoad(function() {
     window._nousUpdateNestBar();
@@ -511,6 +423,8 @@ function _nousInitAll() {
       nousLoadSouvenirs();
       nousLoadActivites();
       livresLoad();
+      // #98 — Injecter encarts d'encouragement après chargement des sections
+      setTimeout(function(){ window._nousInjectEncarts(); }, 800);
     },
     function() {
       // Fallback — comportement original intact
@@ -532,6 +446,7 @@ function _nousInitAll() {
       nousLoadSouvenirs();
       nousLoadActivites();
       livresLoad();
+      setTimeout(function(){ window._nousInjectEncarts(); }, 800);
     }
   );
 
@@ -3172,6 +3087,10 @@ document.addEventListener('yam:session_ready', function(){
     _histoireReaderIndex = (typeof startIndex === 'number') ? startIndex : _histoireSelectedIndex;
     _histoireReaderIndex = Math.max(0, Math.min(_histoireReaderIndex, sorted.length - 1));
 
+    // Masquer l'ancien modal statique si présent (évite conflits de z-index)
+    var oldStaticModal = document.getElementById('histoireChapterModal');
+    if (oldStaticModal) oldStaticModal.style.display = 'none';
+
     // Créer ou récupérer le lecteur immersif
     var existing = document.getElementById('histoireImmersifOverlay');
     if (existing) existing.remove();
@@ -3237,26 +3156,32 @@ document.addEventListener('yam:session_ready', function(){
     }
 
     function _animateReader(dir) {
+      // Sortie de la card courante
       var card = overlay.querySelector('.histoire-immersif-card');
       if (card) {
-        card.style.transition = 'opacity 0.18s, transform 0.18s';
+        card.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
         card.style.opacity = '0';
-        card.style.transform = 'translateX(' + (dir === 'left' ? '-24px' : '24px') + ')';
-        setTimeout(function() {
-          _renderReader();
-          var newCard = overlay.querySelector('.histoire-immersif-card');
-          if (newCard) {
-            newCard.style.transition = 'none';
-            newCard.style.opacity = '0';
-            newCard.style.transform = 'translateX(' + (dir === 'left' ? '24px' : '-24px') + ')';
+        card.style.transform = 'translateX(' + (dir === 'left' ? '-20px' : '20px') + ')';
+      }
+      // Après la sortie, reconstruire et entrer
+      setTimeout(function() {
+        _renderReader();
+        var newCard = overlay.querySelector('.histoire-immersif-card');
+        if (newCard) {
+          // Position de départ (côté opposé)
+          newCard.style.transition = 'none';
+          newCard.style.opacity = '0';
+          newCard.style.transform = 'translateX(' + (dir === 'left' ? '20px' : '-20px') + ')';
+          // Double RAF pour garantir que le navigateur a appliqué le style "none"
+          requestAnimationFrame(function() {
             requestAnimationFrame(function() {
-              newCard.style.transition = 'opacity 0.22s, transform 0.22s';
+              newCard.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
               newCard.style.opacity = '1';
               newCard.style.transform = 'translateX(0)';
             });
-          }
-        }, 180);
-      }
+          });
+        }
+      }, 160);
     }
 
     // Swipe tactile
