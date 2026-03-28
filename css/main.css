@@ -6428,143 +6428,274 @@ body.light #rappelOverlay.open { background: rgba(0,0,0,0.22); }
 
 
 /* ═══════════════════════════════════════════════════════════════════
-   YAM v14 — Tâches #98 #99 #100 #101 #103
+   YAM v14 — #98 #99 #100 #101 #103
 ═══════════════════════════════════════════════════════════════════ */
 
-/* ── #98 — Barre de progression Notre Nid ── */
-.nous-nest-bar {
-  margin: 0 14px 16px;
-  padding: 11px 14px 13px;
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: var(--sh-sm);
+/* ── #103 — Mémo checked_by ──────────────────────────────────── */
+.todo-text-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
 }
-.nous-nest-bar-top {
+.todo-checked-by {
+  font-size: 10px;
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.2;
+}
+
+/* ── #99 — Badge anniversaire souvenirs ──────────────────────── */
+.souvenir-anniv-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 2px 8px;
+  background: linear-gradient(135deg, var(--accent), #f59e6a);
+  color: #fff;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  animation: annivPulse 2.6s ease-in-out infinite;
+  white-space: nowrap;
+}
+@keyframes annivPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(231,90,124,0); }
+  50%      { box-shadow: 0 0 0 4px rgba(231,90,124,0.18); }
+}
+.souvenir-card--anniv {
+  border: 1.5px solid rgba(231,90,124,0.32) !important;
+  box-shadow: 0 2px 10px rgba(231,90,124,0.12) !important;
+}
+
+/* ── #100 — Modal histoire amélioré ──────────────────────────── */
+/* Agrandir le contenu texte (n'était que 200px) */
+.histoire-chapter-modal-content #histoireChapterModalTexte {
+  max-height: none !important;
+  max-height: calc(55vh - 120px) !important;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Barre de navigation entre chapitres */
+.histoire-modal-nav {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 7px;
-}
-.nous-nest-bar-icon { font-size: 16px; line-height: 1; flex-shrink: 0; }
-.nous-nest-bar-label { flex: 1; font-size: 12px; font-weight: 600; color: var(--text); }
-.nous-nest-bar-pct { font-size: 12px; font-weight: 700; color: var(--accent); }
-.nous-nest-bar-milestones {
-  display: flex;
   justify-content: space-between;
-  margin-bottom: 5px;
-  padding: 0 1px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
 }
-.nous-nest-milestone {
-  font-size: 14px;
-  opacity: 0.28;
-  transition: opacity 0.4s, transform 0.4s;
-  cursor: default;
-  line-height: 1;
+.histoire-modal-counter {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
-.nous-nest-milestone.reached { opacity: 1; transform: scale(1.18); }
-.nous-nest-bar-track {
-  height: 6px;
+.histoire-modal-nav-btns {
+  display: flex;
+  gap: 8px;
+}
+.histoire-modal-nav-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--s2);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.13s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.histoire-modal-nav-btn:active { transform: scale(0.93); }
+.histoire-modal-nav-btn--next {
+  background: var(--accent);
+  border-color: transparent;
+  color: #fff;
+}
+.histoire-modal-nav-btn.hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Agrandir le modal pour qu'il soit vraiment lisible */
+.histoire-chapter-modal--open .histoire-chapter-modal-content {
+  box-shadow: 0 12px 48px rgba(0,0,0,0.3);
+}
+.histoire-chapter-modal-content #histoireChapterModalTitre {
+  font-size: 17px !important;
+  font-weight: 800 !important;
+}
+
+/* ── #98 — Barre de progression "Votre espace" ───────────────── */
+.nous-nest-bar {
+  margin: 0 14px 14px;
+  padding: 12px 14px 10px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--sh-sm);
+}
+.nid-bar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.nid-bar-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+.nid-bar-pct {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.nid-bar-track {
+  height: 5px;
   background: var(--s3);
-  border-radius: 6px;
+  border-radius: 5px;
   overflow: hidden;
+  margin-bottom: 12px;
 }
-.nous-nest-bar-fill {
+.nid-bar-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--accent), #f59e6a);
-  border-radius: 6px;
-  transition: width 0.6s cubic-bezier(0.34,1.56,0.64,1);
+  border-radius: 5px;
+  transition: width 0.55s cubic-bezier(0.34, 1.4, 0.64, 1);
   min-width: 0;
 }
 
-/* ── #98 — Sections progressives ── */
-/* Section suivante : visible mais flouée en bas, non cliquable */
-.nid-section-peek {
+/* Paliers nommés — une case par section */
+.nid-bar-milestones {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 4px;
+}
+.nid-milestone {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.nid-milestone-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--s3);
+  border: 1.5px solid var(--border);
+  flex-shrink: 0;
+  transition: background 0.3s, border-color 0.3s, transform 0.3s;
+}
+.nid-milestone.done .nid-milestone-dot {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: scale(1.25);
+}
+.nid-milestone-name {
+  font-size: 9px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  transition: color 0.3s, font-weight 0.3s;
+}
+.nid-milestone.done .nid-milestone-name {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ── #98 — Section peek (suivante, partiellement visible) ─────── */
+.nid-peek {
   position: relative;
   pointer-events: none;
   user-select: none;
 }
-.nid-section-peek::after {
+.nid-peek::after {
   content: '';
   position: absolute;
   left: 0; right: 0; bottom: 0;
-  height: 80%;
-  background: linear-gradient(to bottom, transparent 0%, var(--bg) 85%);
-  border-radius: 0 0 16px 16px;
+  height: 72%;
+  background: linear-gradient(to bottom, transparent 0%, var(--bg) 90%);
+  border-radius: 0 0 14px 14px;
   pointer-events: none;
   z-index: 2;
 }
-.nid-section-peek .nid-peek-label {
+.nid-peek-lbl {
   position: absolute;
-  bottom: 10px;
+  bottom: 8px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 3;
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: 20px;
-  padding: 5px 14px;
+  padding: 5px 13px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--muted);
   white-space: nowrap;
   box-shadow: var(--sh-sm);
   pointer-events: none;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-/* Sections suivantes : complètement cachées */
-.nid-section-hidden {
+
+/* ── #98 — Sections cachées ──────────────────────────────────── */
+.nid-hidden {
   display: none !important;
 }
-/* Animation de révélation */
-.nid-section-reveal {
-  animation: nidReveal 0.55s cubic-bezier(0.34,1.1,0.64,1) forwards;
+
+/* ── #98 — Animation de révélation ───────────────────────────── */
+.nid-reveal {
+  animation: nidReveal 0.5s cubic-bezier(0.34, 1.1, 0.64, 1) both;
 }
 @keyframes nidReveal {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── #98 — Page solo ── */
-#nousLockOverlay.nous-solo-active {
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 24px;
-  min-height: 60vh;
-}
+/* ── #98 — Page solo (pas de partenaire) ─────────────────────── */
 .nous-solo-welcome {
-  max-width: 320px;
+  max-width: 310px;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
-.nous-solo-illustration {
-  font-size: 60px;
+.nous-solo-illu {
+  font-size: 54px;
   line-height: 1;
-  animation: houseFloat 3s ease-in-out infinite;
-}
-@keyframes houseFloat {
-  0%,100% { transform: translateY(0); }
-  50%      { transform: translateY(-7px); }
 }
 .nous-solo-title {
-  font-size: 21px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.3px;
 }
-.nous-solo-subtitle {
-  font-size: 13.5px;
+.nous-solo-sub {
+  font-size: 13px;
   line-height: 1.6;
   color: var(--muted);
 }
 .nous-solo-code-wrap {
   background: var(--s1);
   border: 1.5px solid var(--border);
-  border-radius: 16px;
-  padding: 14px 20px;
+  border-radius: 14px;
+  padding: 12px 18px;
   width: 100%;
   box-shadow: var(--sh-sm);
 }
@@ -6573,8 +6704,8 @@ body.light #rappelOverlay.open { background: rgba(0,0,0,0.22); }
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  margin-bottom: 8px;
   font-weight: 700;
+  margin-bottom: 8px;
 }
 .nous-solo-code-btn {
   display: inline-flex;
@@ -6589,186 +6720,12 @@ body.light #rappelOverlay.open { background: rgba(0,0,0,0.22); }
   border-radius: 10px;
   border: none;
   font-family: inherit;
-  transition: background 0.15s, transform 0.12s;
-}
-.nous-solo-code-btn:active { transform: scale(0.97); }
-.nous-solo-hint {
-  font-size: 12px;
-  color: var(--muted);
-  line-height: 1.5;
-}
-
-/* ── #99 — Badge anniversaire souvenirs ── */
-.souvenir-anniv-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 4px;
-  padding: 2px 8px;
-  background: linear-gradient(135deg, var(--accent), #f59e6a);
-  color: #fff;
-  border-radius: 20px;
-  font-size: 10px;
-  font-weight: 700;
-  animation: annivPulse 2.4s ease-in-out infinite;
-  white-space: nowrap;
-}
-@keyframes annivPulse {
-  0%,100% { box-shadow: 0 0 0 0 rgba(231,90,124,0); }
-  50%      { box-shadow: 0 0 0 5px rgba(231,90,124,0.16); }
-}
-.souvenir-card--anniv {
-  border: 1.5px solid rgba(231,90,124,0.35) !important;
-  box-shadow: 0 2px 12px rgba(231,90,124,0.13) !important;
-}
-
-/* ── #100 — Lecteur immersif Notre Histoire ── */
-.histoire-reader-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 3200;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.25s ease;
-  pointer-events: none;
-}
-.histoire-reader-overlay.open {
-  opacity: 1;
-  pointer-events: all;
-}
-.histoire-reader-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(10,8,7,0.75);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-}
-.histoire-reader-card {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  max-width: 480px;
-  max-height: 86vh;
-  background: var(--s1);
-  border-radius: 26px 26px 0 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-shadow: 0 -8px 40px rgba(0,0,0,0.26);
-  transform: translateY(0);
-}
-.histoire-reader-handle {
-  width: 36px;
-  height: 4px;
-  background: var(--border);
-  border-radius: 2px;
-  margin: 10px auto 0;
-  flex-shrink: 0;
-}
-.histoire-reader-progress-track {
-  height: 3px;
-  background: var(--s3);
-  margin-top: 10px;
-  flex-shrink: 0;
-}
-.histoire-reader-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), #f59e6a);
-  transition: width 0.35s ease;
-}
-.histoire-reader-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px 24px 12px;
-  -webkit-overflow-scrolling: touch;
-}
-.histoire-reader-chapeau {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-bottom: 12px;
-}
-.histoire-reader-emoji { font-size: 20px; line-height: 1; }
-.histoire-reader-date {
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--accent);
-  padding: 3px 9px;
-  background: var(--accent-s);
-  border-radius: 20px;
-}
-.histoire-reader-titre {
-  font-size: 21px;
-  font-weight: 800;
-  color: var(--text);
-  line-height: 1.22;
-  margin-bottom: 14px;
-  letter-spacing: -0.3px;
-}
-.histoire-reader-texte {
-  font-size: 14.5px;
-  line-height: 1.78;
-  color: var(--sub);
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.histoire-reader-counter {
-  margin-top: 20px;
-  font-size: 11px;
-  color: var(--muted);
-  text-align: center;
-}
-.histoire-reader-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid var(--border);
-  flex-shrink: 0;
-  gap: 10px;
-}
-.histoire-reader-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  background: var(--s2);
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 0.13s, transform 0.1s;
+  transition: opacity 0.13s, transform 0.1s;
   -webkit-tap-highlight-color: transparent;
 }
-.histoire-reader-btn:active { transform: scale(0.96); }
-.histoire-reader-btn--next {
-  background: linear-gradient(135deg, var(--accent), #c94f6f);
-  border-color: transparent;
-  color: #fff;
-  margin-left: auto;
-}
-.histoire-reader-btn.hidden { visibility: hidden; pointer-events: none; }
-
-/* ── #101 — Realtime activités : aucun CSS spécifique ── */
-
-/* ── #103 — Mémo checked_by ── */
-.todo-text-wrap {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-.todo-checked-by {
-  font-size: 10px;
+.nous-solo-code-btn:active { opacity: 0.8; transform: scale(0.97); }
+.nous-solo-hint {
+  font-size: 11.5px;
   color: var(--muted);
-  font-style: italic;
-  line-height: 1.2;
+  line-height: 1.5;
 }
