@@ -146,33 +146,56 @@ function _nidSave(){
 // Appliquer l'état visuel de chaque section
 function _nidApply(){
   if(!_NID_DATA) return;
-  var unlocked=_NID_DATA.unlocked||['memoCoupleSection'];
-  var nextIdx=unlocked.length; // index de la section peek (juste après la dernière déverrouillée)
+  var unlocked=_NID_DATA.unlocked||[];
+  var nextIdx=unlocked.length;
+
+  // Nettoyer l'ancien label flottant (position:fixed sur body)
+  var oldFloat=document.getElementById('nidPeekFloat');
+  if(oldFloat) { oldFloat.remove(); window._nidFloatRaf && cancelAnimationFrame(window._nidFloatRaf); }
 
   _NID_IDS.forEach(function(id,i){
     var el=document.getElementById(id); if(!el) return;
-    // Nettoyer
     el.classList.remove('nid-peek','nid-hidden');
-    var lbl=el.querySelector('.nid-peek-lbl'); if(lbl) lbl.remove();
+    // Supprimer ancien label inline
+    var oldLbl=el.querySelector('.nid-peek-lbl'); if(oldLbl) oldLbl.remove();
 
     if(unlocked.indexOf(id)!==-1){
-      // Déverrouillée : pleinement visible
       el.style.display='';
     } else if(i===nextIdx){
-      // Section peek : visible mais dégradé + label
+      // Peek : flou+dégradé sur la section
       el.style.display='';
       el.classList.add('nid-peek');
-      var d=document.createElement('div');
-      d.className='nid-peek-lbl';
-      d.textContent='Remplissez "'+(_NID_NAMES[_NID_IDS[i-1]]||'la section précédente')+'" pour débloquer';
-      el.appendChild(d);
+      // Label injecté sur document.body en position:fixed
+      // → échappe au backdrop-filter de ::before
+      _nidCreateFloatLabel(el, _NID_IDS[i-1]);
     } else {
-      // Cachée
       el.classList.add('nid-hidden');
     }
   });
 
   _nidRefreshBar();
+}
+
+// Label fixe sur le body, repositionné en RAF au scroll
+function _nidCreateFloatLabel(section, prevId) {
+  var lbl = document.createElement('div');
+  lbl.id = 'nidPeekFloat';
+  lbl.className = 'nid-peek-lbl-fixed';
+  var prevName = _NID_NAMES[prevId] || 'la section précédente';
+  lbl.textContent = 'Remplissez "' + prevName + '" pour débloquer';
+  document.body.appendChild(lbl);
+
+  function _place() {
+    var sr = section.getBoundingClientRect();
+    var lw = lbl.offsetWidth;
+    // Centré horizontalement sur la section, 34px au-dessus du bas
+    lbl.style.left = Math.round(sr.left + sr.width / 2 - lw / 2) + 'px';
+    lbl.style.top  = Math.round(sr.bottom - 38) + 'px';
+    // Masquer si la section n'est plus visible
+    lbl.style.display = (sr.bottom > 0 && sr.top < window.innerHeight) ? '' : 'none';
+    window._nidFloatRaf = requestAnimationFrame(_place);
+  }
+  _place();
 }
 
 // Signal : une section vient d'être remplie pour la première fois
