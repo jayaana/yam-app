@@ -6661,7 +6661,7 @@ body.light #rappelOverlay.open { background: rgba(0,0,0,0.22); }
 /* Label peek — position:fixed sur body, SOUS la nav (z-index < 1000) et SOUS les modales */
 #nidPeekFloat {
   position: fixed !important;
-  z-index: 500; /* sous la nav (1000) et les modales (2000+) */
+  z-index: 999; /* juste sous la nav (1000) mais visible au-dessus du contenu */
   background: var(--s1);
   border: 1.5px solid rgba(231,90,124,0.55);
   border-radius: 20px;
