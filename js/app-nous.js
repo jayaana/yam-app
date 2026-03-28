@@ -245,6 +245,8 @@ function _nidPct(){
 
 function _nidRefreshBar(){
   var bar=document.getElementById('nousNestBar'); if(!bar) return;
+  // Ne pas réafficher si déjà complété définitivement
+  if(_NID_DATA && _NID_DATA.completed) { bar.style.display='none'; return; }
   var pct=_nidPct();
   var fill=bar.querySelector('.nid-bar-fill');
   var pctEl=bar.querySelector('.nid-bar-pct');
@@ -442,7 +444,13 @@ function _nidShowSolo(){
       _nousInitAll();
       setTimeout(function(){ document.dispatchEvent(new Event('nousContentReady')); }, 300);
     } else {
-      _nidRefreshBar();
+      // Retour sur l'onglet : vérifier completed avant de rafraîchir
+      if(_NID_DATA && _NID_DATA.completed) {
+        var bar = document.getElementById('nousNestBar');
+        if(bar) bar.style.display = 'none';
+      } else {
+        _nidRefreshBar();
+      }
     }
   }
 
@@ -2505,6 +2513,7 @@ document.addEventListener('yam:session_ready',function(){ var u=(typeof yamGetUs
         if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh('souvenir_'+id);
         if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('souvenir_new');
         window.closeSouvenirModal(); window.nousLoadSouvenirs();
+        if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('activitesSection');
       }).catch(function(){
         if(saveBtn){ saveBtn.textContent='Sauvegarder'; saveBtn.disabled=false; }
         window.closeSouvenirModal(); window.nousLoadSouvenirs();
@@ -2520,6 +2529,7 @@ document.addEventListener('yam:session_ready',function(){ var u=(typeof yamGetUs
         if(newId && typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh('souvenir_'+newId);
         if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('souvenir_new');
         window.closeSouvenirModal(); window.nousLoadSouvenirs();
+        if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('activitesSection');
       }).catch(function(){
         if(saveBtn){ saveBtn.textContent='Sauvegarder'; saveBtn.disabled=false; }
         window.closeSouvenirModal(); window.nousLoadSouvenirs();
@@ -2901,7 +2911,9 @@ document.addEventListener('yam:session_ready',function(){ var u=(typeof yamGetUs
     var steps=Array.from(stepInputs).map(function(inp){ return {text:inp.value.trim(),done:false}; }).filter(function(s){ return s.text; });
     var data={ couple_id:coupleId, title:document.getElementById('activiteInputTitre').value.trim()||'Activité', description:document.getElementById('activiteInputDesc').value.trim()||null, emoji:document.getElementById('activiteInputEmoji').value.trim()||'✨', steps:JSON.stringify(steps) };
     var btn=document.getElementById('activiteSaveBtn'); if(btn){ btn.textContent='...'; btn.disabled=true; }
-    var done2=function(){ if(btn){ btn.textContent='Sauvegarder'; btn.disabled=false; } window.closeActiviteModal(); window.nousLoadActivites(); };
+    var done2=function(){ if(btn){ btn.textContent='Sauvegarder'; btn.disabled=false; } window.closeActiviteModal(); window.nousLoadActivites();
+      if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('Books');
+    };
     if(id){
       fetch(SB_URL+'/rest/v1/activites?id=eq.'+id,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done2).catch(done2);
     } else {
