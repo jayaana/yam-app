@@ -262,7 +262,7 @@ function _nidMilestones(){
 // Détection automatique au chargement : déverrouille silencieusement les sections
 // qui ont déjà du contenu, sans toast ni animation
 function _nidAutoDetect() {
-  if (!_NID_DATA) return;
+  if (!_NID_DATA) { _nidLoad(function(){ _nidAutoDetect(); }); return; }
   var cid = _nidCid(); if (!cid) return;
   var unlocked = _NID_DATA.unlocked;
   var changed = false;
@@ -3028,6 +3028,7 @@ document.addEventListener('yam:session_ready',function(){ var u=(typeof yamGetUs
       (function(i, it){
         tab.addEventListener('click', function(){
           _histoireSelectedIndex = i;
+          _rIdx = i; // syncer le lecteur avec la sélection
           _renderBulle(it);
           _renderBandeau();
           // Scroll dans le bandeau uniquement — jamais sur la page
@@ -3086,14 +3087,83 @@ document.addEventListener('yam:session_ready',function(){ var u=(typeof yamGetUs
   };
 
   // ── Modale chapitre complet — positionnée absolue sur la bulle ──
-  // ── Lecteur chapitres amélioré (#100) — utilise le DOM statique de index.html ──
-  var _rIdx = 0; // index courant dans le lecteur
+  // ── Lecteur chapitres (#100) ──────────────────────────────────────────────────
+  // app-inline.js fait display:flex sur #histoireChapterModal au clic bulle.
+  // On intercepte via MutationObserver pour peupler titre/texte/nav sans 
+  // modifier app-inline.js.
+  var _rIdx = 0;
+  var _histoireObserverInited = false;
 
   function _histoireSorted() {
     return _histoireAllRows.slice().sort(function(a,b){
       if((a.sort_order||0)!=(b.sort_order||0)) return (a.sort_order||0)-(b.sort_order||0);
       return (a.created_at||'').localeCompare(b.created_at||'');
     });
+  }
+
+  function _initHistoireObserver() {
+    if (_histoireObserverInited) return;
+    var modal = document.getElementById('histoireChapterModal');
+    if (!modal) return;
+    _histoireObserverInited = true;
+    var obs = new MutationObserver(function(mutations) {
+      mutations.forEach(function(m) {
+        if (m.type === 'attributes' && m.attributeName === 'style') {
+          var d = modal.style.display;
+          if (d === 'flex' || d === 'block') {
+            _histoirePopulateModal();
+          }
+        }
+      });
+    });
+    obs.observe(modal, { attributes: true, attributeFilter: ['style'] });
+  }
+
+  function _histoirePopulateModal() {
+    var sorted = _histoireSorted();
+    if (!sorted.length) return;
+    _rIdx = Math.max(0, Math.min(_rIdx, sorted.length - 1));
+    var item = sorted[_rIdx];
+    if (!item) return;
+    var metaStr = '';
+    if (item.emoji)      metaStr += item.emoji + ' · ';
+    if (item.date_label) metaStr += item.date_label.toUpperCase();
+    var metaEl  = document.getElementById('histoireChapterModalMeta');
+    var titreEl = document.getElementById('histoireChapterModalTitre');
+    var texteEl = document.getElementById('histoireChapterModalTexte');
+    if (metaEl)  metaEl.textContent  = metaStr;
+    if (titreEl) titreEl.textContent = item.title || '';
+    if (texteEl) {
+      texteEl.textContent = item.text || '';
+      texteEl.style.maxHeight = 'calc(60vh - 160px)';
+      texteEl.style.overflowY = 'auto';
+      texteEl.style.webkitOverflowScrolling = 'touch';
+    }
+    // Navigation
+    var modal = document.getElementById('histoireChapterModal');
+    var navEl = document.getElementById('histoireModalNav');
+    if (!navEl) {
+      navEl = document.createElement('div');
+      navEl.id = 'histoireModalNav';
+      navEl.className = 'histoire-modal-nav';
+      var content = modal ? modal.querySelector('.histoire-chapter-modal-content') : null;
+      if (content) content.appendChild(navEl);
+    }
+    var hasPrev = _rIdx > 0, hasNext = _rIdx < sorted.length - 1;
+    navEl.innerHTML =
+      '<span class="histoire-modal-counter">' + (_rIdx+1) + ' / ' + sorted.length + '</span>' +
+      '<div class="histoire-modal-nav-btns">' +
+        '<button class="histoire-modal-nav-btn' + (hasPrev?'':' hidden') + '" id="hmnPrev">' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15,18 9,12 15,6"/></svg>' +
+        '</button>' +
+        '<button class="histoire-modal-nav-btn histoire-modal-nav-btn--next' + (hasNext?'':' hidden') + '" id="hmnNext">' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9,18 15,12 9,6"/></svg>' +
+        '</button>' +
+      '</div>';
+    var bp = document.getElementById('hmnPrev');
+    var bn = document.getElementById('hmnNext');
+    if (bp) bp.onclick = function(e) { e.stopPropagation(); _rIdx = Math.max(0, _rIdx-1); _histoirePopulateModal(); };
+    if (bn) bn.onclick = function(e) { e.stopPropagation(); _rIdx = Math.min(sorted.length-1, _rIdx+1); _histoirePopulateModal(); };
   }
 
   function _histoireRenderModal(sorted, idx) {
@@ -3135,20 +3205,17 @@ document.addEventListener('yam:session_ready',function(){ var u=(typeof yamGetUs
   }
 
   window.histoireOpenChapterModal = function() {
-    var sorted = _histoireSorted();
-    if(!sorted.length) return;
+    // Syncer l'index avec le chapitre sélectionné dans le bandeau
     _rIdx = _histoireSelectedIndex;
-    _histoireRenderModal(sorted, _rIdx);
-    var modal = document.getElementById('histoireChapterModal');
-    if(modal) {
-      modal.style.display = 'block';
-      modal.classList.add('histoire-chapter-modal--open');
-    }
+    // L'observer va peupler automatiquement quand display change
+    // Si appelé programmatiquement (pas via app-inline), on peuple directement
+    _histoirePopulateModal();
+    _initHistoireObserver();
   };
 
   window.histoireCloseChapterModal = function() {
     var modal = document.getElementById('histoireChapterModal');
-    if(modal) { modal.classList.remove('histoire-chapter-modal--open'); modal.style.display = 'none'; }
+    if(modal) modal.style.display = 'none';
   };
 
   // Click en dehors ferme la modale
@@ -3278,7 +3345,7 @@ document.addEventListener('yam:session_ready',function(){ var u=(typeof yamGetUs
   if(_hModal) _hModal.addEventListener('click',function(e){ if(e.target===_hModal) window.histoireCloseItemModal(); });
 
   // Init
-  document.addEventListener('nousContentReady', function(){ window.histoireLoad(); });
+  document.addEventListener('nousContentReady', function(){ window.histoireLoad(); setTimeout(_initHistoireObserver, 300); });
   setTimeout(function(){ if(!_histoireAllRows.length) window.histoireLoad(); }, 2000);
 
 })();
