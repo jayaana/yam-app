@@ -258,6 +258,60 @@ function _nidMilestones(){
   });
 }
 
+
+// Détection automatique au chargement : déverrouille silencieusement les sections
+// qui ont déjà du contenu, sans toast ni animation
+function _nidAutoDetect() {
+  if (!_NID_DATA) return;
+  var cid = _nidCid(); if (!cid) return;
+  var unlocked = _NID_DATA.unlocked;
+  var changed = false;
+
+  function _unlock(id) {
+    if (unlocked.indexOf(id) === -1) { unlocked.push(id); changed = true; }
+  }
+
+  // Mémo : vérifier si note ou todos existent
+  fetch(SB_URL + '/rest/v1/memo_todos?couple_id=eq.' + cid + '&limit=1&select=id', { headers: sb2Headers() })
+    .then(function(r) { return r.ok ? r.json() : []; })
+    .then(function(rows) {
+      if (rows && rows.length) { _unlock('memoCoupleSection'); }
+      // Note mémo
+      return fetch(SB_URL + '/rest/v1/memo_notes?couple_id=eq.' + cid + '&limit=1&select=id', { headers: sb2Headers() });
+    })
+    .then(function(r) { return r && r.ok ? r.json() : []; })
+    .then(function(rows) {
+      if (rows && rows.length) { _unlock('memoCoupleSection'); }
+      // Petits mots
+      return fetch(SB_URL + '/rest/v1/petits_mots?couple_id=eq.' + cid + '&limit=1&select=id', { headers: sb2Headers() });
+    })
+    .then(function(r) { return r && r.ok ? r.json() : []; })
+    .then(function(rows) {
+      if (rows && rows.length) { _unlock('postitsSection'); }
+      // Souvenirs
+      return fetch(SB_URL + '/rest/v1/memories?couple_id=eq.' + cid + '&limit=1&select=id', { headers: sb2Headers() });
+    })
+    .then(function(r) { return r && r.ok ? r.json() : []; })
+    .then(function(rows) {
+      if (rows && rows.length) { _unlock('souvenirsSection'); }
+      // Activités
+      return fetch(SB_URL + '/rest/v1/activites?couple_id=eq.' + cid + '&limit=1&select=id', { headers: sb2Headers() });
+    })
+    .then(function(r) { return r && r.ok ? r.json() : []; })
+    .then(function(rows) {
+      if (rows && rows.length) { _unlock('activitesSection'); }
+      // Livres
+      return fetch(SB_URL + '/rest/v1/books?couple_id=eq.' + cid + '&limit=1&select=id', { headers: sb2Headers() });
+    })
+    .then(function(r) { return r && r.ok ? r.json() : []; })
+    .then(function(rows) {
+      if (rows && rows.length) { _unlock('Books'); }
+      // Appliquer si changements
+      if (changed) { _nidSave(); _nidApply(); _nidMilestones(); }
+    })
+    .catch(function() {});
+}
+
 // Page solo (pas de partenaire lié)
 function _nidShowSolo(){
   var overlay=document.getElementById('nousLockOverlay');
@@ -294,7 +348,11 @@ function _nidShowSolo(){
     if(!window._nousContentLoaded) {
       window._nousContentLoaded = true;
       _nidInjectBar();
-      _nidLoad(function(){ _nidApply(); });
+      _nidLoad(function(){
+        _nidApply();
+        // Détecter le contenu existant après le chargement des sections
+        setTimeout(_nidAutoDetect, 1200);
+      });
       _nousInitAll();
       setTimeout(function(){ document.dispatchEvent(new Event('nousContentReady')); }, 300);
     } else {
@@ -1916,6 +1974,7 @@ document.addEventListener('yam:session_ready',function(){ var u=(typeof yamGetUs
       renderMemoCouple(); 
       // Badge NEW pour les deux
       if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh('memo_note');
+      if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('memoCoupleSection');
       // NOUVEAU : Toast de confirmation
       if(typeof showToast === 'function') showToast('Note sauvegardée ✓', 'success', 2000);
     };
