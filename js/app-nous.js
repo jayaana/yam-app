@@ -245,6 +245,22 @@ function _nidInjectBar(){
   else wrapper.insertBefore(bar,wrapper.firstChild);
 }
 
+// Toast de progression — affiché en HAUT pour ne pas se superposer au toast flamme
+function _nidShowToast(msg) {
+  var t = document.getElementById('nidToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'nidToast';
+    document.body.appendChild(t);
+  }
+  clearTimeout(t._timer);
+  t.textContent = msg;
+  t.classList.add('show');
+  t._timer = setTimeout(function() {
+    t.classList.remove('show');
+  }, 3200);
+}
+
 function _nidMilestones(){
   var pct=_nidPct();
   var claimed=_NID_DATA.milestones_claimed||[];
@@ -253,11 +269,14 @@ function _nidMilestones(){
       claimed.push(m); _NID_DATA.milestones_claimed=claimed; _nidSave();
       setTimeout(function(){
         if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('nest_milestone');
-        if(typeof showToast==='function'){
-          var msgs={25:'25% de votre espace rempli 🎉',50:'La moitié de votre espace est vivant !',75:'Presque complet, continuez !',100:'Votre espace est complet ! ❤️'};
-          showToast(msgs[m]||'Palier atteint !','success');
-        }
-      },700);
+        var msgs={
+          25: '✨ 20% — Mémo débloqué !',
+          50: '✨ 40% — Petits mots débloqués !',
+          75: '✨ 60% — Souvenirs débloqués !',
+          100: '✨ Votre espace est complet ❤️'
+        };
+        _nidShowToast(msgs[m] || 'Palier atteint !');
+      }, 700);
     }
   });
 }
