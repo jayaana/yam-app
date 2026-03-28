@@ -155,7 +155,7 @@ function _nidApply(){
 
   _NID_IDS.forEach(function(id,i){
     var el=document.getElementById(id); if(!el) return;
-    el.classList.remove('nid-peek','nid-hidden');
+    el.classList.remove('nid-peek','nid-hidden','nid-peek-pulse');
     // Supprimer ancien label inline
     var oldLbl=el.querySelector('.nid-peek-lbl'); if(oldLbl) oldLbl.remove();
 
@@ -165,6 +165,7 @@ function _nidApply(){
       // Peek : flou+dégradé sur la section
       el.style.display='';
       el.classList.add('nid-peek');
+      el.classList.add('nid-peek-pulse'); // légère pulsation visuelle
       // Label injecté sur document.body en position:fixed
       // → échappe au backdrop-filter de ::before
       _nidCreateFloatLabel(el, _NID_IDS[i-1]);
@@ -185,18 +186,38 @@ function _nidCreateFloatLabel(section, prevId) {
   lbl.textContent = 'Remplissez "' + prevName + '" pour débloquer';
   document.body.appendChild(lbl);
 
+  var NAV_H = 64 + 8; // hauteur nav + marge
+
+  function _isModalOpen() {
+    var els = document.querySelectorAll('[id*="Modal"],[id*="Overlay"],[class*="overlay"]');
+    for (var i = 0; i < els.length; i++) {
+      var cs = window.getComputedStyle(els[i]);
+      if (parseInt(cs.zIndex) >= 1000 && cs.display !== 'none' && cs.visibility !== 'hidden') return true;
+    }
+    return false;
+  }
+
   function _place() {
     var sr = section.getBoundingClientRect();
-    var lw = lbl.offsetWidth;
-    // Centré horizontalement sur la section, 34px au-dessus du bas
-    lbl.style.left = Math.round(sr.left + sr.width / 2 - lw / 2) + 'px';
-    lbl.style.top  = Math.round(sr.bottom - 38) + 'px';
-    // Masquer si la section n'est plus visible
-    lbl.style.display = (sr.bottom > 0 && sr.top < window.innerHeight) ? '' : 'none';
+    var lw = lbl.offsetWidth || 240;
+    var lh = lbl.offsetHeight || 34;
+    // Centre horizontal sur la section
+    var left = Math.round(sr.left + sr.width / 2 - lw / 2);
+    // Positionné 40px au-dessus du bas de la section
+    var top = Math.round(sr.bottom - 42);
+    // Jamais sous la barre nav
+    var maxTop = window.innerHeight - NAV_H - lh;
+    if (top > maxTop) top = maxTop;
+    lbl.style.left = left + 'px';
+    lbl.style.top  = top + 'px';
+    // Masquer si section hors vue ou modale ouverte
+    var visible = sr.bottom > 60 && sr.top < (window.innerHeight - NAV_H + 20);
+    lbl.style.display = (visible && !_isModalOpen()) ? '' : 'none';
     window._nidFloatRaf = requestAnimationFrame(_place);
   }
   _place();
 }
+
 
 // Signal : une section vient d'être remplie pour la première fois
 window._nousSignalNewContent = function(sectionId){
@@ -299,6 +320,15 @@ function _nidMilestones(){
           100: '✨ Votre espace est complet ❤️'
         };
         _nidShowToast(msgs[m] || 'Palier atteint !');
+        // À 100% : marquer définitivement complété + masquer la barre
+        if(m === 100) {
+          _NID_DATA.completed = true;
+          _nidSave();
+          setTimeout(function() {
+            var bar = document.getElementById('nousNestBar');
+            if(bar) { bar.style.transition = 'opacity 0.8s'; bar.style.opacity = '0'; setTimeout(function(){ bar.style.display = 'none'; }, 800); }
+          }, 3000); // laisser le temps de voir le 100%
+        }
       }, 700);
     }
   });
@@ -407,8 +437,14 @@ function _nidShowSolo(){
       window._nousContentLoaded = true;
       _nidInjectBar();
       _nidLoad(function(){
+        // Si déjà complété, masquer la barre définitivement
+        if(_NID_DATA && _NID_DATA.completed) {
+          var bar = document.getElementById('nousNestBar');
+          if(bar) bar.style.display = 'none';
+          _nidApply(); // appliquer quand même pour déverrouiller les sections
+          return;
+        }
         _nidApply();
-        // Détecter le contenu existant après le chargement des sections
         setTimeout(_nidAutoDetect, 1200);
       });
       _nousInitAll();
@@ -1535,7 +1571,7 @@ function _startReasonAuto(){
       // Le receveur le verra à sa prochaine ouverture
       if(typeof window.yamMarkNew==='function') window.yamMarkNew('petit_mot');
       if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('petit_mot');
-      if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('postitsSection');
+      if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('souvenirsSection');
     };
     if(_editingMot&&_editingMot.id){
       fetch(SB_URL+'/rest/v1/petits_mots?id=eq.'+_editingMot.id+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done).catch(done);
