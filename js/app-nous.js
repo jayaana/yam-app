@@ -106,217 +106,178 @@ window._nousUnblockScroll = function() { _unblockBackgroundScroll(); };
 
 
 // ════════════════════════════════════════════════════════════════════
-// #98 — LE NID : Progression des sections (sans toucher à index.html)
-// Sections progressives : mémo → petits mots → souvenirs → activités → livres
-// La section suivante est en "peek" (visible mais flouée).
-// Toutes les autres sont cachées jusqu'à leur tour.
-// Stockage : photo_descs (category=nous_progress, slot=nest)
+// #98 — PROGRESSION DES SECTIONS (Le Nid)
+// Ordre : mémo → petits mots → souvenirs → activités → bibliothèque
+// Chaque section remplie déverrouille la suivante.
+// Stocké dans photo_descs (category='nous_progress', slot='nest')
 // ════════════════════════════════════════════════════════════════════
-var _NID_SECTIONS = ['memoCoupleSection','postitsSection','souvenirsSection','activitesSection','Books'];
-var _NID_LABELS   = {
-  memoCoupleSection: 'Mémo',
-  postitsSection:    'Petits mots',
-  souvenirsSection:  'Souvenirs',
-  activitesSection:  'Activités',
-  Books:             'Bibliothèque'
-};
-var _NID_PROGRESS  = null;  // {unlocked:['memoCoupleSection',...], milestones_claimed:[25,...]}
-var _NID_PROG_ID   = null;
+var _NID_IDS    = ['memoCoupleSection','postitsSection','souvenirsSection','activitesSection','Books'];
+var _NID_NAMES  = {memoCoupleSection:'Mémo',postitsSection:'Petits mots',souvenirsSection:'Souvenirs',activitesSection:'Activités',Books:'Bibliothèque'};
+var _NID_DATA   = null; // {unlocked:[], milestones_claimed:[]}
+var _NID_ROW_ID = null;
 
-function _nidCoupleId(){ var u=(typeof yamGetUser==='function')?yamGetUser():null; return u?u.couple_id:null; }
+function _nidCid(){ var u=(typeof yamGetUser==='function')?yamGetUser():null; return u?u.couple_id:null; }
 
-// ── Charger la progression ──
-function _nidLoad(cb) {
-  var cid = _nidCoupleId();
-  if (!cid) { _NID_PROGRESS={unlocked:['memoCoupleSection'],milestones_claimed:[]}; if(cb) cb(); return; }
+function _nidLoad(cb){
+  var cid=_nidCid();
+  if(!cid){ _NID_DATA={unlocked:['memoCoupleSection'],milestones_claimed:[]}; if(cb) cb(); return; }
   fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+cid+'&category=eq.nous_progress&slot=eq.nest&limit=1',{headers:sb2Headers()})
     .then(function(r){return r.ok?r.json():[];})
     .then(function(rows){
-      if(rows&&rows[0]){ _NID_PROG_ID=rows[0].id; try{_NID_PROGRESS=JSON.parse(rows[0].description||'{}');}catch(e){_NID_PROGRESS={};} }
-      else { _NID_PROG_ID=null; _NID_PROGRESS={}; }
-      if(!_NID_PROGRESS.unlocked||!_NID_PROGRESS.unlocked.length) _NID_PROGRESS.unlocked=['memoCoupleSection'];
-      if(!_NID_PROGRESS.milestones_claimed) _NID_PROGRESS.milestones_claimed=[];
+      if(rows&&rows[0]){ _NID_ROW_ID=rows[0].id; try{_NID_DATA=JSON.parse(rows[0].description||'{}');}catch(e){_NID_DATA={};} }
+      else { _NID_ROW_ID=null; _NID_DATA={}; }
+      if(!Array.isArray(_NID_DATA.unlocked)||!_NID_DATA.unlocked.length) _NID_DATA.unlocked=['memoCoupleSection'];
+      if(!_NID_DATA.milestones_claimed) _NID_DATA.milestones_claimed=[];
       if(cb) cb();
-    }).catch(function(){ _NID_PROGRESS={unlocked:['memoCoupleSection'],milestones_claimed:[]}; if(cb) cb(); });
+    }).catch(function(){ _NID_DATA={unlocked:['memoCoupleSection'],milestones_claimed:[]}; if(cb) cb(); });
 }
 
-function _nidSave() {
-  var cid=_nidCoupleId(); if(!cid||!_NID_PROGRESS) return;
-  var body={couple_id:cid,category:'nous_progress',slot:'nest',description:JSON.stringify(_NID_PROGRESS)};
-  if(_NID_PROG_ID) {
-    fetch(SB_URL+'/rest/v1/photo_descs?id=eq.'+_NID_PROG_ID,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(body)});
+function _nidSave(){
+  var cid=_nidCid(); if(!cid||!_NID_DATA) return;
+  var body={couple_id:cid,category:'nous_progress',slot:'nest',description:JSON.stringify(_NID_DATA)};
+  if(_NID_ROW_ID){
+    fetch(SB_URL+'/rest/v1/photo_descs?id=eq.'+_NID_ROW_ID,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(body)});
   } else {
     fetch(SB_URL+'/rest/v1/photo_descs',{method:'POST',headers:sb2Headers({'Prefer':'return=representation','Content-Type':'application/json'}),body:JSON.stringify(body)})
-      .then(function(r){return r.ok?r.json():[];}).then(function(rows){if(rows&&rows[0])_NID_PROG_ID=rows[0].id;});
+      .then(function(r){return r.ok?r.json():[];}).then(function(rows){if(rows&&rows[0])_NID_ROW_ID=rows[0].id;});
   }
 }
 
-// ── Appliquer les états visuels ──
-function _nidApply() {
-  if (!_NID_PROGRESS) return;
-  var unlocked = _NID_PROGRESS.unlocked || ['memoCoupleSection'];
+// Appliquer l'état visuel de chaque section
+function _nidApply(){
+  if(!_NID_DATA) return;
+  var unlocked=_NID_DATA.unlocked||['memoCoupleSection'];
+  var nextIdx=unlocked.length; // index de la section peek (juste après la dernière déverrouillée)
 
-  _NID_SECTIONS.forEach(function(id, idx) {
-    var el = document.getElementById(id);
-    if (!el) return;
+  _NID_IDS.forEach(function(id,i){
+    var el=document.getElementById(id); if(!el) return;
+    // Nettoyer
+    el.classList.remove('nid-peek','nid-hidden');
+    var lbl=el.querySelector('.nid-peek-lbl'); if(lbl) lbl.remove();
 
-    var isUnlocked = unlocked.indexOf(id) !== -1;
-    var nextUnlockedIdx = unlocked.length; // index de la prochaine section à déverrouiller
-    var isPeek = (idx === nextUnlockedIdx); // la section juste après la dernière déverrouillée
-
-    // Nettoyer les classes précédentes
-    el.classList.remove('nid-section-peek','nid-section-hidden');
-    var existing = el.querySelector('.nid-peek-label');
-    if (existing) existing.remove();
-
-    if (isUnlocked) {
-      el.style.display = '';
-      el.style.pointerEvents = '';
-    } else if (isPeek) {
-      el.style.display = '';
-      el.style.pointerEvents = '';
-      el.classList.add('nid-section-peek');
-      var lbl = document.createElement('div');
-      lbl.className = 'nid-peek-label';
-      lbl.textContent = '🔒 ' + (_NID_LABELS[id] || id);
-      el.appendChild(lbl);
+    if(unlocked.indexOf(id)!==-1){
+      // Déverrouillée : pleinement visible
+      el.style.display='';
+    } else if(i===nextIdx){
+      // Section peek : visible mais dégradé + label
+      el.style.display='';
+      el.classList.add('nid-peek');
+      var d=document.createElement('div');
+      d.className='nid-peek-lbl';
+      d.textContent='Remplissez "'+(_NID_NAMES[_NID_IDS[i-1]]||'la section précédente')+'" pour débloquer';
+      el.appendChild(d);
     } else {
-      el.classList.add('nid-section-hidden');
+      // Cachée
+      el.classList.add('nid-hidden');
     }
   });
 
-  _nidUpdateBar();
+  _nidRefreshBar();
 }
 
-// ── Signal : une section vient d'être remplie ──
-window._nousSignalNewContent = function(sectionId) {
-  if (!_NID_PROGRESS) { _nidLoad(function(){ window._nousSignalNewContent(sectionId); }); return; }
-  var unlocked = _NID_PROGRESS.unlocked;
-  if (unlocked.indexOf(sectionId) !== -1) return; // déjà déverrouillée
+// Signal : une section vient d'être remplie pour la première fois
+window._nousSignalNewContent = function(sectionId){
+  if(!_NID_DATA){ _nidLoad(function(){ window._nousSignalNewContent(sectionId); }); return; }
+  if(_NID_DATA.unlocked.indexOf(sectionId)!==-1) return; // déjà fait
 
-  unlocked.push(sectionId);
+  _NID_DATA.unlocked.push(sectionId);
   _nidSave();
 
-  // Animer la révélation
-  var el = document.getElementById(sectionId);
-  if (el) {
-    el.classList.remove('nid-section-peek','nid-section-hidden');
-    var lbl = el.querySelector('.nid-peek-label');
-    if (lbl) lbl.remove();
-    el.style.display = '';
-    el.style.pointerEvents = '';
-    el.classList.add('nid-section-reveal');
-    setTimeout(function(){ el.classList.remove('nid-section-reveal'); }, 600);
-    if (typeof showToast === 'function') {
-      var name = _NID_LABELS[sectionId] || sectionId;
-      showToast('Nouvelle section débloquée : ' + name + ' 🎉', 'success');
-    }
+  // Révéler avec animation
+  var el=document.getElementById(sectionId);
+  if(el){
+    el.classList.remove('nid-peek','nid-hidden');
+    var lbl=el.querySelector('.nid-peek-lbl'); if(lbl) lbl.remove();
+    el.style.display='';
+    el.classList.add('nid-reveal');
+    setTimeout(function(){ el.classList.remove('nid-reveal'); },600);
+    var name=_NID_NAMES[sectionId]||sectionId;
+    if(typeof showToast==='function') showToast('"'+name+'" débloquée ✨','success');
   }
 
-  // Mettre la NOUVELLE section suivante en peek
+  // La nouvelle section suivante passe en peek
   _nidApply();
-  _nidCheckMilestones();
+  _nidMilestones();
 };
 
-// ── Barre de progression ──
-function _nidCalcPct() {
-  if (!_NID_PROGRESS) return 0;
-  return Math.round((_NID_PROGRESS.unlocked.length / _NID_SECTIONS.length) * 100);
-}
+// Barre de progression avec paliers nommés
+function _nidPct(){ return _NID_DATA?Math.round((_NID_DATA.unlocked.length/_NID_IDS.length)*100):0; }
 
-function _nidUpdateBar() {
-  var bar = document.getElementById('nousNestBar'); if (!bar) return;
-  var pct = _nidCalcPct();
-  var fill = bar.querySelector('.nous-nest-bar-fill');
-  var label = bar.querySelector('.nous-nest-bar-label');
-  var pctEl = bar.querySelector('.nous-nest-bar-pct');
-  if (fill) fill.style.width = pct + '%';
-  if (pctEl) pctEl.textContent = pct + '%';
-  if (label) {
-    label.textContent = pct < 25 ? 'Premiers pas 🌱'
-      : pct < 50 ? 'Ça pousse 🌿'
-      : pct < 75 ? 'Douillet ☀️'
-      : pct < 100 ? 'Presque parfait 🌸'
-      : 'Nid complet 🪺';
-  }
-  // Milestones visuels
-  bar.querySelectorAll('.nous-nest-milestone').forEach(function(el){
-    var m = parseInt(el.dataset.m);
-    el.classList.toggle('reached', pct >= m);
+function _nidRefreshBar(){
+  var bar=document.getElementById('nousNestBar'); if(!bar) return;
+  var pct=_nidPct();
+  var fill=bar.querySelector('.nid-bar-fill');
+  var pctEl=bar.querySelector('.nid-bar-pct');
+  if(fill) fill.style.width=pct+'%';
+  if(pctEl) pctEl.textContent=pct+'%';
+  // Paliers : allumer chaque section déverrouillée
+  var unlocked=_NID_DATA?_NID_DATA.unlocked:['memoCoupleSection'];
+  bar.querySelectorAll('.nid-milestone').forEach(function(m){
+    m.classList.toggle('done', unlocked.indexOf(m.dataset.id)!==-1);
   });
-  bar.style.display = 'block';
+  bar.style.display='block';
 }
-window._nousUpdateNestBar = _nidUpdateBar;
+window._nousUpdateNestBar=_nidRefreshBar;
 
-// ── Injecter la barre ──
-function _nidInjectBar() {
-  var wrapper = document.getElementById('nousContentWrapper');
-  if (!wrapper || document.getElementById('nousNestBar')) return;
-  var bar = document.createElement('div');
-  bar.id = 'nousNestBar';
-  bar.className = 'nous-nest-bar';
-  bar.style.display = 'none';
-  bar.innerHTML =
-    '<div class="nous-nest-bar-top">' +
-      '<span class="nous-nest-bar-icon">🪺</span>' +
-      '<span class="nous-nest-bar-label">Premiers pas 🌱</span>' +
-      '<span class="nous-nest-bar-pct">0%</span>' +
-    '</div>' +
-    '<div class="nous-nest-bar-milestones">' +
-      '<span class="nous-nest-milestone" data-m="25">🌱</span>' +
-      '<span class="nous-nest-milestone" data-m="50">🌿</span>' +
-      '<span class="nous-nest-milestone" data-m="75">🌸</span>' +
-      '<span class="nous-nest-milestone" data-m="100">🪺</span>' +
-    '</div>' +
-    '<div class="nous-nest-bar-track"><div class="nous-nest-bar-fill"></div></div>';
-  // Insérer juste après nousProfilSection
-  var profil = document.getElementById('nousProfilSection');
-  if (profil && profil.nextSibling) { wrapper.insertBefore(bar, profil.nextSibling); }
-  else { wrapper.insertBefore(bar, wrapper.firstChild); }
+function _nidInjectBar(){
+  var wrapper=document.getElementById('nousContentWrapper');
+  if(!wrapper||document.getElementById('nousNestBar')) return;
+  var bar=document.createElement('div');
+  bar.id='nousNestBar';
+  bar.className='nous-nest-bar';
+  bar.style.display='none';
+  // Créer les paliers avec les vrais noms des sections
+  var milestonesHtml='';
+  _NID_IDS.forEach(function(id){
+    milestonesHtml+='<div class="nid-milestone" data-id="'+id+'"><div class="nid-milestone-dot"></div><div class="nid-milestone-name">'+_NID_NAMES[id]+'</div></div>';
+  });
+  bar.innerHTML=
+    '<div class="nid-bar-header"><span class="nid-bar-title">Votre espace</span><span class="nid-bar-pct">0%</span></div>'+
+    '<div class="nid-bar-track"><div class="nid-bar-fill"></div></div>'+
+    '<div class="nid-bar-milestones">'+milestonesHtml+'</div>';
+  // Insérer après nousProfilSection
+  var profil=document.getElementById('nousProfilSection');
+  if(profil&&profil.nextSibling) wrapper.insertBefore(bar,profil.nextSibling);
+  else wrapper.insertBefore(bar,wrapper.firstChild);
 }
 
-// ── Paliers de récompense ──
-function _nidCheckMilestones() {
-  var pct = _nidCalcPct();
-  var claimed = _NID_PROGRESS.milestones_claimed || [];
+function _nidMilestones(){
+  var pct=_nidPct();
+  var claimed=_NID_DATA.milestones_claimed||[];
   [25,50,75,100].forEach(function(m){
-    if (pct >= m && claimed.indexOf(m) === -1) {
-      claimed.push(m);
-      _NID_PROGRESS.milestones_claimed = claimed;
-      _nidSave();
+    if(pct>=m&&claimed.indexOf(m)===-1){
+      claimed.push(m); _NID_DATA.milestones_claimed=claimed; _nidSave();
       setTimeout(function(){
-        if (typeof window.yamFlameActivity === 'function') window.yamFlameActivity('nest_milestone');
-        if (typeof showToast === 'function') {
-          var msgs={25:'Palier 25% 🌱 Flamme +5pts !',50:'Palier 50% 🌿 Continuez !',75:'Palier 75% 🌸 Presque là !',100:'Nid complet ! 🪺 Bravo à vous deux !'};
+        if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('nest_milestone');
+        if(typeof showToast==='function'){
+          var msgs={25:'25% de votre espace rempli 🎉',50:'La moitié de votre espace est vivant !',75:'Presque complet, continuez !',100:'Votre espace est complet ! ❤️'};
           showToast(msgs[m]||'Palier atteint !','success');
         }
-      }, 700);
+      },700);
     }
   });
 }
 
-// ── Page solo (pas de partenaire lié) ──
-function _nidShowSolo() {
-  var overlay = document.getElementById('nousLockOverlay');
-  var content = document.getElementById('nousContentWrapper');
-  if (content) content.style.display = 'none';
-  if (!overlay) return;
-  overlay.className = 'nous-solo-active';
-  overlay.innerHTML =
-    '<div class="nous-solo-welcome">' +
-      '<div class="nous-solo-illustration">🏡</div>' +
-      '<h2 class="nous-solo-title">Votre nid vous attend</h2>' +
-      '<p class="nous-solo-subtitle">Reliez-vous à votre partenaire pour construire votre espace à deux — photos, souvenirs, petits mots et bien plus.</p>' +
-      '<div class="nous-solo-code-wrap">' +
-        '<div class="nous-solo-code-label">Votre code couple</div>' +
-        '<button class="nous-solo-code-btn" id="nidSoloBtn">👩‍❤️‍👨 Voir mon code</button>' +
-      '</div>' +
-      '<p class="nous-solo-hint">Partagez votre code avec votre partenaire, ou entrez le sien dans les paramètres.</p>' +
+// Page solo (pas de partenaire lié)
+function _nidShowSolo(){
+  var overlay=document.getElementById('nousLockOverlay');
+  var content=document.getElementById('nousContentWrapper');
+  if(content) content.style.display='none';
+  if(!overlay) return;
+  overlay.style.cssText='display:flex;align-items:center;justify-content:center;min-height:60vh;padding:40px 24px;';
+  overlay.innerHTML=
+    '<div class="nous-solo-welcome">'+
+      '<div class="nous-solo-illu">👩‍❤️‍👨</div>'+
+      '<h2 class="nous-solo-title">Votre espace à deux</h2>'+
+      '<p class="nous-solo-sub">Reliez-vous à votre partenaire pour construire votre espace commun — photos, souvenirs, petits mots et bien plus.</p>'+
+      '<div class="nous-solo-code-wrap">'+
+        '<div class="nous-solo-code-label">Votre code couple</div>'+
+        '<button class="nous-solo-code-btn" id="nidSoloBtn">Voir mon code</button>'+
+      '</div>'+
+      '<p class="nous-solo-hint">Partagez votre code avec votre partenaire, ou entrez le sien dans les paramètres.</p>'+
     '</div>';
-  var btn = document.getElementById('nidSoloBtn');
-  if (btn) btn.addEventListener('click', function(){
-    if (typeof window.yamToggleAccountModal === 'function') window.yamToggleAccountModal();
-  });
+  var btn=document.getElementById('nidSoloBtn');
+  if(btn) btn.addEventListener('click',function(){ if(typeof window.yamToggleAccountModal==='function') window.yamToggleAccountModal(); });
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -328,25 +289,22 @@ function _nidShowSolo() {
   function _nousShowContent() {
     var overlay = document.getElementById('nousLockOverlay');
     var content = document.getElementById('nousContentWrapper');
-    if (overlay) { overlay.className = ''; overlay.style.display = 'none'; }
-    if (content) content.style.display = 'block';
-    if (!window._nousContentLoaded) {
+    if(overlay){ overlay.style.display='none'; overlay.style.cssText=''; }
+    if(content) content.style.display='block';
+    if(!window._nousContentLoaded) {
       window._nousContentLoaded = true;
-      // #98 — Injecter la barre, charger la progression, appliquer les états
       _nidInjectBar();
       _nidLoad(function(){ _nidApply(); });
       _nousInitAll();
       setTimeout(function(){ document.dispatchEvent(new Event('nousContentReady')); }, 300);
     } else {
-      // Retour sur l'onglet — refresh de la barre seulement
-      _nidUpdateBar();
+      _nidRefreshBar();
     }
   }
 
-  // Point d'entrée appelé par yamSwitchTab
   window.nousCheckLock = function() {
-    var u = (typeof yamGetUser==='function') ? yamGetUser() : null;
-    if (!u || !u.partner_pseudo || !u.partner_pseudo.trim()) { _nidShowSolo(); return; }
+    var u=(typeof yamGetUser==='function')?yamGetUser():null;
+    if(!u||!u.partner_pseudo||!u.partner_pseudo.trim()){ _nidShowSolo(); return; }
     _nousShowContent();
   };
 
@@ -1456,6 +1414,8 @@ function _startReasonAuto(){
     var data = { couple_id:coupleId, author:profile, title:title||'Sans titre', text:text, icon:icon, color:color };
     var btn = document.getElementById('petitsMotsSaveBtn'); if(btn){ btn.textContent='...'; btn.disabled=true; }
     var done = function(){ if(btn){ btn.textContent='Sauvegarder'; btn.disabled=false; } window.closePetitsMotsEditor(); _renderPetitsMotsGestion(); _petitsMotsLoad();
+      // Le NEW apparaît côté receveur — on marque via une clé partagée couple
+      // Le receveur le verra à sa prochaine ouverture
       if(typeof window.yamMarkNew==='function') window.yamMarkNew('petit_mot');
       if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('petit_mot');
       if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('postitsSection');
@@ -1700,38 +1660,24 @@ document.addEventListener('yam:session_ready', function(){
 
 // ════════════════════════════════════════════════════════════════════
 
-// ── Realtime activités (#101) ─────────────────────────────────────────────
-var _activitesRTChannel = null;
-var _activitesPollIv    = null;
-
-function _startActivitesRealtime(coupleId) {
-  if (!window._yamRT || !coupleId || _activitesRTChannel) return;
-  _activitesRTChannel = window._yamRT
-    .channel('activites-' + coupleId)
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'activites', filter: 'couple_id=eq.' + coupleId },
-      function() { window.nousInvalidateActivitesCache(); window.nousLoadActivites(true); })
-    .subscribe(function(status) {
-      if (status === 'SUBSCRIBED') {
-        if (_activitesPollIv) { clearInterval(_activitesPollIv); _activitesPollIv = null; }
-        console.warn('[RT] ✅ Activités connecté');
-      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        if (!_activitesPollIv) {
-          _activitesPollIv = setInterval(function(){ window.nousInvalidateActivitesCache(); window.nousLoadActivites(true); }, 10000);
-          console.warn('[RT] Activités — fallback poll 10s');
-        }
+// ── Realtime activités (#101) ──────────────────────────────────────────
+var _activitesRTCh = null, _activitesPollIv = null;
+function _startActivitesRT(cid) {
+  if(!window._yamRT||!cid||_activitesRTCh) return;
+  _activitesRTCh = window._yamRT.channel('activites-'+cid)
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'activites',filter:'couple_id=eq.'+cid},
+        function(){ window.nousInvalidateActivitesCache(); window.nousLoadActivites(true); })
+    .subscribe(function(s){
+      if(s==='SUBSCRIBED'){ if(_activitesPollIv){clearInterval(_activitesPollIv);_activitesPollIv=null;} }
+      else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){
+        if(!_activitesPollIv) _activitesPollIv=setInterval(function(){ window.nousInvalidateActivitesCache(); window.nousLoadActivites(true); },10000);
       }
     });
-  window._yamRTChannels['activites'] = _activitesRTChannel;
+  window._yamRTChannels['activites']=_activitesRTCh;
 }
-window._yamStopActivitesPoll = function() {
-  if (_activitesPollIv) { clearInterval(_activitesPollIv); _activitesPollIv = null; }
-  if (_activitesRTChannel && window._yamRT) { try { window._yamRT.removeChannel(_activitesRTChannel); } catch(e){} _activitesRTChannel = null; }
-};
-(function(){ var u=(typeof yamGetUser==='function')?yamGetUser():null; var cid=u?u.couple_id:null; if(window._yamRT&&cid) _startActivitesRealtime(cid); })();
-document.addEventListener('yam:session_ready', function(){
-  var u=(typeof yamGetUser==='function')?yamGetUser():null; var cid=u?u.couple_id:null;
-  if(window._yamRT&&cid){ _activitesRTChannel=null; _startActivitesRealtime(cid); }
-});
+window._yamStopActivitesPoll=function(){ if(_activitesPollIv){clearInterval(_activitesPollIv);_activitesPollIv=null;} if(_activitesRTCh&&window._yamRT){try{window._yamRT.removeChannel(_activitesRTCh);}catch(e){}_activitesRTCh=null;} };
+(function(){ var u=(typeof yamGetUser==='function')?yamGetUser():null; if(window._yamRT&&u&&u.couple_id) _startActivitesRT(u.couple_id); })();
+document.addEventListener('yam:session_ready',function(){ var u=(typeof yamGetUser==='function')?yamGetUser():null; if(window._yamRT&&u&&u.couple_id){_activitesRTCh=null;_startActivitesRT(u.couple_id);} });
 
 // 11. MÉMO COUPLE — Note unique + Todo list, sans PIN
 //     • Clic Note  → vue lecture (openMemoNoteView) → bouton Modifier → openMemoNoteEdit
@@ -2015,10 +1961,10 @@ document.addEventListener('yam:session_ready', function(){
           row.innerHTML='<div class="todo-check'+(item.done?' done':'')+'">'+(item.done?'✓':'')+'</div><div class="todo-text-wrap"><div class="todo-text'+(item.done?' done':'')+'">' +escHtml(item.text)+'</div>'+_cbHtml+'</div><div class="todo-del">✕</div>';
           (function(it){
             row.querySelector('.todo-check').addEventListener('click',function(){
-              var _patch={done:!it.done};
-              if(!it.done) _patch.checked_by=(typeof yamGetPseudo==='function')?yamGetPseudo():null;
-              else _patch.checked_by=null;
-              fetch(SB_URL+'/rest/v1/memo_todos?id=eq.'+it.id+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(_patch)}).then(_loadTodoFull);
+              var _p={done:!it.done};
+              if(!it.done) _p.checked_by=(typeof yamGetPseudo==='function')?yamGetPseudo():null;
+              else _p.checked_by=null;
+              fetch(SB_URL+'/rest/v1/memo_todos?id=eq.'+it.id+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(_p)}).then(_loadTodoFull);
             });
             row.querySelector('.todo-del').addEventListener('click',function(e){ e.stopPropagation();
               fetch(SB_URL+'/rest/v1/memo_todos?id=eq.'+it.id+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()}).then(_loadTodoFull);
@@ -2117,16 +2063,14 @@ document.addEventListener('yam:session_ready', function(){
   }
   window._renderSouvenirRowsPublic = function(rows) { _renderSouvenirRows(rows); };
 
-  // Détecte si un souvenir a son anniversaire dans la fenêtre J+0 à J+7
-  function _souvenirAnnivYears(dateStr) {
-    if (!dateStr) return null;
-    var today = new Date(), ty = today.getFullYear();
-    for (var o = 0; o <= 7; o++) {
-      var d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + o);
-      var m = new Date(dateStr + 'T12:00:00');
-      if (m.getMonth() === d.getMonth() && m.getDate() === d.getDate()) {
-        var yrs = ty - m.getFullYear();
-        return yrs > 0 ? yrs : null;
+  function _souvenirAnnivYears(ds){
+    if(!ds) return null;
+    var t=new Date(),ty=t.getFullYear();
+    for(var o=0;o<=7;o++){
+      var d=new Date(t.getFullYear(),t.getMonth(),t.getDate()+o);
+      var m=new Date(ds+'T12:00:00');
+      if(m.getMonth()===d.getMonth()&&m.getDate()===d.getDate()){
+        var y=ty-m.getFullYear(); return y>0?y:null;
       }
     }
     return null;
@@ -2145,25 +2089,23 @@ document.addEventListener('yam:session_ready', function(){
       emptyEl.style.display='block'; return;
     }
     emptyEl.style.display='none';
-    // Anniversaires (J+0 à J+7) en tête
-    var annivMap = {};
-    rows.forEach(function(s){ var y=_souvenirAnnivYears(s.date); if(y) annivMap[s.id]=y; });
-    var annivRows = rows.filter(function(s){ return annivMap[s.id]; })
+    // Anniversaires J+0→J+7 en tête
+    var annivMap={}; rows.forEach(function(s){ var y=_souvenirAnnivYears(s.date); if(y) annivMap[s.id]=y; });
+    var annivRows=rows.filter(function(s){ return !!annivMap[s.id]; })
       .sort(function(a,b){
-        function off(ds){ var t=new Date(); for(var o=0;o<=7;o++){var d=new Date(t.getFullYear(),t.getMonth(),t.getDate()+o),m=new Date(ds+'T12:00:00'); if(m.getMonth()===d.getMonth()&&m.getDate()===d.getDate()) return o;} return 8; }
+        function off(ds){ var t=new Date(); for(var o=0;o<=7;o++){ var d=new Date(t.getFullYear(),t.getMonth(),t.getDate()+o),m=new Date(ds+'T12:00:00'); if(m.getMonth()===d.getMonth()&&m.getDate()===d.getDate()) return o; } return 8; }
         return off(a.date)-off(b.date);
       });
-    var annivIds = {}; annivRows.forEach(function(s){ annivIds[s.id]=true; });
+    var annivIds={}; annivRows.forEach(function(s){ annivIds[s.id]=true; });
     if(annivRows.length){ recentRow.style.display='block'; annivRows.forEach(function(s){ recentScroll.appendChild(_buildSouvenirCard(s,annivMap[s.id])); }); }
-    // Favoris (hors anniversaires)
-    var favs = rows.filter(function(s){ return s.is_fav && !annivIds[s.id]; });
-    var recent = rows.filter(function(s){ return !s.is_fav && !annivIds[s.id]; }).slice(0,5);
+    var favs=rows.filter(function(s){ return s.is_fav&&!annivIds[s.id]; });
+    var recent=rows.filter(function(s){ return !s.is_fav&&!annivIds[s.id]; }).slice(0,5);
     if(favs.length){ favRow.style.display='block'; favs.forEach(function(s){ favScroll.appendChild(_buildSouvenirCard(s,null)); }); } else { favRow.style.display='none'; }
     if(recent.length){ recentRow.style.display='block'; recent.forEach(function(s){ recentScroll.appendChild(_buildSouvenirCard(s,null)); }); } else if(!annivRows.length){ recentRow.style.display='none'; }
   }
 
-  function _buildSouvenirCard(s, anniversaryYears){
-    var card=document.createElement('div'); card.className='souvenir-card'+(anniversaryYears?' souvenir-card--anniv':'');
+  function _buildSouvenirCard(s,annivYears){
+    var card=document.createElement('div'); card.className='souvenir-card'+(annivYears?' souvenir-card--anniv':'');
     var photoUrl=s.photo_url||'';
     var dateStr=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'';
     var photoStyle=photoUrl?'background-image:url('+escHtml(photoUrl)+');':'';
@@ -2177,7 +2119,7 @@ document.addEventListener('yam:session_ready', function(){
       +'<div class="souvenir-info-text">'
       +'<div class="souvenir-name">'+escHtml(s.title||'Souvenir')+'</div>'
       +(dateStr?'<div class="souvenir-date">'+escHtml(dateStr)+'</div>':'')
-      +(anniversaryYears?'<div class="souvenir-anniv-badge">📅 Il y a '+anniversaryYears+' an'+(anniversaryYears>1?'s':'')+'</div>':'')
+      +(annivYears?'<div class="souvenir-anniv-badge">📅 Il y a '+annivYears+' an'+(annivYears>1?'s':'')+'</div>':'')
       +'</div>'
       +'<div class="souvenir-edit-icon">'+pencilSVG+'</div>'
       +'</div>';
@@ -2443,9 +2385,7 @@ document.addEventListener('yam:session_ready', function(){
     var id=modal.dataset.souvenirId; if(!id) return;
     if(!confirm('Supprimer ce souvenir ?')) return;
     fetch(SB_URL+'/rest/v1/memories?id=eq.'+id,{method:'DELETE',headers:sb2Headers()})
-    .then(function(){ window.closeSouvenirModal(); window.nousLoadSouvenirs();
-        if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('souvenirsSection');
-      }).catch(function(){});
+    .then(function(){ window.closeSouvenirModal(); window.nousLoadSouvenirs(); if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('souvenirsSection'); }).catch(function(){});
   };
 
   var _souvenirM=document.getElementById('souvenirModal');
@@ -2832,9 +2772,7 @@ document.addEventListener('yam:session_ready', function(){
     if(!confirm('Supprimer cette activité ?')) return;
     var coupleId=_getCoupleId(); if(!coupleId) return;
     fetch(SB_URL+'/rest/v1/activites?id=eq.'+id+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()})
-    .then(function(){ window.closeActiviteModal(); window.nousLoadActivites();
-        if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('activitesSection');
-      }).catch(function(){});
+    .then(function(){ window.closeActiviteModal(); window.nousLoadActivites(); if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('activitesSection'); }).catch(function(){});
   };
 
   window.nousAddSuggestedActivite=function(){
@@ -3089,127 +3027,85 @@ document.addEventListener('yam:session_ready', function(){
   };
 
   // ── Modale chapitre complet — positionnée absolue sur la bulle ──
-  // ── Lecteur immersif (#100) ──
-  var _readerIdx = 0;
+  // ── Lecteur chapitres amélioré (#100) — utilise le DOM statique de index.html ──
+  var _rIdx = 0; // index courant dans le lecteur
 
-  window.histoireOpenChapterModal = function(startIdx) {
-    var sorted = _histoireAllRows.slice().sort(function(a,b){
+  function _histoireSorted() {
+    return _histoireAllRows.slice().sort(function(a,b){
       if((a.sort_order||0)!=(b.sort_order||0)) return (a.sort_order||0)-(b.sort_order||0);
       return (a.created_at||'').localeCompare(b.created_at||'');
     });
-    if (!sorted.length) return;
-    _readerIdx = (typeof startIdx === 'number') ? startIdx : _histoireSelectedIndex;
-    _readerIdx = Math.max(0, Math.min(_readerIdx, sorted.length - 1));
+  }
 
-    // Masquer l'ancien modal statique
-    var legacyModal = document.getElementById('histoireChapterModal');
-    if (legacyModal) legacyModal.style.display = 'none';
+  function _histoireRenderModal(sorted, idx) {
+    var item = sorted[idx]; if(!item) return;
+    var modal = document.getElementById('histoireChapterModal'); if(!modal) return;
 
-    var existing = document.getElementById('histoireReaderOverlay');
-    if (existing) existing.remove();
+    // Meta
+    var metaStr = '';
+    if(item.emoji)      metaStr += item.emoji + ' · ';
+    if(item.date_label) metaStr += item.date_label.toUpperCase();
+    document.getElementById('histoireChapterModalMeta').textContent  = metaStr;
+    document.getElementById('histoireChapterModalTitre').textContent = item.title || '';
+    document.getElementById('histoireChapterModalTexte').textContent = item.text || '';
 
-    var overlay = document.createElement('div');
-    overlay.id  = 'histoireReaderOverlay';
-    overlay.className = 'histoire-reader-overlay';
-
-    function _build() {
-      var item = sorted[_readerIdx];
-      if (!item) return;
-      var hasPrev = _readerIdx > 0;
-      var hasNext = _readerIdx < sorted.length - 1;
-      var pct = sorted.length > 1 ? Math.round(_readerIdx / (sorted.length - 1) * 100) : 100;
-
-      overlay.innerHTML =
-        '<div class="histoire-reader-backdrop"></div>' +
-        '<div class="histoire-reader-card">' +
-          '<div class="histoire-reader-handle"></div>' +
-          '<div class="histoire-reader-progress-track">' +
-            '<div class="histoire-reader-progress-fill" style="width:' + pct + '%"></div>' +
-          '</div>' +
-          '<div class="histoire-reader-body">' +
-            '<div class="histoire-reader-chapeau">' +
-              (item.emoji ? '<span class="histoire-reader-emoji">' + escHtml(item.emoji) + '</span>' : '') +
-              (item.date_label ? '<span class="histoire-reader-date">' + escHtml(item.date_label) + '</span>' : '') +
-            '</div>' +
-            '<div class="histoire-reader-titre">' + escHtml(item.title || '') + '</div>' +
-            '<div class="histoire-reader-texte">' + escHtml(item.text || '') + '</div>' +
-            '<div class="histoire-reader-counter">' + (_readerIdx + 1) + ' / ' + sorted.length + '</div>' +
-          '</div>' +
-          '<div class="histoire-reader-nav">' +
-            '<button class="histoire-reader-btn' + (hasPrev ? '' : ' hidden') + '" id="hrPrev">' +
-              '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15,18 9,12 15,6"/></svg>' +
-              'Précédent' +
-            '</button>' +
-            '<button class="histoire-reader-btn histoire-reader-btn--next' + (hasNext ? '' : ' hidden') + '" id="hrNext">' +
-              'Suivant' +
-              '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9,18 15,12 9,6"/></svg>' +
-            '</button>' +
-          '</div>' +
-        '</div>';
-
-      overlay.querySelector('.histoire-reader-backdrop').addEventListener('click', window.histoireCloseChapterModal);
-      var btnPrev = overlay.querySelector('#hrPrev');
-      var btnNext = overlay.querySelector('#hrNext');
-      if (btnPrev) btnPrev.addEventListener('click', function(){ if (_readerIdx > 0) { _readerIdx--; _slide('right'); } });
-      if (btnNext) btnNext.addEventListener('click', function(){ if (_readerIdx < sorted.length - 1) { _readerIdx++; _slide('left'); } });
+    // Navigation entre chapitres
+    var navEl = document.getElementById('histoireModalNav');
+    if(!navEl) {
+      navEl = document.createElement('div');
+      navEl.id = 'histoireModalNav';
+      navEl.className = 'histoire-modal-nav';
+      var content = modal.querySelector('.histoire-chapter-modal-content');
+      if(content) content.appendChild(navEl);
     }
+    var hasPrev = idx > 0, hasNext = idx < sorted.length - 1;
+    navEl.innerHTML =
+      '<span class="histoire-modal-counter">' + (idx+1) + ' / ' + sorted.length + '</span>' +
+      '<div class="histoire-modal-nav-btns">' +
+        '<button class="histoire-modal-nav-btn'+(hasPrev?'':' hidden')+'" id="hmnPrev">'
+        +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15,18 9,12 15,6"/></svg>'
+        +'</button>' +
+        '<button class="histoire-modal-nav-btn histoire-modal-nav-btn--next'+(hasNext?'':' hidden')+'" id="hmnNext">'
+        +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9,18 15,12 9,6"/></svg>'
+        +'</button>' +
+      '</div>';
+    var bPrev = document.getElementById('hmnPrev');
+    var bNext = document.getElementById('hmnNext');
+    if(bPrev) bPrev.onclick = function(e){ e.stopPropagation(); if(_rIdx>0){_rIdx--;_histoireRenderModal(sorted,_rIdx);_histoireSelectedIndex=_rIdx;} };
+    if(bNext) bNext.onclick = function(e){ e.stopPropagation(); if(_rIdx<sorted.length-1){_rIdx++;_histoireRenderModal(sorted,_rIdx);_histoireSelectedIndex=_rIdx;} };
+  }
 
-    function _slide(dir) {
-      var card = overlay.querySelector('.histoire-reader-card');
-      if (!card) return;
-      card.style.transition = 'opacity 0.14s ease, transform 0.14s ease';
-      card.style.opacity = '0';
-      card.style.transform = 'translateX(' + (dir === 'left' ? '-18px' : '18px') + ')';
-      setTimeout(function() {
-        _build();
-        var nc = overlay.querySelector('.histoire-reader-card');
-        if (!nc) return;
-        nc.style.transition = 'none';
-        nc.style.opacity = '0';
-        nc.style.transform = 'translateX(' + (dir === 'left' ? '18px' : '-18px') + ')';
-        requestAnimationFrame(function(){ requestAnimationFrame(function(){
-          nc.style.transition = 'opacity 0.18s ease, transform 0.18s ease';
-          nc.style.opacity = '1';
-          nc.style.transform = 'translateX(0)';
-        }); });
-      }, 150);
+  window.histoireOpenChapterModal = function() {
+    var sorted = _histoireSorted();
+    if(!sorted.length) return;
+    _rIdx = _histoireSelectedIndex;
+    _histoireRenderModal(sorted, _rIdx);
+    var modal = document.getElementById('histoireChapterModal');
+    if(modal) {
+      modal.style.display = 'block';
+      modal.classList.add('histoire-chapter-modal--open');
     }
-
-    // Swipe tactile
-    var _tx = 0;
-    overlay.addEventListener('touchstart', function(e){ _tx = e.touches[0].clientX; }, {passive:true});
-    overlay.addEventListener('touchend', function(e){
-      var dx = e.changedTouches[0].clientX - _tx;
-      if (Math.abs(dx) > 48) {
-        if (dx < 0 && _readerIdx < sorted.length - 1) { _readerIdx++; _slide('left'); }
-        else if (dx > 0 && _readerIdx > 0) { _readerIdx--; _slide('right'); }
-      }
-    }, {passive:true});
-
-    // Clavier
-    function _kh(e) {
-      if (e.key === 'ArrowRight' && _readerIdx < sorted.length - 1) { _readerIdx++; _slide('left'); }
-      else if (e.key === 'ArrowLeft' && _readerIdx > 0) { _readerIdx--; _slide('right'); }
-      else if (e.key === 'Escape') window.histoireCloseChapterModal();
-    }
-    document.addEventListener('keydown', _kh);
-    overlay._kh = _kh;
-
-    _build();
-    document.body.appendChild(overlay);
-    _blockBackgroundScroll();
-    requestAnimationFrame(function(){ overlay.classList.add('open'); });
   };
 
   window.histoireCloseChapterModal = function() {
-    var overlay = document.getElementById('histoireReaderOverlay');
-    if (overlay) {
-      if (overlay._kh) document.removeEventListener('keydown', overlay._kh);
-      overlay.classList.remove('open');
-      setTimeout(function(){ if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 260);
-    }
-    _unblockBackgroundScroll();
+    var modal = document.getElementById('histoireChapterModal');
+    if(modal) { modal.classList.remove('histoire-chapter-modal--open'); modal.style.display = 'none'; }
   };
+
+  // Click en dehors ferme la modale
+  document.addEventListener('click', function(e){
+    var modal = document.getElementById('histoireChapterModal');
+    if(!modal || modal.style.display === 'none') return;
+    var bulle = document.getElementById('histoireBulle');
+    if(bulle && bulle.contains(e.target)) return;
+    if(!modal.contains(e.target)) window.histoireCloseChapterModal();
+  });
+
+  // Binding du bouton close (l'event listener est ici, pas dans app-inline.js)
+  setTimeout(function(){
+    var btn = document.getElementById('histoireCloseChapterBtn');
+    if(btn) btn.addEventListener('click', function(e){ e.stopPropagation(); window.histoireCloseChapterModal(); });
+  }, 0);
 
   // ── Overlay gestion (inchangé) ──
   window.histoireOpenGestion = function(){
@@ -3688,9 +3584,7 @@ document.addEventListener('yam:session_ready', function(){
     if(!confirm('Supprimer ce livre ?')) return;
     var coupleId = _getCoupleId(); if(!coupleId) return;
     fetch(SB_URL+'/rest/v1/books?id=eq.'+_livreEditingId+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()})
-    .then(function(){ window.livresCloseEdit(); window.livresLoad();
-        if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('Books');
-      }).catch(function(){});
+    .then(function(){ window.livresCloseEdit(); window.livresLoad(); if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('Books'); }).catch(function(){});
   };
 
   // ── Idée du jour Groq — 5 idées générées 1x/jour, navigation → ──
