@@ -1947,32 +1947,32 @@ function _startPhotodescsRT(cid) {
   window._yamRTChannels['photoDescs']=_photoDescsRTCh;
 }
 
-// Init au chargement
-(function(){
-  var u=(typeof yamGetUser==='function')?yamGetUser():null;
-  _startMemoRT(u&&u.couple_id?u.couple_id:null);
-  _startMemotodoRT(u&&u.couple_id?u.couple_id:null);
-  _startPetitsmotsRT(u&&u.couple_id?u.couple_id:null);
-  _startSouvenirsRT(u&&u.couple_id?u.couple_id:null);
-  _startActivitesRT(u&&u.couple_id?u.couple_id:null);
-  _startLivresRT(u&&u.couple_id?u.couple_id:null);
-  _startHistoireRT(u&&u.couple_id?u.couple_id:null);
-  _startPhotodescsRT(u&&u.couple_id?u.couple_id:null);
-})();
+// Init Realtime — sur nousContentReady (dispatché depuis _nousShowContent
+// dans app-nous.js, donc toujours après le chargement du script ET de la session)
+// Raison : yam:session_ready est dispatché depuis app-account.js qui se charge
+// AVANT app-nous.js dans index.html → le listener n'est jamais installé à temps.
+function _startAllRT() {
+  var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
+  if (!u || !u.couple_id) return;
+  var cid = u.couple_id;
+  // Reset tous les canaux avant de réabonner
+  _memoRTCh = null;       _startMemoRT(cid);
+  _memoTodoRTCh = null;   _startMemotodoRT(cid);
+  _petitsMotsRTCh = null; _startPetitsmotsRT(cid);
+  _souvenirsRTCh = null;  _startSouvenirsRT(cid);
+  _activitesRTCh = null;  _startActivitesRT(cid);
+  _livresRTCh = null;     _startLivresRT(cid);
+  _histoireRTCh = null;   _startHistoireRT(cid);
+  _photoDescsRTCh = null; _startPhotodescsRT(cid);
+}
 
-// Init après session prête
-document.addEventListener('yam:session_ready',function(){
-  var u=(typeof yamGetUser==='function')?yamGetUser():null;
-  if(!u||!u.couple_id) return;
-  _memoRTCh=null; _startMemoRT(u.couple_id);
-  _memoTodoRTCh=null; _startMemotodoRT(u.couple_id);
-  _petitsMotsRTCh=null; _startPetitsmotsRT(u.couple_id);
-  _souvenirsRTCh=null; _startSouvenirsRT(u.couple_id);
-  _activitesRTCh=null; _startActivitesRT(u.couple_id);
-  _livresRTCh=null; _startLivresRT(u.couple_id);
-  _histoireRTCh=null; _startHistoireRT(u.couple_id);
-  _photoDescsRTCh=null; _startPhotodescsRT(u.couple_id);
-});
+// Démarrer au premier chargement de l'onglet Nous
+document.addEventListener('nousContentReady', function() {
+  _startAllRT();
+}, { once: true }); // once:true → ne s'abonne qu'une seule fois
+
+// Aussi exposer globalement pour permettre un redémarrage si besoin
+window._nousStartAllRT = _startAllRT;
 
 // 11. MÉMO COUPLE — Note unique + Todo list, sans PIN
 //     • Clic Note  → vue lecture (openMemoNoteView) → bouton Modifier → openMemoNoteEdit
