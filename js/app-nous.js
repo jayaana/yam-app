@@ -287,8 +287,8 @@ function _nidAutoDetect() {
       i.src = url;
     });
   };
-  var elleUrl = SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/uploads/'+cid+'/animal-elle.jpg?t='+Date.now();
-  var luiUrl  = SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/uploads/'+cid+'/animal-lui.jpg?t='+Date.now();
+  var elleUrl = SB_URL+'/storage/v1/object/public/'+'images'+'/uploads/'+cid+'/animal-elle.jpg?t='+Date.now();
+  var luiUrl  = SB_URL+'/storage/v1/object/public/'+'images'+'/uploads/'+cid+'/animal-lui.jpg?t='+Date.now();
 
   Promise.all([_checkImg(elleUrl), _checkImg(luiUrl)])
     .then(function(imgs) {
