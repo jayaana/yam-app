@@ -6622,17 +6622,22 @@ body.light #rappelOverlay.open { background: rgba(0,0,0,0.22); }
   position: relative;
   pointer-events: none;
   user-select: none;
-  overflow: hidden;
+  min-height: 100px; /* garantit que le label pulsant est toujours visible */
+  /* PAS de overflow:hidden — le label absolu doit dépasser */
 }
-/* Couche de flou sur le contenu */
+/* Wrapper interne pour le flou — isolé du label */
+.nid-peek > *:not(.nid-peek-lbl) {
+  /* Le backdrop-filter est géré via ::before sur un wrapper */
+}
+/* Couche de flou — positionnée absolute, ne clippe pas le label */
 .nid-peek::before {
   content: '';
   position: absolute;
   left: 0; right: 0;
   bottom: 0;
-  height: 60%;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  height: 55%;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   pointer-events: none;
   z-index: 1;
   border-radius: 0 0 14px 14px;
@@ -6642,24 +6647,24 @@ body.light #rappelOverlay.open { background: rgba(0,0,0,0.22); }
   content: '';
   position: absolute;
   left: 0; right: 0; bottom: 0;
-  height: 85%;
+  height: 80%;
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    rgba(var(--bg-rgb, 242,242,247), 0.55) 40%,
-    var(--bg) 75%
+    rgba(242,242,247,0.6) 45%,
+    #f2f2f7 78%
   );
   border-radius: 0 0 14px 14px;
   pointer-events: none;
   z-index: 2;
 }
-/* Label pulsant */
+/* Label pulsant — au-dessus de tout */
 .nid-peek-lbl {
-  position: absolute;
-  bottom: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 3;
+  position: absolute !important;
+  bottom: 12px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 10 !important;
   background: var(--s1);
   border: 1.5px solid rgba(231,90,124,0.35);
   border-radius: 20px;
@@ -6678,23 +6683,23 @@ body.light #rappelOverlay.open { background: rgba(0,0,0,0.22); }
 @keyframes nidPeekPulse {
   0%, 100% {
     box-shadow: 0 2px 12px rgba(231,90,124,0.18);
-    transform: translateX(-50%) translateY(0);
+    transform: translateX(-50%) translateY(0) !important;
     border-color: rgba(231,90,124,0.35);
   }
   50% {
-    box-shadow: 0 4px 20px rgba(231,90,124,0.38);
-    transform: translateX(-50%) translateY(-3px);
-    border-color: rgba(231,90,124,0.65);
+    box-shadow: 0 4px 22px rgba(231,90,124,0.42);
+    transform: translateX(-50%) translateY(-3px) !important;
+    border-color: rgba(231,90,124,0.68);
   }
 }
-/* Thème dark : adapter la couleur du dégradé */
+/* Thème dark */
 body:not(.light) .nid-peek::after,
 html:not(.light) .nid-peek::after {
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    rgba(26,22,20,0.55) 40%,
-    #1a1614 75%
+    rgba(26,22,20,0.6) 45%,
+    #1a1614 78%
   );
 }
 
