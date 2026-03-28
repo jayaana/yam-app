@@ -1818,7 +1818,7 @@ var _activitesRTCh = null, _activitesPollIv = null;
 function _startActivitesRT(cid) {
   if(!window._yamRT||!cid||_activitesRTCh) return;
   _activitesRTCh = window._yamRT.channel('activites-'+cid)
-    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'activites',filter:'couple_id=eq.'+cid},
+    .on('postgres_changes',{event:'*',schema:'public',table:'activites',filter:'couple_id=eq.'+cid},
         function(){ window.nousInvalidateActivitesCache(); window.nousLoadActivites(true); })
     .subscribe(function(s){
       if(s==='SUBSCRIBED'){ if(_activitesPollIv){clearInterval(_activitesPollIv);_activitesPollIv=null;} }
@@ -2928,10 +2928,33 @@ document.addEventListener('yam:session_ready',function(){ var u=(typeof yamGetUs
   window.activiteDelete=function(){
     var modal=document.getElementById('activiteModal'); if(!modal) return;
     var id=modal.dataset.actId; if(!id) return;
-    if(!confirm('Supprimer cette activité ?')) return;
     var coupleId=_getCoupleId(); if(!coupleId) return;
+    // iOS bloque confirm() dans les PWA → utiliser une confirmation inline
+    var btn = document.getElementById('activiteDeleteBtn');
+    if(btn && btn.dataset.confirmStep !== '1') {
+      btn.dataset.confirmStep = '1';
+      var orig = btn.textContent;
+      btn.textContent = 'Confirmer ?';
+      btn.style.background = '#e05555';
+      btn.style.color = '#fff';
+      setTimeout(function(){
+        if(btn.dataset.confirmStep === '1') {
+          btn.dataset.confirmStep = '';
+          btn.textContent = orig;
+          btn.style.background = '';
+          btn.style.color = '';
+        }
+      }, 3000);
+      return;
+    }
+    // 2e clic = confirmer
+    if(btn) { btn.dataset.confirmStep = ''; btn.textContent = 'Supprimer 🗑️'; btn.style.background = ''; btn.style.color = ''; }
     fetch(SB_URL+'/rest/v1/activites?id=eq.'+id+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()})
-    .then(function(){ window.closeActiviteModal(); window.nousLoadActivites(); if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('activitesSection'); }).catch(function(){});
+    .then(function(){
+      window.nousInvalidateActivitesCache();
+      window.closeActiviteModal();
+      window.nousLoadActivites(true);
+    }).catch(function(){});
   };
 
   window.nousAddSuggestedActivite=function(){
@@ -2940,8 +2963,14 @@ document.addEventListener('yam:session_ready',function(){ var u=(typeof yamGetUs
     var coupleId=_getCoupleId(); if(!coupleId) return;
     var data={ couple_id:coupleId, title:sugg.titre, description:sugg.desc, emoji:sugg.emoji, steps:JSON.stringify(sugg.steps.map(function(s){ return {text:s,done:false}; })), is_suggested:true };
     fetch(SB_URL+'/rest/v1/activites',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
-    .then(function(){ window.nousLoadActivites(); if(typeof window.nousSignalNew==='function') window.nousSignalNew(); })
-    .catch(function(){});
+    .then(function(){
+      window.nousInvalidateActivitesCache();
+      window.nousLoadActivites(true);
+      if(typeof window._nousSignalNewContent==='function') {
+        window._nousSignalNewContent('activitesSection');
+        window._nousSignalNewContent('Books');
+      }
+    }).catch(function(){});
   };
 
   var _activiteM=document.getElementById('activiteModal');
@@ -3058,6 +3087,10 @@ document.addEventListener('yam:session_ready',function(){ var u=(typeof yamGetUs
       var card = document.getElementById('activiteIaSuggCard');
       if(card) card.style.display = 'none';
       window.nousInvalidateActivitesCache(); window.nousLoadActivites(true);
+      if(typeof window._nousSignalNewContent==='function') {
+        window._nousSignalNewContent('activitesSection');
+        window._nousSignalNewContent('Books');
+      }
     }).catch(function(){});
   };
 
