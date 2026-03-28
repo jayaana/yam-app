@@ -6658,10 +6658,10 @@ body.light #rappelOverlay.open { background: rgba(0,0,0,0.22); }
   pointer-events: none;
   z-index: 2;
 }
-/* Label peek — position:fixed sur body, hors du backdrop-filter de la section */
+/* Label peek — position:fixed sur body, SOUS la nav (z-index < 1000) et SOUS les modales */
 #nidPeekFloat {
   position: fixed !important;
-  z-index: 99998;
+  z-index: 500; /* sous la nav (1000) et les modales (2000+) */
   background: var(--s1);
   border: 1.5px solid rgba(231,90,124,0.55);
   border-radius: 20px;
@@ -6673,7 +6673,6 @@ body.light #rappelOverlay.open { background: rgba(0,0,0,0.22); }
   pointer-events: none;
   box-shadow: 0 3px 18px rgba(231,90,124,0.26);
   animation: nidPeekPulse 2.8s ease-in-out infinite;
-  /* Pas de transform — position calculée en JS */
 }
 @keyframes nidPeekPulse {
   0%, 100% {
@@ -6684,6 +6683,15 @@ body.light #rappelOverlay.open { background: rgba(0,0,0,0.22); }
     box-shadow: 0 5px 26px rgba(231,90,124,0.50);
     border-color: rgba(231,90,124,0.80);
   }
+}
+
+/* FIX 3 : pulsation légère sur la section verrouillée */
+.nid-peek-pulse {
+  animation: nidSectionPulse 3.5s ease-in-out infinite;
+}
+@keyframes nidSectionPulse {
+  0%, 100% { box-shadow: none; }
+  50%       { box-shadow: inset 0 0 0 2px rgba(231,90,124,0.18), 0 0 20px rgba(231,90,124,0.08); }
 }
 /* Thème dark */
 body:not(.light) .nid-peek::after,
