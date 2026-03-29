@@ -2029,6 +2029,8 @@ function _startPhotodescsRT(cid) {
           if(typeof window.elleLoadDescs==='function') window.elleLoadDescs();
           if(typeof window.luiLoadDescs==='function')  window.luiLoadDescs();
           if(typeof window.elleSyncSections==='function') window.elleSyncSections();
+          // Progression NID partagée — recharger et réappliquer si nous_progress a changé
+          if(typeof _nidLoad==='function') _nidLoad(function(){ if(typeof _nidApply==='function') _nidApply(); if(typeof _nidAutoDetect==='function') _nidAutoDetect(); });
         })
     .subscribe(function(s){
       if(s==='SUBSCRIBED'){ if(_photoDescsPollIv){clearInterval(_photoDescsPollIv);_photoDescsPollIv=null;} }
