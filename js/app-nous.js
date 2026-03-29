@@ -345,20 +345,16 @@ function _nidAutoDetect() {
   //           Souvenirs→Activités, Activités→Bibliothèque
 
   // 1. Elle/Lui : image uploadée → débloquer Mémo
-  var _checkImg = function(url) {
-    return new Promise(function(res){
-      var i = new Image();
-      i.onload = function(){ res(true); };
-      i.onerror = function(){ res(false); };
-      i.src = url;
-    });
-  };
-  var elleUrl = SB_URL+'/storage/v1/object/public/'+'images'+'/uploads/'+cid+'/animal-elle.jpg?t='+Date.now();
-  var luiUrl  = SB_URL+'/storage/v1/object/public/'+'images'+'/uploads/'+cid+'/animal-lui.jpg?t='+Date.now();
+  // Vérification via DB : au moins 1 ligne elle_img ou lui_img = image uploadée
+  var elleUrl = SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+cid+'&category=eq.elle_img&limit=1&select=id';
+  var luiUrl  = SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+cid+'&category=eq.lui_img&limit=1&select=id';
 
-  Promise.all([_checkImg(elleUrl), _checkImg(luiUrl)])
+  Promise.all([
+    fetch(elleUrl,{headers:sb2Headers()}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];}),
+    fetch(luiUrl, {headers:sb2Headers()}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];})
+  ])
     .then(function(imgs) {
-      if (imgs[0] || imgs[1]) { _unlock('memoCoupleSection'); }
+      if ((imgs[0] && imgs[0].length) || (imgs[1] && imgs[1].length)) { _unlock('memoCoupleSection'); }
       // 2. Mémo note → débloquer Petits mots
       return fetch(SB_URL+'/rest/v1/memo_notes?couple_id=eq.'+cid+'&limit=1&select=id', { headers: sb2Headers() });
     })
@@ -575,19 +571,29 @@ function _nousApplyBatchData(d) {
 
 // Applique les URLs images stockées en DB directement dans les <img>
 function _applyImagesFromDB(section, rows) {
-  rows.forEach(function(row) {
-    var slot = row.slot;
-    var url  = row.description;
-    if(!url || !slot) return;
+  // Indexer les rows par slot pour lookup O(1)
+  var bySlot = {};
+  rows.forEach(function(row) { if(row.slot && row.description) bySlot[row.slot] = row.description; });
+
+  SLOTS.forEach(function(slot) {
+    var url   = bySlot[slot] || null;
     var img   = document.getElementById(section+'-img-'+slot);
     var empty = document.getElementById(section+'-empty-'+slot);
     var btn   = document.getElementById(section+'-btn-'+slot);
     if(!img) return;
-    img.src = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
-    img.style.display = '';
-    img.classList.add('loaded');
-    if(empty) empty.style.display = 'none';
-    if(btn)   btn.classList.remove('empty');
+    if(url) {
+      // URL brute depuis la DB — même logique que photo_url des souvenirs, pas de ?t=
+      img.src = url;
+      img.style.display = '';
+      img.classList.add('loaded');
+      if(empty) empty.style.display = 'none';
+      if(btn)   btn.classList.remove('empty');
+    } else {
+      // Pas de photo pour ce slot — afficher l'état vide
+      img.style.display = 'none';
+      if(empty) empty.style.display = '';
+      if(btn)   btn.classList.add('empty');
+    }
   });
 }
 
@@ -1018,33 +1024,21 @@ window.nousSignalNew = function() {
   };
 
   // ─────────────────────────────
-  // CHARGEMENT PHOTOS
+  // CHARGEMENT PHOTOS — via DB (photo_descs category=elle_img/lui_img)
+  // Meme systeme que les souvenirs : URL brute stockee en DB, pas de ?t=,
+  // le navigateur cache normalement. Zero egress storage au rechargement.
   // ─────────────────────────────
-  function _loadImages(section){
+  function _loadImagesFromDB(section){
     var coupleId = _getCoupleId(); if(!coupleId) return;
-    SLOTS.forEach(function(slot){
-      var path = section==='elle' ? _ellePath(coupleId,slot) : _luiPath(coupleId,slot);
-      var url  = SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+path+'?t='+Date.now();
-      var img   = document.getElementById(section+'-img-'+slot);
-      var empty = document.getElementById(section+'-empty-'+slot);
-      var btn   = document.getElementById(section+'-btn-'+slot);
-      if(!img) return;
-      var t = new Image();
-      t.onload = function(){
-        img.src=url; img.style.display=''; img.classList.add('loaded');
-        if(empty) empty.style.display='none';
-        if(btn) btn.classList.remove('empty');
-      };
-      t.onerror = function(){
-        img.style.display='none';
-        if(empty) empty.style.display='';
-        if(btn) btn.classList.add('empty');
-      };
-      t.src = url;
-    });
+    var cat = section+'_img';
+    fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+coupleId+'&category=eq.'+cat+'&select=slot,description',
+      { headers: sb2Headers() })
+      .then(function(r){ return r.ok ? r.json() : []; })
+      .then(function(rows){ _applyImagesFromDB(section, Array.isArray(rows)?rows:[]); })
+      .catch(function(){});
   }
-  window.elleLoadImages = function(){ _loadImages('elle'); };
-  window.luiLoadImages  = function(){ _loadImages('lui');  };
+  window.elleLoadImages = function(){ _loadImagesFromDB('elle'); };
+  window.luiLoadImages  = function(){ _loadImagesFromDB('lui');  };
 
   // ─────────────────────────────
   // CHARGEMENT DONNÉES SUPABASE
