@@ -2780,7 +2780,6 @@ window.addEventListener('load', function(){
   var POLL_INTERVAL = 15000; // 15 secondes
   var _pollIv = null;
   // Initialiser depuis la session — évite la détection fausse positive au premier poll après reload
-  var _initUser = (typeof yamGetUser === 'function') ? yamGetUser() : null;
   // Vider le cache SW et recharger — exposé sur window pour acLinkPartner (scope différent)
   window._clearSWCacheAndReload = function(){
     var doReload = function(){ location.reload(); };
@@ -2791,105 +2790,101 @@ window.addEventListener('load', function(){
   };
   var _clearSWCacheAndReload = window._clearSWCacheAndReload;
 
-  // Flag anti-boucle liaison : bloque la condition "nouveau partenaire"
+  // Anti-boucle : consommer les flags immédiatement au démarrage
   var _justReloadedForPartner = localStorage.getItem('yam_partner_reload_done') === '1';
   if(_justReloadedForPartner) localStorage.removeItem('yam_partner_reload_done');
-  // Flag anti-boucle déliaison : bloque les conditions Cas 1 et Cas 2
   var _justReloadedForUnlink = localStorage.getItem('yam_unlink_reload_done') === '1';
   if(_justReloadedForUnlink) localStorage.removeItem('yam_unlink_reload_done');
 
-  var _lastPartnerPseudo = _justReloadedForPartner ? '__reloaded__' : (_initUser ? (_initUser.partner_pseudo || '') : null);
-  // Si déliaison vient d'avoir lieu, initialiser _lastCoupleId sur la valeur actuelle de la session
-  // pour éviter que le changement de couple_id ne déclenche un second reload
-  var _lastCoupleId = _initUser ? (_initUser.couple_id || null) : null;
-  
+  // _knownPartnerPseudo : dernière valeur connue du partenaire, mise à jour à chaque poll
+  // Si un reload vient d'avoir lieu, la session est à jour — initialiser depuis elle
+  // Sinon, initialiser depuis la session actuelle
+  var _initUser = (typeof yamGetUser === 'function') ? yamGetUser() : null;
+  var _knownPartnerPseudo = _initUser ? (_initUser.partner_pseudo || null) : null;
+  var _knownCoupleId      = _initUser ? (_initUser.couple_id || null)      : null;
+
+  function _clearSessionPartner(){
+    try {
+      var _s = JSON.parse(localStorage.getItem('yam_session_v3') || '{}');
+      if(_s && _s.user){
+        _s.user.partner_pseudo = null; _s.user.partner_id = null; _s.user.partner_role = null;
+        localStorage.setItem('yam_session_v3', JSON.stringify(_s));
+      }
+    } catch(e){}
+  }
+
+  function _reloadForUnlink(){
+    _clearSessionPartner();
+    localStorage.setItem('yam_partner_reload_done', '1');
+    localStorage.setItem('yam_unlink_reload_done', '1');
+    setTimeout(_clearSWCacheAndReload, 2000);
+  }
+
+  function _reloadForPartner(){
+    localStorage.setItem('yam_partner_reload_done', '1');
+    setTimeout(_clearSWCacheAndReload, 2000);
+  }
+
   function pollPartnerChanges(){
     var u = yamGetUser ? yamGetUser() : null;
     if(!u || !u.couple_id) return;
-    
-    // Sauvegarder l'état actuel pour comparaison (déjà initialisé à la déclaration)
-    if(_lastCoupleId === null) _lastCoupleId = u.couple_id;
-    
-    // Récupérer les données fraîches du partenaire
+
     fetch(SB_URL + '/rest/v1/profiles?couple_id=eq.' + u.couple_id + '&id=neq.' + u.id + '&select=pseudo,couple_id&limit=1', {
       headers: sb2Headers()
     })
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(rows){
       if(!Array.isArray(rows)) return;
-      
-      // Cas 1 : Le partenaire n'existe plus (il s'est délié)
+
       if(rows.length === 0){
-        // Vérifier si mon couple_id a changé côté serveur
-        return fetch(SB_URL + '/rest/v1/profiles?id=eq.' + u.id + '&select=couple_id&limit=1', {
-          headers: sb2Headers()
-        })
-        .then(function(r){ return r.ok ? r.json() : null; })
-        .then(function(myRows){
-          if(Array.isArray(myRows) && myRows.length > 0){
-            var myCoupleId = myRows[0].couple_id;
-            if(myCoupleId !== _lastCoupleId && !_justReloadedForUnlink){
+        // Pas de partenaire dans ce couple — vérifier si mon couple_id a changé (déliaison)
+        if(_knownPartnerPseudo !== null){
+          // On avait un partenaire, il est parti
+          return fetch(SB_URL + '/rest/v1/profiles?id=eq.' + u.id + '&select=couple_id&limit=1', {
+            headers: sb2Headers()
+          })
+          .then(function(r){ return r.ok ? r.json() : null; })
+          .then(function(myRows){
+            if(Array.isArray(myRows) && myRows.length > 0 && myRows[0].couple_id !== _knownCoupleId){
               if(typeof showToast === 'function') showToast('⚠️ Votre partenaire s\'est délié. Rechargement...', 'warning', 2000);
-      // Nettoyer la session localStorage avant reload
-      try {
-        var _su = JSON.parse(localStorage.getItem('yam_session_v3') || '{}');
-        if(_su && _su.user){ _su.user.partner_pseudo = null; _su.user.partner_id = null; _su.user.partner_role = null; localStorage.setItem('yam_session_v3', JSON.stringify(_su)); }
-      } catch(e){}
-              localStorage.setItem('yam_partner_reload_done', '1');
-              localStorage.setItem('yam_unlink_reload_done', '1');
-              setTimeout(window._clearSWCacheAndReload || function(){ location.reload(); }, 2000);
-            }
-          }
-        });
-      }
-      
-      // Cas 2 : Le partenaire existe toujours
-      var partner = rows[0];
-
-      // Détection nouveau partenaire lié : session locale sans partenaire, mais DB en a un
-      var _sessionHasNoPartner = !(_initUser && _initUser.partner_pseudo);
-      if(_sessionHasNoPartner && partner.pseudo && !_justReloadedForPartner){
-        if(typeof showToast === 'function') showToast('💕 ' + escHtml(partner.pseudo) + ' vient de vous rejoindre !', 'success', 3000);
-        localStorage.setItem('yam_partner_reload_done', '1');
-        setTimeout(window._clearSWCacheAndReload || function(){ location.reload(); }, 2000);
-        return;
-      }
-
-      // Détection changement de pseudo
-      if(partner.pseudo !== _lastPartnerPseudo && _lastPartnerPseudo !== null){
-        if(window.v2RefreshSession){
-          v2RefreshSession().then(function(freshUser){
-            if(freshUser){
-              _lastPartnerPseudo = freshUser.partner_pseudo;
-              
-              // Notification
-              if(typeof showToast === 'function'){
-                showToast('💬 ' + escHtml(_lastPartnerPseudo) + ' a changé de pseudo', 'info', 3000);
-              }
-              
-              // Mettre à jour l'UI si le modal Mon Compte est ouvert
-              var modal = document.getElementById('settingsView');
-              if(modal && modal.classList.contains('active')){
-                var el = document.getElementById('acPartnerName');
-                if(el) el.textContent = escHtml(_lastPartnerPseudo);
-              }
+              _reloadForUnlink();
             }
           });
         }
+        // Pas de partenaire connu et pas de partenaire en DB — rien à faire
+        return;
       }
-      
-      // Détection changement de couple_id du partenaire (il s'est délié)
-      if(partner.couple_id !== u.couple_id && !_justReloadedForUnlink){
+
+      var partner = rows[0];
+
+      // Nouveau partenaire vient de se lier (on n'en avait pas)
+      if(_knownPartnerPseudo === null && partner.pseudo){
+        if(typeof showToast === 'function') showToast('💕 ' + escHtml(partner.pseudo) + ' vient de vous rejoindre !', 'success', 3000);
+        _reloadForPartner();
+        return;
+      }
+
+      // Partenaire délié (couple_id différent)
+      if(partner.couple_id !== u.couple_id && _knownPartnerPseudo !== null){
         if(typeof showToast === 'function') showToast('⚠️ Votre partenaire s\'est délié. Rechargement...', 'warning', 2000);
-      // Nettoyer la session localStorage avant reload
-      try {
-        var _su = JSON.parse(localStorage.getItem('yam_session_v3') || '{}');
-        if(_su && _su.user){ _su.user.partner_pseudo = null; _su.user.partner_id = null; _su.user.partner_role = null; localStorage.setItem('yam_session_v3', JSON.stringify(_su)); }
-      } catch(e){}
-        localStorage.setItem('yam_partner_reload_done', '1');
-        localStorage.setItem('yam_unlink_reload_done', '1');
-        setTimeout(window._clearSWCacheAndReload || function(){ location.reload(); }, 2000);
+        _reloadForUnlink();
+        return;
       }
+
+      // Changement de pseudo
+      if(partner.pseudo && partner.pseudo !== _knownPartnerPseudo && _knownPartnerPseudo !== null){
+        _knownPartnerPseudo = partner.pseudo;
+        if(typeof showToast === 'function') showToast('💬 ' + escHtml(partner.pseudo) + ' a changé de pseudo', 'info', 3000);
+        var modal = document.getElementById('settingsView');
+        if(modal && modal.classList.contains('active')){
+          var el = document.getElementById('acPartnerName');
+          if(el) el.textContent = escHtml(partner.pseudo);
+        }
+        return;
+      }
+
+      // Rien changé — mettre à jour _knownPartnerPseudo si besoin
+      if(partner.pseudo && _knownPartnerPseudo === null) _knownPartnerPseudo = partner.pseudo;
     })
     .catch(function(){/* erreur réseau — silent */});
   }
