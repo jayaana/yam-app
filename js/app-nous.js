@@ -234,6 +234,9 @@ window._nousSignalNewContent = function(sectionId){
   // La nouvelle section suivante passe en peek
   _nidApply();
   _nidMilestones();
+  // Relancer la détection pour débloquer la section suivante en cascade
+  // (ex: activitesSection vient d'être débloquée → détecter Books immédiatement)
+  setTimeout(_nidAutoDetect, 300);
 };
 
 // Barre de progression avec paliers nommés
