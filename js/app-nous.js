@@ -964,6 +964,8 @@ window.nousSignalNew = function() {
   function _getCoupleId(){ var u=(typeof yamGetUser==='function')?yamGetUser():null; return u?u.couple_id:null; }
   function _ellePath(cid,slot){ return 'uploads/'+cid+'/'+slot+'-elle.jpg'; }
   function _luiPath(cid,slot){ return 'uploads/'+cid+'/'+slot+'-lui.jpg'; }
+  function _ellePathTs(cid,slot,ts){ return 'uploads/'+cid+'/'+slot+'-elle-'+ts+'.jpg'; }
+  function _luiPathTs(cid,slot,ts){ return 'uploads/'+cid+'/'+slot+'-lui-'+ts+'.jpg'; }
 
   // ── Données en mémoire (chargées depuis Supabase) ──
   var _elleBanners = {};
@@ -1094,7 +1096,8 @@ window.nousSignalNew = function() {
       if(typeof showToast==='function') showToast('Session introuvable — reconnecte-toi', 'error', 3000);
       return;
     }
-    var path = section==='elle' ? _ellePath(coupleId,slot) : _luiPath(coupleId,slot);
+    var _ts = Date.now();
+    var path = section==='elle' ? _ellePathTs(coupleId,slot,_ts) : _luiPathTs(coupleId,slot,_ts);
     var photoDiv=document.getElementById('slotEditPhoto');
 
     // Détection HEIC avant compression
@@ -1117,9 +1120,9 @@ window.nousSignalNew = function() {
       }).then(function(r){ return r.text().then(function(){ return r.ok; }); })
       .then(function(ok){
         if(ok){
-          // Même stratégie que les souvenirs : l'URL stockée en DB inclut ?t=timestamp
-          // → URL unique à chaque upload → jamais en cache → affichage immédiat garanti
-          var urlWithTs=SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+path+'?t='+Date.now();
+          // Même stratégie que les souvenirs : timestamp dans le nom du fichier
+          // → URL totalement nouvelle à chaque upload → jamais en cache
+          var urlWithTs=SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+path;
           var img=document.getElementById(section+'-img-'+slot);
           var emptyEl=document.getElementById(section+'-empty-'+slot);
           var btnEl=document.getElementById(section+'-btn-'+slot);
@@ -1134,15 +1137,27 @@ window.nousSignalNew = function() {
           if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh(section+'_slot_'+slot);
           if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('elle_lui_update');
           if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('memoCoupleSection');
-          // Stocker urlWithTs en DB — le partenaire recevra cette URL via RT
-          // → même URL inconnue du cache → affichage immédiat côté partenaire aussi
+          // Stocker urlWithTs en DB via PATCH si ligne existe, POST sinon
+          // → le partenaire recevra la nouvelle URL via RT photoDescs
           var cid2=_getCoupleId();
           if(cid2){
             var cat=section+'_img';
-            var dbBody={couple_id:cid2,category:cat,slot:slot,description:urlWithTs,updated_at:new Date().toISOString()};
-            fetch(SB_URL+'/rest/v1/photo_descs',{method:'POST',
-              headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),
-              body:JSON.stringify(dbBody)}).catch(function(){});
+            fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+cid2+'&category=eq.'+cat+'&slot=eq.'+slot,
+              {headers:sb2Headers()})
+              .then(function(r){return r.ok?r.json():[];})
+              .then(function(rows){
+                var payload={description:urlWithTs,updated_at:new Date().toISOString()};
+                if(rows&&rows[0]){
+                  fetch(SB_URL+'/rest/v1/photo_descs?id=eq.'+rows[0].id,{method:'PATCH',
+                    headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
+                    body:JSON.stringify(payload)}).catch(function(){});
+                } else {
+                  var body=Object.assign({couple_id:cid2,category:cat,slot:slot},payload);
+                  fetch(SB_URL+'/rest/v1/photo_descs',{method:'POST',
+                    headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
+                    body:JSON.stringify(body)}).catch(function(){});
+                }
+              }).catch(function(){});
           }
         } else {
           if(photoDiv) photoDiv.innerHTML='<div style="color:#e05555;font-size:11px;">Erreur upload</div>';
