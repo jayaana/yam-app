@@ -1994,6 +1994,17 @@ function _startPhotodescsRT(cid) {
 document.addEventListener('yam:session_ready',function(){
   var u=(typeof yamGetUser==='function')?yamGetUser():null;
   if(!u||!u.couple_id) return;
+  // Si on est sur l'onglet Nous et que la page solo était affichée → relancer
+  if(window._currentTab === 'nous' && u.partner_pseudo && u.partner_pseudo.trim()) {
+    var overlay = document.getElementById('nousLockOverlay');
+    var content = document.getElementById('nousContentWrapper');
+    var soloShown = (overlay && overlay.className.includes('solo')) ||
+                    (content && content.style.display === 'none');
+    if(soloShown) {
+      window._nousContentLoaded = false;
+      setTimeout(function(){ window.nousCheckLock && window.nousCheckLock(); }, 300);
+    }
+  }
   _memoRTCh=null; _startMemoRT(u.couple_id);
   _memoTodoRTCh=null; _startMemotodoRT(u.couple_id);
   _petitsMotsRTCh=null; _startPetitsmotsRT(u.couple_id);
@@ -4165,6 +4176,17 @@ window.nousLoad = function(){
     return;
   }
   if(window._nousContentLoaded) {
+    // Si la page solo était affichée et que le partenaire vient d'être lié → relancer
+    var u2 = (typeof yamGetUser==='function') ? yamGetUser() : null;
+    var soloVisible = document.getElementById('nousLockOverlay') &&
+      document.getElementById('nousLockOverlay').className.includes('solo-active') ||
+      (document.getElementById('nousContentWrapper') && 
+       document.getElementById('nousContentWrapper').style.display === 'none');
+    if(soloVisible && u2 && u2.partner_pseudo && u2.partner_pseudo.trim()) {
+      window._nousContentLoaded = false;
+      window.nousCheckLock();
+      return;
+    }
     // Refresh léger à chaque retour sur l'onglet
     loadLikeCounters();
     if(typeof window.nousLoadSouvenirs==='function') window.nousLoadSouvenirs();
