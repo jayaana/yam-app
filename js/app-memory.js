@@ -2453,11 +2453,11 @@ var HANABI_COLORS = [
 var HANABI_COLOR_MAP = {};
 HANABI_COLORS.forEach(function(c){ HANABI_COLOR_MAP[c.id] = c; });
 
-// Deck complet : 3x1, 3x2, 3x3, 3x4, 2x5 par couleur
+// Deck complet : 4x1, 3x2, 3x3, 3x4, 2x5 par couleur
 function _hanabiMakeDeck() {
   var deck = [];
   HANABI_COLORS.forEach(function(c) {
-    [1,1,1,2,2,2,3,3,3,4,4,4,5,5].forEach(function(n) {
+    [1,1,1,1,2,2,2,3,3,3,4,4,4,5,5].forEach(function(n) {
       deck.push({color:c.id, num:n});
     });
   });
