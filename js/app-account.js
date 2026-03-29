@@ -2441,8 +2441,8 @@ window.acDoUnlink = function(){
       msg.textContent = '❌ ' + data.error;
     } else {
       msg.textContent = '✅ Partenaire délié. Rechargement...';
-      // Vider cache + reload — même pattern que la liaison
       localStorage.setItem('yam_partner_reload_done', '1');
+      localStorage.setItem('yam_unlink_reload_done', '1');
       setTimeout(window._clearSWCacheAndReload || function(){ location.reload(); }, 800);
     }
   })
@@ -2778,11 +2778,16 @@ window.addEventListener('load', function(){
   };
   var _clearSWCacheAndReload = window._clearSWCacheAndReload;
 
-  // Flag anti-boucle : si on vient juste de recharger suite à une liaison, ne pas re-déclencher
+  // Flag anti-boucle liaison : bloque la condition "nouveau partenaire"
   var _justReloadedForPartner = localStorage.getItem('yam_partner_reload_done') === '1';
   if(_justReloadedForPartner) localStorage.removeItem('yam_partner_reload_done');
-  // Si flag actif, initialiser avec '__reloaded__' pour bloquer la condition "nouveau partenaire"
+  // Flag anti-boucle déliaison : bloque les conditions Cas 1 et Cas 2
+  var _justReloadedForUnlink = localStorage.getItem('yam_unlink_reload_done') === '1';
+  if(_justReloadedForUnlink) localStorage.removeItem('yam_unlink_reload_done');
+
   var _lastPartnerPseudo = _justReloadedForPartner ? '__reloaded__' : (_initUser ? (_initUser.partner_pseudo || '') : null);
+  // Si déliaison vient d'avoir lieu, initialiser _lastCoupleId sur la valeur actuelle de la session
+  // pour éviter que le changement de couple_id ne déclenche un second reload
   var _lastCoupleId = _initUser ? (_initUser.couple_id || null) : null;
   
   function pollPartnerChanges(){
@@ -2810,11 +2815,11 @@ window.addEventListener('load', function(){
         .then(function(myRows){
           if(Array.isArray(myRows) && myRows.length > 0){
             var myCoupleId = myRows[0].couple_id;
-            if(myCoupleId !== _lastCoupleId){
+            if(myCoupleId !== _lastCoupleId && !_justReloadedForUnlink){
               // Mon couple_id a changé — le partenaire m'a délié
-              // Partenaire délié — vider cache + reload comme pour la liaison
               if(typeof showToast === 'function') showToast('⚠️ Votre partenaire s\'est délié. Rechargement...', 'warning', 2000);
               localStorage.setItem('yam_partner_reload_done', '1');
+              localStorage.setItem('yam_unlink_reload_done', '1');
               setTimeout(window._clearSWCacheAndReload || function(){ location.reload(); }, 2000);
             }
           }
@@ -2859,9 +2864,10 @@ window.addEventListener('load', function(){
       }
       
       // Détection changement de couple_id du partenaire (il s'est délié)
-      if(partner.couple_id !== u.couple_id){
+      if(partner.couple_id !== u.couple_id && !_justReloadedForUnlink){
         if(typeof showToast === 'function') showToast('⚠️ Votre partenaire s\'est délié. Rechargement...', 'warning', 2000);
         localStorage.setItem('yam_partner_reload_done', '1');
+        localStorage.setItem('yam_unlink_reload_done', '1');
         setTimeout(window._clearSWCacheAndReload || function(){ location.reload(); }, 2000);
       }
     })
