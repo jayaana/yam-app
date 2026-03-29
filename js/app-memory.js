@@ -2453,11 +2453,11 @@ var HANABI_COLORS = [
 var HANABI_COLOR_MAP = {};
 HANABI_COLORS.forEach(function(c){ HANABI_COLOR_MAP[c.id] = c; });
 
-// Deck complet : 3x1, 2x2, 2x3, 2x4, 1x5 par couleur
+// Deck complet : 3x1, 3x2, 3x3, 3x4, 2x5 par couleur
 function _hanabiMakeDeck() {
   var deck = [];
   HANABI_COLORS.forEach(function(c) {
-    [1,1,1,2,2,3,3,4,4,5].forEach(function(n) {
+    [1,1,1,2,2,2,3,3,3,4,4,4,5,5].forEach(function(n) {
       deck.push({color:c.id, num:n});
     });
   });
@@ -2498,7 +2498,7 @@ function _hanabiGetBuildState() {
     boy_hints:   [[],[],[],[],[]],
     piles:       {blue:0,green:0,red:0,pink:0,amber:0},
     discard:     [],
-    blue_tokens: 10,
+    blue_tokens: 15,
     red_tokens:  0,
     score:       0,
     winner:      null,
