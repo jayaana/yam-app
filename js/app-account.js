@@ -2803,18 +2803,23 @@ window.addEventListener('load', function(){
   var _knownPartnerPseudo = _initUser ? (_initUser.partner_pseudo || null) : null;
   var _knownCoupleId      = _initUser ? (_initUser.couple_id || null)      : null;
 
-  // Si reload anti-boucle vient d'avoir lieu, synchroniser _knownPartnerPseudo depuis la DB
-  // pour éviter que la session stale (partner_pseudo=null) déclenche une fausse détection
-  if((_justReloadedForPartner || _justReloadedForUnlink) && _knownCoupleId){
-    var _reloadedUserId = _initUser ? _initUser.id : null;
-    if(_reloadedUserId){
-      fetch(SB_URL + '/rest/v1/profiles?couple_id=eq.' + _knownCoupleId + '&id=neq.' + _reloadedUserId + '&select=pseudo&limit=1',
+  // Toujours synchroniser _knownPartnerPseudo depuis la DB au démarrage
+  // La session localStorage peut être stale (ex: Kirikou s'est lié mais Karaba ne le sait pas)
+  if(_knownCoupleId && _initUser){
+    (function(){
+      var _uid = _initUser.id;
+      var _cid = _knownCoupleId;
+      fetch(SB_URL + '/rest/v1/profiles?couple_id=eq.' + _cid + '&id=neq.' + _uid + '&select=pseudo,couple_id&limit=1',
         {headers: sb2Headers()})
         .then(function(r){ return r.ok ? r.json() : []; })
         .then(function(rows){
-          if(Array.isArray(rows) && rows[0]) _knownPartnerPseudo = rows[0].pseudo || null;
+          if(Array.isArray(rows) && rows[0]){
+            _knownPartnerPseudo = rows[0].pseudo || null;
+          } else {
+            _knownPartnerPseudo = null;
+          }
         }).catch(function(){});
-    }
+    })();
   }
 
   function _clearSessionPartner(){
@@ -2906,7 +2911,8 @@ window.addEventListener('load', function(){
   
   function startPolling(){
     if(_pollIv) return;
-    pollPartnerChanges(); // immédiat
+    // Délai de 2s pour laisser le temps à la sync DB initiale de _knownPartnerPseudo de se terminer
+    setTimeout(pollPartnerChanges, 2000);
     _pollIv = setInterval(pollPartnerChanges, POLL_INTERVAL);
   }
   
