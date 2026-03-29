@@ -2803,6 +2803,20 @@ window.addEventListener('load', function(){
   var _knownPartnerPseudo = _initUser ? (_initUser.partner_pseudo || null) : null;
   var _knownCoupleId      = _initUser ? (_initUser.couple_id || null)      : null;
 
+  // Si reload anti-boucle vient d'avoir lieu, synchroniser _knownPartnerPseudo depuis la DB
+  // pour éviter que la session stale (partner_pseudo=null) déclenche une fausse détection
+  if((_justReloadedForPartner || _justReloadedForUnlink) && _knownCoupleId){
+    var _reloadedUserId = _initUser ? _initUser.id : null;
+    if(_reloadedUserId){
+      fetch(SB_URL + '/rest/v1/profiles?couple_id=eq.' + _knownCoupleId + '&id=neq.' + _reloadedUserId + '&select=pseudo&limit=1',
+        {headers: sb2Headers()})
+        .then(function(r){ return r.ok ? r.json() : []; })
+        .then(function(rows){
+          if(Array.isArray(rows) && rows[0]) _knownPartnerPseudo = rows[0].pseudo || null;
+        }).catch(function(){});
+    }
+  }
+
   function _clearSessionPartner(){
     try {
       var _s = JSON.parse(localStorage.getItem('yam_session_v3') || '{}');
@@ -2845,7 +2859,7 @@ window.addEventListener('load', function(){
           })
           .then(function(r){ return r.ok ? r.json() : null; })
           .then(function(myRows){
-            if(Array.isArray(myRows) && myRows.length > 0 && myRows[0].couple_id !== _knownCoupleId){
+            if(Array.isArray(myRows) && myRows.length > 0 && myRows[0].couple_id !== _knownCoupleId && !_justReloadedForUnlink){
               if(typeof showToast === 'function') showToast('⚠️ Votre partenaire s\'est délié. Rechargement...', 'warning', 2000);
               _reloadForUnlink();
             }
@@ -2858,14 +2872,15 @@ window.addEventListener('load', function(){
       var partner = rows[0];
 
       // Nouveau partenaire vient de se lier (on n'en avait pas)
-      if(_knownPartnerPseudo === null && partner.pseudo){
+      // _justReloadedForPartner bloque la boucle au reload suivant
+      if(_knownPartnerPseudo === null && partner.pseudo && !_justReloadedForPartner){
         if(typeof showToast === 'function') showToast('💕 ' + escHtml(partner.pseudo) + ' vient de vous rejoindre !', 'success', 3000);
         _reloadForPartner();
         return;
       }
 
       // Partenaire délié (couple_id différent)
-      if(partner.couple_id !== u.couple_id && _knownPartnerPseudo !== null){
+      if(partner.couple_id !== u.couple_id && _knownPartnerPseudo !== null && !_justReloadedForUnlink){
         if(typeof showToast === 'function') showToast('⚠️ Votre partenaire s\'est délié. Rechargement...', 'warning', 2000);
         _reloadForUnlink();
         return;
