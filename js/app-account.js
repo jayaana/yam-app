@@ -2846,12 +2846,10 @@ window.addEventListener('load', function(){
       // Cas 2 : Le partenaire existe toujours
       var partner = rows[0];
 
-      // Détection nouveau partenaire lié : _lastPartnerPseudo === '' confirme qu'on n'avait pas de partenaire
-      // (null = pas encore initialisé = ne pas déclencher)
-      if(_lastPartnerPseudo === '' && partner.pseudo){
-        // Nouveau partenaire vient de se lier — vider cache SW et recharger
+      // Détection nouveau partenaire lié : session locale sans partenaire, mais DB en a un
+      var _sessionHasNoPartner = !(_initUser && _initUser.partner_pseudo);
+      if(_sessionHasNoPartner && partner.pseudo && !_justReloadedForPartner){
         if(typeof showToast === 'function') showToast('💕 ' + escHtml(partner.pseudo) + ' vient de vous rejoindre !', 'success', 3000);
-        // Poser le flag avant le reload pour briser la boucle
         localStorage.setItem('yam_partner_reload_done', '1');
         setTimeout(window._clearSWCacheAndReload || function(){ location.reload(); }, 2000);
         return;
