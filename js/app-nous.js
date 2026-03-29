@@ -3157,7 +3157,9 @@ document.addEventListener('yam:session_ready',function(){
     var data={ couple_id:coupleId, title:document.getElementById('activiteInputTitre').value.trim()||'Activité', description:document.getElementById('activiteInputDesc').value.trim()||null, emoji:document.getElementById('activiteInputEmoji').value.trim()||'✨', steps:JSON.stringify(steps) };
     var btn=document.getElementById('activiteSaveBtn'); if(btn){ btn.textContent='...'; btn.disabled=true; }
     var done2=function(){ if(btn){ btn.textContent='Sauvegarder'; btn.disabled=false; } window.closeActiviteModal(); window.nousLoadActivites();
-      if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('Books');
+      // Signal activitesSection → le setTimeout(_nidAutoDetect,300) dans _nousSignalNewContent
+      // va ensuite vérifier activites en DB (déjà commitée) et débloquer Books automatiquement
+      if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('activitesSection');
     };
     if(id){
       fetch(SB_URL+'/rest/v1/activites?id=eq.'+id,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done2).catch(done2);
