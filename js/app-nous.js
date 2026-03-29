@@ -575,7 +575,9 @@ function _applyImagesFromDB(section, rows) {
   var bySlot = {};
   rows.forEach(function(row) { if(row.slot && row.description) bySlot[row.slot] = row.description; });
 
-  SLOTS.forEach(function(slot) {
+  // SLOTS est dans un closure privé — tableau inline identique
+  var _SLOTS = ['animal','fleurs','personnage','saison','repas'];
+  _SLOTS.forEach(function(slot) {
     var url   = bySlot[slot] || null;
     var img   = document.getElementById(section+'-img-'+slot);
     var empty = document.getElementById(section+'-empty-'+slot);
