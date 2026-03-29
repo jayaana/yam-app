@@ -570,7 +570,7 @@ function _nousApplyBatchData(d) {
 }
 
 // Applique les URLs images stockées en DB directement dans les <img>
-function _applyImagesFromDB(section, rows, fromRT) {
+function _applyImagesFromDB(section, rows) {
   // Indexer les rows par slot pour lookup O(1)
   var bySlot = {};
   rows.forEach(function(row) { if(row.slot && row.description) bySlot[row.slot] = row.description; });
@@ -583,27 +583,14 @@ function _applyImagesFromDB(section, rows, fromRT) {
     var btn   = document.getElementById(section+'-btn-'+slot);
     if(!img) return;
     if(url) {
-      if(fromRT) {
-        // Appel depuis le RT (update partenaire) : forcer cache HTTP à se mettre à jour
-        // avec cache:'reload', puis appliquer l'URL propre
-        var _applyRT = (function(u, i, e, b) { return function() {
-          i.src = u; i.style.display = ''; i.classList.add('loaded');
-          if(e) e.style.display = 'none';
-          if(b) b.classList.remove('empty');
-        }; })(url, img, empty, btn);
-        fetch(url, { cache: 'reload' })
-          .then(function(){ _applyRT(); })
-          .catch(function(){ _applyRT(); });
-      } else {
-        // Appel normal (chargement initial) : URL brute, cache navigateur naturel
-        img.src = url;
-        img.style.display = '';
-        img.classList.add('loaded');
-        if(empty) empty.style.display = 'none';
-        if(btn)   btn.classList.remove('empty');
-      }
+      // URL depuis la DB — inclut ?t=timestamp unique à chaque upload
+      // Jamais en cache → affichage immédiat garanti (envoyeur et partenaire)
+      img.src = url;
+      img.style.display = '';
+      img.classList.add('loaded');
+      if(empty) empty.style.display = 'none';
+      if(btn)   btn.classList.remove('empty');
     } else {
-      // Pas de photo pour ce slot — afficher l'état vide
       img.style.display = 'none';
       if(empty) empty.style.display = '';
       if(btn)   btn.classList.add('empty');
@@ -1130,40 +1117,33 @@ window.nousSignalNew = function() {
       }).then(function(r){ return r.text().then(function(){ return r.ok; }); })
       .then(function(ok){
         if(ok){
-          // URL propre sans ?t= — source de vérité stockée en DB
-          // (même logique que souvenirs : photo_url brute, cache navigateur naturel)
-          var cleanUrl=SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+path;
+          // Même stratégie que les souvenirs : l'URL stockée en DB inclut ?t=timestamp
+          // → URL unique à chaque upload → jamais en cache → affichage immédiat garanti
+          var urlWithTs=SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+path+'?t='+Date.now();
           var img=document.getElementById(section+'-img-'+slot);
           var emptyEl=document.getElementById(section+'-empty-'+slot);
           var btnEl=document.getElementById(section+'-btn-'+slot);
           var ph=document.getElementById('slotEditPhotoPlaceholder');
-          if(typeof showToast==='function') showToast('\u2705 Photo optimis\u00e9e : '+_uploadedKo+' Ko', 'success', 2500);
+          // Affichage immédiat local
+          if(img){ img.src=urlWithTs; img.style.display=''; img.classList.add('loaded'); }
+          if(emptyEl) emptyEl.style.display='none';
+          if(btnEl) btnEl.classList.remove('empty');
+          if(photoDiv){ photoDiv.innerHTML=''; photoDiv.style.backgroundImage='url('+urlWithTs+')'; }
+          if(ph) ph.style.display='none';
+          if(typeof showToast==='function') showToast('✅ Photo optimisée : '+_uploadedKo+' Ko', 'success', 2500);
           if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh(section+'_slot_'+slot);
           if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('elle_lui_update');
           if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('memoCoupleSection');
-          // Stocker l'URL propre en DB via upsert (merge-duplicates) — 1 seul appel
-          // Le RT photoDescs déclenchera _applyImagesFromDB chez le partenaire
+          // Stocker urlWithTs en DB — le partenaire recevra cette URL via RT
+          // → même URL inconnue du cache → affichage immédiat côté partenaire aussi
           var cid2=_getCoupleId();
           if(cid2){
             var cat=section+'_img';
-            var dbBody={couple_id:cid2,category:cat,slot:slot,description:cleanUrl,updated_at:new Date().toISOString()};
+            var dbBody={couple_id:cid2,category:cat,slot:slot,description:urlWithTs,updated_at:new Date().toISOString()};
             fetch(SB_URL+'/rest/v1/photo_descs',{method:'POST',
               headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),
               body:JSON.stringify(dbBody)}).catch(function(){});
           }
-          // Forcer le cache HTTP navigateur à se mettre à jour avec cache:'reload'
-          // (va chercher la nouvelle image sur le réseau et met à jour le cache)
-          // puis appliquer l'URL propre → prochains chargements tapent le cache frais
-          var _applyLocal=function(){
-            if(img){ img.src=cleanUrl; img.style.display=''; img.classList.add('loaded'); }
-            if(emptyEl) emptyEl.style.display='none';
-            if(btnEl) btnEl.classList.remove('empty');
-            if(photoDiv){ photoDiv.innerHTML=''; photoDiv.style.backgroundImage='url('+cleanUrl+')'; }
-            if(ph) ph.style.display='none';
-          };
-          fetch(cleanUrl, { cache: 'reload' })
-            .then(function(){ _applyLocal(); })
-            .catch(function(){ _applyLocal(); });
         } else {
           if(photoDiv) photoDiv.innerHTML='<div style="color:#e05555;font-size:11px;">Erreur upload</div>';
           if(typeof showToast==='function') showToast('Erreur upload — réessaie', 'error', 3000);
@@ -2004,7 +1984,7 @@ function _startPhotodescsRT(cid) {
           ['elle','lui'].forEach(function(sec){
             fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+cid3+'&category=eq.'+sec+'_img&select=slot,description',{headers:sb2Headers()})
               .then(function(r){return r.ok?r.json():[];})
-              .then(function(rows){ if(typeof _applyImagesFromDB==='function') _applyImagesFromDB(sec,rows,true); })
+              .then(function(rows){ if(typeof _applyImagesFromDB==='function') _applyImagesFromDB(sec,rows); })
               .catch(function(){});
           });
         })
