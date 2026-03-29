@@ -2414,6 +2414,7 @@ window.acLinkPartner = function(){
     } else {
       msg.textContent = '✅ Compte lié avec succès ! Rechargement...'; msg.style.color = 'var(--green)';
       // Vider le cache SW et recharger — page fraîche avec le nouveau couple_id
+      localStorage.setItem('yam_partner_reload_done', '1');
       setTimeout(window._clearSWCacheAndReload || function(){ location.reload(); }, 800);
     }
   })
@@ -2819,7 +2820,11 @@ window.addEventListener('load', function(){
   };
   var _clearSWCacheAndReload = window._clearSWCacheAndReload;
 
-  var _lastPartnerPseudo = _initUser ? (_initUser.partner_pseudo || '') : null;
+  // Flag anti-boucle : si on vient juste de recharger suite à une liaison, ne pas re-déclencher
+  var _justReloadedForPartner = localStorage.getItem('yam_partner_reload_done') === '1';
+  if(_justReloadedForPartner) localStorage.removeItem('yam_partner_reload_done');
+  // Si flag actif, initialiser avec '__reloaded__' pour bloquer la condition "nouveau partenaire"
+  var _lastPartnerPseudo = _justReloadedForPartner ? '__reloaded__' : (_initUser ? (_initUser.partner_pseudo || '') : null);
   var _lastCoupleId = _initUser ? (_initUser.couple_id || null) : null;
   
   function pollPartnerChanges(){
@@ -2886,7 +2891,9 @@ window.addEventListener('load', function(){
       if(_lastPartnerPseudo === '' && partner.pseudo){
         // Nouveau partenaire vient de se lier — vider cache SW et recharger
         if(typeof showToast === 'function') showToast('💕 ' + escHtml(partner.pseudo) + ' vient de vous rejoindre !', 'success', 3000);
-        setTimeout(_clearSWCacheAndReload, 2000);
+        // Poser le flag avant le reload pour briser la boucle
+        localStorage.setItem('yam_partner_reload_done', '1');
+        setTimeout(window._clearSWCacheAndReload || function(){ location.reload(); }, 2000);
         return;
       }
 
