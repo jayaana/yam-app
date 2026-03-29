@@ -2414,15 +2414,7 @@ window.acLinkPartner = function(){
     } else {
       msg.textContent = '✅ Compte lié avec succès ! Rechargement...'; msg.style.color = 'var(--green)';
       // Vider le cache SW et recharger — page fraîche avec le nouveau couple_id
-      setTimeout(function(){
-        if('caches' in window){
-          caches.keys().then(function(keys){
-            return Promise.all(keys.map(function(k){ return caches.delete(k); }));
-          }).then(function(){ location.reload(); }).catch(function(){ location.reload(); });
-        } else {
-          location.reload();
-        }
-      }, 800);
+      setTimeout(_clearSWCacheAndReload, 800);
     }
   })
   .catch(function(){ msg.textContent = '❌ Erreur réseau'; msg.style.color = '#e05555'; });
@@ -2815,15 +2807,25 @@ window.addEventListener('load', function(){
 (function(){
   var POLL_INTERVAL = 15000; // 15 secondes
   var _pollIv = null;
-  var _lastPartnerPseudo = null;
-  var _lastCoupleId = null;
+  // Initialiser depuis la session — évite la détection fausse positive au premier poll après reload
+  var _initUser = (typeof yamGetUser === 'function') ? yamGetUser() : null;
+  // Vider le cache SW et recharger — utilisé après liaison partenaire
+  function _clearSWCacheAndReload(){
+    var doReload = function(){ location.reload(); };
+    if(!('caches' in window)){ doReload(); return; }
+    caches.keys().then(function(keys){
+      return Promise.all(keys.map(function(k){ return caches.delete(k); }));
+    }).then(doReload).catch(doReload);
+  }
+
+  var _lastPartnerPseudo = _initUser ? (_initUser.partner_pseudo || '') : null;
+  var _lastCoupleId = _initUser ? (_initUser.couple_id || null) : null;
   
   function pollPartnerChanges(){
     var u = yamGetUser ? yamGetUser() : null;
     if(!u || !u.couple_id) return;
     
-    // Sauvegarder l'état actuel pour comparaison
-    if(_lastPartnerPseudo === null) _lastPartnerPseudo = u.partner_pseudo;
+    // Sauvegarder l'état actuel pour comparaison (déjà initialisé à la déclaration)
     if(_lastCoupleId === null) _lastCoupleId = u.couple_id;
     
     // Récupérer les données fraîches du partenaire
@@ -2878,19 +2880,12 @@ window.addEventListener('load', function(){
       // Cas 2 : Le partenaire existe toujours
       var partner = rows[0];
 
-      // Détection nouveau partenaire lié : on n'en avait pas avant
-      if(!_lastPartnerPseudo && partner.pseudo){
+      // Détection nouveau partenaire lié : _lastPartnerPseudo === '' confirme qu'on n'avait pas de partenaire
+      // (null = pas encore initialisé = ne pas déclencher)
+      if(_lastPartnerPseudo === '' && partner.pseudo){
         // Nouveau partenaire vient de se lier — vider cache SW et recharger
         if(typeof showToast === 'function') showToast('💕 ' + escHtml(partner.pseudo) + ' vient de vous rejoindre !', 'success', 3000);
-        setTimeout(function(){
-          if('caches' in window){
-            caches.keys().then(function(keys){
-              return Promise.all(keys.map(function(k){ return caches.delete(k); }));
-            }).then(function(){ location.reload(); }).catch(function(){ location.reload(); });
-          } else {
-            location.reload();
-          }
-        }, 2000);
+        setTimeout(_clearSWCacheAndReload, 2000);
         return;
       }
 
