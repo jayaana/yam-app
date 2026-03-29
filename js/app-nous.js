@@ -1967,7 +1967,7 @@ function _startActivitesRT(cid) {
   if(!window._yamRT||!cid||_activitesRTCh) return;
   _activitesRTCh = window._yamRT.channel('activites-'+cid)
     .on('postgres_changes',{event:'*',schema:'public',table:'activites',filter:'couple_id=eq.'+cid},
-        function(){ window.nousInvalidateActivitesCache(); window.nousLoadActivites(true); })
+        function(){ window.nousInvalidateActivitesCache(); window.nousLoadActivites(true); if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('activitesSection'); })
     .subscribe(function(s){
       if(s==='SUBSCRIBED'){ if(_activitesPollIv){clearInterval(_activitesPollIv);_activitesPollIv=null;} }
       else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){
@@ -3187,7 +3187,14 @@ document.addEventListener('yam:session_ready',function(){
     var coupleId=_getCoupleId(); if(!coupleId) return;
     var data={ couple_id:coupleId, title:sugg.titre, description:sugg.desc, emoji:sugg.emoji, steps:JSON.stringify(sugg.steps.map(function(s){ return {text:s,done:false}; })), is_suggested:true };
     fetch(SB_URL+'/rest/v1/activites',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
-    .then(function(){ window.nousLoadActivites(); if(typeof window.nousSignalNew==='function') window.nousSignalNew(); })
+    .then(function(){
+      // Invalider le cache avant de recharger — sinon la nouvelle activité n'apparaît pas
+      if(typeof window.nousInvalidateActivitesCache==='function') window.nousInvalidateActivitesCache();
+      window.nousLoadActivites(true);
+      if(typeof window.nousSignalNew==='function') window.nousSignalNew();
+      // Déclencher le déblocage NID — identique à activiteSave
+      if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('activitesSection');
+    })
     .catch(function(){});
   };
 
