@@ -2440,52 +2440,10 @@ window.acDoUnlink = function(){
     if(data && data.error){
       msg.textContent = '❌ ' + data.error;
     } else {
-      msg.textContent = '✅ Partenaire délié.';
-      
-      // CORRECTION : Recharger les données fraîches depuis le serveur
-      if(window.v2RefreshSession){
-        v2RefreshSession().then(function(freshUser){
-          if(freshUser){
-            // Mettre à jour l'affichage
-            var el = document.getElementById('acPartnerName');
-            if(el) el.textContent = '(pas encore lié)';
-            var codeEl = document.getElementById('acCoupleCode');
-            if(codeEl && freshUser.couple_code) codeEl.textContent = freshUser.couple_code;
-            var unlinkBtn = document.getElementById('acUnlinkBtn');
-            if(unlinkBtn) unlinkBtn.style.display = 'none';
-            var unlinkConfirm = document.getElementById('acUnlinkConfirm');
-            if(unlinkConfirm) unlinkConfirm.style.display = 'none';
-            var ls = document.getElementById('acLinkSection');
-            if(ls) ls.style.display = '';
-            
-            // Forcer un rechargement de la présence avec le nouveau couple_id
-            if(window._presencePush) window._presencePush();
-            
-            setTimeout(function(){ msg.textContent = ''; }, 3000);
-          }
-        });
-      } else {
-        // Fallback si v2RefreshSession n'existe pas (ne devrait pas arriver)
-        var s = v2LoadSession();
-        if(s && s.user){
-          s.user.partner_pseudo = null;
-          if(data.new_couple_code){
-            s.user.couple_code = data.new_couple_code;
-            var codeEl = document.getElementById('acCoupleCode');
-            if(codeEl) codeEl.textContent = data.new_couple_code;
-          }
-          localStorage.setItem('yam_session_v3', JSON.stringify(s));
-        }
-        var el = document.getElementById('acPartnerName');
-        if(el) el.textContent = '(pas encore lié)';
-        var unlinkBtn = document.getElementById('acUnlinkBtn');
-        if(unlinkBtn) unlinkBtn.style.display = 'none';
-        var unlinkConfirm = document.getElementById('acUnlinkConfirm');
-        if(unlinkConfirm) unlinkConfirm.style.display = 'none';
-        var ls = document.getElementById('acLinkSection');
-        if(ls) ls.display = '';
-        setTimeout(function(){ msg.textContent = ''; }, 3000);
-      }
+      msg.textContent = '✅ Partenaire délié. Rechargement...';
+      // Vider cache + reload — même pattern que la liaison
+      localStorage.setItem('yam_partner_reload_done', '1');
+      setTimeout(window._clearSWCacheAndReload || function(){ location.reload(); }, 800);
     }
   })
   .catch(function(){ msg.textContent = '❌ Erreur réseau'; });
@@ -2854,30 +2812,10 @@ window.addEventListener('load', function(){
             var myCoupleId = myRows[0].couple_id;
             if(myCoupleId !== _lastCoupleId){
               // Mon couple_id a changé — le partenaire m'a délié
-              if(window.v2RefreshSession){
-                v2RefreshSession().then(function(freshUser){
-                  if(freshUser){
-                    _lastCoupleId = freshUser.couple_id;
-                    _lastPartnerPseudo = freshUser.partner_pseudo;
-                    
-                    // Notification
-                    if(typeof showToast === 'function'){
-                      showToast('⚠️ Votre partenaire s\'est délié', 'warning', 4000);
-                    }
-                    
-                    // Mettre à jour l'UI si le modal Mon Compte est ouvert
-                    var modal = document.getElementById('settingsView');
-                    if(modal && modal.classList.contains('active')){
-                      var el = document.getElementById('acPartnerName');
-                      if(el) el.textContent = '(pas encore lié)';
-                      var unlinkBtn = document.getElementById('acUnlinkBtn');
-                      if(unlinkBtn) unlinkBtn.style.display = 'none';
-                      var ls = document.getElementById('acLinkSection');
-                      if(ls) ls.style.display = '';
-                    }
-                  }
-                });
-              }
+              // Partenaire délié — vider cache + reload comme pour la liaison
+              if(typeof showToast === 'function') showToast('⚠️ Votre partenaire s\'est délié. Rechargement...', 'warning', 2000);
+              localStorage.setItem('yam_partner_reload_done', '1');
+              setTimeout(window._clearSWCacheAndReload || function(){ location.reload(); }, 2000);
             }
           }
         });
@@ -2922,31 +2860,9 @@ window.addEventListener('load', function(){
       
       // Détection changement de couple_id du partenaire (il s'est délié)
       if(partner.couple_id !== u.couple_id){
-        // Le partenaire est dans un autre couple maintenant
-        if(window.v2RefreshSession){
-          v2RefreshSession().then(function(freshUser){
-            if(freshUser){
-              _lastCoupleId = freshUser.couple_id;
-              _lastPartnerPseudo = freshUser.partner_pseudo;
-              
-              // Notification
-              if(typeof showToast === 'function'){
-                showToast('⚠️ Votre partenaire s\'est délié', 'warning', 4000);
-              }
-              
-              // Mettre à jour l'UI si le modal Mon Compte est ouvert
-              var modal = document.getElementById('settingsView');
-              if(modal && modal.classList.contains('active')){
-                var el = document.getElementById('acPartnerName');
-                if(el) el.textContent = '(pas encore lié)';
-                var unlinkBtn = document.getElementById('acUnlinkBtn');
-                if(unlinkBtn) unlinkBtn.style.display = 'none';
-                var ls = document.getElementById('acLinkSection');
-                if(ls) ls.style.display = '';
-              }
-            }
-          });
-        }
+        if(typeof showToast === 'function') showToast('⚠️ Votre partenaire s\'est délié. Rechargement...', 'warning', 2000);
+        localStorage.setItem('yam_partner_reload_done', '1');
+        setTimeout(window._clearSWCacheAndReload || function(){ location.reload(); }, 2000);
       }
     })
     .catch(function(){/* erreur réseau — silent */});
