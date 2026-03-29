@@ -2412,41 +2412,17 @@ window.acLinkPartner = function(){
       errTxt = errTxt.replace('Rose', _gI + ' Rose').replace('Bleu', _bI + ' Bleu');
       msg.innerHTML = '\u274C ' + errTxt; msg.style.color = '#e05555';
     } else {
-      msg.textContent = '✅ Compte lié avec succès !'; msg.style.color = 'var(--green)';
-      
-      // CORRECTION : Recharger la session pour avoir les données fraîches
-      if(window.v2RefreshSession){
-        v2RefreshSession().then(function(freshUser){
-          if(freshUser){
-            var el = document.getElementById('acPartnerName');
-            if(el) el.textContent = freshUser.partner_pseudo || '(lié)';
-            var ls = document.getElementById('acLinkSection');
-            if(ls) ls.style.display = 'none';
-            var unlinkBtn = document.getElementById('acUnlinkBtn');
-            if(unlinkBtn) unlinkBtn.style.display = '';
-            
-            // Forcer un rechargement de la présence avec le nouveau couple
-            if(window._presencePush) window._presencePush();
-            
-            // Recharger la config du couple
-            if(window.loadCoupleConfig) window.loadCoupleConfig();
-          }
-        });
-      } else {
-        // Fallback
-        var s = v2LoadSession();
-        if(s && s.user){
-          if(data.couple_id) s.user.couple_id = data.couple_id;
-          if(data.partner_pseudo) s.user.partner_pseudo = data.partner_pseudo;
-          localStorage.setItem('yam_session_v3', JSON.stringify(s));
+      msg.textContent = '✅ Compte lié avec succès ! Rechargement...'; msg.style.color = 'var(--green)';
+      // Vider le cache SW et recharger — page fraîche avec le nouveau couple_id
+      setTimeout(function(){
+        if('caches' in window){
+          caches.keys().then(function(keys){
+            return Promise.all(keys.map(function(k){ return caches.delete(k); }));
+          }).then(function(){ location.reload(); }).catch(function(){ location.reload(); });
+        } else {
+          location.reload();
         }
-        var el = document.getElementById('acPartnerName');
-        if(el) el.textContent = data.partner_pseudo || '(lié)';
-        var ls = document.getElementById('acLinkSection');
-        if(ls) ls.style.display = 'none';
-        var unlinkBtn = document.getElementById('acUnlinkBtn');
-        if(unlinkBtn) unlinkBtn.style.display = '';
-      }
+      }, 800);
     }
   })
   .catch(function(){ msg.textContent = '❌ Erreur réseau'; msg.style.color = '#e05555'; });
@@ -2901,7 +2877,23 @@ window.addEventListener('load', function(){
       
       // Cas 2 : Le partenaire existe toujours
       var partner = rows[0];
-      
+
+      // Détection nouveau partenaire lié : on n'en avait pas avant
+      if(!_lastPartnerPseudo && partner.pseudo){
+        // Nouveau partenaire vient de se lier — vider cache SW et recharger
+        if(typeof showToast === 'function') showToast('💕 ' + escHtml(partner.pseudo) + ' vient de vous rejoindre !', 'success', 3000);
+        setTimeout(function(){
+          if('caches' in window){
+            caches.keys().then(function(keys){
+              return Promise.all(keys.map(function(k){ return caches.delete(k); }));
+            }).then(function(){ location.reload(); }).catch(function(){ location.reload(); });
+          } else {
+            location.reload();
+          }
+        }, 2000);
+        return;
+      }
+
       // Détection changement de pseudo
       if(partner.pseudo !== _lastPartnerPseudo && _lastPartnerPseudo !== null){
         if(window.v2RefreshSession){
