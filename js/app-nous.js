@@ -2021,6 +2021,11 @@ function _startPhotodescsRT(cid) {
               .then(function(rows){ if(typeof _applyImagesFromDB==='function') _applyImagesFromDB(sec,rows); })
               .catch(function(){});
           });
+          // Titres, banners et descriptions — RT couvre tout photo_descs
+          if(typeof window._loadSectionTitles==='function') window._loadSectionTitles();
+          if(typeof window.elleLoadDescs==='function') window.elleLoadDescs();
+          if(typeof window.luiLoadDescs==='function')  window.luiLoadDescs();
+          if(typeof window.elleSyncSections==='function') window.elleSyncSections();
         })
     .subscribe(function(s){
       if(s==='SUBSCRIBED'){ if(_photoDescsPollIv){clearInterval(_photoDescsPollIv);_photoDescsPollIv=null;} }
