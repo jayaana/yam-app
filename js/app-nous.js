@@ -567,6 +567,28 @@ function _nousApplyBatchData(d) {
     window._livresAllRows = d.livres;
     if(typeof window._renderLivresSliderPublic === 'function') window._renderLivresSliderPublic();
   }
+
+  // 13+14. v4 — Images Moi/Toi via photo_descs (plus de requête Storage au chargement)
+  if(Array.isArray(d.elleImages)) _applyImagesFromDB('elle', d.elleImages);
+  if(Array.isArray(d.luiImages))  _applyImagesFromDB('lui',  d.luiImages);
+}
+
+// Applique les URLs images stockées en DB directement dans les <img>
+function _applyImagesFromDB(section, rows) {
+  rows.forEach(function(row) {
+    var slot = row.slot;
+    var url  = row.description;
+    if(!url || !slot) return;
+    var img   = document.getElementById(section+'-img-'+slot);
+    var empty = document.getElementById(section+'-empty-'+slot);
+    var btn   = document.getElementById(section+'-btn-'+slot);
+    if(!img) return;
+    img.src = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
+    img.style.display = '';
+    img.classList.add('loaded');
+    if(empty) empty.style.display = 'none';
+    if(btn)   btn.classList.remove('empty');
+  });
 }
 
 // Tentative batch — si succès, skip les fetches individuels ; si échec, fallback classique.
@@ -603,9 +625,8 @@ function _nousInitBatch(onSuccess, onFallback) {
 
 function _nousInitAll() {
   _nousLoadProfil();
-  // ── Images (Storage — pas batchable, pas de requête REST) ──
-  elleLoadImages();
-  luiLoadImages();
+  // ── Images Moi/Toi chargées via le batch yam-init (v4) ──
+  // elleLoadImages/luiLoadImages gardées uniquement pour le RT après upload
 
   // ── Batch yam-init (#59) : 12 fetches → 1 requête ──────────────
   // Si la Edge Function répond → données injectées directement.
@@ -1115,17 +1136,19 @@ window.nousSignalNew = function() {
           if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh(section+'_slot_'+slot);
           if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('elle_lui_update');
           if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('memoCoupleSection');
-          // Toucher photo_descs pour déclencher le RT chez le partenaire
-          // (l'upload Storage seul ne déclenche pas de RT Postgres)
+          // v4 — Stocker l'URL dans photo_descs (category = section+'_img')
+          // → incluse dans le batch au prochain chargement + déclenche le RT
           (function(){
             var cid2=_getCoupleId(); if(!cid2) return;
-            var body={couple_id:cid2,category:section,slot:slot,description:'uploaded',updated_at:new Date().toISOString()};
-            fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+cid2+'&category=eq.'+section+'&slot=eq.'+slot,{headers:sb2Headers()})
+            var imgUrl=SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+path;
+            var cat=section+'_img';
+            var body={couple_id:cid2,category:cat,slot:slot,description:imgUrl,updated_at:new Date().toISOString()};
+            fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+cid2+'&category=eq.'+cat+'&slot=eq.'+slot,{headers:sb2Headers()})
               .then(function(r){return r.ok?r.json():[];}).then(function(rows){
                 if(rows&&rows[0]){
                   fetch(SB_URL+'/rest/v1/photo_descs?id=eq.'+rows[0].id,{method:'PATCH',
                     headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
-                    body:JSON.stringify({updated_at:new Date().toISOString()})});
+                    body:JSON.stringify({description:imgUrl,updated_at:new Date().toISOString()})});
                 } else {
                   fetch(SB_URL+'/rest/v1/photo_descs',{method:'POST',
                     headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
@@ -1967,7 +1990,16 @@ function _startPhotodescsRT(cid) {
   if(!window._yamRT||!cid||_photoDescsRTCh) return;
   _photoDescsRTCh = window._yamRT.channel('photoDescs-'+cid)
     .on('postgres_changes',{event:'*',schema:'public',table:'photo_descs',filter:'couple_id=eq.'+cid},
-        function(){ if(typeof window.elleLoadImages==='function'){window.elleLoadImages();window.luiLoadImages();}; })
+        function(){
+          var cid3=(typeof yamGetUser==='function'&&yamGetUser())?yamGetUser().couple_id:null;
+          if(!cid3) return;
+          ['elle','lui'].forEach(function(sec){
+            fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+cid3+'&category=eq.'+sec+'_img&select=slot,description',{headers:sb2Headers()})
+              .then(function(r){return r.ok?r.json():[];})
+              .then(function(rows){ if(typeof _applyImagesFromDB==='function') _applyImagesFromDB(sec,rows); })
+              .catch(function(){});
+          });
+        })
     .subscribe(function(s){
       if(s==='SUBSCRIBED'){ if(_photoDescsPollIv){clearInterval(_photoDescsPollIv);_photoDescsPollIv=null;} }
       else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){
