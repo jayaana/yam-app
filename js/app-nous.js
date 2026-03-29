@@ -570,10 +570,13 @@ function _nousApplyBatchData(d) {
 }
 
 // Applique les URLs images stockées en DB directement dans les <img>
-function _applyImagesFromDB(section, rows) {
+function _applyImagesFromDB(section, rows, fromRT) {
   // Indexer les rows par slot pour lookup O(1)
   var bySlot = {};
   rows.forEach(function(row) { if(row.slot && row.description) bySlot[row.slot] = row.description; });
+  // updated_at par slot — utilisé pour bust cache côté partenaire (appel RT)
+  var bySlotTs = {};
+  rows.forEach(function(row) { if(row.slot && row.updated_at) bySlotTs[row.slot] = new Date(row.updated_at).getTime(); });
 
   // SLOTS est dans un closure privé — tableau inline identique
   var _SLOTS = ['animal','fleurs','personnage','saison','repas'];
@@ -584,12 +587,28 @@ function _applyImagesFromDB(section, rows) {
     var btn   = document.getElementById(section+'-btn-'+slot);
     if(!img) return;
     if(url) {
-      // URL brute depuis la DB — même logique que photo_url des souvenirs, pas de ?t=
-      img.src = url;
-      img.style.display = '';
-      img.classList.add('loaded');
-      if(empty) empty.style.display = 'none';
-      if(btn)   btn.classList.remove('empty');
+      if(fromRT) {
+        // Appel depuis le RT (update partenaire) : précharger avec ?t=updated_at pour
+        // bypasser le cache navigateur sur l'image modifiée, puis appliquer l'URL propre
+        var ts = bySlotTs[slot] || Date.now();
+        var bustUrl = url + '?t=' + ts;
+        var preload = new Image();
+        var _apply = (function(u, i, e, b) { return function() {
+          i.src = u; i.style.display = ''; i.classList.add('loaded');
+          if(e) e.style.display = 'none';
+          if(b) b.classList.remove('empty');
+        }; })(url, img, empty, btn);
+        preload.onload = _apply;
+        preload.onerror = _apply;
+        preload.src = bustUrl;
+      } else {
+        // Appel normal (chargement initial) : URL brute, cache navigateur naturel
+        img.src = url;
+        img.style.display = '';
+        img.classList.add('loaded');
+        if(empty) empty.style.display = 'none';
+        if(btn)   btn.classList.remove('empty');
+      }
     } else {
       // Pas de photo pour ce slot — afficher l'état vide
       img.style.display = 'none';
@@ -1118,40 +1137,41 @@ window.nousSignalNew = function() {
       }).then(function(r){ return r.text().then(function(){ return r.ok; }); })
       .then(function(ok){
         if(ok){
-          var newUrl=SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+path+'?t='+Date.now();
+          // URL propre sans ?t= — source de vérité stockée en DB
+          // (même logique que souvenirs : photo_url brute, cache navigateur naturel)
+          var cleanUrl=SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+path;
           var img=document.getElementById(section+'-img-'+slot);
           var emptyEl=document.getElementById(section+'-empty-'+slot);
           var btnEl=document.getElementById(section+'-btn-'+slot);
-          if(img){ img.src=newUrl; img.style.display=''; img.classList.add('loaded'); }
-          if(emptyEl) emptyEl.style.display='none';
-          if(btnEl) btnEl.classList.remove('empty');
-          if(photoDiv){ photoDiv.innerHTML=''; photoDiv.style.backgroundImage='url('+newUrl+')'; }
           var ph=document.getElementById('slotEditPhotoPlaceholder');
-          if(ph) ph.style.display='none';
-          if(typeof showToast==='function') showToast('✅ Photo optimisée : '+_uploadedKo+' Ko', 'success', 2500);
+          if(typeof showToast==='function') showToast('\u2705 Photo optimis\u00e9e : '+_uploadedKo+' Ko', 'success', 2500);
           if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh(section+'_slot_'+slot);
           if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('elle_lui_update');
           if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('memoCoupleSection');
-          // v4 — Stocker l'URL dans photo_descs (category = section+'_img')
-          // → incluse dans le batch au prochain chargement + déclenche le RT
-          (function(){
-            var cid2=_getCoupleId(); if(!cid2) return;
-            var imgUrl=SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+path;
+          // Stocker l'URL propre en DB via upsert (merge-duplicates) — 1 seul appel
+          // Le RT photoDescs déclenchera _applyImagesFromDB chez le partenaire
+          var cid2=_getCoupleId();
+          if(cid2){
             var cat=section+'_img';
-            var body={couple_id:cid2,category:cat,slot:slot,description:imgUrl,updated_at:new Date().toISOString()};
-            fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+cid2+'&category=eq.'+cat+'&slot=eq.'+slot,{headers:sb2Headers()})
-              .then(function(r){return r.ok?r.json():[];}).then(function(rows){
-                if(rows&&rows[0]){
-                  fetch(SB_URL+'/rest/v1/photo_descs?id=eq.'+rows[0].id,{method:'PATCH',
-                    headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
-                    body:JSON.stringify({description:imgUrl,updated_at:new Date().toISOString()})});
-                } else {
-                  fetch(SB_URL+'/rest/v1/photo_descs',{method:'POST',
-                    headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
-                    body:JSON.stringify(body)});
-                }
-              }).catch(function(){});
-          })();
+            var dbBody={couple_id:cid2,category:cat,slot:slot,description:cleanUrl,updated_at:new Date().toISOString()};
+            fetch(SB_URL+'/rest/v1/photo_descs',{method:'POST',
+              headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),
+              body:JSON.stringify(dbBody)}).catch(function(){});
+          }
+          // Précharger avec ?t= pour bypasser le cache navigateur sur la nouvelle image,
+          // puis appliquer l'URL propre → prochains chargements tapent le cache
+          var bustUrl=cleanUrl+'?t='+Date.now();
+          var preload=new Image();
+          var _applyLocal=function(){
+            if(img){ img.src=cleanUrl; img.style.display=''; img.classList.add('loaded'); }
+            if(emptyEl) emptyEl.style.display='none';
+            if(btnEl) btnEl.classList.remove('empty');
+            if(photoDiv){ photoDiv.innerHTML=''; photoDiv.style.backgroundImage='url('+cleanUrl+')'; }
+            if(ph) ph.style.display='none';
+          };
+          preload.onload=_applyLocal;
+          preload.onerror=_applyLocal;
+          preload.src=bustUrl;
         } else {
           if(photoDiv) photoDiv.innerHTML='<div style="color:#e05555;font-size:11px;">Erreur upload</div>';
           if(typeof showToast==='function') showToast('Erreur upload — réessaie', 'error', 3000);
@@ -1990,9 +2010,9 @@ function _startPhotodescsRT(cid) {
           var cid3=(typeof yamGetUser==='function'&&yamGetUser())?yamGetUser().couple_id:null;
           if(!cid3) return;
           ['elle','lui'].forEach(function(sec){
-            fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+cid3+'&category=eq.'+sec+'_img&select=slot,description',{headers:sb2Headers()})
+            fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+cid3+'&category=eq.'+sec+'_img&select=slot,description,updated_at',{headers:sb2Headers()})
               .then(function(r){return r.ok?r.json():[];})
-              .then(function(rows){ if(typeof _applyImagesFromDB==='function') _applyImagesFromDB(sec,rows); })
+              .then(function(rows){ if(typeof _applyImagesFromDB==='function') _applyImagesFromDB(sec,rows,true); })
               .catch(function(){});
           });
         })
