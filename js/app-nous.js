@@ -1120,45 +1120,15 @@ window.nousSignalNew = function() {
       }).then(function(r){ return r.text().then(function(){ return r.ok; }); })
       .then(function(ok){
         if(ok){
-          // Même stratégie que les souvenirs : timestamp dans le nom du fichier
-          // → URL totalement nouvelle à chaque upload → jamais en cache
+          // Même stratégie que les souvenirs : URL stockée dans modal.dataset.photoUrl
+          // La sauvegarde réelle en DB se fait dans slotEditSave (bouton Sauvegarder)
           var urlWithTs=SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+path;
-          var img=document.getElementById(section+'-img-'+slot);
-          var emptyEl=document.getElementById(section+'-empty-'+slot);
-          var btnEl=document.getElementById(section+'-btn-'+slot);
-          var ph=document.getElementById('slotEditPhotoPlaceholder');
-          // Affichage immédiat local
-          if(img){ img.src=urlWithTs; img.style.display=''; img.classList.add('loaded'); }
-          if(emptyEl) emptyEl.style.display='none';
-          if(btnEl) btnEl.classList.remove('empty');
+          var modal2=document.getElementById('slotEditModal');
+          if(modal2) modal2.dataset.photoUrl=urlWithTs;
           if(photoDiv){ photoDiv.innerHTML=''; photoDiv.style.backgroundImage='url('+urlWithTs+')'; }
+          var ph=document.getElementById('slotEditPhotoPlaceholder');
           if(ph) ph.style.display='none';
           if(typeof showToast==='function') showToast('✅ Photo optimisée : '+_uploadedKo+' Ko', 'success', 2500);
-          if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh(section+'_slot_'+slot);
-          if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('elle_lui_update');
-          if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('memoCoupleSection');
-          // Stocker urlWithTs en DB via PATCH si ligne existe, POST sinon
-          // → le partenaire recevra la nouvelle URL via RT photoDescs
-          var cid2=_getCoupleId();
-          if(cid2){
-            var cat=section+'_img';
-            fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+cid2+'&category=eq.'+cat+'&slot=eq.'+slot,
-              {headers:sb2Headers()})
-              .then(function(r){return r.ok?r.json():[];})
-              .then(function(rows){
-                var payload={description:urlWithTs,updated_at:new Date().toISOString()};
-                if(rows&&rows[0]){
-                  fetch(SB_URL+'/rest/v1/photo_descs?id=eq.'+rows[0].id,{method:'PATCH',
-                    headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
-                    body:JSON.stringify(payload)}).catch(function(){});
-                } else {
-                  var body=Object.assign({couple_id:cid2,category:cat,slot:slot},payload);
-                  fetch(SB_URL+'/rest/v1/photo_descs',{method:'POST',
-                    headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
-                    body:JSON.stringify(body)}).catch(function(){});
-                }
-              }).catch(function(){});
-          }
         } else {
           if(photoDiv) photoDiv.innerHTML='<div style="color:#e05555;font-size:11px;">Erreur upload</div>';
           if(typeof showToast==='function') showToast('Erreur upload — réessaie', 'error', 3000);
@@ -1229,6 +1199,8 @@ window.nousSignalNew = function() {
       else { photoDiv.style.backgroundImage=''; if(placeholder){ placeholder.style.display='flex'; photoDiv.innerHTML=''; photoDiv.appendChild(placeholder); } }
     }
 
+    // Stocker l'URL actuelle dans dataset pour slotEditSave (même pattern que souvenirs)
+    modal.dataset.photoUrl = (hasPhoto && imgEl) ? imgEl.src : '';
     modal.classList.add('open');
   };
 
@@ -1315,6 +1287,8 @@ window.nousSignalNew = function() {
     var s=_editSection; var sl=_editSlot;
     var bannerVal=(document.getElementById('slotEditBannerInput').value||'').trim();
     var descVal=(document.getElementById('slotEditDescInput').value||'').trim();
+    var modal=document.getElementById('slotEditModal');
+    var newPhotoUrl=modal ? (modal.dataset.photoUrl||'') : '';
 
     var banners=s==='elle'?_elleBanners:_luiBanners;
     var descs=s==='elle'?_elleDescs:_luiDescs;
@@ -1332,6 +1306,41 @@ window.nousSignalNew = function() {
       descs[sl]=descVal;
       var dEl=document.getElementById(s+'-desc-'+sl); if(dEl) dEl.textContent=descVal;
       _upsertPhotoDesc(coupleId, s, sl, descVal);
+    }
+
+    // Sauvegarder la photo — exactement comme souvenirs :
+    // PATCH si ligne existe, POST sinon, puis recharger les images
+    if(newPhotoUrl){
+      var cat=s+'_img';
+      fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+coupleId+'&category=eq.'+cat+'&slot=eq.'+sl,
+        {headers:sb2Headers()})
+        .then(function(r){return r.ok?r.json():[];})
+        .then(function(rows){
+          var payload={description:newPhotoUrl,updated_at:new Date().toISOString()};
+          if(rows&&rows[0]){
+            return fetch(SB_URL+'/rest/v1/photo_descs?id=eq.'+rows[0].id,{method:'PATCH',
+              headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
+              body:JSON.stringify(payload)});
+          } else {
+            var body=Object.assign({couple_id:coupleId,category:cat,slot:sl},payload);
+            return fetch(SB_URL+'/rest/v1/photo_descs',{method:'POST',
+              headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
+              body:JSON.stringify(body)});
+          }
+        })
+        .then(function(){
+          // Mettre à jour l'img locale immédiatement
+          var img=document.getElementById(s+'-img-'+sl);
+          var emptyEl=document.getElementById(s+'-empty-'+sl);
+          var btnEl=document.getElementById(s+'-btn-'+sl);
+          if(img){ img.src=newPhotoUrl; img.style.display=''; img.classList.add('loaded'); }
+          if(emptyEl) emptyEl.style.display='none';
+          if(btnEl) btnEl.classList.remove('empty');
+          if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('elle_lui_update');
+          if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('memoCoupleSection');
+          if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh(s+'_slot_'+sl);
+        })
+        .catch(function(){});
     }
 
     if(typeof showToast==='function') showToast('Pochette mise à jour ✓','success',2000);
