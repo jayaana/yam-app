@@ -1967,7 +1967,7 @@ function _startActivitesRT(cid) {
   if(!window._yamRT||!cid||_activitesRTCh) return;
   _activitesRTCh = window._yamRT.channel('activites-'+cid)
     .on('postgres_changes',{event:'*',schema:'public',table:'activites',filter:'couple_id=eq.'+cid},
-        function(){ window.nousInvalidateActivitesCache(); window.nousLoadActivites(true); if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('activitesSection'); })
+        function(){ window.nousInvalidateActivitesCache(); window.nousLoadActivites(true); if(typeof _nidAutoDetect==='function') setTimeout(_nidAutoDetect,300); })
     .subscribe(function(s){
       if(s==='SUBSCRIBED'){ if(_activitesPollIv){clearInterval(_activitesPollIv);_activitesPollIv=null;} }
       else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){
@@ -3157,9 +3157,9 @@ document.addEventListener('yam:session_ready',function(){
     var data={ couple_id:coupleId, title:document.getElementById('activiteInputTitre').value.trim()||'Activité', description:document.getElementById('activiteInputDesc').value.trim()||null, emoji:document.getElementById('activiteInputEmoji').value.trim()||'✨', steps:JSON.stringify(steps) };
     var btn=document.getElementById('activiteSaveBtn'); if(btn){ btn.textContent='...'; btn.disabled=true; }
     var done2=function(){ if(btn){ btn.textContent='Sauvegarder'; btn.disabled=false; } window.closeActiviteModal(); window.nousLoadActivites();
-      // Signal activitesSection → le setTimeout(_nidAutoDetect,300) dans _nousSignalNewContent
-      // va ensuite vérifier activites en DB (déjà commitée) et débloquer Books automatiquement
-      if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('activitesSection');
+      // Appeler _nidAutoDetect directement — activitesSection peut déjà être unlocked
+      // donc _nousSignalNewContent ferait un early return sans jamais appeler autoDetect
+      if(typeof _nidAutoDetect==='function') setTimeout(_nidAutoDetect, 300);
     };
     if(id){
       fetch(SB_URL+'/rest/v1/activites?id=eq.'+id,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done2).catch(done2);
@@ -3188,12 +3188,13 @@ document.addEventListener('yam:session_ready',function(){
     var data={ couple_id:coupleId, title:sugg.titre, description:sugg.desc, emoji:sugg.emoji, steps:JSON.stringify(sugg.steps.map(function(s){ return {text:s,done:false}; })), is_suggested:true };
     fetch(SB_URL+'/rest/v1/activites',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
     .then(function(){
-      // Invalider le cache avant de recharger — sinon la nouvelle activité n'apparaît pas
+      // Invalider le cache avant de recharger
       if(typeof window.nousInvalidateActivitesCache==='function') window.nousInvalidateActivitesCache();
       window.nousLoadActivites(true);
       if(typeof window.nousSignalNew==='function') window.nousSignalNew();
-      // Déclencher le déblocage NID — identique à activiteSave
-      if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('activitesSection');
+      // Appeler _nidAutoDetect directement — activitesSection peut déjà être unlocked
+      // donc _nousSignalNewContent ferait un early return sans jamais appeler autoDetect
+      if(typeof _nidAutoDetect==='function') setTimeout(_nidAutoDetect, 300);
     })
     .catch(function(){});
   };
