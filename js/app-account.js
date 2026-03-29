@@ -2441,6 +2441,19 @@ window.acDoUnlink = function(){
       msg.textContent = '❌ ' + data.error;
     } else {
       msg.textContent = '✅ Partenaire délié. Rechargement...';
+      // Mettre à jour la session localStorage avant le reload
+      // sinon l'app redémarre avec l'ancien partner_pseudo en mémoire
+      try {
+        var _s = JSON.parse(localStorage.getItem('yam_session_v3') || '{}');
+        if(_s && _s.user){
+          _s.user.partner_pseudo = null;
+          _s.user.partner_id = null;
+          _s.user.partner_role = null;
+          if(data && data.new_couple_code) _s.user.couple_code = data.new_couple_code;
+          if(data && data.new_couple_id)   _s.user.couple_id   = data.new_couple_id;
+          localStorage.setItem('yam_session_v3', JSON.stringify(_s));
+        }
+      } catch(e){}
       localStorage.setItem('yam_partner_reload_done', '1');
       localStorage.setItem('yam_unlink_reload_done', '1');
       setTimeout(window._clearSWCacheAndReload || function(){ location.reload(); }, 800);
@@ -2816,8 +2829,12 @@ window.addEventListener('load', function(){
           if(Array.isArray(myRows) && myRows.length > 0){
             var myCoupleId = myRows[0].couple_id;
             if(myCoupleId !== _lastCoupleId && !_justReloadedForUnlink){
-              // Mon couple_id a changé — le partenaire m'a délié
               if(typeof showToast === 'function') showToast('⚠️ Votre partenaire s\'est délié. Rechargement...', 'warning', 2000);
+      // Nettoyer la session localStorage avant reload
+      try {
+        var _su = JSON.parse(localStorage.getItem('yam_session_v3') || '{}');
+        if(_su && _su.user){ _su.user.partner_pseudo = null; _su.user.partner_id = null; _su.user.partner_role = null; localStorage.setItem('yam_session_v3', JSON.stringify(_su)); }
+      } catch(e){}
               localStorage.setItem('yam_partner_reload_done', '1');
               localStorage.setItem('yam_unlink_reload_done', '1');
               setTimeout(window._clearSWCacheAndReload || function(){ location.reload(); }, 2000);
@@ -2866,6 +2883,11 @@ window.addEventListener('load', function(){
       // Détection changement de couple_id du partenaire (il s'est délié)
       if(partner.couple_id !== u.couple_id && !_justReloadedForUnlink){
         if(typeof showToast === 'function') showToast('⚠️ Votre partenaire s\'est délié. Rechargement...', 'warning', 2000);
+      // Nettoyer la session localStorage avant reload
+      try {
+        var _su = JSON.parse(localStorage.getItem('yam_session_v3') || '{}');
+        if(_su && _su.user){ _su.user.partner_pseudo = null; _su.user.partner_id = null; _su.user.partner_role = null; localStorage.setItem('yam_session_v3', JSON.stringify(_su)); }
+      } catch(e){}
         localStorage.setItem('yam_partner_reload_done', '1');
         localStorage.setItem('yam_unlink_reload_done', '1');
         setTimeout(window._clearSWCacheAndReload || function(){ location.reload(); }, 2000);
