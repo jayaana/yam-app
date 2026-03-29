@@ -1199,8 +1199,17 @@ window.nousSignalNew = function() {
       else { photoDiv.style.backgroundImage=''; if(placeholder){ placeholder.style.display='flex'; photoDiv.innerHTML=''; photoDiv.appendChild(placeholder); } }
     }
 
-    // Stocker l'URL actuelle dans dataset pour slotEditSave (même pattern que souvenirs)
+    // Stocker l'URL actuelle + id photo_descs dans dataset — même pattern que souvenirs
     modal.dataset.photoUrl = (hasPhoto && imgEl) ? imgEl.src : '';
+    modal.dataset.photoDescId = '';
+    var _cid = _getCoupleId();
+    if(_cid){
+      fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+_cid+'&category=eq.'+section+'_img&slot=eq.'+slot+'&select=id',
+        {headers:sb2Headers()})
+        .then(function(r){return r.ok?r.json():[];})
+        .then(function(rows){ if(rows&&rows[0]) modal.dataset.photoDescId=rows[0].id; })
+        .catch(function(){});
+    }
     modal.classList.add('open');
   };
 
@@ -1308,28 +1317,29 @@ window.nousSignalNew = function() {
       _upsertPhotoDesc(coupleId, s, sl, descVal);
     }
 
-    // Sauvegarder la photo — exactement comme souvenirs :
-    // PATCH si ligne existe, POST sinon, puis recharger les images
+    // Sauvegarder la photo — identique à souvenirSave :
+    // PATCH direct si id connu, POST sinon
     if(newPhotoUrl){
       var cat=s+'_img';
-      fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+coupleId+'&category=eq.'+cat+'&slot=eq.'+sl,
-        {headers:sb2Headers()})
-        .then(function(r){return r.ok?r.json():[];})
-        .then(function(rows){
-          var payload={description:newPhotoUrl,updated_at:new Date().toISOString()};
-          if(rows&&rows[0]){
-            return fetch(SB_URL+'/rest/v1/photo_descs?id=eq.'+rows[0].id,{method:'PATCH',
-              headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
-              body:JSON.stringify(payload)});
-          } else {
-            var body=Object.assign({couple_id:coupleId,category:cat,slot:sl},payload);
-            return fetch(SB_URL+'/rest/v1/photo_descs',{method:'POST',
-              headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
-              body:JSON.stringify(body)});
-          }
-        })
-        .then(function(){
-          // Mettre à jour l'img locale immédiatement
+      var pdId=modal?modal.dataset.photoDescId:'';
+      var payload={description:newPhotoUrl,updated_at:new Date().toISOString()};
+      var req;
+      if(pdId){
+        req=fetch(SB_URL+'/rest/v1/photo_descs?id=eq.'+pdId,{method:'PATCH',
+          headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
+          body:JSON.stringify(payload)});
+      } else {
+        var body=Object.assign({couple_id:coupleId,category:cat,slot:sl},payload);
+        req=fetch(SB_URL+'/rest/v1/photo_descs',{method:'POST',
+          headers:sb2Headers({'Prefer':'return=representation','Content-Type':'application/json'}),
+          body:JSON.stringify(body)});
+      }
+      req.then(function(r){
+          // Si POST, récupérer l'id retourné pour les prochains saves
+          if(!pdId && modal && r.ok) r.json().then(function(rows){
+            if(rows&&rows[0]) modal.dataset.photoDescId=rows[0].id;
+          }).catch(function(){});
+          // Mettre à jour l'img locale — identique à nousLoadSouvenirs après save
           var img=document.getElementById(s+'-img-'+sl);
           var emptyEl=document.getElementById(s+'-empty-'+sl);
           var btnEl=document.getElementById(s+'-btn-'+sl);
@@ -1339,8 +1349,7 @@ window.nousSignalNew = function() {
           if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('elle_lui_update');
           if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('memoCoupleSection');
           if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh(s+'_slot_'+sl);
-        })
-        .catch(function(){});
+        }).catch(function(){});
     }
 
     if(typeof showToast==='function') showToast('Pochette mise à jour ✓','success',2000);
