@@ -1200,7 +1200,8 @@ window.nousSignalNew = function() {
     }
 
     // Stocker l'URL actuelle + id photo_descs dans dataset — même pattern que souvenirs
-    modal.dataset.photoUrl = (hasPhoto && imgEl) ? imgEl.src : '';
+    // photoUrl vide par défaut : ne sauvegarder que si l'utilisateur uploade une nouvelle photo
+    modal.dataset.photoUrl = '';
     modal.dataset.photoDescId = '';
     var _cid = _getCoupleId();
     if(_cid){
@@ -1343,9 +1344,9 @@ window.nousSignalNew = function() {
           var img=document.getElementById(s+'-img-'+sl);
           var emptyEl=document.getElementById(s+'-empty-'+sl);
           var btnEl=document.getElementById(s+'-btn-'+sl);
-          if(img){ img.src=newPhotoUrl; img.style.display=''; img.classList.add('loaded'); }
-          if(emptyEl) emptyEl.style.display='none';
-          if(btnEl) btnEl.classList.remove('empty');
+          // Recharger depuis la DB — identique à nousLoadSouvenirs() après save
+          if(typeof window.elleLoadImages==='function') window.elleLoadImages();
+          if(typeof window.luiLoadImages==='function')  window.luiLoadImages();
           if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('elle_lui_update');
           if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('memoCoupleSection');
           if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh(s+'_slot_'+sl);
