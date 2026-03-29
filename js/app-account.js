@@ -2414,7 +2414,7 @@ window.acLinkPartner = function(){
     } else {
       msg.textContent = '✅ Compte lié avec succès ! Rechargement...'; msg.style.color = 'var(--green)';
       // Vider le cache SW et recharger — page fraîche avec le nouveau couple_id
-      setTimeout(_clearSWCacheAndReload, 800);
+      setTimeout(window._clearSWCacheAndReload || function(){ location.reload(); }, 800);
     }
   })
   .catch(function(){ msg.textContent = '❌ Erreur réseau'; msg.style.color = '#e05555'; });
@@ -2809,14 +2809,15 @@ window.addEventListener('load', function(){
   var _pollIv = null;
   // Initialiser depuis la session — évite la détection fausse positive au premier poll après reload
   var _initUser = (typeof yamGetUser === 'function') ? yamGetUser() : null;
-  // Vider le cache SW et recharger — utilisé après liaison partenaire
-  function _clearSWCacheAndReload(){
+  // Vider le cache SW et recharger — exposé sur window pour acLinkPartner (scope différent)
+  window._clearSWCacheAndReload = function(){
     var doReload = function(){ location.reload(); };
     if(!('caches' in window)){ doReload(); return; }
     caches.keys().then(function(keys){
       return Promise.all(keys.map(function(k){ return caches.delete(k); }));
     }).then(doReload).catch(doReload);
-  }
+  };
+  var _clearSWCacheAndReload = window._clearSWCacheAndReload;
 
   var _lastPartnerPseudo = _initUser ? (_initUser.partner_pseudo || '') : null;
   var _lastCoupleId = _initUser ? (_initUser.couple_id || null) : null;
