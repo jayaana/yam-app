@@ -1253,6 +1253,7 @@ window.nousSignalNew = function() {
     document.getElementById('slotViewImg').src   = imgEl.src;
     document.getElementById('slotViewTitle').textContent = banner  ? banner.textContent  : '';
     document.getElementById('slotViewDesc').textContent  = descEl  ? descEl.textContent  : '';
+    var editBtn=document.getElementById('slotViewEditBtn'); if(editBtn) editBtn.style.display='none';
     _saveScrollPosition();
     _blockBackgroundScroll();
     modal.classList.add('open');
@@ -1279,6 +1280,9 @@ window.nousSignalNew = function() {
       metaEl.textContent = parts.join(' · ');
     }
     document.getElementById('slotViewDesc').textContent = s.description || '';
+    var editBtn=document.getElementById('slotViewEditBtn');
+    if(editBtn){ editBtn.style.display='flex'; }
+    window._slotViewCurrentSouvenir=s;
     _saveScrollPosition();
     _blockBackgroundScroll();
     modal.classList.add('open');
