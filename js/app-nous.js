@@ -704,11 +704,11 @@ function _nousLoadProfil() {
   if (!u) return;
   var myRole   = u.role;
   // Pseudos réels si disponibles, sinon Moi/Toi selon le rôle
-  var girlName = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName('girl') : (myRole === 'girl' ? 'Moi' : 'Toi');
-  var boyName  = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName('boy')  : (myRole === 'boy'  ? 'Moi' : 'Toi');
+  var girlName = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName('girl') : (myRole === 'girl' ? 'Rose' : 'Bleu');
+  var boyName  = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName('boy')  : (myRole === 'boy'  ? 'Bleu' : 'Rose');
   // v2GetDisplayName retourne 'Elle'/'Lui' quand le pseudo n'est pas connu → remplacer par Moi/Toi
-  if (girlName === 'Elle' || girlName === 'Lui') girlName = (myRole === 'girl' ? 'Moi' : 'Toi');
-  if (boyName  === 'Elle' || boyName  === 'Lui') boyName  = (myRole === 'boy'  ? 'Moi' : 'Toi');
+  if (girlName === 'Elle' || girlName === 'Lui') girlName = (myRole === 'girl' ? 'Rose' : 'Bleu');
+  if (boyName  === 'Elle' || boyName  === 'Lui') boyName  = (myRole === 'boy'  ? 'Bleu' : 'Rose');
   var el = document.getElementById('nousProfilGirlName');
   var bl = document.getElementById('nousProfilBoyName');
   if (el) el.textContent = girlName;
@@ -1190,7 +1190,7 @@ window.nousSignalNew = function() {
 
     // Titre : titre de la section (MOI/TOI ou personnalisé), pas le titre du slot
     var sectionTitleEl=document.getElementById(section==='elle'?'elleSectionTitle':'luiSectionTitle');
-    var sectionTitle=(sectionTitleEl&&sectionTitleEl.textContent.trim())||(section==='elle'?'Moi':'Toi');
+    var sectionTitle=(sectionTitleEl&&sectionTitleEl.textContent.trim())||(section==='elle'?'Rose':'Bleu');
     document.getElementById('slotEditModalTitle').textContent=sectionTitle;
 
     // Photo
@@ -1216,7 +1216,7 @@ window.nousSignalNew = function() {
         .catch(function(){});
     }
     // Afficher le bouton supprimer photo uniquement si une photo existe
-    var _delBtn=document.getElementById('slotEditDelPhotoBtn');
+    var _delBtn=document.getElementById('slotEditDelBtn');
     if(_delBtn) _delBtn.style.display='flex';
     modal.classList.add('open');
   };
@@ -1409,31 +1409,7 @@ window.nousSignalNew = function() {
     _loadData('elle');
     _loadData('lui');
     window.elleSyncSections();
-    // Injecter le bouton supprimer dans slotEditModal (une seule fois)
-    if(!document.getElementById('slotEditDelPhotoBtn')){
-      var modal=document.getElementById('slotEditModal');
-      if(modal){
-        // Trouver le bouton Sauvegarder par son texte
-        var allBtns=Array.from(modal.querySelectorAll('button'));
-        var saveBtn=allBtns.filter(function(b){ return b.textContent.trim().toLowerCase().indexOf('sauvegarder')!==-1; })[0];
-        if(saveBtn){
-          // Wrapper flex pour aligner Sauvegarder (gauche) + corbeille (droite)
-          var wrap=document.createElement('div');
-          wrap.style.cssText='display:flex;align-items:center;gap:8px;';
-          saveBtn.parentNode.insertBefore(wrap, saveBtn);
-          saveBtn.style.flex='1';
-          wrap.appendChild(saveBtn);
-          var btn=document.createElement('button');
-          btn.id='slotEditDelPhotoBtn';
-          btn.type='button';
-          btn.onclick=function(){ window.slotDeleteSlot(); };
-          btn.title='Supprimer la pochette';
-          btn.style.cssText='display:none;align-items:center;justify-content:center;flex-shrink:0;width:44px;height:44px;background:none;border:1.5px solid #e05555;border-radius:12px;color:#e05555;cursor:pointer;';
-          btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e05555" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
-          wrap.appendChild(btn);
-        }
-      }
-    }
+
   });
 
 })();
