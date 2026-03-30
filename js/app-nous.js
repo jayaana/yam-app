@@ -3918,7 +3918,6 @@ document.addEventListener('yam:session_ready',function(){
     card.className = 'album-card lui-card-wrap';
     card.style.position = 'relative';
     var photoUrl = book.has_image ? (SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/books/'+book.couple_id+'/'+book.id+'.jpg?t='+Math.floor(Date.now()/60000)) : '';
-    var editSVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
     // Badge NEW
     var isNew = window.yamIsNew ? window.yamIsNew('livre_'+book.id) : false;
     var newBadge = isNew ? '<span style="position:absolute;top:4px;right:4px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-size:8px;font-weight:800;letter-spacing:0.5px;padding:2px 5px;border-radius:6px;text-transform:uppercase;z-index:10;pointer-events:none;">NEW</span>' : '';
@@ -3929,11 +3928,8 @@ document.addEventListener('yam:session_ready',function(){
           '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;color:var(--muted);">📚</div>'
         )+
         '<div class="album-banner">'+escHtml(book.title||'Sans titre')+'</div>'+
-        '<div class="lui-upload-btn"><div class="lui-upload-icon">'+editSVG+'</div><div class="lui-upload-lbl">Modifier</div></div>'+
       '</div>'+
       '<div class="album-desc" style="cursor:default;">'+escHtml(book.description||'Ajouter une légende...')+'</div>';
-    // Clic bouton edit (le bouton modifier)
-    card.querySelector('.lui-upload-btn').addEventListener('click',function(e){ e.stopPropagation(); _livreFromGestion=false; window.livresOpenEdit(book); });
     // Clic sur la photo → vue en grand
     if(photoUrl){
       card.querySelector('.album-image').addEventListener('click',function(e){
