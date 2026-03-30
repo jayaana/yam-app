@@ -300,12 +300,7 @@ document.addEventListener('DOMContentLoaded', function(){
   var rappelLater = document.querySelector('.home-rappel-later');
   if(rappelLater) rappelLater.addEventListener('click', function(){ window.homeRappelNext && window.homeRappelNext(); });
 
-  // — boutons nav rappels (‹ et ›)
-  var navBtns = document.querySelectorAll('.home-rappel-nav-btn');
-  if(navBtns.length >= 2){
-    navBtns[0].addEventListener('click', function(){ window.homeRappelNext && window.homeRappelNext(); });
-    navBtns[1].addEventListener('click', function(){ window.homeRappelPrev && window.homeRappelPrev(); });
-  }
+  // — boutons nav rappels : gérés dans le bloc DOMContentLoaded ci-dessous (évite le double listener)
 
 });
 
@@ -390,8 +385,8 @@ document.addEventListener('DOMContentLoaded', function(){
   _onAll('.home-rappel-later',   'click', function(){ window.homeRappelNext && window.homeRappelNext(); });
   (function(){
     var btns = document.querySelectorAll('.home-rappel-nav-btn');
-    if(btns[0]) btns[0].addEventListener('click', function(){ window.homeRappelNext && window.homeRappelNext(); });
-    if(btns[1]) btns[1].addEventListener('click', function(){ window.homeRappelPrev && window.homeRappelPrev(); });
+    if(btns[0]) btns[0].addEventListener('click', function(){ window.homeRappelPrev && window.homeRappelPrev(); }); // ‹ = précédent
+    if(btns[1]) btns[1].addEventListener('click', function(){ window.homeRappelNext && window.homeRappelNext(); }); // › = suivant
   })();
 
   // ── Histoire ──
