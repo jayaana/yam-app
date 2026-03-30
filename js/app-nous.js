@@ -4226,7 +4226,9 @@ document.addEventListener('yam:session_ready',function(){
     // Si cache valide, naviguer dans les 5 idées
     if(cache && cache.ideas.length){
       var pos = (cache.pos||0) % cache.ideas.length;
-      if(textEl) textEl.innerHTML = '<strong>📖 '+escHtml(cache.ideas[pos].title||'')+'</strong><br><span style="font-weight:400;font-size:13px;color:var(--muted);">'+escHtml(cache.ideas[pos].author||'')+(cache.ideas[pos].desc?' — '+escHtml(cache.ideas[pos].desc):'')+'</span>';
+      var titleEl = document.getElementById('livreIdeaTitle');
+      if(titleEl) titleEl.textContent = '📖 ' + (cache.ideas[pos].title||'');
+      if(textEl) textEl.textContent = (cache.ideas[pos].author||'') + (cache.ideas[pos].desc ? ' — ' + cache.ideas[pos].desc : '');
       if(metaEl) metaEl.textContent = 'Idée '+(pos+1)+'/'+cache.ideas.length+' · Générée aujourd\'hui';
       _saveIdeaCache(coupleId, cache.ideas, pos+1);
       // Enregistrer le cache comme _ideaCache courant pour livresAddFromIdea
@@ -4249,14 +4251,18 @@ document.addEventListener('yam:session_ready',function(){
       if(!Array.isArray(ideas)||!ideas.length) throw new Error('Format invalide');
       _saveIdeaCache(coupleId, ideas, 1);
       _ideaCache = ideas[0];
-      if(textEl) textEl.innerHTML = '<strong>📖 '+escHtml(ideas[0].title||'')+'</strong><br><span style="font-weight:400;font-size:13px;color:var(--muted);">'+escHtml(ideas[0].author||'')+(ideas[0].desc?' — '+escHtml(ideas[0].desc):'')+'</span>';
+      var titleEl2 = document.getElementById('livreIdeaTitle');
+      if(titleEl2) titleEl2.textContent = '📖 ' + (ideas[0].title||'');
+      if(textEl) textEl.textContent = (ideas[0].author||'') + (ideas[0].desc ? ' — ' + ideas[0].desc : '');
       if(metaEl) metaEl.textContent = 'Idée 1/5 · Générée maintenant';
     })
     .catch(function(){
       var fallbacks = [{title:'Le Petit Prince',author:'Antoine de Saint-Exupéry',desc:'Un conte poétique intemporel'},{title:'L\'Alchimiste',author:'Paulo Coelho',desc:'Suivre ses rêves jusqu\'au bout du monde'},{title:'Les Fourmis',author:'Bernard Werber',desc:'La colonie humaine vue différemment'},{title:'Orgueil et Préjugés',author:'Jane Austen',desc:'Le roman d\'amour classique par excellence'},{title:'Dune',author:'Frank Herbert',desc:'L\'épopée de science-fiction ultime'}];
       _saveIdeaCache(coupleId, fallbacks, 1);
       _ideaCache = fallbacks[0];
-      if(textEl) textEl.innerHTML = '<strong>📖 '+escHtml(fallbacks[0].title)+'</strong><br><span style="font-weight:400;font-size:13px;color:var(--muted);">'+escHtml(fallbacks[0].author)+' — '+escHtml(fallbacks[0].desc)+'</span>';
+      var titleEl3 = document.getElementById('livreIdeaTitle');
+      if(titleEl3) titleEl3.textContent = '📖 ' + fallbacks[0].title;
+      if(textEl) textEl.textContent = fallbacks[0].author + ' — ' + fallbacks[0].desc;
       if(metaEl) metaEl.textContent = 'Idées hors-ligne';
     })
     .finally(function(){ if(btn){ btn.disabled=false; btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Idée du jour'; }});
