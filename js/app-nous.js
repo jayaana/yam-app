@@ -1248,6 +1248,7 @@ window.nousSignalNew = function() {
       else _sheet.appendChild(_delBtn);
     }
     modal.classList.add('open');
+  };
 
   // Clic sur la photo dans la modale → file input (identique à livresPhotoClick)
   window.slotEditPhotoClick = function(){
