@@ -419,35 +419,80 @@
   function _genAI(){
     var cid=_cid(); if(!cid||!_canGenToday()||_data.length>0) return;
     var loader=document.getElementById('rshLoader'); if(loader) loader.style.display='flex';
-    var _u=yamGetUser();
     var _days=window.startDate?Math.floor((Date.now()-new Date(window.startDate))/(1000*60*60*24)):0;
-    var _saison=['hiver','hiver','printemps','printemps','printemps','été','été','été','automne','automne','automne','hiver'][new Date().getMonth()];
-    var _baseR=
-      'Tu es YAM, petite mascotte enfantine et complice d\'une app pour couples. '+
-      'Tu proposes UN rappel sympa pour le couple. On est en '+_saison+', ensemble depuis '+_days+' jours. '+
-      'Le rappel s\'adresse aux deux ensemble (pas de "je", pas de nom propre, pas de "vous deux"). '+
-      'Ton naturel, court, jamais pompeux. Peut faire référence à la saison ou aux jours ensemble si c\'est naturel. '+
-      'RÈGLES : UNE seule phrase, 8 mots maximum, 1 emoji si ça s\'y prête. Réponds UNIQUEMENT avec la phrase, rien d\'autre.';
-    var prompts=[
-      _baseR+' Thème : geste tendre ou physique (bisou, câlin, main dans la main...).',
-      _baseR+' Thème : se parler, s\'appeler, s\'envoyer un message ou un vocal.',
-      _baseR+' Thème : activité partagée sympa à faire ensemble (musique, jeu, film, sortie en lien avec la saison '+_saison+').',
+    var _saison=['hiver','hiver','printemps','printemps','printemps','ete','ete','ete','automne','automne','automne','hiver'][new Date().getMonth()];
+    // Themes rotatifs selon le jour de la semaine — 7 combinaisons differentes
+    var _dow=new Date().getDay();
+    var _themes=[
+      ['geste tendre (bisou, calin, se prendre la main...)',   'se parler ou s\'envoyer un vocal ce soir',          'activite ensemble (musique, jeu, film...)'],
+      ['petit mot doux ou message surprise',                   'appel video ou vocal',                              'sortie ou balade en lien avec la saison '+_saison],
+      ['moment calme ensemble (the, cafe, canape...)',         'partager une chanson dans l\'app',                  'jouer a un jeu dans l\'app'],
+      ['geste affectueux inattendu',                           's\'envoyer une photo rigolote ou une betise',       'cuisiner ou manger quelque chose ensemble'],
+      ['dire quelque chose de gentil a l\'autre',              'vocal ou message audio surprise',                   'activite ou decouverte ensemble'],
+      ['bisou ou calin du matin ou du soir',                   'raconter sa journee a l\'autre',                    'regarder quelque chose ensemble (serie, video...)'],
+      ['geste tendre spontane',                                'ecrire un petit mot dans l\'app',                   'activite en lien avec la saison '+_saison+' a faire ensemble'],
     ];
-    var col=[];
-    function _nx(i){
-      if(i>=3){
-        if(loader) loader.style.display='none';
-        if(!col.length) col=['Faites-vous un bisou 😘','Appelez-vous ce soir 📞','Partagez une chanson 🎵'];
-        _markGenToday();
-        col.forEach(function(t){ _data.push({id:_uid2(),text:t,done:false}); });
-        _save(); _card(); _sheet(); return;
+    var _t=_themes[_dow];
+
+    var _prompt=
+      'Tu es YAM, mascotte enfantine et complice d\'une app pour couples.\n'+
+      'On est en '+_saison+'. Le couple est ensemble depuis '+_days+' jours.\n\n'+
+
+      'MISSION : genere exactement 3 rappels du jour pour ce couple.\n'+
+      'Chaque rappel est une petite invitation concrete et sympa a faire ensemble.\n\n'+
+
+      'THEMES (1 par rappel, dans cet ordre) :\n'+
+      '1. '+_t[0]+'\n'+
+      '2. '+_t[1]+'\n'+
+      '3. '+_t[2]+'\n\n'+
+
+      'REGLES :\n'+
+      '- S\'adresse au couple ensemble (pas de prenom, pas de "vous deux")\n'+
+      '- Ton naturel, chaleureux, spontane. Jamais scolaire ni pompeux.\n'+
+      '- Peut faire reference a la saison ('+_saison+') si c\'est naturel\n'+
+      '- Entre 4 et 10 mots. 1 emoji OBLIGATOIRE. Pas de guillemets.\n\n'+
+
+      'EXEMPLES CORRECTS :\n'+
+      'OK "Faites-vous un bisou ce soir 😘"\n'+
+      'OK "Partagez une chanson dans l\'app 🎵"\n'+
+      'OK "Un calin impromptu ca fait du bien 🤗"\n'+
+      'OK "Racontez-vous votre journee ce soir 💬"\n'+
+      'OK "Une balade au soleil tous les deux ? 🌞"\n\n'+
+
+      'EXEMPLES INTERDITS :\n'+
+      'NON "Vous devriez vous faire un bisou" => trop scolaire\n'+
+      'NON "Il fait beau" => pas un rappel, pas d\'action\n\n'+
+
+      'FORMAT : reponds UNIQUEMENT avec un tableau JSON de 3 strings, rien avant ni apres.\n'+
+      '["rappel1","rappel2","rappel3"]';
+
+    fetch(GROQ,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(typeof yamGetAccessToken==='function'?yamGetAccessToken():SB_ANON_KEY),'apikey':SB_ANON_KEY},body:JSON.stringify({prompt:_prompt})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(loader) loader.style.display='none';
+      var raw=(d.text||'').trim();
+      var match=raw.match(/\[[\s\S]*\]/);
+      var phrases=[];
+      if(match){ try{ phrases=JSON.parse(match[0]); }catch(e){} }
+      var col=[];
+      for(var i=0;i<3;i++){
+        var t=(phrases[i]||'').toString().trim().replace(/^["'`]+|["'`]+$/g,'').trim();
+        if(t&&t.length>2&&t.length<80) col.push(t);
       }
-      fetch(GROQ,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(typeof yamGetAccessToken==='function'?yamGetAccessToken():SB_ANON_KEY),'apikey':SB_ANON_KEY},body:JSON.stringify({prompt:prompts[i]})})
-      .then(function(r){return r.json();}).then(function(d){ var t=(d.text||'').trim().replace(/^[""\"«»\-–—\s]+|[""\"«»\s]+$/g,'').trim(); if(t&&t.length>2&&t.length<60) col.push(t); setTimeout(function(){_nx(i+1);},280); })
-      .catch(function(){setTimeout(function(){_nx(i+1);},320);});
-    }
-    _nx(0);
+      if(!col.length) col=['Faites-vous un bisou 😘','Appelez-vous ce soir 📞','Partagez une chanson 🎵'];
+      _markGenToday();
+      col.forEach(function(t){ _data.push({id:_uid2(),text:t,done:false}); });
+      _save(); _card(); _sheet();
+    })
+    .catch(function(){
+      if(loader) loader.style.display='none';
+      var fb=['Faites-vous un bisou 😘','Appelez-vous ce soir 📞','Partagez une chanson 🎵'];
+      _markGenToday();
+      fb.forEach(function(t){ _data.push({id:_uid2(),text:t,done:false}); });
+      _save(); _card(); _sheet();
+    });
   }
+
 
   function _syncIfChanged(fresh){
     var h=_hash(fresh);
