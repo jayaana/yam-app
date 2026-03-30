@@ -1188,9 +1188,10 @@ window.nousSignalNew = function() {
     document.getElementById('slotEditBannerInput').value=banners[slot]||'';
     document.getElementById('slotEditDescInput').value=descs[slot]||'';
 
-    // Titre : titre personnalisé de la section (banner), pas "Elle · Animal"
-    var customTitle=banners[slot]||(section==='elle'?'Elle':'Lui');
-    document.getElementById('slotEditModalTitle').textContent=customTitle;
+    // Titre : titre de la section (MOI/TOI ou personnalisé), pas le titre du slot
+    var sectionTitleEl=document.getElementById(section==='elle'?'elleSectionTitle':'luiSectionTitle');
+    var sectionTitle=(sectionTitleEl&&sectionTitleEl.textContent.trim())||(section==='elle'?'Moi':'Toi');
+    document.getElementById('slotEditModalTitle').textContent=sectionTitle;
 
     // Photo
     var photoDiv=document.getElementById('slotEditPhoto');
@@ -1412,7 +1413,9 @@ window.nousSignalNew = function() {
     if(!document.getElementById('slotEditDelPhotoBtn')){
       var modal=document.getElementById('slotEditModal');
       if(modal){
-        var saveBtn=modal.querySelector('[onclick*="slotEditSave"]')||modal.querySelector('button:last-of-type');
+        // Trouver le bouton Sauvegarder par son texte
+        var allBtns=Array.from(modal.querySelectorAll('button'));
+        var saveBtn=allBtns.filter(function(b){ return b.textContent.trim().toLowerCase().indexOf('sauvegarder')!==-1; })[0];
         if(saveBtn){
           // Wrapper flex pour aligner Sauvegarder (gauche) + corbeille (droite)
           var wrap=document.createElement('div');
