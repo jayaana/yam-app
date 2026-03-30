@@ -5899,9 +5899,11 @@ body.light #counterBlock.glowing .c-num-big {
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 12px 13px;
+  padding-bottom: 40px;
   min-width: 0;
   transition: background 0.15s;
   cursor: pointer;
+  position: relative;
 }
 body.light .memo-duo-card {
   box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.07), 0 6px 16px rgba(0,0,0,0.05);
@@ -5929,6 +5931,14 @@ body.light .memo-duo-card {
   font-size: 10px;
   color: var(--muted);
   margin-top: 8px;
+}
+#memoNoteStopProp,
+#memoTodoStopProp {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  margin-top: 0;
+  display: block;
 }
 .memo-todo-preview-row {
   display: flex;
