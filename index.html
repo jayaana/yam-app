@@ -2354,15 +2354,15 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
   </div>
   <!-- Zone idée du jour Groq -->
   <div id="livreIdeaCard" style="display:none;background:var(--s2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-top:4px;margin-bottom:2px;">
-    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:10px;">💡</div>
-    <div id="livreIdeaText" style="font-size:14px;color:var(--text);line-height:1.5;">Chargement...</div>
-    <div id="livreIdeaMeta" style="font-size:10px;color:var(--muted);margin-top:6px;"></div>
-    <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
-      <div style="display:flex;gap:8px;">
-        <button id="livreIdeaNextBtn" style="flex:1;padding:13px 10px;background:var(--s3,rgba(255,255,255,0.06));border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;font-weight:600;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;">Suivant →</button>
-        <button id="livresAddIdeaBtn" style="flex:1;padding:13px 10px;background:#e75a7c;border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;">+ Ajouter</button>
-      </div>
-      <button id="livreIdeaCloseBtn" style="width:100%;padding:11px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:13px;font-weight:600;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;">Fermer</button>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px;">
+      <div id="livreIdeaTitle" style="font-size:15px;font-weight:700;color:var(--text);line-height:1.3;flex:1;"></div>
+      <div id="livreIdeaMeta" style="font-size:10px;color:var(--muted);text-align:right;flex-shrink:0;line-height:1.4;"></div>
+    </div>
+    <div id="livreIdeaText" style="font-size:13px;color:var(--sub);line-height:1.5;margin-bottom:14px;">Chargement...</div>
+    <div style="display:flex;gap:8px;">
+      <button id="livreIdeaNextBtn" style="flex:1;padding:11px 8px;background:var(--s3,rgba(255,255,255,0.06));border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:13px;font-weight:600;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;">Suivant →</button>
+      <button id="livresAddIdeaBtn" style="flex:1;padding:11px 8px;background:#e75a7c;border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;">+ Ajouter</button>
+      <button id="livreIdeaCloseBtn" style="flex:1;padding:11px 8px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:13px;font-weight:600;font-family:'Bricolage Grotesque',sans-serif;cursor:pointer;">Fermer</button>
     </div>
   </div>
 </div>
