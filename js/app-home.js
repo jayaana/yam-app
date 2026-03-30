@@ -508,14 +508,15 @@
     if(h!==_lastHash){ _data=fresh; _lastHash=h; var act=_active(); if(_idx>=act.length)_idx=Math.max(0,act.length-1); _card(); var sheet=document.getElementById('rappelSheet'); if(sheet&&sheet.classList.contains('open')) _sheet(); }
   }
 
+  // Sync partenaire via Realtime photoDescs — toujours actif, indépendant du poll
+  document.addEventListener('yam:rappels_changed', function(){ _load(_syncIfChanged); });
+
   function _startPoll(){
     // Ne démarrer le poll que si le channel Realtime photoDescs n'est pas joined
     var _pdch = window._yamRT && window._yamRT.getChannels &&
                 window._yamRT.getChannels().find(function(c){ return c.topic.includes('photoDescs-'); });
     if (_pdch && _pdch.state === 'joined') {
-      // Realtime actif — s'abonner aux changements via l'event existant plutôt que poller
-      document.addEventListener('yam:rappels_changed', function(){ _load(_syncIfChanged); });
-      return;
+      return; // Realtime actif — yam:rappels_changed suffit, pas de poll
     }
     if(_pollTimer) clearInterval(_pollTimer);
     _pollTimer=setInterval(function(){ if(document.hidden||!_cid()) return; _load(_syncIfChanged); },30000);
