@@ -108,31 +108,76 @@
   function _startAutoRotate(){ _refreshDisplay(); setInterval(function(){ _refreshDisplay(); },60*1000); }
 
   function _makePrompts(role,partnerName,daysTogether,saison){
-    var isBoy=role==='boy', adj=isBoy?'ta copine':'ton copain',
-        pNom=partnerName||adj, moi=isBoy?'un garçon':'une fille',
-        proSuj=isBoy?'elle':'il';
-    var base='Tu es YAM, mascotte d\'une app pour couples. Tu parles DIRECTEMENT a '+moi+'. Saison : '+saison+'. Ensemble depuis '+daysTogether+' jours. Écris UNE phrase (10 mots max). REGLES : pas de guillemets, pas d\'explication, juste la phrase. Direct, vivant. 1 emoji max.';
+    var isBoy=role==='boy';
+    var pNom=partnerName||(isBoy?'ta copine':'ton copain');
+    var moi=isBoy?'un garçon':'une fille';
+    // Genre du partenaire pour les surnoms ("ton amoureux" vs "ta chérie")
+    var pSurnom=isBoy?'ta chérie':'ton amoureux';
+    var pSurnomAlt=isBoy?'ta copine':'ton copain';
+    // Ton selon la durée de la relation
+    var tonDuree=daysTogether<30?'(couple très récent, sois doux et encourageant)':daysTogether<365?'(couple de quelques mois, complice et léger)':'(couple solide, peut faire des références au temps passé ensemble)';
+
+    var base=
+      'Tu es YAM, une petite mascotte enfantine, chaleureuse et complice d\'une app pour couples. '+
+      'Tu t\'adresses à '+moi+' qui est en couple avec '+pNom+' depuis '+daysTogether+' jours. On est en '+saison+'. '+tonDuree+' '+
+      'Tu parles comme un enfant espiègle et gentil : naturel, court, jamais mièvre ni pompeux. Tu tutoies toujours. '+
+      'Tu peux parler de toi ("je pense que...", "j\'ai une idée..."). '+
+      'Tu peux suggérer des activités de l\'app (messages, bêtises, jeux, musique, souvenirs) comme une invitation spontanée, jamais un ordre. '+
+      'Les surnoms affectueux (chérie, bébé, amoureux...) désignent UNIQUEMENT '+pNom+', jamais l\'utilisateur lui-même. '+
+      'RÈGLES ABSOLUES : pas de guillemets, pas d\'explication, UNE seule phrase, 15 mots maximum, 1 emoji si ça s\'y prête. '+
+      'Jamais de phrase pompeuse, romantique à l\'eau de rose ou qui sonne comme un ordre. Juste une phrase courte et percutante.';
+
     var matin=[
-      base+' C\'est le matin, juste après le réveil. Demande si '+moi+' a bien dormi ou souhaite-lui un bon réveil.',
-      base+' C\'est le matin. Suggère d\'envoyer un premier message de la journée à '+pNom+'.',
-      base+' C\'est le matin. Rappelle de définir son humeur du jour dans l\'app.',
-      base+' C\'est le matin. Glisse que son/sa partenaire lui manque peut-être au réveil. Utilise "'+proSuj+'".',
-      base+' C\'est le matin. Souhaite une belle journée liée à la relation.',
+      // M1 — Réveil, a bien dormi ?
+      base+' C\'est le matin, juste après le réveil. Demande de façon espiègle et enfantine si l\'utilisateur a bien dormi.',
+
+      // M2 — Premier message à pNom
+      base+' C\'est le matin. Suggère d\'envoyer un premier message de la journée à '+pNom+', comme une petite idée spontanée qui vient de toi.',
+
+      // M3 — Humeur du jour
+      base+' C\'est le matin. Invite à définir son humeur du jour dans l\'app, comme si c\'était un petit rituel sympa et quotidien.',
+
+      // M4 — pNom pense peut-être à lui/elle aussi
+      base+' C\'est le matin. Glisse que '+pNom+' pense peut-être à l\'utilisateur au réveil aussi. Tu peux utiliser "'+pSurnom+'" pour désigner '+pNom+'.',
+
+      // M5 — Belle journée + saison
+      base+' C\'est le matin. Souhaite une belle journée en faisant référence à la saison ('+saison+') de façon concrète et imagée (ex : chocolat chaud en hiver, soleil en été...).',
     ];
+
     var aprem=[
-      base+' C\'est l\'après-midi. Demande comment se passe la journée.',
-      base+' C\'est l\'après-midi. Propose une partie de jeu dans l\'app avec '+pNom+' (Memory, Skyjo, Pendu).',
-      base+' C\'est l\'après-midi. Encourage à écrire un petit mot doux dans l\'app.',
-      base+' C\'est l\'après-midi. Suggère malicieusement d\'envoyer une bêtise à '+pNom+'.',
-      base+' C\'est l\'après-midi. Rappelle de penser à son/sa partenaire. Utilise "'+proSuj+'".',
+      // A1 — Comment se passe la journée
+      base+' C\'est l\'après-midi. Demande comment se passe la journée de façon curieuse et enfantine, comme si tu voulais vraiment savoir.',
+
+      // A2 — Partie de jeu avec pNom
+      base+' C\'est l\'après-midi. Propose une partie de jeu dans l\'app avec '+pNom+' (Memory, Skyjo ou Ocho) comme une invitation spontanée et enthousiaste.',
+
+      // A3 — Petit mot doux
+      base+' C\'est l\'après-midi. Suggère d\'écrire un petit mot doux à '+pNom+' dans l\'app, comme une idée qui te vient à toi YAM.',
+
+      // A4 — Bêtise à pNom
+      base+' C\'est l\'après-midi. Suggère malicieusement d\'envoyer une bêtise à '+pNom+' dans l\'app. Ton espiègle, comme si tu partageais un secret.',
+
+      // A5 — Pensée tendre + saison ou daysTogether
+      base+' C\'est l\'après-midi. Glisse une pensée concrète sur '+pNom+' en lien avec la saison ('+saison+') ou le quotidien. Pas de grande déclaration, juste quelque chose de simple.',
     ];
+
     var soir=[
-      base+' C\'est le soir. Demande si la journée s\'est bien passée.',
-      base+' C\'est le soir. Propose d\'écouter ou partager une chanson avec '+pNom+'.',
-      base+' C\'est le soir. Suggère d\'appeler ou entendre la voix du/de la partenaire. Utilise "'+adj+'".',
-      base+' C\'est le soir. Parle des souvenirs dans l\'app ou propose d\'en ajouter un.',
-      base+' C\'est le soir. Rappelle combien de jours ils sont ensemble ('+daysTogether+' jours) de façon tendre.',
+      // S1 — Journée passée + en parler avec pNom
+      base+' C\'est le soir. Demande comment s\'est passée la journée et suggère d\'en parler avec '+pNom+' ce soir.',
+
+      // S2 — Musique ensemble (YAM peut se glisser dedans "tous les 3")
+      base+' C\'est le soir. Propose d\'écouter une musique ensemble dans l\'app avec '+pNom+'. Tu peux te glisser dedans ("tous les 3", "on écoute ensemble...").',
+
+      // S3 — Appeler pNom / vocal
+      base+' C\'est le soir. Suggère d\'appeler '+pNom+' ou de lui envoyer un vocal. Tu peux utiliser "'+pSurnom+'" ou "'+pSurnomAlt+'" pour désigner '+pNom+'.',
+
+      // S4 — Souvenirs dans l'app
+      base+' C\'est le soir. Parle des souvenirs dans l\'app ou propose d\'en ajouter un nouveau avec '+pNom+'.',
+
+      // S5 — daysTogether, simple et concret, pas pompeux
+      base+' C\'est le soir. Mentionne les '+daysTogether+' jours ensemble de façon simple, concrète et légère. Pas de grande déclaration romantique. Peut faire référence à la saison ('+saison+').',
     ];
+
     return matin.concat(aprem).concat(soir);
   }
 
@@ -293,10 +338,19 @@
   function _genAI(){
     var cid=_cid(); if(!cid||!_canGenToday()||_data.length>0) return;
     var loader=document.getElementById('rshLoader'); if(loader) loader.style.display='flex';
+    var _u=yamGetUser();
+    var _days=window.startDate?Math.floor((Date.now()-new Date(window.startDate))/(1000*60*60*24)):0;
+    var _saison=['hiver','hiver','printemps','printemps','printemps','été','été','été','automne','automne','automne','hiver'][new Date().getMonth()];
+    var _baseR=
+      'Tu es YAM, petite mascotte enfantine et complice d\'une app pour couples. '+
+      'Tu proposes UN rappel sympa pour le couple. On est en '+_saison+', ensemble depuis '+_days+' jours. '+
+      'Le rappel s\'adresse aux deux ensemble (pas de "je", pas de nom propre, pas de "vous deux"). '+
+      'Ton naturel, court, jamais pompeux. Peut faire référence à la saison ou aux jours ensemble si c\'est naturel. '+
+      'RÈGLES : UNE seule phrase, 8 mots maximum, 1 emoji si ça s\'y prête. Réponds UNIQUEMENT avec la phrase, rien d\'autre.';
     var prompts=[
-      'Écris UN rappel de couple en 4 mots maximum. Impératif. S\'adresse aux DEUX ensemble. Pas de "je", pas de prénom, pas de "mon amour", pas de "vous deux". Thème : geste tendre. Réponds UNIQUEMENT avec la phrase, rien d\'autre.',
-      'Écris UN rappel de couple en 4 mots maximum. Impératif. S\'adresse aux DEUX ensemble. Pas de "je", pas de prénom. Thème : se parler, s\'appeler, message. Réponds UNIQUEMENT avec la phrase, rien d\'autre.',
-      'Écris UN rappel de couple en 4 mots maximum. Impératif. S\'adresse aux DEUX ensemble. Pas de "je", pas de prénom. Thème : activité partagée. Réponds UNIQUEMENT avec la phrase, rien d\'autre.',
+      _baseR+' Thème : geste tendre ou physique (bisou, câlin, main dans la main...).',
+      _baseR+' Thème : se parler, s\'appeler, s\'envoyer un message ou un vocal.',
+      _baseR+' Thème : activité partagée sympa à faire ensemble (musique, jeu, film, sortie en lien avec la saison '+_saison+').',
     ];
     var col=[];
     function _nx(i){
