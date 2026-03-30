@@ -675,8 +675,12 @@ function _nousInitAll() {
   );
 
   _nousLoadBadge();
+  // Poll fallback likes uniquement si le channel Realtime n'est pas joined
   if (!window._likesIv) {
-    window._likesIv = setInterval(loadLikeCounters, 5000);
+    var _lch = window._yamRT && window._yamRT.getChannels().find(function(c){ return c.topic.includes('likes-'); });
+    if (!_lch || _lch.state !== 'joined') {
+      window._likesIv = setInterval(loadLikeCounters, 5000);
+    }
   }
   document.querySelectorAll('#nousContentWrapper .fade-in').forEach(function(el){
     if (window._fadeObs) window._fadeObs.observe(el);
@@ -2162,6 +2166,8 @@ function _startPhotodescsRT(cid) {
           if(typeof window.elleSyncSections==='function') window.elleSyncSections();
           // Progression NID partagée — recharger et réappliquer si nous_progress a changé
           if(typeof _nidLoad==='function') _nidLoad(function(){ if(typeof _nidApply==='function') _nidApply(); if(typeof _nidAutoDetect==='function') _nidAutoDetect(); });
+          // Notifier app-home.js que photo_descs a changé (rappels inclus) → stoppe son poll
+          document.dispatchEvent(new CustomEvent('yam:rappels_changed'));
         })
     .subscribe(function(s){
       if(s==='SUBSCRIBED'){ if(_photoDescsPollIv){clearInterval(_photoDescsPollIv);_photoDescsPollIv=null;} }
