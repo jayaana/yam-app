@@ -1264,6 +1264,26 @@ window.nousSignalNew = function() {
     _restoreScrollPosition();
   };
 
+  // ── Visualisation souvenir (lecture seule) ──
+  window.souvenirOpenView = function(s){
+    if(!s || !s.photo_url) return;
+    var modal = document.getElementById('slotViewModal'); if(!modal) return;
+    document.getElementById('slotViewImg').src = s.photo_url;
+    document.getElementById('slotViewTitle').textContent = s.title || '';
+    // Meta : date + lieu
+    var metaEl = document.getElementById('slotViewMeta');
+    if(metaEl){
+      var parts = [];
+      if(s.date) parts.push(new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}));
+      if(s.lieu) parts.push('📍 '+s.lieu);
+      metaEl.textContent = parts.join(' · ');
+    }
+    document.getElementById('slotViewDesc').textContent = s.description || '';
+    _saveScrollPosition();
+    _blockBackgroundScroll();
+    modal.classList.add('open');
+  };
+
   // Clic sur la photo dans la modale → file input (identique à livresPhotoClick)
   window.slotEditPhotoClick = function(){
     if(!_editSection||!_editSlot) return;
@@ -2603,6 +2623,13 @@ document.addEventListener('yam:session_ready',function(){
       +'<div class="souvenir-edit-icon">'+pencilSVG+'</div>'
       +'</div>';
     card.querySelector('.souvenir-edit-icon').addEventListener('click',function(e){ e.stopPropagation(); nousOpenSouvenirModal(s); });
+    // Clic sur la photo → vue en grand
+    if(photoUrl){
+      card.querySelector('.souvenir-photo').addEventListener('click', function(e){
+        e.stopPropagation();
+        if(typeof window.souvenirOpenView==='function') window.souvenirOpenView(s);
+      });
+    }
     // Badge NEW — posé sur la card racine (position:relative, sans overflow:hidden)
     // .souvenir-photo a overflow:hidden pour rogner la photo → badge invisible si posé dessus
     if(s.id && typeof window.yamIsNew==='function' && window.yamIsNew('souvenir_'+s.id)){
