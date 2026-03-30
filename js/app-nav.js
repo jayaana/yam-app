@@ -75,10 +75,12 @@
     });
 
     setTimeout(function(){
+      // loadLikeCounters retiré de home/nous : le channel Realtime 'likes' (joined) suffit.
+      // On ne poll qu'en fallback si _likesIv est actif (Realtime indisponible).
       var fns = {
-        home:     [window.loadLikeCounters, window._presencePoll, window.yamRefreshNewBadges],
+        home:     [window._presencePoll, window.yamRefreshNewBadges],
         messages: [window.nlPoll, window._checkUnread],
-        nous:     [window.loadLikeCounters, window.elleLoadImages, window.luiLoadImages, window.yamRefreshNewBadges, window._loadSectionTitles],
+        nous:     [window.elleLoadImages, window.luiLoadImages, window.yamRefreshNewBadges, window._loadSectionTitles],
         musique:  [window.sgLoad],
         jeux:     [window.jxLoadDashboard]
       };
