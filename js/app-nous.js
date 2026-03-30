@@ -2052,7 +2052,7 @@ function _startSouvenirsRT(cid) {
   if(!window._yamRT||!cid||_souvenirsRTCh) return;
   _souvenirsRTCh = window._yamRT.channel('souvenirs-'+cid)
     .on('postgres_changes',{event:'*',schema:'public',table:'memories',filter:'couple_id=eq.'+cid},
-        function(){ if(typeof window.nousLoadSouvenirs==='function') window.nousLoadSouvenirs(true); })
+        function(){ if(window._souvenirSaving) return; if(typeof window.nousLoadSouvenirs==='function') window.nousLoadSouvenirs(true); })
     .subscribe(function(s){
       if(s==='SUBSCRIBED'){ if(_souvenirsPollIv){clearInterval(_souvenirsPollIv);_souvenirsPollIv=null;} }
       else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){
@@ -2858,6 +2858,7 @@ document.addEventListener('yam:session_ready',function(){
     var saveBtn=document.getElementById('souvenirSaveBtn'); if(saveBtn){ saveBtn.textContent='...'; saveBtn.disabled=true; }
     if(id){
       // Modification — ID déjà connu
+      window._souvenirSaving=true;
       fetch(SB_URL+'/rest/v1/memories?id=eq.'+id,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
       .then(function(){
         if(saveBtn){ saveBtn.textContent='Sauvegarder'; saveBtn.disabled=false; }
@@ -2865,13 +2866,16 @@ document.addEventListener('yam:session_ready',function(){
         if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh('souvenir_'+id);
         if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('souvenir_new');
         window.closeSouvenirModal(); window.nousLoadSouvenirs();
+        setTimeout(function(){ window._souvenirSaving=false; }, 3000);
         if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('activitesSection');
       }).catch(function(){
+        window._souvenirSaving=false;
         if(saveBtn){ saveBtn.textContent='Sauvegarder'; saveBtn.disabled=false; }
         window.closeSouvenirModal(); window.nousLoadSouvenirs();
       });
     } else {
       // Création — on récupère l'ID retourné
+      window._souvenirSaving=true;
       fetch(SB_URL+'/rest/v1/memories',{method:'POST',headers:sb2Headers({'Prefer':'return=representation','Content-Type':'application/json'}),body:JSON.stringify(data)})
       .then(function(r){ return r.json(); })
       .then(function(rows){
@@ -2881,8 +2885,10 @@ document.addEventListener('yam:session_ready',function(){
         if(newId && typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh('souvenir_'+newId);
         if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('souvenir_new');
         window.closeSouvenirModal(); window.nousLoadSouvenirs();
+        setTimeout(function(){ window._souvenirSaving=false; }, 3000);
         if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('activitesSection');
       }).catch(function(){
+        window._souvenirSaving=false;
         if(saveBtn){ saveBtn.textContent='Sauvegarder'; saveBtn.disabled=false; }
         window.closeSouvenirModal(); window.nousLoadSouvenirs();
       });
