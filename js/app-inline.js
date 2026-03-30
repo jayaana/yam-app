@@ -445,9 +445,13 @@ document.addEventListener('DOMContentLoaded', function(){
   // ── Slot elle/lui ──
   _on('elleTitleEditBtn', 'click', function(){ window.elleEditSectionTitle && window.elleEditSectionTitle(); });
   _on('elleGearBtn',      'click', function(){ window.elleToggleSection && window.elleToggleSection(); });
+  _on('elleInfoBtn',      'click', function(){ var m=document.getElementById('elleLuiInfoModal'); if(m) m.classList.add('open'); });
   _on('elleFileInput',    'change', function(){ window.elleHandleFile && window.elleHandleFile(this); });
   _on('luiTitleEditBtn',  'click', function(){ window.luiEditSectionTitle && window.luiEditSectionTitle(); });
   _on('luiGearBtn',       'click', function(){ window.luiToggleSection && window.luiToggleSection(); });
+  _on('luiInfoBtn',       'click', function(){ var m=document.getElementById('elleLuiInfoModal'); if(m) m.classList.add('open'); });
+  _on('elleLuiInfoCloseBtn', 'click', function(){ var m=document.getElementById('elleLuiInfoModal'); if(m) m.classList.remove('open'); });
+  (function(){ var m=document.getElementById('elleLuiInfoModal'); if(m) m.addEventListener('click',function(e){ if(e.target===m) m.classList.remove('open'); }); })();
   _on('luiFileInput',     'change', function(){ window.luiHandleFile && window.luiHandleFile(this); });
   // slotOpenEdit — délégation via data-slot sur les album-cards
   document.querySelectorAll('.album-card.lui-card-wrap').forEach(function(card){
