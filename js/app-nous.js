@@ -1182,15 +1182,15 @@ window.nousSignalNew = function() {
 
     var modal=document.getElementById('slotEditModal'); if(!modal) return;
 
-    // Titre
-    var labels={animal:'Animal',fleurs:'Fleurs',personnage:'Personnage',saison:'Saison',repas:'Repas'};
-    document.getElementById('slotEditModalTitle').textContent=(section==='elle'?'Elle':'Lui')+' · '+( labels[slot]||slot );
-
     // Pré-remplir depuis mémoire
     var banners=section==='elle'?_elleBanners:_luiBanners;
     var descs=section==='elle'?_elleDescs:_luiDescs;
     document.getElementById('slotEditBannerInput').value=banners[slot]||'';
     document.getElementById('slotEditDescInput').value=descs[slot]||'';
+
+    // Titre : titre personnalisé de la section (banner), pas "Elle · Animal"
+    var customTitle=banners[slot]||(section==='elle'?'Elle':'Lui');
+    document.getElementById('slotEditModalTitle').textContent=customTitle;
 
     // Photo
     var photoDiv=document.getElementById('slotEditPhoto');
@@ -1216,7 +1216,7 @@ window.nousSignalNew = function() {
     }
     // Afficher le bouton supprimer photo uniquement si une photo existe
     var _delBtn=document.getElementById('slotEditDelPhotoBtn');
-    if(_delBtn) _delBtn.style.display=hasPhoto?'flex':'none';
+    if(_delBtn) _delBtn.style.display='flex';
     modal.classList.add('open');
   };
 
@@ -1364,52 +1364,40 @@ window.nousSignalNew = function() {
   };
 
   // Supprime uniquement la photo du slot — titre et description inchangés
-  window.slotDeletePhoto = function(){
+  window.slotDeleteSlot = function(){
     if(!_editSection||!_editSlot) return;
+    if(!confirm('Supprimer cette pochette (photo, titre et description) ?')) return;
     var coupleId=_getCoupleId(); if(!coupleId) return;
     var s=_editSection; var sl=_editSlot;
-    var modal=document.getElementById('slotEditModal');
-    var pdId=modal?modal.dataset.photoDescId:'';
-    var cat=s+'_img';
+    var banners=s==='elle'?_elleBanners:_luiBanners;
+    var descs=s==='elle'?_elleDescs:_luiDescs;
 
-    var afterDelete=function(){
-      // Masquer le bouton supprimer + réinitialiser l'aperçu dans la modale
-      var delBtn=document.getElementById('slotEditDelPhotoBtn');
-      if(delBtn) delBtn.style.display='none';
-      var photoDiv=document.getElementById('slotEditPhoto');
-      var placeholder=document.getElementById('slotEditPhotoPlaceholder');
-      if(photoDiv){ photoDiv.style.backgroundImage=''; photoDiv.innerHTML=''; }
-      if(placeholder){ placeholder.style.display='flex'; if(photoDiv) photoDiv.appendChild(placeholder); }
-      if(modal){ modal.dataset.photoUrl=''; modal.dataset.photoDescId=''; }
-      // Mettre à jour l'img dans la page principale
-      var img=document.getElementById(s+'-img-'+sl);
-      var emptyEl=document.getElementById(s+'-empty-'+sl);
-      var btnEl=document.getElementById(s+'-btn-'+sl);
-      if(img){ img.src=''; img.style.display='none'; img.classList.remove('loaded'); }
-      if(emptyEl) emptyEl.style.display='';
-      if(btnEl) btnEl.classList.add('empty');
-      if(typeof showToast==='function') showToast('Photo supprimée ✓','success',2000);
-    };
+    // Supprimer toutes les lignes photo_descs liées à ce slot (img + banner + desc)
+    var cats=[s+'_img', s==='elle'?'elle_banner':'lui_banner', s];
+    cats.forEach(function(cat){
+      fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+coupleId+'&category=eq.'+cat+'&slot=eq.'+sl,
+        {method:'DELETE',headers:sb2Headers()}).catch(function(){});
+    });
 
-    var doDelete=function(id){
-      fetch(SB_URL+'/rest/v1/photo_descs?id=eq.'+id+'&couple_id=eq.'+coupleId,
-        {method:'DELETE',headers:sb2Headers()})
-      .then(afterDelete)
-      .catch(function(){ if(typeof showToast==='function') showToast('Erreur — réessaie','error',2500); });
-    };
+    // Nettoyer mémoire locale
+    delete banners[sl]; delete descs[sl];
 
-    if(pdId){
-      doDelete(pdId);
-    } else {
-      fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+coupleId+'&category=eq.'+cat+'&slot=eq.'+sl+'&select=id&limit=1',
-        {headers:sb2Headers()})
-      .then(function(r){return r.ok?r.json():[];})
-      .then(function(rows){
-        if(rows&&rows[0]) doDelete(rows[0].id);
-        else afterDelete();
-      })
-      .catch(function(){ if(typeof showToast==='function') showToast('Erreur — réessaie','error',2500); });
-    }
+    // Réinitialiser UI page principale
+    var img=document.getElementById(s+'-img-'+sl);
+    var emptyEl=document.getElementById(s+'-empty-'+sl);
+    var btnEl=document.getElementById(s+'-btn-'+sl);
+    var bannerEl=document.getElementById(s+'-banner-'+sl);
+    var descEl=document.getElementById(s+'-desc-'+sl);
+    var lbl=document.querySelector('#'+s+'-empty-'+sl+' .lui-img-empty-lbl');
+    if(img){ img.src=''; img.style.display='none'; img.classList.remove('loaded'); }
+    if(emptyEl) emptyEl.style.display='';
+    if(btnEl) btnEl.classList.add('empty');
+    if(bannerEl) bannerEl.textContent='';
+    if(descEl) descEl.textContent='';
+    if(lbl) lbl.textContent='';
+
+    if(typeof showToast==='function') showToast('Pochette supprimée ✓','success',2000);
+    window.slotCloseEdit();
   };
 
   // Init
@@ -1420,19 +1408,27 @@ window.nousSignalNew = function() {
     _loadData('elle');
     _loadData('lui');
     window.elleSyncSections();
-    // Injecter le bouton "Supprimer la photo" dans slotEditModal (une seule fois)
+    // Injecter le bouton supprimer dans slotEditModal (une seule fois)
     if(!document.getElementById('slotEditDelPhotoBtn')){
       var modal=document.getElementById('slotEditModal');
       if(modal){
         var saveBtn=modal.querySelector('[onclick*="slotEditSave"]')||modal.querySelector('button:last-of-type');
-        var btn=document.createElement('button');
-        btn.id='slotEditDelPhotoBtn';
-        btn.type='button';
-        btn.onclick=function(){ window.slotDeletePhoto(); };
-        btn.style.cssText='display:none;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:8px;padding:11px;background:none;border:1.5px solid #e05555;border-radius:12px;color:#e05555;font-size:13px;font-weight:600;cursor:pointer;box-sizing:border-box;';
-        btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e05555" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> Supprimer la photo';
-        if(saveBtn&&saveBtn.parentNode) saveBtn.parentNode.insertBefore(btn, saveBtn.nextSibling);
-        else modal.appendChild(btn);
+        if(saveBtn){
+          // Wrapper flex pour aligner Sauvegarder (gauche) + corbeille (droite)
+          var wrap=document.createElement('div');
+          wrap.style.cssText='display:flex;align-items:center;gap:8px;';
+          saveBtn.parentNode.insertBefore(wrap, saveBtn);
+          saveBtn.style.flex='1';
+          wrap.appendChild(saveBtn);
+          var btn=document.createElement('button');
+          btn.id='slotEditDelPhotoBtn';
+          btn.type='button';
+          btn.onclick=function(){ window.slotDeleteSlot(); };
+          btn.title='Supprimer la pochette';
+          btn.style.cssText='display:none;align-items:center;justify-content:center;flex-shrink:0;width:44px;height:44px;background:none;border:1.5px solid #e05555;border-radius:12px;color:#e05555;cursor:pointer;';
+          btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e05555" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+          wrap.appendChild(btn);
+        }
       }
     }
   });
