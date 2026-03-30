@@ -107,125 +107,132 @@
   function _refreshDisplay(){ if(!_phrases.length) return; _show(_globalIdx(_currentState())); }
   function _startAutoRotate(){ _refreshDisplay(); setInterval(function(){ _refreshDisplay(); },60*1000); }
 
-  function _makePrompts(role,partnerName,daysTogether,saison){
-    var isBoy=role==='boy';
-    var pNom=partnerName||(isBoy?'ta copine':'ton copain');
-    var moi=isBoy?'un garçon':'une fille';
-    // Genre et pronoms du partenaire
-    var genrePartenaire=isBoy?'une fille':'un garçon';
-    var proPartenaire=isBoy?'elle':'il';
-    // Surnom principal (pour les exemples dans le prompt)
-    var pSurnom=isBoy?'ta chérie':'ton amoureux';
-    var pSurnomAlt=isBoy?'ta copine':'ton copain';
-    // Liste fermée de surnoms autorisés (accordés selon genre du partenaire)
-    var pSurnoms=isBoy
+  function _buildPrompt(role, partnerName, daysTogether, saison){
+    var isBoy       = role === 'boy';
+    var pNom        = partnerName || (isBoy ? 'ta copine' : 'ton copain');
+    var moi         = isBoy ? 'un garçon' : 'une fille';
+    var genreP      = isBoy ? 'une fille' : 'un garçon';
+    var proP        = isBoy ? 'elle' : 'il';
+    var pSurnom     = isBoy ? 'ta chérie'   : 'ton amoureux';
+    var pSurnomAlt  = isBoy ? 'ta copine'   : 'ton copain';
+    var pSurnoms    = isBoy
       ? '"ta chérie", "ta copine", "ton bébé", "ta moitié", "ton amoureuse"'
       : '"ton amoureux", "ton copain", "ton bébé", "ta moitié", "ton chéri"';
-    // Ton selon la durée de la relation
-    var tonDuree=daysTogether<30?'couple très récent, sois doux et encourageant':daysTogether<365?'couple de quelques mois, complice et léger':'couple solide, vous pouvez faire référence au temps passé ensemble';
+    var tonDuree    = daysTogether < 30
+      ? 'couple très récent, sois doux et encourageant'
+      : daysTogether < 365
+        ? 'couple de quelques mois, complice et léger'
+        : 'couple solide, tu peux faire allusion au temps passé ensemble';
 
-    var base=
-      'Tu es YAM, mascotte enfantine et complice d\'une app pour couples. '+
-      'Tu t\'adresses à '+moi+'. Son/sa partenaire s\'appelle '+pNom+' ('+genrePartenaire+'). '+
-      'Ensemble depuis '+daysTogether+' jours. Saison : '+saison+'. '+tonDuree+'. '+
+    return (
+      'Tu es YAM, mascotte enfantine et complice d\'une app pour couples.\n' +
+      'Tu t\'adresses à ' + moi + '. Son/sa partenaire s\'appelle ' + pNom + ' (' + genreP + ').\n' +
+      'Ensemble depuis ' + daysTogether + ' jours. Saison : ' + saison + '. ' + tonDuree + '.\n\n' +
 
-      'TON : espiègle, naturel, chaleureux. Comme un enfant qui parle à un ami. Tu tutoies toujours. '+
-      'Tu peux parler de toi : "je pense que...", "j\'ai une idée...". '+
-      'FORMAT : UNE seule phrase. 12 mots max. 1 emoji si naturel, sinon rien. '+
-      'Réponds UNIQUEMENT avec la phrase, rien d\'autre. '+
+      'TON : espiègle, naturel, chaleureux. Comme un enfant qui parle à un ami. Tu tutoies toujours.\n' +
+      'Tu peux parler de toi : "je pense que...", "j\'ai une idée...".\n\n' +
 
-      'EXEMPLES DE BONNES PHRASES : '+
-      '"T\'as bien dormi ? 😊" — '+
-      '"'+pNom+' attend un message de toi ! 😌" — '+
-      '"Ça te dirait de jouer à Ocho avec '+pSurnom+' ce soir ? 🎲" — '+
-      '"Je pense que '+pSurnom+' aimerait un petit mot doux là 😌" '+
+      'EXEMPLES DE BONNES PHRASES :\n' +
+      'OK "T\'as bien dormi ? OK"\n' +
+      'OK "' + pNom + ' attend un message de toi !"\n' +
+      'OK "Ca te dirait de jouer a Ocho avec ' + pSurnom + ' ce soir ?"\n' +
+      'OK "Je pense que ' + pSurnom + ' aimerait un petit mot doux"\n\n' +
 
-      'EXEMPLES INTERDITS : '+
-      '"Bébé t\'as bien dormi ?" -> YAM n\'appelle JAMAIS l\'utilisateur par un surnom affectueux — '+
-      '"'+pNom+' adore les pique-niques" -> YAM n\'invente JAMAIS de faits sur le couple — '+
-      '"Appelle '+pSurnom+', elle/il pense a toi" -> jamais elle/il, le partenaire est '+genrePartenaire+' donc utilise '+proPartenaire+' — '+
-      '"O printemps magnifique..." -> jamais pompeux ni poetique '+
+      'EXEMPLES INTERDITS :\n' +
+      'NON "Bebe t\'as bien dormi ?" => YAM n\'appelle JAMAIS l\'utilisateur par un surnom\n' +
+      'NON "' + pNom + ' adore les pique-niques" => ne jamais inventer de faits sur le couple\n' +
+      'NON "Appelle ' + pSurnom + ', elle/il pense a toi" => utilise "' + proP + '" pas "elle/il"\n' +
+      'NON "O ' + saison + ' magnifique..." => jamais pompeux ni poetique\n\n' +
 
-      'SURNOMS AUTORISES pour designer '+pNom+' : '+pSurnoms+'. '+
-      'Tu peux aussi utiliser directement '+pNom+'. '+
-      'N\'utilise AUCUN autre surnom que ceux listes. '+
-      'Le prenom '+pNom+' ne doit apparaitre QUE dans 1 phrase sur 3 — alterne avec les surnoms.';
+      'SURNOMS AUTORISES pour designer ' + pNom + ' : ' + pSurnoms + '.\n' +
+      'Utilise ' + pNom + ' dans max 1 phrase sur 3. Alterne avec les surnoms.\n\n' +
 
-    var matin=[
-      // M1 — Réveil, a bien dormi ?
-      base+' C\'est le matin, juste après le réveil. Demande de façon espiègle et enfantine si l\'utilisateur a bien dormi.',
+      'MISSION : genere exactement 15 phrases YAM pour la journee, reparties ainsi :\n' +
+      '- Phrases 1 a 5 : contexte MATIN\n' +
+      '- Phrases 6 a 10 : contexte APRES-MIDI\n' +
+      '- Phrases 11 a 15 : contexte SOIR\n\n' +
 
-      // M2 — Premier message à pNom
-      base+' C\'est le matin. Suggère d\'envoyer un premier message de la journée à '+pNom+', comme une petite idée spontanée qui vient de toi.',
+      'Themes a couvrir (1 par phrase, dans cet ordre) :\n' +
+      '1. Demande si bien dormi, ton espiegle\n' +
+      '2. Suggere d\'envoyer un premier message a ' + pNom + '\n' +
+      '3. Invite a definir son humeur du jour dans l\'app\n' +
+      '4. Glisse que ' + pSurnom + ' pense peut-etre a lui/elle ce matin\n' +
+      '5. Souhaite une belle journee en lien avec la saison ' + saison + ' (concret : chocolat chaud, soleil...)\n' +
+      '6. Demande comment se passe la journee, ton curieux\n' +
+      '7. Propose une partie de jeu dans l\'app (Memory, Skyjo ou Ocho)\n' +
+      '8. Suggere d\'ecrire un petit mot doux a ' + pSurnomAlt + ' dans l\'app\n' +
+      '9. Suggere malicieusement d\'envoyer une betise a ' + pNom + '\n' +
+      '10. Pensee simple sur ' + pSurnom + ' en lien avec la saison ou le quotidien\n' +
+      '11. Demande comment s\'est passee la journee, suggere d\'en parler avec ' + pSurnom + '\n' +
+      '12. Propose d\'ecouter une musique ensemble dans l\'app\n' +
+      '13. Suggere d\'appeler ' + pNom + ' ou lui envoyer un vocal\n' +
+      '14. Invite a ouvrir la section Souvenirs et en ajouter un\n' +
+      '15. Suggere d\'ecrire une note du jour dans l\'app avant de dormir\n\n' +
 
-      // M3 — Humeur du jour
-      base+' C\'est le matin. Invite à définir son humeur du jour dans l\'app, comme si c\'était un petit rituel sympa et quotidien.',
-
-      // M4 — pNom pense peut-être à lui/elle aussi
-      base+' C\'est le matin. Glisse que '+pNom+' pense peut-être à l\'utilisateur au réveil aussi. Tu peux utiliser "'+pSurnom+'" pour désigner '+pNom+'.',
-
-      // M5 — Belle journée + saison
-      base+' C\'est le matin. Souhaite une belle journée en faisant référence à la saison ('+saison+') de façon concrète et imagée (ex : chocolat chaud en hiver, soleil en été...).',
-    ];
-
-    var aprem=[
-      // A1 — Comment se passe la journée
-      base+' C\'est l\'après-midi. Demande comment se passe la journée de façon curieuse et enfantine, comme si tu voulais vraiment savoir.',
-
-      // A2 — Partie de jeu avec pNom
-      base+' C\'est l\'après-midi. Propose une partie de jeu dans l\'app avec '+pNom+' (Memory, Skyjo ou Ocho) comme une invitation spontanée et enthousiaste.',
-
-      // A3 — Petit mot doux
-      base+' C\'est l\'après-midi. Suggère d\'écrire un petit mot doux à '+pNom+' dans l\'app, comme une idée qui te vient à toi YAM.',
-
-      // A4 — Bêtise à pNom
-      base+' C\'est l\'après-midi. Suggère malicieusement d\'envoyer une bêtise à '+pNom+' dans l\'app. Ton espiègle, comme si tu partageais un secret.',
-
-      // A5 — Pensée tendre + saison ou daysTogether
-      base+' C\'est l\'après-midi. Glisse une pensée concrète sur '+pNom+' en lien avec la saison ('+saison+') ou le quotidien. Pas de grande déclaration, juste quelque chose de simple.',
-    ];
-
-    var soir=[
-      // S1 — Journée passée + en parler avec pNom
-      base+' C\'est le soir. Demande comment s\'est passée la journée et suggère d\'en parler avec '+pNom+' ce soir.',
-
-      // S2 — Musique ensemble (YAM peut se glisser dedans "tous les 3")
-      base+' C\'est le soir. Propose d\'écouter une musique ensemble dans l\'app avec '+pNom+'. Tu peux te glisser dedans ("tous les 3", "on écoute ensemble...").',
-
-      // S3 — Appeler pNom / vocal
-      base+' C\'est le soir. Suggère d\'appeler '+pNom+' ou de lui envoyer un vocal. Tu peux utiliser "'+pSurnom+'" ou "'+pSurnomAlt+'" pour désigner '+pNom+'.',
-
-      // S4 — Souvenirs dans l'app (angle : curiosité, découverte)
-      base+' C\'est le soir. Invite à ouvrir la section Souvenirs dans l\'app et à en ajouter un. Angle curieux et enthousiaste, comme si YAM voulait voir les photos.',
-
-      // S5 — Sondage ou note du soir (angle : bilan de journée léger)
-      base+' C\'est le soir. Suggère d\'écrire une petite note ou un souvenir du jour dans l\'app avant de dormir. Ton doux et simple, pas romantique.',
-    ];
-
-    return matin.concat(aprem).concat(soir);
+      'FORMAT DE REPONSE - CRITIQUE :\n' +
+      'Reponds UNIQUEMENT avec un tableau JSON valide de 15 strings, sans aucun texte avant ou apres.\n' +
+      'Chaque phrase : 12 mots max, 1 emoji si naturel sinon rien, pas de guillemets dans le texte.\n' +
+      'Format exact attendu :\n' +
+      '["phrase1","phrase2","phrase3","phrase4","phrase5","phrase6","phrase7","phrase8","phrase9","phrase10","phrase11","phrase12","phrase13","phrase14","phrase15"]'
+    );
   }
 
-  function _generate(cid,role,onDone){
+  function _generate(cid, role, onDone){
     if(_generating) return;
-    _generating=true; _setLoading(true);
-    var pName=_partner(), days=window.startDate?Math.floor((Date.now()-new Date(window.startDate))/(1000*60*60*24)):0;
-    var saison=['hiver','hiver','printemps','printemps','printemps','été','été','été','automne','automne','automne','hiver'][new Date().getMonth()];
-    var prompts=_makePrompts(role,pName,days,saison), collected=[];
-    function _next(i){
-      if(i>=15){
-        _generating=false;
-        while(collected.length<15) collected.push('');
-        _saveSB(cid,role,collected);
-        var uid=_userId(); if(uid) _saveLocal(uid,collected);
-        onDone(collected); return;
+    _generating = true; _setLoading(true);
+    var pName  = _partner();
+    var days   = window.startDate ? Math.floor((Date.now() - new Date(window.startDate)) / (1000*60*60*24)) : 0;
+    var saison = ['hiver','hiver','printemps','printemps','printemps','ete','ete','ete','automne','automne','automne','hiver'][new Date().getMonth()];
+    var prompt = _buildPrompt(role, pName, days, saison);
+
+    var headers = {
+      'Content-Type':  'application/json',
+      'Authorization': 'Bearer ' + (typeof yamGetAccessToken === 'function' ? yamGetAccessToken() : SB_ANON_KEY),
+      'apikey':        SB_ANON_KEY
+    };
+
+    fetch(GROQ_EDGE, {method:'POST', headers:headers, body:JSON.stringify({prompt:prompt})})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      var raw = (d.text || '').trim();
+      var match = raw.match(/\[[\s\S]*\]/);
+      var phrases = [];
+      if(match){ try{ phrases = JSON.parse(match[0]); }catch(e){} }
+      var collected = [];
+      for(var i=0; i<15; i++){
+        var t = (phrases[i] || '').toString().trim().replace(/^["'`]+|["'`]+$/g,'').trim();
+        collected.push(t && t.length > 3 ? t : '');
       }
-      fetch(GROQ_EDGE,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(typeof yamGetAccessToken==='function'?yamGetAccessToken():SB_ANON_KEY),'apikey':SB_ANON_KEY},body:JSON.stringify({prompt:prompts[i]})})
-      .then(function(r){return r.json();})
-      .then(function(d){ var t=(d.text||'').trim().replace(/^[""\"«»\-–—]+|[""\"«»]+$/g,'').trim(); collected.push(t&&t.length>3?t:''); setTimeout(function(){_next(i+1);},280); })
-      .catch(function(){collected.push(''); setTimeout(function(){_next(i+1);},350);});
-    }
-    _next(0);
+      _generating = false;
+      _saveSB(cid, role, collected);
+      var uid = _userId(); if(uid) _saveLocal(uid, collected);
+      onDone(collected);
+    })
+    .catch(function(){
+      _generating = false;
+      var fb = [
+        'T\'as bien dormi ? 😊',
+        'Envoie un message a ' + (pName||'ton/ta partenaire') + ' ce matin !',
+        'Definis ton humeur du jour dans l\'app 😌',
+        'Je pense que ' + (pName||'ton/ta partenaire') + ' pense a toi ce matin.',
+        'Belle journee en perspective ! 🌞',
+        'Comment se passe ta journee ? 😊',
+        'Ca te dirait une partie de jeu avec ' + (pName||'ton/ta partenaire') + ' ? 🎲',
+        'Un petit mot doux dans l\'app, ca fait du bien 😌',
+        'J\'ai une idee... envoie une betise a ' + (pName||'ton/ta partenaire') + ' 😈',
+        'Je pense a toi et a ' + (pName||'ton/ta partenaire') + ' cet apres-midi.',
+        'Comment s\'est passee ta journee ? 🌃',
+        'On ecoute une musique tous les 3 ce soir ? 🎶',
+        'Appelle ' + (pName||'ton/ta partenaire') + ' ou envoie-lui un vocal ! 📞',
+        'Ouvre les Souvenirs et ajoute une photo du jour 📸',
+        'Ecris une petite note avant de dormir 😴'
+      ];
+      _saveSB(cid, role, fb);
+      var uid2 = _userId(); if(uid2) _saveLocal(uid2, fb);
+      onDone(fb);
+    });
   }
+
 
   function _load(){
     var uid=_userId(), cid=_coupleId(), role=_role();
