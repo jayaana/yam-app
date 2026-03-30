@@ -1254,6 +1254,7 @@ window.nousSignalNew = function() {
     document.getElementById('slotViewTitle').textContent = banner  ? banner.textContent  : '';
     document.getElementById('slotViewDesc').textContent  = descEl  ? descEl.textContent  : '';
     var editBtn=document.getElementById('slotViewEditBtn'); if(editBtn) editBtn.style.display='none';
+    window._slotViewCurrentSouvenir=null; window._slotViewCurrentLivre=null;
     _saveScrollPosition();
     _blockBackgroundScroll();
     modal.classList.add('open');
@@ -1283,6 +1284,25 @@ window.nousSignalNew = function() {
     var editBtn=document.getElementById('slotViewEditBtn');
     if(editBtn){ editBtn.style.display='flex'; }
     window._slotViewCurrentSouvenir=s;
+    _saveScrollPosition();
+    _blockBackgroundScroll();
+    modal.classList.add('open');
+  };
+
+  // ── Visualisation livre (lecture seule) ──
+  window.livreOpenView = function(book){
+    if(!book||!book.has_image) return;
+    var photoUrl = SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/books/'+book.couple_id+'/'+book.id+'.jpg?t='+Math.floor(Date.now()/60000);
+    var modal = document.getElementById('slotViewModal'); if(!modal) return;
+    document.getElementById('slotViewImg').src = photoUrl;
+    document.getElementById('slotViewTitle').textContent = book.title||'';
+    var metaEl = document.getElementById('slotViewMeta');
+    if(metaEl) metaEl.textContent = '';
+    document.getElementById('slotViewDesc').textContent = book.description||'';
+    var editBtn = document.getElementById('slotViewEditBtn');
+    if(editBtn) editBtn.style.display = 'flex';
+    window._slotViewCurrentLivre = book;
+    window._slotViewCurrentSouvenir = null;
     _saveScrollPosition();
     _blockBackgroundScroll();
     modal.classList.add('open');
@@ -3912,9 +3932,16 @@ document.addEventListener('yam:session_ready',function(){
         '<div class="lui-upload-btn"><div class="lui-upload-icon">'+editSVG+'</div><div class="lui-upload-lbl">Modifier</div></div>'+
       '</div>'+
       '<div class="album-desc" style="cursor:default;">'+escHtml(book.description||'Ajouter une légende...')+'</div>';
-    // Clic bouton edit (la photo / bouton modifier)
+    // Clic bouton edit (le bouton modifier)
     card.querySelector('.lui-upload-btn').addEventListener('click',function(e){ e.stopPropagation(); _livreFromGestion=false; window.livresOpenEdit(book); });
-    // (pas de click sur la légende — double-clic photo suffit pour éditer)
+    // Clic sur la photo → vue en grand
+    if(photoUrl){
+      card.querySelector('.album-image').addEventListener('click',function(e){
+        if(e.target.closest('.lui-upload-btn')||e.target.closest('.livre-del-btn')) return;
+        e.stopPropagation();
+        if(typeof window.livreOpenView==='function') window.livreOpenView(book);
+      });
+    }
     return card;
   }
 
