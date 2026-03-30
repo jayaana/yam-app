@@ -219,7 +219,22 @@
           .replace(/\bete\b/g,        'été')
           .replace(/\bpresenté\b/g,   'présente')
           .replace(/ a toi\b/g,       ' à toi')
-          .replace(/ a ([A-Z])/g,    ' à $1');
+          .replace(/ a ([A-Z])/g,    ' à $1')
+          // Apostrophes mangées au parsing JSON
+          .replace(/\bTas\b/g,       'T\'as')
+          .replace(/\bJai\b/g,       'J\'ai')
+          .replace(/\blapp\b/gi,     'l\'app')
+          .replace(/\bsest\b/gi,     's\'est')
+          .replace(/\bcest\b/gi,     'c\'est')
+          .replace(/\bdans lapp\b/gi,'dans l\'app')
+          // Accents manquants supplémentaires
+          .replace(/\bpassee\b/gi,   'passée')
+          .replace(/\becrire\b/gi,   'écrire')
+          .replace(/\becris\b/gi,    'écris')
+          .replace(/\benvoyee\b/gi,  'envoyée')
+          .replace(/\benvoyees\b/gi, 'envoyées')
+          .replace(/\bajouter\b/gi,  'ajouter')
+          .replace(/\bouvrons\b/gi,  'ouvrons');
       }
       var collected = [];
       for(var i=0; i<15; i++){
