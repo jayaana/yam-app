@@ -465,6 +465,7 @@ document.addEventListener('DOMContentLoaded', function(){
   _on('slotCloseEditBtn',  'click', function(){ window.slotCloseEdit && window.slotCloseEdit(); });
   _on('slotEditPhoto',     'click', function(){ window.slotEditPhotoClick && window.slotEditPhotoClick(); });
   _on('slotEditSaveBtn',   'click', function(){ window.slotEditSave && window.slotEditSave(); });
+  _on('slotEditDelBtn',    'click', function(){ window.slotDeleteSlot && window.slotDeleteSlot(); });
 
   // ── Souvenirs ──
   _on('openSouvenirGestionBtn',  'click', function(){ window.nousOpenSouvenirGestion && window.nousOpenSouvenirGestion(); });
