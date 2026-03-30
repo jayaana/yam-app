@@ -1243,6 +1243,27 @@ window.nousSignalNew = function() {
     _editSection=null; _editSlot=null;
   };
 
+  // ── Visualisation pochette (lecture seule) ──
+  window.slotOpenView = function(section, slot){
+    var imgEl   = document.getElementById(section+'-img-'+slot);
+    if(!imgEl || imgEl.style.display==='none' || !imgEl.src || imgEl.src===window.location.href) return;
+    var banner  = document.getElementById(section+'-banner-'+slot);
+    var descEl  = document.getElementById(section+'-desc-'+slot);
+    var modal   = document.getElementById('slotViewModal'); if(!modal) return;
+    document.getElementById('slotViewImg').src   = imgEl.src;
+    document.getElementById('slotViewTitle').textContent = banner  ? banner.textContent  : '';
+    document.getElementById('slotViewDesc').textContent  = descEl  ? descEl.textContent  : '';
+    _saveScrollPosition();
+    _blockBackgroundScroll();
+    modal.classList.add('open');
+  };
+  window.slotCloseView = function(){
+    var modal=document.getElementById('slotViewModal'); if(!modal) return;
+    modal.classList.remove('open');
+    _unblockBackgroundScroll();
+    _restoreScrollPosition();
+  };
+
   // Clic sur la photo dans la modale → file input (identique à livresPhotoClick)
   window.slotEditPhotoClick = function(){
     if(!_editSection||!_editSlot) return;
