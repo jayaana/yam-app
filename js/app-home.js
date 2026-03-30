@@ -171,7 +171,10 @@
 
       'FORMAT DE REPONSE - CRITIQUE :\n' +
       'Reponds UNIQUEMENT avec un tableau JSON valide de 15 strings, sans aucun texte avant ou apres.\n' +
-      'Chaque phrase : 12 mots max, 1 emoji si naturel sinon rien, pas de guillemets dans le texte.\n' +
+      'Chaque phrase : entre 8 et 14 mots. 1 emoji OBLIGATOIRE par phrase (choisi selon le contexte).\n' +
+      'YAM doit parler de lui ("je pense que...", "j\'ai une idee...", "on y va tous les 3...") dans AU MOINS 5 phrases sur 15.\n' +
+      'Les phrases doivent sonner comme une invitation spontanee, pas comme des ordres telegraphiques.\n' +
+      'Pas de guillemets dans le texte des phrases.\n' +
       'Format exact attendu :\n' +
       '["phrase1","phrase2","phrase3","phrase4","phrase5","phrase6","phrase7","phrase8","phrase9","phrase10","phrase11","phrase12","phrase13","phrase14","phrase15"]'
     );
