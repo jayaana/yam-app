@@ -2105,15 +2105,18 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 
 <!-- PHOTOS ELLE (masquée par défaut pour girl) -->
 <div class="section" style="margin:0 !important;border:none !important;border-radius:0 !important;border-bottom:1px solid var(--group-sep) !important;">
-  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;position:relative;">
     <div style="display:flex;align-items:center;gap:6px;">
       <span id="elleSectionTitle">Rose</span>
       <button id="elleTitleEditBtn" class="yam-action-btn icon-only" style="display:none;" aria-label="Modifier le titre">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
       </button>
     </div>
-    <button id="elleGearBtn" class="yam-action-btn icon-only" aria-label="Voir/éditer la section Elle">
+    <button id="elleGearBtn" class="yam-action-btn icon-only" style="position:absolute;left:50%;transform:translateX(-50%);" aria-label="Voir/éditer la section Elle">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+    <button id="elleInfoBtn" class="yam-action-btn icon-only" aria-label="Comment ça marche ?">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
     </button>
   </div>
   <div id="elleSectionContent">
@@ -2130,15 +2133,18 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 
 <!-- PHOTOS LUI (masquée par défaut pour boy) -->
 <div class="section fade-in" style="margin:0 !important;border:none !important;border-radius:0 !important;">
-  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;position:relative;">
     <div style="display:flex;align-items:center;gap:6px;">
       <span id="luiSectionTitle">Bleu</span>
       <button id="luiTitleEditBtn" class="yam-action-btn icon-only" style="display:none;" aria-label="Modifier le titre">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
       </button>
     </div>
-    <button id="luiGearBtn" class="yam-action-btn icon-only" aria-label="Voir/éditer la section Lui">
+    <button id="luiGearBtn" class="yam-action-btn icon-only" style="position:absolute;left:50%;transform:translateX(-50%);" aria-label="Voir/éditer la section Lui">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+    <button id="luiInfoBtn" class="yam-action-btn icon-only" aria-label="Comment ça marche ?">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
     </button>
   </div>
   <div id="luiSectionContent">
@@ -6419,5 +6425,16 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 </div>
 
 
+
+<!-- MODALE INFO ELLE/LUI -->
+<div id="elleLuiInfoModal" class="nous-modal-overlay">
+  <div class="nous-modal-sheet" style="padding:20px;display:flex;flex-direction:column;align-items:center;gap:14px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+      <div style="font-size:17px;font-weight:700;color:var(--text);">Comment ça marche ?</div>
+      <button id="elleLuiInfoCloseBtn" class="yam-close-btn" aria-label="Fermer" title="Fermer"></button>
+    </div>
+    <img src="assets/images/elle-lui-infos.png" alt="Explication section Elle/Lui" style="width:100%;border-radius:12px;display:block;">
+  </div>
+</div>
 </body>
 </html>
