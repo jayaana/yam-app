@@ -234,7 +234,18 @@
           .replace(/\benvoyee\b/gi,  'envoyée')
           .replace(/\benvoyees\b/gi, 'envoyées')
           .replace(/\bajouter\b/gi,  'ajouter')
-          .replace(/\bouvrons\b/gi,  'ouvrons');
+          .replace(/\bouvrons\b/gi,  'ouvrons')
+          .replace(/\becrit\b/gi,     'écris')
+          .replace(/\becoutez\b/gi,   'écoutez')
+          .replace(/\bespere\b/gi,    'espère')
+          .replace(/\bJ'espere\b/g,   'J\'espère')
+          .replace(/\bcelui-la\b/gi,  'celui-là')
+          .replace(/\bc'est temps\b/gi,'c\'est l\'heure')
+          .replace(/\bparle en\b/gi,  'parles-en')
+          .replace(/\braconte a\b/gi, 'raconte à')
+          .replace(/\benvoie lui\b/gi,'envoie-lui')
+          .replace(/\bappelle le\b/gi,'appelle-le')
+          .replace(/\bappelle la\b/gi,'appelle-la');
       }
       var collected = [];
       for(var i=0; i<15; i++){
