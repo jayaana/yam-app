@@ -6436,5 +6436,19 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     <img src="assets/images/elle-lui-infos.png" alt="Explication section Elle/Lui" style="width:100%;border-radius:12px;display:block;">
   </div>
 </div>
+
+<!-- MODALE VISUALISATION POCHETTE -->
+<div id="slotViewModal" class="nous-modal-overlay">
+  <div class="nous-modal-sheet" style="padding:0;overflow:hidden;border-radius:20px;">
+    <div style="position:relative;">
+      <img id="slotViewImg" src="" alt="" style="width:100%;max-height:60vh;object-fit:cover;display:block;">
+      <button id="slotViewCloseBtn" class="yam-close-btn" aria-label="Fermer" title="Fermer" style="position:absolute;top:12px;right:12px;"></button>
+    </div>
+    <div style="padding:16px 18px 20px;">
+      <div id="slotViewTitle" style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:6px;"></div>
+      <div id="slotViewDesc" style="font-size:14px;color:var(--sub);line-height:1.5;"></div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
