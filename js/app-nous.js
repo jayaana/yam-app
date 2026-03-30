@@ -4221,7 +4221,7 @@ document.addEventListener('yam:session_ready',function(){
     var metaEl = document.getElementById('livreIdeaMeta');
     var btn = document.getElementById('livreIdeaBtn');
 
-    if(card) card.style.display = 'flex';
+    if(card){ card.style.display = 'block'; }
 
     // Si cache valide, naviguer dans les 5 idées
     if(cache && cache.ideas.length){
