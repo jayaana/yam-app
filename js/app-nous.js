@@ -1250,7 +1250,8 @@ window.nousSignalNew = function() {
     var banner  = document.getElementById(section+'-banner-'+slot);
     var descEl  = document.getElementById(section+'-desc-'+slot);
     var modal   = document.getElementById('slotViewModal'); if(!modal) return;
-    document.getElementById('slotViewImg').src   = imgEl.src;
+    var _svi=document.getElementById('slotViewImg'); if(_svi){_svi.src=imgEl.src;_svi.style.display='block';}
+    var _sve=document.getElementById('slotViewEmoji'); if(_sve) _sve.style.display='none';
     document.getElementById('slotViewTitle').textContent = banner  ? banner.textContent  : '';
     document.getElementById('slotViewDesc').textContent  = descEl  ? descEl.textContent  : '';
     var editBtn=document.getElementById('slotViewEditBtn'); if(editBtn) editBtn.style.display='none';
@@ -1270,7 +1271,8 @@ window.nousSignalNew = function() {
   window.souvenirOpenView = function(s){
     if(!s || !s.photo_url) return;
     var modal = document.getElementById('slotViewModal'); if(!modal) return;
-    document.getElementById('slotViewImg').src = s.photo_url;
+    var _svi=document.getElementById('slotViewImg'); if(_svi){_svi.src=s.photo_url;_svi.style.display='block';}
+    var _sve=document.getElementById('slotViewEmoji'); if(_sve) _sve.style.display='none';
     document.getElementById('slotViewTitle').textContent = s.title || '';
     // Meta : date + lieu
     var metaEl = document.getElementById('slotViewMeta');
