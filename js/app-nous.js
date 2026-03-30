@@ -991,21 +991,35 @@ window.nousSignalNew = function() {
     var luiGear      = document.getElementById('luiGearBtn');
     var elleTitleBtn = document.getElementById('elleTitleEditBtn');
     var luiTitleBtn  = document.getElementById('luiTitleEditBtn');
+    var elleInfoBtn  = document.getElementById('elleInfoBtn');
+    var luiInfoBtn   = document.getElementById('luiInfoBtn');
     if(!elleSection || !luiSection) return;
     if(profile === 'boy'){
+      // boy : édite ROSE (elle) → œil centré sur ROSE, pas de ? sur ROSE
+      //        sa section BLEU → ? seulement, pas d'œil
       luiSection.style.display  = 'block';
       if(!elleSection.dataset.forceOpen) elleSection.style.display = 'none';
-      if(elleGear)     elleGear.style.display     = '';
-      if(luiGear)      luiGear.style.display      = 'none';
-      if(elleTitleBtn) elleTitleBtn.style.display  = 'flex';
-      if(luiTitleBtn)  luiTitleBtn.style.display   = 'none';
+      // ROSE : œil visible centré (position absolute déjà dans HTML), pas de ?
+      if(elleGear)     { elleGear.style.display = ''; elleGear.style.position = 'absolute'; elleGear.style.left = '50%'; elleGear.style.transform = 'translateX(-50%)'; }
+      if(elleInfoBtn)  elleInfoBtn.style.display = 'none';
+      // BLEU : pas d'œil, juste ?
+      if(luiGear)      luiGear.style.display  = 'none';
+      if(luiInfoBtn)   luiInfoBtn.style.display = '';
+      if(elleTitleBtn) elleTitleBtn.style.display = 'flex';
+      if(luiTitleBtn)  luiTitleBtn.style.display  = 'none';
     } else {
+      // girl : édite BLEU (lui) → œil centré sur BLEU, pas de ? sur BLEU
+      //         sa section ROSE → ? seulement, pas d'œil
       elleSection.style.display = 'block';
       if(!luiSection.dataset.forceOpen) luiSection.style.display = 'none';
-      if(elleGear)     elleGear.style.display     = 'none';
-      if(luiGear)      luiGear.style.display      = '';
-      if(elleTitleBtn) elleTitleBtn.style.display  = 'none';
-      if(luiTitleBtn)  luiTitleBtn.style.display   = 'flex';
+      // ROSE : pas d'œil, juste ?
+      if(elleGear)     elleGear.style.display  = 'none';
+      if(elleInfoBtn)  elleInfoBtn.style.display = '';
+      // BLEU : œil visible centré, pas de ?
+      if(luiGear)      { luiGear.style.display = ''; luiGear.style.position = 'absolute'; luiGear.style.left = '50%'; luiGear.style.transform = 'translateX(-50%)'; }
+      if(luiInfoBtn)   luiInfoBtn.style.display = 'none';
+      if(elleTitleBtn) elleTitleBtn.style.display = 'none';
+      if(luiTitleBtn)  luiTitleBtn.style.display  = 'flex';
     }
     // Boutons edit : boy → elle, girl → lui
     SLOTS.forEach(function(slot){
