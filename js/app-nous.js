@@ -798,7 +798,7 @@ function _nousLoadProfil() {
         badge = document.createElement('span');
         badge.className = 'yam-new-badge';
         badge.textContent = 'NEW';
-        badge.style.cssText = 'position:absolute;top:4px;right:4px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-size:8px;font-weight:800;letter-spacing:0.5px;padding:2px 5px;border-radius:6px;text-transform:uppercase;z-index:10;pointer-events:none;line-height:1.4;';
+        badge.style.cssText = 'position:absolute;top:4px;right:4px;background:#e75a7c;color:#fff;font-size:8px;font-weight:800;letter-spacing:0.5px;padding:2px 5px;border-radius:6px;text-transform:uppercase;z-index:10;pointer-events:none;line-height:1.4;';
         var ps = window.getComputedStyle(el).position;
         if(ps === 'static') el.style.position = 'relative';
         el.appendChild(badge);
@@ -3930,7 +3930,7 @@ document.addEventListener('yam:session_ready',function(){
     var photoUrl = book.has_image ? (SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/books/'+book.couple_id+'/'+book.id+'.jpg?t='+Math.floor(Date.now()/60000)) : '';
     // Badge NEW
     var isNew = window.yamIsNew ? window.yamIsNew('livre_'+book.id) : false;
-    var newBadge = isNew ? '<span style="position:absolute;top:4px;right:4px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-size:8px;font-weight:800;letter-spacing:0.5px;padding:2px 5px;border-radius:6px;text-transform:uppercase;z-index:10;pointer-events:none;">NEW</span>' : '';
+    var newBadge = isNew ? '<span style="position:absolute;top:4px;right:4px;background:#e75a7c;color:#fff;font-size:8px;font-weight:800;letter-spacing:0.5px;padding:2px 5px;border-radius:6px;text-transform:uppercase;z-index:10;pointer-events:none;">NEW</span>' : '';
     card.innerHTML =
       '<div class="album-image" style="position:relative;">'+newBadge+
         (photoUrl ?
@@ -3994,7 +3994,7 @@ document.addEventListener('yam:session_ready',function(){
       row.innerHTML =
         '<div style="width:48px;height:64px;background:var(--s2);border-radius:8px;flex-shrink:0;overflow:hidden;position:relative;">'+
           (photoUrl ? '<img src="'+escHtml(photoUrl)+'" style="width:100%;height:100%;object-fit:cover;" loading="lazy">' : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;">📚</div>')+
-          (isNew ? '<span style="position:absolute;top:2px;right:2px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-size:7px;font-weight:800;padding:1px 4px;border-radius:4px;">NEW</span>' : '')+
+          (isNew ? '<span style="position:absolute;top:2px;right:2px;background:#e75a7c;color:#fff;font-size:7px;font-weight:800;padding:1px 4px;border-radius:4px;">NEW</span>' : '')+
         '</div>'+
         '<div style="flex:1;min-width:0;">'+
           '<div style="font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(book.title||'Sans titre')+'</div>'+
