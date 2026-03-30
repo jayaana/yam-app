@@ -75,12 +75,10 @@
     });
 
     setTimeout(function(){
-      // loadLikeCounters retiré de home/nous : le channel Realtime 'likes' (joined) suffit.
-      // On ne poll qu'en fallback si _likesIv est actif (Realtime indisponible).
       var fns = {
-        home:     [window._presencePoll, window.yamRefreshNewBadges],
+        home:     [window.loadLikeCounters, window._presencePoll, window.yamRefreshNewBadges],
         messages: [window.nlPoll, window._checkUnread],
-        nous:     [window.elleLoadImages, window.luiLoadImages, window.yamRefreshNewBadges, window._loadSectionTitles],
+        nous:     [window.loadLikeCounters, window.elleLoadImages, window.luiLoadImages, window.yamRefreshNewBadges, window._loadSectionTitles],
         musique:  [window.sgLoad],
         jeux:     [window.jxLoadDashboard]
       };
@@ -1360,9 +1358,17 @@ setTimeout(function(){
   }
 
   function _reschedAll(){
-    _sched('likes', function(){
-      if(window.loadLikeCounters) window.loadLikeCounters();
-    }, FREQ.likes);
+    // Poll likes uniquement si le channel Realtime n'est pas joined
+    var _likesRTJoined = window._yamRT && window._yamRT.getChannels &&
+      window._yamRT.getChannels().some(function(c){ return c.topic.includes('likes-') && c.state === 'joined'; });
+    if (!_likesRTJoined) {
+      _sched('likes', function(){
+        if(window.loadLikeCounters) window.loadLikeCounters();
+      }, FREQ.likes);
+    } else {
+      // Realtime actif — stopper le poll adaptatif s'il tourne encore
+      if(_timers.likes){ _CI(_timers.likes); _timers.likes = null; }
+    }
 
     _sched('nl', function(){
       if(window.nlPoll) window.nlPoll();
@@ -1543,6 +1549,10 @@ setTimeout(function(){
       _origReschedAll();
       // Si RT nl actif, annule le poll nl que _reschedAll vient de créer
       if(window._nlRTActive && _timers.nl){ _CI(_timers.nl); _timers.nl = null; }
+      // Si RT likes actif (channel joined), annule le poll likes
+      var _likesRTJoined = window._yamRT && window._yamRT.getChannels &&
+        window._yamRT.getChannels().some(function(c){ return c.topic.includes('likes-') && c.state === 'joined'; });
+      if(_likesRTJoined && _timers.likes){ _CI(_timers.likes); _timers.likes = null; }
     };
 
   })();
