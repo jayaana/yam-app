@@ -856,10 +856,10 @@ window.yamPushNotify = async function(opts) {
 
 (function() {
   var PRESENCE_TABLE  = 'presence';
-  var HEARTBEAT_MS    = 10000;
+  var HEARTBEAT_MS    = 30000;  // 10s → 30s : -67% des POST presence, last_seen reste fiable pour push notifs
   var POLL_MS         = 10000;
-  var OFFLINE_AFTER   = 20000;
-  var OFFLINE_PLAYING = 60000;
+  var OFFLINE_AFTER   = 45000;  // 20s → 45s : cohérent avec heartbeat 30s (marge 15s)
+  var OFFLINE_PLAYING = 90000;  // 60s → 90s : cohérent
 
   var _heartbeatIv = null;
   var _pollIv      = null;
@@ -904,7 +904,7 @@ window.yamPushNotify = async function(opts) {
       var other = u.role === 'girl' ? 'boy' : 'girl';
       var rows  = await sb2Fetch(PRESENCE_TABLE, 'couple_id=eq.' + u.couple_id + '&role=eq.' + other + '&select=last_seen');
       if (!Array.isArray(rows) || !rows.length) return false;
-      return Date.now() - new Date(rows[0].last_seen).getTime() < 20000;
+      return Date.now() - new Date(rows[0].last_seen).getTime() < 45000;
     } catch (e) { return false; }
   };
 
