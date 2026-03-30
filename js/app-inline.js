@@ -453,7 +453,7 @@ document.addEventListener('DOMContentLoaded', function(){
   _on('elleLuiInfoCloseBtn', 'click', function(){ var m=document.getElementById('elleLuiInfoModal'); if(m){ m.classList.remove('open'); if(typeof _unblockBackgroundScroll==='function') _unblockBackgroundScroll(); if(typeof _restoreScrollPosition==='function') _restoreScrollPosition(); } });
   (function(){ var m=document.getElementById('elleLuiInfoModal'); if(m) m.addEventListener('click',function(e){ if(e.target===m){ m.classList.remove('open'); if(typeof _unblockBackgroundScroll==='function') _unblockBackgroundScroll(); if(typeof _restoreScrollPosition==='function') _restoreScrollPosition(); } }); })();
   _on('luiFileInput',     'change', function(){ window.luiHandleFile && window.luiHandleFile(this); });
-  // slotOpenEdit — délégation via data-slot sur les album-cards
+  // slotOpenEdit + slotOpenView — délégation via data-slot sur les album-cards
   document.querySelectorAll('.album-card.lui-card-wrap').forEach(function(card){
     var slot = card.dataset.slot;
     if(!slot) return;
@@ -465,7 +465,20 @@ document.addEventListener('DOMContentLoaded', function(){
     if(emptyDiv) emptyDiv.addEventListener('click', function(){ window.slotOpenEdit && window.slotOpenEdit(role, slotName); });
     var bannerEditable = card.querySelector('.album-banner.editable');
     if(bannerEditable) bannerEditable.addEventListener('click', function(){ window.slotOpenEdit && window.slotOpenEdit(role, slotName); });
+    // Clic sur la photo (section vue uniquement) → ouvrir visualisation
+    var albumImg = card.querySelector('.album-image');
+    if(albumImg) albumImg.addEventListener('click', function(e){
+      // Ne pas interférer avec les boutons edit/empty déjà gérés ci-dessus
+      if(e.target.closest('.lui-upload-btn') || e.target.closest('.lui-img-empty')) return;
+      var profile = typeof getProfile==='function' ? getProfile() : null;
+      // girl voit ROSE (elle), boy voit BLEU (lui) — section non-éditable
+      var isViewOnly = (profile==='girl' && role==='elle') || (profile==='boy' && role==='lui');
+      if(isViewOnly) { window.slotOpenView && window.slotOpenView(role, slotName); }
+    });
   });
+  // Fermer modale visualisation
+  _on('slotViewCloseBtn', 'click', function(){ window.slotCloseView && window.slotCloseView(); });
+  (function(){ var m=document.getElementById('slotViewModal'); if(m) m.addEventListener('click',function(e){ if(e.target===m){ window.slotCloseView && window.slotCloseView(); } }); })();
   _on('slotCloseEditBtn',  'click', function(){ window.slotCloseEdit && window.slotCloseEdit(); });
   _on('slotEditPhoto',     'click', function(){ window.slotEditPhotoClick && window.slotEditPhotoClick(); });
   _on('slotEditSaveBtn',   'click', function(){ window.slotEditSave && window.slotEditSave(); });
