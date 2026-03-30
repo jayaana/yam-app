@@ -481,9 +481,13 @@ document.addEventListener('DOMContentLoaded', function(){
   _on('slotViewEditBtn',  'click', function(e){
     e.stopPropagation();
     var s = window._slotViewCurrentSouvenir;
+    var b = window._slotViewCurrentLivre;
     if(s && typeof window.nousOpenSouvenirModal === 'function'){
       window.slotCloseView && window.slotCloseView();
       setTimeout(function(){ window.nousOpenSouvenirModal(s); }, 200);
+    } else if(b && typeof window.livresOpenEdit === 'function'){
+      window.slotCloseView && window.slotCloseView();
+      setTimeout(function(){ window.livresOpenEdit(b); }, 200);
     }
   });
   (function(){ var m=document.getElementById('slotViewModal'); if(m) m.addEventListener('click',function(e){ if(e.target===m){ window.slotCloseView && window.slotCloseView(); } }); })();
