@@ -1000,7 +1000,7 @@ window.nousSignalNew = function() {
       luiSection.style.display  = 'block';
       if(!elleSection.dataset.forceOpen) elleSection.style.display = 'none';
       // ROSE : œil visible centré (position absolute déjà dans HTML), pas de ?
-      if(elleGear)     { elleGear.style.display = ''; elleGear.style.position = 'absolute'; elleGear.style.left = '50%'; elleGear.style.transform = 'translateX(-50%)'; }
+      if(elleGear)     { elleGear.style.display = ''; elleGear.style.position = ''; elleGear.style.left = ''; elleGear.style.transform = ''; }
       if(elleInfoBtn)  elleInfoBtn.style.display = 'none';
       // BLEU : pas d'œil, juste ?
       if(luiGear)      luiGear.style.display  = 'none';
@@ -1016,7 +1016,7 @@ window.nousSignalNew = function() {
       if(elleGear)     elleGear.style.display  = 'none';
       if(elleInfoBtn)  elleInfoBtn.style.display = '';
       // BLEU : œil visible centré, pas de ?
-      if(luiGear)      { luiGear.style.display = ''; luiGear.style.position = 'absolute'; luiGear.style.left = '50%'; luiGear.style.transform = 'translateX(-50%)'; }
+      if(luiGear)      { luiGear.style.display = ''; luiGear.style.position = ''; luiGear.style.left = ''; luiGear.style.transform = ''; }
       if(luiInfoBtn)   luiInfoBtn.style.display = 'none';
       if(elleTitleBtn) elleTitleBtn.style.display = 'none';
       if(luiTitleBtn)  luiTitleBtn.style.display  = 'flex';
