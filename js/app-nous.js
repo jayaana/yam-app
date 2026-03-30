@@ -5,22 +5,6 @@
 // Likes · Badge NEW · Souvenirs · Activités
 // ═══════════════════════════════════════════════════════════════════════════
 
-// ── CSS dynamique — boutons supprimer ──────────────────────────────────────
-(function(){
-  var _s=document.createElement('style');
-  _s.textContent=[
-    // Souvenir : zone actions (crayon + corbeille)
-    '.souvenir-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;}',
-    '.souvenir-edit-icon,.souvenir-del-icon{width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background 0.15s;}',
-    '.souvenir-edit-icon:active{background:rgba(0,0,0,0.65);}',
-    '.souvenir-del-icon:active{background:rgba(220,60,60,0.75);}',
-    // Livre : bouton corbeille en haut à gauche de la card
-    '.livre-del-btn{position:absolute;top:6px;left:6px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.48);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:5;transition:background 0.15s;}',
-    '.livre-del-btn:active{background:rgba(220,60,60,0.8);}'
-  ].join('');
-  document.head.appendChild(_s);
-})();
-
 
 // ════════════════════════════════════════════════════════════════════
 // HELPERS — Bloquer scroll arrière-plan + masquer mini-header
@@ -1222,9 +1206,6 @@ window.nousSignalNew = function() {
     // photoUrl vide par défaut : ne sauvegarder que si l'utilisateur uploade une nouvelle photo
     modal.dataset.photoUrl = '';
     modal.dataset.photoDescId = '';
-    // Afficher/masquer le bouton supprimer selon présence d'une photo
-    var delPhotoBtn = document.getElementById('slotEditDelPhotoBtn');
-    if(delPhotoBtn) delPhotoBtn.style.display = hasPhoto ? 'flex' : 'none';
     var _cid = _getCoupleId();
     if(_cid){
       fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+_cid+'&category=eq.'+section+'_img&slot=eq.'+slot+'&select=id',
@@ -1233,21 +1214,18 @@ window.nousSignalNew = function() {
         .then(function(rows){ if(rows&&rows[0]) modal.dataset.photoDescId=rows[0].id; })
         .catch(function(){});
     }
-    // Injecter le bouton "Supprimer la photo" si absent du HTML
-    if(!document.getElementById('slotEditDelPhotoBtn')){
-      var _sheet=modal.querySelector('.nous-modal-sheet')||modal;
-      var _delBtn=document.createElement('button');
-      _delBtn.id='slotEditDelPhotoBtn';
-      _delBtn.type='button';
-      _delBtn.onclick=function(){ window.slotDeletePhoto(); };
-      _delBtn.style.cssText='display:none;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:6px;padding:10px;background:none;border:1.5px solid #e05555;border-radius:12px;color:#e05555;font-size:13px;font-weight:600;cursor:pointer;';
-      _delBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e05555" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> Supprimer la photo';
-      // Insérer avant le bouton sauvegarder ou à la fin du sheet
-      var _saveBtn=_sheet.querySelector('#slotEditSaveBtn')||_sheet.querySelector('button[onclick*="slotEditSave"]');
-      if(_saveBtn&&_saveBtn.parentNode) _saveBtn.parentNode.insertBefore(_delBtn,_saveBtn);
-      else _sheet.appendChild(_delBtn);
-    }
+    // Afficher le bouton supprimer photo uniquement si une photo existe
+    var _delBtn=document.getElementById('slotEditDelPhotoBtn');
+    if(_delBtn) _delBtn.style.display=hasPhoto?'flex':'none';
     modal.classList.add('open');
+  };
+
+  window.slotCloseEdit = function(){
+    var modal=document.getElementById('slotEditModal');
+    if(modal) modal.classList.remove('open');
+    _unblockBackgroundScroll();
+    _restoreScrollPosition();
+    _editSection=null; _editSlot=null;
   };
 
   // Clic sur la photo dans la modale → file input (identique à livresPhotoClick)
@@ -1385,12 +1363,9 @@ window.nousSignalNew = function() {
     window.slotCloseEdit();
   };
 
-  // ─────────────────────────────
-  // SUPPRESSION PHOTO ELLE/LUI
-  // ─────────────────────────────
+  // Supprime uniquement la photo du slot — titre et description inchangés
   window.slotDeletePhoto = function(){
     if(!_editSection||!_editSlot) return;
-    if(!confirm('Supprimer cette photo ?')) return;
     var coupleId=_getCoupleId(); if(!coupleId) return;
     var s=_editSection; var sl=_editSlot;
     var modal=document.getElementById('slotEditModal');
@@ -1398,38 +1373,42 @@ window.nousSignalNew = function() {
     var cat=s+'_img';
 
     var afterDelete=function(){
-      // Masquer l'image dans l'UI
+      // Masquer le bouton supprimer + réinitialiser l'aperçu dans la modale
+      var delBtn=document.getElementById('slotEditDelPhotoBtn');
+      if(delBtn) delBtn.style.display='none';
+      var photoDiv=document.getElementById('slotEditPhoto');
+      var placeholder=document.getElementById('slotEditPhotoPlaceholder');
+      if(photoDiv){ photoDiv.style.backgroundImage=''; photoDiv.innerHTML=''; }
+      if(placeholder){ placeholder.style.display='flex'; if(photoDiv) photoDiv.appendChild(placeholder); }
+      if(modal){ modal.dataset.photoUrl=''; modal.dataset.photoDescId=''; }
+      // Mettre à jour l'img dans la page principale
       var img=document.getElementById(s+'-img-'+sl);
       var emptyEl=document.getElementById(s+'-empty-'+sl);
       var btnEl=document.getElementById(s+'-btn-'+sl);
       if(img){ img.src=''; img.style.display='none'; img.classList.remove('loaded'); }
       if(emptyEl) emptyEl.style.display='';
       if(btnEl) btnEl.classList.add('empty');
-      if(typeof showToast==='function') showToast('Photo supprimée','success',2000);
-      window.slotCloseEdit();
+      if(typeof showToast==='function') showToast('Photo supprimée ✓','success',2000);
     };
 
     var doDelete=function(id){
       fetch(SB_URL+'/rest/v1/photo_descs?id=eq.'+id+'&couple_id=eq.'+coupleId,
         {method:'DELETE',headers:sb2Headers()})
-      .then(afterDelete).catch(function(){
-        if(typeof showToast==='function') showToast('Erreur — réessaie','error',2500);
-      });
+      .then(afterDelete)
+      .catch(function(){ if(typeof showToast==='function') showToast('Erreur — réessaie','error',2500); });
     };
 
     if(pdId){
       doDelete(pdId);
     } else {
-      // Récupérer l'id si pas encore chargé
       fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+coupleId+'&category=eq.'+cat+'&slot=eq.'+sl+'&select=id&limit=1',
         {headers:sb2Headers()})
       .then(function(r){return r.ok?r.json():[];})
       .then(function(rows){
         if(rows&&rows[0]) doDelete(rows[0].id);
-        else afterDelete(); // Pas de ligne en DB → juste nettoyer l'UI
-      }).catch(function(){
-        if(typeof showToast==='function') showToast('Erreur — réessaie','error',2500);
-      });
+        else afterDelete();
+      })
+      .catch(function(){ if(typeof showToast==='function') showToast('Erreur — réessaie','error',2500); });
     }
   };
 
@@ -1441,6 +1420,21 @@ window.nousSignalNew = function() {
     _loadData('elle');
     _loadData('lui');
     window.elleSyncSections();
+    // Injecter le bouton "Supprimer la photo" dans slotEditModal (une seule fois)
+    if(!document.getElementById('slotEditDelPhotoBtn')){
+      var modal=document.getElementById('slotEditModal');
+      if(modal){
+        var saveBtn=modal.querySelector('[onclick*="slotEditSave"]')||modal.querySelector('button:last-of-type');
+        var btn=document.createElement('button');
+        btn.id='slotEditDelPhotoBtn';
+        btn.type='button';
+        btn.onclick=function(){ window.slotDeletePhoto(); };
+        btn.style.cssText='display:none;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:8px;padding:11px;background:none;border:1.5px solid #e05555;border-radius:12px;color:#e05555;font-size:13px;font-weight:600;cursor:pointer;box-sizing:border-box;';
+        btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e05555" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> Supprimer la photo';
+        if(saveBtn&&saveBtn.parentNode) saveBtn.parentNode.insertBefore(btn, saveBtn.nextSibling);
+        else modal.appendChild(btn);
+      }
+    }
   });
 
 })();
@@ -2585,7 +2579,6 @@ document.addEventListener('yam:session_ready',function(){
     var dateStr=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'';
     var photoStyle=photoUrl?'background-image:url('+escHtml(photoUrl)+');':'';
     var pencilSVG='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
-    var trashSVG='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
     card.innerHTML=
       '<div class="souvenir-photo" style="'+photoStyle+'">'
       +(photoUrl?'':'<span style="font-size:28px;opacity:0.3;">&#128247;</span>')
@@ -2597,23 +2590,9 @@ document.addEventListener('yam:session_ready',function(){
       +(dateStr?'<div class="souvenir-date">'+escHtml(dateStr)+'</div>':'')
       +(annivYears?'<div class="souvenir-anniv-badge">📅 Il y a '+annivYears+' an'+(annivYears>1?'s':'')+'</div>':'')
       +'</div>'
-      +'<div class="souvenir-actions">'
       +'<div class="souvenir-edit-icon">'+pencilSVG+'</div>'
-      +'<div class="souvenir-del-icon">'+trashSVG+'</div>'
-      +'</div>'
       +'</div>';
     card.querySelector('.souvenir-edit-icon').addEventListener('click',function(e){ e.stopPropagation(); nousOpenSouvenirModal(s); });
-    card.querySelector('.souvenir-del-icon').addEventListener('click',function(e){
-      e.stopPropagation();
-      if(!confirm('Supprimer ce souvenir ?')) return;
-      fetch(SB_URL+'/rest/v1/memories?id=eq.'+s.id,{method:'DELETE',headers:sb2Headers()})
-      .then(function(){
-        window.nousLoadSouvenirs();
-        if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('souvenirsSection');
-      }).catch(function(){
-        if(typeof showToast==='function') showToast('Erreur — réessaie','error',2500);
-      });
-    });
     // Badge NEW — posé sur la card racine (position:relative, sans overflow:hidden)
     // .souvenir-photo a overflow:hidden pour rogner la photo → badge invisible si posé dessus
     if(s.id && typeof window.yamIsNew==='function' && window.yamIsNew('souvenir_'+s.id)){
@@ -3876,7 +3855,6 @@ document.addEventListener('yam:session_ready',function(){
     card.style.position = 'relative';
     var photoUrl = book.has_image ? (SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/books/'+book.couple_id+'/'+book.id+'.jpg?t='+Math.floor(Date.now()/60000)) : '';
     var editSVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
-    var trashSVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
     // Badge NEW
     var isNew = window.yamIsNew ? window.yamIsNew('livre_'+book.id) : false;
     var newBadge = isNew ? '<span style="position:absolute;top:4px;right:4px;background:linear-gradient(135deg,#e879a0,#9b59b6);color:#fff;font-size:8px;font-weight:800;letter-spacing:0.5px;padding:2px 5px;border-radius:6px;text-transform:uppercase;z-index:10;pointer-events:none;">NEW</span>' : '';
@@ -3888,20 +3866,10 @@ document.addEventListener('yam:session_ready',function(){
         )+
         '<div class="album-banner">'+escHtml(book.title||'Sans titre')+'</div>'+
         '<div class="lui-upload-btn"><div class="lui-upload-icon">'+editSVG+'</div><div class="lui-upload-lbl">Modifier</div></div>'+
-        '<div class="livre-del-btn"><div class="lui-upload-icon">'+trashSVG+'</div></div>'+
       '</div>'+
       '<div class="album-desc" style="cursor:default;">'+escHtml(book.description||'Ajouter une légende...')+'</div>';
     // Clic bouton edit (la photo / bouton modifier)
     card.querySelector('.lui-upload-btn').addEventListener('click',function(e){ e.stopPropagation(); _livreFromGestion=false; window.livresOpenEdit(book); });
-    // Clic bouton supprimer
-    card.querySelector('.livre-del-btn').addEventListener('click',function(e){
-      e.stopPropagation();
-      if(!confirm('Supprimer ce livre ?')) return;
-      var coupleId = _getCoupleId(); if(!coupleId) return;
-      fetch(SB_URL+'/rest/v1/books?id=eq.'+book.id+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()})
-      .then(function(){ window.livresLoad(); if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('Books'); })
-      .catch(function(){ if(typeof showToast==='function') showToast('Erreur — réessaie','error',2500); });
-    });
     // (pas de click sur la légende — double-clic photo suffit pour éditer)
     return card;
   }
