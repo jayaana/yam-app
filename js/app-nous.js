@@ -3405,7 +3405,7 @@ document.addEventListener('yam:session_ready',function(){
     var saison = ['hiver','hiver','printemps','printemps','printemps','été','été','été','automne','automne','automne','hiver'][new Date().getMonth()];
     var doneActivites = _activiteAllRows.filter(function(a){ return _actDone(a); }).map(function(a){ return a.title; }).slice(0,5);
 
-    var prompt = 'Tu es un assistant bienveillant pour un couple. Propose UNE seule activité originale et concrète à faire ensemble, adaptée à la saison ('+saison+') et au fait qu\'ils sont ensemble depuis '+daysTogether+' jours.'+
+    var prompt = 'Tu es un assistant bienveillant et créatif pour les couples. Propose UNE seule activité originale, concrète et fun à faire ensemble, adaptée à la saison ('+saison+') et au fait qu\'ils sont ensemble depuis '+daysTogether+' jours. L\'activité doit être réalisable facilement, pas trop compliquée, et donner vraiment envie. Réponds en français.'+
       (doneActivites.length ? ' Ils ont déjà fait : '+doneActivites.join(', ')+'. Évite ces activités.' : '')+
       ' Réponds UNIQUEMENT en JSON strict, sans aucun texte autour, avec ce format exact : {"emoji":"🎯","title":"Titre court","description":"Une phrase courte et motivante","steps":["Étape 1","Étape 2","Étape 3"]}';
 
@@ -4240,7 +4240,7 @@ document.addEventListener('yam:session_ready',function(){
     if(btn){ btn.disabled=true; btn.innerHTML='Chargement...'; }
     if(textEl) textEl.textContent = 'Génération de 5 idées de lecture... 📚';
 
-    var prompt = 'Tu es un assistant passionné de littérature pour un couple. Propose EXACTEMENT 5 idées de livres à lire ensemble (romans, fantasy, suspense, développement personnel, etc.), variés et originaux. Réponds UNIQUEMENT en JSON strict sans texte autour, format exact : [{"title":"Titre du livre","author":"Auteur","desc":"Une phrase sur le livre"},...]';
+    var prompt = 'Tu es un passionné de littérature. Propose EXACTEMENT 5 livres à lire en couple, variés et captivants.\n\nRÉPARTITION OBLIGATOIRE des genres :\n- 2 livres sur 5 : romance, amour, émotion, histoire touchante (priorité)\n- 1 livre sur 5 : thriller ou suspense\n- 1 livre sur 5 : fantasy ou science-fiction\n- 1 livre sur 5 : développement personnel ou feel-good\n\nRÈGLES :\n- Titres en français (version traduite si livre étranger)\n- Pas de bestsellers ultra-connus comme Le Petit Prince ou L\'Alchimiste\n- Propose des livres variés, pas toujours les mêmes classiques\n- La description doit être riche, détaillée et donner vraiment envie de lire le livre : raconte l\'ambiance, les émotions, pourquoi ce livre est marquant\n\nFORMAT : réponds UNIQUEMENT en JSON strict sans texte autour :\n[{"title":"Titre","author":"Auteur","desc":"Description riche et détaillée"},...]';
 
     fetch(GROQ_EDGE,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(yamGetAccessToken?yamGetAccessToken():'')},body:JSON.stringify({prompt:prompt})})
     .then(function(r){ return r.json(); })
@@ -4566,7 +4566,8 @@ window.nousLoad = function(){
     if(meta) meta.textContent = 'Génération en cours ✨';
     if(pills) pills.innerHTML = '';
 
-    var prompt = 'Tu es un assistant créatif pour un couple amoureux. Génère EXACTEMENT 5 noms communs concrets et visuels, faciles à photographier ou illustrer, pour décrire son partenaire de façon poétique. Chaque mot doit évoquer une qualité ou une émotion à travers une image concrète. Par exemple : Dessert (sa douceur), Vague (son énergie), Bougie (sa chaleur), Forêt (son mystère), Miel (sa tendresse). Les mots doivent être simples, beaux, photographiables. Réponds UNIQUEMENT en JSON strict, tableau de 5 strings, un seul mot par élément, sans texte autour. Exemple : ["Dessert","Vague","Bougie","Forêt","Miel"]';
+    var _saisonMots = ['hiver','hiver','printemps','printemps','printemps','été','été','été','automne','automne','automne','hiver'][new Date().getMonth()];
+    var prompt = 'Génère EXACTEMENT 5 mots pour décrire visuellement un partenaire amoureux en photo.\n\nRÈGLES CRITIQUES :\n- Chaque mot doit être un nom commun SIMPLE et CONCRET, facilement représentable par une photo du quotidien\n- Les 5 mots doivent être VARIÉS : pas 2 mots du même univers (pas 2 mots de nature, pas 2 mots de nourriture...)\n- Adapte 1 ou 2 mots à la saison actuelle : '+_saisonMots+'\n\nMOTS INTERDITS (trop abstraits, pas photographiables) : lumière, astre, éclat, âme, grâce, essence, infini, horizon, souffle, magie\n\nBONS EXEMPLES (simples, photographiables, évocateurs) :\nSoleil, Caramel, Montagne, Couverture, Café, Pluie, Feu, Plage, Forêt, Chocolat, Nuage, Vague\n\nFORMAT : réponds UNIQUEMENT avec un tableau JSON de 5 strings, rien avant ni après.\n["mot1","mot2","mot3","mot4","mot5"]';
 
     fetch(GROQ_EDGE, {
       method: 'POST',
