@@ -1291,10 +1291,18 @@ window.nousSignalNew = function() {
 
   // ── Visualisation livre (lecture seule) ──
   window.livreOpenView = function(book){
-    if(!book||!book.has_image) return;
-    var photoUrl = SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/books/'+book.couple_id+'/'+book.id+'.jpg?t='+Math.floor(Date.now()/60000);
+    if(!book) return;
     var modal = document.getElementById('slotViewModal'); if(!modal) return;
-    document.getElementById('slotViewImg').src = photoUrl;
+    var imgEl = document.getElementById('slotViewImg');
+    var emojiEl = document.getElementById('slotViewEmoji');
+    if(book.has_image){
+      var photoUrl = SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/books/'+book.couple_id+'/'+book.id+'.jpg?t='+Math.floor(Date.now()/60000);
+      if(imgEl){ imgEl.src=photoUrl; imgEl.style.display='block'; }
+      if(emojiEl) emojiEl.style.display='none';
+    } else {
+      if(imgEl){ imgEl.src=''; imgEl.style.display='none'; }
+      if(emojiEl) emojiEl.style.display='flex';
+    }
     document.getElementById('slotViewTitle').textContent = book.title||'';
     var metaEl = document.getElementById('slotViewMeta');
     if(metaEl) metaEl.textContent = '';
@@ -3930,14 +3938,12 @@ document.addEventListener('yam:session_ready',function(){
         '<div class="album-banner">'+escHtml(book.title||'Sans titre')+'</div>'+
       '</div>'+
       '<div class="album-desc" style="cursor:default;">'+escHtml(book.description||'Ajouter une légende...')+'</div>';
-    // Clic sur la photo → vue en grand
-    if(photoUrl){
-      card.querySelector('.album-image').addEventListener('click',function(e){
-        if(e.target.closest('.lui-upload-btn')||e.target.closest('.livre-del-btn')) return;
-        e.stopPropagation();
-        if(typeof window.livreOpenView==='function') window.livreOpenView(book);
-      });
-    }
+    // Clic sur la pochette → vue en grand
+    card.querySelector('.album-image').addEventListener('click',function(e){
+      if(e.target.closest('.livre-del-btn')) return;
+      e.stopPropagation();
+      if(typeof window.livreOpenView==='function') window.livreOpenView(book);
+    });
     return card;
   }
 
