@@ -272,35 +272,7 @@ document.addEventListener('DOMContentLoaded', function(){
   var headerGear = document.getElementById('headerGearBtn');
   if(headerGear) headerGear.addEventListener('click', function(){ window.yamToggleAccountModal && window.yamToggleAccountModal(); });
 
-  // — overlay rappels (fermer en cliquant dehors)
-  var rappelOverlay = document.getElementById('rappelOverlay');
-  if(rappelOverlay) rappelOverlay.addEventListener('click', function(){ window.closeRappelSheet && window.closeRappelSheet(); });
-
-  // — bouton fermer sheet rappels
-  var rshClose = document.querySelector('.rsh-close');
-  if(rshClose) rshClose.addEventListener('click', function(){ window.closeRappelSheet && window.closeRappelSheet(); });
-
-  // — input rappels : valider sur Enter
-  var rshInput = document.getElementById('rshInput');
-  if(rshInput) rshInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); window.rappelAdd && window.rappelAdd(); } });
-
-  // — bouton ajouter rappel (submit)
-  var rshSubmit = document.querySelector('.rsh-submit');
-  if(rshSubmit) rshSubmit.addEventListener('click', function(){ window.rappelAdd && window.rappelAdd(); });
-
-  // — bouton ouvrir sheet rappels (.home-rappel-add-btn)
-  var rappelAddBtn = document.querySelector('.home-rappel-add-btn');
-  if(rappelAddBtn) rappelAddBtn.addEventListener('click', function(){ window.openRappelSheet && window.openRappelSheet(); });
-
-  // — bouton "C'est fait" rappel
-  var rappelDone = document.querySelector('.home-rappel-done');
-  if(rappelDone) rappelDone.addEventListener('click', function(){ window.homeRappelDone && window.homeRappelDone(); });
-
-  // — bouton "Plus tard" rappel
-  var rappelLater = document.querySelector('.home-rappel-later');
-  if(rappelLater) rappelLater.addEventListener('click', function(){ window.homeRappelNext && window.homeRappelNext(); });
-
-  // — boutons nav rappels : gérés dans le bloc DOMContentLoaded ci-dessous (évite le double listener)
+  // — tous les listeners rappels sont gérés dans le bloc DOMContentLoaded ci-dessous (évite les doubles listeners)
 
 });
 
