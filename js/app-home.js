@@ -245,7 +245,14 @@
           .replace(/\braconte a\b/gi, 'raconte à')
           .replace(/\benvoie lui\b/gi,'envoie-lui')
           .replace(/\bappelle le\b/gi,'appelle-le')
-          .replace(/\bappelle la\b/gi,'appelle-la');
+          .replace(/\bappelle la\b/gi,'appelle-la')
+          .replace(/\bEcrivez\b/g,    'Écrivez')
+          .replace(/\becrivez\b/g,    'écrivez')
+          .replace(/\bEcoutez\b/g,    'Écoutez')
+          .replace(/\becoutez\b/g,    'écoutez')
+          .replace(/\bEchangez\b/g,   'Échangez')
+          .replace(/\bechangez\b/g,   'échangez')
+          .replace(/\bsurprends\b/gi, 'surprise');
       }
       var collected = [];
       for(var i=0; i<15; i++){
@@ -450,7 +457,9 @@
       '- S\'adresse au couple ensemble (pas de prenom, pas de "vous deux")\n'+
       '- Ton naturel, chaleureux, spontane. Jamais scolaire ni pompeux.\n'+
       '- Peut faire reference a la saison ('+_saison+') si c\'est naturel\n'+
-      '- Entre 4 et 10 mots. 1 emoji OBLIGATOIRE. Pas de guillemets.\n\n'+
+      '- Entre 4 et 10 mots. 1 emoji OBLIGATOIRE. Pas de guillemets.\n'+
+      '- Utilise les accents francais correctement.\n'+
+      '- Les verbes sont a l\'imperatif pluriel : "Faites", "Dites", "Ecrivez", "Appelez", "Partagez", "Regardez", "Envoyez"...\n\n'+
 
       'EXEMPLES CORRECTS :\n'+
       'OK "Faites-vous un bisou ce soir 😘"\n'+
