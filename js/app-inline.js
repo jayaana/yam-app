@@ -478,6 +478,14 @@ document.addEventListener('DOMContentLoaded', function(){
   });
   // Fermer modale visualisation
   _on('slotViewCloseBtn', 'click', function(){ window.slotCloseView && window.slotCloseView(); });
+  _on('slotViewEditBtn',  'click', function(e){
+    e.stopPropagation();
+    var s = window._slotViewCurrentSouvenir;
+    if(s && typeof window.nousOpenSouvenirModal === 'function'){
+      window.slotCloseView && window.slotCloseView();
+      setTimeout(function(){ window.nousOpenSouvenirModal(s); }, 200);
+    }
+  });
   (function(){ var m=document.getElementById('slotViewModal'); if(m) m.addEventListener('click',function(e){ if(e.target===m){ window.slotCloseView && window.slotCloseView(); } }); })();
   _on('slotCloseEditBtn',  'click', function(){ window.slotCloseEdit && window.slotCloseEdit(); });
   _on('slotEditPhoto',     'click', function(){ window.slotEditPhotoClick && window.slotEditPhotoClick(); });
