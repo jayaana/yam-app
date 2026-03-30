@@ -173,6 +173,8 @@
       'Reponds UNIQUEMENT avec un tableau JSON valide de 15 strings, sans aucun texte avant ou apres.\n' +
       'Chaque phrase : entre 8 et 14 mots. 1 emoji OBLIGATOIRE par phrase (choisi selon le contexte).\n' +
       'YAM doit parler de lui ("je pense que...", "j\'ai une idee...", "on y va tous les 3...") dans AU MOINS 5 phrases sur 15.\n' +
+      'YAM ne donne JAMAIS de surnom a l\'utilisateur (pas de "mon curieux", "mon ami", "mon grand", "ma belle"...). Il s\'adresse sans surnom.\n' +
+      'Utilise les accents francais correctement : peut-etre => peut-etre, journee => journee, ecouter => ecouter, betise => betise, idee => idee.\n' +
       'Les phrases doivent sonner comme une invitation spontanee, pas comme des ordres telegraphiques.\n' +
       'Pas de guillemets dans le texte des phrases.\n' +
       'Format exact attendu :\n' +
@@ -201,9 +203,28 @@
       var match = raw.match(/\[[\s\S]*\]/);
       var phrases = [];
       if(match){ try{ phrases = JSON.parse(match[0]); }catch(e){} }
+      function _fixText(s){
+        return s
+          .replace(/\bdis ta /g,      'dis à ta ')
+          .replace(/\bdis ton /g,     'dis à ton ')
+          .replace(/\bpeut-etre\b/gi, 'peut-être')
+          .replace(/\bpeut etre\b/gi, 'peut-être')
+          .replace(/\bjournee\b/gi,   'journée')
+          .replace(/\bapres-midi\b/gi,'après-midi')
+          .replace(/\becouter\b/gi,   'écouter')
+          .replace(/\becoutons\b/gi,  'écoutons')
+          .replace(/\bbetise\b/gi,    'bêtise')
+          .replace(/\bidee\b/gi,      'idée')
+          .replace(/\bdefinis\b/gi,   'définis')
+          .replace(/\bete\b/g,        'été')
+          .replace(/\bpresenté\b/g,   'présente')
+          .replace(/ a toi\b/g,       ' à toi')
+          .replace(/ a ([A-Z])/g,    ' à $1');
+      }
       var collected = [];
       for(var i=0; i<15; i++){
         var t = (phrases[i] || '').toString().trim().replace(/^["'`]+|["'`]+$/g,'').trim();
+        t = _fixText(t);
         collected.push(t && t.length > 3 ? t : '');
       }
       _generating = false;
