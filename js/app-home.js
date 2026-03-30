@@ -509,8 +509,16 @@
   }
 
   function _startPoll(){
+    // Ne démarrer le poll que si le channel Realtime photoDescs n'est pas joined
+    var _pdch = window._yamRT && window._yamRT.getChannels &&
+                window._yamRT.getChannels().find(function(c){ return c.topic.includes('photoDescs-'); });
+    if (_pdch && _pdch.state === 'joined') {
+      // Realtime actif — s'abonner aux changements via l'event existant plutôt que poller
+      document.addEventListener('yam:rappels_changed', function(){ _load(_syncIfChanged); });
+      return;
+    }
     if(_pollTimer) clearInterval(_pollTimer);
-    _pollTimer=setInterval(function(){ if(document.hidden||!_cid()) return; _load(_syncIfChanged); },8000);
+    _pollTimer=setInterval(function(){ if(document.hidden||!_cid()) return; _load(_syncIfChanged); },30000);
   }
 
   function _init(){
