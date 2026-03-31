@@ -511,15 +511,22 @@
   // Sync partenaire via Realtime photoDescs — toujours actif, indépendant du poll
   document.addEventListener('yam:rappels_changed', function(){ _load(_syncIfChanged); });
 
+  function _pdRTActive(){
+    // Vérifie dynamiquement si le channel photoDescs Realtime est joined
+    return !!(window._yamRT && window._yamRT.getChannels &&
+              window._yamRT.getChannels().find(function(c){
+                return c.topic.includes('photoDescs-') && c.state === 'joined';
+              }));
+  }
+
   function _startPoll(){
-    // Ne démarrer le poll que si le channel Realtime photoDescs n'est pas joined
-    var _pdch = window._yamRT && window._yamRT.getChannels &&
-                window._yamRT.getChannels().find(function(c){ return c.topic.includes('photoDescs-'); });
-    if (_pdch && _pdch.state === 'joined') {
-      return; // Realtime actif — yam:rappels_changed suffit, pas de poll
-    }
     if(_pollTimer) clearInterval(_pollTimer);
-    _pollTimer=setInterval(function(){ if(document.hidden||!_cid()) return; _load(_syncIfChanged); },30000);
+    // Poll 30s — skippé si le Realtime photoDescs est actif (fallback uniquement)
+    _pollTimer=setInterval(function(){
+      if(document.hidden||!_cid()) return;
+      if(_pdRTActive()) return; // Realtime ok → pas de poll
+      _load(_syncIfChanged);
+    },30000);
   }
 
   function _init(){
