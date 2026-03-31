@@ -366,8 +366,11 @@ document.addEventListener('DOMContentLoaded', function(){
   _on('histoireCloseChapterBtn',  'click', function(){ window.histoireCloseChapterModal && window.histoireCloseChapterModal(); });
   _on('histoireBulle', 'click', function(){
     var m = document.getElementById('histoireChapterModal');
-    if(m && m.style.display !== 'none'){ m.style.display='none'; }
-    else if(m){ m.style.display='flex'; }
+    if(m && m.style.display !== 'none'){
+      window.histoireCloseChapterModal && window.histoireCloseChapterModal();
+    } else {
+      window.histoireOpenChapterModal && window.histoireOpenChapterModal();
+    }
   });
   _on('histoireNewItemBtn',       'click', function(){ window.histoireOpenItemModal && window.histoireOpenItemModal(null); });
   _on('histoireCloseGestionBtn',  'click', function(){ window.histoireCloseGestion && window.histoireCloseGestion(); });
