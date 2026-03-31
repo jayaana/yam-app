@@ -3738,7 +3738,10 @@ document.addEventListener('yam:session_ready',function(){
     _histoireJustOpened = true; // empêche le listener document de refermer immédiatement
     _histoirePopulateModal();
     _initHistoireObserver();
-    document.body.style.overflow = 'hidden';
+    // Bloque le scroll arrière-plan (iOS + desktop)
+    if (typeof window._saveScrollPosition === 'function') window._saveScrollPosition();
+    if (typeof window._nousBlockScroll === 'function') window._nousBlockScroll();
+    else document.body.style.overflow = 'hidden';
   };
 
   window.histoireCloseChapterModal = function() {
@@ -3746,7 +3749,9 @@ document.addEventListener('yam:session_ready',function(){
     if (!modal) return;
     modal.style.display = 'none';
     // Remet le scroll
-    document.body.style.overflow = '';
+    if (typeof window._nousUnblockScroll === 'function') window._nousUnblockScroll();
+    else document.body.style.overflow = '';
+    if (typeof window._restoreScrollPosition === 'function') window._restoreScrollPosition();
     // Remet le modal à sa place d'origine dans le DOM
     if (_histoireModalOrigParent) {
       if (_histoireModalOrigNext) {
