@@ -2773,12 +2773,13 @@ window.addEventListener('load', function(){
 
 
 /* ════════════════════════════════════════════
-   POLLING PARTENAIRE — Simple et fiable
-   Rafraîchit la session toutes les 15s via v2RefreshSession()
-   Compare partner_pseudo avant/après et agit si ça change
+   POLLING PARTENAIRE — Realtime-first, poll en fallback
+   Le channel Realtime profiles (app-core.js) détecte les
+   changements en temps réel via window._profilesRTActive.
+   Ce poll ne tourne qu'en fallback (Realtime indisponible).
 ════════════════════════════════════════════ */
 (function(){
-  var POLL_INTERVAL = 15000;
+  var POLL_INTERVAL = 30000; // 15s → 30s : fallback uniquement, moins urgent
   var _pollIv = null;
 
   // Vider le cache SW et recharger
@@ -2794,49 +2795,51 @@ window.addEventListener('load', function(){
   var _skipOnePoll = localStorage.getItem('yam_partner_reload_done') === '1';
   if(_skipOnePoll) localStorage.removeItem('yam_partner_reload_done');
 
+  function _applyPseudoChange(pseudoBefore, pseudoAfter){
+    // Mettre a jour session locale
+    try { var _s=JSON.parse(localStorage.getItem('yam_session_v3')||'{}'); if(_s&&_s.user){_s.user.partner_pseudo=pseudoAfter;localStorage.setItem('yam_session_v3',JSON.stringify(_s));} } catch(e){}
+
+    // Nouveau partenaire
+    if(pseudoBefore === null && pseudoAfter !== null){
+      if(typeof showToast === 'function') showToast('💕 ' + escHtml(pseudoAfter) + ' vient de vous rejoindre !', 'success', 3000);
+      localStorage.setItem('yam_partner_reload_done', '1');
+      setTimeout(window._clearSWCacheAndReload, 2000);
+      return;
+    }
+
+    // Partenaire delie
+    if(pseudoBefore !== null && pseudoAfter === null){
+      if(typeof showToast === 'function') showToast('⚠️ Votre partenaire s\'est delie. Rechargement...', 'warning', 2000);
+      localStorage.setItem('yam_partner_reload_done', '1');
+      setTimeout(window._clearSWCacheAndReload, 2000);
+      return;
+    }
+
+    // Changement de pseudo
+    if(typeof showToast === 'function') showToast('💬 ' + escHtml(pseudoAfter) + ' a change de pseudo', 'info', 3000);
+    var modal = document.getElementById('settingsView');
+    if(modal && modal.classList.contains('active')){
+      var el = document.getElementById('acPartnerName');
+      if(el) el.textContent = escHtml(pseudoAfter);
+    }
+  }
+
   function pollPartnerChanges(){
     if(_skipOnePoll){ _skipOnePoll = false; return; }
+    // Realtime profiles actif → pas besoin de poller
+    if(window._profilesRTActive) return;
 
     var u = yamGetUser ? yamGetUser() : null;
     if(!u || !u.couple_id) return;
 
     var pseudoBefore = u.partner_pseudo || null;
 
-    // Fetch leger : chercher le partenaire dans le meme couple
     fetch(SB_URL + '/rest/v1/profiles?couple_id=eq.' + u.couple_id + '&id=neq.' + u.id + '&select=pseudo&limit=1', {headers: sb2Headers()})
     .then(function(r){ return r && r.ok ? r.json() : []; })
     .then(function(rows){
       var pseudoAfter = (Array.isArray(rows) && rows[0]) ? (rows[0].pseudo || null) : null;
-
-      // Rien change
       if(pseudoBefore === pseudoAfter) return;
-
-      // Mettre a jour session locale
-      try { var _s=JSON.parse(localStorage.getItem('yam_session_v3')||'{}'); if(_s&&_s.user){_s.user.partner_pseudo=pseudoAfter;localStorage.setItem('yam_session_v3',JSON.stringify(_s));} } catch(e){}
-
-      // Nouveau partenaire
-      if(pseudoBefore === null && pseudoAfter !== null){
-        if(typeof showToast === 'function') showToast('💕 ' + escHtml(pseudoAfter) + ' vient de vous rejoindre !', 'success', 3000);
-        localStorage.setItem('yam_partner_reload_done', '1');
-        setTimeout(window._clearSWCacheAndReload, 2000);
-        return;
-      }
-
-      // Partenaire delie
-      if(pseudoBefore !== null && pseudoAfter === null){
-        if(typeof showToast === 'function') showToast('⚠️ Votre partenaire s\'est delie. Rechargement...', 'warning', 2000);
-        localStorage.setItem('yam_partner_reload_done', '1');
-        setTimeout(window._clearSWCacheAndReload, 2000);
-        return;
-      }
-
-      // Changement de pseudo
-      if(typeof showToast === 'function') showToast('💬 ' + escHtml(pseudoAfter) + ' a change de pseudo', 'info', 3000);
-      var modal = document.getElementById('settingsView');
-      if(modal && modal.classList.contains('active')){
-        var el = document.getElementById('acPartnerName');
-        if(el) el.textContent = escHtml(pseudoAfter);
-      }
+      _applyPseudoChange(pseudoBefore, pseudoAfter);
     }).catch(function(){});
   }
 
@@ -2848,6 +2851,20 @@ window.addEventListener('load', function(){
   function stopPolling(){
     if(_pollIv){ clearInterval(_pollIv); _pollIv = null; }
   }
+
+  // Écoute les changements détectés par le Realtime profiles (app-core.js)
+  document.addEventListener('yam:partner_pseudo_changed', function(){
+    var u = yamGetUser ? yamGetUser() : null;
+    if(!u || !u.couple_id) return;
+    var pseudoBefore = u.partner_pseudo || null;
+    fetch(SB_URL + '/rest/v1/profiles?couple_id=eq.' + u.couple_id + '&id=neq.' + u.id + '&select=pseudo&limit=1', {headers: sb2Headers()})
+    .then(function(r){ return r && r.ok ? r.json() : []; })
+    .then(function(rows){
+      var pseudoAfter = (Array.isArray(rows) && rows[0]) ? (rows[0].pseudo || null) : null;
+      if(pseudoBefore === pseudoAfter) return;
+      _applyPseudoChange(pseudoBefore, pseudoAfter);
+    }).catch(function(){});
+  });
 
   var _origSetProfile = window.setProfile;
   window.setProfile = function(g){
