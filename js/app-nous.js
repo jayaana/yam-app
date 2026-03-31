@@ -3624,16 +3624,39 @@ document.addEventListener('yam:session_ready',function(){
     obs.observe(modal, { attributes: true, attributeFilter: ['style'] });
   }
 
+  var _histoireLoadPending = false; // anti-boucle fetch infinie
+
+  function _histoireShowEmpty() {
+    // Affiche un état vide dans le modal — pas de chapitres encore
+    var metaEl  = document.getElementById('histoireChapterModalMeta');
+    var titreEl = document.getElementById('histoireChapterModalTitre');
+    var texteEl = document.getElementById('histoireChapterModalTexte');
+    var navEl   = document.getElementById('histoireModalNav');
+    if (metaEl)  metaEl.textContent  = '';
+    if (titreEl) titreEl.textContent = 'Notre histoire commence... 🌟';
+    if (texteEl) texteEl.textContent = 'Clique sur Éditer pour ajouter vos premiers chapitres.';
+    if (navEl)   navEl.style.display = 'none';
+  }
+
   function _histoirePopulateModal() {
-    // Si les données ne sont pas encore chargées, les fetcher puis repeupler
+    // Si les données ne sont pas encore chargées, un seul fetch — jamais de boucle
     if (!_histoireAllRows.length) {
-      if (typeof window.histoireLoad === 'function') {
-        window.histoireLoad(function() { _histoirePopulateModal(); });
+      if (!_histoireLoadPending && typeof window.histoireLoad === 'function') {
+        _histoireLoadPending = true;
+        window.histoireLoad(function() {
+          _histoireLoadPending = false;
+          // Après le fetch : peupler seulement s'il y a des données
+          // Si toujours vide (couple sans chapitres) → afficher état vide, pas de reboucle
+          if (_histoireAllRows.length) _histoirePopulateModal();
+          else _histoireShowEmpty();
+        });
+      } else if (!_histoireLoadPending) {
+        _histoireShowEmpty();
       }
       return;
     }
     var sorted = _histoireSorted();
-    if (!sorted.length) return;
+    if (!sorted.length) { _histoireShowEmpty(); return; }
     _rIdx = Math.max(0, Math.min(_rIdx, sorted.length - 1));
     var item = sorted[_rIdx];
     if (!item) return;
