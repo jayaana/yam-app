@@ -3719,6 +3719,8 @@ document.addEventListener('yam:session_ready',function(){
   // Référence au parent d'origine pour pouvoir remettre le modal en place
   var _histoireModalOrigParent = null;
   var _histoireModalOrigNext   = null;
+  // Flag pour ignorer le clic d'ouverture dans le listener document (évite fermeture immédiate)
+  var _histoireJustOpened = false;
 
   window.histoireOpenChapterModal = function() {
     _rIdx = _histoireSelectedIndex;
@@ -3726,7 +3728,6 @@ document.addEventListener('yam:session_ready',function(){
     if (!modal) return;
 
     // Déplace le modal dans <body> pour échapper au transform du .yam-tab-panel
-    // (un transform CSS sur un ancêtre piège les position:fixed à l'intérieur)
     if (modal.parentElement !== document.body) {
       _histoireModalOrigParent = modal.parentElement;
       _histoireModalOrigNext   = modal.nextSibling;
@@ -3734,9 +3735,9 @@ document.addEventListener('yam:session_ready',function(){
     }
 
     modal.style.display = 'flex';
+    _histoireJustOpened = true; // empêche le listener document de refermer immédiatement
     _histoirePopulateModal();
     _initHistoireObserver();
-    // Bloque le scroll de la page derrière
     document.body.style.overflow = 'hidden';
   };
 
@@ -3762,8 +3763,13 @@ document.addEventListener('yam:session_ready',function(){
   document.addEventListener('click', function(e){
     var modal = document.getElementById('histoireChapterModal');
     if(!modal || modal.style.display === 'none') return;
+    // Ignorer le clic qui vient d'ouvrir la modale (même event bubble)
+    if (_histoireJustOpened) { _histoireJustOpened = false; return; }
     var content = modal.querySelector('.histoire-chapter-modal-content');
     if(content && content.contains(e.target)) return;
+    // Ne pas fermer si clic sur la bulle (toggle géré par app-inline)
+    var bulle = document.getElementById('histoireBulle');
+    if(bulle && bulle.contains(e.target)) return;
     window.histoireCloseChapterModal();
   });
 
