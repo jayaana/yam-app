@@ -851,26 +851,43 @@ body.light .histoire-bulle-wrap {
 .histoire-bandeau-tab.active .histoire-bandeau-num  { color: var(--accent); }
 .histoire-bandeau-tab.active .histoire-bandeau-titre { color: var(--text); font-weight: 700; }
 
-/* Modale chapitre — positionnée absolue sur la bulle-wrap */
+/* Modale chapitre — overlay plein écran, focus total */
 .histoire-chapter-modal {
-  position: absolute;
-  top: 36px; /* sous le titre de section */
-  left: 0;
-  right: 0;
-  z-index: 50;
-  padding: 0;
-  animation: fadeInUp 0.18s ease;
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 20px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: histoireFadeIn 0.22s ease;
+  box-sizing: border-box;
+}
+@keyframes histoireFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 .histoire-chapter-modal-content {
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 16px 16px 14px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+  border-radius: 22px;
+  padding: 24px 22px 20px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.40);
+  width: 100%;
+  max-width: 400px;
+  box-sizing: border-box;
+  animation: histoireSlideUp 0.22s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes histoireSlideUp {
+  from { opacity: 0; transform: translateY(18px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 body.light .histoire-chapter-modal-content {
-  border-color: rgba(60,60,67,0.12);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+  border-color: rgba(60,60,67,0.10);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.18);
 }
 
 /* Bulle vidéo événement */
@@ -6481,12 +6498,14 @@ body.light #rappelOverlay.open { background: rgba(0,0,0,0.22); }
 }
 
 /* ── #100 — Modal histoire amélioré ──────────────────────────── */
-/* Agrandir le contenu texte (n'était que 200px) */
+/* Texte lisible avec scroll si long */
 .histoire-chapter-modal-content #histoireChapterModalTexte {
-  max-height: none !important;
-  max-height: calc(55vh - 120px) !important;
+  max-height: calc(55vh - 160px) !important;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--text);
 }
 
 /* Barre de navigation entre chapitres */
@@ -6494,12 +6513,12 @@ body.light #rappelOverlay.open { background: rgba(0,0,0,0.22); }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 14px;
-  padding-top: 12px;
+  margin-top: 18px;
+  padding-top: 14px;
   border-top: 1px solid var(--border);
 }
 .histoire-modal-counter {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -6508,8 +6527,8 @@ body.light #rappelOverlay.open { background: rgba(0,0,0,0.22); }
   gap: 8px;
 }
 .histoire-modal-nav-btn {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: 1px solid var(--border);
   background: var(--s2);
@@ -6532,13 +6551,53 @@ body.light #rappelOverlay.open { background: rgba(0,0,0,0.22); }
   pointer-events: none;
 }
 
-/* Agrandir le modal pour qu'il soit vraiment lisible */
-.histoire-chapter-modal--open .histoire-chapter-modal-content {
-  box-shadow: 0 12px 48px rgba(0,0,0,0.3);
-}
+/* Titre et meta dans le modal */
 .histoire-chapter-modal-content #histoireChapterModalTitre {
-  font-size: 17px !important;
+  font-size: 19px !important;
   font-weight: 800 !important;
+  color: var(--text);
+  line-height: 1.25;
+  margin-bottom: 10px;
+}
+.histoire-chapter-modal-content #histoireChapterModalMeta {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  margin-bottom: 6px;
+}
+
+/* Bouton close repositionné en haut à droite du modal */
+.histoire-chapter-modal-content .yam-close-btn {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--muted);
+  transition: color 0.13s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.histoire-chapter-modal-content .yam-close-btn:active { transform: scale(0.93); }
+
+/* Wrapper header pour positionner le close correctement */
+.histoire-chapter-modal-content > div:first-child {
+  position: relative;
+}
+
+/* Pas de shadow/open override nécessaire — géré par l'overlay */
+.histoire-chapter-modal--open .histoire-chapter-modal-content {
+  box-shadow: 0 24px 64px rgba(0,0,0,0.40);
 }
 
 /* ── #98 — Barre de progression "Votre espace" ───────────────── */
