@@ -3607,21 +3607,10 @@ document.addEventListener('yam:session_ready',function(){
   }
 
   function _initHistoireObserver() {
-    if (_histoireObserverInited) return;
-    var modal = document.getElementById('histoireChapterModal');
-    if (!modal) return;
+    // MutationObserver supprimé — histoireOpenChapterModal appelle directement
+    // _histoirePopulateModal, donc l'observer est inutile et causait une boucle
+    // infinie de fetch (chaque mutation de style retriggait un histoireLoad)
     _histoireObserverInited = true;
-    var obs = new MutationObserver(function(mutations) {
-      mutations.forEach(function(m) {
-        if (m.type === 'attributes' && m.attributeName === 'style') {
-          var d = modal.style.display;
-          if (d === 'flex' || d === 'block') {
-            _histoirePopulateModal();
-          }
-        }
-      });
-    });
-    obs.observe(modal, { attributes: true, attributeFilter: ['style'] });
   }
 
   var _histoireLoadPending = false; // anti-boucle fetch infinie
