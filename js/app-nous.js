@@ -3558,7 +3558,7 @@ document.addEventListener('yam:session_ready',function(){
   }
 
   // ── Chargement depuis Supabase ──
-  window.histoireLoad = function(){
+  window.histoireLoad = function(cb){
     var coupleId = _getCoupleId(); if(!coupleId) return;
     fetch(SB_URL+'/rest/v1/histoire?couple_id=eq.'+coupleId+'&order=sort_order.asc,created_at.asc&select=*',{headers:sb2Headers()})
     .then(function(r){ return r.ok?r.json():[]; })
@@ -3575,6 +3575,7 @@ document.addEventListener('yam:session_ready',function(){
       // Compatibilité : si overlay gestion ouvert, rafraîchir
       var overlay = document.getElementById('histoireGestionOverlay');
       if(overlay && overlay.classList.contains('open')) _histoireRenderGestionList();
+      if (typeof cb === 'function') cb();
     }).catch(function(){});
   };
 
@@ -3624,6 +3625,13 @@ document.addEventListener('yam:session_ready',function(){
   }
 
   function _histoirePopulateModal() {
+    // Si les données ne sont pas encore chargées, les fetcher puis repeupler
+    if (!_histoireAllRows.length) {
+      if (typeof window.histoireLoad === 'function') {
+        window.histoireLoad(function() { _histoirePopulateModal(); });
+      }
+      return;
+    }
     var sorted = _histoireSorted();
     if (!sorted.length) return;
     _rIdx = Math.max(0, Math.min(_rIdx, sorted.length - 1));
