@@ -2287,9 +2287,9 @@ function _memArchiSetup3Cols(){
   function makeCol(label,labelColor,borderColor){
     var col=document.createElement('div');
     // Hauteur fixe calculée pour 6 pièces max (round 3 = 3+3 pièces) :
-    // 6 × 44px (pièce) + 5 × 6px (gap) + 20px (padding haut/bas) + 20px (label) = 330px
-    // On fixe à 330px pour que la palette ne bouge jamais quelle que soit l'avancement de la tour.
-    col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--s1);border:1.5px solid '+borderColor+';border-radius:14px;padding:10px 6px;height:330px;box-sizing:border-box;overflow:hidden;';
+    // 6 × 44px (pièce) + 5 × 6px (gap) + 20px (padding haut/bas) + 20px (label) = 330px + marge 40px = 370px
+    // On fixe à 370px pour que la palette ne bouge jamais et que la dernière pièce ne soit pas rognée.
+    col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--s1);border:1.5px solid '+borderColor+';border-radius:14px;padding:10px 6px;height:370px;box-sizing:border-box;overflow:hidden;';
     col.innerHTML='<div style="font-size:9px;font-weight:700;color:'+labelColor+';text-transform:uppercase;letter-spacing:1px;flex-shrink:0;">'+label+'</div>';
     return col;
   }
