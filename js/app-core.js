@@ -1034,6 +1034,63 @@ window.yamPushNotify = async function(opts) {
 
 
 // ═════════════════════════════════════════════════════════════════
+// REALTIME PROFILES — Détection changement pseudo partenaire
+// Remplace le poll toutes les ~5s dans app-account.js par un
+// channel Realtime UPDATE sur profiles. Le poll reste en fallback.
+// ═════════════════════════════════════════════════════════════════
+
+(function() {
+  window._profilesRTActive = false;
+
+  function _initProfilesRT() {
+    if (!window._yamRT) return;
+    var u = yamGetUser();
+    if (!u || !u.couple_id) return;
+    if (window._yamRTChannels['profiles']) return;
+
+    var ch = window._yamRT
+      .channel('partner_profile-' + u.couple_id)
+      .on('postgres_changes', {
+        event:  'UPDATE',
+        schema: 'public',
+        table:  'profiles',
+        filter: 'couple_id=eq.' + u.couple_id,
+      }, function(payload) {
+        // Ignore ses propres changements
+        if (payload.new && payload.new.id === u.id) return;
+        yamLog('[RT] Pseudo partenaire changé → refresh session');
+        // Rafraîchit le pseudo dans la session locale puis met à jour l'UI
+        v2RefreshSession().then(function() {
+          if (window.v2ApplyDynamicNames) v2ApplyDynamicNames();
+          document.dispatchEvent(new CustomEvent('yam:partner_pseudo_changed'));
+        });
+      })
+      .subscribe(function(status) {
+        if (status === 'SUBSCRIBED') {
+          window._profilesRTActive = true;
+          yamLog('[RT] ✅ Profiles connecté — poll pseudo partenaire suspendu');
+          console.log('[RT] ✅ Profiles connecté', { channel: 'profiles', status: 'SUBSCRIBED' });
+        } else if (['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(status)) {
+          window._profilesRTActive = false;
+          delete window._yamRTChannels['profiles'];
+          yamLog('[RT] Profiles ' + status + ' — fallback poll actif');
+        }
+      });
+
+    window._yamRTChannels['profiles'] = ch;
+  }
+
+  setTimeout(function() { if (window._yamRT) _initProfilesRT(); }, 2500);
+  document.addEventListener('yam:session_ready', function() {
+    setTimeout(_initProfilesRT, 1200);
+  });
+  document.addEventListener('yam:rt_ready', function() {
+    setTimeout(_initProfilesRT, 500);
+  });
+})();
+
+
+// ═════════════════════════════════════════════════════════════════
 // Variables globales partagées (compat avec les autres modules)
 // ═════════════════════════════════════════════════════════════════
 
