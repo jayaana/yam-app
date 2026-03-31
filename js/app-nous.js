@@ -3782,6 +3782,22 @@ document.addEventListener('yam:session_ready',function(){
   setTimeout(function(){
     var btn = document.getElementById('histoireCloseChapterBtn');
     if(btn) btn.addEventListener('click', function(e){ e.stopPropagation(); window.histoireCloseChapterModal(); });
+
+    // Permet le scroll tactile dans le texte du modal même quand _yamScrollLocked=true
+    // stopPropagation empêche app-ios-touch.js de bloquer le touchmove
+    var texte = document.getElementById('histoireChapterModalTexte');
+    if(texte) {
+      texte.addEventListener('touchmove', function(e) {
+        e.stopPropagation();
+      }, { passive: true });
+    }
+    // Idem pour le contenu entier du modal (navigation, etc.)
+    var content = document.querySelector('.histoire-chapter-modal-content');
+    if(content) {
+      content.addEventListener('touchmove', function(e) {
+        e.stopPropagation();
+      }, { passive: true });
+    }
   }, 0);
 
   // ── Overlay gestion (inchangé) ──
