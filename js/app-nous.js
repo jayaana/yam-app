@@ -3708,27 +3708,55 @@ document.addEventListener('yam:session_ready',function(){
     if(bNext) bNext.onclick = function(e){ e.stopPropagation(); if(_rIdx<sorted.length-1){_rIdx++;_histoireRenderModal(sorted,_rIdx);_histoireSelectedIndex=_rIdx;} };
   }
 
+  // Référence au parent d'origine pour pouvoir remettre le modal en place
+  var _histoireModalOrigParent = null;
+  var _histoireModalOrigNext   = null;
+
   window.histoireOpenChapterModal = function() {
-    // Syncer l'index avec le chapitre sélectionné dans le bandeau
     _rIdx = _histoireSelectedIndex;
-    // L'observer va peupler automatiquement quand display change
-    // Si appelé programmatiquement (pas via app-inline), on peuple directement
+    var modal = document.getElementById('histoireChapterModal');
+    if (!modal) return;
+
+    // Déplace le modal dans <body> pour échapper au transform du .yam-tab-panel
+    // (un transform CSS sur un ancêtre piège les position:fixed à l'intérieur)
+    if (modal.parentElement !== document.body) {
+      _histoireModalOrigParent = modal.parentElement;
+      _histoireModalOrigNext   = modal.nextSibling;
+      document.body.appendChild(modal);
+    }
+
+    modal.style.display = 'flex';
     _histoirePopulateModal();
     _initHistoireObserver();
+    // Bloque le scroll de la page derrière
+    document.body.style.overflow = 'hidden';
   };
 
   window.histoireCloseChapterModal = function() {
     var modal = document.getElementById('histoireChapterModal');
-    if(modal) modal.style.display = 'none';
+    if (!modal) return;
+    modal.style.display = 'none';
+    // Remet le scroll
+    document.body.style.overflow = '';
+    // Remet le modal à sa place d'origine dans le DOM
+    if (_histoireModalOrigParent) {
+      if (_histoireModalOrigNext) {
+        _histoireModalOrigParent.insertBefore(modal, _histoireModalOrigNext);
+      } else {
+        _histoireModalOrigParent.appendChild(modal);
+      }
+      _histoireModalOrigParent = null;
+      _histoireModalOrigNext   = null;
+    }
   };
 
-  // Click en dehors ferme la modale
+  // Click sur l'overlay (fond flouté) ferme la modale
   document.addEventListener('click', function(e){
     var modal = document.getElementById('histoireChapterModal');
     if(!modal || modal.style.display === 'none') return;
-    var bulle = document.getElementById('histoireBulle');
-    if(bulle && bulle.contains(e.target)) return;
-    if(!modal.contains(e.target)) window.histoireCloseChapterModal();
+    var content = modal.querySelector('.histoire-chapter-modal-content');
+    if(content && content.contains(e.target)) return;
+    window.histoireCloseChapterModal();
   });
 
   // Binding du bouton close (l'event listener est ici, pas dans app-inline.js)
