@@ -2286,21 +2286,30 @@ function _memArchiSetup3Cols(){
   wrap.style.cssText='display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;';
   function makeCol(label,labelColor,borderColor){
     var col=document.createElement('div');
-    col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--s1);border:1.5px solid '+borderColor+';border-radius:14px;padding:10px 6px;min-height:160px;';
-    col.innerHTML='<div style="font-size:9px;font-weight:700;color:'+labelColor+';text-transform:uppercase;letter-spacing:1px;">'+label+'</div>';
+    // Hauteur fixe calculée pour 6 pièces max (round 3 = 3+3 pièces) :
+    // 6 × 44px (pièce) + 5 × 6px (gap) + 20px (padding haut/bas) + 20px (label) = 330px
+    // On fixe à 330px pour que la palette ne bouge jamais quelle que soit l'avancement de la tour.
+    col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--s1);border:1.5px solid '+borderColor+';border-radius:14px;padding:10px 6px;height:330px;box-sizing:border-box;overflow:hidden;';
+    col.innerHTML='<div style="font-size:9px;font-weight:700;color:'+labelColor+';text-transform:uppercase;letter-spacing:1px;flex-shrink:0;">'+label+'</div>';
     return col;
   }
+  // Style commun pour les zones de pile — flex:1 pour occuper tout l'espace restant,
+  // justify-content:flex-end pour ancrer les pièces en bas (la tour monte vers le haut).
+  var stackStyle='display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;flex:1;width:100%;overflow:hidden;';
   // Colonne MOI : stack avec classe mem-archi-stack (CSS gere column-reverse)
   var colMe=makeCol(nameMe.toUpperCase(),isGirl?'#ec4899':'#7c3aed',isGirl?'#fce7f3':'#ede9fe');
   var stackMe=document.createElement('div');stackMe.id='memArchiStackMe';stackMe.className='mem-archi-stack';
+  stackMe.style.cssText=stackStyle;
   colMe.appendChild(stackMe);
   // Colonne MODELE : target avec classe mem-archi-target (CSS gere column-reverse)
   var colMod=makeCol('MOD\u00c8LE','#9ca3af','#e5e7eb');
   var tgt=document.createElement('div');tgt.id='memArchiTarget';tgt.className='mem-archi-target';
+  tgt.style.cssText=stackStyle;
   colMod.appendChild(tgt);
   // Colonne ADVERSAIRE
   var colOpp=makeCol(nameOth.toUpperCase(),oppIsGirl?'#ec4899':'#7c3aed',oppIsGirl?'#fce7f3':'#ede9fe');
   var stackOpp=document.createElement('div');stackOpp.id='memArchiStackOther';stackOpp.className='mem-archi-stack';
+  stackOpp.style.cssText=stackStyle;
   colOpp.appendChild(stackOpp);
   wrap.appendChild(colMe);wrap.appendChild(colMod);wrap.appendChild(colOpp);
   // Cacher anciens divs HTML
@@ -2390,8 +2399,8 @@ document.addEventListener('DOMContentLoaded',function(){
     '.mem-mode-player:last-child .mem-mode-avatar{background:#ede9fe!important;border-color:#c4b5fd!important;}'+
     '.mem-opp-name{display:none!important;}'+
     '.mem-echo-lives{display:flex!important;align-items:center!important;gap:8px!important;}'+
-    '.mem-archi-stack{flex-direction:column!important;}'+
-    '.mem-archi-target{flex-direction:column!important;}';
+    '.mem-archi-stack{flex-direction:column!important;justify-content:flex-end!important;}'+
+    '.mem-archi-target{flex-direction:column!important;justify-content:flex-end!important;}';
   document.head.appendChild(style);
 });
 
