@@ -6503,6 +6503,8 @@ body.light #rappelOverlay.open { background: rgba(0,0,0,0.22); }
   max-height: calc(55vh - 160px) !important;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
   font-size: 15px;
   line-height: 1.65;
   color: var(--text);
