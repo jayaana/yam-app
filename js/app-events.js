@@ -152,17 +152,17 @@
       '#annivBanner .anniv-title{text-align:center;flex:1;}',
 
       /* Thème anniversaire/couple */
-      '#annivBanner.evt-type-anniversary{background:#1a1a2e;border-bottom:2px solid #e75a7c;}',
-      '#annivBanner.evt-type-anniversary .anniv-title{color:#fff;}',
+      '#annivBanner.evt-type-anniversary{background:var(--s1,#fff);border-bottom:2px solid #e75a7c;}',
+      '#annivBanner.evt-type-anniversary .anniv-title{color:var(--text,#1c1c1e);}',
       '#annivBanner.evt-type-anniversary .anniv-emoji{text-shadow:0 0 12px rgba(231,90,124,.6);}',
 
       /* Thème fête */
-      '#annivBanner.evt-type-birthday{background:#1a1a2e;border-bottom:2px solid #a78bfa;}',
-      '#annivBanner.evt-type-birthday .anniv-title{color:#fff;}',
+      '#annivBanner.evt-type-birthday{background:var(--s1,#fff);border-bottom:2px solid #a78bfa;}',
+      '#annivBanner.evt-type-birthday .anniv-title{color:var(--text,#1c1c1e);}',
 
       /* Thème voyage */
-      '#annivBanner.evt-type-trip{background:#0d2137;border-bottom:2px solid #34d399;}',
-      '#annivBanner.evt-type-trip .anniv-title{color:#fff;}',
+      '#annivBanner.evt-type-trip{background:var(--s1,#fff);border-bottom:2px solid #34d399;}',
+      '#annivBanner.evt-type-trip .anniv-title{color:var(--text,#1c1c1e);}',
 
       /* Thème autre */
       '#annivBanner.evt-type-other{background:var(--s1,#fff);border-bottom:2px solid var(--border,#ddd);}',
@@ -171,8 +171,8 @@
       /* Éléments bannière */
       '.anniv-emoji{font-size:22px;flex-shrink:0;}',
       '.anniv-title{font-size:14px;font-weight:700;letter-spacing:.1px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
-      '.anniv-close-x{background:rgba(255,255,255,.15);border:none;border-radius:50%;width:28px;height:28px;',
-      'color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;',
+      '.anniv-close-x{background:var(--s2,#f2f2f7);border:none;border-radius:50%;width:28px;height:28px;',
+      'color:var(--text,#1c1c1e);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;',
       'font-weight:700;line-height:1;}',
       '#annivBanner.evt-type-other .anniv-close-x{background:var(--s2,#f2f2f7);color:var(--text,#1c1c1e);}',
     ].join('');
