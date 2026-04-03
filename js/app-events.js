@@ -145,10 +145,11 @@
       '.mensiv-close:active{background:rgba(255,255,255,.22);}',
 
       /* Bannière events accueil — dans le flux de la page, entre header et mascotte */
-      '#annivBanner{display:none;align-items:center;justify-content:center;gap:10px;',
+      '#annivBanner{display:none;align-items:center;justify-content:space-between;gap:10px;',
       'width:100%;box-sizing:border-box;padding:12px 16px;margin-bottom:4px;',
       'border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.25);}',
       '#annivBanner.visible{display:flex;}',
+      '#annivBanner .anniv-title{text-align:center;flex:1;}',
 
       /* Thème anniversaire/couple */
       '#annivBanner.evt-type-anniversary{background:#1a1a2e;border-bottom:2px solid #e75a7c;}',
