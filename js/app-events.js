@@ -40,6 +40,13 @@
   }
   function _toast(msg, type) { if (typeof showToast === 'function') showToast(msg, type || 'info', 2000); }
 
+  // ── Lire la start_date couple depuis toutes les sources disponibles ──
+  function _getStartDate() {
+    return (window.YAM_COUPLE && window.YAM_COUPLE.start_date)
+      || (window.startDate)
+      || null;
+  }
+
   // ═══════════════════════════════════════════════════════════
   // 1. CONFETTIS
   // ═══════════════════════════════════════════════════════════
@@ -81,78 +88,231 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 2. BANNIÈRE — uniquement sur l'onglet Accueil
+  // 2. OVERLAY MENSIVERSAIRE — plein écran, lisible thème clair/sombre
+  // ═══════════════════════════════════════════════════════════
+  var _mensivOverlayShownKey = 'yam_mensiv_shown_' + _todayStr();
+
+  function _injectOverlayStyles() {
+    if (document.getElementById('evtOverlayStyle')) return;
+    var s = document.createElement('style'); s.id = 'evtOverlayStyle';
+    s.textContent = [
+      /* Overlay mensiversaire */
+      '#yamMensivOverlay{position:fixed;inset:0;z-index:9500;display:none;align-items:center;justify-content:center;',
+      'background:rgba(0,0,0,.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);',
+      'padding:24px;box-sizing:border-box;}',
+      '#yamMensivOverlay.visible{display:flex;}',
+      '.mensiv-card{background:#1a1a2e;border-radius:28px;padding:40px 32px 36px;max-width:360px;width:100%;',
+      'text-align:center;position:relative;box-shadow:0 24px 64px rgba(0,0,0,.6);',
+      'border:1px solid rgba(255,255,255,.08);}',
+      '.mensiv-hearts{font-size:52px;margin-bottom:16px;display:block;animation:mensivFloat 3s ease-in-out infinite;}',
+      '@keyframes mensivFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}',
+      '.mensiv-count{font-size:56px;font-weight:800;color:#fff;line-height:1;margin-bottom:4px;',
+      'background:linear-gradient(135deg,#f5c518,#e75a7c);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}',
+      '.mensiv-label{font-size:15px;font-weight:500;color:rgba(255,255,255,.7);margin-bottom:24px;line-height:1.4;}',
+      '.mensiv-msg{font-size:17px;font-weight:600;color:#fff;margin-bottom:28px;line-height:1.5;}',
+      '.mensiv-close{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:14px;',
+      'color:#fff;font-size:14px;font-weight:600;padding:12px 32px;cursor:pointer;letter-spacing:.3px;',
+      'transition:background .15s;}',
+      '.mensiv-close:active{background:rgba(255,255,255,.22);}',
+
+      /* Bannière events accueil — refonte lisibilité */
+      '#annivBanner{position:fixed;top:0;left:0;right:0;z-index:8000;',
+      'display:none;align-items:center;justify-content:center;gap:10px;',
+      'padding:14px 20px;',
+      'box-shadow:0 4px 20px rgba(0,0,0,.25);}',
+      '#annivBanner.visible{display:flex;}',
+
+      /* Thème anniversaire/couple */
+      '#annivBanner.evt-type-anniversary{background:#1a1a2e;border-bottom:2px solid #e75a7c;}',
+      '#annivBanner.evt-type-anniversary .anniv-title{color:#fff;}',
+      '#annivBanner.evt-type-anniversary .anniv-emoji{text-shadow:0 0 12px rgba(231,90,124,.6);}',
+
+      /* Thème fête */
+      '#annivBanner.evt-type-birthday{background:#1a1a2e;border-bottom:2px solid #a78bfa;}',
+      '#annivBanner.evt-type-birthday .anniv-title{color:#fff;}',
+
+      /* Thème voyage */
+      '#annivBanner.evt-type-trip{background:#0d2137;border-bottom:2px solid #34d399;}',
+      '#annivBanner.evt-type-trip .anniv-title{color:#fff;}',
+
+      /* Thème autre */
+      '#annivBanner.evt-type-other{background:var(--s1,#fff);border-bottom:2px solid var(--border,#ddd);}',
+      '#annivBanner.evt-type-other .anniv-title{color:var(--text,#1c1c1e);}',
+
+      /* Éléments bannière */
+      '.anniv-emoji{font-size:22px;flex-shrink:0;}',
+      '.anniv-title{font-size:14px;font-weight:700;letter-spacing:.1px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
+      '.anniv-close-x{background:rgba(255,255,255,.15);border:none;border-radius:50%;width:28px;height:28px;',
+      'color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;',
+      'font-weight:700;line-height:1;}',
+      '#annivBanner.evt-type-other .anniv-close-x{background:var(--s2,#f2f2f7);color:var(--text,#1c1c1e);}',
+    ].join('');
+    document.head.appendChild(s);
+  }
+
+  // ── Afficher l'overlay mensiversaire ──────────────────────
+  function _showMensivOverlay(months) {
+    if (localStorage.getItem(_mensivOverlayShownKey)) return; // une seule fois par jour
+    _injectOverlayStyles();
+
+    var existing = document.getElementById('yamMensivOverlay');
+    if (existing) existing.remove();
+
+    var isYear = months % 12 === 0;
+    var count = isYear ? months / 12 : months;
+    var unit = isYear
+      ? (count > 1 ? 'ans' : 'an')
+      : (count > 1 ? 'mois' : 'mois');
+
+    var overlay = document.createElement('div'); overlay.id = 'yamMensivOverlay';
+    var card = document.createElement('div'); card.className = 'mensiv-card';
+
+    var hearts = document.createElement('span'); hearts.className = 'mensiv-hearts';
+    hearts.textContent = isYear ? '🎂' : '🩷';
+
+    var countEl = document.createElement('div'); countEl.className = 'mensiv-count';
+    countEl.textContent = count + ' ' + unit;
+
+    var lbl = document.createElement('div'); lbl.className = 'mensiv-label';
+    lbl.textContent = 'ensemble';
+
+    var msg = document.createElement('div'); msg.className = 'mensiv-msg';
+    msg.textContent = isYear
+      ? '✨ Bonne ' + (count === 1 ? 'première' : count + 'ème') + ' année d\'amour !'
+      : '💌 Ça fait maintenant ' + count + ' mois qu\'on s\'aime 🩷';
+
+    var closeBtn = document.createElement('button'); closeBtn.className = 'mensiv-close';
+    closeBtn.textContent = 'Célébrons ça 🎉';
+    closeBtn.addEventListener('click', function() {
+      overlay.classList.remove('visible');
+      setTimeout(function() { overlay.remove(); }, 300);
+      localStorage.setItem(_mensivOverlayShownKey, '1');
+    });
+
+    card.appendChild(hearts); card.appendChild(countEl); card.appendChild(lbl);
+    card.appendChild(msg); card.appendChild(closeBtn);
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+
+    requestAnimationFrame(function() { overlay.classList.add('visible'); });
+    _launchConfettis();
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 3. BANNIÈRE accueil — lisible thème clair et sombre
   // ═══════════════════════════════════════════════════════════
   function _isHomeVisible() {
     var h = document.getElementById('yamHomeTab');
     return !!(h && getComputedStyle(h).display !== 'none');
   }
-  // Config visuelle par type d'event
+
+  // Config par type : bg retiré, classes CSS gèrent l'apparence
   var _eventTypeConfig = {
-    anniversary: { bg: 'linear-gradient(135deg,#f5c518,#e75a7c)', icon: '🎂', color: '#f5c518', confetti: true,  pulse: true  },
-    birthday:    { bg: 'linear-gradient(135deg,#a78bfa,#60a5fa)', icon: '🎉', color: '#a78bfa', confetti: true,  pulse: true  },
-    trip:        { bg: 'linear-gradient(135deg,#34d399,#60a5fa)', icon: '✈️',  color: '#34d399', confetti: false, pulse: false },
-    other:       { bg: 'linear-gradient(135deg,#94a3b8,#64748b)', icon: '📅', color: '#94a3b8', confetti: false, pulse: false }
+    anniversary: { cls: 'evt-type-anniversary', icon: '🎂', confetti: true,  pulse: true  },
+    birthday:    { cls: 'evt-type-birthday',    icon: '🎉', confetti: true,  pulse: true  },
+    trip:        { cls: 'evt-type-trip',        icon: '✈️',  confetti: false, pulse: false },
+    other:       { cls: 'evt-type-other',       icon: '📅', confetti: false, pulse: false }
   };
+
+  var _bannerTypes = ['evt-type-anniversary','evt-type-birthday','evt-type-trip','evt-type-other'];
 
   function _showEventBanner(text, type) {
     if (!_isHomeVisible()) return;
+    _injectOverlayStyles();
     var cfg = _eventTypeConfig[type] || _eventTypeConfig.other;
     document.body.classList.add('anniv-mode');
-    var banner = document.getElementById('annivBanner'), sub = document.getElementById('annivSub');
-    var titleEl = document.getElementById('annivTitle'), emojiEl = document.getElementById('annivEmoji');
-    if (banner) { banner.style.background = cfg.bg; banner.classList.add('visible'); }
-    if (titleEl) titleEl.textContent = text;
-    if (emojiEl) emojiEl.textContent = cfg.icon;
-    if (sub) sub.textContent = '';
-    var sinceEl = document.querySelector('.counter-since');
-    if (sinceEl) {
-      sinceEl.innerHTML = cfg.icon + ' ' + text;
-      sinceEl.style.color = cfg.color;
-      sinceEl.style.fontWeight = '600';
-      sinceEl.style.animation = cfg.pulse ? 'evtPulse 1.4s ease-in-out infinite' : 'none';
-    }
+
+    var banner = document.getElementById('annivBanner');
+    if (!banner) return;
+
+    // Nettoyer les classes de type précédentes
+    _bannerTypes.forEach(function(c) { banner.classList.remove(c); });
+    banner.classList.add(cfg.cls);
+
+    // Vider et reconstruire le contenu pour contrôler le DOM
+    banner.innerHTML = '';
+
+    var emoji = document.createElement('span'); emoji.className = 'anniv-emoji'; emoji.textContent = cfg.icon;
+    var title = document.createElement('div'); title.className = 'anniv-title'; title.textContent = text;
+    var x = document.createElement('button'); x.className = 'anniv-close-x'; x.textContent = '✕';
+    x.addEventListener('click', function() { _hideAnnivBanner(); });
+
+    banner.appendChild(emoji); banner.appendChild(title); banner.appendChild(x);
+    banner.classList.add('visible');
+
     if (cfg.confetti) _launchConfettis();
   }
+
   function _hideAnnivBanner() {
     document.body.classList.remove('anniv-mode');
     var banner = document.getElementById('annivBanner');
-    if (banner) { banner.classList.remove('visible'); banner.style.background = ''; }
-    var sinceEl = document.querySelector('.counter-since');
-    if (sinceEl) { sinceEl.style.color = ''; sinceEl.style.fontWeight = ''; sinceEl.style.animation = ''; }
+    if (banner) {
+      banner.classList.remove('visible');
+      _bannerTypes.forEach(function(c) { banner.classList.remove(c); });
+    }
   }
+
   document.addEventListener('yam:tab_switched', function() {
     if (!_isHomeVisible()) _hideAnnivBanner();
     else setTimeout(_checkTodayEvents, 200);
   });
 
   // ═══════════════════════════════════════════════════════════
-  // 3. MIGRATION AUTO — hardcode anniversaire → couple_events
+  // 4. MIGRATION AUTO — anniversaire depuis start_date couple
+  // L'event mensiversaire est NON MODIFIABLE (is_system=true côté logique)
   // ═══════════════════════════════════════════════════════════
   function _migrateAnniv(coupleId) {
-    var startDate = window.startDate || (window.YAM_COUPLE && window.YAM_COUPLE.start_date);
+    var startDate = _getStartDate();
     if (!startDate) return;
     var key = MIGRATE_KEY + coupleId;
-    if (localStorage.getItem(key)) return;
+
+    // Re-vérifier si la start_date a changé (cas rare : couple reconfigure la date)
+    var savedDate = localStorage.getItem(key + '_date');
+    var sdSliced = startDate.slice(0, 10);
+    if (localStorage.getItem(key) && savedDate === sdSliced) return;
+
     fetch(SB2 + '?couple_id=eq.' + coupleId + '&type=eq.anniversary&limit=1', { headers: sb2Headers() })
     .then(function(r) { return r.ok ? r.json() : []; })
     .then(function(rows) {
-      if (rows && rows.length > 0) { localStorage.setItem(key, '1'); return; }
+      if (rows && rows.length > 0) {
+        var existing = rows[0];
+        // Si la date a changé (couple a mis à jour start_date), on patch l'event
+        if (existing.date !== sdSliced) {
+          fetch(SB2 + '?id=eq.' + existing.id + '&couple_id=eq.' + coupleId, {
+            method: 'PATCH',
+            headers: sb2Headers({'Content-Type': 'application/json', 'Prefer': 'return=minimal'}),
+            body: JSON.stringify({ date: sdSliced })
+          }).then(function() {
+            localStorage.setItem(key, '1');
+            localStorage.setItem(key + '_date', sdSliced);
+            _loadEvents();
+          }).catch(function() {});
+        } else {
+          localStorage.setItem(key, '1');
+          localStorage.setItem(key + '_date', sdSliced);
+        }
+        return;
+      }
+      // Créer l'event mensiversaire lié à la start_date
       fetch(SB2, {
         method: 'POST',
         headers: sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
         body: JSON.stringify({
           couple_id: coupleId, title: 'Mensiversaire 🩷', emoji: '🎂',
-          date: startDate.slice(0, 10), is_recurring: true, type: 'anniversary',
+          date: sdSliced, is_recurring: true, type: 'anniversary',
           notes: 'Date de début du couple', assigned_to: 'both',
           days_before_reminder: 1, story_bubble_enabled: false
         })
-      }).then(function() { localStorage.setItem(key, '1'); _loadEvents(); }).catch(function() {});
+      }).then(function() {
+        localStorage.setItem(key, '1');
+        localStorage.setItem(key + '_date', sdSliced);
+        _loadEvents();
+      }).catch(function() {});
     }).catch(function() {});
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 4. PUSH NOTIFICATIONS — J-3, J-1, J-0
+  // 5. PUSH NOTIFICATIONS — J-3, J-1, J-0
   // ═══════════════════════════════════════════════════════════
   function _checkPushReminders(events) {
     if (typeof yamPushNotify !== 'function') return;
@@ -175,7 +335,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 5. BADGE CLIGNOTANT sur l'icône Events
+  // 6. BADGE CLIGNOTANT sur l'icône Events
   // ═══════════════════════════════════════════════════════════
   function _updateEventsBadge(events) {
     if (!document.getElementById('evtBadgeStyle')) {
@@ -211,7 +371,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 6. VÉRIFICATION EVENTS DU JOUR
+  // 7. VÉRIFICATION EVENTS DU JOUR
   // ═══════════════════════════════════════════════════════════
   var _eventsCache = [];
 
@@ -224,30 +384,34 @@
     });
     if (!todayEvents.length) return;
 
-    // Prioriser les events non-anniversary (voyage, autre, birthday...)
-    // Si le seul event du jour est le mensiversaire auto, on l'affiche quand même
+    // Afficher d'abord les events non-mensiversaire
     var nonAnniv = todayEvents.filter(function(ev) { return ev.type !== 'anniversary'; });
     var toShow = nonAnniv.length ? nonAnniv : todayEvents;
 
     toShow.forEach(function(ev) {
-      var label = ev.emoji + ' ' + ev.title;
       if (ev.type === 'anniversary') {
         var months = _monthsSince(ev.date);
         if (months < 1) return;
-        var isMensiv = (ev.title === 'Mensiversaire \uD83E\uDE77' || ev.notes === 'Date de d\u00e9but du couple');
+        var isMensiv = (ev.notes === 'Date de début du couple' || ev.title.indexOf('Mensiversaire') !== -1);
         if (isMensiv) {
-          if (months % 12 === 0) { var y = months/12; label = ev.emoji + ' \u00c7a fait ' + y + ' an' + (y > 1 ? 's' : '') + ' qu\'on s\'aime \uD83E\uDE77'; }
-          else label = ev.emoji + ' \u00c7a fait maintenant ' + months + ' mois qu\'on s\'aime \uD83E\uDE77';
+          // Afficher l'overlay plein écran pour le mensiversaire
+          _showMensivOverlay(months);
+          // Et la bannière accueil (texte simple)
+          var label = months % 12 === 0
+            ? '🎂 ' + (months/12) + ' an' + (months/12 > 1 ? 's' : '') + ' ensemble !'
+            : '🩷 ' + months + ' mois ensemble !';
+          _showEventBanner(label, 'anniversary');
         } else {
-          label = ev.emoji + ' ' + ev.title;
+          _showEventBanner('🎂 ' + ev.title, 'anniversary');
         }
+      } else {
+        _showEventBanner(ev.emoji + ' ' + ev.title, ev.type);
       }
-      _showEventBanner(label, ev.type);
     });
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 7. CHARGEMENT
+  // 8. CHARGEMENT
   // ═══════════════════════════════════════════════════════════
   function _loadEvents() {
     var coupleId = _cid(); if (!coupleId) return;
@@ -263,7 +427,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 8. BULLE VIDÉO — lire depuis photo_descs
+  // 9. BULLE VIDÉO
   // ═══════════════════════════════════════════════════════════
   function _syncStoryBubble() {
     var coupleId = _cid(); if (!coupleId) return;
@@ -276,7 +440,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 9. STYLES MODAL
+  // 10. STYLES MODAL
   // ═══════════════════════════════════════════════════════════
   function _injectStyles() {
     if (document.getElementById('eventsModalStyle')) return;
@@ -288,6 +452,7 @@
       '.evt-hdr-title{font-size:17px;font-weight:700;color:var(--text)}',
       '.evt-close-btn{background:var(--s2);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:15px;color:var(--muted);display:flex;align-items:center;justify-content:center}',
       '.evt-body{overflow-y:auto;flex:1;padding:16px 20px 24px}',
+      /* Card event — badge lisibilité */
       '.evt-card{background:var(--s2);border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;cursor:pointer;border:1px solid var(--border)}',
       '.evt-card:active{opacity:.7}',
       '.evt-card-emoji{font-size:26px;flex-shrink:0}',
@@ -295,9 +460,13 @@
       '.evt-card-title{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
       '.evt-card-meta{font-size:12px;color:var(--muted);margin-top:2px}',
       '.evt-card-cd{font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;flex-shrink:0;white-space:nowrap}',
-      '.evt-cd-today{background:#fef3c7;color:#d97706}',
-      '.evt-cd-soon{background:#fce7f3;color:#be185d}',
+      /* Badges countdown — contraste garanti thème clair ET sombre */
+      '.evt-cd-today{background:#e75a7c;color:#fff}',
+      '.evt-cd-soon{background:#7c3aed;color:#fff}',
       '.evt-cd-normal{background:var(--s1);color:var(--muted);border:1px solid var(--border)}',
+      /* Badge système (mensiversaire non modifiable) */
+      '.evt-card-system{border-left:3px solid #e75a7c;}',
+      '.evt-card-system .evt-card-title::after{content:" 🔒";font-size:11px;color:var(--muted);}',
       '.evt-add-btn{width:100%;padding:13px;border-radius:14px;border:2px dashed var(--border);background:transparent;color:var(--muted);font-size:14px;cursor:pointer;font-weight:600;margin-top:6px;box-sizing:border-box;display:block}',
       '.evt-sec{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 8px}',
       '.evt-form-wrap{background:var(--s2);border-radius:14px;padding:16px;margin-top:8px}',
@@ -319,36 +488,41 @@
       '.evt-del-btn{width:100%;padding:12px;border-radius:14px;border:1px solid #e75a7c;background:transparent;color:#e75a7c;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;box-sizing:border-box;display:block}',
       '.evt-empty{text-align:center;color:var(--muted);font-size:13px;padding:24px 0}',
       '.evt-bubble-card{background:var(--s2);border-radius:14px;padding:14px 16px;margin-bottom:8px}',
-      '.evt-back{display:flex;align-items:center;gap:8px;margin-bottom:16px;cursor:pointer;color:var(--accent);font-size:14px;font-weight:600}'
+      '.evt-back{display:flex;align-items:center;gap:8px;margin-bottom:16px;cursor:pointer;color:var(--accent);font-size:14px;font-weight:600}',
+      /* Notice event système non modifiable */
+      '.evt-system-notice{background:rgba(231,90,124,.1);border:1px solid rgba(231,90,124,.25);border-radius:10px;padding:10px 14px;',
+      'font-size:12px;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:8px;}',
     ].join('\n');
     document.head.appendChild(s);
   }
 
+  // ── Vérifier si un event est le mensiversaire système (non modifiable) ──
+  function _isSystemAnniv(ev) {
+    return ev && ev.type === 'anniversary' &&
+      (ev.notes === 'Date de début du couple' || ev.title.indexOf('Mensiversaire') !== -1);
+  }
+
   // ═══════════════════════════════════════════════════════════
-  // 10. MODAL — injection + délégation d'événements (CSP-safe)
+  // 11. MODAL — injection + délégation d'événements (CSP-safe)
   // ═══════════════════════════════════════════════════════════
   var _editingId = null;
 
   function _injectModal() {
     if (document.getElementById('eventsModal')) return;
     _injectStyles();
+    _injectOverlayStyles();
 
     var modal = document.createElement('div'); modal.id = 'eventsModal';
-    // Sheet
     var sheet = document.createElement('div'); sheet.id = 'eventsSheet';
-    // Header
     var hdr = document.createElement('div'); hdr.className = 'evt-hdr';
     var hdrTitle = document.createElement('div'); hdrTitle.className = 'evt-hdr-title'; hdrTitle.textContent = '📅 Événements';
     var closeBtn = document.createElement('button'); closeBtn.className = 'evt-close-btn'; closeBtn.textContent = '✕';
     closeBtn.addEventListener('click', function() { _closeModal(); });
     hdr.appendChild(hdrTitle); hdr.appendChild(closeBtn);
-    // Body
     var body = document.createElement('div'); body.id = 'eventsModalBody'; body.className = 'evt-body';
     sheet.appendChild(hdr); sheet.appendChild(body);
     modal.appendChild(sheet);
     document.body.appendChild(modal);
-
-    // Fermer en cliquant dehors
     modal.addEventListener('click', function(e) { if (e.target === modal) _closeModal(); });
   }
 
@@ -387,7 +561,7 @@
   function _buildList(events, body) {
     body.innerHTML = '';
 
-    // Toggle bulle vidéo — état depuis window._storyBubbleEnabled (chargé depuis photo_descs)
+    // Toggle bulle vidéo
     var bubbleOn = !!window._storyBubbleEnabled;
     var bubbleCard = document.createElement('div'); bubbleCard.className = 'evt-bubble-card';
     var bubbleRow = document.createElement('div'); bubbleRow.className = 'evt-toggle-row'; bubbleRow.style.cssText = 'border:none;padding:0;margin:0';
@@ -421,7 +595,6 @@
       upcoming.forEach(function(ev) { body.appendChild(_buildCard(ev)); });
     }
 
-    // Section "Passés" (non récurrents)
     var pastNR = past.filter(function(ev) { return !ev.is_recurring; });
     if (pastNR.length) {
       var secPast = document.createElement('div'); secPast.className = 'evt-sec'; secPast.textContent = 'Passés';
@@ -429,7 +602,6 @@
       pastNR.forEach(function(ev) { var c = _buildCard(ev); c.style.opacity = '0.5'; body.appendChild(c); });
     }
 
-    // Bouton ajouter
     var addBtn = document.createElement('button'); addBtn.className = 'evt-add-btn'; addBtn.textContent = '+ Ajouter un événement';
     addBtn.addEventListener('click', function() { _openForm(null); });
     body.appendChild(addBtn);
@@ -437,28 +609,47 @@
 
   function _buildCard(ev) {
     var card = document.createElement('div'); card.className = 'evt-card';
+    var isSystem = _isSystemAnniv(ev);
+    if (isSystem) card.classList.add('evt-card-system');
+
     var emojiEl = document.createElement('div'); emojiEl.className = 'evt-card-emoji'; emojiEl.textContent = ev.emoji || '📅';
     var info = document.createElement('div'); info.className = 'evt-card-info';
     var title = document.createElement('div'); title.className = 'evt-card-title'; title.textContent = ev.title;
+
+    // Afficher le nombre de mois/ans pour le mensiversaire
+    if (isSystem) {
+      var months = _monthsSince(ev.date);
+      if (months >= 1) {
+        var countStr = months % 12 === 0
+          ? (months/12) + ' an' + (months/12 > 1 ? 's' : '')
+          : months + ' mois';
+        title.textContent = ev.title + ' · ' + countStr;
+      }
+    }
+
     var meta = document.createElement('div'); meta.className = 'evt-card-meta';
     var dl = new Date((ev._nd || ev.date)+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
     if (ev.is_recurring) dl += ' (annuel)';
-    meta.textContent = dl + (ev.notes ? ' · ' + ev.notes.substring(0,30) : '');
+    meta.textContent = dl + (ev.notes && !isSystem ? ' · ' + ev.notes.substring(0,30) : '');
     info.appendChild(title); info.appendChild(meta);
+
     var cd = document.createElement('div'); cd.className = 'evt-card-cd';
     var du = typeof ev._du !== 'undefined' ? ev._du : _daysUntil(ev._nd || ev.date);
     if (du === 0)      { cd.textContent = '🎉 Aujourd\'hui'; cd.classList.add('evt-cd-today'); }
     else if (du === 1) { cd.textContent = 'Demain';          cd.classList.add('evt-cd-soon'); }
     else if (du <= 3)  { cd.textContent = 'Dans ' + du + ' j.'; cd.classList.add('evt-cd-soon'); }
     else               { cd.textContent = 'Dans ' + du + ' j.'; cd.classList.add('evt-cd-normal'); }
+
     card.appendChild(emojiEl); card.appendChild(info); card.appendChild(cd);
-    card.addEventListener('click', function() { _openForm(ev.id); });
+
+    // Event système : pas d'ouverture du formulaire d'édition
+    if (!isSystem) {
+      card.addEventListener('click', function() { _openForm(ev.id); });
+    }
     return card;
   }
 
   // ── Toggle bulle vidéo ────────────────────────────────────
-  // Stocké dans photo_descs (category='settings', slot='story_bubble')
-  // Jamais dans couple_events pour éviter les notifications parasites
   var SB_PD = SB_URL + '/rest/v1/photo_descs';
 
   function _getBubbleSetting(coupleId, cb) {
@@ -499,14 +690,19 @@
     _editingId = id;
     var body = document.getElementById('eventsModalBody'); if (!body) return;
     var ev = id ? _eventsCache.filter(function(e) { return e.id === id; })[0] : null;
+
+    // Bloquer l'édition de l'event mensiversaire système
+    if (ev && _isSystemAnniv(ev)) {
+      _toast('Le mensiversaire se met à jour automatiquement depuis la date de votre couple 🩷', 'info');
+      return;
+    }
+
     body.innerHTML = '';
 
-    // Bouton retour
     var backBtn = document.createElement('div'); backBtn.className = 'evt-back'; backBtn.textContent = '← ' + (ev ? 'Modifier' : 'Nouvel événement');
     backBtn.addEventListener('click', function() { _editingId = null; _renderList(); });
     body.appendChild(backBtn);
 
-    // Formulaire
     var form = document.createElement('div'); form.className = 'evt-form-wrap';
 
     function _field(labelText, inputEl) {
@@ -531,7 +727,7 @@
     var colType = document.createElement('div');
     var lblType = document.createElement('label'); lblType.className = 'evt-lbl'; lblType.textContent = 'Type';
     var selType = document.createElement('select'); selType.id = 'evtFType'; selType.className = 'evt-inp';
-    [['anniversary','Anniversaire'],['birthday','Fête'],['trip','Voyage'],['other','Autre']].forEach(function(t) {
+    [['anniversary','Anniversaire 🎂'],['birthday','Fête 🎉'],['trip','Voyage ✈️'],['other','Autre 📅']].forEach(function(t) {
       var opt = document.createElement('option'); opt.value = t[0]; opt.textContent = t[1];
       if (ev && ev.type === t[0]) opt.selected = true;
       selType.appendChild(opt);
@@ -640,18 +836,16 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 11. INIT
+  // 12. INIT
   // ═══════════════════════════════════════════════════════════
   function _init() {
     var coupleId = _cid(); if (!coupleId) return;
     _migrateAnniv(coupleId);
     _loadEvents();
-    // Brancher le bouton Events (CSP-safe via addEventListener)
     setTimeout(function() {
       document.querySelectorAll('.home-feat-btn').forEach(function(b) {
         if (b.textContent.includes('Events')) {
           b.style.cursor = 'pointer'; b.removeAttribute('title');
-          // Éviter de doubler le listener
           if (!b._evtBound) {
             b._evtBound = true;
             b.addEventListener('click', function() { window.openEventsModal(); });
