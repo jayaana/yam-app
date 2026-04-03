@@ -2425,9 +2425,12 @@ document.addEventListener('yam:session_ready',function(){
           '<div style="flex:1;"><div style="font-size:14px;color:var(--text);'+(item.done?'text-decoration:line-through;opacity:0.5;':'')+'">' +escHtml(item.text)+'</div>'+_cbViewHtml+'</div>';
         (function(it, r){
           r.querySelector('.todo-check').addEventListener('click', function(){
+            var _p = {done: !it.done};
+            if (!it.done) _p.checked_by = (typeof yamGetPseudo === 'function') ? yamGetPseudo() : null;
+            else _p.checked_by = null;
             fetch(SB_URL+'/rest/v1/memo_todos?id=eq.'+it.id+'&couple_id=eq.'+coupleId,{
               method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),
-              body:JSON.stringify({done:!it.done})
+              body:JSON.stringify(_p)
             }).then(function(){ _loadTodoView(); _renderTodoPreview(); });
           });
         })(item, row);
