@@ -512,7 +512,7 @@
       '.evt-toggle.on{background:#e75a7c}',
       '.evt-toggle::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}',
       '.evt-toggle.on::after{transform:translateX(18px)}',
-      '.evt-save-btn{width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#e75a7c,#9b59b6);color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-top:14px;box-sizing:border-box;display:block}',
+      '.evt-save-btn{width:100%;padding:14px;border-radius:14px;border:none;background:#e75a7c;color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-top:14px;box-sizing:border-box;display:block}',
       '.evt-save-btn:disabled{opacity:.5}',
       '.evt-del-btn{width:100%;padding:12px;border-radius:14px;border:1px solid #e75a7c;background:transparent;color:#e75a7c;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;box-sizing:border-box;display:block}',
       '.evt-empty{text-align:center;color:var(--muted);font-size:13px;padding:24px 0}',
@@ -816,7 +816,7 @@
     body.appendChild(form);
 
     // Sauvegarder
-    var saveBtn = document.createElement('button'); saveBtn.className = 'evt-save-btn'; saveBtn.id = 'evtSaveBtn'; saveBtn.textContent = '💾 Sauvegarder';
+    var saveBtn = document.createElement('button'); saveBtn.className = 'evt-save-btn'; saveBtn.id = 'evtSaveBtn'; saveBtn.textContent = 'Sauvegarder';
     saveBtn.addEventListener('click', _saveEvent);
     body.appendChild(saveBtn);
 
@@ -856,7 +856,7 @@
       _editingId = null; _loadEvents(); _renderList();
     }).catch(function() {
       _toast('Erreur de sauvegarde', 'error');
-      if (btn) { btn.disabled = false; btn.textContent = '💾 Sauvegarder'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Sauvegarder'; }
     });
   }
 
