@@ -189,13 +189,16 @@
     events.forEach(function(ev) {
       var nd = ev.is_recurring ? _nextOccurrence(ev.date) : ev.date;
       var days = _daysUntil(nd);
-      if (days >= 0 && days <= 3 && (!soonest || days < soonest.days)) soonest = { days: days };
+      if (days >= 0 && days <= 3 && (!soonest || days < soonest.days)) {
+        var cfg = _eventTypeConfig[ev.type] || _eventTypeConfig.other;
+        soonest = { days: days, icon: ev.emoji || cfg.icon };
+      }
     });
     var old = btn.querySelector('.evt-alert-badge'); if (old) old.remove();
     if (!soonest) return;
     var badge = document.createElement('span');
     badge.className   = 'evt-alert-badge';
-    badge.textContent = soonest.days === 0 ? '🎉' : 'J-' + soonest.days;
+    badge.textContent = soonest.days === 0 ? soonest.icon : 'J-' + soonest.days;
     var urgent = soonest.days <= 1;
     badge.style.cssText = 'position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;padding:0 5px;'
       + 'border-radius:10px;font-size:10px;font-weight:800;background:' + (urgent ? '#e75a7c' : '#f5a623') + ';'
@@ -210,15 +213,31 @@
   var _eventsCache = [];
 
   function _checkTodayEvents() {
+    var todayEvents = [];
     _eventsCache.forEach(function(ev) {
       var nd = ev.is_recurring ? _nextOccurrence(ev.date) : ev.date;
       if (_daysUntil(nd) !== 0) return;
+      todayEvents.push(ev);
+    });
+    if (!todayEvents.length) return;
+
+    // Prioriser les events non-anniversary (voyage, autre, birthday...)
+    // Si le seul event du jour est le mensiversaire auto, on l'affiche quand même
+    var nonAnniv = todayEvents.filter(function(ev) { return ev.type !== 'anniversary'; });
+    var toShow = nonAnniv.length ? nonAnniv : todayEvents;
+
+    toShow.forEach(function(ev) {
       var label = ev.emoji + ' ' + ev.title;
       if (ev.type === 'anniversary') {
         var months = _monthsSince(ev.date);
         if (months < 1) return;
-        if (months % 12 === 0) { var y = months/12; label = 'Ça fait ' + y + ' an' + (y > 1 ? 's' : '') + ' qu\'on s\'aime 🩷'; }
-        else label = 'Ça fait maintenant ' + months + ' mois qu\'on s\'aime 🩷';
+        var isMensiv = (ev.title === 'Mensiversaire \uD83E\uDE77' || ev.notes === 'Date de d\u00e9but du couple');
+        if (isMensiv) {
+          if (months % 12 === 0) { var y = months/12; label = ev.emoji + ' \u00c7a fait ' + y + ' an' + (y > 1 ? 's' : '') + ' qu\'on s\'aime \uD83E\uDE77'; }
+          else label = ev.emoji + ' \u00c7a fait maintenant ' + months + ' mois qu\'on s\'aime \uD83E\uDE77';
+        } else {
+          label = ev.emoji + ' ' + ev.title;
+        }
       }
       _showEventBanner(label, ev.type);
     });
