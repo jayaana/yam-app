@@ -19,7 +19,7 @@
     return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2);
   }
   function _daysUntil(dateStr) {
-    var t = new Date(); var today = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    var t = new Date(); var today = new Date(t.getFullYear(), t.getMonth(), t.getDate(), 12, 0, 0);
     var target = new Date(dateStr + 'T12:00:00');
     return Math.round((target - today) / (1000 * 60 * 60 * 24));
   }
