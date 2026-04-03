@@ -2280,7 +2280,7 @@ document.addEventListener('yam:session_ready',function(){
     var d=new Date(modDate);
     var dateEl=document.getElementById('memoNoteDate');
     var isUpd=note.updated_at&&note.updated_at!==note.created_at;
-    if(dateEl) dateEl.textContent=(isUpd?'Modifié ':'Créé ')+d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    if(dateEl) dateEl.textContent=(isUpd?'Modifié ':'Créé ')+d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+(isUpd&&note.updated_by?' par '+note.updated_by:'');
   };
   window._memoTodosApply = function(items) {
     var container=document.getElementById('memoTodoPreview'); if(!container) return;
@@ -2314,7 +2314,7 @@ document.addEventListener('yam:session_ready',function(){
       var d = new Date(modDate);
       var dateEl = document.getElementById('memoNoteDate');
       var isUpd = note.updated_at&&note.updated_at!==note.created_at;
-      if(dateEl) dateEl.textContent = (isUpd?'Modifié ':'Créé ')+d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      if(dateEl) dateEl.textContent = (isUpd?'Modifié ':'Créé ')+d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+(isUpd&&note.updated_by?' par '+note.updated_by:'');
     }).catch(function(){});
   }
 
@@ -2361,7 +2361,7 @@ document.addEventListener('yam:session_ready',function(){
       if(dateEl&&(note.updated_at||note.created_at)){
         var d=new Date(note.updated_at||note.created_at);
         var isUpd=note.updated_at&&note.updated_at!==note.created_at;
-        dateEl.textContent=(isUpd?'Modifié ':'Créé ')+d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+        dateEl.textContent=(isUpd?'Modifié ':'Créé ')+d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+(isUpd&&note.updated_by?' par '+note.updated_by:'');
       }
     }).catch(function(){ if(txtEl) txtEl.textContent='Erreur de chargement.'; });
   };
@@ -2473,7 +2473,7 @@ document.addEventListener('yam:session_ready',function(){
       if(dateEl&&note){
         var d=new Date(note.updated_at||note.created_at);
         var isUpd=note.updated_at&&note.updated_at!==note.created_at;
-        dateEl.textContent=(isUpd?'Modifié ':'Créé ')+d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+        dateEl.textContent=(isUpd?'Modifié ':'Créé ')+d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+(isUpd&&note.updated_by?' par '+note.updated_by:'');
       } else if(dateEl){ dateEl.textContent=''; }
     }).catch(function(){});
   }
@@ -2494,7 +2494,7 @@ document.addEventListener('yam:session_ready',function(){
       if(typeof showToast === 'function') showToast('Note sauvegardée ✓', 'success', 2000);
     };
     if(_currentNoteId){
-      fetch(SB_URL+'/rest/v1/memo_notes?id=eq.'+_currentNoteId+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({text:txt,title:ttl,updated_at:new Date().toISOString()})}).then(done).catch(done);
+      fetch(SB_URL+'/rest/v1/memo_notes?id=eq.'+_currentNoteId+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({text:txt,title:ttl,updated_at:new Date().toISOString(),updated_by:(typeof yamGetPseudo==='function'?yamGetPseudo():null)})}).then(done).catch(done);
     } else {
       if(!txt) return done();
       fetch(SB_URL+'/rest/v1/memo_notes',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,text:txt,title:ttl})}).then(function(){ _loadMemoNoteForEdit(); done(); }).catch(done);
