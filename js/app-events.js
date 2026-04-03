@@ -1,55 +1,44 @@
 // ═══════════════════════════════════════════════════════════
 // app-events.js — Système événements couple v2
-// Tâches #10 + #37
-// • Remplace le hardcode anniversaire mensuel du 29
-// • Bannière uniquement sur l'onglet Accueil
-// • Modal CRUD couple_events (create/edit/delete)
-// • Badge clignotant J-3/J-1/J-0 sur l'icône Events
-// • Push yamPushNotify() J-3, J-1, J-0
-// • Bulle vidéo horaire activable/désactivable par event
-// • Migration automatique de l'anniversaire mensuel
+// Tâches #10 + #37 — 100% CSP-compliant (zéro onclick inline)
 // ═══════════════════════════════════════════════════════════
 
 (function () {
   'use strict';
 
-  // ── Constantes ────────────────────────────────────────────
   var SB2         = SB_URL + '/rest/v1/couple_events';
   var PUSH_KEY    = 'yam_events_push_';
   var MIGRATE_KEY = 'yam_anniv_migrated_';
 
   // ── Helpers ───────────────────────────────────────────────
-  function _user()  { return (typeof yamGetUser   === 'function') ? yamGetUser()   : null; }
+  function _user()  { return (typeof yamGetUser === 'function') ? yamGetUser() : null; }
   function _cid()   { var u = _user(); return u ? u.couple_id : null; }
 
   function _todayStr() {
     var d = new Date();
     return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2);
   }
-
   function _daysUntil(dateStr) {
     var t = new Date(); var today = new Date(t.getFullYear(), t.getMonth(), t.getDate());
     var target = new Date(dateStr + 'T12:00:00');
     return Math.round((target - today) / (1000 * 60 * 60 * 24));
   }
-
   function _nextOccurrence(dateStr) {
     var t = new Date(); var ty = t.getFullYear();
     var d = new Date(dateStr + 'T12:00:00');
     var candidate = new Date(ty, d.getMonth(), d.getDate());
-    var today     = new Date(ty, t.getMonth(), t.getDate());
+    var today = new Date(ty, t.getMonth(), t.getDate());
     if (candidate < today) candidate = new Date(ty + 1, d.getMonth(), d.getDate());
     return candidate.toISOString().slice(0, 10);
   }
-
   function _monthsSince(dateStr) {
     var start = new Date(dateStr + 'T12:00:00'), now = new Date();
     return (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
   }
-
-  function _escHtml(s) {
+  function _esc(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
+  function _toast(msg, type) { if (typeof showToast === 'function') showToast(msg, type || 'info', 2000); }
 
   // ═══════════════════════════════════════════════════════════
   // 1. CONFETTIS
@@ -98,7 +87,6 @@
     var h = document.getElementById('yamHomeTab');
     return !!(h && getComputedStyle(h).display !== 'none');
   }
-
   function _showAnnivBanner(text) {
     if (!_isHomeVisible()) return;
     document.body.classList.add('anniv-mode');
@@ -109,13 +97,11 @@
     if (sinceEl) { sinceEl.innerHTML = '🎂 ' + text; sinceEl.style.color = '#f5c518'; sinceEl.style.fontWeight = '600'; }
     _launchConfettis();
   }
-
   function _hideAnnivBanner() {
     document.body.classList.remove('anniv-mode');
     var banner = document.getElementById('annivBanner');
     if (banner) banner.classList.remove('visible');
   }
-
   document.addEventListener('yam:tab_switched', function() {
     if (!_isHomeVisible()) _hideAnnivBanner();
     else setTimeout(_checkTodayEvents, 200);
@@ -175,26 +161,22 @@
   function _updateEventsBadge(events) {
     if (!document.getElementById('evtBadgeStyle')) {
       var s = document.createElement('style'); s.id = 'evtBadgeStyle';
-      s.textContent = '@keyframes evtPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:.75}}';
+      s.textContent = '@keyframes evtPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}';
       document.head.appendChild(s);
     }
     var btn = null;
     document.querySelectorAll('.home-feat-btn').forEach(function(b) { if (b.textContent.includes('Events')) btn = b; });
     if (!btn) return;
-    btn.style.cursor = 'pointer'; btn.style.position = 'relative';
-    btn.removeAttribute('title');
-    btn.onclick = function() { window.openEventsModal(); };
+    btn.style.cursor = 'pointer'; btn.style.position = 'relative'; btn.removeAttribute('title');
 
     var soonest = null;
     events.forEach(function(ev) {
-      var nd   = ev.is_recurring ? _nextOccurrence(ev.date) : ev.date;
+      var nd = ev.is_recurring ? _nextOccurrence(ev.date) : ev.date;
       var days = _daysUntil(nd);
-      if (days >= 0 && days <= 3 && (!soonest || days < soonest.days)) soonest = { ev: ev, days: days };
+      if (days >= 0 && days <= 3 && (!soonest || days < soonest.days)) soonest = { days: days };
     });
-
     var old = btn.querySelector('.evt-alert-badge'); if (old) old.remove();
     if (!soonest) return;
-
     var badge = document.createElement('span');
     badge.className   = 'evt-alert-badge';
     badge.textContent = soonest.days === 0 ? '🎉' : 'J-' + soonest.days;
@@ -213,14 +195,13 @@
 
   function _checkTodayEvents() {
     _eventsCache.forEach(function(ev) {
-      var nd   = ev.is_recurring ? _nextOccurrence(ev.date) : ev.date;
-      var days = _daysUntil(nd);
-      if (days !== 0) return;
+      var nd = ev.is_recurring ? _nextOccurrence(ev.date) : ev.date;
+      if (_daysUntil(nd) !== 0) return;
       var label = ev.emoji + ' ' + ev.title;
       if (ev.type === 'anniversary') {
         var months = _monthsSince(ev.date);
         if (months < 1) return;
-        if (months % 12 === 0) { var y = months/12; label = 'Ça fait ' + y + ' an' + (y>1?'s':'') + ' qu\'on s\'aime 🩷'; }
+        if (months % 12 === 0) { var y = months/12; label = 'Ça fait ' + y + ' an' + (y > 1 ? 's' : '') + ' qu\'on s\'aime 🩷'; }
         else label = 'Ça fait maintenant ' + months + ' mois qu\'on s\'aime 🩷';
       }
       _showAnnivBanner(label);
@@ -228,7 +209,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 7. CHARGEMENT DES EVENTS
+  // 7. CHARGEMENT
   // ═══════════════════════════════════════════════════════════
   function _loadEvents() {
     var coupleId = _cid(); if (!coupleId) return;
@@ -244,7 +225,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 8. BULLE VIDÉO — toggle via couple_events
+  // 8. BULLE VIDÉO
   // ═══════════════════════════════════════════════════════════
   function _syncStoryBubble(events) {
     window._storyBubbleEnabled = events.some(function(ev) { return ev.story_bubble_enabled; });
@@ -254,7 +235,7 @@
   // ═══════════════════════════════════════════════════════════
   // 9. STYLES MODAL
   // ═══════════════════════════════════════════════════════════
-  function _injectModalStyles() {
+  function _injectStyles() {
     if (document.getElementById('eventsModalStyle')) return;
     var s = document.createElement('style'); s.id = 'eventsModalStyle';
     s.textContent = [
@@ -270,81 +251,115 @@
       '.evt-card-info{flex:1;min-width:0}',
       '.evt-card-title{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
       '.evt-card-meta{font-size:12px;color:var(--muted);margin-top:2px}',
-      '.evt-card-countdown{font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;flex-shrink:0;white-space:nowrap}',
-      '.evt-countdown-today{background:#fef3c7;color:#d97706}',
-      '.evt-countdown-soon{background:#fce7f3;color:#be185d}',
-      '.evt-countdown-normal{background:var(--s2);color:var(--muted);border:1px solid var(--border)}',
-      '.evt-add-btn{width:100%;padding:13px;border-radius:14px;border:2px dashed var(--border);background:transparent;color:var(--muted);font-size:14px;cursor:pointer;font-weight:600;margin-top:6px;box-sizing:border-box}',
-      '.evt-section-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 8px}',
-      '.evt-form{background:var(--s2);border-radius:14px;padding:16px;margin-top:8px}',
-      '.evt-form label{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;margin-top:12px}',
-      '.evt-form label:first-of-type{margin-top:0}',
-      '.evt-form input[type=text],.evt-form input[type=date],.evt-form select,.evt-form textarea{width:100%;background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--text);box-sizing:border-box;font-family:inherit;-webkit-appearance:none}',
-      '.evt-form textarea{resize:vertical;min-height:60px}',
-      '.evt-form-row{display:flex;gap:10px}',
-      '.evt-form-row>div{flex:1;min-width:0}',
+      '.evt-card-cd{font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;flex-shrink:0;white-space:nowrap}',
+      '.evt-cd-today{background:#fef3c7;color:#d97706}',
+      '.evt-cd-soon{background:#fce7f3;color:#be185d}',
+      '.evt-cd-normal{background:var(--s1);color:var(--muted);border:1px solid var(--border)}',
+      '.evt-add-btn{width:100%;padding:13px;border-radius:14px;border:2px dashed var(--border);background:transparent;color:var(--muted);font-size:14px;cursor:pointer;font-weight:600;margin-top:6px;box-sizing:border-box;display:block}',
+      '.evt-sec{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 8px}',
+      '.evt-form-wrap{background:var(--s2);border-radius:14px;padding:16px;margin-top:8px}',
+      '.evt-lbl{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;margin-top:12px}',
+      '.evt-lbl:first-of-type{margin-top:0}',
+      '.evt-inp{width:100%;background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--text);box-sizing:border-box;font-family:inherit;-webkit-appearance:none;display:block}',
+      '.evt-textarea{resize:vertical;min-height:60px}',
+      '.evt-row{display:flex;gap:10px}',
+      '.evt-row>div{flex:1;min-width:0}',
       '.evt-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--border);margin-top:12px;gap:12px}',
       '.evt-toggle-lbl{font-size:13px;color:var(--text);font-weight:500}',
       '.evt-toggle-sub{font-size:11px;color:var(--muted);margin-top:2px}',
-      '.evt-toggle{width:44px;height:26px;background:var(--border);border-radius:13px;position:relative;cursor:pointer;border:none;flex-shrink:0;transition:background .2s;-webkit-appearance:none}',
+      '.evt-toggle{width:44px;height:26px;background:var(--border);border-radius:13px;position:relative;cursor:pointer;border:none;flex-shrink:0;transition:background .2s}',
       '.evt-toggle.on{background:#e75a7c}',
       '.evt-toggle::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}',
       '.evt-toggle.on::after{transform:translateX(18px)}',
-      '.evt-save-btn{width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#e75a7c,#9b59b6);color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-top:14px;box-sizing:border-box}',
+      '.evt-save-btn{width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#e75a7c,#9b59b6);color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-top:14px;box-sizing:border-box;display:block}',
       '.evt-save-btn:disabled{opacity:.5}',
-      '.evt-del-btn{width:100%;padding:12px;border-radius:14px;border:1px solid #e75a7c;background:transparent;color:#e75a7c;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;box-sizing:border-box}',
+      '.evt-del-btn{width:100%;padding:12px;border-radius:14px;border:1px solid #e75a7c;background:transparent;color:#e75a7c;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;box-sizing:border-box;display:block}',
       '.evt-empty{text-align:center;color:var(--muted);font-size:13px;padding:24px 0}',
       '.evt-bubble-card{background:var(--s2);border-radius:14px;padding:14px 16px;margin-bottom:8px}',
-      '.evt-back-btn{display:flex;align-items:center;gap:8px;margin-bottom:16px;cursor:pointer;color:var(--accent);font-size:14px;font-weight:600}'
+      '.evt-back{display:flex;align-items:center;gap:8px;margin-bottom:16px;cursor:pointer;color:var(--accent);font-size:14px;font-weight:600}'
     ].join('\n');
     document.head.appendChild(s);
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 10. MODAL CRUD EVENTS
+  // 10. MODAL — injection + délégation d'événements (CSP-safe)
   // ═══════════════════════════════════════════════════════════
-  var _editingEventId = null;
+  var _editingId = null;
 
   function _injectModal() {
     if (document.getElementById('eventsModal')) return;
-    _injectModalStyles();
+    _injectStyles();
+
     var modal = document.createElement('div'); modal.id = 'eventsModal';
-    modal.innerHTML = '<div id="eventsSheet">'
-      + '<div class="evt-hdr"><div class="evt-hdr-title">📅 Événements</div>'
-      + '<button class="evt-close-btn" onclick="window.closeEventsModal()">✕</button></div>'
-      + '<div class="evt-body" id="eventsModalBody"></div></div>';
+    // Sheet
+    var sheet = document.createElement('div'); sheet.id = 'eventsSheet';
+    // Header
+    var hdr = document.createElement('div'); hdr.className = 'evt-hdr';
+    var hdrTitle = document.createElement('div'); hdrTitle.className = 'evt-hdr-title'; hdrTitle.textContent = '📅 Événements';
+    var closeBtn = document.createElement('button'); closeBtn.className = 'evt-close-btn'; closeBtn.textContent = '✕';
+    closeBtn.addEventListener('click', function() { _closeModal(); });
+    hdr.appendChild(hdrTitle); hdr.appendChild(closeBtn);
+    // Body
+    var body = document.createElement('div'); body.id = 'eventsModalBody'; body.className = 'evt-body';
+    sheet.appendChild(hdr); sheet.appendChild(body);
+    modal.appendChild(sheet);
     document.body.appendChild(modal);
-    modal.addEventListener('click', function(e) { if (e.target === modal) window.closeEventsModal(); });
+
+    // Fermer en cliquant dehors
+    modal.addEventListener('click', function(e) { if (e.target === modal) _closeModal(); });
+  }
+
+  function _closeModal() {
+    var m = document.getElementById('eventsModal'); if (m) m.style.display = 'none';
+    _editingId = null;
   }
 
   window.openEventsModal = function() {
     _injectModal();
     document.getElementById('eventsModal').style.display = 'flex';
-    _renderModalList();
+    _renderList();
   };
+  window.closeEventsModal = _closeModal;
 
-  window.closeEventsModal = function() {
-    var m = document.getElementById('eventsModal'); if (m) m.style.display = 'none';
-    _editingEventId = null;
-  };
-
-  function _renderModalList() {
+  // ── Rendu liste ───────────────────────────────────────────
+  function _renderList() {
     var body = document.getElementById('eventsModalBody'); if (!body) return;
-    body.innerHTML = '<div class="evt-empty">Chargement...</div>';
+    body.innerHTML = '';
+    var loading = document.createElement('div'); loading.className = 'evt-empty'; loading.textContent = 'Chargement...';
+    body.appendChild(loading);
     var coupleId = _cid();
-    if (!coupleId) { body.innerHTML = '<p class="evt-empty">Connecte-toi pour gérer tes événements.</p>'; return; }
+    if (!coupleId) { body.innerHTML = ''; var p = document.createElement('p'); p.className = 'evt-empty'; p.textContent = 'Connecte-toi pour gérer tes événements.'; body.appendChild(p); return; }
+
     fetch(SB2 + '?couple_id=eq.' + coupleId + '&order=date.asc', { headers: sb2Headers() })
     .then(function(r) { return r.ok ? r.json() : []; })
     .then(function(events) {
       _eventsCache = Array.isArray(events) ? events : [];
       _updateEventsBadge(_eventsCache);
       _syncStoryBubble(_eventsCache);
-      _buildModalList(_eventsCache, body);
+      _buildList(_eventsCache, body);
     })
-    .catch(function() { body.innerHTML = '<p style="color:#e05555;text-align:center">Erreur de chargement</p>'; });
+    .catch(function() { body.innerHTML = ''; var p = document.createElement('p'); p.style.color='#e05555'; p.style.textAlign='center'; p.textContent='Erreur de chargement'; body.appendChild(p); });
   }
 
-  function _buildModalList(events, body) {
+  function _buildList(events, body) {
+    body.innerHTML = '';
+
+    // Toggle bulle vidéo
+    var bubbleOn = events.some(function(ev) { return ev.story_bubble_enabled; });
+    var bubbleCard = document.createElement('div'); bubbleCard.className = 'evt-bubble-card';
+    var bubbleRow = document.createElement('div'); bubbleRow.className = 'evt-toggle-row'; bubbleRow.style.cssText = 'border:none;padding:0;margin:0';
+    var bubbleLeft = document.createElement('div');
+    var bubbleLbl = document.createElement('div'); bubbleLbl.className = 'evt-toggle-lbl'; bubbleLbl.textContent = '🎬 Bulle vidéo horaire';
+    var bubbleSub = document.createElement('div'); bubbleSub.className = 'evt-toggle-sub'; bubbleSub.textContent = 'Les 10 dernières min de chaque heure';
+    bubbleLeft.appendChild(bubbleLbl); bubbleLeft.appendChild(bubbleSub);
+    var bubbleToggle = document.createElement('button'); bubbleToggle.className = 'evt-toggle' + (bubbleOn ? ' on' : '');
+    bubbleToggle.id = 'evtBubbleToggle';
+    bubbleToggle.addEventListener('click', function() { _toggleBubble(this); });
+    bubbleRow.appendChild(bubbleLeft); bubbleRow.appendChild(bubbleToggle);
+    bubbleCard.appendChild(bubbleRow);
+    body.appendChild(bubbleCard);
+
+    // Section "À venir"
     var upcoming = [], past = [];
     events.forEach(function(ev) {
       var nd = ev.is_recurring ? _nextOccurrence(ev.date) : ev.date;
@@ -353,52 +368,53 @@
     });
     upcoming.sort(function(a, b) { return a._du - b._du; });
 
-    var html = '';
+    var secUp = document.createElement('div'); secUp.className = 'evt-sec'; secUp.textContent = 'À venir';
+    body.appendChild(secUp);
 
-    // Toggle bulle vidéo
-    var bubbleOn = events.some(function(ev) { return ev.story_bubble_enabled; });
-    html += '<div class="evt-bubble-card"><div class="evt-toggle-row" style="border:none;padding:0;margin:0">'
-      + '<div><div class="evt-toggle-lbl">🎬 Bulle vidéo horaire</div>'
-      + '<div class="evt-toggle-sub">Les 10 dernières min de chaque heure</div></div>'
-      + '<button class="evt-toggle' + (bubbleOn ? ' on' : '') + '" id="evtBubbleToggle" onclick="window._evtToggleBubble(this)"></button>'
-      + '</div></div>';
-
-    // Prochains
-    html += '<div class="evt-section-title">À venir</div>';
     if (!upcoming.length) {
-      html += '<div class="evt-empty">Aucun événement à venir</div>';
+      var empty = document.createElement('div'); empty.className = 'evt-empty'; empty.textContent = 'Aucun événement à venir';
+      body.appendChild(empty);
     } else {
-      upcoming.forEach(function(ev) {
-        var cls   = ev._du === 0 ? 'evt-countdown-today' : ev._du <= 3 ? 'evt-countdown-soon' : 'evt-countdown-normal';
-        var label = ev._du === 0 ? '🎉 Aujourd\'hui' : ev._du === 1 ? 'Demain' : 'Dans ' + ev._du + ' j.';
-        var dl    = new Date(ev._nd+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long'}) + (ev.is_recurring ? ' (annuel)' : '');
-        html += '<div class="evt-card" onclick="window._evtOpenForm(\'' + ev.id + '\')">'
-          + '<div class="evt-card-emoji">' + _escHtml(ev.emoji||'📅') + '</div>'
-          + '<div class="evt-card-info"><div class="evt-card-title">' + _escHtml(ev.title) + '</div>'
-          + '<div class="evt-card-meta">' + _escHtml(dl) + (ev.notes ? ' · ' + _escHtml(ev.notes.substring(0,30)) : '') + '</div></div>'
-          + '<div class="evt-card-countdown ' + cls + '">' + label + '</div></div>';
-      });
+      upcoming.forEach(function(ev) { body.appendChild(_buildCard(ev)); });
     }
 
-    // Passés (non récurrents)
+    // Section "Passés" (non récurrents)
     var pastNR = past.filter(function(ev) { return !ev.is_recurring; });
     if (pastNR.length) {
-      html += '<div class="evt-section-title">Passés</div>';
-      pastNR.forEach(function(ev) {
-        var dl = new Date(ev.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
-        html += '<div class="evt-card" style="opacity:.5" onclick="window._evtOpenForm(\'' + ev.id + '\')">'
-          + '<div class="evt-card-emoji">' + _escHtml(ev.emoji||'📅') + '</div>'
-          + '<div class="evt-card-info"><div class="evt-card-title">' + _escHtml(ev.title) + '</div>'
-          + '<div class="evt-card-meta">' + _escHtml(dl) + '</div></div></div>';
-      });
+      var secPast = document.createElement('div'); secPast.className = 'evt-sec'; secPast.textContent = 'Passés';
+      body.appendChild(secPast);
+      pastNR.forEach(function(ev) { var c = _buildCard(ev); c.style.opacity = '0.5'; body.appendChild(c); });
     }
 
-    html += '<button class="evt-add-btn" onclick="window._evtOpenForm(null)">+ Ajouter un événement</button>';
-    body.innerHTML = html;
+    // Bouton ajouter
+    var addBtn = document.createElement('button'); addBtn.className = 'evt-add-btn'; addBtn.textContent = '+ Ajouter un événement';
+    addBtn.addEventListener('click', function() { _openForm(null); });
+    body.appendChild(addBtn);
+  }
+
+  function _buildCard(ev) {
+    var card = document.createElement('div'); card.className = 'evt-card';
+    var emojiEl = document.createElement('div'); emojiEl.className = 'evt-card-emoji'; emojiEl.textContent = ev.emoji || '📅';
+    var info = document.createElement('div'); info.className = 'evt-card-info';
+    var title = document.createElement('div'); title.className = 'evt-card-title'; title.textContent = ev.title;
+    var meta = document.createElement('div'); meta.className = 'evt-card-meta';
+    var dl = new Date((ev._nd || ev.date)+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
+    if (ev.is_recurring) dl += ' (annuel)';
+    meta.textContent = dl + (ev.notes ? ' · ' + ev.notes.substring(0,30) : '');
+    info.appendChild(title); info.appendChild(meta);
+    var cd = document.createElement('div'); cd.className = 'evt-card-cd';
+    var du = typeof ev._du !== 'undefined' ? ev._du : _daysUntil(ev._nd || ev.date);
+    if (du === 0)      { cd.textContent = '🎉 Aujourd\'hui'; cd.classList.add('evt-cd-today'); }
+    else if (du === 1) { cd.textContent = 'Demain';          cd.classList.add('evt-cd-soon'); }
+    else if (du <= 3)  { cd.textContent = 'Dans ' + du + ' j.'; cd.classList.add('evt-cd-soon'); }
+    else               { cd.textContent = 'Dans ' + du + ' j.'; cd.classList.add('evt-cd-normal'); }
+    card.appendChild(emojiEl); card.appendChild(info); card.appendChild(cd);
+    card.addEventListener('click', function() { _openForm(ev.id); });
+    return card;
   }
 
   // ── Toggle bulle vidéo ────────────────────────────────────
-  window._evtToggleBubble = function(btn) {
+  function _toggleBubble(btn) {
     var coupleId = _cid(); if (!coupleId) return;
     var isOn = btn.classList.contains('on');
     if (isOn) {
@@ -422,7 +438,7 @@
             date: _todayStr(), is_recurring: false, type: 'other', story_bubble_enabled: true, assigned_to: 'both' })
         }).then(function(r) { return r.json(); })
         .then(function(rows) {
-          if (rows&&rows[0]) _eventsCache.push(rows[0]);
+          if (rows && rows[0]) _eventsCache.push(rows[0]);
           btn.classList.add('on'); window._storyBubbleEnabled = true;
           if (typeof window._applyStoryState === 'function') window._applyStoryState();
         }).catch(function() {});
@@ -438,86 +454,152 @@
         }).catch(function() {});
       }
     }
-  };
+  }
 
   // ── Formulaire créer/modifier ─────────────────────────────
-  window._evtOpenForm = function(id) {
-    _editingEventId = id;
+  function _openForm(id) {
+    _editingId = id;
     var body = document.getElementById('eventsModalBody'); if (!body) return;
     var ev = id ? _eventsCache.filter(function(e) { return e.id === id; })[0] : null;
-    body.innerHTML = '<div class="evt-back-btn" onclick="window._evtBackToList()">← '
-      + (ev ? 'Modifier l\'événement' : 'Nouvel événement') + '</div>'
-      + '<div class="evt-form">'
-      + '<label>Titre</label>'
-      + '<input id="evtFTitle" type="text" placeholder="Ex : Anniversaire de Marie" maxlength="60" value="' + _escHtml(ev ? ev.title : '') + '">'
-      + '<div class="evt-form-row">'
-      + '<div><label>Emoji</label><input id="evtFEmoji" type="text" placeholder="📅" maxlength="4" value="' + _escHtml(ev ? ev.emoji : '📅') + '"></div>'
-      + '<div><label>Type</label><select id="evtFType">'
-      + [['anniversary','Anniversaire'],['birthday','Fête'],['trip','Voyage'],['other','Autre']].map(function(t) {
-          return '<option value="' + t[0] + '"' + (ev && ev.type === t[0] ? ' selected' : '') + '>' + t[1] + '</option>';
-        }).join('') + '</select></div></div>'
-      + '<label>Date</label><input id="evtFDate" type="date" value="' + _escHtml(ev ? ev.date : _todayStr()) + '">'
-      + '<div class="evt-form-row">'
-      + '<div><label>Assigné à</label><select id="evtFAssigned">'
-      + [['both','Tous les deux'],['girl','Elle'],['boy','Lui']].map(function(t) {
-          return '<option value="' + t[0] + '"' + (ev && ev.assigned_to === t[0] ? ' selected' : (!ev && t[0]==='both' ? ' selected' : '')) + '>' + t[1] + '</option>';
-        }).join('') + '</select></div>'
-      + '<div><label>Rappel</label><select id="evtFReminder">'
-      + [['0','Jour J'],['1','J-1'],['3','J-3'],['7','J-7']].map(function(t) {
-          return '<option value="' + t[0] + '"' + (ev && String(ev.days_before_reminder)===t[0] ? ' selected' : (!ev && t[0]==='1' ? ' selected' : '')) + '>' + t[1] + '</option>';
-        }).join('') + '</select></div></div>'
-      + '<label>Notes (optionnel)</label>'
-      + '<textarea id="evtFNotes" placeholder="Infos supplémentaires...">' + _escHtml(ev ? (ev.notes||'') : '') + '</textarea>'
-      + '<div class="evt-toggle-row"><div><div class="evt-toggle-lbl">Récurrent chaque année</div></div>'
-      + '<button class="evt-toggle' + (ev && ev.is_recurring ? ' on' : '') + '" id="evtFRecurring" onclick="this.classList.toggle(\'on\')"></button></div>'
-      + '</div>'
-      + '<button class="evt-save-btn" id="evtSaveBtn" onclick="window._evtSave()">💾 Sauvegarder</button>'
-      + (ev ? '<button class="evt-del-btn" onclick="window._evtDelete(\'' + ev.id + '\')">🗑 Supprimer</button>' : '');
-  };
+    body.innerHTML = '';
 
-  window._evtBackToList = function() { _renderModalList(); };
+    // Bouton retour
+    var backBtn = document.createElement('div'); backBtn.className = 'evt-back'; backBtn.textContent = '← ' + (ev ? 'Modifier' : 'Nouvel événement');
+    backBtn.addEventListener('click', function() { _editingId = null; _renderList(); });
+    body.appendChild(backBtn);
 
-  window._evtSave = function() {
+    // Formulaire
+    var form = document.createElement('div'); form.className = 'evt-form-wrap';
+
+    function _field(labelText, inputEl) {
+      var lbl = document.createElement('label'); lbl.className = 'evt-lbl'; lbl.textContent = labelText;
+      form.appendChild(lbl); form.appendChild(inputEl);
+    }
+
+    // Titre
+    var inpTitle = document.createElement('input'); inpTitle.type = 'text'; inpTitle.id = 'evtFTitle';
+    inpTitle.className = 'evt-inp'; inpTitle.placeholder = 'Ex : Anniversaire de Marie'; inpTitle.maxLength = 60;
+    inpTitle.value = ev ? ev.title : '';
+    _field('Titre', inpTitle);
+
+    // Emoji + Type
+    var row1 = document.createElement('div'); row1.className = 'evt-row';
+    var colEmoji = document.createElement('div');
+    var lblEmoji = document.createElement('label'); lblEmoji.className = 'evt-lbl'; lblEmoji.textContent = 'Emoji';
+    var inpEmoji = document.createElement('input'); inpEmoji.type = 'text'; inpEmoji.id = 'evtFEmoji';
+    inpEmoji.className = 'evt-inp'; inpEmoji.maxLength = 4; inpEmoji.value = ev ? ev.emoji : '📅';
+    colEmoji.appendChild(lblEmoji); colEmoji.appendChild(inpEmoji);
+
+    var colType = document.createElement('div');
+    var lblType = document.createElement('label'); lblType.className = 'evt-lbl'; lblType.textContent = 'Type';
+    var selType = document.createElement('select'); selType.id = 'evtFType'; selType.className = 'evt-inp';
+    [['anniversary','Anniversaire'],['birthday','Fête'],['trip','Voyage'],['other','Autre']].forEach(function(t) {
+      var opt = document.createElement('option'); opt.value = t[0]; opt.textContent = t[1];
+      if (ev && ev.type === t[0]) opt.selected = true;
+      selType.appendChild(opt);
+    });
+    colType.appendChild(lblType); colType.appendChild(selType);
+    row1.appendChild(colEmoji); row1.appendChild(colType);
+    form.appendChild(row1);
+
+    // Date
+    var inpDate = document.createElement('input'); inpDate.type = 'date'; inpDate.id = 'evtFDate';
+    inpDate.className = 'evt-inp'; inpDate.value = ev ? ev.date : _todayStr();
+    _field('Date', inpDate);
+
+    // Assigné + Rappel
+    var row2 = document.createElement('div'); row2.className = 'evt-row';
+    var colAsgn = document.createElement('div');
+    var lblAsgn = document.createElement('label'); lblAsgn.className = 'evt-lbl'; lblAsgn.textContent = 'Assigné à';
+    var selAsgn = document.createElement('select'); selAsgn.id = 'evtFAssigned'; selAsgn.className = 'evt-inp';
+    [['both','Tous les deux'],['girl','Elle'],['boy','Lui']].forEach(function(t) {
+      var opt = document.createElement('option'); opt.value = t[0]; opt.textContent = t[1];
+      if (ev ? ev.assigned_to === t[0] : t[0] === 'both') opt.selected = true;
+      selAsgn.appendChild(opt);
+    });
+    colAsgn.appendChild(lblAsgn); colAsgn.appendChild(selAsgn);
+
+    var colRem = document.createElement('div');
+    var lblRem = document.createElement('label'); lblRem.className = 'evt-lbl'; lblRem.textContent = 'Rappel';
+    var selRem = document.createElement('select'); selRem.id = 'evtFReminder'; selRem.className = 'evt-inp';
+    [['0','Jour J'],['1','J-1'],['3','J-3'],['7','J-7']].forEach(function(t) {
+      var opt = document.createElement('option'); opt.value = t[0]; opt.textContent = t[1];
+      if (ev ? String(ev.days_before_reminder) === t[0] : t[0] === '1') opt.selected = true;
+      selRem.appendChild(opt);
+    });
+    colRem.appendChild(lblRem); colRem.appendChild(selRem);
+    row2.appendChild(colAsgn); row2.appendChild(colRem);
+    form.appendChild(row2);
+
+    // Notes
+    var inpNotes = document.createElement('textarea'); inpNotes.id = 'evtFNotes';
+    inpNotes.className = 'evt-inp evt-textarea'; inpNotes.placeholder = 'Infos supplémentaires...';
+    inpNotes.value = ev ? (ev.notes || '') : '';
+    _field('Notes (optionnel)', inpNotes);
+
+    // Toggle récurrent
+    var recurRow = document.createElement('div'); recurRow.className = 'evt-toggle-row';
+    var recurLbl = document.createElement('div'); recurLbl.className = 'evt-toggle-lbl'; recurLbl.textContent = 'Récurrent chaque année';
+    var recurToggle = document.createElement('button'); recurToggle.className = 'evt-toggle' + (ev && ev.is_recurring ? ' on' : '');
+    recurToggle.id = 'evtFRecurring';
+    recurToggle.addEventListener('click', function() { this.classList.toggle('on'); });
+    recurRow.appendChild(recurLbl); recurRow.appendChild(recurToggle);
+    form.appendChild(recurRow);
+    body.appendChild(form);
+
+    // Sauvegarder
+    var saveBtn = document.createElement('button'); saveBtn.className = 'evt-save-btn'; saveBtn.id = 'evtSaveBtn'; saveBtn.textContent = '💾 Sauvegarder';
+    saveBtn.addEventListener('click', _saveEvent);
+    body.appendChild(saveBtn);
+
+    // Supprimer (si édition)
+    if (ev) {
+      var delBtn = document.createElement('button'); delBtn.className = 'evt-del-btn'; delBtn.textContent = '🗑 Supprimer';
+      delBtn.addEventListener('click', function() { _deleteEvent(ev.id); });
+      body.appendChild(delBtn);
+    }
+  }
+
+  // ── Sauvegarder ──────────────────────────────────────────
+  function _saveEvent() {
     var coupleId = _cid(); if (!coupleId) return;
-    var title = (document.getElementById('evtFTitle').value||'').trim();
-    var emoji = (document.getElementById('evtFEmoji').value||'📅').trim();
+    var title = (document.getElementById('evtFTitle').value || '').trim();
+    var emoji = (document.getElementById('evtFEmoji').value || '📅').trim();
     var type  = document.getElementById('evtFType').value;
     var date  = document.getElementById('evtFDate').value;
     var asgn  = document.getElementById('evtFAssigned').value;
-    var rem   = parseInt(document.getElementById('evtFReminder').value)||1;
-    var notes = (document.getElementById('evtFNotes').value||'').trim();
+    var rem   = parseInt(document.getElementById('evtFReminder').value) || 1;
+    var notes = (document.getElementById('evtFNotes').value || '').trim();
     var recur = document.getElementById('evtFRecurring').classList.contains('on');
-    if (!title) { if (typeof showToast==='function') showToast('Le titre est obligatoire','error'); return; }
-    if (!date)  { if (typeof showToast==='function') showToast('La date est obligatoire','error');  return; }
+    if (!title) { _toast('Le titre est obligatoire', 'error'); return; }
+    if (!date)  { _toast('La date est obligatoire', 'error');  return; }
     var btn = document.getElementById('evtSaveBtn');
     if (btn) { btn.disabled = true; btn.textContent = '...'; }
     var payload = { couple_id: coupleId, title: title, emoji: emoji, type: type, date: date,
-      assigned_to: asgn, days_before_reminder: rem, notes: notes||null, is_recurring: recur };
-    var req = _editingEventId
-      ? fetch(SB2 + '?id=eq.' + _editingEventId + '&couple_id=eq.' + coupleId, {
-          method:'PATCH', headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
-          body:JSON.stringify(payload) })
-      : fetch(SB2, { method:'POST', headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
-          body:JSON.stringify(payload) });
+      assigned_to: asgn, days_before_reminder: rem, notes: notes || null, is_recurring: recur };
+    var req = _editingId
+      ? fetch(SB2 + '?id=eq.' + _editingId + '&couple_id=eq.' + coupleId, {
+          method: 'PATCH', headers: sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}), body: JSON.stringify(payload) })
+      : fetch(SB2, {
+          method: 'POST', headers: sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}), body: JSON.stringify(payload) });
     req.then(function(r) {
-      if (!r.ok) throw new Error('Erreur '+r.status);
-      if (typeof showToast==='function') showToast('Événement sauvegardé ✓','success',2000);
-      _editingEventId = null; _loadEvents(); _renderModalList();
+      if (!r.ok) throw new Error(r.status);
+      _toast('Événement sauvegardé ✓', 'success');
+      _editingId = null; _loadEvents(); _renderList();
     }).catch(function() {
-      if (typeof showToast==='function') showToast('Erreur de sauvegarde','error');
-      if (btn) { btn.disabled=false; btn.textContent='💾 Sauvegarder'; }
+      _toast('Erreur de sauvegarde', 'error');
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Sauvegarder'; }
     });
-  };
+  }
 
-  window._evtDelete = function(id) {
+  // ── Supprimer ─────────────────────────────────────────────
+  function _deleteEvent(id) {
     if (!confirm('Supprimer cet événement ?')) return;
     var coupleId = _cid(); if (!coupleId) return;
-    fetch(SB2 + '?id=eq.' + id + '&couple_id=eq.' + coupleId, { method:'DELETE', headers:sb2Headers() })
-    .then(function() {
-      if (typeof showToast==='function') showToast('Événement supprimé','success',1500);
-      _editingEventId = null; _loadEvents(); _renderModalList();
-    }).catch(function() { if (typeof showToast==='function') showToast('Erreur de suppression','error'); });
-  };
+    fetch(SB2 + '?id=eq.' + id + '&couple_id=eq.' + coupleId, { method: 'DELETE', headers: sb2Headers() })
+    .then(function() { _toast('Événement supprimé', 'success'); _editingId = null; _loadEvents(); _renderList(); })
+    .catch(function() { _toast('Erreur de suppression', 'error'); });
+  }
 
   // ═══════════════════════════════════════════════════════════
   // 11. INIT
@@ -526,11 +608,16 @@
     var coupleId = _cid(); if (!coupleId) return;
     _migrateAnniv(coupleId);
     _loadEvents();
+    // Brancher le bouton Events (CSP-safe via addEventListener)
     setTimeout(function() {
       document.querySelectorAll('.home-feat-btn').forEach(function(b) {
         if (b.textContent.includes('Events')) {
           b.style.cursor = 'pointer'; b.removeAttribute('title');
-          b.onclick = function() { window.openEventsModal(); };
+          // Éviter de doubler le listener
+          if (!b._evtBound) {
+            b._evtBound = true;
+            b.addEventListener('click', function() { window.openEventsModal(); });
+          }
         }
       });
     }, 500);
