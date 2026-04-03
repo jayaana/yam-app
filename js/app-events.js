@@ -761,7 +761,7 @@
     var colType = document.createElement('div');
     var lblType = document.createElement('label'); lblType.className = 'evt-lbl'; lblType.textContent = 'Type';
     var selType = document.createElement('select'); selType.id = 'evtFType'; selType.className = 'evt-inp';
-    [['anniversary','Anniversaire 🎂'],['birthday','Fête 🎉'],['trip','Voyage ✈️'],['other','Autre 📅']].forEach(function(t) {
+    [['birthday','Anniversaire 🎂'],['trip','Voyage ✈️'],['other','Autre 📅']].forEach(function(t) {
       var opt = document.createElement('option'); opt.value = t[0]; opt.textContent = t[1];
       if (ev && ev.type === t[0]) opt.selected = true;
       selType.appendChild(opt);
