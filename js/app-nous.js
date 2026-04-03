@@ -5590,7 +5590,7 @@ window.nousLoad = function(){
     var counterBlock = document.getElementById('counterBlock');
     if (!videoWrap || !video) return;
 
-    if (isInVideoWindow()) {
+    if (isInVideoWindow() && window._storyBubbleEnabled) {
       videoWrap.style.display = 'block';
       if (video.paused) video.play().catch(function(){});
       if (storyHeart)   storyHeart.style.display = 'block';
