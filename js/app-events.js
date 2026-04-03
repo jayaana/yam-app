@@ -19,21 +19,51 @@
     return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2);
   }
   function _daysUntil(dateStr) {
-    var t = new Date(); var today = new Date(t.getFullYear(), t.getMonth(), t.getDate(), 12, 0, 0);
-    var target = new Date(dateStr + 'T12:00:00');
+    var t = new Date(); var today = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    var parts = dateStr.slice(0, 10).split('-');
+    var target = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
     return Math.round((target - today) / (1000 * 60 * 60 * 24));
   }
   function _nextOccurrence(dateStr) {
     var t = new Date(); var ty = t.getFullYear();
-    var d = new Date(dateStr + 'T12:00:00');
-    var candidate = new Date(ty, d.getMonth(), d.getDate());
+    // Parse sans ambiguïté timezone : extraire les composantes directement
+    var parts = dateStr.slice(0, 10).split('-');
+    var origDay = parseInt(parts[2], 10);
+    var origMonth = parseInt(parts[1], 10) - 1; // 0-indexed
+    var candidate = new Date(ty, origMonth, origDay);
     var today = new Date(ty, t.getMonth(), t.getDate());
-    if (candidate < today) candidate = new Date(ty + 1, d.getMonth(), d.getDate());
-    return candidate.toISOString().slice(0, 10);
+    if (candidate < today) candidate = new Date(ty + 1, origMonth, origDay);
+    var yy = candidate.getFullYear();
+    var mm = ('0' + (candidate.getMonth() + 1)).slice(-2);
+    var dd = ('0' + candidate.getDate()).slice(-2);
+    return yy + '-' + mm + '-' + dd;
+  }
+
+  // Prochaine occurrence MENSUELLE (même jour du mois, mois suivant si passé)
+  function _nextMonthlyOccurrence(dateStr) {
+    var parts = dateStr.slice(0, 10).split('-');
+    var origDay = parseInt(parts[2], 10);
+    var t = new Date();
+    var todayY = t.getFullYear(), todayM = t.getMonth(), todayD = t.getDate();
+    // Candidate ce mois-ci
+    var candY = todayY, candM = todayM;
+    // Si le jour du mois est déjà passé ce mois-ci, aller au mois prochain
+    if (origDay < todayD) {
+      candM += 1;
+      if (candM > 11) { candM = 0; candY += 1; }
+    }
+    // Gérer les mois qui n'ont pas le jour (ex: 31 en février)
+    var maxDay = new Date(candY, candM + 1, 0).getDate();
+    var day = Math.min(origDay, maxDay);
+    var mm = ('0' + (candM + 1)).slice(-2);
+    var dd = ('0' + day).slice(-2);
+    return candY + '-' + mm + '-' + dd;
   }
   function _monthsSince(dateStr) {
-    var start = new Date(dateStr + 'T12:00:00'), now = new Date();
-    return (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+    var parts = dateStr.slice(0, 10).split('-');
+    var startY = parseInt(parts[0], 10), startM = parseInt(parts[1], 10) - 1;
+    var now = new Date();
+    return (now.getFullYear() - startY) * 12 + (now.getMonth() - startM);
   }
   function _esc(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -97,7 +127,7 @@
     var s = document.createElement('style'); s.id = 'evtOverlayStyle';
     s.textContent = [
       /* Overlay mensiversaire */
-      '#yamMensivOverlay{position:fixed;inset:0;z-index:9500;display:none;align-items:center;justify-content:center;',
+      '#yamMensivOverlay{position:fixed;inset:0;z-index:2147483647;display:none;align-items:center;justify-content:center;',
       'background:rgba(0,0,0,.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);',
       'padding:24px;box-sizing:border-box;}',
       '#yamMensivOverlay.visible{display:flex;}',
@@ -318,7 +348,8 @@
     if (typeof yamPushNotify !== 'function') return;
     var today = _todayStr();
     events.forEach(function(ev) {
-      var nextDate = ev.is_recurring ? _nextOccurrence(ev.date) : ev.date;
+      var isMensiv = _isSystemAnniv(ev);
+      var nextDate = isMensiv ? _nextMonthlyOccurrence(ev.date) : (ev.is_recurring ? _nextOccurrence(ev.date) : ev.date);
       var days     = _daysUntil(nextDate);
       var remind   = ev.days_before_reminder || 1;
       [0, 1, 3].filter(function(d) { return d === 0 || d <= remind; }).forEach(function(d) {
@@ -350,7 +381,8 @@
 
     var soonest = null;
     events.forEach(function(ev) {
-      var nd = ev.is_recurring ? _nextOccurrence(ev.date) : ev.date;
+      var isMensiv = _isSystemAnniv(ev);
+      var nd = isMensiv ? _nextMonthlyOccurrence(ev.date) : (ev.is_recurring ? _nextOccurrence(ev.date) : ev.date);
       var days = _daysUntil(nd);
       if (days >= 0 && days <= 3 && (!soonest || days < soonest.days)) {
         var cfg = _eventTypeConfig[ev.type] || _eventTypeConfig.other;
@@ -378,7 +410,8 @@
   function _checkTodayEvents() {
     var todayEvents = [];
     _eventsCache.forEach(function(ev) {
-      var nd = ev.is_recurring ? _nextOccurrence(ev.date) : ev.date;
+      var isMensiv = _isSystemAnniv(ev);
+      var nd = isMensiv ? _nextMonthlyOccurrence(ev.date) : (ev.is_recurring ? _nextOccurrence(ev.date) : ev.date);
       if (_daysUntil(nd) !== 0) return;
       todayEvents.push(ev);
     });
@@ -579,7 +612,8 @@
     // Section "À venir"
     var upcoming = [], past = [];
     events.forEach(function(ev) {
-      var nd = ev.is_recurring ? _nextOccurrence(ev.date) : ev.date;
+      var isMensiv = _isSystemAnniv(ev);
+      var nd = isMensiv ? _nextMonthlyOccurrence(ev.date) : (ev.is_recurring ? _nextOccurrence(ev.date) : ev.date);
       ev._nd = nd; ev._du = _daysUntil(nd);
       if (ev._du >= 0) upcoming.push(ev); else past.push(ev);
     });
@@ -628,8 +662,12 @@
     }
 
     var meta = document.createElement('div'); meta.className = 'evt-card-meta';
-    var dl = new Date((ev._nd || ev.date)+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
-    if (ev.is_recurring) dl += ' (annuel)';
+    var ndStr = ev._nd || ev.date;
+    var ndParts = ndStr.split('-');
+    var ndDate = new Date(parseInt(ndParts[0],10), parseInt(ndParts[1],10)-1, parseInt(ndParts[2],10));
+    var dl = ndDate.toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
+    if (ev.is_recurring && !isSystem) dl += ' (annuel)';
+    if (isSystem) dl += ' (mensuel)';
     meta.textContent = dl + (ev.notes && !isSystem ? ' · ' + ev.notes.substring(0,30) : '');
     info.appendChild(title); info.appendChild(meta);
 
