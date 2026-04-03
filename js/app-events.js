@@ -100,8 +100,11 @@
     var cfg = _eventTypeConfig[type] || _eventTypeConfig.other;
     document.body.classList.add('anniv-mode');
     var banner = document.getElementById('annivBanner'), sub = document.getElementById('annivSub');
+    var titleEl = document.getElementById('annivTitle'), emojiEl = document.getElementById('annivEmoji');
     if (banner) { banner.style.background = cfg.bg; banner.classList.add('visible'); }
-    if (sub) sub.textContent = text;
+    if (titleEl) titleEl.textContent = text;
+    if (emojiEl) emojiEl.textContent = cfg.icon;
+    if (sub) sub.textContent = '';
     var sinceEl = document.querySelector('.counter-since');
     if (sinceEl) {
       sinceEl.innerHTML = cfg.icon + ' ' + text;
