@@ -1653,6 +1653,37 @@ function _startReasonAuto(){
     top._dismissing=true; var angle=dirX>0?18:-18; var tx=dirX>0?'115%':'-115%';
     top.style.transition='transform 0.32s cubic-bezier(.4,0,.6,1), opacity 0.26s';
     top.style.transform='translateX('+tx+') rotate('+angle+'deg)'; top.style.opacity='0'; top.style.pointerEvents='none';
+
+    // #104 — Accusé de réception émotionnel : marquer read_at au premier affichage
+    var currentMot = _stackData[_stackIndex % _stackData.length];
+    if (currentMot && !currentMot.isAnniv && !currentMot.read_at) {
+      var coupleId = _getCoupleId();
+      var myProfile = _getProfile();
+      var authorProfile = currentMot.author || (myProfile === 'girl' ? 'boy' : 'girl');
+      // Seulement si je suis le destinataire (l'auteur est le partenaire)
+      if (coupleId && authorProfile !== myProfile) {
+        var nowIso = new Date().toISOString();
+        // Marquer lu immédiatement en local pour éviter les doubles push
+        currentMot.read_at = nowIso;
+        // PATCH read_at en base
+        fetch(SB_URL + '/rest/v1/petits_mots?id=eq.' + currentMot.id + '&couple_id=eq.' + coupleId, {
+          method: 'PATCH',
+          headers: sb2Headers({ 'Prefer': 'return=minimal', 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ read_at: nowIso })
+        }).catch(function(){});
+        // Push notification vers l'auteur (rôle opposé)
+        if (typeof yamPushNotify === 'function') {
+          var pseudo = (typeof yamGetPseudo === 'function') ? yamGetPseudo() : 'Ton amour';
+          yamPushNotify({
+            title: '💛 Petit mot lu',
+            body: pseudo + ' a lu ton petit mot',
+            tag: 'yam-petit-mot-lu',
+            data: { url: '/yam-app/' }
+          });
+        }
+      }
+    }
+
     _stackIndex=(_stackIndex+1)%_stackData.length; setTimeout(_buildPostitStack,300);
   }
 
@@ -2388,9 +2419,10 @@ document.addEventListener('yam:session_ready',function(){
       items.forEach(function(item){
         var row = document.createElement('div');
         row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s2);border-radius:12px;border:1px solid var(--border);';
+        var _cbViewHtml = (item.done && item.checked_by) ? '<div style="font-size:11px;color:var(--muted);margin-top:2px;">par ' + escHtml(item.checked_by) + '</div>' : '';
         row.innerHTML =
           '<div class="todo-check'+(item.done?' done':'')+'" style="width:22px;height:22px;border-radius:6px;border:2px solid '+(item.done?'#e879a0':'var(--border)')+';background:'+(item.done?'linear-gradient(135deg,#e879a0,#9b59b6)':'transparent')+';display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:13px;color:#fff;">'+(item.done?'✓':'')+'</div>'+
-          '<div style="flex:1;font-size:14px;color:var(--text);'+(item.done?'text-decoration:line-through;opacity:0.5;':'')+'">' +escHtml(item.text)+'</div>';
+          '<div style="flex:1;"><div style="font-size:14px;color:var(--text);'+(item.done?'text-decoration:line-through;opacity:0.5;':'')+'">' +escHtml(item.text)+'</div>'+_cbViewHtml+'</div>';
         (function(it, r){
           r.querySelector('.todo-check').addEventListener('click', function(){
             fetch(SB_URL+'/rest/v1/memo_todos?id=eq.'+it.id+'&couple_id=eq.'+coupleId,{
