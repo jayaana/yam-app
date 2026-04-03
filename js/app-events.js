@@ -126,14 +126,13 @@
     if (document.getElementById('evtOverlayStyle')) return;
     var s = document.createElement('style'); s.id = 'evtOverlayStyle';
     s.textContent = [
-      /* Overlay mensiversaire */
-      '#yamMensivOverlay{position:fixed;inset:0;z-index:2147483647;display:none;align-items:center;justify-content:center;',
-      'background:rgba(0,0,0,.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);',
-      'padding:24px;box-sizing:border-box;}',
-      '#yamMensivOverlay.visible{display:flex;}',
-      '.mensiv-card{background:#1a1a2e;border-radius:28px;padding:40px 32px 36px;max-width:360px;width:100%;',
-      'text-align:center;position:relative;box-shadow:0 24px 64px rgba(0,0,0,.6);',
-      'border:1px solid rgba(255,255,255,.08);}',
+      /* Overlay mensiversaire — dans le flux, sous le header */
+      '#yamMensivOverlay{display:none;width:100%;box-sizing:border-box;',
+      'padding:16px 16px 0;background:transparent;}',
+      '#yamMensivOverlay.visible{display:block;}',
+      '.mensiv-card{background:linear-gradient(135deg,#1a1a2e,#2d1b3d);border-radius:20px;padding:20px 20px 18px;width:100%;',
+      'text-align:center;position:relative;box-shadow:0 8px 32px rgba(0,0,0,.35);',
+      'border:1px solid rgba(255,255,255,.1);box-sizing:border-box;margin-bottom:12px;}',
       '.mensiv-hearts{font-size:52px;margin-bottom:16px;display:block;animation:mensivFloat 3s ease-in-out infinite;}',
       '@keyframes mensivFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}',
       '.mensiv-count{font-size:56px;font-weight:800;color:#fff;line-height:1;margin-bottom:4px;',
@@ -185,16 +184,14 @@
     if (localStorage.getItem(_mensivOverlayShownKey)) return; // une seule fois par jour
     _injectOverlayStyles();
 
-    var existing = document.getElementById('yamMensivOverlay');
-    if (existing) existing.remove();
+    var overlay = document.getElementById('yamMensivOverlay');
+    if (!overlay) return;
+    overlay.innerHTML = ''; // vider le contenu précédent
 
     var isYear = months % 12 === 0;
     var count = isYear ? months / 12 : months;
-    var unit = isYear
-      ? (count > 1 ? 'ans' : 'an')
-      : (count > 1 ? 'mois' : 'mois');
+    var unit = isYear ? (count > 1 ? 'ans' : 'an') : 'mois';
 
-    var overlay = document.createElement('div'); overlay.id = 'yamMensivOverlay';
     var card = document.createElement('div'); card.className = 'mensiv-card';
 
     var hearts = document.createElement('span'); hearts.className = 'mensiv-hearts';
@@ -215,14 +212,13 @@
     closeBtn.textContent = 'Célébrons ça 🎉';
     closeBtn.addEventListener('click', function() {
       overlay.classList.remove('visible');
-      setTimeout(function() { overlay.remove(); }, 300);
+      setTimeout(function() { overlay.style.display = 'none'; overlay.innerHTML = ''; }, 300);
       localStorage.setItem(_mensivOverlayShownKey, '1');
     });
 
     card.appendChild(hearts); card.appendChild(countEl); card.appendChild(lbl);
     card.appendChild(msg); card.appendChild(closeBtn);
     overlay.appendChild(card);
-    document.body.appendChild(overlay);
 
     requestAnimationFrame(function() { overlay.classList.add('visible'); });
     _launchConfettis();
