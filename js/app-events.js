@@ -144,7 +144,7 @@
       'transition:background .15s;}',
       '.mensiv-close:active{background:rgba(255,255,255,.22);}',
 
-      /* Bannière events accueil — dans le flux de la page, entre header et mascotte */
+      /* Bannière events accueil — dans le flux, entre header et yamHomeTab */
       '#annivBanner{display:none;align-items:center;justify-content:space-between;gap:10px;',
       'width:100%;box-sizing:border-box;padding:12px 16px;margin-bottom:4px;',
       'border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.25);}',
