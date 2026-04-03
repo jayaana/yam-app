@@ -130,19 +130,19 @@
       '#yamMensivOverlay{display:none;width:100%;box-sizing:border-box;',
       'padding:4px 16px 8px;background:transparent;}',
       '#yamMensivOverlay.visible{display:block;}',
-      '.mensiv-card{background:linear-gradient(135deg,#1a1a2e,#2d1b3d);border-radius:20px;padding:20px 20px 18px;width:100%;',
-      'text-align:center;position:relative;box-shadow:0 8px 32px rgba(0,0,0,.35);',
-      'border:1px solid rgba(255,255,255,.1);box-sizing:border-box;margin-bottom:12px;}',
+      '.mensiv-card{background:var(--s1);border-radius:20px;padding:20px 20px 18px;width:100%;',
+      'text-align:center;position:relative;box-shadow:0 8px 32px rgba(0,0,0,.15);',
+      'border:1px solid var(--border);box-sizing:border-box;margin-bottom:12px;}',
       '.mensiv-hearts{font-size:52px;margin-bottom:16px;display:block;animation:mensivFloat 3s ease-in-out infinite;}',
       '@keyframes mensivFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}',
-      '.mensiv-count{font-size:56px;font-weight:800;color:#fff;line-height:1;margin-bottom:4px;',
+      '.mensiv-count{font-size:56px;font-weight:800;line-height:1;margin-bottom:4px;',
       'background:linear-gradient(135deg,#f5c518,#e75a7c);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}',
-      '.mensiv-label{font-size:15px;font-weight:500;color:rgba(255,255,255,.7);margin-bottom:24px;line-height:1.4;}',
-      '.mensiv-msg{font-size:17px;font-weight:600;color:#fff;margin-bottom:28px;line-height:1.5;}',
-      '.mensiv-close{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:14px;',
-      'color:#fff;font-size:14px;font-weight:600;padding:12px 32px;cursor:pointer;letter-spacing:.3px;',
+      '.mensiv-label{font-size:15px;font-weight:500;color:var(--muted);margin-bottom:24px;line-height:1.4;}',
+      '.mensiv-msg{font-size:17px;font-weight:600;color:var(--text);margin-bottom:28px;line-height:1.5;}',
+      '.mensiv-close{background:var(--s2);border:1px solid var(--border);border-radius:14px;',
+      'color:var(--text);font-size:14px;font-weight:600;padding:12px 32px;cursor:pointer;letter-spacing:.3px;',
       'transition:background .15s;}',
-      '.mensiv-close:active{background:rgba(255,255,255,.22);}',
+      '.mensiv-close:active{background:var(--border);}',
 
       /* Bannière events accueil — dans le flux, entre header et yamHomeTab */
       '#annivBanner{display:none;align-items:center;justify-content:space-between;gap:10px;',
@@ -157,7 +157,7 @@
       '#annivBanner.evt-type-anniversary .anniv-emoji{text-shadow:0 0 12px rgba(231,90,124,.6);}',
 
       /* Thème fête */
-      '#annivBanner.evt-type-birthday{background:var(--s1,#fff);border-bottom:2px solid #a78bfa;}',
+      '#annivBanner.evt-type-birthday{background:var(--s1,#fff);border-bottom:2px solid #38bdf8;}',
       '#annivBanner.evt-type-birthday .anniv-title{color:var(--text,#1c1c1e);}',
 
       /* Thème voyage */
