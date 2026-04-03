@@ -220,16 +220,21 @@
       _checkTodayEvents();
       _checkPushReminders(_eventsCache);
       _updateEventsBadge(_eventsCache);
-      _syncStoryBubble(_eventsCache);
+      _syncStoryBubble();
     }).catch(function() {});
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 8. BULLE VIDÉO
+  // 8. BULLE VIDÉO — lire depuis photo_descs
   // ═══════════════════════════════════════════════════════════
-  function _syncStoryBubble(events) {
-    window._storyBubbleEnabled = events.some(function(ev) { return ev.story_bubble_enabled; });
-    if (typeof window._applyStoryState === 'function') window._applyStoryState();
+  function _syncStoryBubble() {
+    var coupleId = _cid(); if (!coupleId) return;
+    fetch(SB_URL + '/rest/v1/photo_descs?couple_id=eq.' + coupleId + '&category=eq.settings&slot=eq.story_bubble&limit=1', { headers: sb2Headers() })
+    .then(function(r) { return r.ok ? r.json() : []; })
+    .then(function(rows) {
+      window._storyBubbleEnabled = !!(rows && rows[0] && rows[0].description === 'true');
+      if (typeof window._applyStoryState === 'function') window._applyStoryState();
+    }).catch(function() {});
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -335,7 +340,7 @@
     .then(function(events) {
       _eventsCache = Array.isArray(events) ? events : [];
       _updateEventsBadge(_eventsCache);
-      _syncStoryBubble(_eventsCache);
+      _syncStoryBubble();
       _buildList(_eventsCache, body);
     })
     .catch(function() { body.innerHTML = ''; var p = document.createElement('p'); p.style.color='#e05555'; p.style.textAlign='center'; p.textContent='Erreur de chargement'; body.appendChild(p); });
@@ -344,8 +349,8 @@
   function _buildList(events, body) {
     body.innerHTML = '';
 
-    // Toggle bulle vidéo
-    var bubbleOn = events.some(function(ev) { return ev.story_bubble_enabled; });
+    // Toggle bulle vidéo — état depuis window._storyBubbleEnabled (chargé depuis photo_descs)
+    var bubbleOn = !!window._storyBubbleEnabled;
     var bubbleCard = document.createElement('div'); bubbleCard.className = 'evt-bubble-card';
     var bubbleRow = document.createElement('div'); bubbleRow.className = 'evt-toggle-row'; bubbleRow.style.cssText = 'border:none;padding:0;margin:0';
     var bubbleLeft = document.createElement('div');
@@ -414,46 +419,41 @@
   }
 
   // ── Toggle bulle vidéo ────────────────────────────────────
+  // Stocké dans photo_descs (category='settings', slot='story_bubble')
+  // Jamais dans couple_events pour éviter les notifications parasites
+  var SB_PD = SB_URL + '/rest/v1/photo_descs';
+
+  function _getBubbleSetting(coupleId, cb) {
+    fetch(SB_PD + '?couple_id=eq.' + coupleId + '&category=eq.settings&slot=eq.story_bubble&limit=1', { headers: sb2Headers() })
+    .then(function(r) { return r.ok ? r.json() : []; })
+    .then(function(rows) { cb(rows && rows[0] ? rows[0].description === 'true' : false, rows && rows[0] ? rows[0].id : null); })
+    .catch(function() { cb(false, null); });
+  }
+
+  function _saveBubbleSetting(coupleId, value, existingId) {
+    if (existingId) {
+      return fetch(SB_PD + '?id=eq.' + existingId, {
+        method: 'PATCH', headers: sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
+        body: JSON.stringify({ description: value ? 'true' : 'false' })
+      });
+    } else {
+      return fetch(SB_PD, {
+        method: 'POST', headers: sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
+        body: JSON.stringify({ couple_id: coupleId, category: 'settings', slot: 'story_bubble', description: value ? 'true' : 'false' })
+      });
+    }
+  }
+
   function _toggleBubble(btn) {
     var coupleId = _cid(); if (!coupleId) return;
-    var isOn = btn.classList.contains('on');
-    if (isOn) {
-      fetch(SB2 + '?couple_id=eq.' + coupleId + '&story_bubble_enabled=eq.true', {
-        method: 'PATCH',
-        headers: sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
-        body: JSON.stringify({ story_bubble_enabled: false })
-      }).then(function() {
-        btn.classList.remove('on');
-        _eventsCache.forEach(function(ev) { ev.story_bubble_enabled = false; });
-        window._storyBubbleEnabled = false;
+    var newVal = !btn.classList.contains('on');
+    _getBubbleSetting(coupleId, function(currentVal, rowId) {
+      _saveBubbleSetting(coupleId, newVal, rowId).then(function() {
+        if (newVal) btn.classList.add('on'); else btn.classList.remove('on');
+        window._storyBubbleEnabled = newVal;
         if (typeof window._applyStoryState === 'function') window._applyStoryState();
       }).catch(function() {});
-    } else {
-      var target = _eventsCache[0];
-      if (!target) {
-        fetch(SB2, {
-          method: 'POST',
-          headers: sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=representation' }),
-          body: JSON.stringify({ couple_id: coupleId, title: 'Bulle vidéo', emoji: '🎬',
-            date: _todayStr(), is_recurring: false, type: 'other', story_bubble_enabled: true, assigned_to: 'both' })
-        }).then(function(r) { return r.json(); })
-        .then(function(rows) {
-          if (rows && rows[0]) _eventsCache.push(rows[0]);
-          btn.classList.add('on'); window._storyBubbleEnabled = true;
-          if (typeof window._applyStoryState === 'function') window._applyStoryState();
-        }).catch(function() {});
-      } else {
-        fetch(SB2 + '?id=eq.' + target.id + '&couple_id=eq.' + coupleId, {
-          method: 'PATCH',
-          headers: sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
-          body: JSON.stringify({ story_bubble_enabled: true })
-        }).then(function() {
-          btn.classList.add('on'); target.story_bubble_enabled = true;
-          window._storyBubbleEnabled = true;
-          if (typeof window._applyStoryState === 'function') window._applyStoryState();
-        }).catch(function() {});
-      }
-    }
+    });
   }
 
   // ── Formulaire créer/modifier ─────────────────────────────
