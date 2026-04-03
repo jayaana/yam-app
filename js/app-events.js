@@ -128,7 +128,7 @@
     s.textContent = [
       /* Overlay mensiversaire — dans le flux, sous le header */
       '#yamMensivOverlay{display:none;width:100%;box-sizing:border-box;',
-      'padding:16px 16px 0;background:transparent;}',
+      'padding:4px 16px 8px;background:transparent;}',
       '#yamMensivOverlay.visible{display:block;}',
       '.mensiv-card{background:linear-gradient(135deg,#1a1a2e,#2d1b3d);border-radius:20px;padding:20px 20px 18px;width:100%;',
       'text-align:center;position:relative;box-shadow:0 8px 32px rgba(0,0,0,.35);',
@@ -144,11 +144,10 @@
       'transition:background .15s;}',
       '.mensiv-close:active{background:rgba(255,255,255,.22);}',
 
-      /* Bannière events accueil — refonte lisibilité */
-      '#annivBanner{position:fixed;top:0;left:0;right:0;z-index:8000;',
-      'display:none;align-items:center;justify-content:center;gap:10px;',
-      'padding:14px 20px;',
-      'box-shadow:0 4px 20px rgba(0,0,0,.25);}',
+      /* Bannière events accueil — dans le flux de la page, entre header et mascotte */
+      '#annivBanner{display:none;align-items:center;justify-content:center;gap:10px;',
+      'width:100%;box-sizing:border-box;padding:12px 16px;margin-bottom:4px;',
+      'border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.25);}',
       '#annivBanner.visible{display:flex;}',
 
       /* Thème anniversaire/couple */
