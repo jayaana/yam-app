@@ -19,7 +19,7 @@
     return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2);
   }
   function _daysUntil(dateStr) {
-    var t = new Date(); var today = new Date(t.getFullYear(), t.getMonth(), t.getDate(), 12, 0, 0);
+    var t = new Date(); var today = new Date(t.getFullYear(), t.getMonth(), t.getDate());
     var target = new Date(dateStr + 'T12:00:00');
     return Math.round((target - today) / (1000 * 60 * 60 * 24));
   }
@@ -87,20 +87,36 @@
     var h = document.getElementById('yamHomeTab');
     return !!(h && getComputedStyle(h).display !== 'none');
   }
-  function _showAnnivBanner(text) {
+  // Config visuelle par type d'event
+  var _eventTypeConfig = {
+    anniversary: { bg: 'linear-gradient(135deg,#f5c518,#e75a7c)', icon: '🎂', color: '#f5c518', confetti: true,  pulse: true  },
+    birthday:    { bg: 'linear-gradient(135deg,#a78bfa,#60a5fa)', icon: '🎉', color: '#a78bfa', confetti: true,  pulse: true  },
+    trip:        { bg: 'linear-gradient(135deg,#34d399,#60a5fa)', icon: '✈️', color: '#34d399', confetti: false, pulse: false },
+    other:       { bg: 'linear-gradient(135deg,#94a3b8,#64748b)', icon: '📅', color: '#94a3b8', confetti: false, pulse: false }
+  };
+
+  function _showEventBanner(text, type) {
     if (!_isHomeVisible()) return;
+    var cfg = _eventTypeConfig[type] || _eventTypeConfig.other;
     document.body.classList.add('anniv-mode');
     var banner = document.getElementById('annivBanner'), sub = document.getElementById('annivSub');
-    if (banner) banner.classList.add('visible');
-    if (sub)    sub.textContent = text;
+    if (banner) { banner.style.background = cfg.bg; banner.classList.add('visible'); }
+    if (sub) sub.textContent = text;
     var sinceEl = document.querySelector('.counter-since');
-    if (sinceEl) { sinceEl.innerHTML = '🎂 ' + text; sinceEl.style.color = '#f5c518'; sinceEl.style.fontWeight = '600'; }
-    _launchConfettis();
+    if (sinceEl) {
+      sinceEl.innerHTML = cfg.icon + ' ' + text;
+      sinceEl.style.color = cfg.color;
+      sinceEl.style.fontWeight = '600';
+      sinceEl.style.animation = cfg.pulse ? 'evtPulse 1.4s ease-in-out infinite' : 'none';
+    }
+    if (cfg.confetti) _launchConfettis();
   }
   function _hideAnnivBanner() {
     document.body.classList.remove('anniv-mode');
     var banner = document.getElementById('annivBanner');
-    if (banner) banner.classList.remove('visible');
+    if (banner) { banner.classList.remove('visible'); banner.style.background = ''; }
+    var sinceEl = document.querySelector('.counter-since');
+    if (sinceEl) { sinceEl.style.color = ''; sinceEl.style.fontWeight = ''; sinceEl.style.animation = ''; }
   }
   document.addEventListener('yam:tab_switched', function() {
     if (!_isHomeVisible()) _hideAnnivBanner();
@@ -204,7 +220,7 @@
         if (months % 12 === 0) { var y = months/12; label = 'Ça fait ' + y + ' an' + (y > 1 ? 's' : '') + ' qu\'on s\'aime 🩷'; }
         else label = 'Ça fait maintenant ' + months + ' mois qu\'on s\'aime 🩷';
       }
-      _showAnnivBanner(label);
+      _showEventBanner(label, ev.type);
     });
   }
 
