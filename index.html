@@ -1565,9 +1565,6 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 <canvas id="particleCanvas"></canvas>
 <canvas id="annivCanvas"></canvas>
 
-<!-- Bannière événements accueil — contenu géré par app-events.js -->
-<div id="annivBanner"><!-- rebuilt by JS --></div>
-
 <!-- Overlay mensiversaire — injecté et géré par app-events.js -->
 <div id="floatingThemeBtn" title="Changer le thème" style="display:none;">🌙</div>
 
@@ -1658,9 +1655,12 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 </header>
 
 <!-- Mensiversaire — dans le flux, juste sous le header, avant la mascotte -->
-<div id="yamMensivOverlay" style="display:none;"></div>
 
 <div id="yamHomeTab" class="yam-tab-panel active">
+
+  <!-- ── EVENTS dans le flux — bannière + overlay mensiversaire ── -->
+  <div id="annivBanner"><!-- rebuilt by JS --></div>
+  <div id="yamMensivOverlay" style="display:none;"></div>
 
   <!-- ── 1. MASCOTTE + MESSAGE DU JOUR ── -->
   <div class="home-mascot-row fade-in">
