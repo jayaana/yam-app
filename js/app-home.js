@@ -392,15 +392,21 @@
   function _canGenToday(){ try{ return localStorage.getItem('yam_rgen_'+(_cid()||''))!==_todayStr(); }catch(e){ return true; } }
   function _markGenToday(){ try{ localStorage.setItem('yam_rgen_'+(_cid()||''),_todayStr()); }catch(e){} }
 
-  // Remet à zéro les rappels cochés si on est sur un nouveau jour et qu'il n'en reste plus aucun actif
+  // Remet à zéro les rappels cochés uniquement si on est sur un NOUVEAU jour
+  // (le flag yam_rgen_ a été posé un jour DIFFÉRENT d'aujourd'hui)
+  // → évite de vider des rappels cochés le jour même
   function _resetDoneIfNewDay(){
     if(!_data.length) return;
-    var allDone=_data.length>0 && _active().length===0;
-    if(allDone && _canGenToday()){
-      // Nouveau jour, tout est coché → on vide pour permettre la regénération IA
-      _data=[];
+    var allDone = _active().length === 0;
+    if(!allDone) return; // il reste des actifs, rien à faire
+    var lastGen = null;
+    try{ lastGen = localStorage.getItem('yam_rgen_'+(_cid()||'')); }catch(e){}
+    // On vide seulement si une génération a eu lieu un AUTRE jour que aujourd'hui
+    if(lastGen && lastGen !== _todayStr()){
+      _data = [];
       _save();
     }
+    // Même jour tout coché → on laisse _data intact, _card() affichera "Tous vos rappels sont faits 🎉"
   }
 
   function _genAI(){
