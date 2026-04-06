@@ -206,55 +206,22 @@
       var phrases = [];
       if(match){ try{ phrases = JSON.parse(match[0]); }catch(e){} }
       function _fixText(s){
+        // Récupération des apostrophes mangées par certains parseurs JSON
         return s
           .replace(/\bdis ta /g,      'dis à ta ')
           .replace(/\bdis ton /g,     'dis à ton ')
-          .replace(/\bpeut-etre\b/gi, 'peut-être')
-          .replace(/\bpeut etre\b/gi, 'peut-être')
-          .replace(/\bjournee\b/gi,   'journée')
-          .replace(/\bapres-midi\b/gi,'après-midi')
-          .replace(/\becouter\b/gi,   'écouter')
-          .replace(/\becoutons\b/gi,  'écoutons')
-          .replace(/\bbetise\b/gi,    'bêtise')
-          .replace(/\bidee\b/gi,      'idée')
-          .replace(/\bdefinis\b/gi,   'définis')
-          .replace(/\bete\b/g,        'été')
-          .replace(/\bpresenté\b/g,   'présente')
-          .replace(/ a toi\b/g,       ' à toi')
-          .replace(/ a ([A-Z])/g,    ' à $1')
-          // Apostrophes mangées au parsing JSON
-          .replace(/\bTas\b/g,       'T\'as')
-          .replace(/\bJai\b/g,       'J\'ai')
-          .replace(/\blapp\b/gi,     'l\'app')
-          .replace(/\bsest\b/gi,     's\'est')
-          .replace(/\bcest\b/gi,     'c\'est')
-          .replace(/\bdans lapp\b/gi,'dans l\'app')
-          // Accents manquants supplémentaires
-          .replace(/\bpassee\b/gi,   'passée')
-          .replace(/\becrire\b/gi,   'écrire')
-          .replace(/\becris\b/gi,    'écris')
-          .replace(/\benvoyee\b/gi,  'envoyée')
-          .replace(/\benvoyees\b/gi, 'envoyées')
-          .replace(/\bajouter\b/gi,  'ajouter')
-          .replace(/\bouvrons\b/gi,  'ouvrons')
-          .replace(/\becrit\b/gi,     'écris')
-          .replace(/\becoutez\b/gi,   'écoutez')
-          .replace(/\bespere\b/gi,    'espère')
-          .replace(/\bJ'espere\b/g,   'J\'espère')
-          .replace(/\bcelui-la\b/gi,  'celui-là')
-          .replace(/\bc'est temps\b/gi,'c\'est l\'heure')
-          .replace(/\bparle en\b/gi,  'parles-en')
-          .replace(/\braconte a\b/gi, 'raconte à')
+          .replace(/\bTas\b/g,        'T\'as')
+          .replace(/\bJai\b/g,        'J\'ai')
+          .replace(/\blapp\b/gi,      'l\'app')
+          .replace(/\bsest\b/gi,      's\'est')
+          .replace(/\bcest\b/gi,      'c\'est')
+          .replace(/\bdans lapp\b/gi, 'dans l\'app')
           .replace(/\benvoie lui\b/gi,'envoie-lui')
           .replace(/\bappelle le\b/gi,'appelle-le')
           .replace(/\bappelle la\b/gi,'appelle-la')
-          .replace(/\bEcrivez\b/g,    'Écrivez')
-          .replace(/\becrivez\b/g,    'écrivez')
-          .replace(/\bEcoutez\b/g,    'Écoutez')
-          .replace(/\becoutez\b/g,    'écoutez')
-          .replace(/\bEchangez\b/g,   'Échangez')
-          .replace(/\bechangez\b/g,   'échangez')
-          .replace(/\bsurprends\b/gi, 'surprise');
+          .replace(/\bparle en\b/gi,  'parles-en')
+          .replace(/\braconte a\b/gi, 'raconte à')
+          .replace(/ a ([A-Z])/g,     ' à $1');
       }
       var collected = [];
       for(var i=0; i<15; i++){
@@ -425,8 +392,22 @@
   function _canGenToday(){ try{ return localStorage.getItem('yam_rgen_'+(_cid()||''))!==_todayStr(); }catch(e){ return true; } }
   function _markGenToday(){ try{ localStorage.setItem('yam_rgen_'+(_cid()||''),_todayStr()); }catch(e){} }
 
+  // Remet à zéro les rappels cochés si on est sur un nouveau jour et qu'il n'en reste plus aucun actif
+  function _resetDoneIfNewDay(){
+    if(!_data.length) return;
+    var allDone=_data.length>0 && _active().length===0;
+    if(allDone && _canGenToday()){
+      // Nouveau jour, tout est coché → on vide pour permettre la regénération IA
+      _data=[];
+      _save();
+    }
+  }
+
   function _genAI(){
-    var cid=_cid(); if(!cid||!_canGenToday()||_data.length>0) return;
+    // Regénérer si : aucun rappel actif disponible ET pas encore généré aujourd'hui
+    var cid=_cid(); if(!cid) return;
+    if(_active().length>0) return;   // il reste des rappels à faire
+    if(!_canGenToday()) return;       // déjà généré aujourd'hui
     var loader=document.getElementById('rshLoader'); if(loader) loader.style.display='flex';
     var _days=window.startDate?Math.floor((Date.now()-new Date(window.startDate))/(1000*60*60*24)):0;
     var _saison=['hiver','hiver','printemps','printemps','printemps','ete','ete','ete','automne','automne','automne','hiver'][new Date().getMonth()];
@@ -534,7 +515,11 @@
   function _init(){
     var cid=_cid();
     if(!cid){ _data=[{id:'d1',text:'Faites-vous un bisou 😘',done:false},{id:'d2',text:'Appelez-vous ce soir 📞',done:false},{id:'d3',text:'Partagez une chanson 🎵',done:false}]; _card(); return; }
-    _load(function(loaded){ _data=loaded; _lastHash=_hash(_data); if(_data.length===0&&_canGenToday()) _genAI(); else _card(); });
+    _load(function(loaded){
+      _data=loaded; _lastHash=_hash(_data);
+      _resetDoneIfNewDay(); // vide les cochés si nouveau jour → _data peut devenir []
+      if(_active().length===0) _genAI(); else _card();
+    });
     _startPoll();
   }
 
