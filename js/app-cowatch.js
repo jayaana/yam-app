@@ -424,6 +424,8 @@
       if(closest('.cw-btn') && t.textContent.indexOf('Rejoindre') !== -1) { window._cwJoin && window._cwJoin(); return; }
       // Pas maintenant
       if(closest('.cw-btn-ghost') && t.textContent.indexOf('maintenant') !== -1) { window.closeCowatchModal && window.closeCowatchModal(); return; }
+      // Plein écran
+      if(t.id === 'cwFsBtn' || closest('#cwFsBtn')) { window._cwFullscreen && window._cwFullscreen(); return; }
       // Co-contrôle
       if(t.id === 'cwCoCtlBtn') { window._cwToggleCoControl && window._cwToggleCoControl(); return; }
       // Contrôles player
@@ -982,7 +984,12 @@
         width:'100%',videoId:ytId,
         playerVars:{playsinline:1,controls:0,rel:0,modestbranding:1,disablekb:1},
         events:{
-          onReady:function(){_startTimeIv();if(_isHost)_startBroadcast();},
+          onReady:function(){
+            // Ajouter allowfullscreen à l'iframe générée par l'API YT
+            var iframe=document.querySelector('.cw-vwrap iframe');
+            if(iframe){iframe.setAttribute('allowfullscreen','');iframe.setAttribute('webkitallowfullscreen','');}
+            _startTimeIv();if(_isHost)_startBroadcast();
+          },
           onStateChange:function(e){_onYTState(e.data);}
         }
       });
@@ -1617,54 +1624,73 @@
   };
 
   // ── Plein écran ────────────────────────────────────────────────────
-  // Desktop/Android : requestFullscreen natif sur l'iframe existante.
-  // iOS PWA : on agrandit le .cw-vwrap en position fixed (même iframe, même session YT).
+  // Desktop/Android : requestFullscreen natif sur le wrap (pas l'iframe — cross-origin).
+  // iOS PWA : requestFullscreen non supporté → fallback CSS position:fixed immédiat.
+  function _cwIosFsEnter(wrap){
+    wrap.classList.add('cw-ios-fs');
+    document.body.style.overflow='hidden';
+    var btn=document.getElementById('cwFsBtn');
+    if(btn)btn.innerHTML=_iconCompress();
+    var old=document.getElementById('cwFsClose');if(old)old.remove();
+    var closeBtn=document.createElement('div');
+    closeBtn.id='cwFsClose';
+    closeBtn.style.cssText='position:absolute;top:14px;right:14px;z-index:9100;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;';
+    closeBtn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    closeBtn.addEventListener('click',function(){window._cwFullscreen();});
+    wrap.appendChild(closeBtn);
+  }
+  function _cwIosFsExit(wrap){
+    wrap.classList.remove('cw-ios-fs');
+    document.body.style.overflow='';
+    var btn=document.getElementById('cwFsBtn');
+    if(btn)btn.innerHTML=_iconExpand();
+    var old=document.getElementById('cwFsClose');if(old)old.remove();
+  }
+
   window._cwFullscreen=function(){
     var wrap=document.querySelector('.cw-vwrap');if(!wrap)return;
-    var iframe=wrap.querySelector('iframe');
 
     // Si déjà en mode iOS-fs → sortir
-    if(wrap.classList.contains('cw-ios-fs')){
-      wrap.classList.remove('cw-ios-fs');
-      var btn=document.getElementById('cwFsBtn');
-      if(btn)btn.innerHTML=_iconExpand();
-      document.body.style.overflow='';
-      var old=document.getElementById('cwFsClose');
-      if(old)old.parentNode.removeChild(old);
-      return;
-    }
+    if(wrap.classList.contains('cw-ios-fs')){_cwIosFsExit(wrap);return;}
 
-    // Tentative native (desktop Chrome/Firefox, Android Chrome)
-    var target=iframe||wrap;
-    if(!document.fullscreenElement&&!document.webkitFullscreenElement){
-      if(target.requestFullscreen){target.requestFullscreen();return;}
-      if(target.webkitRequestFullscreen){target.webkitRequestFullscreen();return;}
-    } else {
+    // Si déjà en fullscreen natif → sortir
+    if(document.fullscreenElement||document.webkitFullscreenElement){
       if(document.exitFullscreen)document.exitFullscreen();
       else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
       return;
     }
 
-    // Fallback iOS : agrandir le wrap existant sans toucher à l'iframe
-    wrap.classList.add('cw-ios-fs');
-    document.body.style.overflow='hidden';
-    var btn=document.getElementById('cwFsBtn');
-    if(btn)btn.innerHTML=_iconCompress();
-    // Bouton fermer flottant dans le wrap
-    var closeBtn=document.createElement('div');
-    closeBtn.id='cwFsClose';
-    closeBtn.style.cssText='position:absolute;top:14px;right:14px;z-index:9100;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;';
-    closeBtn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-    closeBtn.onclick=function(){window._cwFullscreen();};
-    wrap.appendChild(closeBtn);
+    // Tentative native sur le wrap (pas l'iframe cross-origin).
+    // On catch le rejet de la Promise (iOS, Firefox en mode strict, etc.)
+    // et on bascule sur le fallback CSS dans ce cas.
+    var fsTarget=wrap;
+    var fsPromise=null;
+    if(fsTarget.requestFullscreen){fsPromise=fsTarget.requestFullscreen();}
+    else if(fsTarget.webkitRequestFullscreen){fsPromise=fsTarget.webkitRequestFullscreen();}
+
+    if(fsPromise&&typeof fsPromise.then==='function'){
+      fsPromise.then(function(){
+        // Succès natif : mettre à jour l'icône
+        var btn=document.getElementById('cwFsBtn');
+        if(btn)btn.innerHTML=_iconCompress();
+      }).catch(function(){
+        // Rejeté (iOS PWA, permissions manquantes) → fallback CSS
+        _cwIosFsEnter(wrap);
+      });
+    } else if(!document.fullscreenElement&&!document.webkitFullscreenElement){
+      // API non-Promise ou non disponible → fallback CSS immédiat
+      _cwIosFsEnter(wrap);
+    }
   };
 
   // Écouter la sortie fullscreen native (bouton Échap / swipe)
   document.addEventListener('fullscreenchange',_onFsChange);
   document.addEventListener('webkitfullscreenchange',_onFsChange);
   function _onFsChange(){
-    if(!document.fullscreenElement&&!document.webkitFullscreenElement){
-      var btn=document.getElementById('cwFsBtn');
+    var btn=document.getElementById('cwFsBtn');
+    if(document.fullscreenElement||document.webkitFullscreenElement){
+      if(btn)btn.innerHTML=_iconCompress();
+    } else {
       if(btn)btn.innerHTML=_iconExpand();
     }
   }
@@ -1736,6 +1762,11 @@
   }
 
   window.closeCowatchModal=function(){
+    // Sortir du plein écran (natif ou iOS-fs) avant de fermer
+    var wrap=document.querySelector('.cw-vwrap');
+    if(wrap&&wrap.classList.contains('cw-ios-fs'))_cwIosFsExit(wrap);
+    if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen();
+    else if(document.webkitFullscreenElement&&document.webkitExitFullscreen)document.webkitExitFullscreen();
     if(_isHost&&_sessionId){
       // Nettoyer chat, présence, réactions — garder playlist intacte en base
       fetch(SB_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId),{
