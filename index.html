@@ -23,7 +23,7 @@
   script-src 'self' cdn.jsdelivr.net https://www.youtube-nocookie.com https://www.youtube.com;
   style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.jsdelivr.net;
   font-src 'self' fonts.gstatic.com cdn.jsdelivr.net data:;
-  img-src 'self' blob: data: raw.githubusercontent.com https://jstiwtbgkbedtldqjdhp.supabase.co https://img.youtube.com https://i.ytimg.com https://lh3.googleusercontent.com;
+  img-src 'self' blob: data: raw.githubusercontent.com https://jstiwtbgkbedtldqjdhp.supabase.co https://img.youtube.com https://i.ytimg.com https://lh3.googleusercontent.com https://www.gutenberg.org;
   media-src 'self' blob: data:;
   connect-src 'self'
     https://jstiwtbgkbedtldqjdhp.supabase.co
@@ -40,7 +40,9 @@
     https://invidious.slipfox.xyz
     https://watch.thekitty.zone
     https://inv.riverside.rocks
-    https://fcm.googleapis.com;
+    https://fcm.googleapis.com
+    https://gutendex.com
+    https://www.gutenberg.org;
   worker-src 'self';
   manifest-src 'self';
   frame-src https://www.youtube.com https://www.youtube-nocookie.com;
@@ -2954,11 +2956,11 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
         <span id="cwLivePill" style="display:none;">En live</span>
         <svg class="jx-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg>
       </div>
-      <div class="jx-row disabled">
+      <div id="jxBooksRow" class="jx-row">
         <div class="jx-row-icon" style="background:rgba(124,106,247,.12);">📖</div>
         <div class="jx-row-body">
-          <div class="jx-row-name">Lire ensemble <span class="jx-badge">Bientôt</span></div>
-          <div class="jx-row-sub">Un chapitre chacun à voix haute</div>
+          <div class="jx-row-name">Lire ensemble</div>
+          <div class="jx-row-sub">Classiques gratuits + lecture synchronisée</div>
         </div>
         <svg class="jx-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg>
       </div>
@@ -2976,6 +2978,11 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 
 
 </div><!-- /yamJeuxTab -->
+
+<!-- ═══════════════════════════════════════════
+     BOOKS — Vue lecture (gérée par app-books.js)
+════════════════════════════════════════════ -->
+<div id="bookView"></div>
 
 <!-- ═══════════════════════════════════════════
      MESSAGES TAB — InstaLove
@@ -5464,6 +5471,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 <script src="js/app-memory.js"></script>
 <script src="js/app-games.js"></script>
 <script src="js/app-multiplayer.js"></script>
+<script src="js/app-books.js"></script>
 <script src="js/app-cowatch.js"></script>
 <script src="js/app-skyjo.js"></script>
 <script src="js/app-ocho.js"></script>
