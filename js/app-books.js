@@ -172,7 +172,7 @@
     _bkReads = {};
     var reader = document.getElementById('bkReader');
     var lib    = document.getElementById('bkLibContainer');
-    if (reader) reader.style.display = 'none';
+    if (reader) { reader.classList.remove('bk-reader-visible'); }
     if (lib)    lib.style.display    = '';
     _bkRenderLibrary();
   }
@@ -228,7 +228,7 @@
     if (!c) return;
     c.style.display = '';
     var reader = document.getElementById('bkReader');
-    if (reader) reader.style.display = 'none';
+    if (reader) { reader.classList.remove('bk-reader-visible'); }
 
     var u = yamGetUser();
     var me = getProfile();
@@ -282,36 +282,66 @@
     html += '</div>';
     c.innerHTML = html;
 
-    // Event listeners
-    c.querySelectorAll('[data-bk-tab]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        _bkTab = btn.getAttribute('data-bk-tab');
-        _bkRenderLibrary();
-      });
-    });
+    // ── Délégation d'événements — UN seul listener permanent sur le container ──
+    // Plus fiable que querySelectorAll après innerHTML (pas de risque de timing)
+    if (!c._bkDelegated) {
+      c._bkDelegated = true;
+      c.addEventListener('click', function (e) {
+        var t = e.target;
 
-    c.querySelectorAll('[data-bk-open]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var bookId = btn.getAttribute('data-bk-open');
-        var book = _bkLibrary.find(function (b) { return b.id === bookId; });
-        if (book) _bkOpenReader(book);
+        // Remonter jusqu'à trouver un attribut data-bk-*
+        while (t && t !== c) {
+          // Ouvrir le reader
+          if (t.hasAttribute('data-bk-open')) {
+            var bookId = t.getAttribute('data-bk-open');
+            var book = _bkLibrary.find(function (b) { return b.id === bookId; });
+            if (book) { _bkOpenReader(book); return; }
+          }
+          // Changer d'onglet
+          if (t.hasAttribute('data-bk-tab')) {
+            _bkTab = t.getAttribute('data-bk-tab');
+            _bkRenderLibrary();
+            return;
+          }
+          // Ajouter depuis catalogue
+          if (t.hasAttribute('data-bk-add-catalog')) {
+            var gid = parseInt(t.getAttribute('data-bk-add-catalog'), 10);
+            var item = BK_CATALOG.find(function (i) { return i.gutenberg_id === gid; });
+            if (item) _bkAddFromCatalog(item, t);
+            return;
+          }
+          // Lire ensemble (sync)
+          if (t.hasAttribute('data-bk-sync')) {
+            var bkId = t.getAttribute('data-bk-sync');
+            var bk = _bkLibrary.find(function (b) { return b.id === bkId; });
+            if (bk) _bkStartSync(bk);
+            return;
+          }
+          // Retirer livre
+          if (t.hasAttribute('data-bk-delete')) {
+            _bkDeleteBook(t.getAttribute('data-bk-delete'));
+            return;
+          }
+          t = t.parentElement;
+        }
       });
-    });
 
-    c.querySelectorAll('[data-bk-add-catalog]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var gid = parseInt(btn.getAttribute('data-bk-add-catalog'), 10);
-        var item = BK_CATALOG.find(function (i) { return i.gutenberg_id === gid; });
-        if (item) _bkAddFromCatalog(item, btn);
+      // Délégation pour la recherche (keydown Enter sur l'input)
+      c.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          var inp = document.getElementById('bkSearchInput');
+          if (inp && document.activeElement === inp) _bkSearch(inp.value.trim());
+        }
       });
-    });
+    }
 
+    // Bouton recherche Go (ajouté directement car pas de data-attr)
     var searchBtn = document.getElementById('bkSearchBtn');
-    var searchInput = document.getElementById('bkSearchInput');
-    if (searchBtn && searchInput) {
-      searchBtn.addEventListener('click', function () { _bkSearch(searchInput.value.trim()); });
-      searchInput.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') _bkSearch(searchInput.value.trim());
+    if (searchBtn && !searchBtn._bkBound) {
+      searchBtn._bkBound = true;
+      searchBtn.addEventListener('click', function () {
+        var inp = document.getElementById('bkSearchInput');
+        if (inp) _bkSearch(inp.value.trim());
       });
     }
   }
@@ -598,20 +628,23 @@
     var u = yamGetUser();
     if (!u || !u.couple_id) { cb(false); return; }
 
-    sb2Post(BK_LIBRARY_TBL, {
+    // Note: fallback_urls colonne optionnelle — ignorée si elle n'existe pas encore en base
+    // Les URLs de fallback sont reconstruites à la volée depuis gutenberg_id
+    var payload = {
       couple_id:    u.couple_id,
       source:       'gutenberg',
-      gutenberg_id:  data.gutenberg_id,
-      title:         data.title,
-      author:        data.author,
-      cover_emoji:   data.cover_emoji,
-      content_url:   data.content_url,
-      fallback_urls: JSON.stringify(data.fallback_urls || []),
-      total_chars:   data.total_chars,
-      chapters:      JSON.stringify(data.chapters),
-      added_by:      u.role,
-      status:        'reading',
-    })
+      gutenberg_id: data.gutenberg_id,
+      title:        data.title,
+      author:       data.author,
+      cover_emoji:  data.cover_emoji,
+      content_url:  data.content_url,
+      total_chars:  data.total_chars,
+      chapters:     JSON.stringify(data.chapters || []),
+      added_by:     u.role,
+      status:       'reading',
+    };
+
+    sb2Post(BK_LIBRARY_TBL, payload)
       .then(function (rows) {
         cb(Array.isArray(rows) && rows.length > 0);
       })
@@ -649,24 +682,30 @@
     var lib = document.getElementById('bkLibContainer');
     var reader = document.getElementById('bkReader');
     if (lib)    lib.style.display    = 'none';
-    if (reader) reader.style.display = '';
+    if (reader) { reader.style.display = ''; reader.classList.add('bk-reader-visible'); }
     haptic('light');
 
-    // Construire la liste complète des URLs à essayer
-    // Priorité : content_url stocké > fallback_urls stockés > URLs construites depuis l'ID
-    var storedFallbacks = [];
-    try {
-      storedFallbacks = JSON.parse(book.fallback_urls || '[]');
-    } catch (e) {}
+    // Filtrer les URLs invalides : /ebooks/xxx est une page HTML, pas un fichier texte
+    function isDirectTextUrl(url) {
+      if (!url) return false;
+      if (url.indexOf('/ebooks/') !== -1) return false; // page de téléchargement, pas le texte
+      if (url.endsWith('.zip'))    return false;
+      if (url.endsWith('.images')) return false;
+      if (url.endsWith('.epub'))   return false;
+      if (url.endsWith('.mobi'))   return false;
+      return url.startsWith('http');
+    }
 
+    // Construire la liste complète des URLs à essayer
     var builtUrls = book.gutenberg_id ? _bkBuildTextUrls(book.gutenberg_id) : [];
     var allUrls   = [];
-    if (book.content_url) allUrls.push(book.content_url);
-    allUrls = allUrls.concat(storedFallbacks).concat(builtUrls);
+    // content_url stocké seulement si c'est une URL directe valide
+    if (isDirectTextUrl(book.content_url)) allUrls.push(book.content_url);
+    allUrls = allUrls.concat(builtUrls);
     // Dédupliquer
     var seen = {};
-    allUrls = allUrls.filter(function (u) {
-      if (!u || seen[u]) return false; seen[u] = true; return true;
+    allUrls = allUrls.filter(function (url) {
+      if (!url || seen[url]) return false; seen[url] = true; return true;
     });
 
     if (allUrls.length === 0) {
@@ -958,7 +997,7 @@
     var reader = document.getElementById('bkReader');
     var lib    = document.getElementById('bkLibContainer');
     if (lib)    lib.style.display    = 'none';
-    if (reader) reader.style.display = '';
+    if (reader) { reader.style.display = ''; reader.classList.add('bk-reader-visible'); }
 
     _bkRenderSyncLobby(book);
 
@@ -1171,9 +1210,11 @@
         '#bookView{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;flex-direction:column;overflow:hidden;}' +
         '#bookView:not(.active){display:none;}' +
         '#bkLibContainer{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}' +
-        '#bkReader{flex:1;overflow:hidden;display:none;flex-direction:column;}' +
+        '#bkReader{flex:1;min-height:0;flex-direction:column;}' +
+        '#bkReader:not(.bk-reader-visible){display:none !important;}' +
+        '#bkReader.bk-reader-visible{display:flex !important;}' +
         '#bkReader.sync-active{border-top:2px solid var(--accent);}' +
-        '#bkTextContent{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}' +
+        '#bkTextContent{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;}' +
         '.bk-card-row:active{background:var(--s2) !important;}' +
         '@keyframes bkPulse{0%,100%{opacity:1;}50%{opacity:.4;}}' +
         '@keyframes bkDot{0%,100%{transform:scale(1);opacity:.5;}50%{transform:scale(1.4);opacity:1;}}' +
