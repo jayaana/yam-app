@@ -17,6 +17,9 @@
 
   var GUTENDEX_API    = 'https://gutendex.com/books/';
   var GUTENBERG_BASE  = 'https://www.gutenberg.org';
+  // Proxy CORS gratuit — Gutenberg bloque les fetch cross-origin directs
+  // allorigins retourne { contents: '<texte>' }
+  var CORS_PROXY      = 'https://api.allorigins.win/get?url=';
   var BK_LIBRARY_TBL  = 'book_library';
   var BK_READS_TBL    = 'book_reads';
   var BK_SESSIONS_TBL = 'book_sessions';
@@ -333,9 +336,8 @@
 
     return '<div data-book-id="' + escHtml(book.id) + '" style="background:var(--s1);border:1px solid var(--border);' +
       'border-radius:14px;overflow:hidden;">' +
-      '<div data-bk-open="' + escHtml(book.id) + '" style="display:flex;gap:12px;padding:12px 14px;cursor:pointer;' +
-      'transition:background .12s;-webkit-tap-highlight-color:transparent;" ' +
-      'onmouseenter="this.style.background=\'var(--s2)\'" onmouseleave="this.style.background=\'\'">' +
+      '<div data-bk-open="' + escHtml(book.id) + '" class="bk-card-row" style="display:flex;gap:12px;padding:12px 14px;cursor:pointer;' +
+      'transition:background .12s;-webkit-tap-highlight-color:transparent;">' +
         '<div style="width:48px;height:64px;border-radius:8px;background:var(--accent-s);display:flex;' +
         'align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">' +
           escHtml(book.cover_emoji || '📖') +
@@ -532,21 +534,35 @@
     });
   }
 
-  // Récupère l'URL du texte HTML depuis gutendex et pré-calcule les chars
+  // Récupère l'URL du texte depuis gutendex
+  // Priorité : text/plain utf-8 > text/plain > text/html (évite le CORS HTML complexe)
   function _bkFetchGutenbergMeta(gutenbergId, cb) {
     fetch(GUTENDEX_API + gutenbergId + '/')
       .then(function (r) { return r.json(); })
       .then(function (data) {
         var formats = data.formats || {};
-        // Préférer HTML, sinon texte brut
-        var contentUrl =
-          formats['text/html'] ||
-          formats['text/html; charset=utf-8'] ||
-          formats['text/plain; charset=utf-8'] ||
-          formats['text/plain'] || '';
 
-        // Nettoyer l'URL (Gutenberg retourne parfois des .zip)
-        if (contentUrl && contentUrl.endsWith('.zip')) contentUrl = '';
+        // Fonction de nettoyage : rejeter .zip, .images, et autres formats non-texte
+        function isValidTextUrl(url) {
+          if (!url) return false;
+          if (url.endsWith('.zip'))    return false;
+          if (url.endsWith('.images')) return false;
+          if (url.endsWith('.epub'))   return false;
+          if (url.endsWith('.mobi'))   return false;
+          return true;
+        }
+
+        // Priorité : texte brut UTF-8 (pas de CORS HTML, plus simple à parser)
+        var contentUrl =
+          (isValidTextUrl(formats['text/plain; charset=utf-8'])  ? formats['text/plain; charset=utf-8']  : '') ||
+          (isValidTextUrl(formats['text/plain; charset=us-ascii'])? formats['text/plain; charset=us-ascii']: '') ||
+          (isValidTextUrl(formats['text/plain'])                  ? formats['text/plain']                  : '') ||
+          (isValidTextUrl(formats['text/html; charset=utf-8'])    ? formats['text/html; charset=utf-8']    : '') ||
+          (isValidTextUrl(formats['text/html'])                   ? formats['text/html']                   : '') ||
+          '';
+
+        // Dernière vérification : URL doit commencer par http
+        if (contentUrl && !contentUrl.startsWith('http')) contentUrl = '';
 
         cb({ content_url: contentUrl, total_chars: 0, chapters: [] });
       })
@@ -620,18 +636,28 @@
     // Afficher shell + loading pendant le fetch du texte
     _bkRenderReaderShell(book, '<div id="bkTextLoading" style="padding:40px;text-align:center;color:var(--muted);font-size:13px;">Chargement du livre…<br><span style="font-size:10px;opacity:.6;">Source : Project Gutenberg</span></div>');
 
-    fetch(book.content_url)
+    // Gutenberg bloque les fetch cross-origin directs → proxy CORS
+    var proxyUrl = CORS_PROXY + encodeURIComponent(book.content_url);
+
+    fetch(proxyUrl)
       .then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.text();
+        return r.json(); // allorigins retourne { contents: '...' }
       })
-      .then(function (raw) {
+      .then(function (data) {
+        var raw = data.contents || '';
+        if (!raw) throw new Error('Contenu vide');
         var text = _bkParseText(raw);
         _bkRenderText(book, text);
       })
-      .catch(function () {
+      .catch(function (err) {
+        yamLog('[Books] Erreur chargement texte:', err);
         var content = document.getElementById('bkTextContent');
-        if (content) content.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);">Impossible de charger le texte.<br>Vérifie ta connexion.</div>';
+        if (content) content.innerHTML =
+          '<div style="padding:24px;text-align:center;color:var(--muted);">' +
+          'Impossible de charger le texte.<br>' +
+          '<span style="font-size:11px;">Vérifie ta connexion ou essaie un autre livre.</span>' +
+          '</div>';
       });
   }
 
@@ -1083,6 +1109,7 @@
         '#bkReader{flex:1;overflow:hidden;display:none;flex-direction:column;}' +
         '#bkReader.sync-active{border-top:2px solid var(--accent);}' +
         '#bkTextContent{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}' +
+        '.bk-card-row:active{background:var(--s2) !important;}' +
         '@keyframes bkPulse{0%,100%{opacity:1;}50%{opacity:.4;}}' +
         '@keyframes bkDot{0%,100%{transform:scale(1);opacity:.5;}50%{transform:scale(1.4);opacity:1;}}' +
       '</style>' +
