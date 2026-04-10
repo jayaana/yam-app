@@ -17,9 +17,10 @@
 
   var GUTENDEX_API    = 'https://gutendex.com/books/';
   var GUTENBERG_BASE  = 'https://www.gutenberg.org';
-  // Proxy CORS gratuit — Gutenberg bloque les fetch cross-origin directs
-  // allorigins retourne { contents: '<texte>' }
-  var CORS_PROXY      = 'https://api.allorigins.win/get?url=';
+  // URLs du cache Gutenberg — autorisent CORS et sont stables
+  // Pattern 1 : https://www.gutenberg.org/cache/epub/{id}/pg{id}.txt  (texte brut, CORS OK)
+  // Pattern 2 : https://www.gutenberg.org/files/{id}/{id}-0.txt       (fallback)
+  // On essaie les deux séquentiellement — pas de proxy tiers nécessaire
   var BK_LIBRARY_TBL  = 'book_library';
   var BK_READS_TBL    = 'book_reads';
   var BK_SESSIONS_TBL = 'book_sessions';
@@ -494,13 +495,14 @@
     if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
     _bkFetchGutenbergMeta(item.gutenberg_id, function (meta) {
       _bkInsertBook({
-        gutenberg_id: item.gutenberg_id,
-        title:        item.title,
-        author:       item.author,
-        cover_emoji:  item.cover,
-        content_url:  meta.content_url || '',
-        total_chars:  meta.total_chars || 0,
-        chapters:     meta.chapters    || [],
+        gutenberg_id:  item.gutenberg_id,
+        title:         item.title,
+        author:        item.author,
+        cover_emoji:   item.cover,
+        content_url:   meta.content_url   || '',
+        fallback_urls: meta.fallback_urls || [],
+        total_chars:   meta.total_chars   || 0,
+        chapters:      meta.chapters      || [],
       }, function (ok) {
         if (btn) { btn.disabled = ok; btn.textContent = ok ? '✓ Ajouté' : 'Erreur'; }
         if (ok) {
@@ -516,13 +518,14 @@
     if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
     _bkFetchGutenbergMeta(item.gutenberg_id, function (meta) {
       _bkInsertBook({
-        gutenberg_id: item.gutenberg_id,
-        title:        item.title,
-        author:       item.author,
-        cover_emoji:  '📖',
-        content_url:  meta.content_url || '',
-        total_chars:  meta.total_chars || 0,
-        chapters:     meta.chapters    || [],
+        gutenberg_id:  item.gutenberg_id,
+        title:         item.title,
+        author:        item.author,
+        cover_emoji:   '📖',
+        content_url:   meta.content_url   || '',
+        fallback_urls: meta.fallback_urls || [],
+        total_chars:   meta.total_chars   || 0,
+        chapters:      meta.chapters      || [],
       }, function (ok) {
         if (btn) { btn.disabled = ok; btn.textContent = ok ? '✓' : 'Erreur'; }
         if (ok) {
@@ -534,40 +537,61 @@
     });
   }
 
-  // Récupère l'URL du texte depuis gutendex
-  // Priorité : text/plain utf-8 > text/plain > text/html (évite le CORS HTML complexe)
+  // Construit les URLs candidates pour un ID Gutenberg donné
+  // On stocke toutes les URLs possibles — _bkShowReader les essaie en cascade
+  function _bkBuildTextUrls(gutenbergId) {
+    var id = gutenbergId;
+    return [
+      // Cache Gutenberg — CORS autorisé, c'est le plus fiable
+      'https://www.gutenberg.org/cache/epub/' + id + '/pg' + id + '.txt',
+      // Fichiers directs — patterns classiques Gutenberg
+      'https://www.gutenberg.org/files/' + id + '/' + id + '-0.txt',
+      'https://www.gutenberg.org/files/' + id + '/' + id + '.txt',
+      'https://www.gutenberg.org/files/' + id + '/' + id + '-8.txt',
+    ];
+  }
+
+  // Récupère la première URL valide via gutendex (pour avoir les vrais formats)
+  // + construit les URLs de fallback depuis l'ID
   function _bkFetchGutenbergMeta(gutenbergId, cb) {
+    var fallbackUrls = _bkBuildTextUrls(gutenbergId);
+
+    // Essayer gutendex pour avoir l'URL exacte du fichier
     fetch(GUTENDEX_API + gutenbergId + '/')
       .then(function (r) { return r.json(); })
       .then(function (data) {
         var formats = data.formats || {};
 
-        // Fonction de nettoyage : rejeter .zip, .images, et autres formats non-texte
         function isValidTextUrl(url) {
           if (!url) return false;
           if (url.endsWith('.zip'))    return false;
           if (url.endsWith('.images')) return false;
           if (url.endsWith('.epub'))   return false;
           if (url.endsWith('.mobi'))   return false;
+          if (url.endsWith('.html'))   return false; // HTML = CORS problématique
           return true;
         }
 
-        // Priorité : texte brut UTF-8 (pas de CORS HTML, plus simple à parser)
-        var contentUrl =
-          (isValidTextUrl(formats['text/plain; charset=utf-8'])  ? formats['text/plain; charset=utf-8']  : '') ||
-          (isValidTextUrl(formats['text/plain; charset=us-ascii'])? formats['text/plain; charset=us-ascii']: '') ||
-          (isValidTextUrl(formats['text/plain'])                  ? formats['text/plain']                  : '') ||
-          (isValidTextUrl(formats['text/html; charset=utf-8'])    ? formats['text/html; charset=utf-8']    : '') ||
-          (isValidTextUrl(formats['text/html'])                   ? formats['text/html']                   : '') ||
+        // Priorité : texte brut uniquement
+        var gutendexUrl =
+          (isValidTextUrl(formats['text/plain; charset=utf-8'])   ? formats['text/plain; charset=utf-8']   : '') ||
+          (isValidTextUrl(formats['text/plain; charset=us-ascii']) ? formats['text/plain; charset=us-ascii'] : '') ||
+          (isValidTextUrl(formats['text/plain'])                   ? formats['text/plain']                   : '') ||
           '';
 
-        // Dernière vérification : URL doit commencer par http
-        if (contentUrl && !contentUrl.startsWith('http')) contentUrl = '';
+        // Mettre l'URL gutendex en tête de liste si elle est valide
+        var allUrls = gutendexUrl ? [gutendexUrl].concat(fallbackUrls) : fallbackUrls;
+        // Dédupliquer
+        var seen = {};
+        allUrls = allUrls.filter(function (u) {
+          if (seen[u]) return false; seen[u] = true; return true;
+        });
 
-        cb({ content_url: contentUrl, total_chars: 0, chapters: [] });
+        cb({ content_url: allUrls[0], fallback_urls: allUrls.slice(1), total_chars: 0, chapters: [] });
       })
       .catch(function () {
-        cb({ content_url: '', total_chars: 0, chapters: [] });
+        // Gutendex indisponible → utiliser uniquement les URLs construites
+        cb({ content_url: fallbackUrls[0], fallback_urls: fallbackUrls.slice(1), total_chars: 0, chapters: [] });
       });
   }
 
@@ -578,15 +602,16 @@
     sb2Post(BK_LIBRARY_TBL, {
       couple_id:    u.couple_id,
       source:       'gutenberg',
-      gutenberg_id: data.gutenberg_id,
-      title:        data.title,
-      author:       data.author,
-      cover_emoji:  data.cover_emoji,
-      content_url:  data.content_url,
-      total_chars:  data.total_chars,
-      chapters:     JSON.stringify(data.chapters),
-      added_by:     u.role,
-      status:       'reading',
+      gutenberg_id:  data.gutenberg_id,
+      title:         data.title,
+      author:        data.author,
+      cover_emoji:   data.cover_emoji,
+      content_url:   data.content_url,
+      fallback_urls: JSON.stringify(data.fallback_urls || []),
+      total_chars:   data.total_chars,
+      chapters:      JSON.stringify(data.chapters),
+      added_by:      u.role,
+      status:        'reading',
     })
       .then(function (rows) {
         cb(Array.isArray(rows) && rows.length > 0);
@@ -628,36 +653,71 @@
     if (reader) reader.style.display = '';
     haptic('light');
 
-    if (!book.content_url) {
-      _bkRenderReaderShell(book, '<div style="padding:24px;text-align:center;color:var(--muted);">Texte non disponible pour ce livre.<br>Essaie un autre titre du catalogue.</div>');
+    // Construire la liste complète des URLs à essayer
+    // Priorité : content_url stocké > fallback_urls stockés > URLs construites depuis l'ID
+    var storedFallbacks = [];
+    try {
+      storedFallbacks = JSON.parse(book.fallback_urls || '[]');
+    } catch (e) {}
+
+    var builtUrls = book.gutenberg_id ? _bkBuildTextUrls(book.gutenberg_id) : [];
+    var allUrls   = [];
+    if (book.content_url) allUrls.push(book.content_url);
+    allUrls = allUrls.concat(storedFallbacks).concat(builtUrls);
+    // Dédupliquer
+    var seen = {};
+    allUrls = allUrls.filter(function (u) {
+      if (!u || seen[u]) return false; seen[u] = true; return true;
+    });
+
+    if (allUrls.length === 0) {
+      _bkRenderReaderShell(book,
+        '<div style="padding:24px;text-align:center;color:var(--muted);">Texte non disponible pour ce livre.<br>Essaie un autre titre.</div>');
       return;
     }
 
-    // Afficher shell + loading pendant le fetch du texte
-    _bkRenderReaderShell(book, '<div id="bkTextLoading" style="padding:40px;text-align:center;color:var(--muted);font-size:13px;">Chargement du livre…<br><span style="font-size:10px;opacity:.6;">Source : Project Gutenberg</span></div>');
+    _bkRenderReaderShell(book,
+      '<div id="bkTextLoading" style="padding:40px;text-align:center;color:var(--muted);font-size:13px;">' +
+      'Chargement du livre…<br><span style="font-size:10px;opacity:.6;">Source : Project Gutenberg</span></div>');
 
-    // Gutenberg bloque les fetch cross-origin directs → proxy CORS
-    var proxyUrl = CORS_PROXY + encodeURIComponent(book.content_url);
-
-    fetch(proxyUrl)
-      .then(function (r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json(); // allorigins retourne { contents: '...' }
-      })
-      .then(function (data) {
-        var raw = data.contents || '';
-        if (!raw) throw new Error('Contenu vide');
-        var text = _bkParseText(raw);
-        _bkRenderText(book, text);
-      })
-      .catch(function (err) {
-        yamLog('[Books] Erreur chargement texte:', err);
+    // Essayer les URLs une par une jusqu'à ce que l'une réponde
+    _bkFetchWithFallback(allUrls, 0, function (text, usedUrl) {
+      if (!text) {
         var content = document.getElementById('bkTextContent');
         if (content) content.innerHTML =
           '<div style="padding:24px;text-align:center;color:var(--muted);">' +
           'Impossible de charger le texte.<br>' +
-          '<span style="font-size:11px;">Vérifie ta connexion ou essaie un autre livre.</span>' +
-          '</div>';
+          '<span style="font-size:11px;">Toutes les sources ont échoué — vérifie ta connexion.</span></div>';
+        return;
+      }
+      // Mettre à jour content_url avec l'URL qui a marché
+      if (usedUrl && usedUrl !== book.content_url) {
+        sb2Patch(BK_LIBRARY_TBL, 'id=eq.' + book.id, { content_url: usedUrl }).catch(function () {});
+        book.content_url = usedUrl;
+      }
+      var parsed = _bkParseText(text);
+      _bkRenderText(book, parsed);
+    });
+  }
+
+  // Fetch avec fallback en cascade — essaie chaque URL jusqu'à succès
+  function _bkFetchWithFallback(urls, idx, cb) {
+    if (idx >= urls.length) { cb(null, null); return; }
+    var url = urls[idx];
+    yamLog('[Books] Essai URL ' + (idx + 1) + '/' + urls.length + ':', url);
+
+    fetch(url)
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.text();
+      })
+      .then(function (text) {
+        if (!text || text.trim().length < 100) throw new Error('Contenu trop court');
+        cb(text, url);
+      })
+      .catch(function (err) {
+        yamLog('[Books] URL échouée:', url, err.message);
+        _bkFetchWithFallback(urls, idx + 1, cb);
       });
   }
 
