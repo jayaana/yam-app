@@ -17,10 +17,9 @@
 
   var GUTENDEX_API    = 'https://gutendex.com/books/';
   var GUTENBERG_BASE  = 'https://www.gutenberg.org';
-  // URLs du cache Gutenberg — autorisent CORS et sont stables
-  // Pattern 1 : https://www.gutenberg.org/cache/epub/{id}/pg{id}.txt  (texte brut, CORS OK)
-  // Pattern 2 : https://www.gutenberg.org/files/{id}/{id}-0.txt       (fallback)
-  // On essaie les deux séquentiellement — pas de proxy tiers nécessaire
+  // Gutenberg bloque CORS sur toutes ses URLs — proxy obligatoire
+  // corsproxy.io : proxy CORS gratuit, retourne directement le texte (pas de wrapping JSON)
+  var CORS_PROXY      = 'https://corsproxy.io/?url=';
   var BK_LIBRARY_TBL  = 'book_library';
   var BK_READS_TBL    = 'book_reads';
   var BK_SESSIONS_TBL = 'book_sessions';
@@ -701,22 +700,28 @@
   }
 
   // Fetch avec fallback en cascade — essaie chaque URL jusqu'à succès
+  // Toutes les URLs Gutenberg passent par corsproxy.io (CORS bloqué nativement)
   function _bkFetchWithFallback(urls, idx, cb) {
     if (idx >= urls.length) { cb(null, null); return; }
-    var url = urls[idx];
-    yamLog('[Books] Essai URL ' + (idx + 1) + '/' + urls.length + ':', url);
+    var originalUrl = urls[idx];
+    // Wrapper CORS — corsproxy.io retourne directement le contenu texte
+    var fetchUrl = originalUrl.indexOf('gutenberg.org') !== -1
+      ? CORS_PROXY + encodeURIComponent(originalUrl)
+      : originalUrl;
 
-    fetch(url)
+    yamLog('[Books] Essai URL ' + (idx + 1) + '/' + urls.length + ':', originalUrl);
+
+    fetch(fetchUrl)
       .then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.text();
       })
       .then(function (text) {
         if (!text || text.trim().length < 100) throw new Error('Contenu trop court');
-        cb(text, url);
+        cb(text, originalUrl);
       })
       .catch(function (err) {
-        yamLog('[Books] URL échouée:', url, err.message);
+        yamLog('[Books] URL échouée:', originalUrl, err.message);
         _bkFetchWithFallback(urls, idx + 1, cb);
       });
   }
