@@ -160,13 +160,16 @@
   };
 
   window.bkClose = function () {
-    _bkStopSyncSession();
+    // Stopper la sync seulement si elle est active (évite le toast parasite)
+    if (_bkSyncActive) _bkStopSyncSession();
+
     var bookView = document.getElementById('bookView');
     var jeuxTab  = document.getElementById('yamJeuxTab');
     if (!bookView || !jeuxTab) return;
 
     // Réafficher la navbar YAM
     document.body.classList.remove('subview-active');
+    bookView.classList.remove('bk-reading');
 
     _yamSlide(jeuxTab, bookView, 'backward');
     jeuxTab.classList.add('active');
@@ -182,8 +185,10 @@
 
   // Fermer le reader et revenir à la bibliothèque
   function _bkCloseReader() {
-    _bkStopSyncSession();
+    // Stopper la sync seulement si active
+    if (_bkSyncActive) _bkStopSyncSession();
     _bkCurrentBook = null;
+    _bkCurrentRenderPage = null;
     _bkReads = {};
     var reader   = document.getElementById('bkReader');
     var lib      = document.getElementById('bkLibContainer');
@@ -372,14 +377,20 @@
   }
 
   function _bkBookCard(book, me) {
-    var myRead = book['read_' + me] || 0;
-    var pct = book.total_chars > 0 ? Math.round((myRead / book.total_chars) * 100) : 0;
     var partnerRole = me === 'girl' ? 'boy' : 'girl';
-    var partnerRead = book['read_' + partnerRole] || 0;
-    var partnerPct = book.total_chars > 0 ? Math.round((partnerRead / book.total_chars) * 100) : 0;
     var partnerName = yamGetDisplayName(partnerRole);
     var statusColors = { reading: '#22c55e', done: 'var(--accent)', paused: 'var(--muted)' };
     var statusLabels = { reading: 'En cours', done: 'Terminé', paused: 'En pause' };
+
+    // Progression : on lit depuis _bkReads si dispo, sinon on montre 0
+    var myRead      = book['read_' + me]          || 0;
+    var partnerRead = book['read_' + partnerRole] || 0;
+    var total       = book.total_chars || 1;
+    var myPct       = Math.round((myRead / total) * 100);
+    var partnerPct  = Math.round((partnerRead / total) * 100);
+    // Page partenaire estimée
+    var partnerPage = book.total_chars > 0 ? Math.round((partnerRead / CHARS_PER_PAGE)) + 1 : '—';
+    var totalPages  = book.total_chars > 0 ? Math.ceil(book.total_chars / CHARS_PER_PAGE) : '—';
 
     return '<div data-book-id="' + escHtml(book.id) + '" style="background:var(--s1);border:1px solid var(--border);' +
       'border-radius:14px;overflow:hidden;">' +
@@ -393,14 +404,16 @@
           '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px;' +
           'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(book.title) + '</div>' +
           '<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">' + escHtml(book.author) + '</div>' +
+          // Ma progression
           '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">' +
             '<div style="flex:1;height:3px;border-radius:2px;background:var(--border);overflow:hidden;">' +
-              '<div style="height:100%;width:' + pct + '%;background:var(--accent);border-radius:2px;"></div>' +
+              '<div style="height:100%;width:' + myPct + '%;background:var(--accent);border-radius:2px;"></div>' +
             '</div>' +
-            '<span style="font-size:10px;font-weight:700;color:var(--accent);min-width:28px;">' + pct + '%</span>' +
+            '<span style="font-size:10px;font-weight:700;color:var(--accent);min-width:28px;">' + myPct + '%</span>' +
           '</div>' +
+          // Progression partenaire avec numéro de page
           '<div style="font-size:10px;color:var(--muted);">' +
-            escHtml(partnerName) + ' : ' + partnerPct + '%' +
+            escHtml(partnerName) + ' : p.' + partnerPage + '/' + totalPages +
             ' <span style="color:' + (statusColors[book.status] || 'var(--muted)') + ';font-weight:700;">· ' +
             (statusLabels[book.status] || '') + '</span>' +
           '</div>' +
@@ -408,13 +421,10 @@
         '<svg width="7" height="12" viewBox="0 0 8 14" style="stroke:var(--muted);stroke-width:2;fill:none;' +
         'flex-shrink:0;align-self:center;"><polyline points="1 1 7 7 1 13"/></svg>' +
       '</div>' +
-      // Boutons actions
+      // Boutons actions — seulement Lire et Retirer, pas de Lire ensemble ici
       '<div style="display:flex;border-top:1px solid var(--border);">' +
         '<button data-bk-open="' + escHtml(book.id) + '" style="flex:1;padding:9px;font-size:12px;font-weight:700;' +
         'color:var(--accent);background:none;border:none;cursor:pointer;font-family:DM Sans,sans-serif;">Lire</button>' +
-        '<div style="width:1px;background:var(--border);"></div>' +
-        '<button data-bk-sync="' + escHtml(book.id) + '" style="flex:1;padding:9px;font-size:12px;font-weight:700;' +
-        'color:var(--text);background:none;border:none;cursor:pointer;font-family:DM Sans,sans-serif;">📡 Lire ensemble</button>' +
         '<div style="width:1px;background:var(--border);"></div>' +
         '<button data-bk-delete="' + escHtml(book.id) + '" style="flex:1;padding:9px;font-size:12px;font-weight:700;' +
         'color:var(--muted);background:none;border:none;cursor:pointer;font-family:DM Sans,sans-serif;">Retirer</button>' +
@@ -422,16 +432,8 @@
     '</div>';
   }
 
-  // Rebrancher les listeners sur les boutons Lire ensemble / Retirer
+  // Rebrancher les listeners sur les boutons Retirer uniquement
   function _bkBindCardListeners(container) {
-    (container || document).querySelectorAll('[data-bk-sync]').forEach(function (btn) {
-      btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        var bookId = btn.getAttribute('data-bk-sync');
-        var book = _bkLibrary.find(function (b) { return b.id === bookId; });
-        if (book) _bkStartSync(book);
-      });
-    });
     (container || document).querySelectorAll('[data-bk-delete]').forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         e.stopPropagation();
@@ -1267,7 +1269,10 @@
     var banner = document.getElementById('bkSyncBanner');
     if (banner) banner.remove();
 
-    if (_bkCurrentBook) showToast('Session sync terminée', '', 2000);
+    // Toast seulement si le reader est encore ouvert (pas si on ferme la vue)
+    var reader = document.getElementById('bkReader');
+    var readerVisible = reader && reader.classList.contains('bk-reader-visible');
+    if (readerVisible && _bkCurrentBook) showToast('Session sync terminée', '', 2000);
   }
 
 
@@ -1315,7 +1320,7 @@
         '#bookView.bk-reading #bkLibContainer{display:none !important;}' +
         '#bkTextContent{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;padding-bottom:60px;}' +
         '#bkGlobalNav{flex-shrink:0;background:var(--bg);border-top:1px solid var(--border);' +
-        'padding:8px 16px calc(var(--safe-bottom,0px) + 32px);display:none;align-items:center;gap:10px;}' +
+        'padding:8px 16px calc(var(--safe-bottom,0px) + 38px);display:none;align-items:center;gap:10px;}' +
         '#bookView.bk-reading #bkGlobalNav{display:flex;}' +
         '.bk-card-row:active{background:var(--s2) !important;}' +
         '@keyframes bkPulse{0%,100%{opacity:1;}50%{opacity:.4;}}' +
