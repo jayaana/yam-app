@@ -151,10 +151,12 @@
     var u = yamGetUser();
     if (!u) { showToast('Connecte-toi d\'abord 💕', 'error'); return; }
 
-    // Toujours relire depuis le DOM — jamais utiliser _bkView qui peut être périmé
     var bookView = document.getElementById('bookView');
     var jeuxTab  = document.getElementById('yamJeuxTab');
     if (!bookView) return;
+
+    // Cacher la navbar YAM comme le font Skyjo/Ocho (classe subview-active sur body)
+    document.body.classList.add('subview-active');
 
     _yamSlide(bookView, jeuxTab, 'forward');
     haptic('light');
@@ -167,11 +169,13 @@
     var jeuxTab  = document.getElementById('yamJeuxTab');
     if (!bookView || !jeuxTab) return;
 
+    // Réafficher la navbar YAM
+    document.body.classList.remove('subview-active');
+
     _yamSlide(jeuxTab, bookView, 'backward');
     jeuxTab.classList.add('active');
 
-    // _yamSlide retire .active via animation mais on force aussi
-    // au cas où le timing rate (350ms après la durée DUR=300ms)
+    // Forcer la suppression de active après l'animation (DUR=300ms + marge)
     setTimeout(function () {
       bookView.classList.remove('active');
       bookView.style.display = '';
@@ -185,10 +189,12 @@
     _bkStopSyncSession();
     _bkCurrentBook = null;
     _bkReads = {};
-    var reader = document.getElementById('bkReader');
-    var lib    = document.getElementById('bkLibContainer');
-    if (reader) { reader.classList.remove('bk-reader-visible'); }
-    if (lib)    lib.style.display = '';
+    var reader   = document.getElementById('bkReader');
+    var lib      = document.getElementById('bkLibContainer');
+    var bookView = document.getElementById('bookView');
+    if (reader)   { reader.classList.remove('bk-reader-visible'); }
+    if (lib)      lib.style.display = '';
+    if (bookView) bookView.classList.remove('bk-reading');
     _bkRenderLibrary();
   }
 
@@ -696,8 +702,10 @@
   function _bkShowReader(book) {
     var lib = document.getElementById('bkLibContainer');
     var reader = document.getElementById('bkReader');
+    var bookView = document.getElementById('bookView');
     if (lib)    lib.style.display    = 'none';
     if (reader) { reader.style.display = ''; reader.classList.add('bk-reader-visible'); }
+    if (bookView) bookView.classList.add('bk-reading');
     haptic('light');
 
     // Filtrer les URLs invalides : /ebooks/xxx est une page HTML, pas un fichier texte
@@ -831,21 +839,11 @@
 
       // ── Corps texte — flex:1, min-height:0 OBLIGATOIRE pour que flex enfant soit scrollable ──
       '<div id="bkTextContent" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;' +
-      'padding:20px 18px 12px;font-size:16px;line-height:1.8;color:var(--text);font-family:Georgia,serif;">' +
+      'padding:20px 18px 70px;font-size:16px;line-height:1.8;color:var(--text);font-family:Georgia,serif;">' +
         bodyHtml +
-      '</div>' +
-
-      // ── Nav pages — flex-shrink:0 pour ne jamais être compressée ──
-      '<div id="bkNavBar" style="flex-shrink:0;background:var(--bg);border-top:1px solid var(--border);' +
-      'padding:8px 16px calc(var(--safe-bottom,0px) + 8px);display:flex;align-items:center;gap:10px;">' +
-        '<button id="bkPrevPage" style="padding:9px 20px;border-radius:20px;background:var(--s2);' +
-        'border:1px solid var(--border);font-size:13px;color:var(--text);cursor:pointer;' +
-        'font-family:DM Sans,sans-serif;font-weight:600;">‹ Préc.</button>' +
-        '<div id="bkPageLabel" style="flex:1;text-align:center;font-size:11px;color:var(--muted);"></div>' +
-        '<button id="bkNextPage" style="padding:9px 20px;border-radius:20px;background:var(--s2);' +
-        'border:1px solid var(--border);font-size:13px;color:var(--text);cursor:pointer;' +
-        'font-family:DM Sans,sans-serif;font-weight:600;">Suiv. ›</button>' +
       '</div>';
+      // Note: la navigation ‹/› est dans #bkGlobalNav (enfant direct de #bookView)
+      // Elle s'affiche via .bk-reading sur bookView — pas dans le reader
 
     // Event listeners shell
     document.getElementById('bkBackBtn').addEventListener('click', _bkCloseReader);
@@ -1267,7 +1265,13 @@
         '#bkReader:not(.bk-reader-visible){display:none !important;}' +
         '#bkReader.bk-reader-visible{display:flex !important;}' +
         '#bkReader.sync-active{border-top:2px solid var(--accent);}' +
-        '#bkTextContent{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;}' +
+        /* Quand reader visible : cacher le header biblio + la nav est dans bookView */
+        '#bookView.bk-reading #bkHeader{display:none !important;}' +
+        '#bookView.bk-reading #bkLibContainer{display:none !important;}' +
+        '#bkTextContent{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;padding-bottom:60px;}' +
+        '#bkGlobalNav{flex-shrink:0;background:var(--bg);border-top:1px solid var(--border);' +
+        'padding:8px 16px calc(var(--safe-bottom,0px) + 8px);display:none;align-items:center;gap:10px;}' +
+        '#bookView.bk-reading #bkGlobalNav{display:flex;}' +
         '.bk-card-row:active{background:var(--s2) !important;}' +
         '@keyframes bkPulse{0%,100%{opacity:1;}50%{opacity:.4;}}' +
         '@keyframes bkDot{0%,100%{transform:scale(1);opacity:.5;}50%{transform:scale(1.4);opacity:1;}}' +
@@ -1291,8 +1295,19 @@
       // Conteneur bibliothèque
       '<div id="bkLibContainer" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>' +
 
-      // Conteneur reader
-      '<div id="bkReader" style="flex:1;overflow:hidden;flex-direction:column;"></div>';
+      // Conteneur reader (sans nav — la nav est dans bookView)
+      '<div id="bkReader" style="flex:1;overflow:hidden;flex-direction:column;"></div>' +
+
+      // Navigation pages — enfant direct de bookView, affiché uniquement en mode lecture
+      '<div id="bkGlobalNav">' +
+        '<button id="bkPrevPage" style="padding:9px 20px;border-radius:20px;background:var(--s2);' +
+        'border:1px solid var(--border);font-size:13px;color:var(--text);cursor:pointer;' +
+        'font-family:DM Sans,sans-serif;font-weight:600;">‹ Préc.</button>' +
+        '<div id="bkPageLabel" style="flex:1;text-align:center;font-size:11px;color:var(--muted);"></div>' +
+        '<button id="bkNextPage" style="padding:9px 20px;border-radius:20px;background:var(--s2);' +
+        'border:1px solid var(--border);font-size:13px;color:var(--text);cursor:pointer;' +
+        'font-family:DM Sans,sans-serif;font-weight:600;">Suiv. ›</button>' +
+      '</div>';
 
     // Listener retour principal
     document.getElementById('bkMainBackBtn').addEventListener('click', window.bkClose);
