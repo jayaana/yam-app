@@ -1158,18 +1158,24 @@
   }
 
   function _bkJoinSync(book, sessionRow) {
-    // Appelé quand le partenaire ouvre un livre qui a une session active
     var u = yamGetUser();
     if (!u) return;
     _bkSyncActive = true;
     _bkIsHost     = false;
     var partnerName = yamGetDisplayName(u.role === 'girl' ? 'boy' : 'girl');
-
-    // Aller à la page de l'hôte
     var state = typeof sessionRow.state === 'string' ? JSON.parse(sessionRow.state) : (sessionRow.state || {});
-    if (state.current_page !== undefined) {
-      _bkGoToPage(state.current_page);
+
+    // Aller à la page de l'hôte — mais attendre que _bkCurrentRenderPage soit prêt
+    // (le texte peut ne pas encore être chargé si on vient d'ouvrir le livre)
+    function tryGoToPage(attemptsLeft) {
+      if (state.current_page === undefined) return;
+      if (typeof _bkCurrentRenderPage === 'function') {
+        _bkCurrentRenderPage(state.current_page);
+      } else if (attemptsLeft > 0) {
+        setTimeout(function(){ tryGoToPage(attemptsLeft - 1); }, 500);
+      }
     }
+    tryGoToPage(10); // jusqu'à 5 secondes de retry
 
     _bkShowSyncBanner(book, partnerName, false);
     _bkSubscribeSyncRT(book, u);
@@ -1205,7 +1211,16 @@
         if (!_bkIsHost) {
           var state = typeof row.state === 'string' ? JSON.parse(row.state) : (row.state || {});
           if (state.current_page !== undefined) {
-            _bkGoToPage(state.current_page);
+            var targetPage = state.current_page;
+            // Retry si le reader n'est pas encore chargé
+            function tryJump(n) {
+              if (typeof _bkCurrentRenderPage === 'function') {
+                _bkCurrentRenderPage(targetPage);
+              } else if (n > 0) {
+                setTimeout(function(){ tryJump(n - 1); }, 300);
+              }
+            }
+            tryJump(5);
           }
         }
 
@@ -1349,13 +1364,43 @@
       var session = rows[0];
       // Ne pas rejoindre si on est l'hôte qui vient de créer la session
       if (session.created_by === u.role) return;
-      // Session créée par le partenaire → proposer de rejoindre
+
       var partnerName = yamGetDisplayName(u.role === 'girl' ? 'boy' : 'girl');
-      showToast('📡 ' + partnerName + ' est en lecture sync — rejoindre ?', '', 5000);
-      // Rejoindre après 500ms (laisser le toast s'afficher)
-      setTimeout(function() {
+
+      // Afficher un toast avec bouton "Rejoindre"
+      var toastId = 'bkJoinToast';
+      var old = document.getElementById(toastId);
+      if (old) old.remove();
+
+      var toast = document.createElement('div');
+      toast.id = toastId;
+      toast.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);' +
+        'z-index:9999;background:var(--accent);color:#fff;border-radius:14px;' +
+        'padding:10px 14px;font-size:13px;font-weight:700;font-family:DM Sans,sans-serif;' +
+        'display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.2);' +
+        'white-space:nowrap;';
+      toast.innerHTML =
+        '<span>📡 ' + escHtml(partnerName) + ' lit — rejoindre ?</span>' +
+        '<button id="bkJoinBtn" style="padding:4px 12px;border-radius:20px;background:#fff;' +
+        'color:var(--accent);font-size:12px;font-weight:800;border:none;cursor:pointer;' +
+        'font-family:DM Sans,sans-serif;">Oui</button>' +
+        '<button id="bkJoinNoBtn" style="padding:4px 8px;border-radius:20px;background:rgba(255,255,255,.2);' +
+        'color:#fff;font-size:12px;font-weight:700;border:none;cursor:pointer;' +
+        'font-family:DM Sans,sans-serif;">✕</button>';
+
+      document.body.appendChild(toast);
+
+      var timer = setTimeout(function(){ toast.remove(); }, 8000);
+
+      document.getElementById('bkJoinBtn').onclick = function() {
+        clearTimeout(timer);
+        toast.remove();
         _bkJoinSync(book, session);
-      }, 500);
+      };
+      document.getElementById('bkJoinNoBtn').onclick = function() {
+        clearTimeout(timer);
+        toast.remove();
+      };
     }).catch(function(){});
   }
 
