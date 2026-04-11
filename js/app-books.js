@@ -117,15 +117,27 @@
         table: BK_READS_TBL,
         filter: 'couple_id=eq.' + u.couple_id,
       }, function (payload) {
-        // Mettre à jour la progression du partenaire en temps réel
-        if (_bkCurrentBook && payload.new && payload.new.book_id === _bkCurrentBook.id) {
-          var role = payload.new.player_role;
-          _bkReads[role] = payload.new;
+        var row = payload.new;
+        if (!row) return;
+
+        // Mettre à jour la progression en mémoire dans _bkLibrary
+        _bkLibrary.forEach(function (book) {
+          if (book.id === row.book_id) {
+            book['read_' + row.player_role] = row.current_position || 0;
+          }
+        });
+
+        // Si on est dans le reader, mettre à jour la barre de progression
+        if (_bkCurrentBook && row.book_id === _bkCurrentBook.id) {
+          _bkReads[row.player_role] = row;
           _bkRenderProgressBar();
         }
-        // Rafraîchir aussi la lib si vue ouverte
-        if (_bkView && _bkView.classList.contains('active')) {
-          _bkRefreshLibraryCards();
+
+        // Mettre à jour la card dans la biblio si visible
+        var card = document.querySelector('[data-book-id="' + row.book_id + '"]');
+        if (card) {
+          var book = _bkLibrary.find(function(b){ return b.id === row.book_id; });
+          if (book) _bkUpdateCard(card, book);
         }
       })
       .subscribe(function (status) {
@@ -207,9 +219,29 @@
     if (!u || !u.couple_id) return;
     _bkRenderSkeleton();
 
-    sb2Fetch(BK_LIBRARY_TBL, 'couple_id=eq.' + u.couple_id + '&order=added_at.desc')
-      .then(function (rows) {
-        _bkLibrary = Array.isArray(rows) ? rows : [];
+    // Charger en parallèle : livres + progressions des deux
+    Promise.all([
+      sb2Fetch(BK_LIBRARY_TBL, 'couple_id=eq.' + u.couple_id + '&order=added_at.desc'),
+      sb2Fetch(BK_READS_TBL,   'couple_id=eq.' + u.couple_id),
+    ])
+      .then(function (results) {
+        var books = Array.isArray(results[0]) ? results[0] : [];
+        var reads = Array.isArray(results[1]) ? results[1] : [];
+
+        // Joindre les progressions sur chaque livre
+        books.forEach(function (book) {
+          reads.forEach(function (read) {
+            if (read.book_id === book.id) {
+              // read_girl / read_boy = current_position en chars
+              book['read_' + read.player_role] = read.current_position || 0;
+            }
+          });
+          // S'assurer que les champs existent même si pas de lecture
+          if (book.read_girl === undefined) book.read_girl = 0;
+          if (book.read_boy  === undefined) book.read_boy  = 0;
+        });
+
+        _bkLibrary = books;
         _bkRenderLibrary();
       })
       .catch(function () {
@@ -220,15 +252,24 @@
   function _bkRefreshLibraryCards() {
     var u = yamGetUser();
     if (!u || !u.couple_id) return;
-    sb2Fetch(BK_LIBRARY_TBL, 'couple_id=eq.' + u.couple_id + '&order=added_at.desc')
-      .then(function (rows) {
-        _bkLibrary = Array.isArray(rows) ? rows : [];
-        // Mettre à jour seulement les cards sans re-render complet
-        _bkLibrary.forEach(function (book) {
-          var card = document.querySelector('[data-book-id="' + book.id + '"]');
-          if (card) _bkUpdateCard(card, book);
+    Promise.all([
+      sb2Fetch(BK_LIBRARY_TBL, 'couple_id=eq.' + u.couple_id + '&order=added_at.desc'),
+      sb2Fetch(BK_READS_TBL,   'couple_id=eq.' + u.couple_id),
+    ]).then(function (results) {
+      var books = Array.isArray(results[0]) ? results[0] : [];
+      var reads = Array.isArray(results[1]) ? results[1] : [];
+      books.forEach(function (book) {
+        reads.forEach(function (read) {
+          if (read.book_id === book.id) {
+            book['read_' + read.player_role] = read.current_position || 0;
+          }
         });
+        if (book.read_girl === undefined) book.read_girl = 0;
+        if (book.read_boy  === undefined) book.read_boy  = 0;
       });
+      _bkLibrary = books;
+      _bkRenderLibrary();
+    });
   }
 
 
@@ -445,10 +486,32 @@
 
   function _bkUpdateCard(card, book) {
     var me = getProfile();
-    var myRead = book['read_' + me] || 0;
-    var pct = book.total_chars > 0 ? Math.round((myRead / book.total_chars) * 100) : 0;
-    var progressBar = card.querySelector('[data-bk-pct]');
-    if (progressBar) progressBar.style.width = pct + '%';
+    var partnerRole = me === 'girl' ? 'boy' : 'girl';
+    var total = book.total_chars || 1;
+    var myRead      = book['read_' + me]          || 0;
+    var partnerRead = book['read_' + partnerRole] || 0;
+    var myPct       = Math.round((myRead / total) * 100);
+    var partnerPage = book.total_chars > 0 ? Math.round(partnerRead / CHARS_PER_PAGE) + 1 : 1;
+    var totalPages  = book.total_chars > 0 ? Math.ceil(book.total_chars / CHARS_PER_PAGE) : '—';
+    var partnerName = yamGetDisplayName(partnerRole);
+
+    // Mettre à jour la barre de progression (div avec background accent)
+    var bar = card.querySelector('[style*="background:var(--accent);border-radius:2px"]');
+    if (bar) bar.style.width = myPct + '%';
+
+    // Mettre à jour le % affiché
+    var pctLabel = card.querySelector('[style*="color:var(--accent);min-width:28px"]');
+    if (pctLabel) pctLabel.textContent = myPct + '%';
+
+    // Mettre à jour la ligne partenaire
+    var partnerDiv = card.querySelector('[style*="font-size:10px;color:var(--muted)"]');
+    if (partnerDiv) {
+      var statusColors = { reading: '#22c55e', done: 'var(--accent)', paused: 'var(--muted)' };
+      var statusLabels = { reading: 'En cours', done: 'Terminé', paused: 'En pause' };
+      partnerDiv.innerHTML = escHtml(partnerName) + ' : p.' + partnerPage + '/' + totalPages +
+        ' <span style="color:' + (statusColors[book.status] || 'var(--muted)') + ';font-weight:700;">· ' +
+        (statusLabels[book.status] || '') + '</span>';
+    }
   }
 
   function _bkCatalogCard(item, alreadyAdded) {
