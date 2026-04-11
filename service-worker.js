@@ -18,7 +18,7 @@ var STATIC_ASSETS = [
   '/yam-app/js/app-games.js',
   '/yam-app/js/app-memory.js',
   '/yam-app/js/app-multiplayer.js',
-  'js/app-books.js',
+  '/yam-app/js/app-books.js',
   '/yam-app/js/app-cowatch.js',
   '/yam-app/js/app-skyjo.js',
   '/yam-app/js/app-ocho.js',
