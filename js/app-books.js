@@ -1381,7 +1381,7 @@
         '#bookView.bk-reading #bkLibContainer{display:none !important;}' +
         '#bkTextContent{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;padding-bottom:60px;}' +
         '#bkGlobalNav{flex-shrink:0;background:var(--bg);border-top:1px solid var(--border);' +
-        'padding:8px 16px calc(var(--safe-bottom,0px) + 38px);display:none;align-items:center;gap:10px;}' +
+        'padding:8px 16px calc(var(--safe-bottom,0px) + 42px);display:none;align-items:center;gap:10px;}' +
         '#bookView.bk-reading #bkGlobalNav{display:flex;}' +
         '.bk-card-row:active{background:var(--s2) !important;}' +
         '@keyframes bkPulse{0%,100%{opacity:1;}50%{opacity:.4;}}' +
