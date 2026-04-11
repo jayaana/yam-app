@@ -25,8 +25,6 @@
   var BK_PRESENCE_TBL = 'book_presence';
   var BK_ANNOTS_TBL   = 'book_annotations';
 
-  var SYNC_POLL_MS    = 3000;   // poll mode synchronisé
-  var PRES_MS         = 5000;   // heartbeat présence lobby
   var CHARS_PER_PAGE  = 1800;   // ~1 page écran = ~1800 caractères
 
   // État global du module
@@ -1383,7 +1381,7 @@
         '#bookView.bk-reading #bkLibContainer{display:none !important;}' +
         '#bkTextContent{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;padding-bottom:60px;}' +
         '#bkGlobalNav{flex-shrink:0;background:var(--bg);border-top:1px solid var(--border);' +
-        'padding:8px 16px calc(var(--safe-bottom,0px) + 38px);display:none;align-items:center;gap:10px;}' +
+        'padding:8px 16px calc(var(--safe-bottom,0px) + 8px);display:none;align-items:center;gap:10px;}' +
         '#bookView.bk-reading #bkGlobalNav{display:flex;}' +
         '.bk-card-row:active{background:var(--s2) !important;}' +
         '@keyframes bkPulse{0%,100%{opacity:1;}50%{opacity:.4;}}' +
@@ -1463,9 +1461,9 @@
   // ─── 15. STOP POLL À LA DÉCONNEXION ──────────────────────────────
 
   window._bkStopPolls = function () {
-    _bkStopSyncSession();
-    if (_bkPresTimer)    { clearInterval(_bkPresTimer);     _bkPresTimer    = null; }
-    if (_bkSyncPollTimer){ clearInterval(_bkSyncPollTimer); _bkSyncPollTimer = null; }
+    // Stopper la sync si active
+    if (_bkSyncActive) _bkStopSyncSession();
+    // Nettoyer le channel RT book_reads
     if (window._yamRTChannels && window._yamRTChannels['book_reads']) {
       try { window._yamRT.removeChannel(window._yamRTChannels['book_reads']); } catch (e) {}
       delete window._yamRTChannels['book_reads'];
