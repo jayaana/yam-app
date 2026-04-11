@@ -151,17 +151,32 @@
     var u = yamGetUser();
     if (!u) { showToast('Connecte-toi d\'abord 💕', 'error'); return; }
 
-    var jeuxTab = document.getElementById('yamJeuxTab');
-    _yamSlide(_bkView, jeuxTab, 'forward');
+    // Toujours relire depuis le DOM — jamais utiliser _bkView qui peut être périmé
+    var bookView = document.getElementById('bookView');
+    var jeuxTab  = document.getElementById('yamJeuxTab');
+    if (!bookView) return;
+
+    _yamSlide(bookView, jeuxTab, 'forward');
     haptic('light');
     _bkLoadLibrary();
   };
 
   window.bkClose = function () {
     _bkStopSyncSession();
-    var jeuxTab = document.getElementById('yamJeuxTab');
-    _yamSlide(jeuxTab, _bkView, 'backward');
+    var bookView = document.getElementById('bookView');
+    var jeuxTab  = document.getElementById('yamJeuxTab');
+    if (!bookView || !jeuxTab) return;
+
+    _yamSlide(jeuxTab, bookView, 'backward');
     jeuxTab.classList.add('active');
+
+    // _yamSlide retire .active via animation mais on force aussi
+    // au cas où le timing rate (350ms après la durée DUR=300ms)
+    setTimeout(function () {
+      bookView.classList.remove('active');
+      bookView.style.display = '';
+    }, 360);
+
     haptic('light');
   };
 
@@ -173,7 +188,7 @@
     var reader = document.getElementById('bkReader');
     var lib    = document.getElementById('bkLibContainer');
     if (reader) { reader.classList.remove('bk-reader-visible'); }
-    if (lib)    lib.style.display    = '';
+    if (lib)    lib.style.display = '';
     _bkRenderLibrary();
   }
 
@@ -777,14 +792,16 @@
     var partnerPct = Math.min(100, Math.round((partnerRead / total) * 100));
     var partnerName = yamGetDisplayName(partnerRole);
 
+    // Layout : flex column, header fixe, texte scrollable (flex:1), nav fixe en bas
+    // IMPORTANT : la nav est un enfant direct du reader, PAS dans bkTextContent
     reader.innerHTML =
-      // Header
-      '<div style="position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--border);' +
-      'padding:calc(var(--safe-top,0px) + 10px) 16px 10px;">' +
+      // ── Header ──
+      '<div id="bkReaderHeader" style="flex-shrink:0;background:var(--bg);border-bottom:1px solid var(--border);' +
+      'padding:calc(var(--safe-top,0px) + 10px) 16px 8px;">' +
         '<div style="display:flex;align-items:center;gap:10px;">' +
           '<button id="bkBackBtn" style="width:34px;height:34px;border-radius:50%;background:var(--s2);' +
-          'border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;">' +
-            '<svg width="8" height="14" viewBox="0 0 8 14" style="stroke:var(--text);stroke-width:2;fill:none;">' +
+          'border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">' +
+            '<svg width="8" height="14" viewBox="0 0 8 14" style="stroke:var(--text);stroke-width:2;fill:none;stroke-linecap:round;">' +
             '<polyline points="7 1 1 7 7 13"/></svg>' +
           '</button>' +
           '<div style="flex:1;min-width:0;">' +
@@ -794,38 +811,40 @@
           '</div>' +
           '<button id="bkSyncBtn" style="padding:6px 12px;border-radius:20px;font-size:11px;font-weight:700;' +
           'border:1px solid var(--accent);background:var(--accent-s);color:var(--accent);cursor:pointer;' +
-          'font-family:DM Sans,sans-serif;">📡 Sync</button>' +
+          'font-family:DM Sans,sans-serif;flex-shrink:0;">📡 Sync</button>' +
         '</div>' +
         // Barre de progression double
         '<div id="bkProgressWrap" style="margin-top:8px;">' +
           '<div style="display:flex;align-items:center;gap:6px;">' +
             '<span style="font-size:10px;color:var(--text);font-weight:700;min-width:26px;">' + myPct + '%</span>' +
-            '<div style="flex:1;height:4px;border-radius:2px;background:var(--border);position:relative;">' +
+            '<div style="flex:1;height:4px;border-radius:2px;background:var(--border);position:relative;overflow:hidden;">' +
               '<div id="bkMyProg" style="position:absolute;left:0;top:0;bottom:0;width:' + myPct + '%;' +
               'background:var(--accent);border-radius:2px;transition:width .4s;"></div>' +
               '<div id="bkPartnerProg" style="position:absolute;left:0;top:0;bottom:0;width:' + partnerPct + '%;' +
               'background:rgba(231,90,124,.3);border-radius:2px;transition:width .4s;"></div>' +
             '</div>' +
-            '<span style="font-size:10px;color:var(--muted);min-width:44px;text-align:right;">' +
+            '<span style="font-size:10px;color:var(--muted);min-width:52px;text-align:right;">' +
               escHtml(partnerName) + ' ' + partnerPct + '%</span>' +
           '</div>' +
         '</div>' +
       '</div>' +
 
-      // Corps texte
-      '<div id="bkTextContent" style="padding:20px 18px 40px;overflow-y:auto;' +
-      'font-size:16px;line-height:1.75;color:var(--text);font-family:Georgia,serif;">' +
+      // ── Corps texte — flex:1, min-height:0 OBLIGATOIRE pour que flex enfant soit scrollable ──
+      '<div id="bkTextContent" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;' +
+      'padding:20px 18px 12px;font-size:16px;line-height:1.8;color:var(--text);font-family:Georgia,serif;">' +
         bodyHtml +
       '</div>' +
 
-      // Nav pages
-      '<div style="position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--border);' +
+      // ── Nav pages — flex-shrink:0 pour ne jamais être compressée ──
+      '<div id="bkNavBar" style="flex-shrink:0;background:var(--bg);border-top:1px solid var(--border);' +
       'padding:8px 16px calc(var(--safe-bottom,0px) + 8px);display:flex;align-items:center;gap:10px;">' +
-        '<button id="bkPrevPage" style="padding:8px 16px;border-radius:20px;background:var(--s2);' +
-        'border:1px solid var(--border);font-size:13px;color:var(--text);cursor:pointer;font-family:DM Sans,sans-serif;">‹ Préc.</button>' +
+        '<button id="bkPrevPage" style="padding:9px 20px;border-radius:20px;background:var(--s2);' +
+        'border:1px solid var(--border);font-size:13px;color:var(--text);cursor:pointer;' +
+        'font-family:DM Sans,sans-serif;font-weight:600;">‹ Préc.</button>' +
         '<div id="bkPageLabel" style="flex:1;text-align:center;font-size:11px;color:var(--muted);"></div>' +
-        '<button id="bkNextPage" style="padding:8px 16px;border-radius:20px;background:var(--s2);' +
-        'border:1px solid var(--border);font-size:13px;color:var(--text);cursor:pointer;font-family:DM Sans,sans-serif;">Suiv. ›</button>' +
+        '<button id="bkNextPage" style="padding:9px 20px;border-radius:20px;background:var(--s2);' +
+        'border:1px solid var(--border);font-size:13px;color:var(--text);cursor:pointer;' +
+        'font-family:DM Sans,sans-serif;font-weight:600;">Suiv. ›</button>' +
       '</div>';
 
     // Event listeners shell
@@ -835,20 +854,54 @@
     });
   }
 
-  // Parser HTML Gutenberg → texte propre
   function _bkParseText(raw) {
-    // Supprimer les balises HTML
-    var tmp = document.createElement('div');
-    // Si c'est du HTML
-    if (raw.indexOf('<html') !== -1 || raw.indexOf('<body') !== -1) {
-      tmp.innerHTML = raw;
-      // Supprimer scripts et styles
+    var text = raw;
+
+    // Normaliser les fins de ligne
+    text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    // Supprimer les balises HTML si présent
+    if (text.indexOf('<html') !== -1 || text.indexOf('<body') !== -1) {
+      var tmp = document.createElement('div');
+      tmp.innerHTML = text;
       tmp.querySelectorAll('script,style,head').forEach(function (el) { el.remove(); });
-      var text = tmp.innerText || tmp.textContent || '';
-      return text.replace(/\n{3,}/g, '\n\n').trim();
+      text = tmp.innerText || tmp.textContent || '';
+      text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     }
-    // Texte brut
-    return raw.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+
+    // Couper AVANT le début réel du texte (sauter l'en-tête Gutenberg)
+    var startMarkers = [
+      '*** START OF THE PROJECT GUTENBERG',
+      '*** START OF THIS PROJECT GUTENBERG',
+      '*END*THE SMALL PRINT',
+      '***START OF THE PROJECT GUTENBERG',
+    ];
+    for (var i = 0; i < startMarkers.length; i++) {
+      var idx = text.indexOf(startMarkers[i]);
+      if (idx !== -1) {
+        // Sauter jusqu'à la fin de cette ligne
+        var nl = text.indexOf('\n', idx);
+        if (nl !== -1) { text = text.slice(nl + 1); break; }
+      }
+    }
+
+    // Couper APRÈS la fin du texte (pied de page Gutenberg)
+    var endMarkers = [
+      '*** END OF THE PROJECT GUTENBERG',
+      '*** END OF THIS PROJECT GUTENBERG',
+      '***END OF THE PROJECT GUTENBERG',
+      'End of the Project Gutenberg',
+      'End of Project Gutenberg',
+    ];
+    for (var j = 0; j < endMarkers.length; j++) {
+      var endIdx = text.indexOf(endMarkers[j]);
+      if (endIdx !== -1) { text = text.slice(0, endIdx); break; }
+    }
+
+    // Normaliser les espaces excessifs
+    text = text.replace(/\n{4,}/g, '\n\n\n').trim();
+
+    return text;
   }
 
   function _bkRenderText(book, text) {
