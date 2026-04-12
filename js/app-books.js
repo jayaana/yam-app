@@ -428,7 +428,17 @@
           if (t.hasAttribute('data-bk-open')) {
             var bookId = t.getAttribute('data-bk-open');
             var book = _bkLibrary.find(function (b) { return b.id === bookId; });
-            if (book) { _bkOpenReader(book, null, false); return; }
+            if (book) {
+              var u = yamGetUser();
+              // Si on est l'hôte d'une session sync active sur ce livre (ex: après refresh),
+              // reprendre la session au lieu d'ouvrir en mode normal
+              if (book._syncSession && u && book._syncSession.created_by === u.role) {
+                _bkOpenReader(book, book._syncSession, false);
+              } else {
+                _bkOpenReader(book, null, false);
+              }
+              return;
+            }
           }
           // Ouvrir en solo — ignorer la session sync du partenaire
           if (t.hasAttribute('data-bk-open-solo')) {
@@ -1337,13 +1347,19 @@
     var u = yamGetUser();
     if (!u) return;
     _bkSyncActive = true;
-    _bkIsHost     = false;
+    // Si c'est notre propre session (refresh page), on reprend en tant qu'hôte
+    var resumingAsHost = sessionRow.created_by === u.role;
+    _bkIsHost = resumingAsHost;
     var partnerName = yamGetDisplayName(u.role === 'girl' ? 'boy' : 'girl');
     var state = typeof sessionRow.state === 'string' ? JSON.parse(sessionRow.state) : (sessionRow.state || {});
 
-    _bkShowSyncBanner(book, partnerName, false);
+    _bkShowSyncBanner(book, partnerName, resumingAsHost);
     _bkSubscribeSyncRT(book, u);
-    showToast('📡 Rejoint la session de ' + partnerName, 'success', 2500);
+    if (resumingAsHost) {
+      showToast('📡 Session sync reprise — en attente de ' + partnerName, 'success', 3000);
+    } else {
+      showToast('📡 Rejoint la session de ' + partnerName, 'success', 2500);
+    }
     haptic('success');
 
     // Aller à la page de l'hôte avec retry (texte peut ne pas être chargé)
