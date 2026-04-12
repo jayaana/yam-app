@@ -1043,6 +1043,9 @@
       }
       setTimeout(_bkSyncThemeIcons, 50);
     });
+
+    // Sync immédiate des icônes — bkRdrMoon/bkRdrSun viennent d'être créés
+    _bkSyncThemeIcons();
   }
 
   function _bkParseText(raw) {
@@ -1278,7 +1281,19 @@
         if (existing && existing.created_by !== u.role) {
           var sessionBook = _bkLibrary.find(function(b){ return b.id === existing.book_id; });
           var bookTitle = sessionBook ? '"' + sessionBook.title + '"' : 'un autre livre';
-          showToast('📡 ' + partnerName + ' est déjà en session sur ' + bookTitle + ' — rejoins-la !', 'error', 4000);
+          var old = document.getElementById('bkJoinToast'); if (old) old.remove();
+          var t = document.createElement('div');
+          t.id = 'bkJoinToast';
+          t.style.cssText = 'position:fixed;bottom:90px;left:16px;width:calc(100vw - 32px);max-width:480px;' +
+            'box-sizing:border-box;z-index:9999;background:var(--accent);color:#fff;border-radius:14px;' +
+            'padding:12px 16px;font-size:13px;font-weight:700;font-family:DM Sans,sans-serif;' +
+            'display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.3);';
+          t.innerHTML = '<span style="flex:1;min-width:0;">📡 <strong>' + escHtml(partnerName) + '</strong> est déjà en session sur ' + escHtml(bookTitle) + ' — rejoins-la !</span>' +
+            '<button style="flex-shrink:0;padding:5px 10px;border-radius:20px;background:rgba(255,255,255,.2);' +
+            'color:#fff;font-size:12px;font-weight:700;border:none;cursor:pointer;font-family:DM Sans,sans-serif;">✕</button>';
+          document.body.appendChild(t);
+          var timer = setTimeout(function(){ t.remove(); }, 4000);
+          t.querySelector('button').onclick = function(){ clearTimeout(timer); t.remove(); };
           return;
         }
 
