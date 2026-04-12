@@ -147,6 +147,45 @@
         }
       });
     window._yamRTChannels['book_reads'] = ch;
+
+    // ── RT book_sessions — mise à jour temps réel des cartes ──
+    if (!window._yamRTChannels['book_sessions']) {
+      var chSessions = window._yamRT
+        .channel('book_sessions_' + u.couple_id)
+        .on('postgres_changes', {
+          event: '*', schema: 'public',
+          table: BK_SESSIONS_TBL,
+          filter: 'couple_id=eq.' + u.couple_id,
+        }, function (payload) {
+          // Mettre à jour _syncSession sur le livre concerné
+          var row = payload.new || payload.old;
+          if (!row) return;
+          _bkLibrary.forEach(function(book) {
+            if (book.id === row.book_id) {
+              if (payload.eventType === 'DELETE' || (payload.new && payload.new.status !== 'active')) {
+                book._syncSession = null;
+              } else {
+                book._syncSession = payload.new;
+              }
+            }
+          });
+          // Trier : livre en session en tête
+          _bkLibrary.sort(function(a, b) {
+            if (a._syncSession && !b._syncSession) return -1;
+            if (!a._syncSession && b._syncSession) return 1;
+            return 0;
+          });
+          // Re-render la biblio si elle est visible
+          var lib = document.getElementById('bkLibContainer');
+          var bookView = document.getElementById('bookView');
+          if (lib && bookView && bookView.classList.contains('active') &&
+              !document.getElementById('bkReader').classList.contains('bk-reader-visible')) {
+            _bkRenderLibrary();
+          }
+        })
+        .subscribe();
+      window._yamRTChannels['book_sessions'] = chSessions;
+    }
   }
 
 
@@ -217,18 +256,16 @@
     if (!u || !u.couple_id) return;
     _bkRenderSkeleton();
 
-    // Charger en parallèle : livres + progressions + session sync active
     Promise.all([
       sb2Fetch(BK_LIBRARY_TBL, 'couple_id=eq.' + u.couple_id + '&order=added_at.desc'),
       sb2Fetch(BK_READS_TBL,   'couple_id=eq.' + u.couple_id),
       sb2Fetch(BK_SESSIONS_TBL, 'couple_id=eq.' + u.couple_id + '&status=eq.active'),
     ])
       .then(function (results) {
-        var books = Array.isArray(results[0]) ? results[0] : [];
-        var reads = Array.isArray(results[1]) ? results[1] : [];
+        var books    = Array.isArray(results[0]) ? results[0] : [];
+        var reads    = Array.isArray(results[1]) ? results[1] : [];
         var sessions = Array.isArray(results[2]) ? results[2] : [];
 
-        // Joindre les progressions
         books.forEach(function (book) {
           reads.forEach(function (read) {
             if (read.book_id === book.id) {
@@ -237,11 +274,11 @@
           });
           if (book.read_girl === undefined) book.read_girl = 0;
           if (book.read_boy  === undefined) book.read_boy  = 0;
-          // Marquer si ce livre a une session sync active
+          // Joindre la session sync si elle existe
           book._syncSession = sessions.find(function(s){ return s.book_id === book.id; }) || null;
         });
 
-        // Remonter le livre en session sync en tête
+        // Livre en session sync → en tête
         books.sort(function(a, b) {
           if (a._syncSession && !b._syncSession) return -1;
           if (!a._syncSession && b._syncSession) return 1;
@@ -251,9 +288,7 @@
         _bkLibrary = books;
         _bkRenderLibrary();
       })
-      .catch(function () {
-        _bkRenderLibrary();
-      });
+      .catch(function () { _bkRenderLibrary(); });
   }
 
   function _bkRefreshLibraryCards() {
@@ -353,19 +388,32 @@
     c.innerHTML = html;
 
     // ── Délégation d'événements — UN seul listener permanent sur le container ──
-    // Plus fiable que querySelectorAll après innerHTML (pas de risque de timing)
     if (!c._bkDelegated) {
       c._bkDelegated = true;
       c.addEventListener('click', function (e) {
         var t = e.target;
 
-        // Remonter jusqu'à trouver un attribut data-bk-*
         while (t && t !== c) {
-          // Ouvrir le reader
+          // Ouvrir le reader (vérifie session sync sauf si solo)
           if (t.hasAttribute('data-bk-open')) {
             var bookId = t.getAttribute('data-bk-open');
             var book = _bkLibrary.find(function (b) { return b.id === bookId; });
-            if (book) { _bkOpenReader(book); return; }
+            if (book) { _bkOpenReader(book, null, false); return; }
+          }
+          // Ouvrir en mode solo — ignorer la session sync du partenaire
+          if (t.hasAttribute('data-bk-open-solo')) {
+            var soloId = t.getAttribute('data-bk-open-solo');
+            var soloBook = _bkLibrary.find(function (b) { return b.id === soloId; });
+            if (soloBook) { _bkOpenReader(soloBook, null, true); return; }
+          }
+          // Rejoindre une session sync depuis la carte
+          if (t.hasAttribute('data-bk-join')) {
+            var joinId = t.getAttribute('data-bk-join');
+            var joinBook = _bkLibrary.find(function (b) { return b.id === joinId; });
+            if (joinBook && joinBook._syncSession) {
+              _bkOpenReader(joinBook, joinBook._syncSession, false);
+            }
+            return;
           }
           // Changer d'onglet
           if (t.hasAttribute('data-bk-tab')) {
@@ -380,20 +428,11 @@
             if (item) _bkAddFromCatalog(item, t);
             return;
           }
-          // Lire ensemble (sync)
+          // Sync depuis le reader (bouton 📡 Sync)
           if (t.hasAttribute('data-bk-sync')) {
             var bkId = t.getAttribute('data-bk-sync');
             var bk = _bkLibrary.find(function (b) { return b.id === bkId; });
             if (bk) _bkStartSync(bk);
-            return;
-          }
-          // Rejoindre une session sync existante (depuis la carte)
-          if (t.hasAttribute('data-bk-join')) {
-            var joinId = t.getAttribute('data-bk-join');
-            var joinBook = _bkLibrary.find(function (b) { return b.id === joinId; });
-            if (joinBook && joinBook._syncSession) {
-              _bkOpenReader(joinBook, joinBook._syncSession);
-            }
             return;
           }
           // Retirer livre
@@ -443,28 +482,20 @@
     var partnerRead = book['read_' + partnerRole] || 0;
     var total       = book.total_chars || 1;
     var myPct       = Math.round((myRead / total) * 100);
-    var partnerPage = book.total_chars > 0 ? Math.round((partnerRead / CHARS_PER_PAGE)) + 1 : '—';
+    var partnerPage = book.total_chars > 0 ? Math.round(partnerRead / CHARS_PER_PAGE) + 1 : '—';
     var totalPages  = book.total_chars > 0 ? Math.ceil(book.total_chars / CHARS_PER_PAGE) : '—';
 
-    // Session sync active sur ce livre ?
-    var session = book._syncSession || null;
-    // Est-ce le partenaire qui a lancé la session (pas nous) ?
-    var partnerIsHost = session && session.created_by === partnerRole;
-    // Est-ce qu'on a lancé nous-mêmes la session ?
-    var weAreHost = session && session.created_by === me;
+    var session        = book._syncSession || null;
+    var partnerIsHost  = session && session.created_by === partnerRole;
+    var weAreHost      = session && session.created_by === me;
+    var borderStyle    = session ? 'border:1.5px solid #22c55e;' : 'border:1px solid var(--border);';
 
-    // Bordure verte si session active
-    var borderStyle = session
-      ? 'border:1.5px solid #22c55e;'
-      : 'border:1px solid var(--border);';
+    var html = '<div data-book-id="' + escHtml(book.id) + '" style="background:var(--s1);' + borderStyle + 'border-radius:14px;overflow:hidden;">';
 
-    var html = '<div data-book-id="' + escHtml(book.id) + '" style="background:var(--s1);' + borderStyle +
-      'border-radius:14px;overflow:hidden;">';
-
-    // Bandeau sync en tête de carte si session active
+    // Bandeau sync si session active
     if (session) {
       var syncLabel = partnerIsHost
-        ? '📡 ' + escHtml(partnerName) + ' est en lecture sync — rejoindre ?'
+        ? '📡 ' + escHtml(partnerName) + ' lit en sync — rejoindre ?'
         : '📡 Ta session sync est active — en attente de ' + escHtml(partnerName);
       html +=
         '<div style="background:rgba(34,197,94,.1);border-bottom:1px solid rgba(34,197,94,.2);' +
@@ -503,13 +534,14 @@
       '</div>' +
       '<div style="display:flex;border-top:1px solid var(--border);">';
 
-    // Bouton principal : "Lire" ou "Rejoindre" si le partenaire a une session
     if (partnerIsHost) {
+      // Partenaire a une session → proposer Rejoindre en premier + Lire seul·e
       html +=
-        '<button data-bk-join="' + escHtml(book.id) + '" style="flex:1;padding:9px;font-size:12px;font-weight:700;' +
-        'color:#16a34a;background:rgba(34,197,94,.08);border:none;cursor:pointer;font-family:DM Sans,sans-serif;">📡 Rejoindre</button>' +
+        '<button data-bk-join="' + escHtml(book.id) + '" style="flex:2;padding:9px;font-size:12px;font-weight:700;' +
+        'color:#16a34a;background:rgba(34,197,94,.07);border:none;cursor:pointer;font-family:DM Sans,sans-serif;">📡 Rejoindre</button>' +
         '<div style="width:1px;background:var(--border);"></div>' +
-        '<button data-bk-open="' + escHtml(book.id) + '" style="flex:1;padding:9px;font-size:12px;font-weight:700;' +
+        // "Lire seul·e" utilise data-bk-open-solo pour ignorer la session
+        '<button data-bk-open-solo="' + escHtml(book.id) + '" style="flex:1;padding:9px;font-size:12px;font-weight:700;' +
         'color:var(--muted);background:none;border:none;cursor:pointer;font-family:DM Sans,sans-serif;">Lire seul·e</button>';
     } else {
       html +=
@@ -800,7 +832,9 @@
 
   // ─── 10. LECTEUR DE TEXTE ────────────────────────────────────────
 
-  function _bkOpenReader(book, sessionToJoin) {
+  // sessionToJoin : session à rejoindre directement (depuis bouton "Rejoindre" de la carte)
+  // ignoreSync    : true = mode solo, ne pas rejoindre même si session active du partenaire
+  function _bkOpenReader(book, sessionToJoin, ignoreSync) {
     _bkCurrentBook = book;
     var u = yamGetUser();
     if (!u) return;
@@ -810,9 +844,14 @@
         _bkReads = {};
         (rows || []).forEach(function (r) { _bkReads[r.player_role] = r; });
         _bkShowReader(book);
-        // Si on a cliqué "Rejoindre" depuis la carte, lancer le join sync après chargement
+        // Rejoindre la session si demandé depuis la carte
         if (sessionToJoin) {
           _bkJoinSync(book, sessionToJoin);
+        }
+        // Note : _bkCheckExistingSession est appelé dans _bkRenderText
+        // et respecte le flag ignoreSync
+        if (ignoreSync) {
+          book._ignoreSync = true; // flag lu par _bkCheckExistingSession
         }
       });
   }
@@ -1065,16 +1104,25 @@
     // Exposer renderPage pour que le mode sync puisse sauter à une page
     _bkCurrentRenderPage = renderPage;
 
-    // Navigation
+    // Navigation — bloquée fonctionnellement pour le suiveur en mode sync
     var prevBtn = document.getElementById('bkPrevPage');
     var nextBtn = document.getElementById('bkNextPage');
-    if (prevBtn) prevBtn.addEventListener('click', function () { haptic('light'); renderPage(currentPage - 1); });
-    if (nextBtn) nextBtn.addEventListener('click', function () { haptic('light'); renderPage(currentPage + 1); });
+    if (prevBtn) prevBtn.addEventListener('click', function () {
+      if (_bkSyncActive && !_bkIsHost) return; // BLOQUÉ pour le suiveur
+      haptic('light'); renderPage(currentPage - 1);
+    });
+    if (nextBtn) nextBtn.addEventListener('click', function () {
+      if (_bkSyncActive && !_bkIsHost) return; // BLOQUÉ pour le suiveur
+      haptic('light'); renderPage(currentPage + 1);
+    });
 
     renderPage(currentPage);
 
-    // Vérifier si une session sync existe déjà pour ce livre (partenaire en train de lire)
-    _bkCheckExistingSession(book);
+    // Vérifier session sync — sauf si mode solo demandé
+    if (!book._ignoreSync) {
+      _bkCheckExistingSession(book);
+    }
+    book._ignoreSync = false; // reset le flag
   }
 
   function _bkPaginate(text) {
@@ -1174,148 +1222,159 @@
   // Le partenaire reçoit via Realtime et saute à la même page automatiquement
   // Pas de présence requise — on ouvre seul, l'autre rejoint quand il veut
 
-  var _bkSyncRTChannel = null;  // canal Realtime pour la session sync
+  var _bkSyncRTChannel = null;
 
   function _bkStartSync(book) {
     if (_bkSyncActive) { _bkStopSyncSession(); return; }
     var u = yamGetUser();
     if (!u) return;
+    var partnerRole = u.role === 'girl' ? 'boy' : 'girl';
+    var partnerName = yamGetDisplayName(partnerRole);
 
-    _bkSyncActive = true;
-    _bkIsHost     = true;
-    var partnerName = yamGetDisplayName(u.role === 'girl' ? 'boy' : 'girl');
+    // Refetch la session en base — elle peut exister même si _bkLibrary n'est pas à jour
+    sb2Fetch(BK_SESSIONS_TBL, 'couple_id=eq.' + u.couple_id + '&status=eq.active')
+      .then(function(sessions) {
+        var existing = sessions && sessions[0];
 
-    // 1. Lire la page courante
-    var label = document.getElementById('bkPageLabel');
-    var match = label ? label.textContent.match(/Page (\d+)/) : null;
-    var currentPage = match ? parseInt(match[1], 10) - 1 : 0;
+        // Session active créée par le partenaire → impossible de lancer la nôtre
+        if (existing && existing.created_by !== u.role) {
+          showToast('📡 ' + partnerName + ' a déjà une session active sur "' +
+            escHtml(existing.book_id) + '" — rejoins-la depuis la bibliothèque', 'error', 4000);
+          // Mettre à jour le livre en mémoire pour que la carte affiche le bandeau
+          _bkLibrary.forEach(function(b) {
+            if (b.id === existing.book_id) b._syncSession = existing;
+          });
+          return;
+        }
 
-    // 2. Créer/mettre à jour la session dans book_sessions (upsert sur couple_id)
-    var statePayload = {
-      couple_id:    u.couple_id,
-      book_id:      book.id,
-      created_by:   u.role,
-      status:       'active',
-      state:        JSON.stringify({ current_page: currentPage, book_id: book.id }),
-      updated_at:   new Date().toISOString(),
-    };
-    fetch(SB_URL + '/rest/v1/' + BK_SESSIONS_TBL + '?on_conflict=couple_id', {
-      method: 'POST',
-      headers: sb2Headers({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
-      body: JSON.stringify(statePayload),
-    }).catch(function(e){ yamLog('[Sync] upsert session error:', e); });
+        _bkSyncActive = true;
+        _bkIsHost     = true;
 
-    // 3. Afficher la bannière sync dans le reader
-    _bkShowSyncBanner(book, partnerName, true, false);
+        var label = document.getElementById('bkPageLabel');
+        var match = label ? label.textContent.match(/Page (\d+)/) : null;
+        var currentPage = match ? parseInt(match[1], 10) - 1 : 0;
 
-    // 4. Souscrire au Realtime pour recevoir les updates de la session
-    _bkSubscribeSyncRT(book, u);
+        fetch(SB_URL + '/rest/v1/' + BK_SESSIONS_TBL + '?on_conflict=couple_id', {
+          method: 'POST',
+          headers: sb2Headers({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+          body: JSON.stringify({
+            couple_id:  u.couple_id,
+            book_id:    book.id,
+            created_by: u.role,
+            status:     'active',
+            state:      JSON.stringify({ current_page: currentPage, book_id: book.id }),
+            updated_at: new Date().toISOString(),
+          }),
+        }).catch(function(e){ yamLog('[Sync] upsert error:', e); });
 
-    showToast('📡 Lecture synchronisée activée !', 'success', 2500);
-    haptic('success');
+        // Bannière : dot gris au départ (partenaire pas encore là)
+        _bkShowSyncBanner(book, partnerName, true, false);
+        _bkSubscribeSyncRT(book, u);
+        showToast('📡 Session sync lancée — en attente de ' + partnerName, 'success', 3000);
+        haptic('success');
+      }).catch(function() {
+        // En cas d'erreur, lancer quand même
+        _bkSyncActive = true;
+        _bkIsHost     = true;
+        _bkShowSyncBanner(book, partnerName, true, false);
+        _bkSubscribeSyncRT(book, u);
+      });
   }
 
   function _bkJoinSync(book, sessionRow) {
-    // Appelé quand le partenaire ouvre un livre qui a une session active
     var u = yamGetUser();
     if (!u) return;
     _bkSyncActive = true;
     _bkIsHost     = false;
     var partnerName = yamGetDisplayName(u.role === 'girl' ? 'boy' : 'girl');
-
-    // Aller à la page de l'hôte
     var state = typeof sessionRow.state === 'string' ? JSON.parse(sessionRow.state) : (sessionRow.state || {});
-    if (state.current_page !== undefined) {
-      _bkGoToPage(state.current_page);
-    }
 
+    // Bannière : dot vert (le leader est là)
     _bkShowSyncBanner(book, partnerName, false, true);
     _bkSubscribeSyncRT(book, u);
     showToast('📡 Rejoint la session de ' + partnerName, 'success', 2500);
     haptic('success');
+
+    // Aller à la page de l'hôte avec retry (texte peut ne pas être encore chargé)
+    if (state.current_page !== undefined) {
+      var targetPage = state.current_page;
+      function tryGoToPage(n) {
+        if (typeof _bkCurrentRenderPage === 'function') {
+          _bkCurrentRenderPage(targetPage);
+        } else if (n > 0) {
+          setTimeout(function(){ tryGoToPage(n - 1); }, 400);
+        }
+      }
+      tryGoToPage(10);
+    }
   }
 
   function _bkSubscribeSyncRT(book, u) {
     if (_bkSyncRTChannel) {
+      try { _bkSyncRTChannel.untrack(); } catch(e){}
       try { _bkSyncRTChannel.unsubscribe(); } catch(e){}
       _bkSyncRTChannel = null;
     }
 
     var rt = window._yamRT || window.yamRT;
-    if (!rt) { yamLog('[Sync] Realtime non disponible'); return; }
+    if (!rt) { yamLog('[Sync] RT non disponible'); return; }
 
     var partnerRole = u.role === 'girl' ? 'boy' : 'girl';
     var partnerName = yamGetDisplayName(partnerRole);
 
     _bkSyncRTChannel = rt.channel('bk-sync-' + u.couple_id)
 
-      // ── 1. Présence — détection instantanée connexion/déconnexion ──
-      .on('presence', { event: 'join' }, function(payload) {
-        // Quelqu'un a rejoint — vérifier si c'est le partenaire
-        var keys = Object.keys(payload.newPresences || {});
-        var partnerJoined = keys.some(function(k) {
-          var p = payload.newPresences[k];
-          return p && p[0] && p[0].role === partnerRole;
+      // ── Présence — détection instantanée connexion/déconnexion ──
+      .on('presence', { event: 'sync' }, function() {
+        var state = _bkSyncRTChannel.presenceState();
+        var partnerOnline = Object.keys(state).some(function(k) {
+          return state[k] && state[k].some && state[k].some(function(p){ return p.role === partnerRole; });
         });
+        _bkUpdateSyncBannerStatus(partnerOnline);
+      })
+      .on('presence', { event: 'join' }, function(payload) {
+        var joined = payload.newPresences || [];
+        var partnerJoined = joined.some(function(p){ return p.role === partnerRole; });
         if (partnerJoined) _bkUpdateSyncBannerStatus(true);
       })
       .on('presence', { event: 'leave' }, function(payload) {
-        // Quelqu'un est parti — vérifier si c'est le partenaire
-        var keys = Object.keys(payload.leftPresences || {});
-        var partnerLeft = keys.some(function(k) {
-          var p = payload.leftPresences[k];
-          return p && p[0] && p[0].role === partnerRole;
-        });
+        var left = payload.leftPresences || [];
+        var partnerLeft = left.some(function(p){ return p.role === partnerRole; });
         if (partnerLeft) {
           _bkUpdateSyncBannerStatus(false);
-          // Si on est le suiveur et que l'hôte part → session morte
+          // Suiveur → session morte si leader part
           if (!_bkIsHost) {
             showToast('📖 ' + partnerName + ' a quitté la session', '', 3000);
             _bkStopSyncSession();
           }
         }
       })
-      .on('presence', { event: 'sync' }, function() {
-        // État de présence global — vérifier si le partenaire est là
-        var state = _bkSyncRTChannel.presenceState();
-        var partnerOnline = Object.keys(state).some(function(k) {
-          return state[k] && state[k][0] && state[k][0].role === partnerRole;
-        });
-        _bkUpdateSyncBannerStatus(partnerOnline);
-      })
 
-      // ── 2. postgres_changes — synchronisation des pages ──
+      // ── postgres_changes — synchronisation des pages ──
       .on('postgres_changes', {
-        event:  'UPDATE',
-        schema: 'public',
-        table:  BK_SESSIONS_TBL,
+        event: 'UPDATE', schema: 'public',
+        table: BK_SESSIONS_TBL,
         filter: 'couple_id=eq.' + u.couple_id,
       }, function(payload) {
         var row = payload.new;
         if (!row || row.book_id !== book.id) return;
-        // Suiveur → sauter à la page de l'hôte avec retry
         if (!_bkIsHost) {
-          var state = typeof row.state === 'string' ? JSON.parse(row.state) : (row.state || {});
-          if (state.current_page !== undefined) {
-            var targetPage = state.current_page;
-            function tryJump(n) {
-              if (typeof _bkCurrentRenderPage === 'function') {
-                _bkCurrentRenderPage(targetPage);
-              } else if (n > 0) {
-                setTimeout(function(){ tryJump(n - 1); }, 300);
-              }
+          var st = typeof row.state === 'string' ? JSON.parse(row.state) : (row.state || {});
+          if (st.current_page !== undefined) {
+            var tp = st.current_page;
+            function tryJ(n) {
+              if (typeof _bkCurrentRenderPage === 'function') { _bkCurrentRenderPage(tp); }
+              else if (n > 0) { setTimeout(function(){ tryJ(n-1); }, 300); }
             }
-            tryJump(5);
+            tryJ(5);
           }
         }
       })
       .on('postgres_changes', {
-        event:  'DELETE',
-        schema: 'public',
-        table:  BK_SESSIONS_TBL,
+        event: 'DELETE', schema: 'public',
+        table: BK_SESSIONS_TBL,
         filter: 'couple_id=eq.' + u.couple_id,
       }, function() {
-        // Hôte a DELETE la session → suiveur arrête
         if (!_bkIsHost) {
           showToast('📖 ' + partnerName + ' a terminé la session', '', 3000);
           _bkStopSyncSession();
@@ -1324,13 +1383,11 @@
 
       .subscribe(function(status) {
         if (status === 'SUBSCRIBED') {
-          // Broadcaster notre présence dès la souscription
+          // Broadcaster notre présence
           _bkSyncRTChannel.track({ role: u.role, book_id: book.id });
         }
       });
   }
-
-  // _bkResetStaleTimer supprimé — remplacé par présence RT
 
   // Broadcaster la page courante (appelé à chaque tournée de page par l'hôte)
   function _bkBroadcastPage(pageIdx) {
@@ -1358,51 +1415,42 @@
   function _bkShowSyncBanner(book, partnerName, isHost, partnerOnline) {
     var readerHeader = document.getElementById('bkReaderHeader');
     if (!readerHeader) return;
-
     var old = document.getElementById('bkSyncBanner');
     if (old) old.remove();
 
-    // Dot : vert si partenaire présent, gris sinon
     var dotColor = partnerOnline ? '#22c55e' : 'var(--muted)';
     var dotAnim  = partnerOnline ? 'cwLiveDot 1.6s ease-in-out infinite' : 'none';
     var labelTxt = partnerOnline
       ? '📡 En sync avec ' + partnerName + (isHost ? ' · vous guidez' : ' · vous suivez')
-      : (isHost ? '📡 En attente de ' + partnerName + '…' : '📡 Connexion…');
+      : (isHost ? '📡 En attente de ' + partnerName + '…' : '📡 Connexion en cours…');
 
     var banner = document.createElement('div');
     banner.id = 'bkSyncBanner';
-    // Stocker le contexte pour les updates
     banner.dataset.isHost      = isHost ? '1' : '0';
     banner.dataset.partnerName = partnerName;
-    banner.style.cssText = 'flex-shrink:0;background:var(--s2);' +
-      'border-bottom:1px solid var(--border);padding:5px 12px;' +
-      'display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text);font-weight:600;';
+    banner.style.cssText = 'flex-shrink:0;background:var(--s2);border-bottom:1px solid var(--border);' +
+      'padding:5px 12px;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text);font-weight:600;';
     banner.innerHTML =
       '<span id="bkSyncDot" style="width:7px;height:7px;border-radius:50%;flex-shrink:0;' +
-      'background:' + dotColor + ';animation:' + dotAnim + ';"></span>' +
+      'background:' + dotColor + ';animation:' + dotAnim + ';transition:background .3s;"></span>' +
       '<span id="bkSyncLabel" style="flex:1;">' + escHtml(labelTxt) + '</span>' +
-      '<button id="bkSyncStopBtn" style="padding:2px 8px;border-radius:12px;' +
-      'border:1px solid var(--border);background:none;color:var(--muted);font-size:10px;' +
-      'font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;white-space:nowrap;">Quitter</button>';
+      '<button id="bkSyncStopBtn" style="padding:2px 8px;border-radius:12px;border:1px solid var(--border);' +
+      'background:none;color:var(--muted);font-size:10px;font-weight:700;cursor:pointer;' +
+      'font-family:DM Sans,sans-serif;white-space:nowrap;">Quitter</button>';
 
     readerHeader.after(banner);
-
-    document.getElementById('bkSyncStopBtn').addEventListener('click', function() {
-      _bkStopSyncSession();
-    });
+    document.getElementById('bkSyncStopBtn').addEventListener('click', _bkStopSyncSession);
 
     // Griser les boutons nav pour le suiveur
     if (!isHost) _bkSetNavButtonsEnabled(false);
   }
 
-  // Activer/désactiver visuellement les boutons ‹/› (suiveur ne peut pas tourner)
   function _bkSetNavButtonsEnabled(enabled) {
-    var prev = document.getElementById('bkPrevPage');
-    var next = document.getElementById('bkNextPage');
-    [prev, next].forEach(function(btn) {
+    ['bkPrevPage', 'bkNextPage'].forEach(function(id) {
+      var btn = document.getElementById(id);
       if (!btn) return;
-      btn.style.opacity = enabled ? '' : '0.35';
-      btn.style.cursor  = enabled ? '' : 'not-allowed';
+      btn.style.opacity    = enabled ? '' : '0.3';
+      btn.style.cursor     = enabled ? '' : 'not-allowed';
       btn.title = enabled ? '' : 'Le leader tourne les pages';
     });
   }
@@ -1412,59 +1460,49 @@
     var label  = document.getElementById('bkSyncLabel');
     var banner = document.getElementById('bkSyncBanner');
     if (!dot || !label || !banner) return;
-
     var isHost      = banner.dataset.isHost === '1';
     var partnerName = banner.dataset.partnerName || '';
-
     if (online) {
       dot.style.background = '#22c55e';
       dot.style.animation  = 'cwLiveDot 1.6s ease-in-out infinite';
-      label.textContent = '📡 En sync avec ' + partnerName + (isHost ? ' · vous guidez' : ' · vous suivez');
+      label.textContent    = '📡 En sync avec ' + partnerName + (isHost ? ' · vous guidez' : ' · vous suivez');
     } else {
-      dot.style.background = '#ef4444';
+      dot.style.background = 'var(--muted)'; // GRIS (pas rouge)
       dot.style.animation  = 'none';
-      label.textContent = '⚠️ ' + partnerName + ' hors ligne';
+      label.textContent    = '⚠️ ' + partnerName + ' hors ligne';
     }
   }
 
   function _bkStopSyncSession() {
-    // Untrack notre présence avant de quitter
     if (_bkSyncRTChannel) {
       try { _bkSyncRTChannel.untrack(); } catch(e){}
       try { _bkSyncRTChannel.unsubscribe(); } catch(e){}
       _bkSyncRTChannel = null;
     }
-
-    // Si on était l'hôte : supprimer la session en base
+    // Hôte → supprimer la session en base
     if (_bkSyncActive && _bkIsHost) {
       var u = yamGetUser();
       if (u) {
         fetch(SB_URL + '/rest/v1/' + BK_SESSIONS_TBL + '?couple_id=eq.' + u.couple_id, {
-          method: 'DELETE',
-          headers: sb2Headers(),
+          method: 'DELETE', headers: sb2Headers(),
         }).catch(function(){});
       }
     }
-
     _bkSyncActive = false;
     _bkIsHost     = false;
-
-    // Retirer la bannière
+    // Retirer bannière
     var banner = document.getElementById('bkSyncBanner');
     if (banner) banner.remove();
-
-    // Ré-activer les boutons de navigation (désactivés pour le suiveur)
+    // Ré-activer les boutons nav
     _bkSetNavButtonsEnabled(true);
-
-    // Toast seulement si le reader est encore ouvert
+    // Toast seulement si reader encore ouvert
     var reader = document.getElementById('bkReader');
-    var readerVisible = reader && reader.classList.contains('bk-reader-visible');
-    if (readerVisible && _bkCurrentBook) showToast('Session sync terminée', '', 2000);
+    if (reader && reader.classList.contains('bk-reader-visible') && _bkCurrentBook) {
+      showToast('Session sync terminée', '', 2000);
+    }
   }
 
-
-  // Vérifier si une session sync active existe pour ce livre au moment de l'ouverture
-  // Si oui et qu'on n'est pas l'hôte → rejoindre automatiquement
+  // Vérifier si session active du partenaire → proposer de rejoindre via toast avec bouton
   function _bkCheckExistingSession(book) {
     var u = yamGetUser();
     if (!u) return;
@@ -1473,15 +1511,36 @@
     ).then(function(rows) {
       if (!rows || rows.length === 0) return;
       var session = rows[0];
-      // Ne pas rejoindre si on est l'hôte qui vient de créer la session
-      if (session.created_by === u.role) return;
-      // Session créée par le partenaire → proposer de rejoindre
+      if (session.created_by === u.role) return; // c'est notre propre session
       var partnerName = yamGetDisplayName(u.role === 'girl' ? 'boy' : 'girl');
-      showToast('📡 ' + partnerName + ' est en lecture sync — rejoindre ?', '', 5000);
-      // Rejoindre après 500ms (laisser le toast s'afficher)
-      setTimeout(function() {
+
+      // Toast avec bouton Oui / Non
+      var toastId = 'bkJoinToast';
+      var old = document.getElementById(toastId);
+      if (old) old.remove();
+
+      var toast = document.createElement('div');
+      toast.id = toastId;
+      toast.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);' +
+        'z-index:9999;background:var(--accent);color:#fff;border-radius:14px;' +
+        'padding:10px 14px;font-size:13px;font-weight:700;font-family:DM Sans,sans-serif;' +
+        'display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.2);white-space:nowrap;';
+      toast.innerHTML =
+        '<span>📡 ' + escHtml(partnerName) + ' lit — rejoindre ?</span>' +
+        '<button id="bkJoinYes" style="padding:4px 12px;border-radius:20px;background:#fff;' +
+        'color:var(--accent);font-size:12px;font-weight:800;border:none;cursor:pointer;font-family:DM Sans,sans-serif;">Oui</button>' +
+        '<button id="bkJoinNo" style="padding:4px 8px;border-radius:20px;background:rgba(255,255,255,.2);' +
+        'color:#fff;font-size:12px;font-weight:700;border:none;cursor:pointer;font-family:DM Sans,sans-serif;">✕</button>';
+      document.body.appendChild(toast);
+
+      var timer = setTimeout(function(){ toast.remove(); }, 8000);
+      document.getElementById('bkJoinYes').onclick = function() {
+        clearTimeout(timer); toast.remove();
         _bkJoinSync(book, session);
-      }, 500);
+      };
+      document.getElementById('bkJoinNo').onclick = function() {
+        clearTimeout(timer); toast.remove();
+      };
     }).catch(function(){});
   }
 
