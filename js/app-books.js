@@ -111,7 +111,7 @@
     var ch = window._yamRT
       .channel('book_reads_' + u.couple_id)
       .on('postgres_changes', {
-        event: 'UPDATE', schema: 'public',
+        event: '*', schema: 'public', // INSERT + UPDATE
         table: BK_READS_TBL,
         filter: 'couple_id=eq.' + u.couple_id,
       }, function (payload) {
@@ -125,7 +125,7 @@
           }
         });
 
-        // Si on est dans le reader, mettre à jour la barre de progression
+        // Si on est dans le reader sur ce livre, mettre à jour les barres
         if (_bkCurrentBook && row.book_id === _bkCurrentBook.id) {
           _bkReads[row.player_role] = row;
           _bkRenderProgressBar();
@@ -150,10 +150,6 @@
 
     // ── RT book_sessions — carte mise à jour en temps réel ──
     if (!window._yamRTChannels['book_sessions']) {
-      // Stocker le book_id de la session active localement
-      // car payload.old sur DELETE ne contient que l'id, même avec REPLICA IDENTITY FULL
-      var _lastSessionBookId = null;
-
       var chSessions = window._yamRT
         .channel('book_sessions_' + u.couple_id)
         .on('postgres_changes', {
@@ -161,35 +157,14 @@
           table: BK_SESSIONS_TBL,
           filter: 'couple_id=eq.' + u.couple_id,
         }, function (payload) {
-
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            // Mémoriser le book_id de la session active
-            if (payload.new && payload.new.book_id) {
-              _lastSessionBookId = payload.new.book_id;
+          var row = payload.new || payload.old;
+          if (!row) return;
+          _bkLibrary.forEach(function(book) {
+            if (book.id === row.book_id) {
+              book._syncSession = (payload.eventType === 'DELETE' || (payload.new && payload.new.status !== 'active'))
+                ? null : payload.new;
             }
-            var row = payload.new;
-            if (!row) return;
-            _bkLibrary.forEach(function(book) {
-              if (book.id === row.book_id) {
-                book._syncSession = (row.status !== 'active') ? null : row;
-              }
-            });
-          } else if (payload.eventType === 'DELETE') {
-            // payload.old ne contient que l'id — utiliser le book_id mémorisé
-            var deletedBookId = (payload.old && payload.old.book_id) || _lastSessionBookId;
-            if (deletedBookId) {
-              _bkLibrary.forEach(function(book) {
-                if (book.id === deletedBookId) {
-                  book._syncSession = null;
-                }
-              });
-              _lastSessionBookId = null;
-            } else {
-              // Fallback : effacer toutes les sessions
-              _bkLibrary.forEach(function(book) { book._syncSession = null; });
-            }
-          }
-
+          });
           // Trier : livre en session en tête
           _bkLibrary.sort(function(a, b) {
             if (a._syncSession && !b._syncSession) return -1;
@@ -545,11 +520,11 @@
           '<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">' + escHtml(book.author) + '</div>' +
           '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">' +
             '<div style="flex:1;height:3px;border-radius:2px;background:var(--border);overflow:hidden;">' +
-              '<div style="height:100%;width:' + myPct + '%;background:var(--accent);border-radius:2px;"></div>' +
+              '<div data-bk-mybar style="height:100%;width:' + myPct + '%;background:var(--accent);border-radius:2px;"></div>' +
             '</div>' +
-            '<span style="font-size:10px;font-weight:700;color:var(--accent);min-width:28px;">' + myPct + '%</span>' +
+            '<span data-bk-mypct style="font-size:10px;font-weight:700;color:var(--accent);min-width:28px;">' + myPct + '%</span>' +
           '</div>' +
-          '<div style="font-size:10px;color:var(--muted);">' +
+          '<div data-bk-partner style="font-size:10px;color:var(--muted);">' +
             escHtml(partnerName) + ' : p.' + partnerPage + '/' + totalPages +
             ' <span style="color:' + (statusColors[book.status] || 'var(--muted)') + ';font-weight:700;">· ' +
             (statusLabels[book.status] || '') + '</span>' +
@@ -605,16 +580,16 @@
     var totalPages  = book.total_chars > 0 ? Math.ceil(book.total_chars / CHARS_PER_PAGE) : '—';
     var partnerName = yamGetDisplayName(partnerRole);
 
-    // Mettre à jour la barre de progression (div avec background accent)
-    var bar = card.querySelector('[style*="background:var(--accent);border-radius:2px"]');
+    // Barre de progression (data-bk-mybar)
+    var bar = card.querySelector('[data-bk-mybar]');
     if (bar) bar.style.width = myPct + '%';
 
-    // Mettre à jour le % affiché
-    var pctLabel = card.querySelector('[style*="color:var(--accent);min-width:28px"]');
+    // % affiché (data-bk-mypct)
+    var pctLabel = card.querySelector('[data-bk-mypct]');
     if (pctLabel) pctLabel.textContent = myPct + '%';
 
-    // Mettre à jour la ligne partenaire
-    var partnerDiv = card.querySelector('[style*="font-size:10px;color:var(--muted)"]');
+    // Ligne partenaire (data-bk-partner)
+    var partnerDiv = card.querySelector('[data-bk-partner]');
     if (partnerDiv) {
       var statusColors = { reading: '#22c55e', done: 'var(--accent)', paused: 'var(--muted)' };
       var statusLabels = { reading: 'En cours', done: 'Terminé', paused: 'En pause' };
@@ -993,19 +968,19 @@
           '</div>' +
           '<button id="bkSyncBtn" style="padding:6px 12px;border-radius:20px;font-size:11px;font-weight:700;' +
           'border:1px solid var(--accent);background:var(--accent-s);color:var(--accent);cursor:pointer;' +
-          'font-family:DM Sans,sans-serif;flex-shrink:0;">📡 Sync</button>' +
+          'font-family:DM Sans,sans-serif;flex-shrink:0;' + (_bkSyncActive && !_bkIsHost ? 'display:none;' : '') + '">📡 Sync</button>' +
         '</div>' +
         // Barre de progression double
         '<div id="bkProgressWrap" style="margin-top:8px;">' +
           '<div style="display:flex;align-items:center;gap:6px;">' +
-            '<span style="font-size:10px;color:var(--text);font-weight:700;min-width:26px;">' + myPct + '%</span>' +
+            '<span id="bkMyPctLabel" style="font-size:10px;color:var(--text);font-weight:700;min-width:26px;">' + myPct + '%</span>' +
             '<div style="flex:1;height:4px;border-radius:2px;background:var(--border);position:relative;overflow:hidden;">' +
               '<div id="bkMyProg" style="position:absolute;left:0;top:0;bottom:0;width:' + myPct + '%;' +
               'background:var(--accent);border-radius:2px;transition:width .4s;"></div>' +
               '<div id="bkPartnerProg" style="position:absolute;left:0;top:0;bottom:0;width:' + partnerPct + '%;' +
               'background:rgba(231,90,124,.3);border-radius:2px;transition:width .4s;"></div>' +
             '</div>' +
-            '<span style="font-size:10px;color:var(--muted);min-width:52px;text-align:right;">' +
+            '<span id="bkPartnerPctLabel" style="font-size:10px;color:var(--muted);min-width:52px;text-align:right;">' +
               escHtml(partnerName) + ' ' + partnerPct + '%</span>' +
           '</div>' +
         '</div>' +
@@ -1175,11 +1150,19 @@
     var total       = book.total_chars;
     var myPct       = Math.min(100, Math.round((myRead / total) * 100));
     var partnerPct  = Math.min(100, Math.round((partnerRead / total) * 100));
+    var partnerName = yamGetDisplayName(partnerRole);
 
+    // Barres de progression
     var myBar      = document.getElementById('bkMyProg');
     var partnerBar = document.getElementById('bkPartnerProg');
     if (myBar)      myBar.style.width      = myPct + '%';
     if (partnerBar) partnerBar.style.width = partnerPct + '%';
+
+    // Labels texte — chercher par data-attr plus fiable que querySelector sur style
+    var myPctLabel      = document.getElementById('bkMyPctLabel');
+    var partnerPctLabel = document.getElementById('bkPartnerPctLabel');
+    if (myPctLabel)      myPctLabel.textContent      = myPct + '%';
+    if (partnerPctLabel) partnerPctLabel.textContent = partnerName + ' ' + partnerPct + '%';
   }
 
 
@@ -1431,8 +1414,12 @@
     readerHeader.after(banner);
     document.getElementById('bkSyncStopBtn').addEventListener('click', _bkStopSyncSession);
 
-    // Griser les boutons nav pour le suiveur
-    if (!isHost) _bkSetNavButtonsEnabled(false);
+    // Griser les boutons nav pour le suiveur + masquer le bouton Sync
+    if (!isHost) {
+      _bkSetNavButtonsEnabled(false);
+      var syncBtn = document.getElementById('bkSyncBtn');
+      if (syncBtn) syncBtn.style.display = 'none';
+    }
   }
 
   function _bkSetNavButtonsEnabled(enabled) {
@@ -1486,6 +1473,10 @@
 
     _bkSetNavButtonsEnabled(true);
 
+    // Ré-afficher le bouton Sync
+    var syncBtn = document.getElementById('bkSyncBtn');
+    if (syncBtn) syncBtn.style.display = '';
+
     var reader = document.getElementById('bkReader');
     if (reader && reader.classList.contains('bk-reader-visible') && _bkCurrentBook) {
       showToast('Session sync terminée', '', 2000);
@@ -1513,13 +1504,14 @@
       toast.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);' +
         'z-index:9999;background:var(--accent);color:#fff;border-radius:14px;' +
         'padding:10px 14px;font-size:13px;font-weight:700;font-family:DM Sans,sans-serif;' +
-        'display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.2);white-space:nowrap;';
+        'display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.2);' +
+        'max-width:calc(100vw - 32px);flex-wrap:wrap;justify-content:center;text-align:center;';
       toast.innerHTML =
-        '<span>📡 ' + escHtml(partnerName) + ' lit en sync — rejoindre ?</span>' +
-        '<button id="bkJoinYes" style="padding:4px 12px;border-radius:20px;background:#fff;' +
+        '<span style="flex:1 1 100%;font-size:12px;">📡 ' + escHtml(partnerName) + ' lit en sync<br>Rejoindre ?</span>' +
+        '<button id="bkJoinYes" style="padding:4px 16px;border-radius:20px;background:#fff;' +
         'color:var(--accent);font-size:12px;font-weight:800;border:none;cursor:pointer;font-family:DM Sans,sans-serif;">Oui</button>' +
-        '<button id="bkJoinNo" style="padding:4px 8px;border-radius:20px;background:rgba(255,255,255,.2);' +
-        'color:#fff;font-size:12px;font-weight:700;border:none;cursor:pointer;font-family:DM Sans,sans-serif;">✕</button>';
+        '<button id="bkJoinNo" style="padding:4px 10px;border-radius:20px;background:rgba(255,255,255,.2);' +
+        'color:#fff;font-size:12px;font-weight:700;border:none;cursor:pointer;font-family:DM Sans,sans-serif;">Non</button>';
       document.body.appendChild(toast);
 
       var timer = setTimeout(function(){ toast.remove(); }, 8000);
