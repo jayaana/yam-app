@@ -150,6 +150,10 @@
 
     // ── RT book_sessions — carte mise à jour en temps réel ──
     if (!window._yamRTChannels['book_sessions']) {
+      // Stocker le book_id de la session active localement
+      // car payload.old sur DELETE ne contient que l'id, même avec REPLICA IDENTITY FULL
+      var _lastSessionBookId = null;
+
       var chSessions = window._yamRT
         .channel('book_sessions_' + u.couple_id)
         .on('postgres_changes', {
@@ -157,14 +161,35 @@
           table: BK_SESSIONS_TBL,
           filter: 'couple_id=eq.' + u.couple_id,
         }, function (payload) {
-          var row = payload.new || payload.old;
-          if (!row) return;
-          _bkLibrary.forEach(function(book) {
-            if (book.id === row.book_id) {
-              book._syncSession = (payload.eventType === 'DELETE' || (payload.new && payload.new.status !== 'active'))
-                ? null : payload.new;
+
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            // Mémoriser le book_id de la session active
+            if (payload.new && payload.new.book_id) {
+              _lastSessionBookId = payload.new.book_id;
             }
-          });
+            var row = payload.new;
+            if (!row) return;
+            _bkLibrary.forEach(function(book) {
+              if (book.id === row.book_id) {
+                book._syncSession = (row.status !== 'active') ? null : row;
+              }
+            });
+          } else if (payload.eventType === 'DELETE') {
+            // payload.old ne contient que l'id — utiliser le book_id mémorisé
+            var deletedBookId = (payload.old && payload.old.book_id) || _lastSessionBookId;
+            if (deletedBookId) {
+              _bkLibrary.forEach(function(book) {
+                if (book.id === deletedBookId) {
+                  book._syncSession = null;
+                }
+              });
+              _lastSessionBookId = null;
+            } else {
+              // Fallback : effacer toutes les sessions
+              _bkLibrary.forEach(function(book) { book._syncSession = null; });
+            }
+          }
+
           // Trier : livre en session en tête
           _bkLibrary.sort(function(a, b) {
             if (a._syncSession && !b._syncSession) return -1;
