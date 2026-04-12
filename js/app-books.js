@@ -992,11 +992,11 @@
           '<button id="bkSyncBtn" style="padding:6px 12px;border-radius:20px;font-size:11px;font-weight:700;' +
           'border:1px solid var(--accent);background:var(--accent-s);color:var(--accent);cursor:pointer;' +
           'font-family:DM Sans,sans-serif;flex-shrink:0;' + (_bkSyncActive && !_bkIsHost ? 'display:none;' : '') + '">📡 Sync</button>' +
-          '<button id="bkReaderThemeBtn" class="dm-topbar-theme" title="Thème" style="flex-shrink:0;">' +
-            '<svg id="bkRdrMoon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+          '<button id="bkReaderThemeBtn" title="Thème" style="flex-shrink:0;">' +
+            '<svg id="bkRdrMoon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">' +
               '<path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/>' +
             '</svg>' +
-            '<svg id="bkRdrSun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+            '<svg id="bkRdrSun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">' +
               '<circle cx="12" cy="12" r="5"/>' +
               '<line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>' +
               '<line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>' +
@@ -1036,8 +1036,9 @@
     });
     document.getElementById('bkReaderThemeBtn').addEventListener('click', function() {
       var ref = document.querySelector('.dm-topbar-theme');
-      if (ref) ref.click();
-      _bkSyncThemeIcons(); // mettre à jour les icônes après bascule
+      if (ref && ref !== document.getElementById('bkReaderThemeBtn')) ref.click();
+      else if (typeof window.yamToggleTheme === 'function') window.yamToggleTheme();
+      _bkSyncThemeIcons();
     });
   }
 
@@ -1541,7 +1542,8 @@
       if (toastEl) toastEl.remove();
       var toast = document.createElement('div');
       toast.id = 'bkJoinToast';
-      toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;' +
+      toast.style.cssText = 'position:fixed;bottom:90px;left:16px;' +
+        'width:calc(100vw - 32px);max-width:480px;box-sizing:border-box;' +
         'z-index:9999;background:var(--accent);color:#fff;border-radius:14px;' +
         'padding:12px 16px;font-size:13px;font-weight:700;font-family:DM Sans,sans-serif;' +
         'display:flex;align-items:center;justify-content:space-between;gap:10px;' +
@@ -1608,11 +1610,11 @@
           '<div style="flex:1;">' +
             '<div style="font-size:17px;font-weight:700;color:var(--text);">📚 Lire ensemble</div>' +
           '</div>' +
-          '<button id="bkThemeBtn" class="dm-topbar-theme" title="Thème">' +
-            '<svg id="bkThemeMoon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+          '<button id="bkThemeBtn" title="Thème">' +
+            '<svg id="bkThemeMoon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">' +
               '<path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/>' +
             '</svg>' +
-            '<svg id="bkThemeSun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+            '<svg id="bkThemeSun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">' +
               '<circle cx="12" cy="12" r="5"/>' +
               '<line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>' +
               '<line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>' +
@@ -1648,7 +1650,8 @@
     // Listener bouton thème biblio
     document.getElementById('bkThemeBtn').addEventListener('click', function() {
       var ref = document.querySelector('.dm-topbar-theme');
-      if (ref) ref.click();
+      if (ref && ref !== document.getElementById('bkThemeBtn')) ref.click();
+      else if (typeof window.yamToggleTheme === 'function') window.yamToggleTheme();
       _bkSyncThemeIcons();
     });
 
