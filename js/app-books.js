@@ -1143,9 +1143,15 @@
     // Exposer renderPage pour que le mode sync puisse sauter à une page
     _bkCurrentRenderPage = renderPage;
 
-    // Navigation — bloquée fonctionnellement ET visuellement pour le suiveur
-    var prevBtn = document.getElementById('bkPrevPage');
-    var nextBtn = document.getElementById('bkNextPage');
+    // Navigation — cloner les boutons pour purger tous les anciens listeners
+    // (chaque ouverture de livre ajoutait un handler supplémentaire sur les mêmes boutons)
+    var prevBtnOld = document.getElementById('bkPrevPage');
+    var nextBtnOld = document.getElementById('bkNextPage');
+    var prevBtn = prevBtnOld ? prevBtnOld.cloneNode(true) : null;
+    var nextBtn = nextBtnOld ? nextBtnOld.cloneNode(true) : null;
+    if (prevBtn && prevBtnOld) prevBtnOld.parentNode.replaceChild(prevBtn, prevBtnOld);
+    if (nextBtn && nextBtnOld) nextBtnOld.parentNode.replaceChild(nextBtn, nextBtnOld);
+
     if (prevBtn) prevBtn.addEventListener('click', function () {
       if (_bkSyncActive && !_bkIsHost) return;
       haptic('light'); renderPage(currentPage - 1);
