@@ -111,7 +111,7 @@
     var ch = window._yamRT
       .channel('book_reads_' + u.couple_id)
       .on('postgres_changes', {
-        event: '*', schema: 'public', // INSERT + UPDATE
+        event: 'UPDATE', schema: 'public',
         table: BK_READS_TBL,
         filter: 'couple_id=eq.' + u.couple_id,
       }, function (payload) {
@@ -125,7 +125,7 @@
           }
         });
 
-        // Si on est dans le reader sur ce livre, mettre à jour les barres
+        // Si on est dans le reader, mettre à jour la barre de progression
         if (_bkCurrentBook && row.book_id === _bkCurrentBook.id) {
           _bkReads[row.player_role] = row;
           _bkRenderProgressBar();
@@ -150,6 +150,10 @@
 
     // ── RT book_sessions — carte mise à jour en temps réel ──
     if (!window._yamRTChannels['book_sessions']) {
+      // Stocker le book_id de la session active localement
+      // car payload.old sur DELETE ne contient que l'id, même avec REPLICA IDENTITY FULL
+      var _lastSessionBookId = null;
+
       var chSessions = window._yamRT
         .channel('book_sessions_' + u.couple_id)
         .on('postgres_changes', {
@@ -157,14 +161,35 @@
           table: BK_SESSIONS_TBL,
           filter: 'couple_id=eq.' + u.couple_id,
         }, function (payload) {
-          var row = payload.new || payload.old;
-          if (!row) return;
-          _bkLibrary.forEach(function(book) {
-            if (book.id === row.book_id) {
-              book._syncSession = (payload.eventType === 'DELETE' || (payload.new && payload.new.status !== 'active'))
-                ? null : payload.new;
+
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            // Mémoriser le book_id de la session active
+            if (payload.new && payload.new.book_id) {
+              _lastSessionBookId = payload.new.book_id;
             }
-          });
+            var row = payload.new;
+            if (!row) return;
+            _bkLibrary.forEach(function(book) {
+              if (book.id === row.book_id) {
+                book._syncSession = (row.status !== 'active') ? null : row;
+              }
+            });
+          } else if (payload.eventType === 'DELETE') {
+            // payload.old ne contient que l'id — utiliser le book_id mémorisé
+            var deletedBookId = (payload.old && payload.old.book_id) || _lastSessionBookId;
+            if (deletedBookId) {
+              _bkLibrary.forEach(function(book) {
+                if (book.id === deletedBookId) {
+                  book._syncSession = null;
+                }
+              });
+              _lastSessionBookId = null;
+            } else {
+              // Fallback : effacer toutes les sessions
+              _bkLibrary.forEach(function(book) { book._syncSession = null; });
+            }
+          }
+
           // Trier : livre en session en tête
           _bkLibrary.sort(function(a, b) {
             if (a._syncSession && !b._syncSession) return -1;
@@ -580,16 +605,12 @@
     var totalPages  = book.total_chars > 0 ? Math.ceil(book.total_chars / CHARS_PER_PAGE) : '—';
     var partnerName = yamGetDisplayName(partnerRole);
 
-    // Barre de progression (data-bk-mybar)
-    var bar = card.querySelector('[data-bk-mybar]');
-    if (bar) bar.style.width = myPct + '%';
-
-    // % affiché (data-bk-mypct)
-    var pctLabel = card.querySelector('[data-bk-mypct]');
-    if (pctLabel) pctLabel.textContent = myPct + '%';
-
-    // Ligne partenaire (data-bk-partner)
+    var bar        = card.querySelector('[data-bk-mybar]');
+    var pctLabel   = card.querySelector('[data-bk-mypct]');
     var partnerDiv = card.querySelector('[data-bk-partner]');
+
+    if (bar)      bar.style.width       = myPct + '%';
+    if (pctLabel) pctLabel.textContent  = myPct + '%';
     if (partnerDiv) {
       var statusColors = { reading: '#22c55e', done: 'var(--accent)', paused: 'var(--muted)' };
       var statusLabels = { reading: 'En cours', done: 'Terminé', paused: 'En pause' };
@@ -1152,17 +1173,17 @@
     var partnerPct  = Math.min(100, Math.round((partnerRead / total) * 100));
     var partnerName = yamGetDisplayName(partnerRole);
 
-    // Barres de progression
+    // Barres
     var myBar      = document.getElementById('bkMyProg');
     var partnerBar = document.getElementById('bkPartnerProg');
     if (myBar)      myBar.style.width      = myPct + '%';
     if (partnerBar) partnerBar.style.width = partnerPct + '%';
 
-    // Labels texte — chercher par data-attr plus fiable que querySelector sur style
-    var myPctLabel      = document.getElementById('bkMyPctLabel');
-    var partnerPctLabel = document.getElementById('bkPartnerPctLabel');
-    if (myPctLabel)      myPctLabel.textContent      = myPct + '%';
-    if (partnerPctLabel) partnerPctLabel.textContent = partnerName + ' ' + partnerPct + '%';
+    // Labels texte
+    var myLabel      = document.getElementById('bkMyPctLabel');
+    var partnerLabel = document.getElementById('bkPartnerPctLabel');
+    if (myLabel)      myLabel.textContent      = myPct + '%';
+    if (partnerLabel) partnerLabel.textContent = partnerName + ' ' + partnerPct + '%';
   }
 
 
@@ -1414,7 +1435,7 @@
     readerHeader.after(banner);
     document.getElementById('bkSyncStopBtn').addEventListener('click', _bkStopSyncSession);
 
-    // Griser les boutons nav pour le suiveur + masquer le bouton Sync
+    // Griser nav + masquer bouton Sync pour le suiveur
     if (!isHost) {
       _bkSetNavButtonsEnabled(false);
       var syncBtn = document.getElementById('bkSyncBtn');
