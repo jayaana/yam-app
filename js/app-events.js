@@ -460,7 +460,9 @@
   // ═══════════════════════════════════════════════════════════
   function _syncStoryBubble() {
     var coupleId = _cid(); if (!coupleId) return;
-    fetch(SB_URL + '/rest/v1/photo_descs?couple_id=eq.' + coupleId + '&category=eq.settings&slot=eq.story_bubble&limit=1', { headers: sb2Headers() })
+    var u = _user(); var userId = u ? u.id : null; if (!userId) return;
+    var slot = 'story_bubble_' + userId;
+    fetch(SB_URL + '/rest/v1/photo_descs?couple_id=eq.' + coupleId + '&category=eq.settings&slot=eq.' + slot + '&limit=1', { headers: sb2Headers() })
     .then(function(r) { return r.ok ? r.json() : []; })
     .then(function(rows) {
       window._storyBubbleEnabled = !!(rows && rows[0] && rows[0].description === 'true');
@@ -686,14 +688,16 @@
   // ── Toggle bulle vidéo ────────────────────────────────────
   var SB_PD = SB_URL + '/rest/v1/photo_descs';
 
-  function _getBubbleSetting(coupleId, cb) {
-    fetch(SB_PD + '?couple_id=eq.' + coupleId + '&category=eq.settings&slot=eq.story_bubble&limit=1', { headers: sb2Headers() })
+  function _getBubbleSetting(coupleId, userId, cb) {
+    var slot = 'story_bubble_' + userId;
+    fetch(SB_PD + '?couple_id=eq.' + coupleId + '&category=eq.settings&slot=eq.' + slot + '&limit=1', { headers: sb2Headers() })
     .then(function(r) { return r.ok ? r.json() : []; })
     .then(function(rows) { cb(rows && rows[0] ? rows[0].description === 'true' : false, rows && rows[0] ? rows[0].id : null); })
     .catch(function() { cb(false, null); });
   }
 
-  function _saveBubbleSetting(coupleId, value, existingId) {
+  function _saveBubbleSetting(coupleId, userId, value, existingId) {
+    var slot = 'story_bubble_' + userId;
     if (existingId) {
       return fetch(SB_PD + '?id=eq.' + existingId, {
         method: 'PATCH', headers: sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
@@ -702,16 +706,17 @@
     } else {
       return fetch(SB_PD, {
         method: 'POST', headers: sb2Headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
-        body: JSON.stringify({ couple_id: coupleId, category: 'settings', slot: 'story_bubble', description: value ? 'true' : 'false' })
+        body: JSON.stringify({ couple_id: coupleId, category: 'settings', slot: slot, description: value ? 'true' : 'false' })
       });
     }
   }
 
   function _toggleBubble(btn) {
     var coupleId = _cid(); if (!coupleId) return;
+    var u = _user(); var userId = u ? u.id : null; if (!userId) return;
     var newVal = !btn.classList.contains('on');
-    _getBubbleSetting(coupleId, function(currentVal, rowId) {
-      _saveBubbleSetting(coupleId, newVal, rowId).then(function() {
+    _getBubbleSetting(coupleId, userId, function(currentVal, rowId) {
+      _saveBubbleSetting(coupleId, userId, newVal, rowId).then(function() {
         if (newVal) btn.classList.add('on'); else btn.classList.remove('on');
         window._storyBubbleEnabled = newVal;
         if (typeof window._applyStoryState === 'function') window._applyStoryState();
