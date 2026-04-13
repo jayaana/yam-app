@@ -158,7 +158,9 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   window.prankCancelAll = function(){
     var profile = getProfile();
     if(!profile) return;
-    var victim = profile === 'boy' ? 'girl' : 'boy';
+    var s = yamGetUser ? { user: yamGetUser() } : null;
+    var coupleId = s && s.user ? s.user.couple_id : null;
+    if(!coupleId){ showPrankToast('❌ Couple introuvable'); return; }
     var btn = document.getElementById('prankCancelAllBtn');
     if(btn) btn.textContent = '⏳ Annulation…';
     // PATCH active=false au lieu de DELETE — permet à la victime de détecter l'annulation en cours
