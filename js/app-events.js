@@ -348,7 +348,7 @@
       var nextDate = isMensiv ? _nextMonthlyOccurrence(ev.date) : (ev.is_recurring ? _nextOccurrence(ev.date) : ev.date);
       var days     = _daysUntil(nextDate);
       var remind   = ev.days_before_reminder || 1;
-      [0, 1, 3].filter(function(d) { return d === 0 || d <= remind; }).forEach(function(d) {
+      [0, 1, 3, 7].filter(function(d) { return d === 0 || d <= remind; }).forEach(function(d) {
         if (days !== d) return;
         var pushKey = PUSH_KEY + ev.id + '_' + today + '_J' + d;
         if (localStorage.getItem(pushKey)) return;
