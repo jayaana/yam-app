@@ -671,10 +671,12 @@
 
     var cd = document.createElement('div'); cd.className = 'evt-card-cd';
     var du = typeof ev._du !== 'undefined' ? ev._du : _daysUntil(ev._nd || ev.date);
-    if (du === 0)      { cd.textContent = '🎉 Aujourd\'hui'; cd.classList.add('evt-cd-today'); }
-    else if (du === 1) { cd.textContent = 'Demain';          cd.classList.add('evt-cd-soon'); }
-    else if (du <= 3)  { cd.textContent = 'Dans ' + du + ' j.'; cd.classList.add('evt-cd-soon'); }
-    else               { cd.textContent = 'Dans ' + du + ' j.'; cd.classList.add('evt-cd-normal'); }
+    if (du === 0)       { cd.textContent = '🎉 Aujourd\'hui';          cd.classList.add('evt-cd-today'); }
+    else if (du === 1)  { cd.textContent = 'Demain';                    cd.classList.add('evt-cd-soon'); }
+    else if (du === -1) { cd.textContent = 'Hier';                      cd.classList.add('evt-cd-normal'); }
+    else if (du > 0 && du <= 3) { cd.textContent = 'Dans ' + du + ' j.';       cd.classList.add('evt-cd-soon'); }
+    else if (du > 0)    { cd.textContent = 'Dans ' + du + ' j.';       cd.classList.add('evt-cd-normal'); }
+    else                { cd.textContent = 'Il y a ' + Math.abs(du) + ' j.'; cd.classList.add('evt-cd-normal'); }
 
     card.appendChild(emojiEl); card.appendChild(info); card.appendChild(cd);
 
