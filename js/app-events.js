@@ -345,7 +345,7 @@
     var today = _todayStr();
     events.forEach(function(ev) {
       var isMensiv = _isSystemAnniv(ev);
-      var nextDate = isMensiv ? _nextMonthlyOccurrence(ev.date) : (ev.is_recurring ? _nextOccurrence(ev.date) : ev.date);
+      var nextDate = isMensiv ? _nextMonthlyOccurrence(ev.date) : (ev.is_monthly_recurring ? _nextMonthlyOccurrence(ev.date) : (ev.is_recurring ? _nextOccurrence(ev.date) : ev.date));
       var days     = _daysUntil(nextDate);
       var remind   = ev.days_before_reminder || 1;
       [0, 1, 3, 7].filter(function(d) { return d === 0 || d <= remind; }).forEach(function(d) {
@@ -378,7 +378,7 @@
     var soonest = null;
     events.forEach(function(ev) {
       var isMensiv = _isSystemAnniv(ev);
-      var nd = isMensiv ? _nextMonthlyOccurrence(ev.date) : (ev.is_recurring ? _nextOccurrence(ev.date) : ev.date);
+      var nd = isMensiv ? _nextMonthlyOccurrence(ev.date) : (ev.is_monthly_recurring ? _nextMonthlyOccurrence(ev.date) : (ev.is_recurring ? _nextOccurrence(ev.date) : ev.date));
       var days = _daysUntil(nd);
       if (days >= 0 && days <= 3 && (!soonest || days < soonest.days)) {
         var cfg = _eventTypeConfig[ev.type] || _eventTypeConfig.other;
@@ -407,11 +407,10 @@
     var todayEvents = [];
     _eventsCache.forEach(function(ev) {
       var isMensiv = _isSystemAnniv(ev);
-      var nd = isMensiv ? _nextMonthlyOccurrence(ev.date) : (ev.is_recurring ? _nextOccurrence(ev.date) : ev.date);
+      var nd = isMensiv ? _nextMonthlyOccurrence(ev.date) : (ev.is_monthly_recurring ? _nextMonthlyOccurrence(ev.date) : (ev.is_recurring ? _nextOccurrence(ev.date) : ev.date));
       if (_daysUntil(nd) !== 0) return;
       todayEvents.push(ev);
     });
-    if (!todayEvents.length) return;
 
     // Afficher d'abord les events non-mensiversaire
     var nonAnniv = todayEvents.filter(function(ev) { return ev.type !== 'anniversary'; });
@@ -611,7 +610,7 @@
     var upcoming = [], past = [];
     events.forEach(function(ev) {
       var isMensiv = _isSystemAnniv(ev);
-      var nd = isMensiv ? _nextMonthlyOccurrence(ev.date) : (ev.is_recurring ? _nextOccurrence(ev.date) : ev.date);
+      var nd = isMensiv ? _nextMonthlyOccurrence(ev.date) : (ev.is_monthly_recurring ? _nextMonthlyOccurrence(ev.date) : (ev.is_recurring ? _nextOccurrence(ev.date) : ev.date));
       ev._nd = nd; ev._du = _daysUntil(nd);
       if (ev._du >= 0) upcoming.push(ev); else past.push(ev);
     });
@@ -665,6 +664,7 @@
     var ndDate = new Date(parseInt(ndParts[0],10), parseInt(ndParts[1],10)-1, parseInt(ndParts[2],10));
     var dl = ndDate.toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
     if (ev.is_recurring && !isSystem) dl += ' (annuel)';
+    if (ev.is_monthly_recurring && !isSystem) dl += ' (mensuel)';
     if (isSystem) dl += ' (mensuel)';
     meta.textContent = dl + (ev.notes && !isSystem ? ' · ' + ev.notes.substring(0,30) : '');
     info.appendChild(title); info.appendChild(meta);
@@ -812,14 +812,37 @@
     inpNotes.value = ev ? (ev.notes || '') : '';
     _field('Notes (optionnel)', inpNotes);
 
-    // Toggle récurrent
+    // Toggle récurrent chaque année
     var recurRow = document.createElement('div'); recurRow.className = 'evt-toggle-row';
     var recurLbl = document.createElement('div'); recurLbl.className = 'evt-toggle-lbl'; recurLbl.textContent = 'Récurrent chaque année';
     var recurToggle = document.createElement('button'); recurToggle.className = 'evt-toggle' + (ev && ev.is_recurring ? ' on' : '');
     recurToggle.id = 'evtFRecurring';
-    recurToggle.addEventListener('click', function() { this.classList.toggle('on'); });
+    recurToggle.addEventListener('click', function() {
+      this.classList.toggle('on');
+      // Exclusion mutuelle : désactiver "chaque mois" si "chaque année" est activé
+      if (this.classList.contains('on')) {
+        var monthly = document.getElementById('evtFRecurringMonthly');
+        if (monthly) monthly.classList.remove('on');
+      }
+    });
     recurRow.appendChild(recurLbl); recurRow.appendChild(recurToggle);
     form.appendChild(recurRow);
+
+    // Toggle récurrent chaque mois
+    var recurMonthRow = document.createElement('div'); recurMonthRow.className = 'evt-toggle-row';
+    var recurMonthLbl = document.createElement('div'); recurMonthLbl.className = 'evt-toggle-lbl'; recurMonthLbl.textContent = 'Récurrent chaque mois';
+    var recurMonthToggle = document.createElement('button'); recurMonthToggle.className = 'evt-toggle' + (ev && ev.is_monthly_recurring ? ' on' : '');
+    recurMonthToggle.id = 'evtFRecurringMonthly';
+    recurMonthToggle.addEventListener('click', function() {
+      this.classList.toggle('on');
+      // Exclusion mutuelle : désactiver "chaque année" si "chaque mois" est activé
+      if (this.classList.contains('on')) {
+        var yearly = document.getElementById('evtFRecurring');
+        if (yearly) yearly.classList.remove('on');
+      }
+    });
+    recurMonthRow.appendChild(recurMonthLbl); recurMonthRow.appendChild(recurMonthToggle);
+    form.appendChild(recurMonthRow);
     body.appendChild(form);
 
     // Sauvegarder
@@ -846,12 +869,13 @@
     var rem   = parseInt(document.getElementById('evtFReminder').value) || 1;
     var notes = (document.getElementById('evtFNotes').value || '').trim();
     var recur = document.getElementById('evtFRecurring').classList.contains('on');
+    var recurMonthly = document.getElementById('evtFRecurringMonthly') ? document.getElementById('evtFRecurringMonthly').classList.contains('on') : false;
     if (!title) { _toast('Le titre est obligatoire', 'error'); return; }
     if (!date)  { _toast('La date est obligatoire', 'error');  return; }
     var btn = document.getElementById('evtSaveBtn');
     if (btn) { btn.disabled = true; btn.textContent = '...'; }
     var payload = { couple_id: coupleId, title: title, emoji: emoji, type: type, date: date,
-      assigned_to: asgn, days_before_reminder: rem, notes: notes || null, is_recurring: recur };
+      assigned_to: asgn, days_before_reminder: rem, notes: notes || null, is_recurring: recur, is_monthly_recurring: recurMonthly };
     var req = _editingId
       ? fetch(SB2 + '?id=eq.' + _editingId + '&couple_id=eq.' + coupleId, {
           method: 'PATCH', headers: sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}), body: JSON.stringify(payload) })
