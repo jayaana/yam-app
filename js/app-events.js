@@ -59,12 +59,43 @@
     var dd = ('0' + day).slice(-2);
     return candY + '-' + mm + '-' + dd;
   }
+  // Prochaine occurrence HEBDOMADAIRE (même jour de la semaine, semaine suivante si passé)
+  function _nextWeeklyOccurrence(dateStr) {
+    var parts = dateStr.slice(0, 10).split('-');
+    var origDay = parseInt(parts[2], 10);
+    var origMonth = parseInt(parts[1], 10) - 1;
+    var origYear = parseInt(parts[0], 10);
+    var t = new Date();
+    var today = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    // Jour de la semaine d'origine (0=dim, 1=lun, ...)
+    var origDate = new Date(origYear, origMonth, origDay);
+    var targetDow = origDate.getDay();
+    // Trouver le prochain jour correspondant (aujourd'hui inclus si pas encore passé)
+    var diff = (targetDow - today.getDay() + 7) % 7;
+    if (diff === 0) diff = 0; // aujourd'hui même jour de semaine → on garde
+    var candidate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + diff);
+    // Si c'est aujourd'hui mais déjà passé (diff===0), on avance d'une semaine
+    // On ne gère pas l'heure ici, donc on garde le jour même si diff===0
+    var yy = candidate.getFullYear();
+    var mm = ('0' + (candidate.getMonth() + 1)).slice(-2);
+    var dd = ('0' + candidate.getDate()).slice(-2);
+    return yy + '-' + mm + '-' + dd;
+  }
+
   function _monthsSince(dateStr) {
     var parts = dateStr.slice(0, 10).split('-');
     var startY = parseInt(parts[0], 10), startM = parseInt(parts[1], 10) - 1;
     var now = new Date();
     return (now.getFullYear() - startY) * 12 + (now.getMonth() - startM);
   }
+  function _resolveNextDate(ev) {
+    var isMensiv = _isSystemAnniv(ev);
+    if (isMensiv || ev.is_monthly_recurring) return _nextMonthlyOccurrence(ev.date);
+    if (ev.is_weekly_recurring)  return _nextWeeklyOccurrence(ev.date);
+    if (ev.is_recurring)         return _nextOccurrence(ev.date);
+    return ev.date;
+  }
+
   function _esc(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
@@ -344,8 +375,7 @@
     if (typeof yamPushNotify !== 'function') return;
     var today = _todayStr();
     events.forEach(function(ev) {
-      var isMensiv = _isSystemAnniv(ev);
-      var nextDate = isMensiv ? _nextMonthlyOccurrence(ev.date) : (ev.is_monthly_recurring ? _nextMonthlyOccurrence(ev.date) : (ev.is_recurring ? _nextOccurrence(ev.date) : ev.date));
+      var nextDate = _resolveNextDate(ev);
       var days     = _daysUntil(nextDate);
       var remind   = ev.days_before_reminder || 1;
       [0, 1, 3, 7].filter(function(d) { return d === 0 || d <= remind; }).forEach(function(d) {
@@ -377,8 +407,7 @@
 
     var soonest = null;
     events.forEach(function(ev) {
-      var isMensiv = _isSystemAnniv(ev);
-      var nd = isMensiv ? _nextMonthlyOccurrence(ev.date) : (ev.is_monthly_recurring ? _nextMonthlyOccurrence(ev.date) : (ev.is_recurring ? _nextOccurrence(ev.date) : ev.date));
+      var nd = _resolveNextDate(ev);
       var days = _daysUntil(nd);
       if (days >= 0 && days <= 3 && (!soonest || days < soonest.days)) {
         var cfg = _eventTypeConfig[ev.type] || _eventTypeConfig.other;
@@ -406,8 +435,7 @@
   function _checkTodayEvents() {
     var todayEvents = [];
     _eventsCache.forEach(function(ev) {
-      var isMensiv = _isSystemAnniv(ev);
-      var nd = isMensiv ? _nextMonthlyOccurrence(ev.date) : (ev.is_monthly_recurring ? _nextMonthlyOccurrence(ev.date) : (ev.is_recurring ? _nextOccurrence(ev.date) : ev.date));
+      var nd = _resolveNextDate(ev);
       if (_daysUntil(nd) !== 0) return;
       todayEvents.push(ev);
     });
@@ -609,8 +637,7 @@
     // Section "À venir"
     var upcoming = [], past = [];
     events.forEach(function(ev) {
-      var isMensiv = _isSystemAnniv(ev);
-      var nd = isMensiv ? _nextMonthlyOccurrence(ev.date) : (ev.is_monthly_recurring ? _nextMonthlyOccurrence(ev.date) : (ev.is_recurring ? _nextOccurrence(ev.date) : ev.date));
+      var nd = _resolveNextDate(ev);
       ev._nd = nd; ev._du = _daysUntil(nd);
       if (ev._du >= 0) upcoming.push(ev); else past.push(ev);
     });
@@ -626,7 +653,7 @@
       upcoming.forEach(function(ev) { body.appendChild(_buildCard(ev)); });
     }
 
-    var pastNR = past.filter(function(ev) { return !ev.is_recurring; });
+    var pastNR = past.filter(function(ev) { return !ev.is_recurring && !ev.is_monthly_recurring && !ev.is_weekly_recurring; });
     if (pastNR.length) {
       var secPast = document.createElement('div'); secPast.className = 'evt-sec'; secPast.textContent = 'Passés';
       body.appendChild(secPast);
@@ -659,13 +686,17 @@
     }
 
     var meta = document.createElement('div'); meta.className = 'evt-card-meta';
-    var ndStr = ev._nd || ev.date;
-    var ndParts = ndStr.split('-');
-    var ndDate = new Date(parseInt(ndParts[0],10), parseInt(ndParts[1],10)-1, parseInt(ndParts[2],10));
-    var dl = ndDate.toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
+    // Pour les événements mensuels/hebdo, afficher la date d'origine, pas la prochaine occurrence
+    var isMonthly = isSystem || ev.is_monthly_recurring;
+    var isWeekly  = !!ev.is_weekly_recurring;
+    var displayStr = (isMonthly || isWeekly) ? ev.date : (ev._nd || ev.date);
+    var displayParts = displayStr.split('-');
+    var displayDate = new Date(parseInt(displayParts[0],10), parseInt(displayParts[1],10)-1, parseInt(displayParts[2],10));
+    var dl = displayDate.toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
     if (ev.is_recurring && !isSystem) dl += ' (annuel)';
     if (ev.is_monthly_recurring && !isSystem) dl += ' (mensuel)';
     if (isSystem) dl += ' (mensuel)';
+    if (ev.is_weekly_recurring) dl += ' (hebdo)';
     meta.textContent = dl + (ev.notes && !isSystem ? ' · ' + ev.notes.substring(0,30) : '');
     info.appendChild(title); info.appendChild(meta);
 
@@ -819,10 +850,11 @@
     recurToggle.id = 'evtFRecurring';
     recurToggle.addEventListener('click', function() {
       this.classList.toggle('on');
-      // Exclusion mutuelle : désactiver "chaque mois" si "chaque année" est activé
       if (this.classList.contains('on')) {
         var monthly = document.getElementById('evtFRecurringMonthly');
         if (monthly) monthly.classList.remove('on');
+        var weekly = document.getElementById('evtFRecurringWeekly');
+        if (weekly) weekly.classList.remove('on');
       }
     });
     recurRow.appendChild(recurLbl); recurRow.appendChild(recurToggle);
@@ -835,14 +867,32 @@
     recurMonthToggle.id = 'evtFRecurringMonthly';
     recurMonthToggle.addEventListener('click', function() {
       this.classList.toggle('on');
-      // Exclusion mutuelle : désactiver "chaque année" si "chaque mois" est activé
       if (this.classList.contains('on')) {
         var yearly = document.getElementById('evtFRecurring');
         if (yearly) yearly.classList.remove('on');
+        var weekly = document.getElementById('evtFRecurringWeekly');
+        if (weekly) weekly.classList.remove('on');
       }
     });
     recurMonthRow.appendChild(recurMonthLbl); recurMonthRow.appendChild(recurMonthToggle);
     form.appendChild(recurMonthRow);
+
+    // Toggle récurrent chaque semaine
+    var recurWeekRow = document.createElement('div'); recurWeekRow.className = 'evt-toggle-row';
+    var recurWeekLbl = document.createElement('div'); recurWeekLbl.className = 'evt-toggle-lbl'; recurWeekLbl.textContent = 'Récurrent chaque semaine';
+    var recurWeekToggle = document.createElement('button'); recurWeekToggle.className = 'evt-toggle' + (ev && ev.is_weekly_recurring ? ' on' : '');
+    recurWeekToggle.id = 'evtFRecurringWeekly';
+    recurWeekToggle.addEventListener('click', function() {
+      this.classList.toggle('on');
+      if (this.classList.contains('on')) {
+        var yearly = document.getElementById('evtFRecurring');
+        if (yearly) yearly.classList.remove('on');
+        var monthly = document.getElementById('evtFRecurringMonthly');
+        if (monthly) monthly.classList.remove('on');
+      }
+    });
+    recurWeekRow.appendChild(recurWeekLbl); recurWeekRow.appendChild(recurWeekToggle);
+    form.appendChild(recurWeekRow);
     body.appendChild(form);
 
     // Sauvegarder
@@ -870,12 +920,13 @@
     var notes = (document.getElementById('evtFNotes').value || '').trim();
     var recur = document.getElementById('evtFRecurring').classList.contains('on');
     var recurMonthly = document.getElementById('evtFRecurringMonthly') ? document.getElementById('evtFRecurringMonthly').classList.contains('on') : false;
+    var recurWeekly  = document.getElementById('evtFRecurringWeekly')  ? document.getElementById('evtFRecurringWeekly').classList.contains('on')  : false;
     if (!title) { _toast('Le titre est obligatoire', 'error'); return; }
     if (!date)  { _toast('La date est obligatoire', 'error');  return; }
     var btn = document.getElementById('evtSaveBtn');
     if (btn) { btn.disabled = true; btn.textContent = '...'; }
     var payload = { couple_id: coupleId, title: title, emoji: emoji, type: type, date: date,
-      assigned_to: asgn, days_before_reminder: rem, notes: notes || null, is_recurring: recur, is_monthly_recurring: recurMonthly };
+      assigned_to: asgn, days_before_reminder: rem, notes: notes || null, is_recurring: recur, is_monthly_recurring: recurMonthly, is_weekly_recurring: recurWeekly };
     var req = _editingId
       ? fetch(SB2 + '?id=eq.' + _editingId + '&couple_id=eq.' + coupleId, {
           method: 'PATCH', headers: sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}), body: JSON.stringify(payload) })
