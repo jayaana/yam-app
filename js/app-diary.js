@@ -59,6 +59,8 @@
     _inited = true;
     _view = document.getElementById('diaryView');
     if (!_view) { console.error('[Diary] #diaryView introuvable'); return; }
+    // Injecter le CSS dès l'init — nécessaire pour le mode lecture
+    _injectEditorCSS();
 
     document.addEventListener('yam:session_ready', function () {
       setTimeout(_initRT, 1200);
@@ -1276,11 +1278,22 @@
 
     _bindFmt('diaryFmtH2', function() {
       _restoreSelection();
-      // Basculer titre/paragraphe
       try {
         var sel = window.getSelection();
-        var inH2 = sel && sel.anchorNode && (sel.anchorNode.parentElement.closest('h2'));
-        document.execCommand('formatBlock', false, inH2 ? 'p' : 'h2');
+        var node = sel && sel.anchorNode;
+        // Chercher le bloc parent (h2, h1, p, div...)
+        var blockEl = null;
+        if (node) {
+          blockEl = node.nodeType === 3 ? node.parentElement : node;
+          // Remonter jusqu'au premier élément de bloc direct de l'éditeur
+          var editor = document.getElementById('diaryEditor');
+          while (blockEl && blockEl.parentNode !== editor) {
+            blockEl = blockEl.parentNode;
+          }
+        }
+        var isH2 = blockEl && blockEl.tagName === 'H2';
+        // formatBlock 'p' pour annuler, 'h2' pour appliquer
+        document.execCommand('formatBlock', false, isH2 ? 'p' : 'h2');
       } catch(e) { document.execCommand('formatBlock', false, 'h2'); }
       _saveSelection();
     });
