@@ -923,6 +923,83 @@
   }
 
   // Fixer la couleur des puces de liste = couleur du premier texte dans le <li>
+  // Applique une couleur uniquement sur les nœuds texte de la sélection
+  // sans toucher au reste du <li> ou du paragraphe
+  function _applyColorToRange(range, color) {
+    // Extraire le contenu sélectionné dans un fragment
+    var frag = range.extractContents();
+
+    // Parcourir tous les nœuds texte du fragment et les envelopper
+    function wrapTextNodes(node) {
+      if (node.nodeType === 3) {
+        // Nœud texte → envelopper dans un span
+        if (node.textContent.length > 0) {
+          var span = document.createElement('span');
+          span.style.color = color;
+          var textNode = node.cloneNode(true);
+          span.appendChild(textNode);
+          node.parentNode.replaceChild(span, node);
+        }
+      } else if (node.nodeType === 1) {
+        // Élément : si c'est un span avec couleur, changer sa couleur
+        if (node.tagName === 'SPAN' && node.style.color) {
+          node.style.color = color;
+          return; // ne pas descendre si le span entier est coloré
+        }
+        // Sinon descendre dans les enfants (copie pour éviter mutation pendant itération)
+        var children = Array.prototype.slice.call(node.childNodes);
+        children.forEach(wrapTextNodes);
+      }
+    }
+    wrapTextNodes(frag);
+
+    // Réinsérer le fragment modifié à la position originale
+    range.insertNode(frag);
+
+    // Nettoyer : fusionner les spans de même couleur adjacents
+    _mergeAdjacentColorSpans(range.startContainer);
+  }
+
+  // Supprime les couleurs dans une sélection (reset)
+  function _removeColorInRange(range) {
+    var frag = range.extractContents();
+    function stripColor(node) {
+      if (node.nodeType === 1) {
+        node.style.color = '';
+        if (node.tagName === 'SPAN' && node.style.cssText.trim() === '') {
+          // Span vide de style → unwrap
+          var parent = node.parentNode;
+          if (parent) {
+            while (node.firstChild) parent.insertBefore(node.firstChild, node);
+            parent.removeChild(node);
+          }
+          return;
+        }
+        Array.prototype.slice.call(node.childNodes).forEach(stripColor);
+      }
+    }
+    Array.prototype.slice.call(frag.childNodes).forEach(stripColor);
+    range.insertNode(frag);
+  }
+
+  // Fusionne les spans de même couleur adjacents pour garder le HTML propre
+  function _mergeAdjacentColorSpans(node) {
+    var parent = node && node.nodeType === 3 ? node.parentElement : node;
+    if (!parent) return;
+    // Remonter au li ou au p
+    var block = parent.closest ? (parent.closest('li') || parent.closest('p') || parent) : parent;
+    if (!block) return;
+    var spans = block.querySelectorAll('span[style*="color"]');
+    spans.forEach(function(span) {
+      var next = span.nextSibling;
+      if (next && next.nodeType === 1 && next.tagName === 'SPAN' &&
+          next.style.color === span.style.color) {
+        while (next.firstChild) span.appendChild(next.firstChild);
+        next.parentNode.removeChild(next);
+      }
+    });
+  }
+
   function _fixListColors(container) {
     if (!container) container = document.getElementById('diaryEditor');
     if (!container) return;
@@ -1358,14 +1435,29 @@
       function applyColor() {
         var col = btn.getAttribute('data-diary-color');
         _restoreSelection();
-        if (col === 'reset') {
-          document.execCommand('removeFormat', false, null);
-        } else {
-          document.execCommand('foreColor', false, col);
+
+        var sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) {
+          colorPicker.style.display = 'none';
+          return;
         }
+        var range = sel.getRangeAt(0);
+
+        if (col === 'reset') {
+          // Supprimer toutes les couleurs dans la sélection :
+          // parcourir les spans de couleur qui se chevauchent et retirer leur color
+          _removeColorInRange(range);
+        } else {
+          if (range.collapsed) {
+            // Curseur seul (pas de sélection) — on ne fait rien
+          } else {
+            // Appliquer la couleur UNIQUEMENT sur la sélection via Range manuel
+            _applyColorToRange(range, col);
+          }
+        }
+
         colorPicker.style.display = 'none';
         _saveSelection();
-        // Mettre à jour couleur des puces immédiatement
         setTimeout(function() {
           _fixListColors();
           _updateActiveColor();
