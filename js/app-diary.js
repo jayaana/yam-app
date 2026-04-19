@@ -650,7 +650,18 @@
         escHtml(p.emoji) +
       '</button>';
     });
-    html += '</div></div>';
+      // Bouton (+) : ouvre le picker emoji couverture
+      html += '<button id="diaryAddCoverEmoji" ' +
+        'style="width:30px;height:30px;border-radius:50%;' +
+        'background:var(--s2);border:1.5px dashed var(--accent);' +
+        'cursor:pointer;display:flex;align-items:center;justify-content:center;' +
+        'font-size:14px;font-weight:800;color:var(--accent);">+</button>';
+    html += '</div>';
+
+    // Picker emoji couverture (grande palette, hidden par défaut)
+    html += _buildCoverEmojiPicker();
+
+    html += '</div>';
 
     // Humeur
     html += '<div>' +
@@ -718,17 +729,6 @@
       _toolBtn('diaryFmtImg',   '🖼️',          'Image',      '') +
       // Emoji picker
       _toolBtn('diaryFmtEmoji', '😊',          'Emoji',      '') +
-      // Bouton (+) palette emoji native OS
-      '<button id="diaryFmtNativeEmoji" title="Palette emoji" ' +
-        'style="min-width:30px;height:28px;padding:0 8px;border-radius:8px;' +
-        'border:1px solid var(--accent);background:var(--accent-s);cursor:pointer;' +
-        'font-size:14px;font-weight:800;color:var(--accent);position:relative;">' +
-        '+' +
-        '<input id="diaryEmojiNativeInput" type="text" ' +
-          'style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;' +
-          'font-size:16px;border:none;background:none;padding:0;" ' +
-          'inputmode="text" autocomplete="off" autocorrect="off">' +
-      '</button>' +
     '</div>';
 
     // Couleur picker (hidden)
@@ -867,6 +867,55 @@
 
     _bindEditorEvents(page);
     _renderEditorImages();
+  }
+
+  // ── Palette emoji couverture complète (desktop + iOS) ──
+  function _buildCoverEmojiPicker() {
+    var EMOJI_CATS = [
+      { label: '❤️ Amour',    list: ['❤️','🩷','💕','💖','💗','💘','💝','💞','🥰','😍','😘','💋','💑','👫','💏','🌹','💐','🌸','🌺','🌻','🌷','🍀','🦋'] },
+      { label: '😊 Émotions', list: ['😊','😍','🥰','😂','😭','😢','😤','😡','🤔','🤩','😴','😌','🤗','🥺','😏','😎','🤭','😇','🥳','😜','😋','🤪'] },
+      { label: '✨ Magie',    list: ['✨','🌟','💫','⭐','🌠','🎇','🎆','🌈','☀️','🌙','🌛','🌜','🌝','🌚','🔮','🪄','💎','🏆','🎖️','🎗️'] },
+      { label: '🎉 Fête',     list: ['🎉','🎊','🎈','🥂','🍾','🎂','🎁','🎀','🪅','🎠','🎡','🎢','🎭','🎨','🎪','🎤','🎵','🎶','🎸','🎹'] },
+      { label: '🌿 Nature',   list: ['🌿','🌱','🌲','🌳','🌴','🌵','🍄','🌾','🍂','🍁','🌺','🌸','💐','🦋','🐝','🐞','🦄','🐉','🦊','🐺','🐻','🐼','🐨'] },
+      { label: '🍓 Food',     list: ['🍓','🍒','🍑','🍊','🍋','🍇','🍉','🍍','🥭','🍔','🍕','🍣','🧁','🍰','🎂','🍫','🍬','🍭','☕','🧃','🍵'] },
+      { label: '🏔️ Voyage',   list: ['🏔️','🌊','🏖️','🌅','🌄','🗺️','✈️','🚀','🛸','🚂','🎒','⛺','🏕️','🗼','🗽','🎡','🌁','🌃','🌆','🌇','🌉'] },
+      { label: '💪 Vie',      list: ['💪','🙌','👏','🤝','🫂','🧘','🏋️','🎯','📚','📖','✏️','🎓','💡','🔑','🏠','🌺','🌙','☀️','🌊','⚡','🔥','💧'] },
+    ];
+
+    var html = '<div id="diaryCoverEmojiPicker" style="display:none;margin-top:6px;' +
+      'background:var(--s1);border:1.5px solid var(--border);border-radius:14px;' +
+      'overflow:hidden;box-shadow:var(--sh-md);">';
+
+    // Onglets catégories
+    html += '<div style="display:flex;overflow-x:auto;border-bottom:1px solid var(--border);' +
+      'scrollbar-width:none;background:var(--s2);">';
+    EMOJI_CATS.forEach(function(cat, i) {
+      html += '<button data-diary-emoji-cat="' + i + '" ' +
+        'style="flex-shrink:0;padding:7px 10px;font-size:11px;font-weight:' + (i === 0 ? '700' : '500') + ';' +
+        'border:none;background:' + (i === 0 ? 'var(--s1)' : 'transparent') + ';' +
+        'color:' + (i === 0 ? 'var(--accent)' : 'var(--muted)') + ';' +
+        'cursor:pointer;white-space:nowrap;border-bottom:2px solid ' + (i === 0 ? 'var(--accent)' : 'transparent') + ';' +
+        'font-family:DM Sans,sans-serif;">' + escHtml(cat.label) + '</button>';
+    });
+    html += '</div>';
+
+    // Grilles par catégorie
+    EMOJI_CATS.forEach(function(cat, i) {
+      html += '<div data-diary-emoji-grid="' + i + '" ' +
+        'style="display:' + (i === 0 ? 'flex' : 'none') + ';flex-wrap:wrap;gap:4px;padding:10px;">';
+      cat.list.forEach(function(e) {
+        html += '<button data-cover-emoji-pick="' + escHtml(e) + '" ' +
+          'style="width:34px;height:34px;border-radius:8px;font-size:20px;' +
+          'border:1px solid transparent;background:var(--s2);cursor:pointer;' +
+          'display:flex;align-items:center;justify-content:center;' +
+          'transition:transform 0.1s,background 0.1s;">' +
+          escHtml(e) + '</button>';
+      });
+      html += '</div>';
+    });
+
+    html += '</div>';
+    return html;
   }
 
   function _toolBtn(id, label, title, style) {
@@ -1043,6 +1092,79 @@
       btn.addEventListener('touchend',  function(e) { e.preventDefault(); insertEmoji(); }, { passive: false });
     });
 
+    // ── Picker emoji couverture ──
+    var coverEmojiBtn    = document.getElementById('diaryAddCoverEmoji');
+    var coverEmojiPicker = document.getElementById('diaryCoverEmojiPicker');
+
+    if (coverEmojiBtn && coverEmojiPicker) {
+      // Ouvrir/fermer
+      coverEmojiBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var open = coverEmojiPicker.style.display !== 'none';
+        coverEmojiPicker.style.display = open ? 'none' : 'block';
+      });
+      coverEmojiBtn.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        var open = coverEmojiPicker.style.display !== 'none';
+        coverEmojiPicker.style.display = open ? 'none' : 'block';
+      }, { passive: false });
+
+      // Onglets catégories
+      coverEmojiPicker.querySelectorAll('[data-diary-emoji-cat]').forEach(function(tab) {
+        tab.addEventListener('click', function() {
+          var idx = this.getAttribute('data-diary-emoji-cat');
+          // Activer l'onglet
+          coverEmojiPicker.querySelectorAll('[data-diary-emoji-cat]').forEach(function(t) {
+            var active = t.getAttribute('data-diary-emoji-cat') === idx;
+            t.style.fontWeight    = active ? '700' : '500';
+            t.style.background    = active ? 'var(--s1)' : 'transparent';
+            t.style.color         = active ? 'var(--accent)' : 'var(--muted)';
+            t.style.borderBottom  = active ? '2px solid var(--accent)' : '2px solid transparent';
+          });
+          // Afficher la grille
+          coverEmojiPicker.querySelectorAll('[data-diary-emoji-grid]').forEach(function(g) {
+            g.style.display = g.getAttribute('data-diary-emoji-grid') === idx ? 'flex' : 'none';
+          });
+        });
+      });
+
+      // Sélectionner un emoji de couverture
+      coverEmojiPicker.querySelectorAll('[data-cover-emoji-pick]').forEach(function(btn) {
+        function pickEmoji() {
+          var emoji = btn.getAttribute('data-cover-emoji-pick');
+          // Mettre à jour le bouton couverture sélectionné avec ce nouvel emoji
+          var selectedCoverBtn = _view.querySelector('[data-cover-bg][style*="var(--accent)"]');
+          if (!selectedCoverBtn) {
+            // Prendre le premier bouton couverture sélectionné
+            selectedCoverBtn = _view.querySelector('[data-cover-bg]');
+          }
+          if (selectedCoverBtn) {
+            selectedCoverBtn.setAttribute('data-cover-emoji', emoji);
+            selectedCoverBtn.textContent = emoji;
+          }
+          coverEmojiPicker.style.display = 'none';
+          // Feedback visuel sur le bouton
+          btn.style.background = 'var(--accent-s)';
+          btn.style.transform  = 'scale(1.2)';
+          setTimeout(function() {
+            btn.style.background = 'var(--s2)';
+            btn.style.transform  = '';
+          }, 200);
+        }
+        btn.addEventListener('click', pickEmoji);
+        btn.addEventListener('touchend', function(e) { e.preventDefault(); pickEmoji(); }, { passive: false });
+      });
+
+      // Fermer au clic extérieur
+      document.addEventListener('click', function closePicker(e) {
+        if (coverEmojiPicker.style.display !== 'none' &&
+            !coverEmojiPicker.contains(e.target) &&
+            e.target !== coverEmojiBtn) {
+          coverEmojiPicker.style.display = 'none';
+        }
+      });
+    }
+
     // Insertion image dans le texte — click normal (ouvre file picker)
     document.getElementById('diaryFmtImg') && document.getElementById('diaryFmtImg').addEventListener('mousedown', function(e) {
       e.preventDefault();
@@ -1050,24 +1172,6 @@
       if (fi) fi.click();
     });
 
-    // Bouton (+) emoji natif — l'input caché reçoit les emojis du clavier OS
-    var nativeEmojiInput = document.getElementById('diaryEmojiNativeInput');
-    if (nativeEmojiInput) {
-      // Quand l'utilisateur saisit via le clavier emoji
-      nativeEmojiInput.addEventListener('input', function() {
-        var val = this.value;
-        if (!val) return;
-        _restoreSelection();
-        document.execCommand('insertHTML', false, escHtml(val));
-        _saveSelection();
-        this.value = ''; // Vider l'input après insertion
-      });
-      // Sur focus du bouton parent, on sauvegarde d'abord la sélection
-      nativeEmojiInput.addEventListener('focus', function() {
-        // Ne pas appeler _saveSelection ici car le blur de l'éditeur
-        // l'aura déjà fait via l'event blur de l'éditeur
-      });
-    }
 
     var fileInput = document.getElementById('diaryFileInput');
     if (fileInput) fileInput.addEventListener('change', function() {
