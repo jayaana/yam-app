@@ -27,12 +27,12 @@
     { bg: '#e8f4f8', emoji: '💙', label: 'Ciel' },
     { bg: '#f0fce4', emoji: '🌿', label: 'Sage' },
     { bg: '#fef9e4', emoji: '✨', label: 'Or doux' },
-    { bg: '#f3e8fd', emoji: '💜', label: 'Lavande' },
+    { bg: '#f3e8fd', emoji: '🩷', label: 'Lavande' },
     { bg: '#ffe8d6', emoji: '🍑', label: 'Pêche' },
     { bg: '#e8fdf5', emoji: '🍃', label: 'Menthe' },
     { bg: '#fde8e8', emoji: '🌺', label: 'Corail' },
-    { bg: '#2d2d2d', emoji: '⭐', label: 'Nuit' },
-    { bg: '#1a2a3a', emoji: '🌠', label: 'Minuit' },
+    { bg: 'var(--s3)', emoji: '⭐', label: 'Nuit' },
+    { bg: 'var(--s2)', emoji: '🌠', label: 'Minuit' },
     { bg: 'linear-gradient(135deg,#fce4eb,#f3e8fd)', emoji: '🌈', label: 'Aurore' },
     { bg: 'linear-gradient(135deg,#e8f4f8,#e8fdf5)', emoji: '🌊', label: 'Océan' },
   ];
@@ -702,7 +702,14 @@
       // Couleur texte
       _toolBtn('diaryFmtColor', '🎨',          'Couleur',    '') +
       // Alignement centre
-      _toolBtn('diaryFmtCenter','⬛',           'Centrer',   '') +
+      _toolBtn('diaryFmtCenter',
+        '<svg width="14" height="12" viewBox="0 0 14 12" fill="currentColor" style="display:block;">' +
+          '<rect x="1" y="0" width="12" height="2" rx="1"/>' +
+          '<rect x="2.5" y="3.5" width="9" height="2" rx="1"/>' +
+          '<rect x="1" y="7" width="12" height="2" rx="1"/>' +
+          '<rect x="2.5" y="10.5" width="9" height="2" rx="1"/>' +
+        '</svg>',
+        'Centrer/Gauche', '') +
       // Liste
       _toolBtn('diaryFmtList',  '☰',           'Liste',      '') +
       // Trait séparateur
@@ -711,6 +718,17 @@
       _toolBtn('diaryFmtImg',   '🖼️',          'Image',      '') +
       // Emoji picker
       _toolBtn('diaryFmtEmoji', '😊',          'Emoji',      '') +
+      // Bouton (+) palette emoji native OS
+      '<button id="diaryFmtNativeEmoji" title="Palette emoji" ' +
+        'style="min-width:30px;height:28px;padding:0 8px;border-radius:8px;' +
+        'border:1px solid var(--accent);background:var(--accent-s);cursor:pointer;' +
+        'font-size:14px;font-weight:800;color:var(--accent);position:relative;">' +
+        '+' +
+        '<input id="diaryEmojiNativeInput" type="text" ' +
+          'style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;' +
+          'font-size:16px;border:none;background:none;padding:0;" ' +
+          'inputmode="text" autocomplete="off" autocorrect="off">' +
+      '</button>' +
     '</div>';
 
     // Couleur picker (hidden)
@@ -961,7 +979,25 @@
     _bindFmt('diaryFmtBold',   function() { _execFmt('bold'); });
     _bindFmt('diaryFmtItalic', function() { _execFmt('italic'); });
     _bindFmt('diaryFmtUnder',  function() { _execFmt('underline'); });
-    _bindFmt('diaryFmtCenter', function() { _execFmt('justifyCenter'); });
+    _bindFmt('diaryFmtCenter', function() {
+      _restoreSelection();
+      // Détecter l'alignement actuel et basculer center ↔ left
+      var sel = window.getSelection();
+      var isCentered = false;
+      if (sel && sel.rangeCount > 0) {
+        var node = sel.getRangeAt(0).commonAncestorContainer;
+        var el = node.nodeType === 1 ? node : node.parentElement;
+        if (el) {
+          var align = el.style.textAlign ||
+            (el.closest && el.closest('[style*="text-align"]') &&
+             el.closest('[style*="text-align"]').style.textAlign) || '';
+          isCentered = align === 'center' ||
+            document.queryCommandState('justifyCenter');
+        }
+      }
+      document.execCommand(isCentered ? 'justifyLeft' : 'justifyCenter', false, null);
+      _saveSelection();
+    });
     _bindFmt('diaryFmtList',   function() { _execFmt('insertUnorderedList'); });
     _bindFmt('diaryFmtHR', function() {
       _restoreSelection();
@@ -1013,6 +1049,25 @@
       var fi = document.getElementById('diaryFileInput');
       if (fi) fi.click();
     });
+
+    // Bouton (+) emoji natif — l'input caché reçoit les emojis du clavier OS
+    var nativeEmojiInput = document.getElementById('diaryEmojiNativeInput');
+    if (nativeEmojiInput) {
+      // Quand l'utilisateur saisit via le clavier emoji
+      nativeEmojiInput.addEventListener('input', function() {
+        var val = this.value;
+        if (!val) return;
+        _restoreSelection();
+        document.execCommand('insertHTML', false, escHtml(val));
+        _saveSelection();
+        this.value = ''; // Vider l'input après insertion
+      });
+      // Sur focus du bouton parent, on sauvegarde d'abord la sélection
+      nativeEmojiInput.addEventListener('focus', function() {
+        // Ne pas appeler _saveSelection ici car le blur de l'éditeur
+        // l'aura déjà fait via l'event blur de l'éditeur
+      });
+    }
 
     var fileInput = document.getElementById('diaryFileInput');
     if (fileInput) fileInput.addEventListener('change', function() {
