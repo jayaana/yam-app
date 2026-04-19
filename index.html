@@ -23,7 +23,7 @@
   script-src 'self' cdn.jsdelivr.net https://www.youtube-nocookie.com https://www.youtube.com;
   style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.jsdelivr.net;
   font-src 'self' fonts.gstatic.com cdn.jsdelivr.net data:;
-  img-src 'self' blob: data: raw.githubusercontent.com https://jstiwtbgkbedtldqjdhp.supabase.co https://img.youtube.com https://i.ytimg.com https://lh3.googleusercontent.com https://www.gutenberg.org;
+  img-src 'self' blob: data: raw.githubusercontent.com https://jstiwtbgkbedtldqjdhp.supabase.co https://img.youtube.com https://i.ytimg.com https://lh3.googleusercontent.com https://www.gutenberg.org https://www.canva.com https://*.canva.com;
   media-src 'self' blob: data:;
   connect-src 'self'
     https://jstiwtbgkbedtldqjdhp.supabase.co
@@ -43,10 +43,11 @@
     https://fcm.googleapis.com
     https://gutendex.com
     https://www.gutenberg.org
-    https://corsproxy.io;
+    https://corsproxy.io
+    https://www.canva.com;
   worker-src 'self';
   manifest-src 'self';
-  frame-src https://www.youtube.com https://www.youtube-nocookie.com;
+  frame-src https://www.youtube.com https://www.youtube-nocookie.com https://www.canva.com;
   base-uri 'self';
   form-action 'self' mailto:;
 ">
@@ -1867,11 +1868,11 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
         <div class="home-idea-sub">Dans 1 an</div>
       </div>
     </div>
-    <div class="home-idea-card" title="Bientôt disponible">
-      <div class="home-idea-icon home-idea-icon-playlist" style="background:#ece8fd;">🎵</div>
+    <div class="home-idea-card home-idea-card-clickable" id="homeDiaryCard" title="Mon journal intime">
+      <div class="home-idea-icon home-idea-icon-diary" style="background:#fce4eb;">📔</div>
       <div class="home-idea-footer">
-        <div class="home-idea-name">Playlist</div>
-        <div class="home-idea-sub">Du jour</div>
+        <div class="home-idea-name">My Diary</div>
+        <div class="home-idea-sub">Mon journal</div>
       </div>
     </div>
   </div>
@@ -2994,6 +2995,11 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
      BOOKS — Vue lecture (gérée par app-books.js)
 ════════════════════════════════════════════ -->
 <div id="bookView"></div>
+
+<!-- ═══════════════════════════════════════════
+     DIARY — Vue journal intime (app-diary.js)
+════════════════════════════════════════════ -->
+<div id="diaryView" style="position:fixed;inset:0;z-index:200;background:var(--bg);display:none;flex-direction:column;overflow:hidden;"></div>
 
 <!-- ═══════════════════════════════════════════
      MESSAGES TAB — InstaLove
@@ -5492,6 +5498,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 <script src="js/app-nav.js"></script>
 <script src="js/app-jeux-dashboard.js"></script>
 <script src="js/app-home.js"></script>
+<script src="js/app-diary.js"></script>
 <script src="js/app-inline.js"></script>
 
 <!-- ═══════════════════════════════════════════
@@ -6395,6 +6402,9 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 .home-idea-icon-date     { background: var(--idea-icon-date,   #ddf0ee) !important; }
 .home-idea-icon-capsule  { background: var(--idea-icon-capsule,#fef0da) !important; }
 .home-idea-icon-playlist { background: var(--idea-icon-playlist,#ece8fd) !important; }
+.home-idea-icon-diary    { background: var(--idea-icon-diary,   #fce4eb) !important; }
+.home-idea-card-clickable { cursor: pointer !important; transition: transform 0.15s, box-shadow 0.15s !important; }
+.home-idea-card-clickable:active { transform: scale(0.96) !important; }
 </style>
 
 
