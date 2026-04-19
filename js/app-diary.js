@@ -147,6 +147,10 @@
 
   window.diaryClose = function () {
     _stopPoll();
+    _stopCommentRT();
+    _mode = 'list';
+    _currentPage = null;
+
     var homeTab = document.getElementById('yamHomeTab');
     if (!_view || !homeTab) return;
 
@@ -154,11 +158,7 @@
     _yamSlide(homeTab, _view, 'backward');
     homeTab.classList.add('active');
 
-    setTimeout(function () {
-      _view.classList.remove('active');
-      _view.style.display = '';
-    }, 360);
-
+    // _yamSlide retire .active après DUR+50ms — pas besoin de forcer display
     haptic('light');
   };
 
@@ -185,7 +185,7 @@
       '<div style="display:flex;flex-direction:column;height:100%;background:var(--bg);">' +
         _headerHTML('My Diary', true) +
         '<div style="flex:1;display:flex;align-items:center;justify-content:center;">' +
-          '<div style="font-size:28px;animation:spin 1s linear infinite;">📖</div>' +
+          '<div style="font-size:28px;animation:bkPulse 1.4s ease-in-out infinite;">📖</div>' +
         '</div>' +
       '</div>';
     _bindHeaderBack();
