@@ -1203,39 +1203,57 @@
   }
 
   // Convertit le texte brut Gutenberg (conventions typographiques) en HTML lisible
-  // Gère : _italique_, *gras*, **gras**, =titre=, --tiret long--, ---tiret---
+  // Stratégie : appliquer les regex sur le texte BRUT avec des placeholders Unicode,
+  // puis escHtml(), puis restaurer les balises — évite que l'apostrophe ' soit
+  // transformée en &#x27; avant la regex et casse la détection de _italique_.
   function _bkFormatText(rawText) {
-    // 1. Échapper le HTML pour éviter les injections
-    var escaped = escHtml(rawText);
+    var text = rawText;
 
-    // 2. Titres/chapitres : ligne entière en majuscules ou entourée de = (ex: =Chapitre I=)
-    escaped = escaped.replace(/(^|\n)(=+)([^=\n]+)\2(\n|$)/g, function(m, pre, eq, content, post) {
-      return pre + '<strong style="font-size:1.1em;display:block;margin:1em 0 .3em;">' + content.trim() + '</strong>' + post;
-    });
+    // 1. Tirets longs (texte brut)
+    text = text.replace(/---/g, '\u2014');
+    text = text.replace(/--/g, '\u2013');
 
-    // 3. Gras : **texte** ou __texte__
-    escaped = escaped.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
-    escaped = escaped.replace(/__([^_\n]+)__/g, '<strong>$1</strong>');
+    // 2. Guillemets droits → typographiques (texte brut)
+    text = text.replace(/(^|[\s(])"([^\s])/gm, '$1\u00AB\u00A0$2');
+    text = text.replace(/([^\s])"/g, '$1\u00A0\u00BB');
 
-    // 4. Italique : _texte_ ou *texte* (mot ou groupe de mots, pas de saut de ligne)
-    // - Précédé de : début de ligne, espace, ponctuation ouvrante
-    // - Suivi de  : fin de ligne, espace, ponctuation (y compris ; : ! ?)
-    escaped = escaped.replace(/(^|[\s(«„])_([^_\n]{1,200})_(?=\s|[)».,;:!?]|$)/gm, '$1<em>$2</em>');
-    escaped = escaped.replace(/(^|[\s(«„])\*([^*\n]{1,200})\*(?=\s|[)».,;:!?]|$)/gm, '$1<em>$2</em>');
+    // 3. Placeholders Unicode zone privée (jamais présents dans un texte Gutenberg)
+    var PH_EM_O = '\uE001', PH_EM_C = '\uE002';
+    var PH_ST_O = '\uE003', PH_ST_C = '\uE004';
+    var PH_TI_O = '\uE005', PH_TI_C = '\uE006';
 
-    // 5. Tirets longs : --- ou -- → vrai em dash / en dash
-    escaped = escaped.replace(/---/g, '—');
-    escaped = escaped.replace(/--/g, '–');
+    // Gras **...** et __...__
+    text = text.replace(/\*\*([^*\n]{1,300})\*\*/g,  PH_ST_O + '$1' + PH_ST_C);
+    text = text.replace(/__([^_\n]{1,300})__/g,       PH_ST_O + '$1' + PH_ST_C);
 
-    // 6. Guillemets droits → typographiques
-    escaped = escaped.replace(/(^|[\s(«])&quot;([^&])/g, '$1\u00AB\u00A0$2');
-    escaped = escaped.replace(/([^&])&quot;([\s)».,;:!?]|$)/g, '$1\u00A0\u00BB$2');
+    // Italique _..._ — avant ou début de ligne, après ponctuation fermante ou fin
+    text = text.replace(/(^|[\s(\u00AB])_([^_\n]{1,300})_(?=\s|[)\u00BB.,;:!?\-]|$)/gm,
+                        '$1' + PH_EM_O + '$2' + PH_EM_C);
+    // Italique *...*
+    text = text.replace(/(^|[\s(\u00AB])\*([^*\n]{1,300})\*(?=\s|[)\u00BB.,;:!?\-]|$)/gm,
+                        '$1' + PH_EM_O + '$2' + PH_EM_C);
 
-    // 7. Sauts de ligne → <br> (on garde le pre-wrap via style)
-    escaped = escaped.replace(/\n/g, '<br>');
+    // Titres =...=
+    text = text.replace(/(^|\n)(=+)([^=\n]+)\2(\n|$)/g,
+                        '$1' + PH_TI_O + '$3' + PH_TI_C + '$4');
 
-    return escaped;
+    // 4. Échapper le HTML (les placeholders U+E0xx sont dans la zone privée, non touchés)
+    text = escHtml(text);
+
+    // 5. Restaurer les balises HTML
+    text = text.split(PH_ST_O).join('<strong>');
+    text = text.split(PH_ST_C).join('</strong>');
+    text = text.split(PH_EM_O).join('<em>');
+    text = text.split(PH_EM_C).join('</em>');
+    text = text.split(PH_TI_O).join('<strong style="font-size:1.05em;display:block;margin:.8em 0 .2em;">');
+    text = text.split(PH_TI_C).join('</strong>');
+
+    // 6. Sauts de ligne → <br>
+    text = text.replace(/\n/g, '<br>');
+
+    return text;
   }
+
 
   function _bkPaginate(text) {
     var pages = [];
