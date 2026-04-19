@@ -965,6 +965,7 @@
   }
 
   // Supprime la couleur sur la sélection
+  // Unwrap dès que la couleur est retirée — peu importe les autres styles résiduels
   function _removeColorInRange(range) {
     if (range.collapsed) return;
     var textNodes = _getTextNodesInRange(range);
@@ -978,16 +979,19 @@
 
       var parent = target.parentNode;
       if (parent && parent.tagName === 'SPAN' && parent.style.color) {
-        // Retirer la couleur — si le span n'a plus de style, unwrap
         parent.style.color = '';
-        if (!parent.style.cssText.trim()) {
-          // Unwrap : remplacer le span par son contenu
-          var gp = parent.parentNode;
+        // Unwrap dès que la couleur est retirée (indépendamment des autres styles)
+        var gp = parent.parentNode;
+        if (gp) {
           while (parent.firstChild) gp.insertBefore(parent.firstChild, parent);
           gp.removeChild(parent);
         }
       }
     });
+    // Recalculer les couleurs de puces après reset
+    setTimeout(function() {
+      if (typeof _fixListColors === 'function') _fixListColors();
+    }, 10);
   }
 
   // Retourne tous les nœuds texte dans un Range avec leurs offsets exacts
