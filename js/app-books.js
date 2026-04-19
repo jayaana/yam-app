@@ -1218,9 +1218,10 @@
     escaped = escaped.replace(/__([^_\n]+)__/g, '<strong>$1</strong>');
 
     // 4. Italique : _texte_ ou *texte* (mot ou groupe de mots, pas de saut de ligne)
-    // On utilise (^|[\s(«]) et ([\s)».,;:!?]|$) au lieu de \b pour gérer les accents français
-    escaped = escaped.replace(/(^|[\s(«„])_([^_\n]{1,120})_(?=[\s)».,;:!?]|$)/gm, '$1<em>$2</em>');
-    escaped = escaped.replace(/(^|[\s(«„])\*([^*\n]{1,120})\*(?=[\s)».,;:!?]|$)/gm, '$1<em>$2</em>');
+    // - Précédé de : début de ligne, espace, ponctuation ouvrante
+    // - Suivi de  : fin de ligne, espace, ponctuation (y compris ; : ! ?)
+    escaped = escaped.replace(/(^|[\s(«„])_([^_\n]{1,200})_(?=\s|[)».,;:!?]|$)/gm, '$1<em>$2</em>');
+    escaped = escaped.replace(/(^|[\s(«„])\*([^*\n]{1,200})\*(?=\s|[)».,;:!?]|$)/gm, '$1<em>$2</em>');
 
     // 5. Tirets longs : --- ou -- → vrai em dash / en dash
     escaped = escaped.replace(/---/g, '—');
