@@ -29,10 +29,10 @@
     { bg: '#fef9e4', emoji: '✨', label: 'Or doux' },
     { bg: '#f3e8fd', emoji: '💜', label: 'Lavande' },
     { bg: '#ffe8d6', emoji: '🍑', label: 'Pêche' },
-    { bg: '#e8fdf5', emoji: '🌊', label: 'Menthe' },
-    { bg: '#fde8e8', emoji: '❤️',  label: 'Corail' },
-    { bg: '#2d2d2d', emoji: '🖤',  label: 'Nuit' },
-    { bg: '#1a2a3a', emoji: '🌙', label: 'Minuit' },
+    { bg: '#e8fdf5', emoji: '🍃', label: 'Menthe' },
+    { bg: '#fde8e8', emoji: '🌺', label: 'Corail' },
+    { bg: '#2d2d2d', emoji: '⭐', label: 'Nuit' },
+    { bg: '#1a2a3a', emoji: '🌠', label: 'Minuit' },
     { bg: 'linear-gradient(135deg,#fce4eb,#f3e8fd)', emoji: '🌈', label: 'Aurore' },
     { bg: 'linear-gradient(135deg,#e8f4f8,#e8fdf5)', emoji: '🌊', label: 'Océan' },
   ];
@@ -738,8 +738,7 @@
       'style="min-height:200px;padding:14px 16px;border-radius:14px;' +
       'border:1.5px solid var(--border);background:var(--s1);' +
       'font-size:15px;line-height:1.8;color:var(--text);' +
-      'font-family:Georgia,serif;outline:none;word-wrap:break-word;' +
-      '-webkit-user-modify:read-write-plaintext-only;" ' +
+      'font-family:Georgia,serif;outline:none;word-wrap:break-word;" ' +
       'data-placeholder="Écris ta page ici… Laisse libre cours à tes pensées ✨">';
 
     if (page && page.content) {
@@ -922,92 +921,90 @@
     // ── Toolbar formatage ──
     var editor = document.getElementById('diaryEditor');
 
-    // ── IMPORTANT : mousedown + preventDefault pour conserver la sélection dans l'éditeur ──
-    // Un click sur un bouton fait perdre le focus/sélection avant execCommand → formatage ignoré
-    // mousedown + e.preventDefault() empêche la perte de focus
+    // ── TOOLBAR : sauvegarde sélection au blur, restauration avant execCommand ──
+    // Sur iOS Safari, on ne peut pas empêcher la perte de focus avec preventDefault.
+    // La solution fiable : écouter blur/selectionchange sur l'éditeur pour mémoriser
+    // le Range, puis le restaurer juste avant d'appeler execCommand.
+    if (editor) {
+      editor.addEventListener('blur', function() { _saveSelection(); });
+      editor.addEventListener('keyup', function() { _saveSelection(); });
+      editor.addEventListener('mouseup', function() { _saveSelection(); });
+      editor.addEventListener('touchend', function() { setTimeout(_saveSelection, 50); });
+    }
+
+    // _bindFmt : mousedown (desktop) + touchend (iOS) sur les boutons toolbar
     function _bindFmt(id, fn) {
       var el = document.getElementById(id);
       if (!el) return;
-      el.addEventListener('mousedown', function(e) { e.preventDefault(); fn.call(this, e); });
-      // iOS : touchstart car mousedown parfois ignoré
-      el.addEventListener('touchstart', function(e) { e.preventDefault(); fn.call(this, e); }, { passive: false });
+      // Desktop : mousedown empêche le blur sur la plupart des navigateurs
+      el.addEventListener('mousedown', function(e) {
+        e.preventDefault(); // Empêche le blur sur desktop/Android
+        fn.call(this, e);
+      });
+      // iOS Safari : touchend car touchstart déclenche le blur parfois avant mousedown
+      el.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        fn.call(this, e);
+      }, { passive: false });
     }
 
     _bindFmt('diaryFmtH2', function() {
-      // formatBlock h2 : basculer entre h2 et p
-      var sel = window.getSelection();
-      if (sel && sel.rangeCount) {
-        var node = sel.getRangeAt(0).commonAncestorContainer;
-        var block = node.nodeType === 1 ? node : node.parentElement;
-        var isH2 = block && block.closest && block.closest('h2');
-        document.execCommand('formatBlock', false, isH2 ? 'p' : 'h2');
-      } else {
-        document.execCommand('formatBlock', false, 'h2');
-      }
-      if (editor) editor.focus();
+      _restoreSelection();
+      // Basculer titre/paragraphe
+      try {
+        var sel = window.getSelection();
+        var inH2 = sel && sel.anchorNode && (sel.anchorNode.parentElement.closest('h2'));
+        document.execCommand('formatBlock', false, inH2 ? 'p' : 'h2');
+      } catch(e) { document.execCommand('formatBlock', false, 'h2'); }
+      _saveSelection();
     });
-    _bindFmt('diaryFmtBold',   function() { document.execCommand('bold',      false, null); if(editor) editor.focus(); });
-    _bindFmt('diaryFmtItalic', function() { document.execCommand('italic',    false, null); if(editor) editor.focus(); });
-    _bindFmt('diaryFmtUnder',  function() { document.execCommand('underline', false, null); if(editor) editor.focus(); });
-    _bindFmt('diaryFmtCenter', function() {
-      // Basculer center / left
-      document.execCommand('justifyCenter', false, null);
-      if(editor) editor.focus();
-    });
-    _bindFmt('diaryFmtList', function() {
-      document.execCommand('insertUnorderedList', false, null);
-      if(editor) editor.focus();
-    });
+    _bindFmt('diaryFmtBold',   function() { _execFmt('bold'); });
+    _bindFmt('diaryFmtItalic', function() { _execFmt('italic'); });
+    _bindFmt('diaryFmtUnder',  function() { _execFmt('underline'); });
+    _bindFmt('diaryFmtCenter', function() { _execFmt('justifyCenter'); });
+    _bindFmt('diaryFmtList',   function() { _execFmt('insertUnorderedList'); });
     _bindFmt('diaryFmtHR', function() {
-      document.execCommand('insertHTML', false, '<hr style="border:none;border-top:1.5px solid var(--border);margin:12px 0;display:block;">');
-      if(editor) editor.focus();
+      _restoreSelection();
+      document.execCommand('insertHTML', false,
+        '<hr style="border:none;border-top:1.5px solid var(--border);margin:12px 0;display:block;"><p></p>');
+      _saveSelection();
     });
 
     // Couleur picker toggle
     var colorPicker = document.getElementById('diaryColorPicker');
     _bindFmt('diaryFmtColor', function() {
-      if (colorPicker) colorPicker.style.display = colorPicker.style.display === 'none' ? 'flex' : 'none';
-      var emojiPicker = document.getElementById('diaryEmojiPicker');
-      if (emojiPicker) emojiPicker.style.display = 'none';
+      if (!colorPicker) return;
+      colorPicker.style.display = colorPicker.style.display === 'none' ? 'flex' : 'none';
+      var ep = document.getElementById('diaryEmojiPicker');
+      if (ep) ep.style.display = 'none';
     });
     if (colorPicker) colorPicker.querySelectorAll('[data-diary-color]').forEach(function(btn) {
-      btn.addEventListener('mousedown', function(e) {
-        e.preventDefault();
-        var col = this.getAttribute('data-diary-color');
-        document.execCommand('foreColor', false, col);
+      function applyColor() {
+        _restoreSelection();
+        document.execCommand('foreColor', false, btn.getAttribute('data-diary-color'));
         colorPicker.style.display = 'none';
-        if (editor) editor.focus();
-      });
-      btn.addEventListener('touchstart', function(e) {
-        e.preventDefault();
-        var col = this.getAttribute('data-diary-color');
-        document.execCommand('foreColor', false, col);
-        colorPicker.style.display = 'none';
-        if (editor) editor.focus();
-      }, { passive: false });
+        _saveSelection();
+      }
+      btn.addEventListener('mousedown', function(e) { e.preventDefault(); applyColor(); });
+      btn.addEventListener('touchend',  function(e) { e.preventDefault(); applyColor(); }, { passive: false });
     });
 
     // Emoji picker toggle
     var emojiPicker = document.getElementById('diaryEmojiPicker');
     _bindFmt('diaryFmtEmoji', function() {
-      if (emojiPicker) emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'flex' : 'none';
+      if (!emojiPicker) return;
+      emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'flex' : 'none';
       if (colorPicker) colorPicker.style.display = 'none';
     });
     if (emojiPicker) emojiPicker.querySelectorAll('[data-diary-emoji]').forEach(function(btn) {
-      btn.addEventListener('mousedown', function(e) {
-        e.preventDefault();
-        var emoji = this.getAttribute('data-diary-emoji');
-        document.execCommand('insertHTML', false, emoji);
+      function insertEmoji() {
+        _restoreSelection();
+        document.execCommand('insertHTML', false, btn.getAttribute('data-diary-emoji'));
         emojiPicker.style.display = 'none';
-        if (editor) editor.focus();
-      });
-      btn.addEventListener('touchstart', function(e) {
-        e.preventDefault();
-        var emoji = this.getAttribute('data-diary-emoji');
-        document.execCommand('insertHTML', false, emoji);
-        emojiPicker.style.display = 'none';
-        if (editor) editor.focus();
-      }, { passive: false });
+        _saveSelection();
+      }
+      btn.addEventListener('mousedown', function(e) { e.preventDefault(); insertEmoji(); });
+      btn.addEventListener('touchend',  function(e) { e.preventDefault(); insertEmoji(); }, { passive: false });
     });
 
     // Insertion image dans le texte — click normal (ouvre file picker)
@@ -1111,10 +1108,35 @@
     _injectEditorCSS();
   }
 
-  function _execFmt(cmd, val) {
+  // Sauvegarde/restauration de sélection pour la toolbar
+  var _savedRange = null;
+
+  function _saveSelection() {
+    var sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      _savedRange = sel.getRangeAt(0).cloneRange();
+    }
+  }
+
+  function _restoreSelection() {
     var editor = document.getElementById('diaryEditor');
-    if (editor) editor.focus();
+    if (!editor) return false;
+    editor.focus();
+    if (_savedRange) {
+      var sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(_savedRange);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function _execFmt(cmd, val) {
+    _restoreSelection();
     document.execCommand(cmd, false, val || null);
+    _saveSelection();
   }
 
   function _renderEditorImages() {
