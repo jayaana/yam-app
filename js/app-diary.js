@@ -1101,6 +1101,39 @@
       });
       editor.addEventListener('mouseup', function() { _saveSelection(); });
       editor.addEventListener('touchend', function() { setTimeout(_saveSelection, 50); });
+
+      // MutationObserver : détecter tout changement de style inline (foreColor)
+      // pour mettre à jour la couleur des puces en temps réel comme Word
+      var _listColorObserver = new MutationObserver(function(mutations) {
+        var needsFix = false;
+        mutations.forEach(function(m) {
+          // Changement d'attribut style sur un nœud dans un li
+          if (m.type === 'attributes' && m.attributeName === 'style') {
+            var target = m.target;
+            if (target && target.closest && target.closest('li')) needsFix = true;
+          }
+          // Ajout/suppression de nœuds (insertHTML, foreColor créent des <span>)
+          if (m.type === 'childList') {
+            var check = function(nodes) {
+              nodes.forEach(function(node) {
+                if (node.nodeType === 1 && node.closest && node.closest('li')) needsFix = true;
+              });
+            };
+            check(m.addedNodes);
+          }
+        });
+        if (needsFix) {
+          // Debounce : éviter les appels répétés sur une rafale de mutations
+          clearTimeout(editor._fixColorsTimer);
+          editor._fixColorsTimer = setTimeout(function() { _fixListColors(); }, 30);
+        }
+      });
+      _listColorObserver.observe(editor, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ['style'],
+      });
     }
 
     // _bindFmt : mousedown (desktop) + touchend (iOS) sur les boutons toolbar
@@ -1173,47 +1206,86 @@
         if (!sel || sel.rangeCount === 0) { listMenu.style.display = 'none'; return; }
 
         var range = sel.getRangeAt(0);
+        var editor = document.getElementById('diaryEditor');
 
-        // ── Extraire le contenu HTML sélectionné ──
+        // ── Détecter si la sélection couvre une liste existante ──
+        // Si le commonAncestorContainer est dans un <ul> ou contient des <ul>
+        var ancestor = range.commonAncestorContainer;
+        var anchorEl = ancestor.nodeType === 3 ? ancestor.parentElement : ancestor;
+
+        // Trouver tous les <ul> dans la sélection (ou ancêtres)
+        var existingUl = anchorEl.closest ? anchorEl.closest('ul') : null;
+        if (!existingUl) {
+          // Chercher des <ul> dans le fragment sélectionné
+          var fragCheck = range.cloneContents();
+          var fragDiv = document.createElement('div');
+          fragDiv.appendChild(fragCheck);
+          existingUl = fragDiv.querySelector('ul');
+        }
+
+        if (existingUl && editor && editor.contains(anchorEl)) {
+          // ── MODE REMPLACEMENT : changer le type de la liste existante ──
+          // Trouver toutes les <ul> dans/autour de la sélection dans l'éditeur
+          var ulsToConvert = [];
+
+          // Parcourir toutes les <ul> de l'éditeur, prendre celles dans la sélection
+          editor.querySelectorAll('ul').forEach(function(ul) {
+            if (range.intersectsNode ? range.intersectsNode(ul) :
+                (range.compareBoundaryPoints(Range.END_TO_START, range) <= 0)) {
+              ulsToConvert.push(ul);
+            }
+          });
+
+          // Fallback : si aucun trouvé via intersectsNode, prendre l'ancêtre ul
+          if (ulsToConvert.length === 0 && anchorEl.closest && anchorEl.closest('ul')) {
+            ulsToConvert.push(anchorEl.closest('ul'));
+          }
+
+          ulsToConvert.forEach(function(ul) {
+            // Changer la classe pour changer le type
+            ul.className = '';
+            if (type === 'dash')   ul.className = 'diary-list-dash';
+            if (type === 'square') ul.className = 'diary-list-square';
+            // disc : pas de classe (style natif)
+          });
+
+          listMenu.style.display = 'none';
+          _saveSelection();
+          setTimeout(function() { _fixListColors(); }, 10);
+          return;
+        }
+
+        // ── MODE CRÉATION : convertir la sélection en liste ──
+        // Extraire le contenu HTML sélectionné
         var frag = range.cloneContents();
         var tmp  = document.createElement('div');
         tmp.appendChild(frag);
         var selHTML = tmp.innerHTML;
 
-        // ── Découper en lignes : <br>, <div>, <p>, \n ──
-        // On normalise d'abord les blocs en <br>
+        // Normaliser les blocs en <br>
         selHTML = selHTML
-          .replace(/<\/?(p|div|h[1-6])[^>]*>/gi, '<br>')  // blocs → <br>
-          .replace(/(<br\s*\/?>)+/gi, '<br>')             // br multiples → 1 seul
-          .replace(/^<br>|<br>$/gi, '');                   // trim <br> début/fin
+          .replace(/<\/?(p|div|h[1-6])[^>]*>/gi, '<br>')
+          .replace(/(<br\s*\/?>)+/gi, '<br>')
+          .replace(/^<br>|<br>$/gi, '');
 
         var lines = selHTML.split(/<br\s*\/?>/i);
-        // Filtrer les lignes vides
         lines = lines.filter(function(l) { return l.replace(/<[^>]+>/g,'').trim() !== ''; });
         if (lines.length === 0) lines = [''];
 
-        // ── Construire les <li> ──
-        // Pour chaque ligne, on wrap le contenu dans un span sans couleur explicite
-        // Le <li> lui-même portera la couleur via CSS color:inherit
         var liHTML = lines.map(function(line) {
-          var lineContent = line.trim() || '&#8203;';
-          return '<li>' + lineContent + '</li>';
+          return '<li>' + (line.trim() || '&#8203;') + '</li>';
         }).join('');
 
-        // ── Construire la liste ──
         var cls = '';
         if (type === 'dash')   cls = ' class="diary-list-dash"';
         if (type === 'square') cls = ' class="diary-list-square"';
         var listHTML = '<ul' + cls + '>' + liHTML + '</ul>';
 
-        // ── Remplacer la sélection par la liste ──
         range.deleteContents();
-        // Insérer via execCommand pour compatibilité undo/redo
         document.execCommand('insertHTML', false, listHTML + '<p>&#8203;</p>');
 
         listMenu.style.display = 'none';
         _saveSelection();
-        // Fixer les couleurs des puces après insertion
         setTimeout(function() { _fixListColors(); }, 10);
       }
       btn.addEventListener('mousedown', function(e) { e.preventDefault(); insertList(); });
@@ -1271,14 +1343,17 @@
         var col = btn.getAttribute('data-diary-color');
         _restoreSelection();
         if (col === 'reset') {
-          // Supprimer la couleur : removeFormat enlève foreColor
           document.execCommand('removeFormat', false, null);
         } else {
           document.execCommand('foreColor', false, col);
         }
         colorPicker.style.display = 'none';
         _saveSelection();
-        setTimeout(_updateActiveColor, 50);
+        // Mettre à jour couleur des puces immédiatement
+        setTimeout(function() {
+          _fixListColors();
+          _updateActiveColor();
+        }, 10);
       }
       btn.addEventListener('mousedown', function(e) { e.preventDefault(); applyColor(); });
       btn.addEventListener('touchend',  function(e) { e.preventDefault(); applyColor(); }, { passive: false });
