@@ -771,7 +771,7 @@
         'Les modifications sur Canva se mettront à jour automatiquement ici.' +
       '</div>' +
       '<div style="display:flex;gap:8px;">' +
-        '<input id="diaryCanvaInput" type="url" placeholder="https://www.canva.com/design/…/view" ' +
+        '<input id="diaryCanvaInput" type="url" placeholder="https://www.canva.com/design/… ou canva.link/…" ' +
           'style="flex:1;padding:10px 14px;border-radius:12px;border:1.5px solid var(--border);' +
           'background:var(--s1);color:var(--text);font-size:13px;font-family:DM Sans,sans-serif;outline:none;" ' +
           'value="' + escHtml(page ? (page.canva_url || '') : '') + '">' +
@@ -922,58 +922,97 @@
     // ── Toolbar formatage ──
     var editor = document.getElementById('diaryEditor');
 
-    document.getElementById('diaryFmtH2')    && document.getElementById('diaryFmtH2').addEventListener('click', function() {
-      _execFmt('formatBlock', '<h2>');
+    // ── IMPORTANT : mousedown + preventDefault pour conserver la sélection dans l'éditeur ──
+    // Un click sur un bouton fait perdre le focus/sélection avant execCommand → formatage ignoré
+    // mousedown + e.preventDefault() empêche la perte de focus
+    function _bindFmt(id, fn) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('mousedown', function(e) { e.preventDefault(); fn.call(this, e); });
+      // iOS : touchstart car mousedown parfois ignoré
+      el.addEventListener('touchstart', function(e) { e.preventDefault(); fn.call(this, e); }, { passive: false });
+    }
+
+    _bindFmt('diaryFmtH2', function() {
+      // formatBlock h2 : basculer entre h2 et p
+      var sel = window.getSelection();
+      if (sel && sel.rangeCount) {
+        var node = sel.getRangeAt(0).commonAncestorContainer;
+        var block = node.nodeType === 1 ? node : node.parentElement;
+        var isH2 = block && block.closest && block.closest('h2');
+        document.execCommand('formatBlock', false, isH2 ? 'p' : 'h2');
+      } else {
+        document.execCommand('formatBlock', false, 'h2');
+      }
+      if (editor) editor.focus();
     });
-    document.getElementById('diaryFmtBold')  && document.getElementById('diaryFmtBold').addEventListener('click', function() {
-      _execFmt('bold');
+    _bindFmt('diaryFmtBold',   function() { document.execCommand('bold',      false, null); if(editor) editor.focus(); });
+    _bindFmt('diaryFmtItalic', function() { document.execCommand('italic',    false, null); if(editor) editor.focus(); });
+    _bindFmt('diaryFmtUnder',  function() { document.execCommand('underline', false, null); if(editor) editor.focus(); });
+    _bindFmt('diaryFmtCenter', function() {
+      // Basculer center / left
+      document.execCommand('justifyCenter', false, null);
+      if(editor) editor.focus();
     });
-    document.getElementById('diaryFmtItalic')&& document.getElementById('diaryFmtItalic').addEventListener('click', function() {
-      _execFmt('italic');
+    _bindFmt('diaryFmtList', function() {
+      document.execCommand('insertUnorderedList', false, null);
+      if(editor) editor.focus();
     });
-    document.getElementById('diaryFmtUnder') && document.getElementById('diaryFmtUnder').addEventListener('click', function() {
-      _execFmt('underline');
-    });
-    document.getElementById('diaryFmtCenter')&& document.getElementById('diaryFmtCenter').addEventListener('click', function() {
-      _execFmt('justifyCenter');
-    });
-    document.getElementById('diaryFmtList') && document.getElementById('diaryFmtList').addEventListener('click', function() {
-      _execFmt('insertUnorderedList');
-    });
-    document.getElementById('diaryFmtHR') && document.getElementById('diaryFmtHR').addEventListener('click', function() {
-      if (editor) { editor.focus(); document.execCommand('insertHTML', false, '<hr style="border:none;border-top:1.5px solid var(--border);margin:12px 0;">'); }
+    _bindFmt('diaryFmtHR', function() {
+      document.execCommand('insertHTML', false, '<hr style="border:none;border-top:1.5px solid var(--border);margin:12px 0;display:block;">');
+      if(editor) editor.focus();
     });
 
     // Couleur picker toggle
     var colorPicker = document.getElementById('diaryColorPicker');
-    document.getElementById('diaryFmtColor') && document.getElementById('diaryFmtColor').addEventListener('click', function() {
+    _bindFmt('diaryFmtColor', function() {
       if (colorPicker) colorPicker.style.display = colorPicker.style.display === 'none' ? 'flex' : 'none';
       var emojiPicker = document.getElementById('diaryEmojiPicker');
       if (emojiPicker) emojiPicker.style.display = 'none';
     });
     if (colorPicker) colorPicker.querySelectorAll('[data-diary-color]').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        _execFmt('foreColor', this.getAttribute('data-diary-color'));
+      btn.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        var col = this.getAttribute('data-diary-color');
+        document.execCommand('foreColor', false, col);
         colorPicker.style.display = 'none';
         if (editor) editor.focus();
       });
+      btn.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        var col = this.getAttribute('data-diary-color');
+        document.execCommand('foreColor', false, col);
+        colorPicker.style.display = 'none';
+        if (editor) editor.focus();
+      }, { passive: false });
     });
 
     // Emoji picker toggle
     var emojiPicker = document.getElementById('diaryEmojiPicker');
-    document.getElementById('diaryFmtEmoji') && document.getElementById('diaryFmtEmoji').addEventListener('click', function() {
+    _bindFmt('diaryFmtEmoji', function() {
       if (emojiPicker) emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'flex' : 'none';
       if (colorPicker) colorPicker.style.display = 'none';
     });
     if (emojiPicker) emojiPicker.querySelectorAll('[data-diary-emoji]').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        if (editor) { editor.focus(); document.execCommand('insertHTML', false, this.getAttribute('data-diary-emoji')); }
+      btn.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        var emoji = this.getAttribute('data-diary-emoji');
+        document.execCommand('insertHTML', false, emoji);
         emojiPicker.style.display = 'none';
+        if (editor) editor.focus();
       });
+      btn.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        var emoji = this.getAttribute('data-diary-emoji');
+        document.execCommand('insertHTML', false, emoji);
+        emojiPicker.style.display = 'none';
+        if (editor) editor.focus();
+      }, { passive: false });
     });
 
-    // Insertion image dans le texte
-    document.getElementById('diaryFmtImg') && document.getElementById('diaryFmtImg').addEventListener('click', function() {
+    // Insertion image dans le texte — click normal (ouvre file picker)
+    document.getElementById('diaryFmtImg') && document.getElementById('diaryFmtImg').addEventListener('mousedown', function(e) {
+      e.preventDefault();
       var fi = document.getElementById('diaryFileInput');
       if (fi) fi.click();
     });
@@ -1027,7 +1066,7 @@
         if (!url) { if (fb) fb.textContent = '⚠️ Colle un lien Canva'; return; }
         var valid = _validateCanvaUrl(url);
         if (!valid) {
-          if (fb) { fb.textContent = '❌ Lien invalide. Exemple: https://www.canva.com/design/…/view'; fb.style.color = '#ff3b30'; }
+          if (fb) { fb.textContent = '❌ Lien invalide. Utilise un lien canva.com/design/… ou canva.link/…'; fb.style.color = '#ff3b30'; }
           return;
         }
         _canvaValid = true;
@@ -1259,9 +1298,12 @@
 
     var bgImageUrl = (_currentPage && _currentPage.bg_image_url) || null;
 
+    // Garder l'auteur original si co-écriture (page appartenant au partenaire)
+    var originalAuthor = (_currentPage && _currentPage.author_role) ? _currentPage.author_role : u.role;
+
     var payload = {
       couple_id:       u.couple_id,
-      author_role:     u.role,
+      author_role:     originalAuthor,
       title:           title.substring(0, 100),
       content:         content.substring(0, 50000),
       mood:            mood || null,
@@ -1395,29 +1437,44 @@
   }
 
   // Valider URL Canva
+  // Valider URL Canva — accepte www.canva.com/design/... ET canva.link/... (raccourcis)
   function _validateCanvaUrl(url) {
     if (!url) return false;
     try {
       var u = new URL(url);
-      return u.hostname === 'www.canva.com' && u.pathname.includes('/design/');
+      // Lien complet Canva
+      if ((u.hostname === 'www.canva.com' || u.hostname === 'canva.com') &&
+          u.pathname.includes('/design/')) return true;
+      // Lien court canva.link
+      if (u.hostname === 'canva.link') return true;
+      // Design ID direct
+      if (u.hostname === 'www.canva.com') return true;
+      return false;
     } catch(e) { return false; }
   }
 
-  // Sanitize URL Canva pour iframe
+  // Sanitize URL Canva pour iframe embed
+  // canva.link ne peut pas être embedé directement — on l'utilise tel quel en ?embed
   function _sanitizeCanvaUrl(url) {
-    if (!_validateCanvaUrl(url)) return '';
-    // Forcer le paramètre embed
+    if (!url) return '';
     try {
       var u = new URL(url);
+      // Lien court canva.link → on l'embède tel quel avec ?embed
+      if (u.hostname === 'canva.link') {
+        u.searchParams.set('embed', '');
+        return u.toString();
+      }
+      // Lien complet canva.com
       if (!u.pathname.includes('/view')) {
-        u.pathname = u.pathname.replace(/\/?$/, '/view');
+        // Chercher le segment /design/ID et ajouter /view
+        u.pathname = u.pathname.replace(/(\/design\/[^/]+)(\/.+)?$/, '$1/view');
       }
       u.searchParams.set('embed', '');
       return u.toString();
     } catch(e) { return ''; }
   }
 
-  // Extraire l'ID design Canva
+  // Extraire l'ID design Canva (fonctionne sur lien complet uniquement)
   function _extractCanvaDesignId(url) {
     try {
       var match = url.match(/canva\.com\/design\/([A-Za-z0-9_-]+)/);
