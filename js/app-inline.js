@@ -579,6 +579,9 @@ document.addEventListener('DOMContentLoaded', function(){
   _on('quizBackBtn',    'click', function(){ window.closeQuiz && window.closeQuiz(); });
   _on('quizRestartBtn', 'click', function(){ window.startQuiz && window.startQuiz(); });
 
+  // ── My Diary ──
+  _on('homeDiaryCard', 'click', function(){ window.diaryOpen && window.diaryOpen(); });
+
   // ── Recherche ──
   _on('searchOverlay', 'click', function(e){ if(e.target === document.getElementById('searchOverlay')) window.closeSearch && window.closeSearch(); });
   _on('searchInput',   'input', function(){ window.filterSongs && window.filterSongs(this.value); });
