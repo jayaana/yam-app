@@ -1047,34 +1047,48 @@
     function _fixListColors(container) {
     if (!container) container = document.getElementById('diaryEditor');
     if (!container) return;
-    container.querySelectorAll('li').forEach(function(li) {
-      // Trouver la couleur du premier nœud texte non vide
-      var firstColor = '';
-      function findColor(node) {
-        if (firstColor) return;
-        if (node.nodeType === 3 && node.textContent.trim()) {
-          // Nœud texte direct sur le li — prendre la couleur du li ou parent
-          var p = node.parentElement;
-          if (p && p !== li) {
-            var c = p.style.color || window.getComputedStyle(p).color;
-            if (c && c !== 'rgb(0, 0, 0)' && c !== '') firstColor = c;
-          }
-          return;
-        }
-        if (node.nodeType === 1) {
-          var c = node.style.color;
-          if (c) { firstColor = c; return; }
-          Array.prototype.forEach.call(node.childNodes, findColor);
-        }
+
+    // RÈGLE : la puce prend la couleur du li SEULEMENT si le premier enfant
+    // direct est un <span style="color:...">
+    // On NE SET JAMAIS li.style.color — cela propage la couleur à tout le texte
+    // On utilise data-puce-id + règle CSS injectée pour cibler uniquement ::before/::marker
+
+    var rules = [];
+
+    container.querySelectorAll('li').forEach(function(li, idx) {
+      // Toujours vider li.style.color (nettoyage de l'ancienne logique)
+      if (li.style.color) li.style.color = '';
+
+      var firstChild = li.firstChild;
+      var bulletColor = '';
+
+      // Seulement si le PREMIER enfant direct est un SPAN coloré
+      if (firstChild &&
+          firstChild.nodeType === 1 &&
+          firstChild.tagName === 'SPAN' &&
+          firstChild.style && firstChild.style.color) {
+        bulletColor = firstChild.style.color;
       }
-      Array.prototype.forEach.call(li.childNodes, findColor);
-      // Appliquer la couleur inline sur le li pour que ::before / ::marker en héritent
-      if (firstColor) {
-        li.style.color = firstColor;
+
+      if (bulletColor) {
+        var uid = 'puce-' + idx + '-' + Date.now();
+        li.setAttribute('data-puce-id', uid);
+        rules.push(
+          '[data-puce-id="' + uid + '"]::before,' +
+          '[data-puce-id="' + uid + '"]::marker{color:' + bulletColor + ' !important;}'
+        );
       } else {
-        li.style.color = ''; // reset → hérite de l'éditeur (var(--text))
+        li.removeAttribute('data-puce-id');
       }
     });
+
+    var styleEl = document.getElementById('diary-puce-colors');
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = 'diary-puce-colors';
+      document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = rules.join('\n');
   }
 
   // ── Palette emoji couverture complète (desktop + iOS) ──
