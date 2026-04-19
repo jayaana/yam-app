@@ -19,7 +19,8 @@
   var COMMENT_TBL  = 'diary_comments';
   var STORAGE_BASE = SB_URL + '/storage/v1/object/images/';
   var POLL_MS      = 6000;   // fallback poll
-  var MAX_IMG_BYTES = 1200 * 1024; // 1.2 Mo
+  var MAX_IMG_BYTES    = 400 * 1024; // 400 Ko — images éditeur (= slots Elle/Lui dans app-nous)
+  var MAX_BG_IMG_BYTES = 600 * 1024; // 600 Ko — image de fond (= souvenirs dans app-nous)
 
   // Palettes de couvertures
   var COVER_PALETTES = [
@@ -1887,32 +1888,61 @@
   }
 
   // ─── 10. UPLOAD IMAGES ────────────────────────────────────────────
+  // Compression — délègue à window.compressImage (Promise, app-account.js)
+  // Fallback interne identique : qualités [0.82, 0.65, 0.45], URL.createObjectURL
   function _compressImage(file, maxW, maxBytes, cb) {
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      var img = new Image();
-      img.onload = function() {
-        var canvas = document.createElement('canvas');
-        var scale  = Math.min(1, maxW / img.width);
-        canvas.width  = Math.round(img.width  * scale);
-        canvas.height = Math.round(img.height * scale);
-        var ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    var isHeic = file.type === 'image/heic' || file.type === 'image/heif'
+              || (file.name && (file.name.toLowerCase().endsWith('.heic')
+                             || file.name.toLowerCase().endsWith('.heif')));
+    if (isHeic) {
+      showToast('Format HEIC non supporté — convertis en JPG dans Photos puis réessaie', 'error', 4000);
+      cb(null); return;
+    }
+    if (typeof window.compressImage === 'function') {
+      window.compressImage(file, maxW, maxBytes)
+        .then(function(blob) { cb(blob); })
+        .catch(function(err) {
+          if (err && err.message === 'HEIC_NOT_SUPPORTED') {
+            showToast('Format HEIC non supporté — convertis en JPG', 'error', 4000);
+            cb(null);
+          } else {
+            _compressImageFallback(file, maxW, maxBytes, cb);
+          }
+        });
+      return;
+    }
+    _compressImageFallback(file, maxW, maxBytes, cb);
+  }
 
-        function tryQuality(q) {
-          canvas.toBlob(function(blob) {
-            if (!blob) { cb(null); return; }
-            if (blob.size <= maxBytes || q <= 0.35) { cb(blob); }
-            else { tryQuality(Math.round((q - 0.15) * 100) / 100); }
-          }, 'image/jpeg', q);
+  // Fallback — copie exacte de window.compressImage (app-account.js) en callback
+  function _compressImageFallback(file, maxW, maxBytes, cb) {
+    var img = new Image();
+    var objectUrl = URL.createObjectURL(file);
+    img.onload = function() {
+      URL.revokeObjectURL(objectUrl);
+      var w = img.naturalWidth, h = img.naturalHeight;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      var canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      var ctx = canvas.getContext('2d');
+      if (!ctx) { cb(null); return; }
+      ctx.drawImage(img, 0, 0, w, h);
+      var qualities = [0.82, 0.65, 0.45];
+      var idx = 0;
+      function tryQ() {
+        if (idx >= qualities.length) {
+          canvas.toBlob(function(b) { cb(b || null); }, 'image/jpeg', 0.45); return;
         }
-        tryQuality(0.82);
-      };
-      img.onerror = function() { cb(null); };
-      img.src = e.target.result;
+        var q = qualities[idx++];
+        canvas.toBlob(function(b) {
+          if (!b) { cb(null); return; }
+          if (!maxBytes || b.size <= maxBytes) { cb(b); } else { tryQ(); }
+        }, 'image/jpeg', q);
+      }
+      tryQ();
     };
-    reader.onerror = function() { cb(null); };
-    reader.readAsDataURL(file);
+    img.onerror = function() { URL.revokeObjectURL(objectUrl); cb(null); };
+    img.src = objectUrl;
   }
 
   function _uploadToStorage(blob, path, cb) {
@@ -1970,7 +2000,7 @@
     if (!u) return;
     showToast('Upload…', '', 1500);
 
-    _compressImage(file, 1400, MAX_IMG_BYTES, function(blob) {
+    _compressImage(file, 1400, MAX_BG_IMG_BYTES, function(blob) {
       if (!blob) { showToast('Erreur compression', 'error'); return; }
       var path = 'diary-bg/' + u.couple_id + '/' + Date.now() + '.jpg';
       _uploadToStorage(blob, path, function(url) {
