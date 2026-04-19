@@ -61,6 +61,8 @@
     if (!_view) { console.error('[Diary] #diaryView introuvable'); return; }
     // Injecter le CSS dès l'init — nécessaire pour le mode lecture
     _injectEditorCSS();
+    // Reset l'état visuel de la toolbar à l'ouverture
+    setTimeout(function() { if (typeof _updateToolbarState === 'function') _updateToolbarState(); }, 100);
 
     document.addEventListener('yam:session_ready', function () {
       setTimeout(_initRT, 1200);
@@ -1223,10 +1225,43 @@
     // Sur iOS Safari, on ne peut pas empêcher la perte de focus avec preventDefault.
     // La solution fiable : écouter blur/selectionchange sur l'éditeur pour mémoriser
     // le Range, puis le restaurer juste avant d'appeler execCommand.
+    // Mettre à jour l'état visuel des boutons de la toolbar
+    function _updateToolbarState() {
+      var states = {
+        'diaryFmtBold':   document.queryCommandState('bold'),
+        'diaryFmtItalic': document.queryCommandState('italic'),
+        'diaryFmtUnder':  document.queryCommandState('underline'),
+        'diaryFmtCenter': document.queryCommandState('justifyCenter'),
+      };
+
+      // H2 : vérifier si on est dans un h2
+      var sel = window.getSelection();
+      var node = sel && sel.anchorNode;
+      var el = node ? (node.nodeType === 3 ? node.parentElement : node) : null;
+      states['diaryFmtH2'] = !!(el && el.closest && el.closest('h2'));
+
+      Object.keys(states).forEach(function(id) {
+        var btn = document.getElementById(id);
+        if (!btn) return;
+        if (states[id]) {
+          // Actif : fond accent + texte blanc
+          btn.style.background = 'var(--accent)';
+          btn.style.color      = '#fff';
+          btn.style.borderColor = 'var(--accent)';
+        } else {
+          // Inactif : style normal
+          btn.style.background  = 'var(--s1)';
+          btn.style.color       = 'var(--text)';
+          btn.style.borderColor = 'var(--border)';
+        }
+      });
+    }
+
     if (editor) {
       editor.addEventListener('blur', function() { _saveSelection(); });
       editor.addEventListener('keyup', function(e) {
         _saveSelection();
+        _updateToolbarState();
         // Mettre à jour les couleurs des puces si on tape dans une liste
         var sel = window.getSelection();
         if (sel && sel.anchorNode) {
@@ -1237,8 +1272,14 @@
           }
         }
       });
-      editor.addEventListener('mouseup', function() { _saveSelection(); });
-      editor.addEventListener('touchend', function() { setTimeout(_saveSelection, 50); });
+      editor.addEventListener('mouseup', function() { _saveSelection(); _updateToolbarState(); });
+      editor.addEventListener('touchend', function() { setTimeout(function() { _saveSelection(); _updateToolbarState(); }, 50); });
+      // Aussi sur selectionchange pour capturer les clics sans frappe
+      document.addEventListener('selectionchange', function() {
+        if (document.activeElement === editor) {
+          _updateToolbarState();
+        }
+      });
 
       // MutationObserver : détecter tout changement de style inline (foreColor)
       // pour mettre à jour la couleur des puces en temps réel comme Word
