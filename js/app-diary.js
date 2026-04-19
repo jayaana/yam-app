@@ -925,77 +925,61 @@
   // Fixer la couleur des puces de liste = couleur du premier texte dans le <li>
   // Applique une couleur uniquement sur les nœuds texte de la sélection
   // sans toucher au reste du <li> ou du paragraphe
+  // Applique une couleur sur la sélection courante uniquement
+  // Utilise insertHTML sur le contenu sélectionné — robuste sur tous les navigateurs
   function _applyColorToRange(range, color) {
-    // Extraire le contenu sélectionné dans un fragment
-    var frag = range.extractContents();
+    if (range.collapsed) return;
 
-    // Parcourir tous les nœuds texte du fragment et les envelopper
-    function wrapTextNodes(node) {
-      if (node.nodeType === 3) {
-        // Nœud texte → envelopper dans un span
-        if (node.textContent.length > 0) {
-          var span = document.createElement('span');
-          span.style.color = color;
-          var textNode = node.cloneNode(true);
-          span.appendChild(textNode);
-          node.parentNode.replaceChild(span, node);
-        }
-      } else if (node.nodeType === 1) {
-        // Élément : si c'est un span avec couleur, changer sa couleur
-        if (node.tagName === 'SPAN' && node.style.color) {
-          node.style.color = color;
-          return; // ne pas descendre si le span entier est coloré
-        }
-        // Sinon descendre dans les enfants (copie pour éviter mutation pendant itération)
-        var children = Array.prototype.slice.call(node.childNodes);
-        children.forEach(wrapTextNodes);
-      }
-    }
-    wrapTextNodes(frag);
+    // Récupérer le HTML de la sélection
+    var tmp = document.createElement('div');
+    tmp.appendChild(range.cloneContents());
+    var selHTML = tmp.innerHTML;
 
-    // Réinsérer le fragment modifié à la position originale
-    range.insertNode(frag);
+    // Envelopper dans un span de couleur
+    // Si la sélection contient déjà des spans colorés, on remplace leurs couleurs
+    var wrapped = selHTML
+      // Remplacer les spans de couleur existants
+      .replace(/(<span[^>]*?)style="([^"]*?)color:[^;"]+(;?)([^"]*?)"([^>]*?>)/gi,
+        function(m, pre, before, semi, after, end) {
+          var newStyle = (before + 'color:' + color + (semi||';') + after).replace(/;+/g,';').replace(/^;|;$/g,'');
+          return pre + 'style="' + newStyle + '"' + end;
+        })
+      // Envelopper les nœuds texte nus (non encore dans un span)
+      ;
 
-    // Nettoyer : fusionner les spans de même couleur adjacents
-    _mergeAdjacentColorSpans(range.startContainer);
+    // Approche simple et fiable : wrapper toute la sélection dans un span
+    // puis supprimer les spans imbriqués redondants
+    var finalHTML = '<span style="color:' + color + ';">' + selHTML + '</span>';
+
+    // Supprimer la sélection et insérer le HTML coloré
+    range.deleteContents();
+    document.execCommand('insertHTML', false, finalHTML);
   }
 
-  // Supprime les couleurs dans une sélection (reset)
+  // Reset couleur sur la sélection
   function _removeColorInRange(range) {
-    var frag = range.extractContents();
-    function stripColor(node) {
-      if (node.nodeType === 1) {
-        node.style.color = '';
-        if (node.tagName === 'SPAN' && node.style.cssText.trim() === '') {
-          // Span vide de style → unwrap
-          var parent = node.parentNode;
-          if (parent) {
-            while (node.firstChild) parent.insertBefore(node.firstChild, node);
-            parent.removeChild(node);
-          }
-          return;
-        }
-        Array.prototype.slice.call(node.childNodes).forEach(stripColor);
-      }
-    }
-    Array.prototype.slice.call(frag.childNodes).forEach(stripColor);
-    range.insertNode(frag);
+    if (range.collapsed) return;
+    var tmp = document.createElement('div');
+    tmp.appendChild(range.cloneContents());
+    // Supprimer tous les attributs color dans les styles
+    var stripped = tmp.innerHTML.replace(/color:[^;}"]+;?/gi, '');
+    // Retirer les spans devenus vides de style
+    stripped = stripped.replace(/<span\s+style="\s*">/gi, '<span>');
+    stripped = stripped.replace(/<span>/gi, '').replace(/<\/span>/gi, '');
+    range.deleteContents();
+    document.execCommand('insertHTML', false, stripped);
   }
 
-  // Fusionne les spans de même couleur adjacents pour garder le HTML propre
-  function _mergeAdjacentColorSpans(node) {
-    var parent = node && node.nodeType === 3 ? node.parentElement : node;
-    if (!parent) return;
-    // Remonter au li ou au p
-    var block = parent.closest ? (parent.closest('li') || parent.closest('p') || parent) : parent;
-    if (!block) return;
-    var spans = block.querySelectorAll('span[style*="color"]');
+  // Fusionne les spans de même couleur adjacents (nettoyage cosmétique)
+  function _mergeAdjacentColorSpans(container) {
+    if (!container) return;
+    var spans = container.querySelectorAll ? container.querySelectorAll('span[style*="color"]') : [];
     spans.forEach(function(span) {
       var next = span.nextSibling;
       if (next && next.nodeType === 1 && next.tagName === 'SPAN' &&
-          next.style.color === span.style.color) {
+          next.style && next.style.color === span.style.color) {
         while (next.firstChild) span.appendChild(next.firstChild);
-        next.parentNode.removeChild(next);
+        if (next.parentNode) next.parentNode.removeChild(next);
       }
     });
   }
