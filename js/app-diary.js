@@ -942,21 +942,23 @@
       var end    = info.end;   // offset de fin dans ce nœud
 
       // Découper le nœud texte si nécessaire
-      var target = node;
-      if (end < node.length) target = node.splitText(end);   // portion après
-      if (start > 0)         target = node.splitText(start); // portion avant (node devient prefix)
-      // Maintenant target est exactement la portion sélectionnée
+      // Ordre correct : couper la FIN d'abord, puis le DÉBUT
+      // node.splitText(end) → node garde préfixe+sélection, nouveau nœud = suffixe
+      // node.splitText(start) → node = préfixe, target = sélection exacte
+      if (end < node.length) node.splitText(end);
+      var target = (start > 0) ? node.splitText(start) : node;
 
-      // Remonter : si target est déjà dans un span coloré, changer juste sa couleur
+      // Si target est dans un span coloré, changer juste sa couleur
       var parent = target.parentNode;
       if (parent && parent.tagName === 'SPAN' && parent.style.color) {
         parent.style.color = color;
         return;
       }
 
-      // Sinon envelopper dans un nouveau span — manipulation DOM pure
+      // Envelopper — display:inline obligatoire pour éviter tout saut de ligne
       var span = document.createElement('span');
       span.style.color = color;
+      span.style.display = 'inline';
       parent.insertBefore(span, target);
       span.appendChild(target);
     });
@@ -971,9 +973,8 @@
       var start = info.start;
       var end   = info.end;
 
-      var target = node;
-      if (end < node.length) target = node.splitText(end);
-      if (start > 0)         target = node.splitText(start);
+      if (end < node.length) node.splitText(end);
+      var target = (start > 0) ? node.splitText(start) : node;
 
       var parent = target.parentNode;
       if (parent && parent.tagName === 'SPAN' && parent.style.color) {
@@ -2181,6 +2182,7 @@
       '#diaryEditor u, #diaryEditor [style*="underline"] {',
       '  text-decoration-color: currentColor !important;',
       '}',
+      '#diaryEditor span[style*="color"] { display:inline !important; }',
       /* Lecture rich content */
       '.diary-rich-content h2 { font-size:18px;font-weight:700;color:var(--text);margin:14px 0 6px;line-height:1.3; }',
       '.diary-rich-content h3 { font-size:15px;font-weight:700;color:var(--text);margin:10px 0 4px; }',
@@ -2194,25 +2196,25 @@
       '#diaryEditor li, .diary-rich-content li { margin:2px 0;line-height:1.75;color:inherit;padding-left:0.2em; }',
       /* ::marker hérite de color du li (fixé inline par _fixListColors) */
       '#diaryEditor ul li::marker, .diary-rich-content ul li::marker { color:inherit;font-size:1em; }',
-      /* Tirets — position:relative + ::before absolute (robuste au splitText) */
+      /* Tirets — padding-left sur li + ::before absolute — robuste au splitText, pas de flex */
       '#diaryEditor ul.diary-list-dash, .diary-rich-content ul.diary-list-dash {',
-      '  list-style:none;padding-left:1.2em;margin:6px 0;',
+      '  list-style:none !important;padding-left:0 !important;margin:6px 0;',
       '}',
       '#diaryEditor ul.diary-list-dash li, .diary-rich-content ul.diary-list-dash li {',
-      '  position:relative;padding-left:0;',
+      '  display:block !important;position:relative !important;padding-left:1.2em !important;',
       '}',
       '#diaryEditor ul.diary-list-dash li::before, .diary-rich-content ul.diary-list-dash li::before {',
-      '  content:"–";position:absolute;left:-1.1em;top:0;color:inherit;font-weight:700;font-size:1em;line-height:1.75;',
+      '  content:"–" !important;position:absolute !important;left:0 !important;top:0;color:inherit;font-weight:700;font-size:1em;line-height:1.75;',
       '}',
-      /* Carrés — même approche */
+      /* Carrés */
       '#diaryEditor ul.diary-list-square, .diary-rich-content ul.diary-list-square {',
-      '  list-style:none;padding-left:1.2em;margin:6px 0;',
+      '  list-style:none !important;padding-left:0 !important;margin:6px 0;',
       '}',
       '#diaryEditor ul.diary-list-square li, .diary-rich-content ul.diary-list-square li {',
-      '  position:relative;padding-left:0;',
+      '  display:block !important;position:relative !important;padding-left:1.2em !important;',
       '}',
       '#diaryEditor ul.diary-list-square li::before, .diary-rich-content ul.diary-list-square li::before {',
-      '  content:"▪";position:absolute;left:-1.1em;top:0;color:inherit;font-size:0.85em;line-height:1.9;',
+      '  content:"▪" !important;position:absolute !important;left:0 !important;top:0;color:inherit;font-size:0.85em;line-height:1.9;',
       '}',
       '@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }',
     ].join('\n');
