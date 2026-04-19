@@ -650,16 +650,17 @@
         escHtml(p.emoji) +
       '</button>';
     });
-      // Bouton (+) : ouvre le picker emoji couverture
+      // Bouton (+) dans un wrapper relatif pour ancrer le picker en absolu
+      html += '<div id="diaryCoverEmojiWrap" style="position:relative;display:inline-block;">';
       html += '<button id="diaryAddCoverEmoji" ' +
         'style="width:30px;height:30px;border-radius:50%;' +
         'background:var(--s2);border:1.5px dashed var(--accent);' +
         'cursor:pointer;display:flex;align-items:center;justify-content:center;' +
         'font-size:14px;font-weight:800;color:var(--accent);">+</button>';
+      // Picker emoji couverture en position absolue (ne repousse rien)
+      html += _buildCoverEmojiPicker();
+      html += '</div>';
     html += '</div>';
-
-    // Picker emoji couverture (grande palette, hidden par défaut)
-    html += _buildCoverEmojiPicker();
 
     html += '</div>';
 
@@ -882,9 +883,17 @@
       { label: '💪 Vie',      list: ['💪','🙌','👏','🤝','🫂','🧘','🏋️','🎯','📚','📖','✏️','🎓','💡','🔑','🏠','🌺','🌙','☀️','🌊','⚡','🔥','💧'] },
     ];
 
-    var html = '<div id="diaryCoverEmojiPicker" style="display:none;margin-top:6px;' +
+    // position:absolute — flotte par-dessus le layout, ne repousse rien
+    // left:0 pour s'aligner sur le bouton (+), top:100% juste en dessous
+    // max-width + right contraints pour ne jamais déborder à droite
+    // max-height + overflow-y pour ne pas déborder en bas
+    var html = '<div id="diaryCoverEmojiPicker" style="display:none;' +
+      'position:absolute;top:calc(100% + 4px);left:0;' +
+      'width:min(320px,calc(100vw - 32px));' +
+      'max-height:260px;overflow-y:auto;-webkit-overflow-scrolling:touch;' +
+      'z-index:500;' +
       'background:var(--s1);border:1.5px solid var(--border);border-radius:14px;' +
-      'overflow:hidden;box-shadow:var(--sh-md);">';
+      'overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.18);">';
 
     // Onglets catégories
     html += '<div style="display:flex;overflow-x:auto;border-bottom:1px solid var(--border);' +
