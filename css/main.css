@@ -137,6 +137,7 @@ html.light {
   --idea-icon-date:      #e8f8f5;
   --idea-icon-capsule:   #fef5e4;
   --idea-icon-playlist:  #ece8fd;
+  --idea-icon-diary:     #fce4eb;
 }
 
 /* ══ THÈME DARK (sombre) ══ */
@@ -243,6 +244,7 @@ html:not(.light) {
   --idea-icon-date:      rgba(122,168,150,0.20);
   --idea-icon-capsule:   rgba(200,170,128,0.18);
   --idea-icon-playlist:  rgba(144,136,248,0.20);
+  --idea-icon-diary:     rgba(240,102,136,0.18);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html {
