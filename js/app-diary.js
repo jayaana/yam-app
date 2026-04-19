@@ -401,13 +401,16 @@
         '</div>';
     } else {
       // Couverture déco
+      // Si image de fond : afficher UNIQUEMENT l'image (opacité pleine), pas l'emoji
+      // Si pas d'image : afficher l'emoji centré sur fond coloré
       html += '<div style="background:' + escHtml(coverBg) + ';' +
         'min-height:120px;display:flex;align-items:center;justify-content:center;font-size:52px;' +
         'position:relative;overflow:hidden;">' +
-        '<span style="filter:drop-shadow(0 2px 8px rgba(0,0,0,0.15));">' + escHtml(page.cover_emoji || '📖') + '</span>' +
-        // Image de fond si définie
-        (page.bg_image_url ? '<img src="' + escHtml(page.bg_image_url) + '" alt="" ' +
-          'style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.35;">' : '') +
+        (page.bg_image_url
+          ? '<img src="' + escHtml(page.bg_image_url) + '" alt="" ' +
+            'style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:1;">'
+          : '<span style="filter:drop-shadow(0 2px 8px rgba(0,0,0,0.15));z-index:1;">' + escHtml(page.cover_emoji || '📖') + '</span>'
+        ) +
       '</div>' +
       '<div style="padding:18px 18px 4px;">' +
         '<div class="diary-rich-content" style="font-size:15px;line-height:1.8;color:var(--text);">' +
@@ -1224,29 +1227,42 @@
         }
 
         if (existingUl && editor && editor.contains(anchorEl)) {
-          // ── MODE REMPLACEMENT : changer le type de la liste existante ──
-          // Trouver toutes les <ul> dans/autour de la sélection dans l'éditeur
+          // ── MODE REMPLACEMENT / SUPPRESSION ──
+          // Trouver toutes les <ul> dans/autour de la sélection
           var ulsToConvert = [];
-
-          // Parcourir toutes les <ul> de l'éditeur, prendre celles dans la sélection
           editor.querySelectorAll('ul').forEach(function(ul) {
             if (range.intersectsNode ? range.intersectsNode(ul) :
                 (range.compareBoundaryPoints(Range.END_TO_START, range) <= 0)) {
               ulsToConvert.push(ul);
             }
           });
-
-          // Fallback : si aucun trouvé via intersectsNode, prendre l'ancêtre ul
           if (ulsToConvert.length === 0 && anchorEl.closest && anchorEl.closest('ul')) {
             ulsToConvert.push(anchorEl.closest('ul'));
           }
 
           ulsToConvert.forEach(function(ul) {
-            // Changer la classe pour changer le type
-            ul.className = '';
-            if (type === 'dash')   ul.className = 'diary-list-dash';
-            if (type === 'square') ul.className = 'diary-list-square';
-            // disc : pas de classe (style natif)
+            // Détecter le type actuel de ce <ul>
+            var currentType = 'disc';
+            if (ul.classList.contains('diary-list-dash'))   currentType = 'dash';
+            if (ul.classList.contains('diary-list-square')) currentType = 'square';
+
+            if (currentType === type) {
+              // ── MÊME TYPE → Supprimer la liste, garder le texte ──
+              // Extraire les textes des <li> et les remplacer par des <p>
+              var fragment = document.createDocumentFragment();
+              Array.prototype.forEach.call(ul.querySelectorAll('li'), function(li) {
+                var p = document.createElement('p');
+                // Déplacer le contenu du li dans le p
+                while (li.firstChild) p.appendChild(li.firstChild);
+                fragment.appendChild(p);
+              });
+              ul.parentNode.replaceChild(fragment, ul);
+            } else {
+              // ── TYPE DIFFÉRENT → Changer la classe ──
+              ul.className = '';
+              if (type === 'dash')   ul.className = 'diary-list-dash';
+              if (type === 'square') ul.className = 'diary-list-square';
+            }
           });
 
           listMenu.style.display = 'none';
