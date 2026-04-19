@@ -1153,7 +1153,7 @@
       currentPage = pageIdx;
 
       var pageText = pages[pageIdx];
-      content.innerHTML = '<div style="white-space:pre-wrap;">' + escHtml(pageText) + '</div>';
+      content.innerHTML = '<div style="word-wrap:break-word;">' + _bkFormatText(pageText) + '</div>';
 
       // Mise à jour label
       var label = document.getElementById('bkPageLabel');
@@ -1200,6 +1200,39 @@
       _bkCheckExistingSession(book);
     }
     book._ignoreSync = false;
+  }
+
+  // Convertit le texte brut Gutenberg (conventions typographiques) en HTML lisible
+  // Gère : _italique_, *gras*, **gras**, =titre=, --tiret long--, ---tiret---
+  function _bkFormatText(rawText) {
+    // 1. Échapper le HTML pour éviter les injections
+    var escaped = escHtml(rawText);
+
+    // 2. Titres/chapitres : ligne entière en majuscules ou entourée de = (ex: =Chapitre I=)
+    escaped = escaped.replace(/(^|\n)(=+)([^=\n]+)\2(\n|$)/g, function(m, pre, eq, content, post) {
+      return pre + '<strong style="font-size:1.1em;display:block;margin:1em 0 .3em;">' + content.trim() + '</strong>' + post;
+    });
+
+    // 3. Gras : **texte** ou __texte__
+    escaped = escaped.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+    escaped = escaped.replace(/__([^_\n]+)__/g, '<strong>$1</strong>');
+
+    // 4. Italique : _texte_ ou *texte* (mot ou groupe de mots, pas de saut de ligne)
+    escaped = escaped.replace(/\b_([^_\n]{1,120})_\b/g, '<em>$1</em>');
+    escaped = escaped.replace(/(?<!\*)\*([^*\n]{1,120})\*(?!\*)/g, '<em>$1</em>');
+
+    // 5. Tirets longs : --- ou -- → vrai em dash / en dash
+    escaped = escaped.replace(/---/g, '—');
+    escaped = escaped.replace(/--/g, '–');
+
+    // 6. Guillemets droits → typographiques
+    escaped = escaped.replace(/(^|[\s(«])&quot;([^&])/g, '$1\u00AB\u00A0$2');
+    escaped = escaped.replace(/([^&])&quot;([\s)».,;:!?]|$)/g, '$1\u00A0\u00BB$2');
+
+    // 7. Sauts de ligne → <br> (on garde le pre-wrap via style)
+    escaped = escaped.replace(/\n/g, '<br>');
+
+    return escaped;
   }
 
   function _bkPaginate(text) {
