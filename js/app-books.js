@@ -1226,11 +1226,11 @@
     text = text.replace(/\*\*([^*\n]{1,300})\*\*/g,  PH_ST_O + '$1' + PH_ST_C);
     text = text.replace(/__([^_\n]{1,300})__/g,       PH_ST_O + '$1' + PH_ST_C);
 
-    // Italique _..._ — avant ou début de ligne, après ponctuation fermante ou fin
-    text = text.replace(/(^|[\s(\u00AB])_([^_\n]{1,300})_(?=\s|[)\u00BB.,;:!?\-]|$)/gm,
+    // Italique _..._ — autorise les sauts de ligne internes (blocs multi-lignes Gutenberg)
+    text = text.replace(/(^|[\s(\u00AB])_([^_]{1,400})_(?=\s|[)\u00BB.,;:!?\-]|$)/gm,
                         '$1' + PH_EM_O + '$2' + PH_EM_C);
     // Italique *...*
-    text = text.replace(/(^|[\s(\u00AB])\*([^*\n]{1,300})\*(?=\s|[)\u00BB.,;:!?\-]|$)/gm,
+    text = text.replace(/(^|[\s(\u00AB])\*([^*]{1,400})\*(?=\s|[)\u00BB.,;:!?\-]|$)/gm,
                         '$1' + PH_EM_O + '$2' + PH_EM_C);
 
     // Titres =...=
