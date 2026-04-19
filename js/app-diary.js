@@ -925,52 +925,105 @@
   // Fixer la couleur des puces de liste = couleur du premier texte dans le <li>
   // Applique une couleur uniquement sur les nœuds texte de la sélection
   // sans toucher au reste du <li> ou du paragraphe
-  // Applique une couleur sur la sélection courante uniquement
-  // Utilise insertHTML sur le contenu sélectionné — robuste sur tous les navigateurs
+  // ─── Couleur : approche DOM pure, sans insertHTML pour éviter les alinéas ───
+
+  // Enveloppe tous les nœuds texte d'un Range dans un <span style="color:X">
+  // sans toucher au reste du DOM — pas de insertHTML, pas d'alinéa
   function _applyColorToRange(range, color) {
     if (range.collapsed) return;
 
-    // Récupérer le HTML de la sélection
-    var tmp = document.createElement('div');
-    tmp.appendChild(range.cloneContents());
-    var selHTML = tmp.innerHTML;
+    // Collecter tous les nœuds texte qui sont dans le range
+    var textNodes = _getTextNodesInRange(range);
+    if (textNodes.length === 0) return;
 
-    // Envelopper dans un span de couleur
-    // Si la sélection contient déjà des spans colorés, on remplace leurs couleurs
-    var wrapped = selHTML
-      // Remplacer les spans de couleur existants
-      .replace(/(<span[^>]*?)style="([^"]*?)color:[^;"]+(;?)([^"]*?)"([^>]*?>)/gi,
-        function(m, pre, before, semi, after, end) {
-          var newStyle = (before + 'color:' + color + (semi||';') + after).replace(/;+/g,';').replace(/^;|;$/g,'');
-          return pre + 'style="' + newStyle + '"' + end;
-        })
-      // Envelopper les nœuds texte nus (non encore dans un span)
-      ;
+    textNodes.forEach(function(info) {
+      var node   = info.node;
+      var start  = info.start; // offset de début dans ce nœud
+      var end    = info.end;   // offset de fin dans ce nœud
 
-    // Approche simple et fiable : wrapper toute la sélection dans un span
-    // puis supprimer les spans imbriqués redondants
-    var finalHTML = '<span style="color:' + color + ';">' + selHTML + '</span>';
+      // Découper le nœud texte si nécessaire
+      var target = node;
+      if (end < node.length) target = node.splitText(end);   // portion après
+      if (start > 0)         target = node.splitText(start); // portion avant (node devient prefix)
+      // Maintenant target est exactement la portion sélectionnée
 
-    // Supprimer la sélection et insérer le HTML coloré
-    range.deleteContents();
-    document.execCommand('insertHTML', false, finalHTML);
+      // Remonter : si target est déjà dans un span coloré, changer juste sa couleur
+      var parent = target.parentNode;
+      if (parent && parent.tagName === 'SPAN' && parent.style.color) {
+        parent.style.color = color;
+        return;
+      }
+
+      // Sinon envelopper dans un nouveau span — manipulation DOM pure
+      var span = document.createElement('span');
+      span.style.color = color;
+      parent.insertBefore(span, target);
+      span.appendChild(target);
+    });
   }
 
-  // Reset couleur sur la sélection
+  // Supprime la couleur sur la sélection
   function _removeColorInRange(range) {
     if (range.collapsed) return;
-    var tmp = document.createElement('div');
-    tmp.appendChild(range.cloneContents());
-    // Supprimer tous les attributs color dans les styles
-    var stripped = tmp.innerHTML.replace(/color:[^;}"]+;?/gi, '');
-    // Retirer les spans devenus vides de style
-    stripped = stripped.replace(/<span\s+style="\s*">/gi, '<span>');
-    stripped = stripped.replace(/<span>/gi, '').replace(/<\/span>/gi, '');
-    range.deleteContents();
-    document.execCommand('insertHTML', false, stripped);
+    var textNodes = _getTextNodesInRange(range);
+    textNodes.forEach(function(info) {
+      var node  = info.node;
+      var start = info.start;
+      var end   = info.end;
+
+      var target = node;
+      if (end < node.length) target = node.splitText(end);
+      if (start > 0)         target = node.splitText(start);
+
+      var parent = target.parentNode;
+      if (parent && parent.tagName === 'SPAN' && parent.style.color) {
+        // Retirer la couleur — si le span n'a plus de style, unwrap
+        parent.style.color = '';
+        if (!parent.style.cssText.trim()) {
+          // Unwrap : remplacer le span par son contenu
+          var gp = parent.parentNode;
+          while (parent.firstChild) gp.insertBefore(parent.firstChild, parent);
+          gp.removeChild(parent);
+        }
+      }
+    });
   }
 
-  // Fusionne les spans de même couleur adjacents (nettoyage cosmétique)
+  // Retourne tous les nœuds texte dans un Range avec leurs offsets exacts
+  function _getTextNodesInRange(range) {
+    var result = [];
+    var sc = range.startContainer;
+    var ec = range.endContainer;
+    var so = range.startOffset;
+    var eo = range.endOffset;
+
+    // Cas simple : sélection dans un seul nœud texte
+    if (sc === ec && sc.nodeType === 3) {
+      result.push({ node: sc, start: so, end: eo });
+      return result;
+    }
+
+    // Cas général : parcourir l'arbre entre startContainer et endContainer
+    var iter = document.createTreeWalker(
+      range.commonAncestorContainer,
+      NodeFilter.SHOW_TEXT,
+      null,
+      false
+    );
+
+    var node;
+    while ((node = iter.nextNode())) {
+      if (!range.intersectsNode(node)) continue;
+      var start = (node === sc) ? so : 0;
+      var end   = (node === ec) ? eo : node.length;
+      if (start < end) {
+        result.push({ node: node, start: start, end: end });
+      }
+    }
+    return result;
+  }
+
+  // Nettoyage : fusionne spans adjacents de même couleur
   function _mergeAdjacentColorSpans(container) {
     if (!container) return;
     var spans = container.querySelectorAll ? container.querySelectorAll('span[style*="color"]') : [];
@@ -984,7 +1037,7 @@
     });
   }
 
-  function _fixListColors(container) {
+    function _fixListColors(container) {
     if (!container) container = document.getElementById('diaryEditor');
     if (!container) return;
     container.querySelectorAll('li').forEach(function(li) {
