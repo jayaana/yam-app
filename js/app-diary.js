@@ -722,11 +722,20 @@
           '<rect x="2.5" y="10.5" width="9" height="2" rx="1"/>' +
         '</svg>',
         'Centrer/Gauche', '') +
-      // Liste — bouton avec menu déroulant 3 types
-      '<button id="diaryFmtList" title="Liste" ' +
-        'style="min-width:30px;height:28px;padding:0 8px;border-radius:8px;' +
-        'border:1px solid var(--border);background:var(--s1);cursor:pointer;font-size:12px;' +
-        'position:relative;">☰</button>' +
+      // Liste — icône SVG avec puce + texte (distinct du centrage)
+      '<button id="diaryFmtList" title="Type de liste" ' +
+        'style="min-width:30px;height:28px;padding:0 7px;border-radius:8px;' +
+        'border:1px solid var(--border);background:var(--s1);cursor:pointer;' +
+        'display:flex;align-items:center;justify-content:center;">' +
+        '<svg width="15" height="13" viewBox="0 0 15 13" fill="currentColor">' +
+          '<circle cx="1.5" cy="2" r="1.5"/>' +
+          '<rect x="5" y="1" width="9" height="2" rx="1"/>' +
+          '<circle cx="1.5" cy="6.5" r="1.5"/>' +
+          '<rect x="5" y="5.5" width="9" height="2" rx="1"/>' +
+          '<circle cx="1.5" cy="11" r="1.5"/>' +
+          '<rect x="5" y="10" width="9" height="2" rx="1"/>' +
+        '</svg>' +
+      '</button>' +
       // Trait séparateur
       _toolBtn('diaryFmtHR',    '—',           'Séparateur', '') +
       // Image insérée
@@ -738,10 +747,24 @@
     // Couleur picker (hidden)
     html += '<div id="diaryColorPicker" style="display:none;flex-wrap:wrap;gap:6px;' +
       'padding:8px;background:var(--s1);border-radius:10px;border:1px solid var(--border);margin-bottom:8px;">' +
-      ['#e75a7c','#f06688','#5ac8fa','#7c6af7','#34c759','#ff9500','#ff3b30','#636366',
+      // Bouton reset couleur (texte barré)
+      '<button data-diary-color="reset" title="Supprimer la couleur" ' +
+        'style="width:26px;height:26px;border-radius:50%;background:var(--s2);' +
+        'border:2px solid var(--border);cursor:pointer;position:relative;overflow:hidden;' +
+        'display:flex;align-items:center;justify-content:center;">' +
+        '<svg width="20" height="20" viewBox="0 0 20 20" fill="none">' +
+          '<line x1="3" y1="3" x2="17" y2="17" stroke="#ff3b30" stroke-width="2.2" stroke-linecap="round"/>' +
+        '</svg>' +
+      '</button>' +
+      // Palette couleurs — rose foncé bien différencié de rose clair
+      ['#c0194a','#f06688','#5ac8fa','#7c6af7','#34c759','#ff9500','#ff3b30','#636366',
        '#ffd700','#a2845e','#20c997','#fd7f6f'].map(function(c) {
-        return '<button data-diary-color="' + c + '" style="width:26px;height:26px;border-radius:50%;' +
-          'background:' + c + ';border:2px solid var(--border);cursor:pointer;"></button>';
+        return '<button data-diary-color="' + c + '" ' +
+          'style="width:26px;height:26px;border-radius:50%;background:' + c + ';' +
+          'border:2px solid var(--border);cursor:pointer;position:relative;" ' +
+          'title="' + c + '">' +
+          // Indicateur actif injecté dynamiquement via JS
+        '</button>';
       }).join('') +
     '</div>';
 
@@ -1095,18 +1118,23 @@
       function insertList() {
         var type = btn.getAttribute('data-diary-list-type');
         _restoreSelection();
+        var sel = window.getSelection();
+
         if (type === 'disc') {
-          // Liste à points natifs (list-style-type:disc)
+          // insertUnorderedList transforme le bloc courant en liste sans effacer le texte
           document.execCommand('insertUnorderedList', false, null);
-          // Corriger le style via CSS de l'éditeur (géré dans _injectEditorCSS)
-        } else if (type === 'dash') {
-          // Liste tirets : on insère du HTML custom avec list-style:none et ::before "–"
+        } else {
+          // Pour dash/square : extraire le texte sélectionné, créer la liste avec ce texte
+          var selectedText = '';
+          if (sel && sel.rangeCount > 0) {
+            selectedText = sel.getRangeAt(0).toString();
+            // Supprimer la sélection
+            sel.getRangeAt(0).deleteContents();
+          }
+          var cls = type === 'dash' ? 'diary-list-dash' : 'diary-list-square';
+          var liContent = selectedText ? escHtml(selectedText) : '&#8203;';
           document.execCommand('insertHTML', false,
-            '<ul class="diary-list-dash"><li></li></ul>');
-        } else if (type === 'square') {
-          // Liste carrés
-          document.execCommand('insertHTML', false,
-            '<ul class="diary-list-square"><li></li></ul>');
+            '<ul class="' + cls + '"><li>' + liContent + '</li></ul><p>&#8203;</p>');
         }
         listMenu.style.display = 'none';
         _saveSelection();
@@ -1129,15 +1157,70 @@
       var ep = document.getElementById('diaryEmojiPicker');
       if (ep) ep.style.display = 'none';
     });
+    // Mettre à jour l'indicateur de couleur active dans le picker
+    function _updateActiveColor() {
+      if (!colorPicker) return;
+      var curColor = '';
+      try {
+        curColor = document.queryCommandValue('foreColor') || '';
+        // Normaliser en hex
+        if (curColor.startsWith('rgb')) {
+          var m = curColor.match(/\d+/g);
+          if (m && m.length >= 3) {
+            curColor = '#' + [m[0],m[1],m[2]].map(function(v){
+              return ('0' + parseInt(v).toString(16)).slice(-2);
+            }).join('');
+          }
+        }
+      } catch(e) {}
+      curColor = curColor.toLowerCase();
+      colorPicker.querySelectorAll('[data-diary-color]').forEach(function(b) {
+        var bc = (b.getAttribute('data-diary-color') || '').toLowerCase();
+        // Supprimer ancien indicateur
+        var old = b.querySelector('.diary-color-dot');
+        if (old) old.remove();
+        if (bc !== 'reset' && curColor && curColor === bc) {
+          var dot = document.createElement('div');
+          dot.className = 'diary-color-dot';
+          dot.style.cssText = 'position:absolute;bottom:-3px;right:-3px;width:8px;height:8px;' +
+            'border-radius:50%;background:var(--accent);border:1.5px solid var(--s1);';
+          b.appendChild(dot);
+        }
+      });
+    }
+
     if (colorPicker) colorPicker.querySelectorAll('[data-diary-color]').forEach(function(btn) {
       function applyColor() {
+        var col = btn.getAttribute('data-diary-color');
         _restoreSelection();
-        document.execCommand('foreColor', false, btn.getAttribute('data-diary-color'));
+        if (col === 'reset') {
+          // Supprimer la couleur : removeFormat enlève foreColor
+          document.execCommand('removeFormat', false, null);
+        } else {
+          document.execCommand('foreColor', false, col);
+        }
         colorPicker.style.display = 'none';
         _saveSelection();
+        setTimeout(_updateActiveColor, 50);
       }
       btn.addEventListener('mousedown', function(e) { e.preventDefault(); applyColor(); });
       btn.addEventListener('touchend',  function(e) { e.preventDefault(); applyColor(); }, { passive: false });
+    });
+
+    // Mettre à jour l'indicateur quand le picker s'ouvre
+    var _origColorToggle = null;
+    if (colorPicker) {
+      var diaryFmtColorBtn = document.getElementById('diaryFmtColor');
+      if (diaryFmtColorBtn) {
+        // Surcharger pour appeler _updateActiveColor à l'ouverture
+        var _origOpen = diaryFmtColorBtn._diaryColorOpenFn;
+      }
+    }
+    // Écouter selectionchange pour mettre à jour l'indicateur quand le picker est ouvert
+    document.addEventListener('selectionchange', function() {
+      if (colorPicker && colorPicker.style.display !== 'none') {
+        _updateActiveColor();
+      }
     });
 
     // Emoji picker toggle
@@ -1808,28 +1891,30 @@
       '.diary-rich-content hr { border:none;border-top:1.5px solid var(--border);margin:14px 0; }',
       '.diary-rich-content img { max-width:100%;border-radius:10px;margin:8px 0;display:block; }',
       '.diary-rich-content a  { color:var(--accent);text-decoration:underline; }',
-      /* FIX 3+4 — Listes : puce même couleur que le texte */
-      /* Disc (natif execCommand) */
-      '#diaryEditor ul, .diary-rich-content ul { padding-left:20px;margin:6px 0; }',
-      '#diaryEditor li, .diary-rich-content li { margin:3px 0;line-height:1.7;color:inherit; }',
-      '#diaryEditor ul li::marker, .diary-rich-content ul li::marker { color:currentColor; }',
-      /* Tirets */
-      '#diaryEditor ul.diary-list-dash,',
-      '.diary-rich-content ul.diary-list-dash { list-style:none;padding-left:16px; }',
-      '#diaryEditor ul.diary-list-dash li,',
-      '.diary-rich-content ul.diary-list-dash li { position:relative;padding-left:14px; }',
-      '#diaryEditor ul.diary-list-dash li::before,',
-      '.diary-rich-content ul.diary-list-dash li::before {',
-      '  content:"–";position:absolute;left:0;color:currentColor;font-weight:600;',
+      /* Listes : puce même couleur que le texte, alignement parfait */
+      /* Disc natif */
+      '#diaryEditor ul, .diary-rich-content ul { list-style:disc;padding-left:1.4em;margin:6px 0; }',
+      '#diaryEditor li, .diary-rich-content li { margin:2px 0;line-height:1.75;color:inherit;padding-left:0.2em; }',
+      '#diaryEditor ul li::marker, .diary-rich-content ul li::marker { color:currentColor;font-size:1em; }',
+      /* Tirets — ::before inline, pas absolute */
+      '#diaryEditor ul.diary-list-dash, .diary-rich-content ul.diary-list-dash {',
+      '  list-style:none;padding-left:0;margin:6px 0;',
       '}',
-      /* Carrés */
-      '#diaryEditor ul.diary-list-square,',
-      '.diary-rich-content ul.diary-list-square { list-style:none;padding-left:16px; }',
-      '#diaryEditor ul.diary-list-square li,',
-      '.diary-rich-content ul.diary-list-square li { position:relative;padding-left:14px; }',
-      '#diaryEditor ul.diary-list-square li::before,',
-      '.diary-rich-content ul.diary-list-square li::before {',
-      '  content:"▪";position:absolute;left:0;color:currentColor;font-size:12px;line-height:1.7;',
+      '#diaryEditor ul.diary-list-dash li, .diary-rich-content ul.diary-list-dash li {',
+      '  padding-left:0;display:flex;align-items:baseline;gap:0.45em;',
+      '}',
+      '#diaryEditor ul.diary-list-dash li::before, .diary-rich-content ul.diary-list-dash li::before {',
+      '  content:"–";flex-shrink:0;color:currentColor;font-weight:700;font-size:1em;line-height:1.75;',
+      '}',
+      /* Carrés — ::before inline */
+      '#diaryEditor ul.diary-list-square, .diary-rich-content ul.diary-list-square {',
+      '  list-style:none;padding-left:0;margin:6px 0;',
+      '}',
+      '#diaryEditor ul.diary-list-square li, .diary-rich-content ul.diary-list-square li {',
+      '  padding-left:0;display:flex;align-items:baseline;gap:0.45em;',
+      '}',
+      '#diaryEditor ul.diary-list-square li::before, .diary-rich-content ul.diary-list-square li::before {',
+      '  content:"▪";flex-shrink:0;color:currentColor;font-size:0.85em;line-height:1.9;',
       '}',
       '@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }',
     ].join('\n');
