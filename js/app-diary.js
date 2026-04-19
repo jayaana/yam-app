@@ -456,6 +456,12 @@
     html += '</div>'; // readWrap
     _view.innerHTML = html;
 
+    // Fixer les couleurs des puces en mode lecture
+    setTimeout(function() {
+      var rc = document.querySelector('.diary-rich-content');
+      if (rc) _fixListColors(rc);
+    }, 50);
+
     // Events lecture
     var backBtn = document.getElementById('diaryReadBack');
     if (backBtn) backBtn.addEventListener('click', function() {
@@ -913,6 +919,40 @@
     _renderEditorImages();
   }
 
+  // Fixer la couleur des puces de liste = couleur du premier texte dans le <li>
+  function _fixListColors(container) {
+    if (!container) container = document.getElementById('diaryEditor');
+    if (!container) return;
+    container.querySelectorAll('li').forEach(function(li) {
+      // Trouver la couleur du premier nœud texte non vide
+      var firstColor = '';
+      function findColor(node) {
+        if (firstColor) return;
+        if (node.nodeType === 3 && node.textContent.trim()) {
+          // Nœud texte direct sur le li — prendre la couleur du li ou parent
+          var p = node.parentElement;
+          if (p && p !== li) {
+            var c = p.style.color || window.getComputedStyle(p).color;
+            if (c && c !== 'rgb(0, 0, 0)' && c !== '') firstColor = c;
+          }
+          return;
+        }
+        if (node.nodeType === 1) {
+          var c = node.style.color;
+          if (c) { firstColor = c; return; }
+          Array.prototype.forEach.call(node.childNodes, findColor);
+        }
+      }
+      Array.prototype.forEach.call(li.childNodes, findColor);
+      // Appliquer la couleur inline sur le li pour que ::before / ::marker en héritent
+      if (firstColor) {
+        li.style.color = firstColor;
+      } else {
+        li.style.color = ''; // reset → hérite de l'éditeur (var(--text))
+      }
+    });
+  }
+
   // ── Palette emoji couverture complète (desktop + iOS) ──
   function _buildCoverEmojiPicker() {
     var EMOJI_CATS = [
@@ -1047,7 +1087,18 @@
     // le Range, puis le restaurer juste avant d'appeler execCommand.
     if (editor) {
       editor.addEventListener('blur', function() { _saveSelection(); });
-      editor.addEventListener('keyup', function() { _saveSelection(); });
+      editor.addEventListener('keyup', function(e) {
+        _saveSelection();
+        // Mettre à jour les couleurs des puces si on tape dans une liste
+        var sel = window.getSelection();
+        if (sel && sel.anchorNode) {
+          var node = sel.anchorNode;
+          var li = (node.nodeType === 3 ? node.parentElement : node);
+          if (li && li.closest && li.closest('li')) {
+            _fixListColors();
+          }
+        }
+      });
       editor.addEventListener('mouseup', function() { _saveSelection(); });
       editor.addEventListener('touchend', function() { setTimeout(_saveSelection, 50); });
     }
@@ -1119,25 +1170,51 @@
         var type = btn.getAttribute('data-diary-list-type');
         _restoreSelection();
         var sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) { listMenu.style.display = 'none'; return; }
 
-        if (type === 'disc') {
-          // insertUnorderedList transforme le bloc courant en liste sans effacer le texte
-          document.execCommand('insertUnorderedList', false, null);
-        } else {
-          // Pour dash/square : extraire le texte sélectionné, créer la liste avec ce texte
-          var selectedText = '';
-          if (sel && sel.rangeCount > 0) {
-            selectedText = sel.getRangeAt(0).toString();
-            // Supprimer la sélection
-            sel.getRangeAt(0).deleteContents();
-          }
-          var cls = type === 'dash' ? 'diary-list-dash' : 'diary-list-square';
-          var liContent = selectedText ? escHtml(selectedText) : '&#8203;';
-          document.execCommand('insertHTML', false,
-            '<ul class="' + cls + '"><li>' + liContent + '</li></ul><p>&#8203;</p>');
-        }
+        var range = sel.getRangeAt(0);
+
+        // ── Extraire le contenu HTML sélectionné ──
+        var frag = range.cloneContents();
+        var tmp  = document.createElement('div');
+        tmp.appendChild(frag);
+        var selHTML = tmp.innerHTML;
+
+        // ── Découper en lignes : <br>, <div>, <p>, \n ──
+        // On normalise d'abord les blocs en <br>
+        selHTML = selHTML
+          .replace(/<\/?(p|div|h[1-6])[^>]*>/gi, '<br>')  // blocs → <br>
+          .replace(/(<br\s*\/?>)+/gi, '<br>')             // br multiples → 1 seul
+          .replace(/^<br>|<br>$/gi, '');                   // trim <br> début/fin
+
+        var lines = selHTML.split(/<br\s*\/?>/i);
+        // Filtrer les lignes vides
+        lines = lines.filter(function(l) { return l.replace(/<[^>]+>/g,'').trim() !== ''; });
+        if (lines.length === 0) lines = [''];
+
+        // ── Construire les <li> ──
+        // Pour chaque ligne, on wrap le contenu dans un span sans couleur explicite
+        // Le <li> lui-même portera la couleur via CSS color:inherit
+        var liHTML = lines.map(function(line) {
+          var lineContent = line.trim() || '&#8203;';
+          return '<li>' + lineContent + '</li>';
+        }).join('');
+
+        // ── Construire la liste ──
+        var cls = '';
+        if (type === 'dash')   cls = ' class="diary-list-dash"';
+        if (type === 'square') cls = ' class="diary-list-square"';
+        var listHTML = '<ul' + cls + '>' + liHTML + '</ul>';
+
+        // ── Remplacer la sélection par la liste ──
+        range.deleteContents();
+        // Insérer via execCommand pour compatibilité undo/redo
+        document.execCommand('insertHTML', false, listHTML + '<p>&#8203;</p>');
+
         listMenu.style.display = 'none';
         _saveSelection();
+        // Fixer les couleurs des puces après insertion
+        setTimeout(function() { _fixListColors(); }, 10);
       }
       btn.addEventListener('mousedown', function(e) { e.preventDefault(); insertList(); });
       btn.addEventListener('touchend',  function(e) { e.preventDefault(); insertList(); }, { passive: false });
@@ -1895,7 +1972,8 @@
       /* Disc natif */
       '#diaryEditor ul, .diary-rich-content ul { list-style:disc;padding-left:1.4em;margin:6px 0; }',
       '#diaryEditor li, .diary-rich-content li { margin:2px 0;line-height:1.75;color:inherit;padding-left:0.2em; }',
-      '#diaryEditor ul li::marker, .diary-rich-content ul li::marker { color:currentColor;font-size:1em; }',
+      /* ::marker hérite de color du li (fixé inline par _fixListColors) */
+      '#diaryEditor ul li::marker, .diary-rich-content ul li::marker { color:inherit;font-size:1em; }',
       /* Tirets — ::before inline, pas absolute */
       '#diaryEditor ul.diary-list-dash, .diary-rich-content ul.diary-list-dash {',
       '  list-style:none;padding-left:0;margin:6px 0;',
@@ -1904,7 +1982,7 @@
       '  padding-left:0;display:flex;align-items:baseline;gap:0.45em;',
       '}',
       '#diaryEditor ul.diary-list-dash li::before, .diary-rich-content ul.diary-list-dash li::before {',
-      '  content:"–";flex-shrink:0;color:currentColor;font-weight:700;font-size:1em;line-height:1.75;',
+      '  content:"–";flex-shrink:0;color:inherit;font-weight:700;font-size:1em;line-height:1.75;',
       '}',
       /* Carrés — ::before inline */
       '#diaryEditor ul.diary-list-square, .diary-rich-content ul.diary-list-square {',
@@ -1914,7 +1992,7 @@
       '  padding-left:0;display:flex;align-items:baseline;gap:0.45em;',
       '}',
       '#diaryEditor ul.diary-list-square li::before, .diary-rich-content ul.diary-list-square li::before {',
-      '  content:"▪";flex-shrink:0;color:currentColor;font-size:0.85em;line-height:1.9;',
+      '  content:"▪";flex-shrink:0;color:inherit;font-size:0.85em;line-height:1.9;',
       '}',
       '@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }',
     ].join('\n');
