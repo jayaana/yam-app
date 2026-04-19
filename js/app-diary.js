@@ -722,8 +722,11 @@
           '<rect x="2.5" y="10.5" width="9" height="2" rx="1"/>' +
         '</svg>',
         'Centrer/Gauche', '') +
-      // Liste
-      _toolBtn('diaryFmtList',  '☰',           'Liste',      '') +
+      // Liste — bouton avec menu déroulant 3 types
+      '<button id="diaryFmtList" title="Liste" ' +
+        'style="min-width:30px;height:28px;padding:0 8px;border-radius:8px;' +
+        'border:1px solid var(--border);background:var(--s1);cursor:pointer;font-size:12px;' +
+        'position:relative;">☰</button>' +
       // Trait séparateur
       _toolBtn('diaryFmtHR',    '—',           'Séparateur', '') +
       // Image insérée
@@ -736,10 +739,27 @@
     html += '<div id="diaryColorPicker" style="display:none;flex-wrap:wrap;gap:6px;' +
       'padding:8px;background:var(--s1);border-radius:10px;border:1px solid var(--border);margin-bottom:8px;">' +
       ['#e75a7c','#f06688','#5ac8fa','#7c6af7','#34c759','#ff9500','#ff3b30','#636366',
-       '#000000','#ffffff','#ffd700','#a2845e'].map(function(c) {
+       '#ffd700','#a2845e','#20c997','#fd7f6f'].map(function(c) {
         return '<button data-diary-color="' + c + '" style="width:26px;height:26px;border-radius:50%;' +
           'background:' + c + ';border:2px solid var(--border);cursor:pointer;"></button>';
       }).join('') +
+    '</div>';
+
+    // Menu liste (hidden) — 3 types de puces
+    html += '<div id="diaryListMenu" style="display:none;gap:6px;' +
+      'padding:6px 8px;background:var(--s1);border-radius:10px;border:1px solid var(--border);margin-bottom:8px;">' +
+      '<button data-diary-list-type="disc" style="flex:1;padding:5px 8px;border-radius:8px;' +
+        'border:1px solid var(--border);background:var(--s2);cursor:pointer;font-size:12px;' +
+        'font-family:DM Sans,sans-serif;color:var(--text);display:flex;align-items:center;gap:5px;">' +
+        '<span style="font-size:16px;">•</span> Points</button>' +
+      '<button data-diary-list-type="dash" style="flex:1;padding:5px 8px;border-radius:8px;' +
+        'border:1px solid var(--border);background:var(--s2);cursor:pointer;font-size:12px;' +
+        'font-family:DM Sans,sans-serif;color:var(--text);display:flex;align-items:center;gap:5px;">' +
+        '<span style="font-size:14px;font-weight:700;">–</span> Tirets</button>' +
+      '<button data-diary-list-type="square" style="flex:1;padding:5px 8px;border-radius:8px;' +
+        'border:1px solid var(--border);background:var(--s2);cursor:pointer;font-size:12px;' +
+        'font-family:DM Sans,sans-serif;color:var(--text);display:flex;align-items:center;gap:5px;">' +
+        '<span style="font-size:12px;">▪</span> Carrés</button>' +
     '</div>';
 
     // Emoji picker (hidden)
@@ -1057,7 +1077,43 @@
       document.execCommand(isCentered ? 'justifyLeft' : 'justifyCenter', false, null);
       _saveSelection();
     });
-    _bindFmt('diaryFmtList',   function() { _execFmt('insertUnorderedList'); });
+    // Menu liste — toggle affichage
+    var listMenu = document.getElementById('diaryListMenu');
+    _bindFmt('diaryFmtList', function() {
+      if (!listMenu) return;
+      var open = listMenu.style.display !== 'none';
+      listMenu.style.display = open ? 'none' : 'flex';
+      // Fermer les autres pickers
+      var cp = document.getElementById('diaryColorPicker');
+      var ep = document.getElementById('diaryEmojiPicker');
+      if (cp) cp.style.display = 'none';
+      if (ep) ep.style.display = 'none';
+    });
+
+    // Sélection type de liste
+    if (listMenu) listMenu.querySelectorAll('[data-diary-list-type]').forEach(function(btn) {
+      function insertList() {
+        var type = btn.getAttribute('data-diary-list-type');
+        _restoreSelection();
+        if (type === 'disc') {
+          // Liste à points natifs (list-style-type:disc)
+          document.execCommand('insertUnorderedList', false, null);
+          // Corriger le style via CSS de l'éditeur (géré dans _injectEditorCSS)
+        } else if (type === 'dash') {
+          // Liste tirets : on insère du HTML custom avec list-style:none et ::before "–"
+          document.execCommand('insertHTML', false,
+            '<ul class="diary-list-dash"><li></li></ul>');
+        } else if (type === 'square') {
+          // Liste carrés
+          document.execCommand('insertHTML', false,
+            '<ul class="diary-list-square"><li></li></ul>');
+        }
+        listMenu.style.display = 'none';
+        _saveSelection();
+      }
+      btn.addEventListener('mousedown', function(e) { e.preventDefault(); insertList(); });
+      btn.addEventListener('touchend',  function(e) { e.preventDefault(); insertList(); }, { passive: false });
+    });
     _bindFmt('diaryFmtHR', function() {
       _restoreSelection();
       document.execCommand('insertHTML', false,
@@ -1734,20 +1790,47 @@
     var style = document.createElement('style');
     style.id = 'diary-editor-css';
     style.textContent = [
+      /* Placeholder */
       '#diaryEditor[data-placeholder]:empty:before {',
       '  content: attr(data-placeholder);',
       '  color: var(--muted);',
       '  pointer-events: none;',
       '  font-style: italic;',
       '}',
+      /* FIX 2 — Soulignement couleur = couleur du texte */
+      '#diaryEditor u, #diaryEditor [style*="underline"] {',
+      '  text-decoration-color: currentColor !important;',
+      '}',
+      /* Lecture rich content */
       '.diary-rich-content h2 { font-size:18px;font-weight:700;color:var(--text);margin:14px 0 6px;line-height:1.3; }',
       '.diary-rich-content h3 { font-size:15px;font-weight:700;color:var(--text);margin:10px 0 4px; }',
       '.diary-rich-content p  { margin:6px 0;line-height:1.8;color:var(--text); }',
-      '.diary-rich-content ul { padding-left:18px;margin:6px 0; }',
-      '.diary-rich-content li { margin:3px 0;line-height:1.7;color:var(--text); }',
       '.diary-rich-content hr { border:none;border-top:1.5px solid var(--border);margin:14px 0; }',
       '.diary-rich-content img { max-width:100%;border-radius:10px;margin:8px 0;display:block; }',
       '.diary-rich-content a  { color:var(--accent);text-decoration:underline; }',
+      /* FIX 3+4 — Listes : puce même couleur que le texte */
+      /* Disc (natif execCommand) */
+      '#diaryEditor ul, .diary-rich-content ul { padding-left:20px;margin:6px 0; }',
+      '#diaryEditor li, .diary-rich-content li { margin:3px 0;line-height:1.7;color:inherit; }',
+      '#diaryEditor ul li::marker, .diary-rich-content ul li::marker { color:currentColor; }',
+      /* Tirets */
+      '#diaryEditor ul.diary-list-dash,',
+      '.diary-rich-content ul.diary-list-dash { list-style:none;padding-left:16px; }',
+      '#diaryEditor ul.diary-list-dash li,',
+      '.diary-rich-content ul.diary-list-dash li { position:relative;padding-left:14px; }',
+      '#diaryEditor ul.diary-list-dash li::before,',
+      '.diary-rich-content ul.diary-list-dash li::before {',
+      '  content:"–";position:absolute;left:0;color:currentColor;font-weight:600;',
+      '}',
+      /* Carrés */
+      '#diaryEditor ul.diary-list-square,',
+      '.diary-rich-content ul.diary-list-square { list-style:none;padding-left:16px; }',
+      '#diaryEditor ul.diary-list-square li,',
+      '.diary-rich-content ul.diary-list-square li { position:relative;padding-left:14px; }',
+      '#diaryEditor ul.diary-list-square li::before,',
+      '.diary-rich-content ul.diary-list-square li::before {',
+      '  content:"▪";position:absolute;left:0;color:currentColor;font-size:12px;line-height:1.7;',
+      '}',
       '@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }',
     ].join('\n');
     document.head.appendChild(style);
