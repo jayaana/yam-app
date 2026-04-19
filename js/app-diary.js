@@ -2194,25 +2194,25 @@
       '#diaryEditor li, .diary-rich-content li { margin:2px 0;line-height:1.75;color:inherit;padding-left:0.2em; }',
       /* ::marker hérite de color du li (fixé inline par _fixListColors) */
       '#diaryEditor ul li::marker, .diary-rich-content ul li::marker { color:inherit;font-size:1em; }',
-      /* Tirets — ::before inline, pas absolute */
+      /* Tirets — position:relative + ::before absolute (robuste au splitText) */
       '#diaryEditor ul.diary-list-dash, .diary-rich-content ul.diary-list-dash {',
-      '  list-style:none;padding-left:0;margin:6px 0;',
+      '  list-style:none;padding-left:1.2em;margin:6px 0;',
       '}',
       '#diaryEditor ul.diary-list-dash li, .diary-rich-content ul.diary-list-dash li {',
-      '  padding-left:0;display:flex;align-items:baseline;gap:0.45em;',
+      '  position:relative;padding-left:0;',
       '}',
       '#diaryEditor ul.diary-list-dash li::before, .diary-rich-content ul.diary-list-dash li::before {',
-      '  content:"–";flex-shrink:0;color:inherit;font-weight:700;font-size:1em;line-height:1.75;',
+      '  content:"–";position:absolute;left:-1.1em;top:0;color:inherit;font-weight:700;font-size:1em;line-height:1.75;',
       '}',
-      /* Carrés — ::before inline */
+      /* Carrés — même approche */
       '#diaryEditor ul.diary-list-square, .diary-rich-content ul.diary-list-square {',
-      '  list-style:none;padding-left:0;margin:6px 0;',
+      '  list-style:none;padding-left:1.2em;margin:6px 0;',
       '}',
       '#diaryEditor ul.diary-list-square li, .diary-rich-content ul.diary-list-square li {',
-      '  padding-left:0;display:flex;align-items:baseline;gap:0.45em;',
+      '  position:relative;padding-left:0;',
       '}',
       '#diaryEditor ul.diary-list-square li::before, .diary-rich-content ul.diary-list-square li::before {',
-      '  content:"▪";flex-shrink:0;color:inherit;font-size:0.85em;line-height:1.9;',
+      '  content:"▪";position:absolute;left:-1.1em;top:0;color:inherit;font-size:0.85em;line-height:1.9;',
       '}',
       '@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }',
     ].join('\n');
