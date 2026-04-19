@@ -387,7 +387,7 @@
       '</div></div>';
 
     // Corps — Canva ou texte riche
-    html += '<div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;">';
+    html += '<div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--safe-bottom,0px) + 80px);">';
 
     if (isCanva && page.canva_url) {
       // Embed Canva live
@@ -1281,19 +1281,29 @@
       try {
         var sel = window.getSelection();
         var node = sel && sel.anchorNode;
-        // Chercher le bloc parent (h2, h1, p, div...)
-        var blockEl = null;
-        if (node) {
-          blockEl = node.nodeType === 3 ? node.parentElement : node;
-          // Remonter jusqu'au premier élément de bloc direct de l'éditeur
-          var editor = document.getElementById('diaryEditor');
-          while (blockEl && blockEl.parentNode !== editor) {
-            blockEl = blockEl.parentNode;
-          }
+        var el = node ? (node.nodeType === 3 ? node.parentElement : node) : null;
+        var h2El = el && el.closest ? el.closest('h2') : null;
+
+        if (h2El) {
+          // Retirer le H2 : remplacer manuellement dans le DOM
+          // car formatBlock 'p' ne retire pas le H2 quand il y a un <p> imbriqué
+          var parent = h2El.parentNode;
+          var div = document.createElement('div');
+          // Déplacer le contenu du H2 dans un div
+          // Si le H2 contient un <p>, extraire son contenu directement
+          var inner = h2El.querySelector('p') || h2El;
+          while (inner.firstChild) div.appendChild(inner.firstChild);
+          parent.replaceChild(div, h2El);
+          // Replacer le curseur dans le nouveau div
+          var newRange = document.createRange();
+          newRange.setStart(div, 0);
+          newRange.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(newRange);
+        } else {
+          // Appliquer H2
+          document.execCommand('formatBlock', false, 'h2');
         }
-        var isH2 = blockEl && blockEl.tagName === 'H2';
-        // formatBlock 'p' pour annuler, 'h2' pour appliquer
-        document.execCommand('formatBlock', false, isH2 ? 'p' : 'h2');
       } catch(e) { document.execCommand('formatBlock', false, 'h2'); }
       _saveSelection();
     });
@@ -1952,7 +1962,34 @@
     } else {
       if (editorEl) {
         // Sanitize HTML avant sauvegarde
-        content = _sanitizeHTML(editorEl.innerHTML);
+        // Nettoyer les artefacts de _fixListColors avant sauvegarde :
+        // - li.style.color mis dynamiquement (ne doit pas être persisté)
+        // - data-puce-id mis dynamiquement
+        // - style diary-puce-colors (dans <head>, pas dans contenu)
+        var editorClone = editorEl.cloneNode(true);
+        editorClone.querySelectorAll('li').forEach(function(li) {
+          li.style.color = '';
+          li.style.userSelect = '';
+          li.style.webkitUserSelect = '';
+          li.removeAttribute('data-puce-id');
+          if (!li.style.cssText.trim()) li.removeAttribute('style');
+        });
+        // Nettoyer user-select sur tous les éléments (artefact iOS)
+        editorClone.querySelectorAll('[style*="user-select"]').forEach(function(el) {
+          el.style.userSelect = '';
+          el.style.webkitUserSelect = '';
+          if (!el.style.cssText.trim()) el.removeAttribute('style');
+        });
+        // Nettoyer aussi les spans qui n'ont plus de couleur mais restent
+        editorClone.querySelectorAll('span').forEach(function(sp) {
+          if (sp.style && !sp.style.color && !sp.style.fontWeight &&
+              !sp.style.fontStyle && !sp.style.textDecoration) {
+            // Span vide de style utile → unwrap
+            var p = sp.parentNode;
+            if (p) { while (sp.firstChild) p.insertBefore(sp.firstChild, sp); p.removeChild(sp); }
+          }
+        });
+        content = _sanitizeHTML(editorClone.innerHTML);
       }
     }
 
