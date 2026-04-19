@@ -887,11 +887,12 @@
     // left:0 pour s'aligner sur le bouton (+), top:100% juste en dessous
     // max-width + right contraints pour ne jamais déborder à droite
     // max-height + overflow-y pour ne pas déborder en bas
+    // Le positionnement réel est fait en JS au moment de l'ouverture (position:fixed)
     var html = '<div id="diaryCoverEmojiPicker" style="display:none;' +
-      'position:absolute;top:calc(100% + 4px);left:0;' +
+      'position:fixed;' +
       'width:min(320px,calc(100vw - 32px));' +
       'max-height:260px;overflow-y:auto;-webkit-overflow-scrolling:touch;' +
-      'z-index:500;' +
+      'z-index:9999;' +
       'background:var(--s1);border:1.5px solid var(--border);border-radius:14px;' +
       'overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.18);">';
 
@@ -1107,15 +1108,44 @@
 
     if (coverEmojiBtn && coverEmojiPicker) {
       // Ouvrir/fermer
+      function _openCoverPicker() {
+        var open = coverEmojiPicker.style.display !== 'none';
+        if (open) { coverEmojiPicker.style.display = 'none'; return; }
+
+        // Calculer la position en fixed par rapport au bouton
+        var btnRect = coverEmojiBtn.getBoundingClientRect();
+        var pickerW = Math.min(320, window.innerWidth - 32);
+        var top     = btnRect.bottom + 6;
+
+        // Aligner à gauche du bouton, mais contrôler le débordement à droite
+        var left = btnRect.left;
+        if (left + pickerW > window.innerWidth - 16) {
+          // Déborde à droite → ancrer à droite de l'écran avec marge
+          left = window.innerWidth - pickerW - 16;
+        }
+        if (left < 16) left = 16; // ne pas sortir à gauche non plus
+
+        // Vérifier débordement en bas
+        var maxH = 260;
+        if (top + maxH > window.innerHeight - 20) {
+          // Afficher au-dessus du bouton si pas assez de place en bas
+          top = btnRect.top - maxH - 6;
+          if (top < 20) top = 20;
+        }
+
+        coverEmojiPicker.style.left   = left + 'px';
+        coverEmojiPicker.style.top    = top  + 'px';
+        coverEmojiPicker.style.width  = pickerW + 'px';
+        coverEmojiPicker.style.display = 'block';
+      }
+
       coverEmojiBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        var open = coverEmojiPicker.style.display !== 'none';
-        coverEmojiPicker.style.display = open ? 'none' : 'block';
+        _openCoverPicker();
       });
       coverEmojiBtn.addEventListener('touchend', function(e) {
         e.preventDefault();
-        var open = coverEmojiPicker.style.display !== 'none';
-        coverEmojiPicker.style.display = open ? 'none' : 'block';
+        _openCoverPicker();
       }, { passive: false });
 
       // Onglets catégories
@@ -1165,13 +1195,21 @@
       });
 
       // Fermer au clic extérieur
-      document.addEventListener('click', function closePicker(e) {
+      document.addEventListener('click', function(e) {
         if (coverEmojiPicker.style.display !== 'none' &&
             !coverEmojiPicker.contains(e.target) &&
             e.target !== coverEmojiBtn) {
           coverEmojiPicker.style.display = 'none';
         }
       });
+
+      // Fermer au scroll (le picker fixed ne suit pas le scroll)
+      var diaryScroll = document.getElementById('diaryEditorScroll');
+      if (diaryScroll) {
+        diaryScroll.addEventListener('scroll', function() {
+          coverEmojiPicker.style.display = 'none';
+        }, { passive: true });
+      }
     }
 
     // Insertion image dans le texte — click normal (ouvre file picker)
