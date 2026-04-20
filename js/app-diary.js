@@ -53,6 +53,7 @@
   var _saving      = false;
   var _editorImages = []; // images insérées dans l'éditeur courant
   var _canvaValid  = false;
+  var _editorCoverEmoji = null; // Fix2: emoji couverture persisté pendant l'édition
 
   // ─── 2. INIT ──────────────────────────────────────────────────────
   function _init() {
@@ -206,7 +207,7 @@
     var html = '<div style="display:flex;flex-direction:column;height:100%;background:var(--bg);overflow:hidden;">';
 
     // Header
-    html += _headerHTML('My Diary 📖', false);
+    html += _headerHTMLWithTheme('My Diary 📖');
 
     // Tabs
     html += '<div style="display:flex;gap:0;flex-shrink:0;padding:0 16px 0;margin-top:4px;">' +
@@ -323,6 +324,21 @@
   }
 
   function _bindListEvents() {
+    // Fix1 — Thème toggle
+    var _themeBtn = document.getElementById('diaryThemeToggle');
+    if (_themeBtn) {
+      _themeBtn.addEventListener('click', function() {
+        if (typeof window.applyThemeToggle === 'function') {
+          window.applyThemeToggle();
+        } else {
+          document.body.classList.toggle('theme-dark');
+        }
+        var _dark = document.body.classList.contains('theme-dark');
+        this.textContent = _dark ? '\u2600\uFE0F' : '\uD83C\uDF19';
+        haptic('light');
+      });
+    }
+
     // Tab switch
     _view.querySelectorAll('[data-diary-tab]').forEach(function(btn) {
       btn.addEventListener('click', function() {
@@ -528,9 +544,13 @@
     list.innerHTML = rows.map(function(c) {
       var isMe = c.author_role === me;
       var date = new Date(c.created_at).toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
+      // Fix6: bouton suppression sur ses propres commentaires
       return '<div style="display:flex;flex-direction:column;align-items:' + (isMe ? 'flex-end' : 'flex-start') + ';gap:2px;">' +
-        '<div style="font-size:9px;color:var(--muted);">' +
+        '<div style="font-size:9px;color:var(--muted);display:flex;align-items:center;gap:5px;">' +
           escHtml(yamGetDisplayName(c.author_role)) + ' · ' + date +
+          (isMe ? ' <button data-diary-del-comment="' + escHtml(c.id) + '" ' +
+            'style="background:none;border:none;cursor:pointer;color:rgba(255,59,48,0.75);' +
+            'font-size:11px;padding:0 2px;line-height:1;flex-shrink:0;" title="Supprimer mon commentaire">✕</button>' : '') +
         '</div>' +
         '<div style="max-width:85%;padding:8px 12px;border-radius:' + (isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px') + ';' +
           'background:' + (isMe ? 'var(--accent)' : 'var(--s2)') + ';' +
@@ -540,6 +560,24 @@
         '</div>' +
       '</div>';
     }).join('');
+
+    // Fix6: lier les boutons de suppression
+    list.querySelectorAll('[data-diary-del-comment]').forEach(function(delBtn) {
+      delBtn.addEventListener('click', function() {
+        _deleteComment(this.getAttribute('data-diary-del-comment'));
+      });
+    });
+  }
+
+  // Fix6 — Supprimer un commentaire (auteur uniquement — RLS Supabase)
+  function _deleteComment(commentId) {
+    if (!commentId || !_currentPage) return;
+    sb2Delete(COMMENT_TBL, 'id=eq.' + commentId)
+      .then(function() {
+        haptic('light');
+        _loadComments(_currentPage.id);
+      })
+      .catch(function() { showToast('Erreur suppression', 'error'); });
   }
 
   var _commentRTCh = null;
@@ -601,6 +639,8 @@
     _mode = 'edit';
     _currentPage = page;
     _editorImages = [];
+    // Fix2: mémoriser l'emoji de couverture dès l'ouverture
+    _editorCoverEmoji = (page && page.cover_emoji) ? page.cover_emoji : null;
 
     try {
       if (page && page.images) _editorImages = JSON.parse(page.images);
@@ -725,6 +765,14 @@
       _toolBtn('diaryFmtItalic','<i>I</i>',   'Italique',   'font-style:italic;') +
       // Souligné
       _toolBtn('diaryFmtUnder', '<u>S</u>',   'Souligné',   '') +
+      // Undo/Redo — Fix5
+      _toolBtn('diaryFmtUndo',  '&#x21A9;',  'Annuler',    '') +
+      _toolBtn('diaryFmtRedo',  '&#x21AA;',  'Rétablir',   '') +
+      // Taille — Fix3
+      '<button id="diaryFmtSize" title="Taille du texte" ' +
+        'style="min-width:34px;height:28px;padding:0 7px;border-radius:8px;' +
+        'border:1px solid var(--border);background:var(--s1);cursor:pointer;' +
+        'font-size:11px;font-weight:700;color:var(--text);">Aa</button>' +
       // Couleur texte
       _toolBtn('diaryFmtColor', '🎨',          'Couleur',    '') +
       // Alignement centre
@@ -808,6 +856,14 @@
           'border-radius:8px;border:1px solid var(--border);background:var(--s2);cursor:pointer;">' + e + '</button>';
       }).join('') +
     '</div>';
+
+    // Panneau taille — Fix3
+    var _FS = [{l:'Petit',px:11},{l:'Normal',px:15},{l:'Moyen',px:18},{l:'Grand',px:22},{l:'Titre',px:28},{l:'Géant',px:36}];
+    html += '<div id="diarySizePicker" style="display:none;flex-wrap:wrap;gap:6px;padding:8px;background:var(--s1);border-radius:10px;border:1px solid var(--border);margin-bottom:8px;">';
+    _FS.forEach(function(s){
+      html += '<button data-diary-size="'+s.px+'" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--s2);cursor:pointer;font-family:Georgia,serif;font-size:'+s.px+'px;line-height:1.4;color:var(--text);">'+escHtml(s.l)+'</button>';
+    });
+    html += '</div>';
 
     // Éditeur contenteditable
     html += '<div id="diaryEditor" contenteditable="true" spellcheck="true" ' +
@@ -1185,6 +1241,8 @@
         });
         this.style.border = '2.5px solid var(--accent)';
         this.style.boxShadow = '0 0 0 2px var(--accent-s)';
+        // Fix2: emoji de la palette sélectionnée
+        _editorCoverEmoji = this.getAttribute('data-cover-emoji');
       });
     });
 
@@ -1518,7 +1576,11 @@
       if (!colorPicker) return;
       colorPicker.style.display = colorPicker.style.display === 'none' ? 'flex' : 'none';
       var ep = document.getElementById('diaryEmojiPicker');
+      var sp = document.getElementById('diarySizePicker');
+      var lm = document.getElementById('diaryListMenu');
       if (ep) ep.style.display = 'none';
+      if (sp) sp.style.display = 'none';
+      if (lm) lm.style.display = 'none';
     });
     // Mettre à jour l'indicateur de couleur active dans le picker
     function _updateActiveColor() {
@@ -1609,7 +1671,11 @@
     _bindFmt('diaryFmtEmoji', function() {
       if (!emojiPicker) return;
       emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'flex' : 'none';
+      var sp = document.getElementById('diarySizePicker');
+      var lm = document.getElementById('diaryListMenu');
       if (colorPicker) colorPicker.style.display = 'none';
+      if (sp) sp.style.display = 'none';
+      if (lm) lm.style.display = 'none';
     });
     if (emojiPicker) emojiPicker.querySelectorAll('[data-diary-emoji]').forEach(function(btn) {
       function insertEmoji() {
@@ -1621,6 +1687,64 @@
       btn.addEventListener('mousedown', function(e) { e.preventDefault(); insertEmoji(); });
       btn.addEventListener('touchend',  function(e) { e.preventDefault(); insertEmoji(); }, { passive: false });
     });
+
+    // Fix5 — Undo / Redo
+    _bindFmt('diaryFmtUndo', function() {
+      _restoreSelection();
+      document.execCommand('undo', false, null);
+      _saveSelection(); _updateToolbarState();
+    });
+    _bindFmt('diaryFmtRedo', function() {
+      _restoreSelection();
+      document.execCommand('redo', false, null);
+      _saveSelection(); _updateToolbarState();
+    });
+
+    // Fix3 — Size picker
+    var sizePicker = document.getElementById('diarySizePicker');
+    _bindFmt('diaryFmtSize', function() {
+      if (!sizePicker) return;
+      var open = sizePicker.style.display !== 'none';
+      sizePicker.style.display = open ? 'none' : 'flex';
+      var _cp = document.getElementById('diaryColorPicker');
+      var _ep = document.getElementById('diaryEmojiPicker');
+      var _lm = document.getElementById('diaryListMenu');
+      if (_cp) _cp.style.display = 'none';
+      if (_ep) _ep.style.display = 'none';
+      if (_lm) _lm.style.display = 'none';
+    });
+    if (sizePicker) {
+      sizePicker.querySelectorAll('[data-diary-size]').forEach(function(sBtn) {
+        function _doSize() {
+          var px = sBtn.getAttribute('data-diary-size');
+          _restoreSelection();
+          var sel = window.getSelection();
+          if (!sel || sel.rangeCount === 0) { sizePicker.style.display = 'none'; return; }
+          var range = sel.getRangeAt(0);
+          if (range.collapsed) { sizePicker.style.display = 'none'; return; }
+          var nodes = _getTextNodesInRange(range);
+          if (!nodes.length) { sizePicker.style.display = 'none'; return; }
+          nodes.forEach(function(info) {
+            var node = info.node, s = info.start, e = info.end;
+            if (e < node.length) node.splitText(e);
+            var t = (s > 0) ? node.splitText(s) : node;
+            var par = t.parentNode;
+            if (par && par.tagName === 'SPAN' && par.style.fontSize) {
+              par.style.fontSize = px + 'px'; return;
+            }
+            var sp = document.createElement('span');
+            sp.style.fontSize = px + 'px';
+            sp.style.display  = 'inline';
+            par.insertBefore(sp, t);
+            sp.appendChild(t);
+          });
+          sizePicker.style.display = 'none';
+          _saveSelection();
+        }
+        sBtn.addEventListener('mousedown', function(e) { e.preventDefault(); _doSize(); });
+        sBtn.addEventListener('touchend',  function(e) { e.preventDefault(); _doSize(); }, { passive: false });
+      });
+    }
 
     // ── Picker emoji couverture ──
     var coverEmojiBtn    = document.getElementById('diaryAddCoverEmoji');
@@ -1691,6 +1815,8 @@
       coverEmojiPicker.querySelectorAll('[data-cover-emoji-pick]').forEach(function(btn) {
         function pickEmoji() {
           var emoji = btn.getAttribute('data-cover-emoji-pick');
+          // Fix2: stocker l'emoji custom choisi
+          _editorCoverEmoji = emoji;
           // Mettre à jour le bouton couverture sélectionné avec ce nouvel emoji
           var selectedCoverBtn = _view.querySelector('[data-cover-bg][style*="var(--accent)"]');
           if (!selectedCoverBtn) {
@@ -1979,19 +2105,48 @@
       var path = 'diary/' + u.couple_id + '/' + Date.now() + '.jpg';
       _uploadToStorage(blob, path, function(url) {
         if (!url) { showToast('Erreur upload', 'error'); return; }
+        // Fix4: stocker pour sauvegarde (sans afficher la galerie doublon)
         _editorImages.push({ url: url, slot: Date.now() });
-        _renderEditorImages();
-        // Insérer dans l'éditeur aussi
-        var editor = document.getElementById('diaryEditor');
-        if (editor) {
-          editor.focus();
-          document.execCommand('insertHTML', false,
-            '<img src="' + escHtml(url) + '" style="max-width:100%;border-radius:10px;margin:6px 0;" alt="">');
+        // Fix4: insérer UNE seule fois — wrapper resizable dans l'éditeur
+        var editorEl = document.getElementById('diaryEditor');
+        if (editorEl) {
+          editorEl.focus();
+          var imgHtml =
+            '<span contenteditable="false" class="diary-img-wrap" ' +
+              'style="display:inline-block;position:relative;max-width:92%;width:280px;' +
+              'resize:both;overflow:hidden;border-radius:10px;margin:8px 2px;' +
+              'vertical-align:bottom;min-width:80px;min-height:50px;' +
+              'box-shadow:0 2px 8px rgba(0,0,0,0.15);">' +
+              '<img src="' + escHtml(url) + '" ' +
+                'style="width:100%;height:auto;display:block;border-radius:10px;pointer-events:none;" ' +
+                'alt="" draggable="false">' +
+              '<span style="position:absolute;bottom:4px;right:4px;width:14px;height:14px;' +
+                'border-right:2.5px solid rgba(255,255,255,0.85);' +
+                'border-bottom:2.5px solid rgba(255,255,255,0.85);' +
+                'pointer-events:none;border-radius:0 0 3px 0;"></span>' +
+            '</span>&nbsp;';
+          document.execCommand('insertHTML', false, imgHtml);
+          _injectImgWrapCSS();
         }
-        showToast('Image ajoutée ✨', 'success');
+        showToast('Image insérée ✨ — Tire le coin pour la redimensionner', 'success', 3500);
         haptic('success');
       });
     });
+  }
+
+  // Fix4 — CSS du wrapper image resizable (injecté une seule fois)
+  function _injectImgWrapCSS() {
+    if (document.getElementById('diary-img-wrap-css')) return;
+    var s = document.createElement('style');
+    s.id = 'diary-img-wrap-css';
+    s.textContent = [
+      '.diary-img-wrap { cursor: default; box-sizing: border-box; }',
+      '.diary-img-wrap:focus { outline: 2px solid var(--accent); outline-offset: 2px; }',
+      /* Lecture */
+      '.diary-rich-content .diary-img-wrap { display:inline-block;max-width:100%;border-radius:10px;overflow:hidden;margin:6px 2px;vertical-align:bottom; }',
+      '.diary-rich-content .diary-img-wrap img { width:100%;height:auto;display:block; }',
+    ].join(' ');
+    document.head.appendChild(s);
   }
 
   function _handleBgImageUpload(file) {
@@ -2302,6 +2457,26 @@
   function _bindHeaderBack() {
     var btn = document.getElementById('diaryHeaderBack');
     if (btn) btn.addEventListener('click', window.diaryClose);
+  }
+
+  // Fix1 — Header avec toggle thème (page liste uniquement)
+  function _headerHTMLWithTheme(title) {
+    var isDark = document.body.classList.contains('theme-dark');
+    return '<div style="flex-shrink:0;background:var(--bg);border-bottom:1px solid var(--border);' +
+      'padding:calc(var(--safe-top,0px) + 10px) 16px 12px;">' +
+      '<div style="display:flex;align-items:center;gap:10px;">' +
+        '<button id="diaryHeaderBack" style="width:34px;height:34px;border-radius:50%;background:var(--s2);' +
+          'border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;">' +
+          '<svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round"><polyline points="7 1 1 7 7 13"/></svg>' +
+        '</button>' +
+        '<div style="flex:1;font-size:17px;font-weight:700;color:var(--text);">' + escHtml(title) + '</div>' +
+        '<button id="diaryThemeToggle" title="Changer le thème" ' +
+          'style="width:34px;height:34px;border-radius:50%;background:var(--s2);' +
+          'border:1px solid var(--border);display:flex;align-items:center;justify-content:center;' +
+          'cursor:pointer;font-size:16px;transition:transform 0.2s;">' +
+          (isDark ? '\u2600\uFE0F' : '\uD83C\uDF19') +
+        '</button>' +
+      '</div></div>';
   }
 
   // Injecter CSS éditeur (placeholder + rich content styles)
