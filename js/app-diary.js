@@ -405,12 +405,12 @@
     html += '<div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--safe-bottom,0px) + 80px);">';
 
     if (isCanva && page.canva_url) {
-      // Canva : carte oEmbed (iframe bloqué par CSP Canva côté serveur)
-      html += '<div id="diaryCanvaCard" data-canva-url="' + escHtml(page.canva_url) + '">' +
-        _canvaFallbackCard(page.canva_url, true) +
+      // Carte Canva avec aperçu oEmbed + bouton "Voir in-app"
+      html += '<div id="diaryCanvaCard" data-canva-url="' + escHtml(page.canva_url) + '" style="margin:16px;">' +
+        _canvaCard(page.canva_url) +
       '</div>';
       if (page.content) {
-        html += '<div style="padding:16px 18px 4px;">' +
+        html += '<div style="padding:0 18px 4px;">' +
           '<div class="diary-rich-content">' + _sanitizeHTML(page.content) + '</div>' +
         '</div>';
       }
@@ -2698,66 +2698,118 @@
 
   // Valider URL Canva
   // Valider URL Canva — accepte www.canva.com/design/... ET canva.link/... (raccourcis)
-  // Carte Canva avec oEmbed (thumbnail + titre récupérés dynamiquement)
-  // Affiche d'abord une carte de base, puis enrichit via fetch oEmbed
-  function _canvaFallbackCard(url, large) {
-    // Carte de base affichée immédiatement
-    if (large) {
-      return '<div style="margin:16px;padding:24px;background:var(--s2);border-radius:18px;' +
-        'border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;gap:14px;">' +
-        '<div style="font-size:44px;">📐</div>' +
-        '<div id="canva-oembed-title" style="font-size:15px;font-weight:700;color:var(--text);">Présentation Canva</div>' +
-        '<div id="canva-oembed-thumb"></div>' +
-        '<a href="' + escHtml(url) + '" target="_blank" rel="noopener noreferrer" ' +
-          'style="display:inline-flex;align-items:center;gap:6px;padding:12px 26px;border-radius:22px;' +
-          'background:var(--accent);color:#fff;font-size:13px;font-weight:700;' +
-          'text-decoration:none;font-family:DM Sans,sans-serif;">↗ Ouvrir dans Canva</a>' +
-      '</div>';
-    } else {
-      return '<div style="padding:14px;background:var(--s2);border-radius:12px;border:1px solid var(--border);' +
-        'display:flex;align-items:center;gap:12px;">' +
-        '<div id="canva-oembed-thumb-sm" style="width:52px;height:36px;border-radius:6px;' +
-          'background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">📐</div>' +
+  // Carte Canva : thumbnail oEmbed + bouton "Voir" qui ouvre un viewer in-app
+  function _canvaCard(url) {
+    return '<div style="background:var(--s2);border-radius:18px;border:1px solid var(--border);' +
+      'overflow:hidden;">' +
+      // Zone thumbnail — affiche aperçu oEmbed ou placeholder
+      '<div id="canva-thumb-wrap" style="width:100%;min-height:180px;background:var(--s3);' +
+        'display:flex;align-items:center;justify-content:center;position:relative;">' +
+        '<div style="font-size:48px;">📐</div>' +
+      '</div>' +
+      // Footer carte
+      '<div style="padding:14px 16px;display:flex;align-items:center;gap:10px;">' +
         '<div style="flex:1;min-width:0;">' +
-          '<div id="canva-oembed-title-sm" style="font-size:12px;font-weight:700;color:var(--text);' +
+          '<div id="canva-card-title" style="font-size:14px;font-weight:700;color:var(--text);' +
             'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Présentation Canva</div>' +
-          '<div style="font-size:10px;color:var(--muted);margin-top:2px;">canva.com</div>' +
+          '<div style="font-size:11px;color:var(--muted);margin-top:2px;">canva.com</div>' +
         '</div>' +
-        '<a href="' + escHtml(url) + '" target="_blank" rel="noopener noreferrer" ' +
-          'style="flex-shrink:0;padding:7px 14px;border-radius:14px;background:var(--accent);color:#fff;' +
-          'font-size:11px;font-weight:700;text-decoration:none;font-family:DM Sans,sans-serif;">↗ Ouvrir</a>' +
-      '</div>';
-    }
+        // Bouton viewer in-app
+        '<button id="diaryCanvaViewBtn" ' +
+          'style="flex-shrink:0;padding:9px 18px;border-radius:18px;border:none;' +
+          'background:var(--accent);color:#fff;font-size:12px;font-weight:700;' +
+          'cursor:pointer;font-family:DM Sans,sans-serif;">' +
+          '▶ Voir' +
+        '</button>' +
+      '</div>' +
+    '</div>';
   }
 
-  // Enrichir la carte Canva via oEmbed (thumbnail + titre réels)
+  // Carte compacte pour l'éditeur
+  function _canvaFallbackCard(url, large) {
+    if (large) return _canvaCard(url);
+    return '<div style="padding:12px 14px;background:var(--s2);border-radius:12px;' +
+      'border:1px solid var(--border);display:flex;align-items:center;gap:10px;">' +
+      '<div id="canva-thumb-wrap" style="width:48px;height:34px;border-radius:6px;' +
+        'background:var(--s3);display:flex;align-items:center;justify-content:center;' +
+        'font-size:18px;flex-shrink:0;">📐</div>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div id="canva-card-title" style="font-size:12px;font-weight:700;color:var(--text);' +
+          'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Présentation Canva</div>' +
+        '<div style="font-size:10px;color:var(--muted);">canva.com</div>' +
+      '</div>' +
+      '<button id="diaryCanvaViewBtn" ' +
+        'style="flex-shrink:0;padding:7px 14px;border-radius:14px;border:none;' +
+        'background:var(--accent);color:#fff;font-size:11px;font-weight:700;' +
+        'cursor:pointer;font-family:DM Sans,sans-serif;">▶ Voir</button>' +
+    '</div>';
+  }
+
+  // Enrichir la carte via oEmbed (thumbnail réelle)
   function _loadCanvaOembed(containerEl, url, large) {
     if (!containerEl || !url) return;
+    // Bind le bouton Voir → ouvre le viewer in-app
+    var viewBtn = containerEl.querySelector('#diaryCanvaViewBtn');
+    if (viewBtn) {
+      viewBtn.addEventListener('click', function() { _openCanvaViewer(url); });
+      viewBtn.addEventListener('touchend', function(e) {
+        e.preventDefault(); _openCanvaViewer(url);
+      }, { passive: false });
+    }
+    // Fetch oEmbed pour la thumbnail
     var oembed = 'https://www.canva.com/api/oembed?url=' + encodeURIComponent(url) + '&format=json';
     fetch(oembed)
       .then(function(r) { return r.ok ? r.json() : null; })
       .then(function(data) {
         if (!data) return;
-        // Mettre à jour le titre
-        var titleEl = containerEl.querySelector(large ? '#canva-oembed-title' : '#canva-oembed-title-sm');
+        var titleEl = containerEl.querySelector('#canva-card-title');
         if (titleEl && data.title) titleEl.textContent = data.title;
-        // Mettre à jour la thumbnail
         if (data.thumbnail_url) {
-          var thumbEl = containerEl.querySelector(large ? '#canva-oembed-thumb' : '#canva-oembed-thumb-sm');
-          if (thumbEl) {
-            if (large) {
-              thumbEl.innerHTML = '<img src="' + escHtml(data.thumbnail_url) + '" ' +
-                'style="width:100%;max-width:320px;border-radius:10px;box-shadow:var(--sh-sm);" ' +
-                'alt="Aperçu Canva">';
-            } else {
-              thumbEl.innerHTML = '<img src="' + escHtml(data.thumbnail_url) + '" ' +
-                'style="width:52px;height:36px;object-fit:cover;border-radius:6px;display:block;" ' +
-                'alt="">';
-            }
+          var wrap = containerEl.querySelector('#canva-thumb-wrap');
+          if (wrap) {
+            wrap.innerHTML = '<img src="' + escHtml(data.thumbnail_url) + '" ' +
+              'style="width:100%;height:100%;object-fit:cover;display:block;" alt="Aperçu">';
           }
         }
       })
-      .catch(function() {}); // oEmbed indisponible → carte de base reste affichée
+      .catch(function() {});
+  }
+
+  // Viewer Canva in-app : overlay plein écran avec iframe no-referrer
+  // En PWA, le referrer est null → contourne souvent le frame-ancestors Canva
+  function _openCanvaViewer(url) {
+    var viewUrl = _sanitizeCanvaUrl(url) || url;
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:#000;' +
+      'display:flex;flex-direction:column;';
+
+    // Barre top avec bouton fermer
+    var bar = document.createElement('div');
+    bar.style.cssText = 'flex-shrink:0;height:calc(var(--safe-top,0px) + 44px);' +
+      'background:rgba(0,0,0,0.85);display:flex;align-items:flex-end;' +
+      'justify-content:space-between;padding:0 16px 8px;box-sizing:border-box;';
+    bar.innerHTML =
+      '<div style="color:#fff;font-size:13px;font-weight:600;font-family:DM Sans,sans-serif;">📐 Canva</div>' +
+      '<button id="canvaViewerClose" style="background:rgba(255,255,255,0.15);border:none;' +
+        'color:#fff;font-size:13px;font-weight:700;padding:6px 14px;border-radius:14px;' +
+        'cursor:pointer;font-family:DM Sans,sans-serif;">✕ Fermer</button>';
+    overlay.appendChild(bar);
+
+    // iframe sans sandbox, referrer masqué
+    var iframe = document.createElement('iframe');
+    iframe.src = viewUrl;
+    iframe.style.cssText = 'flex:1;width:100%;border:none;';
+    iframe.setAttribute('referrerpolicy', 'no-referrer');
+    iframe.setAttribute('allow', 'fullscreen; autoplay');
+    overlay.appendChild(iframe);
+
+    document.body.appendChild(overlay);
+    haptic('light');
+
+    // Fermer
+    bar.querySelector('#canvaViewerClose').addEventListener('click', function() {
+      document.body.removeChild(overlay);
+    });
   }
 
   // Valider un lien Canva (accepte /view, /edit, canva.link)
