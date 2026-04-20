@@ -817,19 +817,15 @@
     }
     html += '</div>';
 
-    // Toolbar formatage — dans le flux, juste sous l'éditeur
+    // Ligne 1 — Toolbar formatage (sans undo/redo)
     html += '<div id="diaryToolbar" style="display:flex;flex-wrap:nowrap;overflow-x:auto;gap:5px;' +
-      'margin-top:6px;padding:5px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch;">' +
-      // Undo / Redo en tête
-      _toolBtn('diaryFmtUndo', '&#x21A9;', 'Annuler',  'flex-shrink:0;font-size:14px;') +
-      _toolBtn('diaryFmtRedo', '&#x21AA;', 'Rétablir', 'flex-shrink:0;font-size:14px;') +
-      '<div style="width:1px;height:28px;background:var(--border);flex-shrink:0;align-self:center;"></div>' +
+      'margin-top:6px;padding:4px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch;">' +
       _toolBtn('diaryFmtH2',    '<b>T</b>', 'Titre',    'flex-shrink:0;font-size:15px;') +
       _toolBtn('diaryFmtBold',  '<b>B</b>', 'Gras',     'flex-shrink:0;font-weight:800;') +
       _toolBtn('diaryFmtItalic','<i style="font-style:italic;font-family:Georgia,serif;font-size:13px;">I</i>', 'Italique', 'flex-shrink:0;') +
       _toolBtn('diaryFmtUnder', '<u>S</u>', 'Souligné', 'flex-shrink:0;') +
       '<button id="diaryFmtSize" title="Taille" style="min-width:34px;height:28px;padding:0 7px;border-radius:8px;flex-shrink:0;border:1px solid var(--border);background:var(--s1);cursor:pointer;font-size:11px;font-weight:700;color:var(--text);">Aa</button>' +
-      _toolBtn('diaryFmtColor',  '🎨', 'Couleur',    'flex-shrink:0;') +
+      _toolBtn('diaryFmtColor', '🎨', 'Couleur', 'flex-shrink:0;') +
       '<button id="diaryFmtCenter" title="Centrer" style="min-width:30px;height:28px;padding:0 6px;border-radius:8px;flex-shrink:0;border:1px solid var(--border);background:var(--s1);cursor:pointer;display:flex;align-items:center;justify-content:center;">' +
         '<svg width="14" height="12" viewBox="0 0 14 12" fill="currentColor" style="display:block;">' +
           '<rect x="1" y="0" width="12" height="2" rx="1"/><rect x="2.5" y="3.5" width="9" height="2" rx="1"/>' +
@@ -842,18 +838,26 @@
           '<circle cx="1.5" cy="11" r="1.5"/><rect x="5" y="10" width="9" height="2" rx="1"/>' +
         '</svg></button>' +
       _toolBtn('diaryFmtHR',  '—',   'Séparateur', 'flex-shrink:0;') +
-      _toolBtn('diaryFmtImg', '🖼️', 'Image',       'flex-shrink:0;') +
+      _toolBtn('diaryFmtImg', '📸', 'Image',       'flex-shrink:0;') +
     '</div>';
 
-    // Image de fond
-    html += '<div style="margin-top:12px;display:flex;gap:8px;align-items:center;">' +
-      '<button id="diaryBgImgBtn" style="padding:7px 14px;border-radius:20px;font-size:11px;font-weight:700;' +
-        'border:1px solid var(--border);background:var(--s2);color:var(--sub);cursor:pointer;' +
-        'font-family:DM Sans,sans-serif;">🖼️ Image de fond</button>' +
-      (page && page.bg_image_url ?
-        '<img src="' + escHtml(page.bg_image_url) + '" style="width:36px;height:36px;border-radius:8px;object-fit:cover;">' +
-        '<button id="diaryBgImgDel" style="font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;">✕</button>'
-        : '') +
+    // Ligne 2 — Image de fond (gauche) + Annuler/Rétablir (droite)
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;gap:8px;">' +
+      // Gauche : bouton image de fond + preview
+      '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<button id="diaryBgImgBtn" style="padding:7px 14px;border-radius:20px;font-size:11px;font-weight:700;' +
+          'border:1px solid var(--border);background:var(--s2);color:var(--sub);cursor:pointer;' +
+          'font-family:DM Sans,sans-serif;white-space:nowrap;">🖼️ Image de fond</button>' +
+        (page && page.bg_image_url ?
+          '<img src="' + escHtml(page.bg_image_url) + '" style="width:32px;height:32px;border-radius:8px;object-fit:cover;flex-shrink:0;">' +
+          '<button id="diaryBgImgDel" style="font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;">✕</button>'
+          : '') +
+      '</div>' +
+      // Droite : Annuler + Rétablir
+      '<div style="display:flex;gap:5px;flex-shrink:0;">' +
+        _toolBtn('diaryFmtUndo', '&#x21A9;', 'Annuler',  'font-size:14px;') +
+        _toolBtn('diaryFmtRedo', '&#x21AA;', 'Rétablir', 'font-size:14px;') +
+      '</div>' +
     '</div>';
 
     // Fix5: galerie supprimée — images gérées directement dans l'éditeur contenteditable
