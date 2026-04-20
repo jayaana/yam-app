@@ -406,10 +406,24 @@
     html += '<div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--safe-bottom,0px) + 80px);">';
 
     if (isCanva && page.canva_url) {
-      // Carte Canva avec aperçu oEmbed + bouton "Voir in-app"
-      html += '<div id="diaryCanvaCard" data-canva-url="' + escHtml(page.canva_url) + '" style="margin:16px;">' +
-        _canvaCard(page.canva_url) +
-      '</div>';
+      var _rEmbedUrl = _sanitizeCanvaUrl(page.canva_url);
+      // Afficher l'iframe directement si on a un lien embedable
+      if (_rEmbedUrl) {
+        html += '<div style="position:relative;width:100%;">' +
+          // iframe officiel Canva /view?embed — pas de sandbox
+          '<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;">' +
+            '<iframe src="' + escHtml(_rEmbedUrl) + '" ' +
+              'style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;" ' +
+              'allowfullscreen allow="fullscreen">' +
+            '</iframe>' +
+          '</div>' +
+        '</div>';
+      } else {
+        // Pas de lien embedable → carte avec bouton Voir
+        html += '<div id="diaryCanvaCard" data-canva-url="' + escHtml(page.canva_url) + '" style="margin:16px;">' +
+          _canvaCard(page.canva_url) +
+        '</div>';
+      }
       if (page.content) {
         html += '<div style="padding:0 18px 4px;">' +
           '<div class="diary-rich-content">' + _sanitizeHTML(page.content) + '</div>' +
@@ -875,9 +889,9 @@
     html += '<div id="diaryCanvaSection" style="display:' + (isCanva ? 'block' : 'none') + ';">';
     html += '<div style="margin-bottom:10px;">' +
       '<div style="font-size:11px;color:var(--muted);margin-bottom:6px;line-height:1.6;">' +
-        '📐 <strong>Colle le lien de ta présentation Canva</strong>.<br>' +
-        'Dans Canva : <strong>Partager → Copier le lien</strong> (lien /design/…).<br>' +
-        '<span style="color:var(--accent);">✓</span> Les liens /view et /edit sont acceptés — l\u2019aperçu s\u2019affiche directement.' +
+        '📐 <strong>Colle le lien d\u2019intégration Canva</strong>.<br>' +
+        'Dans Canva : <strong>Partager → Intégrer → Lien d\u2019intégration intelligent</strong><br>' +
+        '<span style="color:var(--accent);">✓</span> Ce lien (/view?embed) permet l\u2019affichage direct dans l\u2019app.' +
       '</div>' +
       '<div style="display:flex;gap:8px;">' +
         '<input id="diaryCanvaInput" type="url" placeholder="https://www.canva.com/design/…" ' +
@@ -2809,38 +2823,53 @@
   // Viewer Canva in-app : overlay plein écran avec iframe no-referrer
   // En PWA installée, le referrer est null → souvent accepté par Canva
   function _openCanvaViewer(url, viewUrlOverride) {
+    // Utiliser le lien /view?embed officiel Canva (Partager → Intégrer)
+    // Ce lien est autorisé en iframe par Canva contrairement au lien de partage normal
     var viewUrl = viewUrlOverride || _sanitizeCanvaUrl(url) || url;
+
     var overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:#000;' +
       'display:flex;flex-direction:column;';
 
-    // Barre top avec bouton fermer
+    // Barre top
     var bar = document.createElement('div');
-    bar.style.cssText = 'flex-shrink:0;height:calc(var(--safe-top,0px) + 44px);' +
-      'background:rgba(0,0,0,0.85);display:flex;align-items:flex-end;' +
-      'justify-content:space-between;padding:0 16px 8px;box-sizing:border-box;';
+    bar.style.cssText =
+      'flex-shrink:0;height:calc(var(--safe-top,0px) + 48px);' +
+      'background:rgba(15,15,15,0.96);display:flex;align-items:flex-end;' +
+      'justify-content:space-between;padding:0 16px 10px;box-sizing:border-box;' +
+      'border-bottom:1px solid rgba(255,255,255,0.08);';
     bar.innerHTML =
-      '<div style="color:#fff;font-size:13px;font-weight:600;font-family:DM Sans,sans-serif;">📐 Canva</div>' +
-      '<button id="canvaViewerClose" style="background:rgba(255,255,255,0.15);border:none;' +
-        'color:#fff;font-size:13px;font-weight:700;padding:6px 14px;border-radius:14px;' +
+      '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<span style="font-size:18px;">📐</span>' +
+        '<span style="color:#fff;font-size:14px;font-weight:600;font-family:DM Sans,sans-serif;">Canva</span>' +
+      '</div>' +
+      '<button id="canvaViewerClose" style="background:rgba(255,255,255,0.12);border:none;' +
+        'color:#fff;font-size:13px;font-weight:700;padding:7px 16px;border-radius:16px;' +
         'cursor:pointer;font-family:DM Sans,sans-serif;">✕ Fermer</button>';
     overlay.appendChild(bar);
 
-    // iframe sans sandbox, referrer masqué
+    // iframe avec le lien d'intégration officiel Canva — PAS de sandbox
     var iframe = document.createElement('iframe');
     iframe.src = viewUrl;
-    iframe.style.cssText = 'flex:1;width:100%;border:none;';
-    iframe.setAttribute('referrerpolicy', 'no-referrer');
-    iframe.setAttribute('allow', 'fullscreen; autoplay');
+    iframe.style.cssText = 'flex:1;width:100%;border:none;background:#fff;';
+    iframe.setAttribute('allowfullscreen', '');
+    iframe.setAttribute('allow', 'fullscreen');
+    // Pas de referrerpolicy restrictif — le lien /view?embed est autorisé par Canva
     overlay.appendChild(iframe);
 
     document.body.appendChild(overlay);
     haptic('light');
 
-    // Fermer
     bar.querySelector('#canvaViewerClose').addEventListener('click', function() {
       document.body.removeChild(overlay);
     });
+    // Fermer aussi avec le bouton retour matériel (Android)
+    var _onPop = function() {
+      if (document.body.contains(overlay)) document.body.removeChild(overlay);
+      window.removeEventListener('popstate', _onPop);
+    };
+    history.pushState({ canvaViewer: true }, '');
+    window.addEventListener('popstate', _onPop);
   }
 
   // Valider un lien Canva (accepte /view, /edit, canva.link)
