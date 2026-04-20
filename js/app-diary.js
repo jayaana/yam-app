@@ -761,54 +761,7 @@
 
     // ── Zone texte riche ──
     html += '<div id="diaryTextSection" style="display:' + (isCanva ? 'none' : 'block') + ';">';
-
-    // Toolbar formatage
-    html += '<div id="diaryToolbar" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;' +
-      'padding:8px 10px;background:var(--s2);border-radius:12px;border:1px solid var(--border);">' +
-
-      // Titre H2
-      _toolBtn('diaryFmtH2',    '<b>T</b>',   'Titre',      'font-size:16px;') +
-      // Gras
-      _toolBtn('diaryFmtBold',  '<b>B</b>',   'Gras',       'font-weight:800;') +
-      // Italique
-      _toolBtn('diaryFmtItalic','<i style="font-style:italic;font-family:Georgia,serif;font-size:13px;">I</i>', 'Italique', '') +
-      // Souligné
-      _toolBtn('diaryFmtUnder', '<u>S</u>',   'Souligné',   '') +
-      // Taille — Fix3
-      '<button id="diaryFmtSize" title="Taille du texte" ' +
-        'style="min-width:34px;height:28px;padding:0 7px;border-radius:8px;' +
-        'border:1px solid var(--border);background:var(--s1);cursor:pointer;' +
-        'font-size:11px;font-weight:700;color:var(--text);">Aa</button>' +
-      // Couleur texte
-      _toolBtn('diaryFmtColor', '🎨',          'Couleur',    '') +
-      // Alignement centre
-      _toolBtn('diaryFmtCenter',
-        '<svg width="14" height="12" viewBox="0 0 14 12" fill="currentColor" style="display:block;">' +
-          '<rect x="1" y="0" width="12" height="2" rx="1"/>' +
-          '<rect x="2.5" y="3.5" width="9" height="2" rx="1"/>' +
-          '<rect x="1" y="7" width="12" height="2" rx="1"/>' +
-          '<rect x="2.5" y="10.5" width="9" height="2" rx="1"/>' +
-        '</svg>',
-        'Centrer/Gauche', '') +
-      // Liste — icône SVG avec puce + texte (distinct du centrage)
-      '<button id="diaryFmtList" title="Type de liste" ' +
-        'style="min-width:30px;height:28px;padding:0 7px;border-radius:8px;' +
-        'border:1px solid var(--border);background:var(--s1);cursor:pointer;' +
-        'display:flex;align-items:center;justify-content:center;">' +
-        '<svg width="15" height="13" viewBox="0 0 15 13" fill="currentColor">' +
-          '<circle cx="1.5" cy="2" r="1.5"/>' +
-          '<rect x="5" y="1" width="9" height="2" rx="1"/>' +
-          '<circle cx="1.5" cy="6.5" r="1.5"/>' +
-          '<rect x="5" y="5.5" width="9" height="2" rx="1"/>' +
-          '<circle cx="1.5" cy="11" r="1.5"/>' +
-          '<rect x="5" y="10" width="9" height="2" rx="1"/>' +
-        '</svg>' +
-      '</button>' +
-      // Trait séparateur
-      _toolBtn('diaryFmtHR',    '—',           'Séparateur', '') +
-      // Image insérée
-      _toolBtn('diaryFmtImg',   '🖼️',          'Image',      '') +
-    '</div>';
+    // (toolbar déplacée en position:fixed bas — voir après le scroll)
 
     // Couleur picker (hidden)
     html += '<div id="diaryColorPicker" style="display:none;flex-wrap:wrap;gap:6px;' +
@@ -971,10 +924,66 @@
         '🗑️ Supprimer cette page</button>';
     }
 
-    html += '<div style="height:24px;"></div>';
+    html += '<div style="height:80px;"></div>'; // espace pour la toolbar fixed
 
     html += '</div>'; // scroll
     html += '</div>'; // wrap
+
+    // ── Toolbar fixed en bas — remonte avec le clavier iOS ──
+    html += '<div id="diaryToolbar" style="' +
+      'position:fixed;bottom:0;left:0;right:0;z-index:99;' +
+      'background:var(--bg);border-top:1px solid var(--border);' +
+      'padding:6px 10px calc(var(--safe-bottom,0px) + 6px);' +
+      'display:flex;flex-wrap:nowrap;overflow-x:auto;gap:5px;' +
+      'scrollbar-width:none;-webkit-overflow-scrolling:touch;' +
+      'box-sizing:border-box;">' +
+
+      // Titre H2
+      _toolBtn('diaryFmtH2',    '<b>T</b>',   'Titre',      'font-size:16px;') +
+      // Gras
+      _toolBtn('diaryFmtBold',  '<b>B</b>',   'Gras',       'font-weight:800;') +
+      // Italique
+      _toolBtn('diaryFmtItalic','<i style="font-style:italic;font-family:Georgia,serif;font-size:13px;">I</i>', 'Italique', '') +
+      // Souligné
+      _toolBtn('diaryFmtUnder', '<u>S</u>',   'Souligné',   '') +
+      // Taille
+      '<button id="diaryFmtSize" title="Taille du texte" ' +
+        'style="min-width:34px;height:32px;padding:0 8px;border-radius:8px;flex-shrink:0;' +
+        'border:1px solid var(--border);background:var(--s1);cursor:pointer;' +
+        'font-size:11px;font-weight:700;color:var(--text);">Aa</button>' +
+      // Couleur texte
+      _toolBtn('diaryFmtColor', '🎨', 'Couleur', 'flex-shrink:0;') +
+      // Alignement centre
+      '<button id="diaryFmtCenter" title="Centrer/Gauche" ' +
+        'style="min-width:32px;height:32px;padding:0 7px;border-radius:8px;flex-shrink:0;' +
+        'border:1px solid var(--border);background:var(--s1);cursor:pointer;' +
+        'display:flex;align-items:center;justify-content:center;">' +
+        '<svg width="14" height="12" viewBox="0 0 14 12" fill="currentColor" style="display:block;">' +
+          '<rect x="1" y="0" width="12" height="2" rx="1"/>' +
+          '<rect x="2.5" y="3.5" width="9" height="2" rx="1"/>' +
+          '<rect x="1" y="7" width="12" height="2" rx="1"/>' +
+          '<rect x="2.5" y="10.5" width="9" height="2" rx="1"/>' +
+        '</svg>' +
+      '</button>' +
+      // Liste
+      '<button id="diaryFmtList" title="Type de liste" ' +
+        'style="min-width:32px;height:32px;padding:0 7px;border-radius:8px;flex-shrink:0;' +
+        'border:1px solid var(--border);background:var(--s1);cursor:pointer;' +
+        'display:flex;align-items:center;justify-content:center;">' +
+        '<svg width="15" height="13" viewBox="0 0 15 13" fill="currentColor">' +
+          '<circle cx="1.5" cy="2" r="1.5"/>' +
+          '<rect x="5" y="1" width="9" height="2" rx="1"/>' +
+          '<circle cx="1.5" cy="6.5" r="1.5"/>' +
+          '<rect x="5" y="5.5" width="9" height="2" rx="1"/>' +
+          '<circle cx="1.5" cy="11" r="1.5"/>' +
+          '<rect x="5" y="10" width="9" height="2" rx="1"/>' +
+        '</svg>' +
+      '</button>' +
+      // Trait séparateur
+      _toolBtn('diaryFmtHR', '—', 'Séparateur', 'flex-shrink:0;') +
+      // Image
+      _toolBtn('diaryFmtImg', '🖼️', 'Image', 'flex-shrink:0;') +
+    '</div>';
 
     // Input fichiers (hidden)
     html += '<input type="file" id="diaryFileInput" accept="image/*" style="display:none;">';
@@ -1227,6 +1236,9 @@
     // Retour
     var backBtn = document.getElementById('diaryEditorBack');
     if (backBtn) backBtn.addEventListener('click', function() {
+      // Nettoyer le listener visualViewport de la toolbar
+      var tb = document.getElementById('diaryToolbar');
+      if (tb && tb._vvCleanup) tb._vvCleanup();
       if (_currentPage) {
         _mode = 'read';
         _renderReadPage(_currentPage);
@@ -1238,7 +1250,11 @@
 
     // Sauvegarder
     var saveBtn = document.getElementById('diaryEditorSave');
-    if (saveBtn) saveBtn.addEventListener('click', _savePage);
+    if (saveBtn) saveBtn.addEventListener('click', function() {
+      var tb = document.getElementById('diaryToolbar');
+      if (tb && tb._vvCleanup) tb._vvCleanup();
+      _savePage();
+    });
 
     // Couvertures
     _view.querySelectorAll('[data-cover-bg]').forEach(function(btn) {
@@ -1946,6 +1962,28 @@
 
     // Éditeur contenteditable placeholder CSS
     _injectEditorCSS();
+
+    // Fix iOS clavier : toolbar fixed remonte avec le clavier via visualViewport
+    (function() {
+      var toolbar = document.getElementById('diaryToolbar');
+      if (!toolbar || !window.visualViewport) return;
+      function _reposToolbar() {
+        var vv = window.visualViewport;
+        // offsetTop = décalage du viewport visible par rapport au document
+        var bottom = window.innerHeight - vv.height - vv.offsetTop;
+        toolbar.style.transform = 'translateY(-' + Math.max(0, bottom) + 'px)';
+      }
+      window.visualViewport.addEventListener('resize', _reposToolbar);
+      window.visualViewport.addEventListener('scroll', _reposToolbar);
+      // Nettoyer quand on quitte l'éditeur
+      toolbar._vvCleanup = function() {
+        if (window.visualViewport) {
+          window.visualViewport.removeEventListener('resize', _reposToolbar);
+          window.visualViewport.removeEventListener('scroll', _reposToolbar);
+        }
+        toolbar.style.transform = '';
+      };
+    })();
   }
 
   // Sauvegarde/restauration de sélection pour la toolbar
