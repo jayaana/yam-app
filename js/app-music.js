@@ -43,19 +43,20 @@ var songsLove = [
   {title:"Tout donner",          artist:"Naza ft. SDM",         file:"Naza (ft. SDM) - Tout donner.mp3",     yt:"https://youtu.be/RCgjYlZ34jw",             isNew:true},
   {title:"FLASHBACK",            artist:"Favé ft. Gazo",        file:"Favé - FLASHBACK ft. Gazo.mp3",        yt:"https://youtu.be/zJPEOhz5zZ4",             isNew:true},
   {title:"I'M SORRY",            artist:"La Mano 1.9",          file:"La Mano 1.9 - I'M SORRY.mp3",         yt:"https://youtu.be/Cw8iQOYuiNA",             isNew:true},
-  {title:"death bed pt. 2",      artist:"Powfu",                file:"Powfu - death bed pt-2.mp3",           yt:"https://youtu.be/eLPkIwbXTdI",             isNew:true},
-  {title:"blue",                 artist:"yung kai",             file:"yung kai - blue.mp3",                  yt:"https://youtu.be/IpFX2vq8HKw",             isNew:true},
+  {title:"Death bed 2",      artist:"Powfu",                file:"Powfu - death bed pt-2.mp3",           yt:"https://youtu.be/eLPkIwbXTdI",             isNew:true},
+  {title:"Blue",                 artist:"yung kai",             file:"yung kai - blue.mp3",                  yt:"https://youtu.be/IpFX2vq8HKw",             isNew:true},
   {title:"La recette",           artist:"Jeck & Carla",         file:"Jeck & Carla – La recette.mp3",        yt:"https://youtu.be/9kBpbQDZdbQ",             isNew:true},
   {title:"What You Want",        artist:"Angèle",               file:"Angele - What You Want.mp3",           yt:"https://youtu.be/e5s8MdtnbMM",             isNew:true},
   {title:"Simba",                artist:"Dr. Yaro",             file:"Dr. Yaro - Simba.mp3",                 yt:"https://youtu.be/qvVGbUWorUo",             isNew:true},
   {title:"Ce soir",              artist:"Adèle Castillon ft. Gazo", file:"Adèle Castillon ft. Gazo - Ce soir.mp3", yt:"https://youtu.be/yD_ZQdKWeFc",       isNew:true},
-  {title:"Appelle les pompiers", artist:"Naza",                 file:"Naza - Appelle les pompiers.mp3",      yt:"https://youtu.be/AycI9MTlkQU",             isNew:true},
-  {title:"Essential Feat KLN",   artist:"Joé Dwèt Filé",        file:"Joé Dwèt Filé - Essential Feat KLN.mp3", yt:"https://youtu.be/VQzX2pg8oF0",          isNew:true},
+  {title:"Les pompiers", artist:"Naza",                 file:"Naza - Appelle les pompiers.mp3",      yt:"https://youtu.be/AycI9MTlkQU",             isNew:true},
+  {title:"Essential",   artist:"Joé Dwèt Filé",        file:"Joé Dwèt Filé - Essential Feat KLN.mp3", yt:"https://youtu.be/VQzX2pg8oF0",          isNew:true},
   {title:"Ma meilleure",         artist:"La Fouine",            file:"La Fouine - Ma meilleure.mp3",         yt:"https://youtu.be/G_5pzLWjQjY",             isNew:true},
   {title:"Lucid Dreams",         artist:"Juice WRLD",           file:"Juice WRLD - Lucid Dreams.mp3",        yt:"https://youtu.be/mzB1VGEGcSU",             isNew:true},
   {title:"I Follow Rivers",      artist:"Lykke Li",             file:"Lykke Li - I Follow Rivers.mp3",       yt:"https://youtu.be/K3JGxj2rvAs",             isNew:true},
   {title:"Here With Me",         artist:"d4vd",                 file:"d4vd - Here With Me.mp3",              yt:"https://youtu.be/Ip6cw8gfHHI",             isNew:true},
-  {title:"Love Me Not",          artist:"Ravyn Lenae",          file:"Ravyn Lenae - Love Me Not.mp3",        yt:"https://youtu.be/NB7WuqWzDhw",             isNew:true}
+  {title:"Love Me Not",          artist:"Ravyn Lenae",          file:"Ravyn Lenae - Love Me Not.mp3",        yt:"https://youtu.be/NB7WuqWzDhw",             isNew:true},
+  {title:"On s'attache",         artist:"Christophe Maé",       file:"Christophe Maé - On sattache.mp3",     yt:"https://youtu.be/NeRLnsPNSg0",             isNew:true}
 ];
 songsLove.forEach(function(x){ x.plays = 0; });
 
