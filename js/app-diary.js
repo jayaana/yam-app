@@ -2115,178 +2115,230 @@
   }
 
   // Fix4 — Lie les poignées de redimensionnement JS (touch + mouse) sur toutes les images de l'éditeur
-  // Fix6 — UI de rognage JS (canvas) — iOS + desktop
+  // Fix6 — UI de rognage avec poignées de coin draggables (iOS + desktop)
   function _openCropUI(imgEl, wrapEl) {
     var imgSrc = imgEl.getAttribute('src') || imgEl.src;
     if (!imgSrc) return;
 
+    // ── Overlay ──
     var overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:10000;' +
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:10000;' +
       'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
-      'gap:14px;padding:20px 16px;box-sizing:border-box;';
+      'gap:16px;padding:20px 16px;box-sizing:border-box;';
 
     var titleEl = document.createElement('div');
     titleEl.style.cssText = 'color:#fff;font-size:15px;font-weight:700;font-family:DM Sans,sans-serif;';
     titleEl.textContent = 'Rogner l’image';
     overlay.appendChild(titleEl);
 
-    // Wrapper canvas
-    var cropWrap = document.createElement('div');
-    cropWrap.style.cssText = 'position:relative;touch-action:none;border-radius:10px;overflow:hidden;' +
-      'max-width:min(500px,calc(100vw - 32px));';
+    // ── Zone crop : image + cadre de sélection ──
+    var cropArea = document.createElement('div');
+    cropArea.style.cssText = 'position:relative;touch-action:none;display:inline-block;' +
+      'max-width:min(500px,calc(100vw - 32px));border-radius:10px;overflow:hidden;' +
+      'user-select:none;-webkit-user-select:none;';
 
-    var canvas = document.createElement('canvas');
-    canvas.style.cssText = 'display:block;max-width:100%;border-radius:10px;';
-    cropWrap.appendChild(canvas);
+    var imgDisplay = document.createElement('img');
+    imgDisplay.crossOrigin = 'anonymous';
+    imgDisplay.style.cssText = 'display:block;max-width:100%;max-height:52vh;border-radius:10px;';
+    cropArea.appendChild(imgDisplay);
 
-    // Overlay de sélection (div semi-transparent avec "trou")
-    var selBox = document.createElement('div');
-    selBox.style.cssText = 'position:absolute;border:2.5px solid #fff;box-sizing:border-box;' +
-      'box-shadow:0 0 0 9999px rgba(0,0,0,0.5);pointer-events:none;display:none;';
-    cropWrap.appendChild(selBox);
+    // Masque sombre autour de la sélection
+    var maskTop    = _makeMask();
+    var maskBottom = _makeMask();
+    var maskLeft   = _makeMask();
+    var maskRight  = _makeMask();
+    [maskTop, maskBottom, maskLeft, maskRight].forEach(function(m){ cropArea.appendChild(m); });
 
-    overlay.appendChild(cropWrap);
+    // Cadre de sélection blanc
+    var selFrame = document.createElement('div');
+    selFrame.style.cssText = 'position:absolute;border:2px solid #fff;box-sizing:border-box;' +
+      'pointer-events:none;';
+    cropArea.appendChild(selFrame);
 
-    var ctx = canvas.getContext('2d');
-    var image = new Image();
-    image.crossOrigin = 'anonymous';
+    // 4 poignées de coin
+    var HANDLE_SIZE = 22; // px — assez grand pour le doigt
+    var corners = ['tl','tr','bl','br'];
+    var handles = {};
+    corners.forEach(function(c) {
+      var h = document.createElement('div');
+      h.dataset.corner = c;
+      h.style.cssText = 'position:absolute;width:' + HANDLE_SIZE + 'px;height:' + HANDLE_SIZE + 'px;' +
+        'border-radius:50%;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,0.5);' +
+        'cursor:pointer;touch-action:none;z-index:2;' +
+        'transform:translate(-50%,-50%);';
+      cropArea.appendChild(h);
+      handles[c] = h;
+    });
 
-    var scale = 1, cW = 0, cH = 0;
-    var sel = null; // {x,y,w,h} en px canvas
-    var drag = null; // {mode:'draw'|'move', sx,sy,ox,oy}
+    overlay.appendChild(cropArea);
 
-    image.onload = function() {
-      var naturalW = image.naturalWidth;
-      var naturalH = image.naturalHeight;
-      var maxW = Math.min(500, window.innerWidth  - 32);
-      var maxH = Math.floor(window.innerHeight * 0.52);
-      scale = Math.min(maxW / naturalW, maxH / naturalH, 1);
-      cW = Math.round(naturalW * scale);
-      cH = Math.round(naturalH * scale);
-      canvas.width  = cW;
-      canvas.height = cH;
-      ctx.drawImage(image, 0, 0, cW, cH);
-      // Sélection initiale = tout
-      sel = { x: 0, y: 0, w: cW, h: cH };
-      _drawSel();
-    };
-    image.src = imgSrc + (imgSrc.includes('?') ? '&' : '?') + '_t=' + Date.now();
-
-    function _drawSel() {
-      if (!sel) return;
-      selBox.style.display = 'block';
-      selBox.style.left   = sel.x + 'px';
-      selBox.style.top    = sel.y + 'px';
-      selBox.style.width  = Math.max(4, sel.w) + 'px';
-      selBox.style.height = Math.max(4, sel.h) + 'px';
+    function _makeMask() {
+      var d = document.createElement('div');
+      d.style.cssText = 'position:absolute;background:rgba(0,0,0,0.5);pointer-events:none;';
+      return d;
     }
 
-    // Coordonnées relatives au canvas — correctes même avec scroll iOS
-    function _getXY(e) {
-      var rect = canvas.getBoundingClientRect();
+    // ── État ──
+    var iW = 0, iH = 0;   // dimensions d'affichage de l'image
+    var sel = { x:0, y:0, w:0, h:0 }; // sélection en px affichage
+
+    imgDisplay.onload = function() {
+      iW = imgDisplay.offsetWidth  || imgDisplay.naturalWidth;
+      iH = imgDisplay.offsetHeight || imgDisplay.naturalHeight;
+      // Sélection initiale = marges de 10%
+      var margin = Math.min(iW, iH) * 0.1;
+      sel = { x: margin, y: margin, w: iW - margin*2, h: iH - margin*2 };
+      _redraw();
+    };
+    imgDisplay.src = imgSrc;
+
+    function _redraw() {
+      var x = sel.x, y = sel.y, w = sel.w, h = sel.h;
+      selFrame.style.left   = x + 'px';
+      selFrame.style.top    = y + 'px';
+      selFrame.style.width  = w + 'px';
+      selFrame.style.height = h + 'px';
+      // Masques
+      maskTop.style.cssText    += ';left:0;top:0;right:0;height:' + y + 'px;';
+      maskBottom.style.cssText += ';left:0;bottom:0;right:0;height:' + (iH - y - h) + 'px;';
+      maskLeft.style.cssText   += ';left:0;top:' + y + 'px;width:' + x + 'px;height:' + h + 'px;';
+      maskRight.style.cssText  += ';right:0;top:' + y + 'px;width:' + (iW - x - w) + 'px;height:' + h + 'px;';
+      // Reposition poignées
+      handles.tl.style.left = x + 'px'; handles.tl.style.top = y + 'px';
+      handles.tr.style.left = (x+w) + 'px'; handles.tr.style.top = y + 'px';
+      handles.bl.style.left = x + 'px'; handles.bl.style.top  = (y+h) + 'px';
+      handles.br.style.left = (x+w) + 'px'; handles.br.style.top = (y+h) + 'px';
+    }
+
+    // ── Drag des poignées ──
+    var activeDrag = null; // {corner, startX, startY, origSel}
+
+    function _clientPos(e) {
       var t = e.changedTouches ? e.changedTouches[0] : (e.touches ? e.touches[0] : e);
+      var rect = cropArea.getBoundingClientRect();
       return {
-        x: Math.max(0, Math.min(t.clientX - rect.left, cW)),
-        y: Math.max(0, Math.min(t.clientY - rect.top,  cH))
+        x: Math.max(0, Math.min(t.clientX - rect.left, iW)),
+        y: Math.max(0, Math.min(t.clientY - rect.top,  iH))
       };
     }
 
-    function _onDown(e) {
-      e.preventDefault();
-      var p = _getXY(e);
-      if (sel && p.x >= sel.x && p.x <= sel.x + sel.w &&
-                 p.y >= sel.y && p.y <= sel.y + sel.h) {
-        drag = { mode: 'move', sx: p.x, sy: p.y, ox: sel.x, oy: sel.y };
-      } else {
-        drag = { mode: 'draw', sx: p.x, sy: p.y };
-        sel  = { x: p.x, y: p.y, w: 0, h: 0 };
-      }
+    function _onHandleStart(e) {
+      e.preventDefault(); e.stopPropagation();
+      var p = _clientPos(e);
+      activeDrag = {
+        corner: e.currentTarget.dataset.corner,
+        startX: p.x, startY: p.y,
+        origSel: { x: sel.x, y: sel.y, w: sel.w, h: sel.h }
+      };
     }
     function _onMove(e) {
+      if (!activeDrag) return;
       e.preventDefault();
-      if (!drag || !sel) return;
-      var p = _getXY(e);
-      if (drag.mode === 'draw') {
-        var x = Math.min(drag.sx, p.x);
-        var y = Math.min(drag.sy, p.y);
-        var w = Math.abs(p.x - drag.sx);
-        var h = Math.abs(p.y - drag.sy);
-        sel = {
-          x: Math.max(0, x),
-          y: Math.max(0, y),
-          w: Math.min(w, cW - Math.max(0, x)),
-          h: Math.min(h, cH - Math.max(0, y))
-        };
-      } else {
-        sel.x = Math.max(0, Math.min(drag.ox + p.x - drag.sx, cW - sel.w));
-        sel.y = Math.max(0, Math.min(drag.oy + p.y - drag.sy, cH - sel.h));
+      var p  = _clientPos(e);
+      var dx = p.x - activeDrag.startX;
+      var dy = p.y - activeDrag.startY;
+      var o  = activeDrag.origSel;
+      var MIN = 40;
+
+      if (activeDrag.corner === 'tl') {
+        sel.x = Math.max(0, Math.min(o.x + dx, o.x + o.w - MIN));
+        sel.y = Math.max(0, Math.min(o.y + dy, o.y + o.h - MIN));
+        sel.w = o.x + o.w - sel.x;
+        sel.h = o.y + o.h - sel.y;
+      } else if (activeDrag.corner === 'tr') {
+        sel.y = Math.max(0, Math.min(o.y + dy, o.y + o.h - MIN));
+        sel.w = Math.max(MIN, Math.min(o.w + dx, iW - o.x));
+        sel.h = o.y + o.h - sel.y;
+      } else if (activeDrag.corner === 'bl') {
+        sel.x = Math.max(0, Math.min(o.x + dx, o.x + o.w - MIN));
+        sel.w = o.x + o.w - sel.x;
+        sel.h = Math.max(MIN, Math.min(o.h + dy, iH - o.y));
+      } else { // br
+        sel.w = Math.max(MIN, Math.min(o.w + dx, iW - o.x));
+        sel.h = Math.max(MIN, Math.min(o.h + dy, iH - o.y));
       }
-      _drawSel();
+      _redraw();
     }
-    function _onUp(e) { drag = null; }
+    function _onUp(e) { activeDrag = null; }
 
-    canvas.addEventListener('mousedown',  _onDown);
-    canvas.addEventListener('mousemove',  _onMove);
-    canvas.addEventListener('mouseup',    _onUp);
-    canvas.addEventListener('touchstart', _onDown, { passive: false });
-    canvas.addEventListener('touchmove',  _onMove, { passive: false });
-    canvas.addEventListener('touchend',   _onUp,   { passive: false });
+    corners.forEach(function(c) {
+      handles[c].addEventListener('mousedown',  _onHandleStart);
+      handles[c].addEventListener('touchstart', _onHandleStart, { passive: false });
+    });
+    document.addEventListener('mousemove',  _onMove);
+    document.addEventListener('touchmove',  _onMove, { passive: false });
+    document.addEventListener('mouseup',    _onUp);
+    document.addEventListener('touchend',   _onUp);
 
-    // Boutons
+    // ── Boutons ──
     var btnRow = document.createElement('div');
     btnRow.style.cssText = 'display:flex;gap:12px;';
 
     function _makeBtn(text, accent) {
       var b = document.createElement('button');
       b.style.cssText = 'padding:11px 24px;border-radius:22px;font-size:13px;font-weight:700;' +
-        'cursor:pointer;font-family:DM Sans,sans-serif;border:none;' +
-        (accent
-          ? 'background:var(--accent);color:#fff;'
-          : 'background:rgba(255,255,255,0.15);color:#fff;border:1.5px solid rgba(255,255,255,0.3);');
+        'cursor:pointer;font-family:DM Sans,sans-serif;border:none;touch-action:manipulation;' +
+        (accent ? 'background:var(--accent);color:#fff;'
+                : 'background:rgba(255,255,255,0.15);color:#fff;border:1.5px solid rgba(255,255,255,0.3);');
       b.textContent = text;
       return b;
     }
 
     var btnCancel = _makeBtn('Annuler', false);
-    btnCancel.addEventListener('click', function() { document.body.removeChild(overlay); });
+    btnCancel.addEventListener('click', function() {
+      document.removeEventListener('mousemove', _onMove);
+      document.removeEventListener('touchmove', _onMove);
+      document.removeEventListener('mouseup',   _onUp);
+      document.removeEventListener('touchend',  _onUp);
+      document.body.removeChild(overlay);
+    });
 
     var btnApply = _makeBtn('✔ Rogner', true);
     btnApply.addEventListener('click', function() {
-      if (!sel || sel.w < 10 || sel.h < 10) {
-        showToast('Sélectionne une zone à rogner', 'error'); return;
-      }
-      // Coordonnées en pixels image réelle
-      var rx = Math.round(sel.x / scale);
-      var ry = Math.round(sel.y / scale);
-      var rw = Math.round(sel.w / scale);
-      var rh = Math.round(sel.h / scale);
+      // Calculer le ratio entre taille naturelle et taille affichée
+      var scaleX = imgDisplay.naturalWidth  / iW;
+      var scaleY = imgDisplay.naturalHeight / iH;
+      var rx = Math.round(sel.x * scaleX);
+      var ry = Math.round(sel.y * scaleY);
+      var rw = Math.round(sel.w * scaleX);
+      var rh = Math.round(sel.h * scaleY);
+      if (rw < 10 || rh < 10) { showToast('Zone trop petite', 'error'); return; }
 
       var outCanvas = document.createElement('canvas');
-      outCanvas.width  = rw;
-      outCanvas.height = rh;
-      outCanvas.getContext('2d').drawImage(image, rx, ry, rw, rh, 0, 0, rw, rh);
+      outCanvas.width  = rw; outCanvas.height = rh;
 
-      outCanvas.toBlob(function(blob) {
-        if (!blob) { showToast('Erreur rognage', 'error'); return; }
-        var u = yamGetUser();
-        if (!u) return;
-        btnApply.textContent = '⏳';
-        btnApply.disabled = true;
-        var path = 'diary/' + u.couple_id + '/crop-' + Date.now() + '.jpg';
-        _uploadToStorage(blob, path, function(newUrl) {
-          if (!newUrl) { showToast('Erreur upload crop', 'error'); btnApply.textContent = '✔ Rogner'; btnApply.disabled = false; return; }
-          // Fix6: setAttribute pour que le HTML sauvegardé contienne la nouvelle URL
-          imgEl.setAttribute('src', newUrl);
-          imgEl.src = newUrl;
-          // Mettre à jour _editorImages
-          for (var i = 0; i < _editorImages.length; i++) {
-            if (_editorImages[i].url === imgSrc) { _editorImages[i].url = newUrl; break; }
-          }
-          document.body.removeChild(overlay);
-          showToast('Image rognée ✨', 'success');
-          haptic('success');
-        });
-      }, 'image/jpeg', 0.9);
+      // Charger l'image avec crossOrigin pour le canvas
+      var imgForCrop = new Image();
+      imgForCrop.crossOrigin = 'anonymous';
+      imgForCrop.onload = function() {
+        outCanvas.getContext('2d').drawImage(imgForCrop, rx, ry, rw, rh, 0, 0, rw, rh);
+        outCanvas.toBlob(function(blob) {
+          if (!blob) { showToast('Erreur rognage', 'error'); return; }
+          var u = yamGetUser();
+          if (!u) return;
+          btnApply.textContent = '⏳'; btnApply.disabled = true;
+          var path = 'diary/' + u.couple_id + '/crop-' + Date.now() + '.jpg';
+          _uploadToStorage(blob, path, function(newUrl) {
+            document.removeEventListener('mousemove', _onMove);
+            document.removeEventListener('touchmove', _onMove);
+            document.removeEventListener('mouseup',   _onUp);
+            document.removeEventListener('touchend',  _onUp);
+            if (!newUrl) {
+              showToast('Erreur upload', 'error');
+              btnApply.textContent = '✔ Rogner'; btnApply.disabled = false; return;
+            }
+            imgEl.setAttribute('src', newUrl);
+            imgEl.src = newUrl;
+            for (var i = 0; i < _editorImages.length; i++) {
+              if (_editorImages[i].url === imgSrc) { _editorImages[i].url = newUrl; break; }
+            }
+            document.body.removeChild(overlay);
+            showToast('Image rognée ✨', 'success');
+            haptic('success');
+          });
+        }, 'image/jpeg', 0.92);
+      };
+      imgForCrop.src = imgSrc;
     });
 
     btnRow.appendChild(btnCancel);
@@ -2294,8 +2346,8 @@
     overlay.appendChild(btnRow);
 
     var hint = document.createElement('div');
-    hint.style.cssText = 'color:rgba(255,255,255,0.45);font-size:11px;text-align:center;font-family:DM Sans,sans-serif;';
-    hint.textContent = 'Dessine la zone à garder • Glisse pour déplacer';
+    hint.style.cssText = 'color:rgba(255,255,255,0.4);font-size:11px;text-align:center;font-family:DM Sans,sans-serif;';
+    hint.textContent = 'Tire les coins blancs pour ajuster la zone';
     overlay.appendChild(hint);
 
     document.body.appendChild(overlay);
@@ -2349,9 +2401,10 @@
         handle.addEventListener('touchstart', onStart, { passive: false });
       }
 
-      // ── Bouton crop — toujours recréé si absent (réouverture page) ──
+      // ── Bouton crop — toujours recréé (supprimer l'ancien HTML sans listeners) ──
       var existingCropBtn = wrap.querySelector('.diary-img-crop-btn');
-      if (!existingCropBtn) {
+      if (existingCropBtn) existingCropBtn.remove(); // peut être un nœud HTML sans listeners
+      if (true) {
         var cropBtn = document.createElement('button');
         cropBtn.className = 'diary-img-crop-btn';
         cropBtn.title = 'Rogner';
@@ -2469,6 +2522,10 @@
           el.style.webkitUserSelect = '';
           if (!el.style.cssText.trim()) el.removeAttribute('style');
         });
+        // Supprimer les éléments d'UI éditeur (crop-btn, handle resize) — ne doivent pas être persistés
+        // Ainsi au rechargement _bindImgResizeHandles les recrée avec leurs event listeners
+        editorClone.querySelectorAll('.diary-img-crop-btn,.diary-img-handle').forEach(function(el){ el.remove(); });
+
         // Nettoyer les spans sans style utile — mais PROTÉGER :
         // - diary-img-wrap (wrapper image avec width inline = taille sauvegardée)
         // - spans avec font-size (taille de texte)
@@ -2656,6 +2713,8 @@
     if (!html) return '';
     var tmp = document.createElement('div');
     tmp.innerHTML = html;
+    // Supprimer les éléments d'UI (bouton crop, poignée resize) avant extraction texte
+    tmp.querySelectorAll('.diary-img-crop-btn,.diary-img-handle').forEach(function(el){ el.remove(); });
     return tmp.textContent || tmp.innerText || '';
   }
 
