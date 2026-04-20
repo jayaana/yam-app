@@ -201,13 +201,32 @@
 
     document.addEventListener('yam:session_ready', function () {
       setTimeout(_initRT, 1200);
+      // Charger les pages silencieusement pour afficher le badge dès l'accueil
+      setTimeout(_loadPagesSilent, 1500);
     });
     document.addEventListener('yam:rt_ready', function () {
       setTimeout(_initRT, 600);
     });
-    if (yamGetUser()) setTimeout(_initRT, 2000);
+    if (yamGetUser()) {
+      setTimeout(_initRT, 2000);
+      setTimeout(_loadPagesSilent, 2500);
+    }
 
     yamLog('[Diary] Module initialisé');
+  }
+
+  // Chargement silencieux des pages pour le badge accueil (sans afficher le journal)
+  function _loadPagesSilent() {
+    var u = yamGetUser();
+    if (!u || !u.couple_id) return;
+    if (_pages.length > 0) { _updateHomeBadge(); return; } // déjà chargé
+    sb2Fetch(DIARY_TBL, 'couple_id=eq.' + u.couple_id + '&order=created_at.desc')
+      .then(function(rows) {
+        _pages = Array.isArray(rows) ? rows : [];
+        _updateHomeBadge();
+        _updateTabBadges();
+      })
+      .catch(function() {});
   }
 
   // ─── 3. REALTIME ──────────────────────────────────────────────────
