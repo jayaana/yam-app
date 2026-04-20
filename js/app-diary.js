@@ -211,7 +211,7 @@
 
     // Tabs
     html += '<div style="display:flex;gap:0;flex-shrink:0;padding:0 16px 0;margin-top:4px;">' +
-      _tabBtn('mine',    '✍️ Mon journal', _tab === 'mine',    myPages.length) +
+      _tabBtn('mine',    '💌 Mon journal', _tab === 'mine',    myPages.length) +
       _tabBtn('partner', '💌 ' + escHtml(yamGetDisplayName(partnerRole)), _tab === 'partner', partnerPages.length) +
     '</div>';
 
@@ -640,24 +640,43 @@
     var isCanva = page && !!page.canva_url;
     var coverBg = (page && page.cover_color) || '#fce4eb';
 
+    // Header fixe — reste visible même quand le clavier iOS pousse le contenu
+    var _hdrH = 'calc(var(--safe-top,0px) + 54px)'; // hauteur réservée sous le header
     var html = '<div style="display:flex;flex-direction:column;height:100%;background:var(--bg);overflow:hidden;">';
 
-    // Header éditeur
-    html += '<div style="flex-shrink:0;background:var(--bg);border-bottom:1px solid var(--border);' +
-      'padding:calc(var(--safe-top,0px) + 10px) 16px 10px;">' +
-      '<div style="display:flex;align-items:center;gap:10px;">' +
+    // Header éditeur — position:fixed pour rester au-dessus du clavier
+    html += '<div id="diaryEditorHeader" style="position:fixed;top:0;left:0;right:0;z-index:100;' +
+      'background:var(--bg);border-bottom:1px solid var(--border);' +
+      'padding:calc(var(--safe-top,0px) + 8px) 12px 8px;box-sizing:border-box;">' +
+      '<div style="display:flex;align-items:center;gap:8px;">' +
+        // Retour
         '<button id="diaryEditorBack" style="width:34px;height:34px;border-radius:50%;background:var(--s2);' +
-          'border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;">' +
+          'border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">' +
           '<svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round"><polyline points="7 1 1 7 7 13"/></svg>' +
         '</button>' +
-        '<div style="flex:1;font-size:15px;font-weight:700;color:var(--text);">' +
+        // Titre
+        '<div style="flex:1;font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
           (isNew ? 'Nouvelle page' : 'Modifier la page') +
         '</div>' +
-        '<button id="diaryEditorSave" style="padding:7px 16px;border-radius:20px;font-size:12px;font-weight:700;' +
-          'background:var(--accent);color:#fff;border:none;cursor:pointer;font-family:DM Sans,sans-serif;">' +
+        // Undo
+        '<button id="diaryFmtUndo" title="Annuler" ' +
+          'style="width:34px;height:34px;border-radius:50%;background:var(--s2);' +
+          'border:1px solid var(--border);display:flex;align-items:center;justify-content:center;' +
+          'cursor:pointer;font-size:15px;flex-shrink:0;">&#x21A9;</button>' +
+        // Redo
+        '<button id="diaryFmtRedo" title="Rétablir" ' +
+          'style="width:34px;height:34px;border-radius:50%;background:var(--s2);' +
+          'border:1px solid var(--border);display:flex;align-items:center;justify-content:center;' +
+          'cursor:pointer;font-size:15px;flex-shrink:0;">&#x21AA;</button>' +
+        // Sauver
+        '<button id="diaryEditorSave" style="padding:7px 14px;border-radius:20px;font-size:12px;font-weight:700;' +
+          'background:var(--accent);color:#fff;border:none;cursor:pointer;font-family:DM Sans,sans-serif;flex-shrink:0;">' +
           '💾 Sauver' +
         '</button>' +
       '</div></div>';
+
+    // Spacer pour compenser le header fixed
+    html += '<div style="flex-shrink:0;height:' + _hdrH + ';"></div>';
 
     html += '<div id="diaryEditorScroll" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;">';
 
@@ -752,12 +771,9 @@
       // Gras
       _toolBtn('diaryFmtBold',  '<b>B</b>',   'Gras',       'font-weight:800;') +
       // Italique
-      _toolBtn('diaryFmtItalic','<i>I</i>',   'Italique',   'font-style:italic;') +
+      _toolBtn('diaryFmtItalic','<i style="font-style:italic;font-family:Georgia,serif;font-size:13px;">I</i>', 'Italique', '') +
       // Souligné
       _toolBtn('diaryFmtUnder', '<u>S</u>',   'Souligné',   '') +
-      // Undo/Redo — Fix5
-      _toolBtn('diaryFmtUndo',  '&#x21A9;',  'Annuler',    '') +
-      _toolBtn('diaryFmtRedo',  '&#x21AA;',  'Rétablir',   '') +
       // Taille — Fix3
       '<button id="diaryFmtSize" title="Taille du texte" ' +
         'style="min-width:34px;height:28px;padding:0 7px;border-radius:8px;' +
@@ -792,8 +808,6 @@
       _toolBtn('diaryFmtHR',    '—',           'Séparateur', '') +
       // Image insérée
       _toolBtn('diaryFmtImg',   '🖼️',          'Image',      '') +
-      // Emoji picker
-      _toolBtn('diaryFmtEmoji', '😊',          'Emoji',      '') +
     '</div>';
 
     // Couleur picker (hidden)
@@ -1660,27 +1674,7 @@
       }
     });
 
-    // Emoji picker toggle
-    var emojiPicker = document.getElementById('diaryEmojiPicker');
-    _bindFmt('diaryFmtEmoji', function() {
-      if (!emojiPicker) return;
-      emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'flex' : 'none';
-      var sp = document.getElementById('diarySizePicker');
-      var lm = document.getElementById('diaryListMenu');
-      if (colorPicker) colorPicker.style.display = 'none';
-      if (sp) sp.style.display = 'none';
-      if (lm) lm.style.display = 'none';
-    });
-    if (emojiPicker) emojiPicker.querySelectorAll('[data-diary-emoji]').forEach(function(btn) {
-      function insertEmoji() {
-        _restoreSelection();
-        document.execCommand('insertHTML', false, btn.getAttribute('data-diary-emoji'));
-        emojiPicker.style.display = 'none';
-        _saveSelection();
-      }
-      btn.addEventListener('mousedown', function(e) { e.preventDefault(); insertEmoji(); });
-      btn.addEventListener('touchend',  function(e) { e.preventDefault(); insertEmoji(); }, { passive: false });
-    });
+    // (bouton emoji supprimé de la toolbar)
 
     // Fix5 — Undo / Redo
     _bindFmt('diaryFmtUndo', function() {
