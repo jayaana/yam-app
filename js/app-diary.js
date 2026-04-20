@@ -2898,17 +2898,33 @@
     if (!url) return '';
     try {
       var u = new URL(url);
-      // canva.link : résolution côté client impossible, utiliser tel quel + ?embed
+
+      // canva.link : ajouter ?embed tel quel
       if (u.hostname === 'canva.link') {
         u.searchParams.set('embed', '');
         return u.toString();
       }
-      // Extraire l'ID design et construire une URL /view propre
-      var match = u.pathname.match(/\/design\/([A-Za-z0-9_-]+)/);
-      if (!match) return '';
-      // Construire : /design/{ID}/view?embed
-      // Retirer les paramètres utm_* et autres trackers
-      return 'https://www.canva.com/design/' + match[1] + '/view?embed';
+
+      // Deux formats possibles dans pathname :
+      // 1. /design/{ID}/view                    → lien de partage simple
+      // 2. /design/{ID}/{TOKEN}/view             → lien d'intégration intelligent
+      // Dans les deux cas : garder le pathname jusqu'à /view, ajouter ?embed
+
+      var path = u.pathname;
+
+      // S'assurer que le pathname se termine par /view (pas /edit, /watch, etc.)
+      // Remplacer /edit, /watch par /view
+      path = path.replace(/\/(edit|watch)(\/.*)?$/, '/view');
+
+      // Si le pathname ne contient pas /view, l'ajouter avant les paramètres
+      if (!path.endsWith('/view')) {
+        // Couper après le dernier segment connu (/design/ID ou /design/ID/TOKEN)
+        path = path.replace(/\/$/, '') + '/view';
+      }
+
+      // Reconstruire proprement : domaine + pathname + ?embed uniquement
+      // Supprimer tous les paramètres utm_* et de tracking
+      return 'https://www.canva.com' + path + '?embed';
     } catch(e) { return ''; }
   }
 
