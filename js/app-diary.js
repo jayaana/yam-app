@@ -56,6 +56,12 @@
   var _canvaValid  = false;
   var _editorCoverEmoji = null; // Fix2: emoji couverture persisté pendant l'édition
 
+  // ─── HISTORIQUE UNDO/REDO (refs de module, peuplées par _bindEditorEvents) ──
+  // Permet à _execFmt et toutes les actions toolbar d'accéder à la pile
+  var _histSnapshotNow = function() {};  // snapshot immédiat avant une action
+  var _doHistUndo      = function() {};  // annuler
+  var _doHistRedo      = function() {};  // rétablir
+
   // ─── FAVORIS : stockés en localStorage par couple ─────────────────
   function _getPinnedIds() {
     var u = yamGetUser();
@@ -454,16 +460,15 @@
       'overflow:visible;cursor:pointer;box-shadow:' + (isNewForMe || hasUpdateForMe ? '0 0 0 2px var(--accent-s),' : '') + 'var(--sh-sm);' +
       'transition:transform 0.15s,box-shadow 0.15s;position:relative;">' +
 
-      // Épingle (coin haut-droit) — discrète si non épinglée, visible si épinglée
+      // Épingle (coin BAS-droit) — évite le chevauchement avec les badges CO-ÉCRITURE/PARTAGÉ en haut
       '<button data-diary-pin="' + escHtml(page.id) + '" title="' + (pinned ? 'Désépingler' : 'Épingler en tête') + '" ' +
-        'style="position:absolute;top:8px;right:8px;z-index:4;width:24px;height:24px;' +
+        'style="position:absolute;bottom:8px;right:8px;z-index:4;width:24px;height:24px;' +
         'border-radius:6px;' +
         (pinned
           ? 'background:var(--accent);border:none;opacity:1;'
           : 'background:transparent;border:none;opacity:0.3;') +
         'display:flex;align-items:center;justify-content:center;cursor:pointer;' +
         'transition:opacity 0.2s,background 0.2s;">' +
-        // SVG épingle (punaise vue de face)
         '<svg width="14" height="16" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">' +
           '<path d="M7 1C5.34 1 4 2.34 4 4c0 1.1.47 2.08 1.22 2.77L4.5 9H2v1.5h4.25V15l.75.75.75-.75v-4.25H12V9H9.5L8.78 6.77C9.53 6.08 10 5.1 10 4c0-1.66-1.34-3-3-3z" ' +
             'fill="' + (pinned ? '#fff' : 'var(--text)') + '"/>' +
@@ -491,7 +496,7 @@
       '</div>' +
 
       // Infos
-      '<div style="flex:1;min-width:0;padding:12px 10px 12px 0;display:flex;flex-direction:column;gap:4px;">' +
+      '<div style="flex:1;min-width:0;padding:12px 36px 12px 0;display:flex;flex-direction:column;gap:4px;">' +
         '<div style="display:flex;align-items:center;gap:6px;">' +
           '<span style="font-size:14px;font-weight:700;color:var(--text);' +
             'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">' +
@@ -1083,14 +1088,28 @@
     var _sampleMap = {
       'Georgia': 'Aa', 'Palatino': 'Pp', 'Garamond': 'Gg',
       'DM Sans': 'Aa', 'Verdana': 'Vv', 'Arial': 'Aa',
-      'Courier': '{;}', 'Impact': 'IMP', 'Trebuchet': 'Tt', 'Cursive': 'Abc'
+      'Courier': '{;}', 'Impact': 'IMP', 'Trebu.': 'Tt', 'Script': 'Abc'
+    };
+    // Noms affichés dans le picker (courts) — différents du stack complet
+    var _fontDisplayNames = {
+      'Georgia, serif':                                   'Georgia',
+      '"Palatino Linotype", Palatino, serif':             'Palatino',
+      'Garamond, "Adobe Garamond Pro", serif':            'Garamond',
+      '"DM Sans", sans-serif':                            'DM Sans',
+      'Verdana, Geneva, sans-serif':                      'Verdana',
+      'Arial, Helvetica, sans-serif':                     'Arial',
+      '"Courier New", Courier, monospace':                'Courier',
+      'Impact, Charcoal, sans-serif':                     'Impact',
+      '"Trebuchet MS", Helvetica, sans-serif':            'Trebu.',
+      '"Brush Script MT", cursive':                       'Script',
     };
     html += '<div id="diaryFontPicker" style="display:none;flex-wrap:nowrap;overflow-x:auto;' +
       'gap:6px;padding:8px;background:var(--s1);border-radius:10px;' +
       'border:1px solid var(--border);margin-bottom:8px;scrollbar-width:thin;' +
       '-webkit-overflow-scrolling:touch;">';
     _FONTS.forEach(function(f) {
-      var sample = _sampleMap[f.label] || 'Aa';
+      var displayName = _fontDisplayNames[f.stack] || f.label;
+      var sample = _sampleMap[displayName] || 'Aa';
       html += '<button data-diary-font="' + escHtml(f.stack) + '" ' +
         'style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;' +
         'padding:4px 7px;border-radius:8px;border:1px solid var(--border);' +
@@ -1098,7 +1117,7 @@
         '<span style="font-family:' + escHtml(f.stack) + ';font-size:16px;color:var(--text);' +
           'line-height:1.2;letter-spacing:-0.5px;">' + escHtml(sample) + '</span>' +
         '<span style="font-size:9px;color:var(--muted);font-family:DM Sans,sans-serif;' +
-          'white-space:nowrap;">' + escHtml(f.label) + '</span>' +
+          'white-space:nowrap;">' + escHtml(displayName) + '</span>' +
       '</button>';
     });
     html += '</div>';
@@ -1620,11 +1639,79 @@
       });
     }
 
+    // ── Historique undo/redo custom (couvre TOUTES les modifs DOM) ────
+    // execCommand('undo') ne couvre pas les modifs directes (couleur, police,
+    // taille, listes custom). On snapshote le innerHTML à chaque changement.
+    var _histStack  = [];   // pile undo : snapshots HTML
+    var _redoStack  = [];   // pile redo
+    var _histPaused = false;
+    var _histTimer  = null;
+    var MAX_HIST    = 50;
+
+    function _histSnapshot() {
+      if (_histPaused || !editor) return;
+      var html = editor.innerHTML;
+      // Ne pas dupliquer si identique au dernier snapshot
+      if (_histStack.length > 0 && _histStack[_histStack.length - 1] === html) return;
+      _histStack.push(html);
+      if (_histStack.length > MAX_HIST) _histStack.shift();
+      _redoStack = []; // toute nouvelle action efface le redo
+    }
+
+    // Snapshot différé — on regroupe les frappes consécutives (debounce 600ms)
+    function _histSnapshotDeferred() {
+      if (_histTimer) clearTimeout(_histTimer);
+      _histTimer = setTimeout(function() { _histSnapshot(); _histTimer = null; }, 600);
+    }
+
+    // Snapshot immédiat — avant chaque opération toolbar
+    function _histSnapshotNow() {
+      if (_histTimer) { clearTimeout(_histTimer); _histTimer = null; }
+      _histSnapshot();
+    }
+
+    function _histUndo() {
+      if (!editor || _histStack.length <= 1) return;
+      _redoStack.push(_histStack.pop()); // état actuel → redo
+      _histPaused = true;
+      editor.innerHTML = _histStack[_histStack.length - 1] || '';
+      _histPaused = false;
+      // Rebinder les poignées d'images après restauration
+      _bindImgResizeHandles(editor);
+      _fixListColors();
+      _saveSelection();
+      _updateToolbarState();
+      _updateFontLabel();
+    }
+
+    function _histRedo() {
+      if (!editor || _redoStack.length === 0) return;
+      var next = _redoStack.pop();
+      _histStack.push(next);
+      _histPaused = true;
+      editor.innerHTML = next;
+      _histPaused = false;
+      _bindImgResizeHandles(editor);
+      _fixListColors();
+      _saveSelection();
+      _updateToolbarState();
+      _updateFontLabel();
+    }
+
+    // Snapshot initial dès l'ouverture de l'éditeur
+    if (editor) { setTimeout(function() { _histSnapshot(); }, 100); }
+
+    // ── Exposer au niveau module pour _execFmt et les autres actions ──
+    _histSnapshotNow = _histSnapshot;
+    _doHistUndo      = _histUndo;
+    _doHistRedo      = _histRedo;
+
     if (editor) {
       editor.addEventListener('blur', function() { _saveSelection(); });
       editor.addEventListener('keyup', function(e) {
         _saveSelection();
         _updateToolbarState();
+        _histSnapshotDeferred();
         // Mettre à jour les couleurs des puces si on tape dans une liste
         var sel = window.getSelection();
         if (sel && sel.anchorNode) {
@@ -1695,6 +1782,7 @@
     }
 
     _bindFmt('diaryFmtH2', function() {
+      _histSnapshotNow();
       _restoreSelection();
       try {
         var sel = window.getSelection();
@@ -1729,6 +1817,7 @@
     _bindFmt('diaryFmtItalic', function() { _execFmt('italic'); });
     _bindFmt('diaryFmtUnder',  function() { _execFmt('underline'); });
     _bindFmt('diaryFmtCenter', function() {
+      _histSnapshotNow();
       _restoreSelection();
       // Détecter l'alignement actuel et basculer center ↔ left
       var sel = window.getSelection();
@@ -1763,6 +1852,7 @@
     // Sélection type de liste
     if (listMenu) listMenu.querySelectorAll('[data-diary-list-type]').forEach(function(btn) {
       function insertList() {
+        _histSnapshotNow();
         var type = btn.getAttribute('data-diary-list-type');
         _restoreSelection();
         var sel = window.getSelection();
@@ -1868,6 +1958,7 @@
       btn.addEventListener('touchend',  function(e) { e.preventDefault(); insertList(); }, { passive: false });
     });
     _bindFmt('diaryFmtHR', function() {
+      _histSnapshotNow();
       _restoreSelection();
       document.execCommand('insertHTML', false,
         '<hr style="border:none;border-top:1.5px solid var(--border);margin:12px 0;display:block;"><p></p>');
@@ -1922,6 +2013,7 @@
 
     if (colorPicker) colorPicker.querySelectorAll('[data-diary-color]').forEach(function(btn) {
       function applyColor() {
+        _histSnapshotNow();
         var col = btn.getAttribute('data-diary-color');
         _restoreSelection();
 
@@ -1974,17 +2066,9 @@
 
     // (bouton emoji supprimé de la toolbar)
 
-    // Fix5 — Undo / Redo
-    _bindFmt('diaryFmtUndo', function() {
-      _restoreSelection();
-      document.execCommand('undo', false, null);
-      _saveSelection(); _updateToolbarState();
-    });
-    _bindFmt('diaryFmtRedo', function() {
-      _restoreSelection();
-      document.execCommand('redo', false, null);
-      _saveSelection(); _updateToolbarState();
-    });
+    // Undo / Redo — système custom (couvre couleur, police, taille, listes, etc.)
+    _bindFmt('diaryFmtUndo', function() { _doHistUndo(); });
+    _bindFmt('diaryFmtRedo', function() { _doHistRedo(); });
 
     // Fix3 — Size picker
     var sizePicker = document.getElementById('diarySizePicker');
@@ -2002,6 +2086,7 @@
     if (sizePicker) {
       sizePicker.querySelectorAll('[data-diary-size]').forEach(function(sBtn) {
         function _doSize() {
+          _histSnapshotNow();
           var px = sBtn.getAttribute('data-diary-size');
           _restoreSelection();
           var sel = window.getSelection();
@@ -2183,6 +2268,13 @@
     var fontLabel   = document.getElementById('diaryFontLabel');
 
     // Met à jour le label du bouton police selon la position du curseur
+    // Map famille calculée → nom court affiché
+    var _fontShortNames = {
+      'Georgia': 'Georgia', 'Palatino Linotype': 'Palatino', 'Garamond': 'Garamond',
+      'DM Sans': 'DM Sans', 'Verdana': 'Verdana', 'Arial': 'Arial',
+      'Courier New': 'Courier', 'Impact': 'Impact',
+      'Trebuchet MS': 'Trebu.', 'Brush Script MT': 'Script',
+    };
     function _updateFontLabel() {
       if (!fontLabel || !editor) return;
       var sel = window.getSelection();
@@ -2192,7 +2284,9 @@
       if (!el || !editor.contains(el)) return;
       var computed = window.getComputedStyle(el).fontFamily || '';
       var firstName = computed.split(',')[0].replace(/['"]/g, '').trim();
-      if (firstName) fontLabel.textContent = firstName.length > 10 ? firstName.substring(0, 10) + '\u2026' : firstName;
+      if (!firstName) return;
+      var shortName = _fontShortNames[firstName] || (firstName.length > 7 ? firstName.substring(0, 7) + '\u2026' : firstName);
+      fontLabel.textContent = shortName;
     }
 
     function _toggleFontPicker() {
@@ -2214,9 +2308,11 @@
     if (fontPicker) {
       fontPicker.querySelectorAll('[data-diary-font]').forEach(function(btn) {
         function applyFont() {
+          _histSnapshotNow();
           var fontStack = btn.getAttribute('data-diary-font');
-          var labelEl   = btn.querySelector('span:last-child');
-          var labelText = labelEl ? labelEl.textContent : fontStack.split(',')[0].replace(/['"]/g,'').trim();
+          var labelText = (_fontDisplayNames && _fontDisplayNames[fontStack])
+            ? _fontDisplayNames[fontStack]
+            : (btn.querySelector('span:last-child') ? btn.querySelector('span:last-child').textContent : fontStack.split(',')[0].replace(/['"]/g,'').trim());
 
           // Restaurer la sélection SANS fermer le picker — permet de tester plusieurs polices
           _restoreSelection();
@@ -2368,6 +2464,7 @@
   }
 
   function _execFmt(cmd, val) {
+    _histSnapshotNow(); // snapshot avant modification
     _restoreSelection();
     document.execCommand(cmd, false, val || null);
     _saveSelection();
@@ -2464,6 +2561,7 @@
     var u = yamGetUser();
     if (!u) return;
     showToast('Compression…', '', 1000);
+    _histSnapshotNow(); // snapshot avant insertion image
 
     _compressImage(file, 1200, MAX_IMG_BYTES, function(blob) {
       if (!blob) { showToast('Erreur compression', 'error'); return; }
