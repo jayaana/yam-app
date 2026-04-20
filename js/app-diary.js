@@ -410,13 +410,21 @@
       // Afficher l'iframe directement si on a un lien embedable
       if (_rEmbedUrl) {
         html += '<div style="position:relative;width:100%;">' +
-          // iframe officiel Canva /view?embed — pas de sandbox
           '<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;">' +
             '<iframe src="' + escHtml(_rEmbedUrl) + '" ' +
               'style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;" ' +
               'allowfullscreen allow="fullscreen">' +
             '</iframe>' +
           '</div>' +
+          // Bouton plein écran YAM — remplace le bouton natif iOS qui sort de l'app
+          '<button id="diaryCanvaFullscreen" data-canva-url="' + escHtml(page.canva_url) + '" ' +
+            'style="position:absolute;bottom:10px;right:10px;' +
+            'width:34px;height:34px;border-radius:10px;border:none;cursor:pointer;' +
+            'background:rgba(0,0,0,0.5);color:#fff;font-size:16px;' +
+            'display:flex;align-items:center;justify-content:center;' +
+            'backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:2;">' +
+            '⛶' +
+          '</button>' +
         '</div>';
       } else {
         // Pas de lien embedable → carte avec bouton Voir
@@ -484,9 +492,18 @@
       if (rc) _fixListColors(rc);
     }, 50);
 
-    // Enrichir la carte Canva via oEmbed si présente
+    // Binder le bouton plein écran Canva inline
     if (isCanva && page.canva_url) {
       setTimeout(function() {
+        var fsBtn = document.getElementById('diaryCanvaFullscreen');
+        if (fsBtn) {
+          var _cu = fsBtn.getAttribute('data-canva-url');
+          fsBtn.addEventListener('click', function() { _openCanvaViewer(_cu); });
+          fsBtn.addEventListener('touchend', function(e) {
+            e.preventDefault(); _openCanvaViewer(_cu);
+          }, { passive: false });
+        }
+        // Enrichir la carte oEmbed si fallback
         var card = document.getElementById('diaryCanvaCard');
         if (card) _loadCanvaOembed(card, page.canva_url, true);
       }, 200);
