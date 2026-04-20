@@ -2270,8 +2270,14 @@
           el.style.webkitUserSelect = '';
           if (!el.style.cssText.trim()) el.removeAttribute('style');
         });
-        // Nettoyer aussi les spans qui n'ont plus de couleur mais restent
+        // Nettoyer les spans sans style utile — mais PROTÉGER :
+        // - diary-img-wrap (wrapper image avec width inline = taille sauvegardée)
+        // - spans avec font-size (taille de texte)
         editorClone.querySelectorAll('span').forEach(function(sp) {
+          // Protéger le wrapper image : a class diary-img-wrap + width inline
+          if (sp.classList && sp.classList.contains('diary-img-wrap')) return;
+          // Protéger les spans de taille (font-size)
+          if (sp.style && sp.style.fontSize) return;
           if (sp.style && !sp.style.color && !sp.style.fontWeight &&
               !sp.style.fontStyle && !sp.style.textDecoration) {
             // Span vide de style utile → unwrap
@@ -2520,14 +2526,16 @@
 
   // Fix1 — Header avec toggle thème (page liste uniquement)
   function _headerHTMLWithTheme(title) {
-    // Fix1: même SVG moon/sun que app-core.js — classes gvh-moon / gvh-sun gérées par applyThemeToggle
-    // Le thème est "light" quand body.classList.contains('light'), "dark" sinon
+    // Fix1: SVG moon/sun identiques à app-core.js
+    // En thème CLAIR (body.light) : lune cachée (display:none), soleil visible
+    // En thème SOMBRE (pas body.light) : lune visible, soleil caché (display:none)
+    // C'est la logique de app-core.js : applyThemeToggle cache moon en goWarm (light)
     var isLight = document.body.classList.contains('light');
-    var MOON_SVG = '<svg class="gvh-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' +
-      (isLight ? '' : ' style="display:none"') + '>' +
+    var moonHide = isLight  ? ' style="display:none"' : '';
+    var sunHide  = !isLight ? ' style="display:none"' : '';
+    var MOON_SVG = '<svg class="gvh-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' + moonHide + '>' +
       '<path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>';
-    var SUN_SVG  = '<svg class="gvh-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' +
-      (!isLight ? '' : ' style="display:none"') + '>' +
+    var SUN_SVG  = '<svg class="gvh-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' + sunHide + '>' +
       '<circle cx="12" cy="12" r="5"/>' +
       '<line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>' +
       '<line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>' +
@@ -2542,7 +2550,7 @@
           '<svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round"><polyline points="7 1 1 7 7 13"/></svg>' +
         '</button>' +
         '<div style="flex:1;font-size:17px;font-weight:700;color:var(--text);">' + escHtml(title) + '</div>' +
-        '<button id="diaryThemeToggle" title="Thème" class="dm-topbar-theme" ' +
+        '<button id="diaryThemeToggle" title="Th\u00e8me" class="dm-topbar-theme" ' +
           'style="width:34px;height:34px;border-radius:50%;background:var(--s2);' +
           'border:1px solid var(--border);display:flex;align-items:center;justify-content:center;' +
           'cursor:pointer;color:var(--text);">' +
