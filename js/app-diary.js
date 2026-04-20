@@ -389,7 +389,7 @@
       _tabBtn('partner', '💌 ' + escHtml(yamGetDisplayName(partnerRole)), _tab === 'partner', partnerPages.length, totalBadge) +
     '</div>';
 
-    html += '<div id="diaryListScroll" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 16px 80px;">';
+    html += '<div id="diaryListScroll" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px 80px;">';
 
     var list = _tab === 'mine' ? myPages : partnerPages;
 
@@ -475,36 +475,39 @@
         '✏️ ' + escHtml(editorName) + ' · ' + escHtml(updDate) + '</div>';
     }
 
-    return '<div data-diary-open="' + escHtml(page.id) + '" style="' +
-      'display:flex;gap:12px;align-items:stretch;' +
-      'background:var(--s1);border:1px solid ' + (isNewForMe || hasUpdateForMe ? 'var(--accent)' : 'var(--border)') + ';border-radius:18px;' +
-      'overflow:visible;cursor:pointer;box-shadow:' + (isNewForMe || hasUpdateForMe ? '0 0 0 2px var(--accent-s),' : '') + 'var(--sh-sm);' +
-      'transition:transform 0.15s,box-shadow 0.15s;position:relative;">' +
+    return '<div style="position:relative;overflow:visible;padding-top:10px;">' +
 
-      // Épingle (coin BAS-droit) — évite le chevauchement avec les badges CO-ÉCRITURE/PARTAGÉ en haut
-      '<button data-diary-pin="' + escHtml(page.id) + '" title="' + (pinned ? 'Désépingler' : 'Épingler en tête') + '" ' +
-        'style="position:absolute;bottom:8px;right:8px;z-index:4;width:24px;height:24px;' +
-        'border-radius:6px;' +
-        (pinned
-          ? 'background:var(--accent);border:none;opacity:1;'
-          : 'background:transparent;border:none;opacity:0.3;') +
-        'display:flex;align-items:center;justify-content:center;cursor:pointer;' +
-        'transition:opacity 0.2s,background 0.2s;">' +
-        '<svg width="14" height="16" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-          '<path d="M7 1C5.34 1 4 2.34 4 4c0 1.1.47 2.08 1.22 2.77L4.5 9H2v1.5h4.25V15l.75.75.75-.75v-4.25H12V9H9.5L8.78 6.77C9.53 6.08 10 5.1 10 4c0-1.66-1.34-3-3-3z" ' +
-            'fill="' + (pinned ? '#fff' : 'var(--text)') + '"/>' +
-        '</svg>' +
-      '</button>' +
-
-      // Badge nouveau / mis à jour
-      (isNewForMe ? '<span style="position:absolute;top:-7px;left:12px;z-index:4;' +
+      // Badge nouveau / mis à jour — hors de la carte, dans le wrapper
+      (isNewForMe ? '<span style="position:absolute;top:0;right:28px;z-index:4;' +
         'background:var(--accent);color:#fff;font-size:9px;font-weight:800;' +
         'border-radius:8px;padding:2px 6px;box-shadow:var(--sh-sm);' +
         'animation:diaryBadgePulse 1.5s ease-in-out infinite;">NOUVEAU ✨</span>' : '') +
-      (hasUpdateForMe ? '<span style="position:absolute;top:-7px;left:12px;z-index:4;' +
+      (hasUpdateForMe ? '<span style="position:absolute;top:0;right:28px;z-index:4;' +
         'background:#ff9500;color:#fff;font-size:9px;font-weight:800;' +
         'border-radius:8px;padding:2px 6px;box-shadow:var(--sh-sm);' +
         'animation:diaryBadgePulse 1.5s ease-in-out infinite;">MIS À JOUR 🔄</span>' : '') +
+
+      // Carte — overflow:hidden pour ne pas bloquer le scroll iOS
+      '<div data-diary-open="' + escHtml(page.id) + '" style="' +
+        'display:flex;gap:12px;align-items:stretch;' +
+        'background:var(--s1);border:1px solid ' + (isNewForMe || hasUpdateForMe ? 'var(--accent)' : 'var(--border)') + ';border-radius:18px;' +
+        'overflow:hidden;cursor:pointer;box-shadow:' + (isNewForMe || hasUpdateForMe ? '0 0 0 2px var(--accent-s),' : '') + 'var(--sh-sm);' +
+        'transition:transform 0.15s,box-shadow 0.15s;position:relative;">' +
+
+        // Épingle (coin bas-droit) — dans la carte, overflow:hidden la garde à l'intérieur
+        '<button data-diary-pin="' + escHtml(page.id) + '" title="' + (pinned ? 'Désépingler' : 'Épingler en tête') + '" ' +
+          'style="position:absolute;bottom:8px;right:8px;z-index:4;width:24px;height:24px;' +
+          'border-radius:6px;' +
+          (pinned
+            ? 'background:var(--accent);border:none;opacity:1;'
+            : 'background:transparent;border:none;opacity:0.3;') +
+          'display:flex;align-items:center;justify-content:center;cursor:pointer;' +
+          'transition:opacity 0.2s,background 0.2s;">' +
+          '<svg width="14" height="16" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+            '<path d="M7 1C5.34 1 4 2.34 4 4c0 1.1.47 2.08 1.22 2.77L4.5 9H2v1.5h4.25V15l.75.75.75-.75v-4.25H12V9H9.5L8.78 6.77C9.53 6.08 10 5.1 10 4c0-1.66-1.34-3-3-3z" ' +
+              'fill="' + (pinned ? '#fff' : 'var(--text)') + '"/>' +
+          '</svg>' +
+        '</button>' +
 
       // Couverture miniature
       '<div style="width:72px;flex-shrink:0;background:' + escHtml(coverBg) + ';' +
@@ -533,9 +536,10 @@
           'display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' +
           _stripHTML(page.content).substring(0, 120) + '</div>' : '') +
         (isCanva ? '<div style="font-size:11px;color:var(--muted);">📐 Présentation Canva</div>' : '') +
-      '</div>' +
+      '</div>' +    // fin zone infos
 
-    '</div>';
+    '</div>' +      // fin carte intérieure (overflow:hidden)
+    '</div>';       // fin wrapper (overflow:visible)
   }
 
   function _bindListEvents() {
