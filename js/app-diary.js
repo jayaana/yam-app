@@ -15,9 +15,10 @@
   'use strict';
 
   // ─── 1. CONSTANTES ────────────────────────────────────────────────
-  var DIARY_TBL    = 'diary_pages';
-  var COMMENT_TBL  = 'diary_comments';
-  var STORAGE_BASE = SB_URL + '/storage/v1/object/images/';
+  var DIARY_TBL          = 'diary_pages';
+  var COMMENT_TBL        = 'diary_comments';
+  var STORAGE_BASE       = SB_URL + '/storage/v1/object/images/';
+  var SB_EDGE_CANVA      = SB_URL + '/functions/v1/canva-proxy';
   var POLL_MS      = 6000;   // fallback poll
   var MAX_IMG_BYTES    = 400 * 1024; // 400 Ko — images éditeur (= slots Elle/Lui dans app-nous)
   var MAX_BG_IMG_BYTES = 600 * 1024; // 600 Ko — image de fond (= souvenirs dans app-nous)
@@ -2745,40 +2746,70 @@
     '</div>';
   }
 
-  // Enrichir la carte via oEmbed (thumbnail réelle)
+  // Enrichir la carte via Edge Function canva-proxy (résout le CORS)
   function _loadCanvaOembed(containerEl, url, large) {
     if (!containerEl || !url) return;
+
     // Bind le bouton Voir → ouvre le viewer in-app
     var viewBtn = containerEl.querySelector('#diaryCanvaViewBtn');
     if (viewBtn) {
-      viewBtn.addEventListener('click', function() { _openCanvaViewer(url); });
+      viewBtn.addEventListener('click', function() {
+        _openCanvaViewer(url, viewBtn.dataset.viewUrl);
+      });
       viewBtn.addEventListener('touchend', function(e) {
-        e.preventDefault(); _openCanvaViewer(url);
+        e.preventDefault(); _openCanvaViewer(url, viewBtn.dataset.viewUrl);
       }, { passive: false });
     }
-    // Fetch oEmbed pour la thumbnail
-    var oembed = 'https://www.canva.com/api/oembed?url=' + encodeURIComponent(url) + '&format=json';
-    fetch(oembed)
+
+    // Appel Edge Function canva-proxy (côté serveur → pas de CORS)
+    fetch(SB_EDGE_CANVA, {
+      method: 'POST',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, sb2Headers()),
+      body: JSON.stringify({ action: 'oembed', url: url }),
+    })
       .then(function(r) { return r.ok ? r.json() : null; })
       .then(function(data) {
-        if (!data) return;
+        if (!data || !data.ok) return;
+
+        // Mettre à jour le titre
         var titleEl = containerEl.querySelector('#canva-card-title');
         if (titleEl && data.title) titleEl.textContent = data.title;
+
+        // Mettre à jour la thumbnail
         if (data.thumbnail_url) {
           var wrap = containerEl.querySelector('#canva-thumb-wrap');
           if (wrap) {
-            wrap.innerHTML = '<img src="' + escHtml(data.thumbnail_url) + '" ' +
-              'style="width:100%;height:100%;object-fit:cover;display:block;" alt="Aperçu">';
+            if (large) {
+              // Grande carte : image pleine largeur avec ratio
+              wrap.style.minHeight = '0';
+              wrap.innerHTML =
+                '<img src="' + escHtml(data.thumbnail_url) + '" ' +
+                  'style="width:100%;display:block;border-radius:18px 18px 0 0;' +
+                  'max-height:280px;object-fit:cover;" ' +
+                  'alt="Aperçu Canva">';
+            } else {
+              // Petite carte : thumbnail compacte
+              wrap.innerHTML =
+                '<img src="' + escHtml(data.thumbnail_url) + '" ' +
+                  'style="width:48px;height:34px;object-fit:cover;' +
+                  'border-radius:6px;display:block;" alt="">';
+            }
           }
         }
+
+        // Stocker view_url pour le viewer
+        if (data.view_url) {
+          var btn2 = containerEl.querySelector('#diaryCanvaViewBtn');
+          if (btn2) btn2.dataset.viewUrl = data.view_url;
+        }
       })
-      .catch(function() {});
+      .catch(function() {}); // Edge Function indisponible → carte de base reste
   }
 
   // Viewer Canva in-app : overlay plein écran avec iframe no-referrer
-  // En PWA, le referrer est null → contourne souvent le frame-ancestors Canva
-  function _openCanvaViewer(url) {
-    var viewUrl = _sanitizeCanvaUrl(url) || url;
+  // En PWA installée, le referrer est null → souvent accepté par Canva
+  function _openCanvaViewer(url, viewUrlOverride) {
+    var viewUrl = viewUrlOverride || _sanitizeCanvaUrl(url) || url;
     var overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:#000;' +
       'display:flex;flex-direction:column;';
