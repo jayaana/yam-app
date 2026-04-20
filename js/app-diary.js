@@ -1254,26 +1254,39 @@
     // Couvertures
     _view.querySelectorAll('[data-cover-bg]').forEach(function(btn) {
       btn.addEventListener('click', function() {
+        var isSelected = this.style.border.indexOf('var(--accent)') !== -1;
+        // Désélectionner tous
         _view.querySelectorAll('[data-cover-bg]').forEach(function(b) {
           b.style.border = '2px solid transparent';
           b.style.boxShadow = 'var(--sh-sm)';
         });
-        this.style.border = '2.5px solid var(--accent)';
-        this.style.boxShadow = '0 0 0 2px var(--accent-s)';
-        // Fix2: emoji de la palette sélectionnée
-        _editorCoverEmoji = this.getAttribute('data-cover-emoji');
+        if (isSelected) {
+          // Reclic → désélectionner (pas de couverture)
+          _editorCoverEmoji = null;
+        } else {
+          // Sélectionner
+          this.style.border = '2.5px solid var(--accent)';
+          this.style.boxShadow = '0 0 0 2px var(--accent-s)';
+          _editorCoverEmoji = this.getAttribute('data-cover-emoji');
+        }
       });
     });
 
-    // Humeurs
+    // Humeurs — reclic = désélection
     _view.querySelectorAll('[data-mood]').forEach(function(btn) {
       btn.addEventListener('click', function() {
+        var isSelected = this.style.border.indexOf('var(--accent)') !== -1;
+        // Désélectionner tous
         _view.querySelectorAll('[data-mood]').forEach(function(b) {
           b.style.border = '1.5px solid var(--border)';
           b.style.background = 'var(--s2)';
         });
-        this.style.border = '2px solid var(--accent)';
-        this.style.background = 'var(--accent-s)';
+        if (!isSelected) {
+          // Sélectionner
+          this.style.border = '2px solid var(--accent)';
+          this.style.background = 'var(--accent-s)';
+        }
+        // Reclic → rien à faire, déjà désélectionné ci-dessus
       });
     });
 
@@ -2561,17 +2574,16 @@
 
     // Fix2 : couverture sélectionnée
     var selectedCover = _view.querySelector('[data-cover-bg][style*="var(--accent)"]');
-    var coverBg    = selectedCover ? selectedCover.getAttribute('data-cover-bg') : (_currentPage ? _currentPage.cover_color : '#fce4eb');
-    // _editorCoverEmoji est prioritaire — il tient compte des emojis custom du picker (+)
-    // sans se faire écraser par l'emoji de la palette au moment du render
+    // Si aucune couverture sélectionnée et _editorCoverEmoji null → pas de couverture
+    var coverBg    = selectedCover ? selectedCover.getAttribute('data-cover-bg') : null;
     var coverEmoji = _editorCoverEmoji
       || (selectedCover ? selectedCover.getAttribute('data-cover-emoji') : null)
-      || (_currentPage ? _currentPage.cover_emoji : null)
-      || '📖';
+      || null;
 
     // Humeur sélectionnée
     var selectedMood = _view.querySelector('[data-mood][style*="var(--accent)"]');
-    var mood = selectedMood ? selectedMood.getAttribute('data-mood') : (_currentPage ? _currentPage.mood : null);
+    // null si désélectionné (reclic) ou jamais sélectionné
+    var mood = selectedMood ? selectedMood.getAttribute('data-mood') : null;
 
     // Canva design ID
     var canvaDesignId = canvaUrl ? _extractCanvaDesignId(canvaUrl) : null;
