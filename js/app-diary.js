@@ -156,33 +156,21 @@
       return !seenUpd || seenUpd < p.updated_at;
     }).length;
   }
-  // Met à jour le badge sur la carte "My Diary" de l'accueil (#homeDiaryCard)
+  // Met à jour le badge "NEW" sur la carte My Diary — même approche que le badge Boutique :
+  // span #homeDiaryNewBadge en position:absolute dans un wrapper sans overflow:hidden
   function _updateHomeBadge() {
-    var card = document.getElementById('homeDiaryCard');
-    if (!card) return;
+    var badge = document.getElementById('homeDiaryNewBadge');
+    if (!badge) return;
     var count = _countNewPartnerPages() + _countUpdatedPartnerPages();
-    var badge = card.querySelector('.diary-home-badge');
     if (count > 0) {
-      if (!badge) {
-        badge = document.createElement('span');
-        badge.className = 'diary-home-badge';
-        badge.style.cssText =
-          'position:absolute;top:-6px;right:-6px;' +
-          'min-width:20px;height:20px;border-radius:10px;' +
-          'background:#ff3b30;color:#fff;font-size:10px;font-weight:800;' +
-          'display:flex;align-items:center;justify-content:center;padding:0 5px;' +
-          'box-shadow:0 2px 8px rgba(255,59,48,0.55);' +
-          'animation:diaryBadgePulse 1.4s ease-in-out infinite;' +
-          'z-index:10;pointer-events:none;line-height:1;';
-        var curPos = window.getComputedStyle(card).position;
-        if (curPos === 'static') card.style.position = 'relative';
-        card.appendChild(badge);
-      }
-      badge.textContent = count > 9 ? '9+' : String(count);
+      badge.textContent = count > 9 ? '9+' : 'NEW';
+      badge.style.display = 'block';
     } else {
-      if (badge) badge.remove();
+      badge.style.display = 'none';
     }
   }
+
+  function _bindHomeBadgeScroll() {} // no-op
   // Met à jour les badges sur les onglets "Mon journal" et "Partenaire"
   function _updateTabBadges() {
     // Badge onglet partenaire : nouvelles pages
