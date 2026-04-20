@@ -436,18 +436,7 @@
       '</div>';
     }
 
-    // Images galerie
-    var imgs = [];
-    try { imgs = JSON.parse(page.images || '[]'); } catch(e) {}
-    if (imgs.length > 0) {
-      html += '<div style="padding:12px 18px;display:flex;flex-wrap:wrap;gap:8px;">';
-      imgs.forEach(function(img) {
-        html += '<img src="' + escHtml(img.url) + '" alt="" data-diary-img-full="' + escHtml(img.url) + '" ' +
-          'style="width:calc(50% - 4px);border-radius:12px;object-fit:cover;height:120px;cursor:pointer;' +
-          'box-shadow:var(--sh-sm);" loading="lazy">';
-      });
-      html += '</div>';
-    }
+    // Fix5: galerie images supprimée — les images sont dans le contenu HTML (diary-rich-content)
 
     // Section commentaires / co-écriture
     html += '<div style="padding:0 18px 16px;">';
@@ -2126,160 +2115,178 @@
   }
 
   // Fix4 — Lie les poignées de redimensionnement JS (touch + mouse) sur toutes les images de l'éditeur
-  // Fix6 — UI de rognage JS (canvas) pour les images dans l'éditeur
+  // Fix6 — UI de rognage JS (canvas) — iOS + desktop
   function _openCropUI(imgEl, wrapEl) {
-    var src = imgEl.src;
-    if (!src) return;
+    var imgSrc = imgEl.getAttribute('src') || imgEl.src;
+    if (!imgSrc) return;
 
-    // Overlay plein écran
     var overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:10000;' +
-      'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;' +
-      'padding:16px;box-sizing:border-box;';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:10000;' +
+      'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
+      'gap:14px;padding:20px 16px;box-sizing:border-box;';
 
-    var title = document.createElement('div');
-    title.style.cssText = 'color:#fff;font-size:15px;font-weight:700;font-family:DM Sans,sans-serif;';
-    title.textContent = 'Rogner l’image';
-    overlay.appendChild(title);
+    var titleEl = document.createElement('div');
+    titleEl.style.cssText = 'color:#fff;font-size:15px;font-weight:700;font-family:DM Sans,sans-serif;';
+    titleEl.textContent = 'Rogner l’image';
+    overlay.appendChild(titleEl);
 
-    // Canvas de crop
+    // Wrapper canvas
     var cropWrap = document.createElement('div');
-    cropWrap.style.cssText = 'position:relative;max-width:min(480px,90vw);max-height:55vh;' +
-      'overflow:hidden;border-radius:10px;touch-action:none;cursor:crosshair;';
+    cropWrap.style.cssText = 'position:relative;touch-action:none;border-radius:10px;overflow:hidden;' +
+      'max-width:min(500px,calc(100vw - 32px));';
 
     var canvas = document.createElement('canvas');
-    canvas.style.cssText = 'display:block;max-width:100%;max-height:55vh;border-radius:10px;';
+    canvas.style.cssText = 'display:block;max-width:100%;border-radius:10px;';
+    cropWrap.appendChild(canvas);
+
+    // Overlay de sélection (div semi-transparent avec "trou")
+    var selBox = document.createElement('div');
+    selBox.style.cssText = 'position:absolute;border:2.5px solid #fff;box-sizing:border-box;' +
+      'box-shadow:0 0 0 9999px rgba(0,0,0,0.5);pointer-events:none;display:none;';
+    cropWrap.appendChild(selBox);
+
+    overlay.appendChild(cropWrap);
 
     var ctx = canvas.getContext('2d');
     var image = new Image();
     image.crossOrigin = 'anonymous';
 
-    // Cadre de sélection
-    var selEl = document.createElement('div');
-    selEl.style.cssText = 'position:absolute;border:2px solid #fff;' +
-      'box-shadow:0 0 0 9999px rgba(0,0,0,0.45);pointer-events:none;box-sizing:border-box;';
-    cropWrap.appendChild(canvas);
-    cropWrap.appendChild(selEl);
-    overlay.appendChild(cropWrap);
-
-    // État du crop
-    var scale = 1, imgW = 0, imgH = 0;
-    var sel = { x: 0, y: 0, w: 0, h: 0 };
-    var drag = null; // null | {type:'new'|'move', sx,sy,ox,oy}
+    var scale = 1, cW = 0, cH = 0;
+    var sel = null; // {x,y,w,h} en px canvas
+    var drag = null; // {mode:'draw'|'move', sx,sy,ox,oy}
 
     image.onload = function() {
-      imgW = image.naturalWidth;
-      imgH = image.naturalHeight;
-      // Ajuster canvas à la taille d'affichage
-      var maxW = Math.min(480, window.innerWidth * 0.9);
-      var maxH = window.innerHeight * 0.55;
-      scale = Math.min(maxW / imgW, maxH / imgH, 1);
-      canvas.width  = Math.round(imgW * scale);
-      canvas.height = Math.round(imgH * scale);
-      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-      // Sélection initiale : tout
-      sel = { x: 0, y: 0, w: canvas.width, h: canvas.height };
-      _updateSel();
+      var naturalW = image.naturalWidth;
+      var naturalH = image.naturalHeight;
+      var maxW = Math.min(500, window.innerWidth  - 32);
+      var maxH = Math.floor(window.innerHeight * 0.52);
+      scale = Math.min(maxW / naturalW, maxH / naturalH, 1);
+      cW = Math.round(naturalW * scale);
+      cH = Math.round(naturalH * scale);
+      canvas.width  = cW;
+      canvas.height = cH;
+      ctx.drawImage(image, 0, 0, cW, cH);
+      // Sélection initiale = tout
+      sel = { x: 0, y: 0, w: cW, h: cH };
+      _drawSel();
     };
-    image.src = src;
+    image.src = imgSrc + (imgSrc.includes('?') ? '&' : '?') + '_t=' + Date.now();
 
-    function _updateSel() {
-      selEl.style.left   = sel.x + 'px';
-      selEl.style.top    = sel.y + 'px';
-      selEl.style.width  = sel.w + 'px';
-      selEl.style.height = sel.h + 'px';
+    function _drawSel() {
+      if (!sel) return;
+      selBox.style.display = 'block';
+      selBox.style.left   = sel.x + 'px';
+      selBox.style.top    = sel.y + 'px';
+      selBox.style.width  = Math.max(4, sel.w) + 'px';
+      selBox.style.height = Math.max(4, sel.h) + 'px';
     }
 
-    function _getPos(e) {
+    // Coordonnées relatives au canvas — correctes même avec scroll iOS
+    function _getXY(e) {
       var rect = canvas.getBoundingClientRect();
-      var t = e.touches ? e.touches[0] : e;
-      return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+      var t = e.changedTouches ? e.changedTouches[0] : (e.touches ? e.touches[0] : e);
+      return {
+        x: Math.max(0, Math.min(t.clientX - rect.left, cW)),
+        y: Math.max(0, Math.min(t.clientY - rect.top,  cH))
+      };
     }
 
-    function _onStart(e) {
+    function _onDown(e) {
       e.preventDefault();
-      var p = _getPos(e);
-      // Vérifier si on est dans la sélection existante → déplacement
-      if (p.x >= sel.x && p.x <= sel.x + sel.w && p.y >= sel.y && p.y <= sel.y + sel.h) {
-        drag = { type: 'move', sx: p.x, sy: p.y, ox: sel.x, oy: sel.y };
+      var p = _getXY(e);
+      if (sel && p.x >= sel.x && p.x <= sel.x + sel.w &&
+                 p.y >= sel.y && p.y <= sel.y + sel.h) {
+        drag = { mode: 'move', sx: p.x, sy: p.y, ox: sel.x, oy: sel.y };
       } else {
-        drag = { type: 'new', sx: p.x, sy: p.y };
-        sel = { x: p.x, y: p.y, w: 0, h: 0 };
+        drag = { mode: 'draw', sx: p.x, sy: p.y };
+        sel  = { x: p.x, y: p.y, w: 0, h: 0 };
       }
     }
     function _onMove(e) {
       e.preventDefault();
-      if (!drag) return;
-      var p = _getPos(e);
-      if (drag.type === 'new') {
-        var x = Math.min(drag.sx, p.x), y = Math.min(drag.sy, p.y);
-        var w = Math.abs(p.x - drag.sx), h = Math.abs(p.y - drag.sy);
-        // Contraindre au canvas
-        x = Math.max(0, Math.min(x, canvas.width  - 1));
-        y = Math.max(0, Math.min(y, canvas.height - 1));
-        w = Math.min(w, canvas.width  - x);
-        h = Math.min(h, canvas.height - y);
-        sel = { x: x, y: y, w: w, h: h };
+      if (!drag || !sel) return;
+      var p = _getXY(e);
+      if (drag.mode === 'draw') {
+        var x = Math.min(drag.sx, p.x);
+        var y = Math.min(drag.sy, p.y);
+        var w = Math.abs(p.x - drag.sx);
+        var h = Math.abs(p.y - drag.sy);
+        sel = {
+          x: Math.max(0, x),
+          y: Math.max(0, y),
+          w: Math.min(w, cW - Math.max(0, x)),
+          h: Math.min(h, cH - Math.max(0, y))
+        };
       } else {
-        sel.x = Math.max(0, Math.min(drag.ox + (p.x - drag.sx), canvas.width  - sel.w));
-        sel.y = Math.max(0, Math.min(drag.oy + (p.y - drag.sy), canvas.height - sel.h));
+        sel.x = Math.max(0, Math.min(drag.ox + p.x - drag.sx, cW - sel.w));
+        sel.y = Math.max(0, Math.min(drag.oy + p.y - drag.sy, cH - sel.h));
       }
-      _updateSel();
+      _drawSel();
     }
-    function _onEnd(e) { drag = null; }
+    function _onUp(e) { drag = null; }
 
-    canvas.addEventListener('mousedown',  _onStart);
+    canvas.addEventListener('mousedown',  _onDown);
     canvas.addEventListener('mousemove',  _onMove);
-    canvas.addEventListener('mouseup',    _onEnd);
-    canvas.addEventListener('touchstart', _onStart, { passive: false });
-    canvas.addEventListener('touchmove',  _onMove,  { passive: false });
-    canvas.addEventListener('touchend',   _onEnd);
+    canvas.addEventListener('mouseup',    _onUp);
+    canvas.addEventListener('touchstart', _onDown, { passive: false });
+    canvas.addEventListener('touchmove',  _onMove, { passive: false });
+    canvas.addEventListener('touchend',   _onUp,   { passive: false });
 
     // Boutons
     var btnRow = document.createElement('div');
-    btnRow.style.cssText = 'display:flex;gap:10px;';
+    btnRow.style.cssText = 'display:flex;gap:12px;';
 
-    var btnCancel = document.createElement('button');
-    btnCancel.style.cssText = 'padding:10px 22px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.4);' +
-      'background:transparent;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;';
-    btnCancel.textContent = 'Annuler';
+    function _makeBtn(text, accent) {
+      var b = document.createElement('button');
+      b.style.cssText = 'padding:11px 24px;border-radius:22px;font-size:13px;font-weight:700;' +
+        'cursor:pointer;font-family:DM Sans,sans-serif;border:none;' +
+        (accent
+          ? 'background:var(--accent);color:#fff;'
+          : 'background:rgba(255,255,255,0.15);color:#fff;border:1.5px solid rgba(255,255,255,0.3);');
+      b.textContent = text;
+      return b;
+    }
+
+    var btnCancel = _makeBtn('Annuler', false);
     btnCancel.addEventListener('click', function() { document.body.removeChild(overlay); });
 
-    var btnApply = document.createElement('button');
-    btnApply.style.cssText = 'padding:10px 22px;border-radius:20px;border:none;' +
-      'background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;';
-    btnApply.textContent = '\u2714\uFE0F Rogner';
+    var btnApply = _makeBtn('✔ Rogner', true);
     btnApply.addEventListener('click', function() {
-      if (sel.w < 10 || sel.h < 10) {
+      if (!sel || sel.w < 10 || sel.h < 10) {
         showToast('Sélectionne une zone à rogner', 'error'); return;
       }
-      // Crop en coordonnées image réelle
-      var rx = sel.x / scale, ry = sel.y / scale;
-      var rw = sel.w / scale, rh = sel.h / scale;
-      var out = document.createElement('canvas');
-      out.width = Math.round(rw); out.height = Math.round(rh);
-      var octx = out.getContext('2d');
-      octx.drawImage(image, rx, ry, rw, rh, 0, 0, out.width, out.height);
-      out.toBlob(function(blob) {
+      // Coordonnées en pixels image réelle
+      var rx = Math.round(sel.x / scale);
+      var ry = Math.round(sel.y / scale);
+      var rw = Math.round(sel.w / scale);
+      var rh = Math.round(sel.h / scale);
+
+      var outCanvas = document.createElement('canvas');
+      outCanvas.width  = rw;
+      outCanvas.height = rh;
+      outCanvas.getContext('2d').drawImage(image, rx, ry, rw, rh, 0, 0, rw, rh);
+
+      outCanvas.toBlob(function(blob) {
         if (!blob) { showToast('Erreur rognage', 'error'); return; }
-        // Upload le crop et remplacer src + mettre à jour _editorImages
         var u = yamGetUser();
         if (!u) return;
+        btnApply.textContent = '⏳';
+        btnApply.disabled = true;
         var path = 'diary/' + u.couple_id + '/crop-' + Date.now() + '.jpg';
         _uploadToStorage(blob, path, function(newUrl) {
-          if (!newUrl) { showToast('Erreur upload', 'error'); return; }
-          // Remplacer src dans le DOM
+          if (!newUrl) { showToast('Erreur upload crop', 'error'); btnApply.textContent = '✔ Rogner'; btnApply.disabled = false; return; }
+          // Fix6: setAttribute pour que le HTML sauvegardé contienne la nouvelle URL
+          imgEl.setAttribute('src', newUrl);
           imgEl.src = newUrl;
-          // Mettre à jour _editorImages si l'ancienne URL est connue
-          var oldUrl = src;
+          // Mettre à jour _editorImages
           for (var i = 0; i < _editorImages.length; i++) {
-            if (_editorImages[i].url === oldUrl) { _editorImages[i].url = newUrl; break; }
+            if (_editorImages[i].url === imgSrc) { _editorImages[i].url = newUrl; break; }
           }
           document.body.removeChild(overlay);
           showToast('Image rognée ✨', 'success');
           haptic('success');
         });
-      }, 'image/jpeg', 0.88);
+      }, 'image/jpeg', 0.9);
     });
 
     btnRow.appendChild(btnCancel);
@@ -2287,8 +2294,8 @@
     overlay.appendChild(btnRow);
 
     var hint = document.createElement('div');
-    hint.style.cssText = 'color:rgba(255,255,255,0.5);font-size:11px;text-align:center;font-family:DM Sans,sans-serif;';
-    hint.textContent = 'Dessine la zone à garder — glisse pour déplacer la sélection';
+    hint.style.cssText = 'color:rgba(255,255,255,0.45);font-size:11px;text-align:center;font-family:DM Sans,sans-serif;';
+    hint.textContent = 'Dessine la zone à garder • Glisse pour déplacer';
     overlay.appendChild(hint);
 
     document.body.appendChild(overlay);
@@ -2298,73 +2305,77 @@
   function _bindImgResizeHandles(container) {
     if (!container) return;
     container.querySelectorAll('.diary-img-wrap').forEach(function(wrap) {
-      // Fix4: flag sur le wrap DOM lui-même (pas le handle, qui peut être recréé)
-      if (wrap._rBound) return;
-      wrap._rBound = true;
-
-      // S'assurer que contenteditable=false est bien présent (Safari le retire parfois)
+      // Fix4/6: deux flags séparés — resize et crop peuvent être rebindés indépendamment
       wrap.setAttribute('contenteditable', 'false');
 
-      // Recréer le handle s'il a disparu (sanitize ou reload)
-      var handle = wrap.querySelector('.diary-img-handle');
-      if (!handle) {
-        handle = document.createElement('span');
-        handle.className = 'diary-img-handle';
-        handle.style.cssText = 'position:absolute;bottom:0;right:0;width:26px;height:26px;' +
-          'cursor:nwse-resize;touch-action:none;z-index:2;' +
-          'background:linear-gradient(135deg,transparent 40%,rgba(0,0,0,0.4) 40%);' +
-          'border-radius:0 0 10px 0;';
-        wrap.appendChild(handle);
+      // ── Resize handle ──
+      if (!wrap._rBound) {
+        wrap._rBound = true;
+
+        var handle = wrap.querySelector('.diary-img-handle');
+        if (!handle) {
+          handle = document.createElement('span');
+          handle.className = 'diary-img-handle';
+          handle.style.cssText = 'position:absolute;bottom:0;right:0;width:26px;height:26px;' +
+            'cursor:nwse-resize;touch-action:none;z-index:2;' +
+            'background:linear-gradient(135deg,transparent 40%,rgba(0,0,0,0.4) 40%);' +
+            'border-radius:0 0 10px 0;';
+          wrap.appendChild(handle);
+        }
+
+        var startX, startW;
+        function onStart(e) {
+          e.preventDefault(); e.stopPropagation();
+          var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+          startX = clientX; startW = wrap.offsetWidth;
+          document.addEventListener('mousemove', onMove);
+          document.addEventListener('touchmove', onMove, { passive: false });
+          document.addEventListener('mouseup',   onEnd);
+          document.addEventListener('touchend',  onEnd);
+        }
+        function onMove(e) {
+          e.preventDefault();
+          var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+          var maxW = wrap.parentElement ? wrap.parentElement.offsetWidth : 600;
+          wrap.style.width = Math.max(80, Math.min(startW + (clientX - startX), maxW)) + 'px';
+        }
+        function onEnd() {
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('touchmove', onMove);
+          document.removeEventListener('mouseup',   onEnd);
+          document.removeEventListener('touchend',  onEnd);
+        }
+        handle.addEventListener('mousedown',  onStart);
+        handle.addEventListener('touchstart', onStart, { passive: false });
       }
 
-      // Ajouter bouton crop s'il n'existe pas
-      if (!wrap.querySelector('.diary-img-crop-btn')) {
+      // ── Bouton crop — toujours recréé si absent (réouverture page) ──
+      var existingCropBtn = wrap.querySelector('.diary-img-crop-btn');
+      if (!existingCropBtn) {
         var cropBtn = document.createElement('button');
         cropBtn.className = 'diary-img-crop-btn';
         cropBtn.title = 'Rogner';
         cropBtn.setAttribute('contenteditable', 'false');
-        cropBtn.style.cssText = 'position:absolute;top:5px;left:5px;' +
-          'width:28px;height:28px;border-radius:8px;border:none;cursor:pointer;' +
-          'background:rgba(0,0,0,0.45);color:#fff;font-size:14px;' +
-          'display:flex;align-items:center;justify-content:center;z-index:3;';
-        cropBtn.textContent = '\u2702\uFE0F';
+        cropBtn.style.cssText = 'position:absolute;top:5px;left:5px;width:28px;height:28px;' +
+          'border-radius:8px;border:none;cursor:pointer;background:rgba(0,0,0,0.45);' +
+          'color:#fff;font-size:15px;display:flex;align-items:center;justify-content:center;z-index:3;' +
+          'touch-action:manipulation;';
+        cropBtn.innerHTML = '&#x2702;&#xFE0F;';
         cropBtn.addEventListener('mousedown', function(e) { e.preventDefault(); e.stopPropagation(); });
         cropBtn.addEventListener('click', function(e) {
           e.preventDefault(); e.stopPropagation();
           var imgEl = wrap.querySelector('img');
           if (imgEl) _openCropUI(imgEl, wrap);
         });
+        // iOS : touchend déclenche mieux que click
+        cropBtn.addEventListener('touchend', function(e) {
+          e.preventDefault(); e.stopPropagation();
+          var imgEl = wrap.querySelector('img');
+          if (imgEl) _openCropUI(imgEl, wrap);
+        }, { passive: false });
         wrap.appendChild(cropBtn);
       }
 
-      var startX, startW;
-
-      function onStart(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        var clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        startX = clientX;
-        startW = wrap.offsetWidth;
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('touchmove', onMove, { passive: false });
-        document.addEventListener('mouseup',   onEnd);
-        document.addEventListener('touchend',  onEnd);
-      }
-      function onMove(e) {
-        e.preventDefault();
-        var clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        var maxW = wrap.parentElement ? wrap.parentElement.offsetWidth : 600;
-        var newW = Math.max(80, Math.min(startW + (clientX - startX), maxW));
-        wrap.style.width = newW + 'px';
-      }
-      function onEnd() {
-        document.removeEventListener('mousemove', onMove);
-        document.removeEventListener('touchmove', onMove);
-        document.removeEventListener('mouseup',   onEnd);
-        document.removeEventListener('touchend',  onEnd);
-      }
-      handle.addEventListener('mousedown',  onStart);
-      handle.addEventListener('touchstart', onStart, { passive: false });
     });
   }
 
@@ -2380,8 +2391,9 @@
       '.diary-rich-content .diary-img-wrap { display:inline-block;max-width:100%;' +
         'border-radius:10px;margin:6px 2px;vertical-align:bottom;overflow:hidden; }',
       '.diary-rich-content .diary-img-wrap img { width:100%;height:auto;display:block;border-radius:10px; }',
-      /* Cacher la poignée en lecture */
+      /* Fix5b: cacher handle ET bouton crop en lecture */
       '.diary-rich-content .diary-img-handle { display:none !important; }',
+      '.diary-rich-content .diary-img-crop-btn { display:none !important; }',
     ].join(' ');
     document.head.appendChild(s);
   }
