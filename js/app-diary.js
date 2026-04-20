@@ -56,6 +56,122 @@
   var _canvaValid  = false;
   var _editorCoverEmoji = null; // Fix2: emoji couverture persisté pendant l'édition
 
+  // ─── FAVORIS : stockés en localStorage par couple ─────────────────
+  function _getPinnedIds() {
+    var u = yamGetUser();
+    if (!u) return {};
+    try { return JSON.parse(localStorage.getItem('diary_pinned_' + u.couple_id) || '{}'); } catch(e) { return {}; }
+  }
+  function _setPinnedIds(obj) {
+    var u = yamGetUser();
+    if (!u) return;
+    try { localStorage.setItem('diary_pinned_' + u.couple_id, JSON.stringify(obj)); } catch(e) {}
+  }
+  function _isPinned(pageId) { return !!_getPinnedIds()[pageId]; }
+  function _togglePin(pageId) {
+    var pins = _getPinnedIds();
+    if (pins[pageId]) { delete pins[pageId]; } else { pins[pageId] = Date.now(); }
+    _setPinnedIds(pins);
+  }
+
+  // ─── BADGES : pages partenaire non vues ───────────────────────────
+  // Stocke en localStorage : { seenIds: {id: timestamp}, lastUpdateSeen: {id: updated_at} }
+  function _getBadgeState() {
+    var u = yamGetUser();
+    if (!u) return { seenIds: {}, lastUpdateSeen: {} };
+    try { return JSON.parse(localStorage.getItem('diary_badge_' + u.couple_id) || '{"seenIds":{},"lastUpdateSeen":{}}'); } catch(e) { return { seenIds: {}, lastUpdateSeen: {} }; }
+  }
+  function _saveBadgeState(state) {
+    var u = yamGetUser();
+    if (!u) return;
+    try { localStorage.setItem('diary_badge_' + u.couple_id, JSON.stringify(state)); } catch(e) {}
+  }
+  // Marque une page comme vue (nouvelle page partagée)
+  function _markPageSeen(pageId) {
+    var state = _getBadgeState();
+    state.seenIds[pageId] = Date.now();
+    _saveBadgeState(state);
+    _updateHomeBadge();
+    _updateTabBadges();
+  }
+  // Marque une mise à jour comme vue (updated_at vu)
+  function _markUpdateSeen(pageId, updatedAt) {
+    var state = _getBadgeState();
+    if (!state.lastUpdateSeen) state.lastUpdateSeen = {};
+    state.lastUpdateSeen[pageId] = updatedAt;
+    _saveBadgeState(state);
+    _updateHomeBadge();
+    _updateTabBadges();
+  }
+  // Compte les pages partenaire non vues (nouvelles)
+  function _countNewPartnerPages() {
+    var u = yamGetUser();
+    if (!u) return 0;
+    var me = getProfile();
+    var partnerRole = me === 'girl' ? 'boy' : 'girl';
+    var state = _getBadgeState();
+    return _pages.filter(function(p) {
+      return p.author_role === partnerRole && p.is_shared && !state.seenIds[p.id];
+    }).length;
+  }
+  // Compte les pages co-écriture ou partagées avec mise à jour non vue
+  function _countUpdatedPartnerPages() {
+    var u = yamGetUser();
+    if (!u) return 0;
+    var me = getProfile();
+    var partnerRole = me === 'girl' ? 'boy' : 'girl';
+    var state = _getBadgeState();
+    var updSeen = state.lastUpdateSeen || {};
+    return _pages.filter(function(p) {
+      if (!(p.author_role === partnerRole && p.is_shared)) return false;
+      if (!p.updated_at) return false;
+      // Déjà vu si on a déjà enregistré cet updated_at
+      if (!state.seenIds[p.id]) return false; // nouvelle page → géré par _countNewPartnerPages
+      var seenUpd = updSeen[p.id];
+      return !seenUpd || seenUpd < p.updated_at;
+    }).length;
+  }
+  // Met à jour le badge sur l'icône "Mon Journal" de l'accueil
+  function _updateHomeBadge() {
+    var btn = document.getElementById('homeOpenDiary');
+    if (!btn) return;
+    var count = _countNewPartnerPages() + _countUpdatedPartnerPages();
+    var badge = btn.querySelector('.diary-home-badge');
+    if (count > 0) {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'diary-home-badge';
+        badge.style.cssText = 'position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;' +
+          'border-radius:9px;background:var(--accent);color:#fff;font-size:10px;font-weight:800;' +
+          'display:flex;align-items:center;justify-content:center;padding:0 4px;' +
+          'box-shadow:0 1px 6px rgba(231,90,124,0.5);animation:diaryBadgePulse 1.5s ease-in-out infinite;' +
+          'z-index:5;pointer-events:none;';
+        // S'assurer que le bouton est en position relative
+        if (btn.style.position !== 'absolute') btn.style.position = 'relative';
+        btn.appendChild(badge);
+      }
+      badge.textContent = count > 9 ? '9+' : String(count);
+    } else {
+      if (badge) badge.remove();
+    }
+  }
+  // Met à jour les badges sur les onglets "Mon journal" et "Partenaire"
+  function _updateTabBadges() {
+    // Badge onglet partenaire : nouvelles pages
+    var newCount = _countNewPartnerPages();
+    var updCount = _countUpdatedPartnerPages();
+    var partnerBadge = document.querySelector('[data-diary-tab-badge="partner"]');
+    if (partnerBadge) {
+      var total = newCount + updCount;
+      if (total > 0) {
+        partnerBadge.textContent = total > 9 ? '9+' : String(total);
+        partnerBadge.style.display = '';
+      } else {
+        partnerBadge.style.display = 'none';
+      }
+    }
+  }
+
   // ─── 2. INIT ──────────────────────────────────────────────────────
   function _init() {
     if (_inited) return;
@@ -96,6 +212,9 @@
           if (!_pages.find(function(p){ return p.id === payload.new.id; })) {
             _pages.unshift(payload.new);
           }
+          // Badge : nouvelle page partenaire
+          _updateHomeBadge();
+          _updateTabBadges();
         } else if (payload.eventType === 'UPDATE') {
           _pages = _pages.map(function(p){ return p.id === payload.new.id ? payload.new : p; });
           // Si on est en train de lire/co-écrire cette page, mettre à jour live
@@ -103,8 +222,13 @@
             _currentPage = payload.new;
             _renderReadPage(_currentPage);
           }
+          // Badge : mise à jour page partenaire
+          _updateHomeBadge();
+          _updateTabBadges();
         } else if (payload.eventType === 'DELETE') {
           _pages = _pages.filter(function(p){ return p.id !== payload.old.id; });
+          _updateHomeBadge();
+          _updateTabBadges();
         }
         // Re-render liste si visible
         if (_mode === 'list') _renderList();
@@ -179,6 +303,8 @@
       .then(function(rows) {
         _pages = Array.isArray(rows) ? rows : [];
         if (_mode === 'list') _renderList();
+        _updateHomeBadge();
+        _updateTabBadges();
       })
       .catch(function() {
         if (_mode === 'list') _renderList();
@@ -205,6 +331,25 @@
     var myPages      = _pages.filter(function(p){ return p.author_role === me; });
     var partnerPages = _pages.filter(function(p){ return p.author_role === partnerRole && p.is_shared; });
 
+    // Trier : épinglés en tête, puis par date décroissante
+    var pins = _getPinnedIds();
+    function _sortWithPins(list) {
+      return list.slice().sort(function(a, b) {
+        var aPin = pins[a.id] || 0;
+        var bPin = pins[b.id] || 0;
+        if (aPin && !bPin) return -1;
+        if (!aPin && bPin) return 1;
+        if (aPin && bPin) return bPin - aPin; // plus récemment épinglé en premier
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+    }
+    myPages      = _sortWithPins(myPages);
+    partnerPages = _sortWithPins(partnerPages);
+
+    var newCount = _countNewPartnerPages();
+    var updCount = _countUpdatedPartnerPages();
+    var totalBadge = newCount + updCount;
+
     var html = '<div style="display:flex;flex-direction:column;height:100%;background:var(--bg);overflow:hidden;">';
 
     // Header
@@ -212,8 +357,8 @@
 
     // Tabs
     html += '<div style="display:flex;gap:0;flex-shrink:0;padding:0 16px 0;margin-top:4px;">' +
-      _tabBtn('mine',    '💌 Mon journal', _tab === 'mine',    myPages.length) +
-      _tabBtn('partner', '💌 ' + escHtml(yamGetDisplayName(partnerRole)), _tab === 'partner', partnerPages.length) +
+      _tabBtn('mine',    '💌 Mon journal', _tab === 'mine',    myPages.length, 0) +
+      _tabBtn('partner', '💌 ' + escHtml(yamGetDisplayName(partnerRole)), _tab === 'partner', partnerPages.length, totalBadge) +
     '</div>';
 
     html += '<div id="diaryListScroll" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 16px 80px;">';
@@ -250,7 +395,7 @@
     _bindListEvents();
   }
 
-  function _tabBtn(id, label, active, count) {
+  function _tabBtn(id, label, active, count, badgeCount) {
     return '<button data-diary-tab="' + id + '" style="flex:1;padding:8px 4px;' +
       'font-size:12px;font-weight:' + (active ? '700' : '500') + ';' +
       'color:' + (active ? 'var(--accent)' : 'var(--muted)') + ';' +
@@ -260,6 +405,9 @@
       escHtml(label) +
       (count > 0 ? '<span style="background:' + (active ? 'var(--accent)' : 'var(--muted)') + ';color:#fff;' +
         'border-radius:9px;padding:0 5px;font-size:9px;line-height:16px;">' + count + '</span>' : '') +
+      (badgeCount > 0 ? '<span data-diary-tab-badge="' + id + '" style="background:#ff3b30;color:#fff;' +
+        'border-radius:9px;padding:0 5px;font-size:9px;line-height:16px;font-weight:800;' +
+        'animation:diaryBadgePulse 1.5s ease-in-out infinite;">' + (badgeCount > 9 ? '9+' : badgeCount) + '</span>' : '') +
     '</button>';
   }
 
@@ -282,21 +430,54 @@
     var isCanva  = !!page.canva_url;
     var date     = new Date(page.created_at).toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' });
     var hasImg   = page.bg_image_url || (page.images && JSON.parse(page.images || '[]').length > 0);
+    var pinned   = _isPinned(page.id);
+    var state    = _getBadgeState();
+    var isNewForMe = !isOwn && !state.seenIds[page.id];
+    var hasUpdateForMe = !isOwn && !isNewForMe && page.updated_at &&
+      (!state.lastUpdateSeen || !state.lastUpdateSeen[page.id] || state.lastUpdateSeen[page.id] < page.updated_at);
+
+    // Infos de dernière modification pour co-écriture
+    var lastEditInfo = '';
+    if (page.partner_can_edit && page.updated_at && page.last_editor_role) {
+      var updDate = new Date(page.updated_at).toLocaleDateString('fr-FR', { day:'numeric', month:'short' });
+      var editorName = yamGetDisplayName(page.last_editor_role);
+      lastEditInfo = '<div style="font-size:10px;color:var(--muted);margin-top:2px;">' +
+        '✏️ ' + escHtml(editorName) + ' · ' + escHtml(updDate) + '</div>';
+    }
 
     return '<div data-diary-open="' + escHtml(page.id) + '" style="' +
       'display:flex;gap:12px;align-items:stretch;' +
-      'background:var(--s1);border:1px solid var(--border);border-radius:18px;' +
-      'overflow:hidden;cursor:pointer;box-shadow:var(--sh-sm);' +
-      'transition:transform 0.15s,box-shadow 0.15s;">' +
+      'background:var(--s1);border:1px solid ' + (isNewForMe || hasUpdateForMe ? 'var(--accent)' : 'var(--border)') + ';border-radius:18px;' +
+      'overflow:visible;cursor:pointer;box-shadow:' + (isNewForMe || hasUpdateForMe ? '0 0 0 2px var(--accent-s),' : '') + 'var(--sh-sm);' +
+      'transition:transform 0.15s,box-shadow 0.15s;position:relative;">' +
+
+      // Épingle (coin haut-droit)
+      '<button data-diary-pin="' + escHtml(page.id) + '" title="' + (pinned ? 'Désépingler' : 'Épingler en tête') + '" ' +
+        'style="position:absolute;top:-7px;right:8px;z-index:4;width:24px;height:24px;' +
+        'border-radius:50%;background:' + (pinned ? 'var(--accent)' : 'var(--s2)') + ';' +
+        'border:1.5px solid ' + (pinned ? 'var(--accent)' : 'var(--border)') + ';' +
+        'display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;' +
+        'box-shadow:var(--sh-sm);transition:all 0.2s;">📌</button>' +
+
+      // Badge nouveau / mis à jour
+      (isNewForMe ? '<span style="position:absolute;top:-7px;left:12px;z-index:4;' +
+        'background:var(--accent);color:#fff;font-size:9px;font-weight:800;' +
+        'border-radius:8px;padding:2px 6px;box-shadow:var(--sh-sm);' +
+        'animation:diaryBadgePulse 1.5s ease-in-out infinite;">NOUVEAU ✨</span>' : '') +
+      (hasUpdateForMe ? '<span style="position:absolute;top:-7px;left:12px;z-index:4;' +
+        'background:#ff9500;color:#fff;font-size:9px;font-weight:800;' +
+        'border-radius:8px;padding:2px 6px;box-shadow:var(--sh-sm);' +
+        'animation:diaryBadgePulse 1.5s ease-in-out infinite;">MIS À JOUR 🔄</span>' : '') +
 
       // Couverture miniature
       '<div style="width:72px;flex-shrink:0;background:' + escHtml(coverBg) + ';' +
         'display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;' +
-        'position:relative;">' +
+        'position:relative;border-radius:18px 0 0 18px;overflow:hidden;">' +
         '<span style="font-size:28px;">' + escHtml(coverEmoji) + '</span>' +
         (page.mood ? '<span style="font-size:14px;">' + escHtml(page.mood) + '</span>' : '') +
         (isCanva ? '<div style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.45);' +
           'border-radius:4px;padding:1px 4px;font-size:8px;color:#fff;font-weight:700;">CANVA</div>' : '') +
+        (pinned ? '<div style="position:absolute;top:3px;left:3px;font-size:10px;">📌</div>' : '') +
       '</div>' +
 
       // Infos
@@ -311,6 +492,7 @@
             'border-radius:6px;padding:2px 6px;flex-shrink:0;font-weight:700;">CO-ÉCRITURE</span>' : '') +
         '</div>' +
         '<div style="font-size:11px;color:var(--muted);">' + escHtml(date) + '</div>' +
+        lastEditInfo +
         (page.content && !isCanva ? '<div style="font-size:12px;color:var(--sub);line-height:1.4;' +
           'display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' +
           _stripHTML(page.content).substring(0, 120) + '</div>' : '') +
@@ -344,9 +526,30 @@
       });
     });
 
+    // Épingler / désépingler une page
+    _view.querySelectorAll('[data-diary-pin]').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation(); // ne pas ouvrir la page
+        var id = this.getAttribute('data-diary-pin');
+        _togglePin(id);
+        haptic('light');
+        _renderList();
+      });
+      btn.addEventListener('touchend', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        var id = this.getAttribute('data-diary-pin');
+        _togglePin(id);
+        haptic('light');
+        _renderList();
+      }, { passive: false });
+    });
+
     // Ouvrir une page
     _view.querySelectorAll('[data-diary-open]').forEach(function(card) {
-      card.addEventListener('click', function() {
+      card.addEventListener('click', function(e) {
+        // Ignorer le clic si c'est sur le bouton pin
+        if (e.target.closest('[data-diary-pin]')) return;
         var id = this.getAttribute('data-diary-open');
         var page = _pages.find(function(p){ return p.id === id; });
         if (page) _openReadPage(page);
@@ -366,6 +569,14 @@
   function _openReadPage(page) {
     _currentPage = page;
     _mode = 'read';
+
+    // Marquer comme vu si c'est une page partenaire
+    var me = getProfile();
+    if (page.author_role !== me) {
+      _markPageSeen(page.id);
+      if (page.updated_at) _markUpdateSeen(page.id, page.updated_at);
+    }
+
     _renderReadPage(page);
 
     // Charger les commentaires en RT
@@ -395,6 +606,10 @@
           '<div style="font-size:10px;color:var(--muted);">' +
             new Date(page.created_at).toLocaleDateString('fr-FR', {day:'numeric',month:'long',year:'numeric'}) +
             (page.mood ? ' · ' + escHtml(page.mood) : '') +
+            (page.partner_can_edit && page.updated_at && page.last_editor_role
+              ? ' · ✏️ ' + escHtml(yamGetDisplayName(page.last_editor_role)) + ' · ' +
+                new Date(page.updated_at).toLocaleDateString('fr-FR', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
+              : '') +
           '</div>' +
         '</div>' +
         (canEdit ? '<button id="diaryReadEdit" style="padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;' +
@@ -879,17 +1094,53 @@
       _toolBtn('diaryFmtImg', '📸', 'Image',       'flex-shrink:0;') +
     '</div>';
 
-    // Ligne 2 — Image de fond (gauche) + Annuler/Rétablir (droite)
+    // Panneau polices — affiché sous la toolbar
+    var _FONTS = [
+      { label: 'Georgia',     stack: 'Georgia, serif',                          sample: 'Aa' },
+      { label: 'Palatino',    stack: '"Palatino Linotype", Palatino, serif',     sample: 'Aa' },
+      { label: 'Times',       stack: '"Times New Roman", Times, serif',          sample: 'Aa' },
+      { label: 'DM Sans',     stack: '"DM Sans", sans-serif',                    sample: 'Aa' },
+      { label: 'Verdana',     stack: 'Verdana, Geneva, sans-serif',              sample: 'Aa' },
+      { label: 'Trebuchet',   stack: '"Trebuchet MS", Helvetica, sans-serif',    sample: 'Aa' },
+      { label: 'Courier',     stack: '"Courier New", Courier, monospace',        sample: 'Aa' },
+      { label: 'Impact',      stack: 'Impact, Charcoal, sans-serif',             sample: 'Aa' },
+      { label: 'Garamond',    stack: 'Garamond, "Adobe Garamond Pro", serif',    sample: 'Aa' },
+      { label: 'Arial',       stack: 'Arial, Helvetica, sans-serif',             sample: 'Aa' },
+    ];
+    html += '<div id="diaryFontPicker" style="display:none;flex-wrap:wrap;gap:6px;' +
+      'padding:8px;background:var(--s1);border-radius:10px;border:1px solid var(--border);margin-bottom:8px;">';
+    _FONTS.forEach(function(f) {
+      html += '<button data-diary-font="' + escHtml(f.stack) + '" ' +
+        'style="display:flex;flex-direction:column;align-items:center;gap:2px;' +
+        'padding:6px 8px;border-radius:8px;border:1px solid var(--border);' +
+        'background:var(--s2);cursor:pointer;min-width:64px;">' +
+        '<span style="font-family:' + escHtml(f.stack) + ';font-size:17px;color:var(--text);line-height:1;">' + f.sample + '</span>' +
+        '<span style="font-size:9px;color:var(--muted);font-family:DM Sans,sans-serif;">' + escHtml(f.label) + '</span>' +
+      '</button>';
+    });
+    html += '</div>';
+
+    // Ligne 2 — Image de fond (gauche) + Police (centre) + Annuler/Rétablir (droite)
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;gap:8px;">' +
-      // Gauche : bouton image de fond + preview
-      '<div style="display:flex;align-items:center;gap:8px;">' +
+      // Gauche : bouton image de fond + preview + police
+      '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;overflow:hidden;">' +
         '<button id="diaryBgImgBtn" style="padding:7px 14px;border-radius:20px;font-size:11px;font-weight:700;' +
           'border:1px solid var(--border);background:var(--s2);color:var(--sub);cursor:pointer;' +
-          'font-family:DM Sans,sans-serif;white-space:nowrap;">🖼️ Image de fond</button>' +
+          'font-family:DM Sans,sans-serif;white-space:nowrap;flex-shrink:0;">🖼️ Image de fond</button>' +
         (page && page.bg_image_url ?
           '<img src="' + escHtml(page.bg_image_url) + '" style="width:32px;height:32px;border-radius:8px;object-fit:cover;flex-shrink:0;">' +
           '<button id="diaryBgImgDel" style="font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;">✕</button>'
           : '') +
+        // Bouton police — affiche la police courante
+        '<button id="diaryFmtFont" title="Police d\'écriture" ' +
+          'style="height:28px;padding:0 10px;border-radius:8px;flex-shrink:0;border:1px solid var(--border);' +
+          'background:var(--s1);cursor:pointer;font-size:12px;color:var(--text);' +
+          'display:flex;align-items:center;gap:5px;white-space:nowrap;">' +
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+            '<polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/>' +
+          '</svg>' +
+          '<span id="diaryFontLabel" style="font-size:11px;font-weight:700;">Georgia</span>' +
+        '</button>' +
       '</div>' +
       // Droite : Annuler + Rétablir
       '<div style="display:flex;gap:5px;flex-shrink:0;">' +
@@ -1903,6 +2154,112 @@
       this.value = '';
     });
 
+    // ── Police d'écriture ──────────────────────────────────────────
+    var fontPicker  = document.getElementById('diaryFontPicker');
+    var fontBtn     = document.getElementById('diaryFmtFont');
+    var fontLabel   = document.getElementById('diaryFontLabel');
+
+    // Met à jour le label du bouton police selon la position du curseur
+    function _updateFontLabel() {
+      if (!fontLabel || !editor) return;
+      var sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      var node = sel.anchorNode;
+      var el = node ? (node.nodeType === 3 ? node.parentElement : node) : null;
+      if (!el || !editor.contains(el)) return;
+      var computed = window.getComputedStyle(el).fontFamily || '';
+      // Extraire le premier nom de famille lisible
+      var firstName = computed.split(',')[0].replace(/['"]/g, '').trim();
+      if (firstName) fontLabel.textContent = firstName.length > 10 ? firstName.substring(0, 10) + '…' : firstName;
+    }
+
+    if (fontBtn && fontPicker) {
+      fontBtn.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        var open = fontPicker.style.display !== 'none';
+        fontPicker.style.display = open ? 'none' : 'flex';
+        // Fermer les autres pickers
+        ['diaryColorPicker','diarySizePicker','diaryEmojiPicker','diaryListMenu'].forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el) el.style.display = 'none';
+        });
+      });
+      fontBtn.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        var open = fontPicker.style.display !== 'none';
+        fontPicker.style.display = open ? 'none' : 'flex';
+        ['diaryColorPicker','diarySizePicker','diaryEmojiPicker','diaryListMenu'].forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el) el.style.display = 'none';
+        });
+      }, { passive: false });
+    }
+
+    if (fontPicker) {
+      fontPicker.querySelectorAll('[data-diary-font]').forEach(function(btn) {
+        function applyFont() {
+          var fontStack = btn.getAttribute('data-diary-font');
+          var label     = btn.querySelector('span:last-child');
+          var labelText = label ? label.textContent : fontStack.split(',')[0].replace(/['"]/g,'').trim();
+          _restoreSelection();
+          var sel = window.getSelection();
+          if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+            // Appliquer la police sur la sélection
+            var textNodes = _getTextNodesInRange(sel.getRangeAt(0));
+            textNodes.forEach(function(info) {
+              var node = info.node;
+              var start = info.start;
+              var end   = info.end;
+              if (end < node.length) node.splitText(end);
+              var target = (start > 0) ? node.splitText(start) : node;
+              var parent = target.parentNode;
+              if (parent && parent.tagName === 'SPAN' && parent.style.fontFamily) {
+                parent.style.fontFamily = fontStack;
+              } else {
+                var span = document.createElement('span');
+                span.style.fontFamily = fontStack;
+                span.style.display = 'inline';
+                parent.insertBefore(span, target);
+                span.appendChild(target);
+              }
+            });
+          } else {
+            // Pas de sélection → changer la police de tout l'éditeur (police par défaut)
+            if (editor) editor.style.fontFamily = fontStack;
+          }
+          // Mettre en évidence le bouton sélectionné
+          fontPicker.querySelectorAll('[data-diary-font]').forEach(function(b) {
+            b.style.background = 'var(--s2)';
+            b.style.border = '1px solid var(--border)';
+          });
+          btn.style.background = 'var(--accent-s)';
+          btn.style.border = '1.5px solid var(--accent)';
+          // Mettre à jour le label du bouton
+          if (fontLabel) fontLabel.textContent = labelText;
+          fontPicker.style.display = 'none';
+          _saveSelection();
+        }
+        btn.addEventListener('mousedown', function(e) { e.preventDefault(); applyFont(); });
+        btn.addEventListener('touchend',  function(e) { e.preventDefault(); applyFont(); }, { passive: false });
+      });
+
+      // Fermer au clic extérieur
+      document.addEventListener('click', function(e) {
+        if (fontPicker.style.display !== 'none' &&
+            !fontPicker.contains(e.target) &&
+            e.target !== fontBtn && !fontBtn.contains(e.target)) {
+          fontPicker.style.display = 'none';
+        }
+      });
+    }
+
+    // Mettre à jour le label police lors des déplacements du curseur
+    if (editor) {
+      editor.addEventListener('keyup',   _updateFontLabel);
+      editor.addEventListener('mouseup', _updateFontLabel);
+      editor.addEventListener('touchend',_updateFontLabel, { passive: true });
+    }
+
     // Placeholder éditeur
     if (editor) {
       editor.addEventListener('focus', function() {
@@ -2557,6 +2914,8 @@
           if (sp.classList && sp.classList.contains('diary-img-wrap')) return;
           // Protéger les spans de taille (font-size)
           if (sp.style && sp.style.fontSize) return;
+          // Protéger les spans de police (font-family)
+          if (sp.style && sp.style.fontFamily) return;
           if (sp.style && !sp.style.color && !sp.style.fontWeight &&
               !sp.style.fontStyle && !sp.style.textDecoration) {
             // Span vide de style utile → unwrap
@@ -2600,19 +2959,21 @@
     var originalAuthor = (_currentPage && _currentPage.author_role) ? _currentPage.author_role : u.role;
 
     var payload = {
-      couple_id:       u.couple_id,
-      author_role:     originalAuthor,
-      title:           title.substring(0, 100),
-      content:         content.substring(0, 50000),
-      mood:            mood || null,
-      cover_color:     coverBg,
-      cover_emoji:     coverEmoji,
-      canva_url:       canvaUrl,
-      canva_design_id: canvaDesignId,
-      images:          JSON.stringify(_editorImages),
-      is_shared:       isShared,
+      couple_id:        u.couple_id,
+      author_role:      originalAuthor,
+      title:            title.substring(0, 100),
+      content:          content.substring(0, 50000),
+      mood:             mood || null,
+      cover_color:      coverBg,
+      cover_emoji:      coverEmoji,
+      canva_url:        canvaUrl,
+      canva_design_id:  canvaDesignId,
+      images:           JSON.stringify(_editorImages),
+      is_shared:        isShared,
       partner_can_edit: isShared && canCowrite,
-      bg_image_url:    bgImageUrl,
+      bg_image_url:     bgImageUrl,
+      last_editor_role: u.role,   // auteur de cette modification
+      updated_at:       new Date().toISOString(),
     };
 
     _saving = true;
@@ -3070,6 +3431,7 @@
       '  content:"▪" !important;position:absolute !important;left:0 !important;top:0;color:inherit;font-size:0.85em;line-height:1.9;',
       '}',
       '@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }',
+      '@keyframes diaryBadgePulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }',
     ].join('\n');
     document.head.appendChild(style);
   }
