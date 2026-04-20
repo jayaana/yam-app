@@ -324,18 +324,14 @@
   }
 
   function _bindListEvents() {
-    // Fix1 — Thème toggle
+    // Fix1 — Thème toggle : délègue directement à applyThemeToggle (app-core.js)
+    // applyThemeToggle gère lui-même l'affichage de toutes les icônes .gvh-moon/.gvh-sun
     var _themeBtn = document.getElementById('diaryThemeToggle');
     if (_themeBtn) {
       _themeBtn.addEventListener('click', function() {
         if (typeof window.applyThemeToggle === 'function') {
           window.applyThemeToggle();
-        } else {
-          document.body.classList.toggle('theme-dark');
         }
-        var _dark = document.body.classList.contains('theme-dark');
-        this.textContent = _dark ? '\u2600\uFE0F' : '\uD83C\uDF19';
-        haptic('light');
       });
     }
 
@@ -692,16 +688,21 @@
     html += '<div style="flex:1;">' +
       '<div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.4px;">Couverture</div>' +
       '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+    // Fix2 : emoji couverture courant (peut être custom, différent de la palette)
+    var _currentCoverEmoji = (page && page.cover_emoji) ? page.cover_emoji : null;
     COVER_PALETTES.forEach(function(p, i) {
       var selected = page ? page.cover_color === p.bg : (i === 0);
-      html += '<button data-cover-bg="' + escHtml(p.bg) + '" data-cover-emoji="' + escHtml(p.emoji) + '" ' +
+      // Si ce bouton est sélectionné et que la page a un emoji custom, l'afficher
+      var displayEmoji = (selected && _currentCoverEmoji) ? _currentCoverEmoji : p.emoji;
+      // data-cover-emoji porte l'emoji AFFICHÉ (custom ou palette)
+      html += '<button data-cover-bg="' + escHtml(p.bg) + '" data-cover-emoji="' + escHtml(displayEmoji) + '" ' +
         'style="width:30px;height:30px;border-radius:50%;' +
         'background:' + escHtml(p.bg) + ';' +
         'border:' + (selected ? '2.5px solid var(--accent)' : '2px solid transparent') + ';' +
         'cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;' +
         'box-shadow:' + (selected ? '0 0 0 2px var(--accent-s)' : 'var(--sh-sm)') + ';" ' +
         'title="' + escHtml(p.label) + '">' +
-        escHtml(p.emoji) +
+        escHtml(displayEmoji) +
       '</button>';
     });
       // Bouton (+) dans un wrapper relatif pour ancrer le picker en absolu
@@ -981,6 +982,11 @@
 
     _bindEditorEvents(page);
     _renderEditorImages();
+    // Fix4: activer les poignées sur les images déjà dans l'éditeur (réédition)
+    setTimeout(function() {
+      var ed = document.getElementById('diaryEditor');
+      if (ed) _bindImgResizeHandles(ed);
+    }, 100);
   }
 
   // Fixer la couleur des puces de liste = couleur du premier texte dans le <li>
@@ -2105,46 +2111,90 @@
       var path = 'diary/' + u.couple_id + '/' + Date.now() + '.jpg';
       _uploadToStorage(blob, path, function(url) {
         if (!url) { showToast('Erreur upload', 'error'); return; }
-        // Fix4: stocker pour sauvegarde (sans afficher la galerie doublon)
         _editorImages.push({ url: url, slot: Date.now() });
-        // Fix4: insérer UNE seule fois — wrapper resizable dans l'éditeur
         var editorEl = document.getElementById('diaryEditor');
         if (editorEl) {
           editorEl.focus();
+          // Fix4: wrapper avec poignée JS custom — fonctionne iOS + desktop
+          // width inline = persiste après save/reload
           var imgHtml =
             '<span contenteditable="false" class="diary-img-wrap" ' +
-              'style="display:inline-block;position:relative;max-width:92%;width:280px;' +
-              'resize:both;overflow:hidden;border-radius:10px;margin:8px 2px;' +
-              'vertical-align:bottom;min-width:80px;min-height:50px;' +
+              'style="display:inline-block;position:relative;width:280px;max-width:100%;' +
+              'border-radius:10px;margin:8px 2px;vertical-align:bottom;' +
               'box-shadow:0 2px 8px rgba(0,0,0,0.15);">' +
               '<img src="' + escHtml(url) + '" ' +
-                'style="width:100%;height:auto;display:block;border-radius:10px;pointer-events:none;" ' +
-                'alt="" draggable="false">' +
-              '<span style="position:absolute;bottom:4px;right:4px;width:14px;height:14px;' +
-                'border-right:2.5px solid rgba(255,255,255,0.85);' +
-                'border-bottom:2.5px solid rgba(255,255,255,0.85);' +
-                'pointer-events:none;border-radius:0 0 3px 0;"></span>' +
-            '</span>&nbsp;';
+                'style="width:100%;height:auto;display:block;border-radius:10px;" ' +
+                'alt="">' +
+              // Poignée de redimensionnement bas-droite
+              '<span class="diary-img-handle" ' +
+                'style="position:absolute;bottom:0;right:0;width:22px;height:22px;cursor:nwse-resize;' +
+                'touch-action:none;z-index:2;' +
+                'background:linear-gradient(135deg,transparent 50%,rgba(0,0,0,0.35) 50%);">' +
+              '</span>' +
+            '</span> ';
           document.execCommand('insertHTML', false, imgHtml);
           _injectImgWrapCSS();
+          // Activer la poignée sur tous les wraps existants dans l'éditeur
+          setTimeout(function() { _bindImgResizeHandles(editorEl); }, 50);
         }
-        showToast('Image insérée ✨ — Tire le coin pour la redimensionner', 'success', 3500);
+        showToast('Image insérée ✨ — Tire le coin └ pour la redimensionner', 'success', 3500);
         haptic('success');
       });
     });
   }
 
-  // Fix4 — CSS du wrapper image resizable (injecté une seule fois)
+  // Fix4 — Lie les poignées de redimensionnement JS (touch + mouse) sur toutes les images de l'éditeur
+  function _bindImgResizeHandles(container) {
+    if (!container) return;
+    container.querySelectorAll('.diary-img-wrap').forEach(function(wrap) {
+      var handle = wrap.querySelector('.diary-img-handle');
+      if (!handle || handle._rBound) return;
+      handle._rBound = true;
+
+      var startX, startW;
+
+      function onStart(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        startX = clientX;
+        startW = wrap.offsetWidth;
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('touchmove', onMove, { passive: false });
+        document.addEventListener('mouseup',   onEnd);
+        document.addEventListener('touchend',  onEnd);
+      }
+      function onMove(e) {
+        e.preventDefault();
+        var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        var newW = Math.max(80, Math.min(startW + (clientX - startX), wrap.parentElement ? wrap.parentElement.offsetWidth : 600));
+        wrap.style.width = newW + 'px';
+      }
+      function onEnd() {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('touchmove', onMove);
+        document.removeEventListener('mouseup',   onEnd);
+        document.removeEventListener('touchend',  onEnd);
+      }
+      handle.addEventListener('mousedown',  onStart);
+      handle.addEventListener('touchstart', onStart, { passive: false });
+    });
+  }
+
+  // Fix4 — CSS du wrapper image (injecté une seule fois)
   function _injectImgWrapCSS() {
     if (document.getElementById('diary-img-wrap-css')) return;
     var s = document.createElement('style');
     s.id = 'diary-img-wrap-css';
     s.textContent = [
-      '.diary-img-wrap { cursor: default; box-sizing: border-box; }',
-      '.diary-img-wrap:focus { outline: 2px solid var(--accent); outline-offset: 2px; }',
-      /* Lecture */
-      '.diary-rich-content .diary-img-wrap { display:inline-block;max-width:100%;border-radius:10px;overflow:hidden;margin:6px 2px;vertical-align:bottom; }',
-      '.diary-rich-content .diary-img-wrap img { width:100%;height:auto;display:block; }',
+      /* Éditeur */
+      '.diary-img-wrap { box-sizing:border-box; user-select:none; -webkit-user-select:none; }',
+      /* Lecture — respecter la width inline sauvegardée */
+      '.diary-rich-content .diary-img-wrap { display:inline-block;max-width:100%;' +
+        'border-radius:10px;margin:6px 2px;vertical-align:bottom;overflow:hidden; }',
+      '.diary-rich-content .diary-img-wrap img { width:100%;height:auto;display:block;border-radius:10px; }',
+      /* Cacher la poignée en lecture */
+      '.diary-rich-content .diary-img-handle { display:none !important; }',
     ].join(' ');
     document.head.appendChild(s);
   }
@@ -2237,10 +2287,15 @@
       showToast('La page est vide', 'error'); return;
     }
 
-    // Couverture sélectionnée
+    // Fix2 : couverture sélectionnée
     var selectedCover = _view.querySelector('[data-cover-bg][style*="var(--accent)"]');
-    var coverBg    = selectedCover ? selectedCover.getAttribute('data-cover-bg')    : (_currentPage ? _currentPage.cover_color : '#fce4eb');
-    var coverEmoji = selectedCover ? selectedCover.getAttribute('data-cover-emoji') : (_currentPage ? _currentPage.cover_emoji : '📖');
+    var coverBg    = selectedCover ? selectedCover.getAttribute('data-cover-bg') : (_currentPage ? _currentPage.cover_color : '#fce4eb');
+    // _editorCoverEmoji est prioritaire — il tient compte des emojis custom du picker (+)
+    // sans se faire écraser par l'emoji de la palette au moment du render
+    var coverEmoji = _editorCoverEmoji
+      || (selectedCover ? selectedCover.getAttribute('data-cover-emoji') : null)
+      || (_currentPage ? _currentPage.cover_emoji : null)
+      || '📖';
 
     // Humeur sélectionnée
     var selectedMood = _view.querySelector('[data-mood][style*="var(--accent)"]');
@@ -2376,12 +2431,16 @@
         }
         // Valider src des images
         if (n === 'src' && el.tagName === 'IMG') {
-          var src = attr.value;
-          if (!src.startsWith('http') && !src.startsWith('data:image') && !src.startsWith('blob:')) {
+          var srcVal = attr.value;
+          if (!srcVal.startsWith('http') && !srcVal.startsWith('data:image') && !srcVal.startsWith('blob:')) {
             el.removeAttribute('src');
           }
         }
       });
+      // Fix4: préserver la width inline des wrappers d'image (pour que le resize soit persisté)
+      if (el.classList && el.classList.contains('diary-img-wrap') && el.style && el.style.width) {
+        // width inline intentionnel — ne pas le supprimer
+      }
     });
 
     return tmp.innerHTML;
@@ -2461,7 +2520,20 @@
 
   // Fix1 — Header avec toggle thème (page liste uniquement)
   function _headerHTMLWithTheme(title) {
-    var isDark = document.body.classList.contains('theme-dark');
+    // Fix1: même SVG moon/sun que app-core.js — classes gvh-moon / gvh-sun gérées par applyThemeToggle
+    // Le thème est "light" quand body.classList.contains('light'), "dark" sinon
+    var isLight = document.body.classList.contains('light');
+    var MOON_SVG = '<svg class="gvh-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' +
+      (isLight ? '' : ' style="display:none"') + '>' +
+      '<path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>';
+    var SUN_SVG  = '<svg class="gvh-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' +
+      (!isLight ? '' : ' style="display:none"') + '>' +
+      '<circle cx="12" cy="12" r="5"/>' +
+      '<line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>' +
+      '<line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>' +
+      '<line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>' +
+      '<line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>' +
+      '</svg>';
     return '<div style="flex-shrink:0;background:var(--bg);border-bottom:1px solid var(--border);' +
       'padding:calc(var(--safe-top,0px) + 10px) 16px 12px;">' +
       '<div style="display:flex;align-items:center;gap:10px;">' +
@@ -2470,11 +2542,11 @@
           '<svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round"><polyline points="7 1 1 7 7 13"/></svg>' +
         '</button>' +
         '<div style="flex:1;font-size:17px;font-weight:700;color:var(--text);">' + escHtml(title) + '</div>' +
-        '<button id="diaryThemeToggle" title="Changer le thème" ' +
+        '<button id="diaryThemeToggle" title="Thème" class="dm-topbar-theme" ' +
           'style="width:34px;height:34px;border-radius:50%;background:var(--s2);' +
           'border:1px solid var(--border);display:flex;align-items:center;justify-content:center;' +
-          'cursor:pointer;font-size:16px;transition:transform 0.2s;">' +
-          (isDark ? '\u2600\uFE0F' : '\uD83C\uDF19') +
+          'cursor:pointer;color:var(--text);">' +
+          MOON_SVG + SUN_SVG +
         '</button>' +
       '</div></div>';
   }
