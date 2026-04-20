@@ -405,17 +405,36 @@
     html += '<div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--safe-bottom,0px) + 80px);">';
 
     if (isCanva && page.canva_url) {
-      // Embed Canva live
-      html += '<div style="width:100%;height:60vw;min-height:280px;background:var(--s2);">' +
-        '<iframe id="diaryCanvaFrame" ' +
-          'src="' + escHtml(_sanitizeCanvaUrl(page.canva_url)) + '" ' +
-          'style="width:100%;height:100%;border:none;" ' +
-          'allow="fullscreen" loading="lazy" ' +
-          'sandbox="allow-scripts allow-same-origin allow-popups allow-forms">' +
-        '</iframe></div>' +
-        '<div style="padding:16px 18px 8px;">' +
-          (page.content ? '<div class="diary-rich-content">' + _sanitizeHTML(page.content) + '</div>' : '') +
+      // Canva embed via /view?embed officiel + fallback carte si bloqué
+      var _embedUrlR = _sanitizeCanvaUrl(page.canva_url);
+      if (_embedUrlR) {
+        html += '<div id="diaryCanvaEmbed" style="position:relative;width:100%;background:var(--s2);">' +
+          // Iframe embed officiel Canva /view?embed
+          '<iframe id="diaryCanvaFrame" src="' + escHtml(_embedUrlR) + '" ' +
+            'style="width:100%;height:65vw;min-height:300px;max-height:520px;border:none;display:block;" ' +
+            'loading="lazy" allow="fullscreen" allowfullscreen ' +
+            'referrerpolicy="strict-origin-when-cross-origin">' +
+          '</iframe>' +
+          // Bouton Ouvrir discret en overlay
+          '<a href="' + escHtml(page.canva_url) + '" target="_blank" rel="noopener noreferrer" ' +
+            'style="position:absolute;bottom:10px;right:10px;padding:6px 12px;border-radius:12px;' +
+            'background:rgba(0,0,0,0.55);color:#fff;font-size:11px;font-weight:700;' +
+            'text-decoration:none;font-family:DM Sans,sans-serif;backdrop-filter:blur(4px);">↗ Canva</a>' +
         '</div>';
+        // Note texte si présente
+        if (page.content) {
+          html += '<div style="padding:16px 18px 4px;">' +
+            '<div class="diary-rich-content">' + _sanitizeHTML(page.content) + '</div>' +
+          '</div>';
+        }
+      } else {
+        html += _canvaFallbackCard(page.canva_url, true);
+        if (page.content) {
+          html += '<div style="padding:16px 18px 4px;">' +
+            '<div class="diary-rich-content">' + _sanitizeHTML(page.content) + '</div>' +
+          '</div>';
+        }
+      }
     } else {
       // Couverture déco
       // Si image de fond : afficher UNIQUEMENT l'image (opacité pleine), pas l'emoji
@@ -867,12 +886,13 @@
     // ── Zone Canva ──
     html += '<div id="diaryCanvaSection" style="display:' + (isCanva ? 'block' : 'none') + ';">';
     html += '<div style="margin-bottom:10px;">' +
-      '<div style="font-size:11px;color:var(--muted);margin-bottom:6px;line-height:1.5;">' +
-        '📐 <strong>Colle le lien "Présentation" Canva</strong> (mode Vue publique).<br>' +
-        'Les modifications sur Canva se mettront à jour automatiquement ici.' +
+      '<div style="font-size:11px;color:var(--muted);margin-bottom:6px;line-height:1.6;">' +
+        '📐 <strong>Colle le lien de ta présentation Canva</strong>.<br>' +
+        'Dans Canva : <strong>Partager → Copier le lien</strong> (lien /design/…).<br>' +
+        '<span style="color:var(--accent);">✓</span> Les liens /view et /edit sont acceptés — l\u2019aperçu s\u2019affiche directement.' +
       '</div>' +
       '<div style="display:flex;gap:8px;">' +
-        '<input id="diaryCanvaInput" type="url" placeholder="https://www.canva.com/design/… ou canva.link/…" ' +
+        '<input id="diaryCanvaInput" type="url" placeholder="https://www.canva.com/design/…" ' +
           'style="flex:1;padding:10px 14px;border-radius:12px;border:1.5px solid var(--border);' +
           'background:var(--s1);color:var(--text);font-size:13px;font-family:DM Sans,sans-serif;outline:none;" ' +
           'value="' + escHtml(page ? (page.canva_url || '') : '') + '">' +
@@ -883,13 +903,28 @@
       '<div id="diaryCanvaFeedback" style="font-size:11px;margin-top:4px;color:var(--muted);"></div>' +
     '</div>';
 
-    // Aperçu Canva
+    // Aperçu Canva éditeur — iframe /view?embed officiel
     if (isCanva && page.canva_url) {
-      html += '<div style="border-radius:14px;overflow:hidden;border:1px solid var(--border);">' +
-        '<iframe src="' + escHtml(_sanitizeCanvaUrl(page.canva_url)) + '" ' +
-          'style="width:100%;height:300px;border:none;" loading="lazy" ' +
-          'sandbox="allow-scripts allow-same-origin allow-popups allow-forms">' +
-        '</iframe></div>';
+      var _embedUrl = _sanitizeCanvaUrl(page.canva_url);
+      if (_embedUrl) {
+        html += '<div style="position:relative;border-radius:14px;overflow:hidden;' +
+          'border:1px solid var(--border);margin-bottom:8px;background:var(--s2);">' +
+          '<iframe src="' + escHtml(_embedUrl) + '" ' +
+            'style="width:100%;height:280px;border:none;display:block;" ' +
+            'loading="lazy" ' +
+            'allow="fullscreen" ' +
+            'allowfullscreen ' +
+            'referrerpolicy="strict-origin-when-cross-origin">' +
+          '</iframe>' +
+          // Overlay discret avec lien d'ouverture
+          '<a href="' + escHtml(page.canva_url) + '" target="_blank" rel="noopener noreferrer" ' +
+            'style="position:absolute;bottom:8px;right:8px;padding:5px 10px;border-radius:10px;' +
+            'background:rgba(0,0,0,0.5);color:#fff;font-size:10px;font-weight:700;' +
+            'text-decoration:none;font-family:DM Sans,sans-serif;">↗ Canva</a>' +
+        '</div>';
+      } else {
+        html += _canvaFallbackCard(page.canva_url, false);
+      }
     }
 
     html += '<div style="margin-top:12px;">' +
@@ -1870,11 +1905,15 @@
         if (!url) { if (fb) fb.textContent = '⚠️ Colle un lien Canva'; return; }
         var valid = _validateCanvaUrl(url);
         if (!valid) {
-          if (fb) { fb.textContent = '❌ Lien invalide. Utilise un lien canva.com/design/… ou canva.link/…'; fb.style.color = '#ff3b30'; }
+          if (fb) { fb.textContent = '❌ Lien invalide — colle un lien canva.com/design/…'; fb.style.color = '#ff3b30'; }
           return;
         }
         _canvaValid = true;
-        if (fb) { fb.textContent = '✅ Lien Canva valide !'; fb.style.color = 'var(--accent)'; }
+        var embedTest = _sanitizeCanvaUrl(url);
+        if (fb) {
+          fb.textContent = '✅ Lien valide — aperçu intégré activé';
+          fb.style.color = 'var(--accent)';
+        }
       });
     }
 
@@ -2682,39 +2721,65 @@
 
   // Valider URL Canva
   // Valider URL Canva — accepte www.canva.com/design/... ET canva.link/... (raccourcis)
+  // Carte fallback Canva si l'iframe échoue
+  function _canvaFallbackCard(url, large) {
+    var h = large
+      ? '<div style="margin:16px;padding:24px;background:var(--s2);border-radius:18px;' +
+          'border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;gap:14px;">' +
+          '<div style="font-size:44px;">📐</div>' +
+          '<div style="font-size:15px;font-weight:700;color:var(--text);">Présentation Canva</div>' +
+          '<a href="' + escHtml(url) + '" target="_blank" rel="noopener noreferrer" ' +
+            'style="padding:11px 24px;border-radius:22px;background:var(--accent);color:#fff;' +
+            'font-size:13px;font-weight:700;text-decoration:none;font-family:DM Sans,sans-serif;">↗ Ouvrir dans Canva</a>' +
+        '</div>'
+      : '<div style="padding:14px;background:var(--s2);border-radius:12px;border:1px solid var(--border);' +
+          'display:flex;align-items:center;gap:12px;">' +
+          '<span style="font-size:28px;">📐</span>' +
+          '<div style="flex:1;font-size:12px;font-weight:600;color:var(--text);">Présentation Canva</div>' +
+          '<a href="' + escHtml(url) + '" target="_blank" rel="noopener noreferrer" ' +
+            'style="padding:7px 14px;border-radius:14px;background:var(--accent);color:#fff;' +
+            'font-size:11px;font-weight:700;text-decoration:none;">↗ Ouvrir</a>' +
+        '</div>';
+    return h;
+  }
+
+  // Valider un lien Canva (accepte /view, /edit, canva.link)
   function _validateCanvaUrl(url) {
     if (!url) return false;
     try {
       var u = new URL(url);
-      // Lien complet Canva
       if ((u.hostname === 'www.canva.com' || u.hostname === 'canva.com') &&
           u.pathname.includes('/design/')) return true;
-      // Lien court canva.link
       if (u.hostname === 'canva.link') return true;
-      // Design ID direct
-      if (u.hostname === 'www.canva.com') return true;
       return false;
     } catch(e) { return false; }
   }
 
-  // Sanitize URL Canva pour iframe embed
-  // canva.link ne peut pas être embedé directement — on l'utilise tel quel en ?embed
+  // Détecter si le lien est un lien d'édition (non embedable directement)
+  function _isCanvaEditUrl(url) {
+    if (!url) return false;
+    try {
+      var u = new URL(url);
+      return u.pathname.includes('/edit') || u.searchParams.has('utm_medium');
+    } catch(e) { return false; }
+  }
+
+  // Convertir n'importe quel lien Canva en URL embedable /view?embed
   function _sanitizeCanvaUrl(url) {
     if (!url) return '';
     try {
       var u = new URL(url);
-      // Lien court canva.link → on l'embède tel quel avec ?embed
+      // canva.link : résolution côté client impossible, utiliser tel quel + ?embed
       if (u.hostname === 'canva.link') {
         u.searchParams.set('embed', '');
         return u.toString();
       }
-      // Lien complet canva.com
-      if (!u.pathname.includes('/view')) {
-        // Chercher le segment /design/ID et ajouter /view
-        u.pathname = u.pathname.replace(/(\/design\/[^/]+)(\/.+)?$/, '$1/view');
-      }
-      u.searchParams.set('embed', '');
-      return u.toString();
+      // Extraire l'ID design et construire une URL /view propre
+      var match = u.pathname.match(/\/design\/([A-Za-z0-9_-]+)/);
+      if (!match) return '';
+      // Construire : /design/{ID}/view?embed
+      // Retirer les paramètres utm_* et autres trackers
+      return 'https://www.canva.com/design/' + match[1] + '/view?embed';
     } catch(e) { return ''; }
   }
 
