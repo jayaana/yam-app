@@ -5992,9 +5992,10 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
   box-shadow: 0 2px 5px rgba(231,90,124,0.4);
 }
 
-/* Badge nouveauté My Diary — même style que .home-feat-new, coin haut-droit de la carte */
+/* Badge nouveauté My Diary — coin haut-droit de la carte, aligné avec le bord supérieur */
+@keyframes diaryNewBlink { 0%,100%{opacity:1} 50%{opacity:0.35} }
 .home-diary-new {
-  position: absolute; top: -5px; right: -5px;
+  position: absolute; top: 4px; right: -5px;
   background: #e75a7c;
   color: #fff; font-size: 7px; font-weight: 800;
   letter-spacing: 0.4px; padding: 2px 5px;
@@ -6002,6 +6003,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
   box-shadow: 0 2px 5px rgba(231,90,124,0.4);
   display: none;
   z-index: 10;
+  animation: diaryNewBlink 1.2s ease-in-out infinite;
 }
 
 /* Wrapper carte diary — position:relative pour le badge NEW, sans overflow:hidden */
