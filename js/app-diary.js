@@ -509,10 +509,6 @@
         (isCanva ? '<div style="font-size:11px;color:var(--muted);">📐 Présentation Canva</div>' : '') +
       '</div>' +
 
-      // Flèche
-      '<div style="flex-shrink:0;display:flex;align-items:center;padding-right:12px;">' +
-        '<svg width="7" height="12" viewBox="0 0 7 12" fill="none" stroke="var(--muted)" stroke-width="1.8" stroke-linecap="round"><polyline points="1 1 6 6 1 11"/></svg>' +
-      '</div>' +
     '</div>';
   }
 
@@ -1071,6 +1067,42 @@
     });
     html += '</div>';
 
+    // Panneau polices — DANS LE FLUX, même position que les autres pickers (avant l'éditeur)
+    var _FONTS = [
+      { label: 'Georgia',    stack: 'Georgia, serif'                                  },
+      { label: 'Palatino',   stack: '"Palatino Linotype", Palatino, serif'             },
+      { label: 'Garamond',   stack: 'Garamond, "Adobe Garamond Pro", serif'           },
+      { label: 'DM Sans',    stack: '"DM Sans", sans-serif'                           },
+      { label: 'Verdana',    stack: 'Verdana, Geneva, sans-serif'                     },
+      { label: 'Arial',      stack: 'Arial, Helvetica, sans-serif'                   },
+      { label: 'Courier',    stack: '"Courier New", Courier, monospace'               },
+      { label: 'Impact',     stack: 'Impact, Charcoal, sans-serif'                   },
+      { label: 'Trebuchet',  stack: '"Trebuchet MS", Helvetica, sans-serif'           },
+      { label: 'Cursive',    stack: '"Brush Script MT", cursive'                     },
+    ];
+    var _sampleMap = {
+      'Georgia': 'Aa', 'Palatino': 'Pp', 'Garamond': 'Gg',
+      'DM Sans': 'Aa', 'Verdana': 'Vv', 'Arial': 'Aa',
+      'Courier': '{;}', 'Impact': 'IMP', 'Trebuchet': 'Tt', 'Cursive': 'Abc'
+    };
+    html += '<div id="diaryFontPicker" style="display:none;flex-wrap:nowrap;overflow-x:auto;' +
+      'gap:6px;padding:8px;background:var(--s1);border-radius:10px;' +
+      'border:1px solid var(--border);margin-bottom:8px;scrollbar-width:thin;' +
+      '-webkit-overflow-scrolling:touch;">';
+    _FONTS.forEach(function(f) {
+      var sample = _sampleMap[f.label] || 'Aa';
+      html += '<button data-diary-font="' + escHtml(f.stack) + '" ' +
+        'style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;' +
+        'padding:4px 7px;border-radius:8px;border:1px solid var(--border);' +
+        'background:var(--s2);cursor:pointer;min-width:52px;">' +
+        '<span style="font-family:' + escHtml(f.stack) + ';font-size:16px;color:var(--text);' +
+          'line-height:1.2;letter-spacing:-0.5px;">' + escHtml(sample) + '</span>' +
+        '<span style="font-size:9px;color:var(--muted);font-family:DM Sans,sans-serif;' +
+          'white-space:nowrap;">' + escHtml(f.label) + '</span>' +
+      '</button>';
+    });
+    html += '</div>';
+
     // Éditeur contenteditable — hauteur fixe, scroll interne
     html += '<div id="diaryEditor" contenteditable="true" spellcheck="true" ' +
       'style="height:220px;overflow-y:auto;-webkit-overflow-scrolling:touch;' +
@@ -1108,44 +1140,6 @@
       _toolBtn('diaryFmtHR',  '—',   'Séparateur', 'flex-shrink:0;') +
       _toolBtn('diaryFmtImg', '📸', 'Image',       'flex-shrink:0;') +
     '</div>';
-
-    // Panneau polices — DANS LE FLUX comme diaryColorPicker (pousse l'éditeur vers le bas)
-    // Hauteur fixe = même hauteur que colorPicker (~50px) avec overflow-y:auto si besoin
-    var _FONTS = [
-      { label: 'Georgia',    stack: 'Georgia, serif'                                  },
-      { label: 'Palatino',   stack: '"Palatino Linotype", Palatino, serif'             },
-      { label: 'Garamond',   stack: 'Garamond, "Adobe Garamond Pro", serif'           },
-      { label: 'DM Sans',    stack: '"DM Sans", sans-serif'                           },
-      { label: 'Verdana',    stack: 'Verdana, Geneva, sans-serif'                     },
-      { label: 'Arial',      stack: 'Arial, Helvetica, sans-serif'                   },
-      { label: 'Courier',    stack: '"Courier New", Courier, monospace'               },
-      { label: 'Impact',     stack: 'Impact, Charcoal, sans-serif'                   },
-      { label: 'Trebuchet',  stack: '"Trebuchet MS", Helvetica, sans-serif'           },
-      { label: 'Cursive',    stack: '"Brush Script MT", cursive'                     },
-    ];
-    html += '<div id="diaryFontPicker" style="display:none;flex-wrap:nowrap;overflow-x:auto;' +
-      'gap:6px;padding:8px;background:var(--s1);border-radius:10px;' +
-      'border:1px solid var(--border);margin-bottom:8px;scrollbar-width:thin;' +
-      '-webkit-overflow-scrolling:touch;">';
-    _FONTS.forEach(function(f) {
-      // Texte sample adapté pour montrer visuellement la différence de police
-      var sampleMap = {
-        'Georgia': 'Aa', 'Palatino': 'Pp', 'Garamond': 'Gg',
-        'DM Sans': 'Aa', 'Verdana': 'Vv', 'Arial': 'Aa',
-        'Courier': '{;}', 'Impact': 'IMP', 'Trebuchet': 'Tt', 'Cursive': 'Abc'
-      };
-      var sample = sampleMap[f.label] || 'Aa';
-      html += '<button data-diary-font="' + escHtml(f.stack) + '" ' +
-        'style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;' +
-        'padding:4px 7px;border-radius:8px;border:1px solid var(--border);' +
-        'background:var(--s2);cursor:pointer;min-width:52px;">' +
-        '<span style="font-family:' + escHtml(f.stack) + ';font-size:16px;color:var(--text);' +
-          'line-height:1.2;letter-spacing:-0.5px;">' + escHtml(sample) + '</span>' +
-        '<span style="font-size:9px;color:var(--muted);font-family:DM Sans,sans-serif;' +
-          'white-space:nowrap;">' + escHtml(f.label) + '</span>' +
-      '</button>';
-    });
-    html += '</div>';
 
     // Ligne 2 — Image de fond (gauche) + Police (centre) + Annuler/Rétablir (droite)
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;gap:8px;">' +
