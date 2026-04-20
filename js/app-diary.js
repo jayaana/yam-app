@@ -57,10 +57,29 @@
   var _editorCoverEmoji = null; // Fix2: emoji couverture persisté pendant l'édition
 
   // ─── HISTORIQUE UNDO/REDO (refs de module, peuplées par _bindEditorEvents) ──
-  // Permet à _execFmt et toutes les actions toolbar d'accéder à la pile
-  var _histSnapshotNow = function() {};  // snapshot immédiat avant une action
-  var _doHistUndo      = function() {};  // annuler
-  var _doHistRedo      = function() {};  // rétablir
+  var _histSnapshotNow = function() {};
+  var _doHistUndo      = function() {};
+  var _doHistRedo      = function() {};
+
+  // ─── POLICES : maps au niveau module ─────────────────────────────
+  var _fontDisplayNames = {
+    'Georgia, serif':                                'Georgia',
+    '"Palatino Linotype", Palatino, serif':          'Palatino',
+    'Garamond, "Adobe Garamond Pro", serif':         'Garamond',
+    '"DM Sans", sans-serif':                         'DM Sans',
+    'Verdana, Geneva, sans-serif':                   'Verdana',
+    'Arial, Helvetica, sans-serif':                  'Arial',
+    '"Courier New", Courier, monospace':             'Courier',
+    'Impact, Charcoal, sans-serif':                  'Impact',
+    '"Trebuchet MS", Helvetica, sans-serif':         'Trebu.',
+    '"Brush Script MT", cursive':                    'Script',
+  };
+  var _fontShortNames = {
+    'Georgia': 'Georgia', 'Palatino Linotype': 'Palatino', 'Garamond': 'Garamond',
+    'DM Sans': 'DM Sans', 'Verdana': 'Verdana', 'Arial': 'Arial',
+    'Courier New': 'Courier', 'Impact': 'Impact',
+    'Trebuchet MS': 'Trebu.', 'Brush Script MT': 'Script',
+  };
 
   // ─── FAVORIS : stockés en localStorage par couple ─────────────────
   function _getPinnedIds() {
@@ -384,9 +403,9 @@
       html += '</div>';
     }
 
-    html += '</div></div>';
+    html += '</div>'; // fin diaryListScroll
 
-    // FAB bouton nouvelle page (seulement dans "Mon journal")
+    // FAB bouton nouvelle page (seulement dans "Mon journal") — DANS le container
     if (_tab === 'mine') {
       html += '<button id="diaryFab" style="position:fixed;right:20px;bottom:calc(var(--nav-height) + 16px);' +
         'width:54px;height:54px;border-radius:50%;' +
@@ -398,6 +417,8 @@
           '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>' +
         '</svg></button>';
     }
+
+    html += '</div>'; // fin container principal
 
     _view.innerHTML = html;
     _bindHeaderBack();
@@ -1090,19 +1111,6 @@
       'DM Sans': 'Aa', 'Verdana': 'Vv', 'Arial': 'Aa',
       'Courier': '{;}', 'Impact': 'IMP', 'Trebu.': 'Tt', 'Script': 'Abc'
     };
-    // Noms affichés dans le picker (courts) — différents du stack complet
-    var _fontDisplayNames = {
-      'Georgia, serif':                                   'Georgia',
-      '"Palatino Linotype", Palatino, serif':             'Palatino',
-      'Garamond, "Adobe Garamond Pro", serif':            'Garamond',
-      '"DM Sans", sans-serif':                            'DM Sans',
-      'Verdana, Geneva, sans-serif':                      'Verdana',
-      'Arial, Helvetica, sans-serif':                     'Arial',
-      '"Courier New", Courier, monospace':                'Courier',
-      'Impact, Charcoal, sans-serif':                     'Impact',
-      '"Trebuchet MS", Helvetica, sans-serif':            'Trebu.',
-      '"Brush Script MT", cursive':                       'Script',
-    };
     html += '<div id="diaryFontPicker" style="display:none;flex-wrap:nowrap;overflow-x:auto;' +
       'gap:6px;padding:8px;background:var(--s1);border-radius:10px;' +
       'border:1px solid var(--border);margin-bottom:8px;scrollbar-width:thin;' +
@@ -1640,69 +1648,74 @@
     }
 
     // ── Historique undo/redo custom (couvre TOUTES les modifs DOM) ────
-    // execCommand('undo') ne couvre pas les modifs directes (couleur, police,
-    // taille, listes custom). On snapshote le innerHTML à chaque changement.
-    var _histStack  = [];   // pile undo : snapshots HTML
-    var _redoStack  = [];   // pile redo
-    var _histPaused = false;
-    var _histTimer  = null;
-    var MAX_HIST    = 50;
+    // ── Historique undo/redo custom ────────────────────────────────
+    var _histStack   = [];
+    var _redoStack   = [];
+    var _histPaused  = false;
+    var _inUndoRedo  = false;   // évite d'effacer redoStack pendant restore
+    var _histTimer   = null;
+    var MAX_HIST     = 50;
 
     function _histSnapshot() {
       if (_histPaused || !editor) return;
-      var html = editor.innerHTML;
-      // Ne pas dupliquer si identique au dernier snapshot
-      if (_histStack.length > 0 && _histStack[_histStack.length - 1] === html) return;
-      _histStack.push(html);
+      var snap = editor.innerHTML;
+      if (_histStack.length > 0 && _histStack[_histStack.length - 1] === snap) return;
+      _histStack.push(snap);
       if (_histStack.length > MAX_HIST) _histStack.shift();
-      _redoStack = []; // toute nouvelle action efface le redo
+      if (!_inUndoRedo) _redoStack = []; // n'effacer redo que sur vraie action user
     }
 
-    // Snapshot différé — on regroupe les frappes consécutives (debounce 600ms)
     function _histSnapshotDeferred() {
       if (_histTimer) clearTimeout(_histTimer);
       _histTimer = setTimeout(function() { _histSnapshot(); _histTimer = null; }, 600);
     }
 
-    // Snapshot immédiat — avant chaque opération toolbar
-    function _histSnapshotNow() {
+    function _histSnapshotNowLocal() {
       if (_histTimer) { clearTimeout(_histTimer); _histTimer = null; }
       _histSnapshot();
     }
 
-    function _histUndo() {
-      if (!editor || _histStack.length <= 1) return;
-      _redoStack.push(_histStack.pop()); // état actuel → redo
+    function _restoreSnap(snap) {
       _histPaused = true;
-      editor.innerHTML = _histStack[_histStack.length - 1] || '';
+      _inUndoRedo = true;
+      editor.innerHTML = snap;
       _histPaused = false;
-      // Rebinder les poignées d'images après restauration
-      _bindImgResizeHandles(editor);
-      _fixListColors();
-      _saveSelection();
-      _updateToolbarState();
-      _updateFontLabel();
+      _inUndoRedo = false;
+      setTimeout(function() {
+        _bindImgResizeHandles(editor);
+        _fixListColors();
+        _updateToolbarState();
+        _updateFontLabel();
+      }, 0);
+    }
+
+    function _histUndo() {
+      if (!editor) return;
+      // S'assurer que l'état actuel est dans la pile
+      var current = editor.innerHTML;
+      if (_histStack.length === 0 || _histStack[_histStack.length - 1] !== current) {
+        _histStack.push(current);
+      }
+      if (_histStack.length <= 1) return; // rien à annuler
+      var undone = _histStack.pop();
+      _redoStack.push(undone);
+      _restoreSnap(_histStack[_histStack.length - 1]);
     }
 
     function _histRedo() {
       if (!editor || _redoStack.length === 0) return;
       var next = _redoStack.pop();
+      _inUndoRedo = true;
       _histStack.push(next);
-      _histPaused = true;
-      editor.innerHTML = next;
-      _histPaused = false;
-      _bindImgResizeHandles(editor);
-      _fixListColors();
-      _saveSelection();
-      _updateToolbarState();
-      _updateFontLabel();
+      _inUndoRedo = false;
+      _restoreSnap(next);
     }
 
-    // Snapshot initial dès l'ouverture de l'éditeur
+    // Snapshot initial
     if (editor) { setTimeout(function() { _histSnapshot(); }, 100); }
 
-    // ── Exposer au niveau module pour _execFmt et les autres actions ──
-    _histSnapshotNow = _histSnapshot;
+    // Exposer au niveau module
+    _histSnapshotNow = _histSnapshotNowLocal;
     _doHistUndo      = _histUndo;
     _doHistRedo      = _histRedo;
 
@@ -1842,11 +1855,13 @@
       if (!listMenu) return;
       var open = listMenu.style.display !== 'none';
       listMenu.style.display = open ? 'none' : 'flex';
-      // Fermer les autres pickers
+      // Fermer tous les autres pickers
       var cp = document.getElementById('diaryColorPicker');
       var ep = document.getElementById('diaryEmojiPicker');
+      var fp = document.getElementById('diaryFontPicker');
       if (cp) cp.style.display = 'none';
       if (ep) ep.style.display = 'none';
+      if (fp) fp.style.display = 'none';
     });
 
     // Sélection type de liste
@@ -2268,13 +2283,6 @@
     var fontLabel   = document.getElementById('diaryFontLabel');
 
     // Met à jour le label du bouton police selon la position du curseur
-    // Map famille calculée → nom court affiché
-    var _fontShortNames = {
-      'Georgia': 'Georgia', 'Palatino Linotype': 'Palatino', 'Garamond': 'Garamond',
-      'DM Sans': 'DM Sans', 'Verdana': 'Verdana', 'Arial': 'Arial',
-      'Courier New': 'Courier', 'Impact': 'Impact',
-      'Trebuchet MS': 'Trebu.', 'Brush Script MT': 'Script',
-    };
     function _updateFontLabel() {
       if (!fontLabel || !editor) return;
       var sel = window.getSelection();
