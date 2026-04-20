@@ -454,16 +454,20 @@
       'overflow:visible;cursor:pointer;box-shadow:' + (isNewForMe || hasUpdateForMe ? '0 0 0 2px var(--accent-s),' : '') + 'var(--sh-sm);' +
       'transition:transform 0.15s,box-shadow 0.15s;position:relative;">' +
 
-      // Épingle (coin haut-droit) — discrète si non épinglée
+      // Épingle (coin haut-droit) — discrète si non épinglée, visible si épinglée
       '<button data-diary-pin="' + escHtml(page.id) + '" title="' + (pinned ? 'Désépingler' : 'Épingler en tête') + '" ' +
-        'style="position:absolute;top:8px;right:8px;z-index:4;width:22px;height:22px;' +
-        'border-radius:50%;' +
+        'style="position:absolute;top:8px;right:8px;z-index:4;width:24px;height:24px;' +
+        'border-radius:6px;' +
         (pinned
-          ? 'background:#fff;border:1.5px solid rgba(255,255,255,0.6);box-shadow:0 1px 6px rgba(0,0,0,0.25);'
-          : 'background:rgba(128,128,128,0.18);border:1px solid rgba(128,128,128,0.22);box-shadow:none;') +
-        'display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;' +
-        'transition:all 0.2s;opacity:' + (pinned ? '1' : '0.45') + ';">' +
-        (pinned ? '📌' : '🔩') +
+          ? 'background:var(--accent);border:none;opacity:1;'
+          : 'background:transparent;border:none;opacity:0.3;') +
+        'display:flex;align-items:center;justify-content:center;cursor:pointer;' +
+        'transition:opacity 0.2s,background 0.2s;">' +
+        // SVG épingle (punaise vue de face)
+        '<svg width="14" height="16" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+          '<path d="M7 1C5.34 1 4 2.34 4 4c0 1.1.47 2.08 1.22 2.77L4.5 9H2v1.5h4.25V15l.75.75.75-.75v-4.25H12V9H9.5L8.78 6.77C9.53 6.08 10 5.1 10 4c0-1.66-1.34-3-3-3z" ' +
+            'fill="' + (pinned ? '#fff' : 'var(--text)') + '"/>' +
+        '</svg>' +
       '</button>' +
 
       // Badge nouveau / mis à jour
@@ -551,15 +555,20 @@
       }, { passive: false });
     });
 
-    // Ouvrir une page
+    // Ouvrir une page — bloque si clic/touch sur le bouton épingle
     _view.querySelectorAll('[data-diary-open]').forEach(function(card) {
+      // click (desktop + délégué)
       card.addEventListener('click', function(e) {
-        // Ignorer le clic si c'est sur le bouton pin
         if (e.target.closest('[data-diary-pin]')) return;
         var id = this.getAttribute('data-diary-open');
         var page = _pages.find(function(p){ return p.id === id; });
         if (page) _openReadPage(page);
       });
+      // touchend iOS — nécessaire pour bloquer aussi le touch sur le pin
+      card.addEventListener('touchend', function(e) {
+        if (e.target.closest('[data-diary-pin]')) return;
+        // laisser le click natif se produire normalement
+      }, { passive: true });
     });
 
     // FAB nouvelle page
@@ -1100,41 +1109,43 @@
       _toolBtn('diaryFmtImg', '📸', 'Image',       'flex-shrink:0;') +
     '</div>';
 
-    // Panneau polices — s'affiche AU-DESSUS de l'éditeur (position:fixed calculée en JS)
-    // 10 polices visuellement très différentes
+    // Panneau polices — DANS LE FLUX comme diaryColorPicker (pousse l'éditeur vers le bas)
+    // Hauteur fixe = même hauteur que colorPicker (~50px) avec overflow-y:auto si besoin
     var _FONTS = [
-      { label: 'Georgia',    stack: 'Georgia, serif',                                  cat: 'serif'    },
-      { label: 'Palatino',   stack: '"Palatino Linotype", Palatino, serif',             cat: 'serif'    },
-      { label: 'Garamond',   stack: 'Garamond, "Adobe Garamond Pro", serif',           cat: 'serif'    },
-      { label: 'DM Sans',    stack: '"DM Sans", sans-serif',                           cat: 'sans'     },
-      { label: 'Verdana',    stack: 'Verdana, Geneva, sans-serif',                     cat: 'sans'     },
-      { label: 'Arial',      stack: 'Arial, Helvetica, sans-serif',                   cat: 'sans'     },
-      { label: 'Courier',    stack: '"Courier New", Courier, monospace',               cat: 'mono'     },
-      { label: 'Impact',     stack: 'Impact, Charcoal, sans-serif',                   cat: 'display'  },
-      { label: 'Trebuchet',  stack: '"Trebuchet MS", Helvetica, sans-serif',           cat: 'sans'     },
-      { label: 'Brush',      stack: '"Brush Script MT", cursive',                     cat: 'cursive'  },
+      { label: 'Georgia',    stack: 'Georgia, serif'                                  },
+      { label: 'Palatino',   stack: '"Palatino Linotype", Palatino, serif'             },
+      { label: 'Garamond',   stack: 'Garamond, "Adobe Garamond Pro", serif'           },
+      { label: 'DM Sans',    stack: '"DM Sans", sans-serif'                           },
+      { label: 'Verdana',    stack: 'Verdana, Geneva, sans-serif'                     },
+      { label: 'Arial',      stack: 'Arial, Helvetica, sans-serif'                   },
+      { label: 'Courier',    stack: '"Courier New", Courier, monospace'               },
+      { label: 'Impact',     stack: 'Impact, Charcoal, sans-serif'                   },
+      { label: 'Trebuchet',  stack: '"Trebuchet MS", Helvetica, sans-serif'           },
+      { label: 'Cursive',    stack: '"Brush Script MT", cursive'                     },
     ];
-    // Texte d'exemple différent pour chaque catégorie pour mieux voir la différence
-    var _fontSamples = { serif: 'Aa Bb', sans: 'Aa Bb', mono: 'Aa {}', display: 'AAbb', cursive: 'Abc' };
-    html += '<div id="diaryFontPicker" style="display:none;position:fixed;' +
-      'z-index:9990;background:var(--bg);border:1.5px solid var(--border);' +
-      'border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.22);' +
-      'padding:8px;width:min(320px,calc(100vw - 24px));">' +
-      // Grille compacte : 2 colonnes
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">';
+    html += '<div id="diaryFontPicker" style="display:none;flex-wrap:nowrap;overflow-x:auto;' +
+      'gap:6px;padding:8px;background:var(--s1);border-radius:10px;' +
+      'border:1px solid var(--border);margin-bottom:8px;scrollbar-width:thin;' +
+      '-webkit-overflow-scrolling:touch;">';
     _FONTS.forEach(function(f) {
-      var sample = _fontSamples[f.cat] || 'Aa Bb';
+      // Texte sample adapté pour montrer visuellement la différence de police
+      var sampleMap = {
+        'Georgia': 'Aa', 'Palatino': 'Pp', 'Garamond': 'Gg',
+        'DM Sans': 'Aa', 'Verdana': 'Vv', 'Arial': 'Aa',
+        'Courier': '{;}', 'Impact': 'IMP', 'Trebuchet': 'Tt', 'Cursive': 'Abc'
+      };
+      var sample = sampleMap[f.label] || 'Aa';
       html += '<button data-diary-font="' + escHtml(f.stack) + '" ' +
-        'style="display:flex;align-items:center;gap:8px;' +
-        'padding:5px 9px;border-radius:8px;border:1px solid var(--border);' +
-        'background:var(--s2);cursor:pointer;text-align:left;overflow:hidden;">' +
-        '<span style="font-family:' + escHtml(f.stack) + ';font-size:18px;color:var(--text);' +
-          'line-height:1;flex-shrink:0;min-width:44px;">' + escHtml(sample) + '</span>' +
-        '<span style="font-size:10px;color:var(--muted);font-family:DM Sans,sans-serif;' +
-          'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(f.label) + '</span>' +
+        'style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;' +
+        'padding:4px 7px;border-radius:8px;border:1px solid var(--border);' +
+        'background:var(--s2);cursor:pointer;min-width:52px;">' +
+        '<span style="font-family:' + escHtml(f.stack) + ';font-size:16px;color:var(--text);' +
+          'line-height:1.2;letter-spacing:-0.5px;">' + escHtml(sample) + '</span>' +
+        '<span style="font-size:9px;color:var(--muted);font-family:DM Sans,sans-serif;' +
+          'white-space:nowrap;">' + escHtml(f.label) + '</span>' +
       '</button>';
     });
-    html += '</div></div>';
+    html += '</div>';
 
     // Ligne 2 — Image de fond (gauche) + Police (centre) + Annuler/Rétablir (droite)
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;gap:8px;">' +
@@ -2177,21 +2188,6 @@
     var fontBtn     = document.getElementById('diaryFmtFont');
     var fontLabel   = document.getElementById('diaryFontLabel');
 
-    // Positionne le picker en fixed AU-DESSUS du bouton police (évite le clavier)
-    function _positionFontPicker() {
-      if (!fontPicker || !fontBtn) return;
-      var rect = fontBtn.getBoundingClientRect();
-      var pw = Math.min(320, window.innerWidth - 24);
-      // Placer au-dessus du bouton
-      var top = rect.top - 8; // on va soustraire la hauteur après display
-      fontPicker.style.width = pw + 'px';
-      fontPicker.style.left  = Math.max(12, Math.min(rect.left, window.innerWidth - pw - 12)) + 'px';
-      // Afficher d'abord pour mesurer la hauteur
-      fontPicker.style.display = 'block';
-      var ph = fontPicker.offsetHeight;
-      fontPicker.style.top = Math.max(8, rect.top - ph - 8) + 'px';
-    }
-
     // Met à jour le label du bouton police selon la position du curseur
     function _updateFontLabel() {
       if (!fontLabel || !editor) return;
@@ -2207,17 +2203,13 @@
 
     function _toggleFontPicker() {
       if (!fontPicker) return;
-      var isOpen = fontPicker.style.display !== 'none' && fontPicker.style.display !== '';
-      // Fermer TOUS les autres pickers
+      var isOpen = fontPicker.style.display !== 'none';
+      // Fermer TOUS les autres pickers (y compris colorPicker)
       ['diaryColorPicker','diarySizePicker','diaryEmojiPicker','diaryListMenu'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
-      if (isOpen) {
-        fontPicker.style.display = 'none';
-      } else {
-        _positionFontPicker();
-      }
+      fontPicker.style.display = isOpen ? 'none' : 'flex';
     }
 
     if (fontBtn) {
@@ -2232,11 +2224,10 @@
           var labelEl   = btn.querySelector('span:last-child');
           var labelText = labelEl ? labelEl.textContent : fontStack.split(',')[0].replace(/['"]/g,'').trim();
 
-          // Restaurer la sélection SANS fermer le picker
+          // Restaurer la sélection SANS fermer le picker — permet de tester plusieurs polices
           _restoreSelection();
           var sel = window.getSelection();
           if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
-            // Appliquer sur la sélection existante
             var textNodes = _getTextNodesInRange(sel.getRangeAt(0));
             textNodes.forEach(function(info) {
               var node = info.node;
@@ -2255,35 +2246,24 @@
                 span.appendChild(target);
               }
             });
-            // Resauvegarder la sélection pour la prochaine application
+            // Re-sauver la sélection pour permettre d'appliquer une autre police
             _saveSelection();
           } else {
-            // Aucune sélection → changer la police globale de l'éditeur
+            // Aucune sélection → police globale de l'éditeur
             if (editor) editor.style.fontFamily = fontStack;
           }
 
-          // Mettre en évidence le bouton actif dans le picker
+          // Surligner le bouton actif, label mis à jour — picker reste ouvert
           fontPicker.querySelectorAll('[data-diary-font]').forEach(function(b) {
             b.style.background = 'var(--s2)';
             b.style.border = '1px solid var(--border)';
           });
           btn.style.background = 'var(--accent-s)';
           btn.style.border = '1.5px solid var(--accent)';
-
-          // Mettre à jour le label — NE PAS fermer le picker (on garde la sélection active)
           if (fontLabel) fontLabel.textContent = labelText;
         }
         btn.addEventListener('mousedown', function(e) { e.preventDefault(); applyFont(); });
         btn.addEventListener('touchend',  function(e) { e.preventDefault(); applyFont(); }, { passive: false });
-      });
-
-      // Fermer au clic extérieur uniquement
-      document.addEventListener('mousedown', function(e) {
-        if (fontPicker.style.display !== 'none' &&
-            !fontPicker.contains(e.target) &&
-            e.target !== fontBtn && !(fontBtn && fontBtn.contains(e.target))) {
-          fontPicker.style.display = 'none';
-        }
       });
     }
 
