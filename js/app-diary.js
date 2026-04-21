@@ -1993,33 +1993,27 @@
 
         var range = sel.getRangeAt(0);
 
-        // ── Détecter si le curseur/sélection est dans une liste existante ──
-        var ancestor = range.commonAncestorContainer;
-        var anchorEl = ancestor.nodeType === 3 ? ancestor.parentElement : ancestor;
-
-        // Chercher uniquement dans l'éditeur DOM — pas dans un fragment cloné
-        var existingUl = (anchorEl.closest && editorEl.contains(anchorEl))
-          ? anchorEl.closest('ul')
-          : null;
-
-        if (existingUl && editorEl && editorEl.contains(anchorEl)) {
-          // ── MODE REMPLACEMENT / SUPPRESSION ──
-          // Collecter tous les <ul> de PREMIER NIVEAU (non imbriqués) touchés par la sélection.
-          // On exclut les <ul> imbriqués dans un autre <ul> déjà dans la liste pour éviter
-          // de traiter deux fois le même contenu (ce qui génère des doubles puces).
-          var ulsToConvert = [];
-          editorEl.querySelectorAll('ul').forEach(function(ul) {
-            // Exclure les <ul> imbriqués dans un autre <ul> de l'éditeur
-            if (ul.parentNode && ul.parentNode.closest && ul.parentNode.closest('ul')) return;
-            // Vérifier que ce <ul> est touché par la sélection
-            var touched = ul.contains(anchorEl) ||
-              (range.intersectsNode ? range.intersectsNode(ul) : false);
-            if (touched) ulsToConvert.push(ul);
-          });
-          if (ulsToConvert.length === 0 && existingUl) {
-            ulsToConvert.push(existingUl);
+        // ── Détecter toutes les listes touchées par la sélection ──
+        // On collecte les <ul> de premier niveau intersectant le range,
+        // QUELLE QUE SOIT la position de l'ancêtre commun (éditeur entier ou li).
+        // Cela couvre : curseur dans un li, sélection multi-listes, sélection depuis l'éditeur.
+        var ulsToConvert = [];
+        editorEl.querySelectorAll('ul').forEach(function(ul) {
+          // Ignorer les <ul> imbriqués dans un autre <ul>
+          if (ul.parentElement && ul.parentElement.closest('ul')) return;
+          var touched = false;
+          try { touched = range.intersectsNode(ul); } catch(e) {}
+          if (!touched) {
+            // Fallback : vérifier si l'ancêtre commun du range contient ce ul
+            var anc = range.commonAncestorContainer;
+            var ancEl = anc.nodeType === 3 ? anc.parentElement : anc;
+            if (ancEl && (ancEl === ul || ancEl.contains(ul) || ul.contains(ancEl))) touched = true;
           }
+          if (touched) ulsToConvert.push(ul);
+        });
 
+        if (ulsToConvert.length > 0) {
+          // ── MODE REMPLACEMENT / SUPPRESSION ──
           ulsToConvert.forEach(function(ul) {
             var currentType = 'disc';
             if (ul.classList.contains('diary-list-dash'))   currentType = 'dash';
@@ -2027,21 +2021,21 @@
 
             if (currentType === type) {
               // Même type → toggle : supprimer la liste, garder le texte en <p>
-              var fragment = document.createDocumentFragment();
-              Array.prototype.forEach.call(ul.querySelectorAll('li'), function(li) {
+              var frag = document.createDocumentFragment();
+              // Copier les li avant de les modifier (replaceChild peut invalider la liste)
+              var lis = Array.prototype.slice.call(ul.querySelectorAll('li'));
+              lis.forEach(function(li) {
                 var p = document.createElement('p');
                 while (li.firstChild) p.appendChild(li.firstChild);
-                fragment.appendChild(p);
+                frag.appendChild(p);
               });
-              ul.parentNode.replaceChild(fragment, ul);
+              ul.parentNode.replaceChild(frag, ul);
             } else {
-              // Type différent → changer UNIQUEMENT la classe, ne pas toucher les <li>
-              // Réinitialiser toutes les classes et n'en mettre qu'une seule
+              // Type différent → changer UNIQUEMENT la classe CSS, ne pas recréer les <li>
               ul.className = '';
               if (type === 'dash')   ul.classList.add('diary-list-dash');
               if (type === 'square') ul.classList.add('diary-list-square');
-              // Pour 'disc' : pas de classe personnalisée, list-style:disc du CSS global suffit
-              // → le CSS #diaryEditor ul.diary-list-dash/square surcharge list-style:none
+              // disc : pas de classe, list-style:disc du CSS global s'applique
             }
           });
 
