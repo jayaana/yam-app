@@ -1113,7 +1113,9 @@
 
     // Menu liste (hidden) — 3 types de puces
     html += '<div id="diaryListMenu" style="display:none;gap:6px;' +
-      'padding:6px 8px;background:var(--s1);border-radius:10px;border:1px solid var(--border);margin-bottom:8px;">' +
+      'padding:6px 8px;background:var(--s1);border-radius:10px;border:1px solid var(--border);' +
+      'box-shadow:0 4px 16px rgba(0,0,0,0.15);' +
+      'position:absolute;left:0;right:0;z-index:100;margin-top:4px;">' +
       '<button data-diary-list-type="disc" style="flex:1;padding:5px 8px;border-radius:8px;' +
         'border:1px solid var(--border);background:var(--s2);cursor:pointer;font-size:12px;' +
         'font-family:DM Sans,sans-serif;color:var(--text);display:flex;align-items:center;gap:5px;">' +
@@ -1198,6 +1200,8 @@
     html += '</div>';
 
     // Ligne 1 — Toolbar formatage (sans undo/redo)
+    // Wrapper position:relative pour que le listMenu en position:absolute s'ancre ici
+    html += '<div id="diaryToolbarWrap" style="position:relative;">';
     html += '<div id="diaryToolbar" style="display:flex;flex-wrap:nowrap;overflow-x:auto;gap:5px;' +
       'margin-top:6px;padding:4px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch;">' +
       _toolBtn('diaryFmtH2',    '<b>T</b>', 'Titre',    'flex-shrink:0;font-size:15px;') +
@@ -1220,6 +1224,7 @@
       _toolBtn('diaryFmtHR',  '—',   'Séparateur', 'flex-shrink:0;') +
       _toolBtn('diaryFmtImg', '📸', 'Image',       'flex-shrink:0;') +
     '</div>';
+    html += '</div>'; // fin diaryToolbarWrap
 
     // Ligne 2 — Image de fond (gauche) + Police (centre) + Annuler/Rétablir (droite)
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;gap:8px;">' +
@@ -2070,10 +2075,7 @@
           if (cls) emptyUl.className = cls;
           var emptyLi = document.createElement('li');
           emptyUl.appendChild(emptyLi);
-          var emptyP = document.createElement('p');
-          emptyP.innerHTML = '<br>';
           editorEl.appendChild(emptyUl);
-          editorEl.appendChild(emptyP);
           // Placer le curseur dans le li
           var newRange = document.createRange();
           newRange.setStart(emptyLi, 0);
@@ -2121,11 +2123,6 @@
         var firstBlock = blocks[0];
         editorEl.insertBefore(newUl, firstBlock);
 
-        // Ajouter un <p> après la liste pour permettre de continuer à écrire
-        var afterP = document.createElement('p');
-        afterP.innerHTML = '<br>';
-        editorEl.insertBefore(afterP, firstBlock);
-
         // Supprimer les blocs originaux
         blocks.forEach(function(block) {
           if (block.parentNode === editorEl) {
@@ -2133,7 +2130,18 @@
           }
         });
 
-        // Placer le curseur dans le dernier li
+        // Ajouter un <p> après la liste UNIQUEMENT s'il n'y a pas déjà un nœud éditable après
+        var nextSibling = newUl.nextSibling;
+        var needsAfterP = !nextSibling ||
+          (nextSibling.nodeType === 3 && !nextSibling.textContent.trim()) ||
+          (nextSibling.nodeType === 1 && nextSibling.tagName === 'BR');
+        if (needsAfterP) {
+          var afterP = document.createElement('p');
+          afterP.innerHTML = '<br>';
+          newUl.parentNode.insertBefore(afterP, newUl.nextSibling);
+        }
+
+        // Placer le curseur à la fin du dernier li (pas après la liste)
         var lastLi = newUl.lastChild;
         if (lastLi) {
           var newRange2 = document.createRange();
@@ -3711,27 +3719,25 @@
       /* Listes custom : désactiver disc natif pour éviter les doubles puces */
       '#diaryEditor ul.diary-list-dash, #diaryEditor ul.diary-list-square,',
       '.diary-rich-content ul.diary-list-dash, .diary-rich-content ul.diary-list-square {',
-      '  list-style:none !important;',
+      '  list-style:none !important; padding-left:0 !important;',
       '}',
-      '#diaryEditor li, .diary-rich-content li { margin:2px 0;line-height:1.75;color:inherit;padding-left:0.2em;position:relative; }',
+      '#diaryEditor li, .diary-rich-content li { margin:2px 0;line-height:1.75;color:inherit;padding-left:0;position:relative; }',
       /* ::marker hérite de color du li (fixé inline par _fixListColors) */
       '#diaryEditor ul:not(.diary-list-dash):not(.diary-list-square) li::marker,',
       '.diary-rich-content ul:not(.diary-list-dash):not(.diary-list-square) li::marker { color:inherit;font-size:1em; }',
-      /* Tirets */
+      /* Tirets — le tiret est inline, pas en position:absolute, pour éviter l'alinéa */
       '#diaryEditor ul.diary-list-dash li, .diary-rich-content ul.diary-list-dash li {',
-      '  display:block !important;position:relative !important;padding-left:1.4em !important;margin:2px 0;line-height:1.75;',
+      '  display:block !important;padding-left:0 !important;margin:2px 0;line-height:1.75;',
       '}',
       '#diaryEditor ul.diary-list-dash li::before, .diary-rich-content ul.diary-list-dash li::before {',
-      '  content:"–" !important;position:absolute !important;left:0 !important;top:0 !important;',
-      '  color:inherit;font-weight:700;font-size:1em;line-height:1.75;z-index:0;pointer-events:none;',
+      '  content:"– " !important;color:inherit;font-weight:700;font-size:1em;line-height:1.75;',
       '}',
       /* Carrés */
       '#diaryEditor ul.diary-list-square li, .diary-rich-content ul.diary-list-square li {',
-      '  display:block !important;position:relative !important;padding-left:1.4em !important;margin:2px 0;line-height:1.75;',
+      '  display:block !important;padding-left:0 !important;margin:2px 0;line-height:1.75;',
       '}',
       '#diaryEditor ul.diary-list-square li::before, .diary-rich-content ul.diary-list-square li::before {',
-      '  content:"▪" !important;position:absolute !important;left:0 !important;top:0 !important;',
-      '  color:inherit;font-size:0.85em;line-height:1.9;z-index:0;pointer-events:none;',
+      '  content:"▪ " !important;color:inherit;font-size:0.85em;line-height:1.9;',
       '}',
       '@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }',
       '@keyframes diaryBadgePulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }',
