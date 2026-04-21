@@ -1843,16 +1843,11 @@
 
     function _histUndo() {
       if (!editor) return;
-      // Capturer les frappes non encore snapshotées (une seule fois)
-      var current = editor.innerHTML;
-      if (_histStack.length === 0 || _histStack[_histStack.length - 1] !== current) {
-        _histStack.push(current);
-      }
       if (_histStack.length <= 1) {
         _updateUndoRedoState();
         return;
       }
-      // Pop l'état actuel → redo, puis restaurer le précédent
+      // Pop le sommet → redoStack, restaurer le suivant
       _redoStack.push(_histStack.pop());
       _restoreSnap(_histStack[_histStack.length - 1]);
       // _updateUndoRedoState appelé dans le setTimeout de _restoreSnap
@@ -2386,8 +2381,14 @@
     // (bouton emoji supprimé de la toolbar)
 
     // Undo / Redo — système custom (couvre couleur, police, taille, listes, etc.)
-    _bindFmt('diaryFmtUndo', function() { _doHistUndo(); _updateUndoRedoState(); });
-    _bindFmt('diaryFmtRedo', function() { _doHistRedo(); _updateUndoRedoState(); });
+    _bindFmt('diaryFmtUndo', function() {
+      // Forcer snapshot des frappes non encore enregistrées avant d'annuler
+      _histSnapshotNow();
+      _doHistUndo();
+    });
+    _bindFmt('diaryFmtRedo', function() {
+      _doHistRedo();
+    });
 
     // Fix3 — Size picker
     var sizePicker = document.getElementById('diarySizePicker');
