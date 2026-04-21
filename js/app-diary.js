@@ -2008,41 +2008,28 @@
         }
 
         // ── MODE CRÉATION — comportement Word ──
-        // Trouver le(s) bloc(s) parent(s) de la sélection et les convertir en <li>
-        // Un "bloc" = enfant direct de l'éditeur (p, div, h1-6, ou nœud texte direct)
+        // Étendre la sélection au(x) bloc(s) entier(s) puis remplacer via insertHTML
 
         var cls = '';
-        if (type === 'dash')   cls = 'diary-list-dash';
-        if (type === 'square') cls = 'diary-list-square';
+        if (type === 'dash')   cls = ' class="diary-list-dash"';
+        if (type === 'square') cls = ' class="diary-list-square"';
 
-        // Trouver l'enfant direct de editorEl qui contient ce nœud
+        // Trouver l'enfant direct de editorEl qui contient un nœud donné
         function _directChild(node) {
           var n = (node.nodeType === 3) ? node.parentNode : node;
-          while (n && n.parentNode !== editorEl) {
+          while (n && n.parentNode && n.parentNode !== editorEl) {
             n = n.parentNode;
           }
-          return (n && n !== editorEl) ? n : null;
+          return (n && n.parentNode === editorEl) ? n : null;
         }
 
         var startBlock = _directChild(range.startContainer);
-        var endBlock   = _directChild(range.endContainer);
+        var endBlock   = _directChild(range.endContainer) || startBlock;
 
-        // Collecter tous les enfants directs entre startBlock et endBlock
-        var blocks = [];
-        if (startBlock) {
-          var child = startBlock;
-          while (child) {
-            blocks.push(child);
-            if (child === endBlock) break;
-            child = child.nextSibling;
-          }
-        }
-
-        // Si toujours vide (éditeur vide, curseur direct dans editor)
-        if (blocks.length === 0) {
-          var fbCls = cls ? ' class="' + cls + '"' : '';
+        if (!startBlock) {
+          // Éditeur vide — insérer directement
           document.execCommand('insertHTML', false,
-            '<ul' + fbCls + '><li>&#8203;</li></ul><p>&#8203;</p>');
+            '<ul' + cls + '><li></li></ul><p><br></p>');
           listMenu.style.display = 'none';
           _listMenuSavedRange = null;
           _saveSelection();
@@ -2050,49 +2037,40 @@
           return;
         }
 
-        // Construire la <ul> à partir des blocs entiers
-        var ulEl = document.createElement('ul');
-        if (cls) ulEl.className = cls;
-
-        blocks.forEach(function(block) {
-          var li = document.createElement('li');
-          if (block.nodeType === 3) {
-            // Nœud texte direct → copier le texte
-            li.textContent = block.textContent || '​';
-          } else {
-            // Élément bloc → déplacer tous ses enfants
-            var clone = block.cloneNode(true);
-            while (clone.firstChild) li.appendChild(clone.firstChild);
-          }
-          if (!li.innerHTML.trim() || li.innerHTML === '') li.innerHTML = '&#8203;';
-          ulEl.appendChild(li);
-        });
-
-        // Insérer la <ul> avant le premier bloc, puis supprimer les blocs originaux
-        var insertRef = blocks[0];
-        editorEl.insertBefore(ulEl, insertRef);
-
-        // Ajouter un <p> vide après la liste pour continuer à écrire
-        var pAfter = document.createElement('p');
-        pAfter.innerHTML = '&#8203;';
-        ulEl.parentNode.insertBefore(pAfter, ulEl.nextSibling);
-
-        // Supprimer les blocs originaux
-        blocks.forEach(function(block) {
-          if (block.parentNode) block.parentNode.removeChild(block);
-        });
-
-        // Placer le curseur à la fin du dernier <li>
-        var lastLi = ulEl.lastElementChild || ulEl.lastChild;
-        if (lastLi) {
-          try {
-            var newRange = document.createRange();
-            newRange.selectNodeContents(lastLi);
-            newRange.collapse(false);
-            sel.removeAllRanges();
-            sel.addRange(newRange);
-          } catch(e) {}
+        // Collecter les blocs entre startBlock et endBlock
+        var blocks = [];
+        var cur = startBlock;
+        while (cur) {
+          blocks.push(cur);
+          if (cur === endBlock) break;
+          cur = cur.nextSibling;
         }
+
+        // Construire le HTML de la liste à partir du innerHTML de chaque bloc
+        var liItems = blocks.map(function(block) {
+          var inner = '';
+          if (block.nodeType === 3) {
+            // Nœud texte brut
+            inner = block.textContent;
+          } else {
+            inner = block.innerHTML || '';
+          }
+          // Nettoyer le contenu vide
+          if (!inner.trim() || inner === '<br>') inner = '';
+          return '<li>' + inner + '</li>';
+        }).join('');
+
+        var listHTML = '<ul' + cls + '>' + liItems + '</ul><p><br></p>';
+
+        // Étendre le range pour couvrir les blocs entiers
+        var extRange = document.createRange();
+        extRange.setStartBefore(blocks[0]);
+        extRange.setEndAfter(blocks[blocks.length - 1]);
+        sel.removeAllRanges();
+        sel.addRange(extRange);
+
+        // Remplacer avec insertHTML — le navigateur gère proprement le contenteditable
+        document.execCommand('insertHTML', false, listHTML);
 
         listMenu.style.display = 'none';
         _listMenuSavedRange = null;
