@@ -1316,10 +1316,30 @@
           '<span id="diaryFontLabel" style="font-size:11px;font-weight:700;">Georgia</span>' +
         '</button>' +
       '</div>' +
-      // Droite : Annuler + Rétablir
+      // Droite : Annuler + Rétablir (grisés si indisponibles, style Word)
       '<div style="display:flex;gap:5px;flex-shrink:0;">' +
-        _toolBtn('diaryFmtUndo', '&#x21A9;', 'Annuler',  'font-size:14px;') +
-        _toolBtn('diaryFmtRedo', '&#x21AA;', 'Rétablir', 'font-size:14px;') +
+        '<button id="diaryFmtUndo" title="Annuler" ' +
+          'style="min-width:36px;height:28px;padding:0 8px;border-radius:8px;flex-shrink:0;' +
+          'border:1px solid var(--border);background:var(--s1);' +
+          'display:flex;align-items:center;justify-content:center;gap:3px;' +
+          'opacity:0.3;cursor:not-allowed;transition:opacity 0.15s,color 0.15s,background 0.15s;">' +
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+            '<polyline points="9 14 4 9 9 4"/>' +
+            '<path d="M20 20v-7a4 4 0 0 0-4-4H4"/>' +
+          '</svg>' +
+          '<span style="font-size:9px;font-weight:800;font-family:DM Sans,sans-serif;color:var(--muted);">Z</span>' +
+        '</button>' +
+        '<button id="diaryFmtRedo" title="Rétablir" ' +
+          'style="min-width:36px;height:28px;padding:0 8px;border-radius:8px;flex-shrink:0;' +
+          'border:1px solid var(--border);background:var(--s1);' +
+          'display:flex;align-items:center;justify-content:center;gap:3px;' +
+          'opacity:0.3;cursor:not-allowed;transition:opacity 0.15s,color 0.15s,background 0.15s;">' +
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+            '<polyline points="15 14 20 9 15 4"/>' +
+            '<path d="M4 20v-7a4 4 0 0 1 4-4h12"/>' +
+          '</svg>' +
+          '<span style="font-size:9px;font-weight:800;font-family:DM Sans,sans-serif;color:var(--muted);">Y</span>' +
+        '</button>' +
       '</div>' +
     '</div>';
 
@@ -1790,6 +1810,7 @@
       _histStack.push(snap);
       if (_histStack.length > MAX_HIST) _histStack.shift();
       if (!_inUndoRedo) _redoStack = []; // n'effacer redo que sur vraie action user
+      _updateUndoRedoState();
     }
 
     function _histSnapshotDeferred() {
@@ -1813,6 +1834,7 @@
         _fixListColors();
         _updateToolbarState();
         _updateFontLabel();
+        _updateUndoRedoState();
       }, 0);
     }
 
@@ -1827,6 +1849,7 @@
       var undone = _histStack.pop();
       _redoStack.push(undone);
       _restoreSnap(_histStack[_histStack.length - 1]);
+      _updateUndoRedoState();
     }
 
     function _histRedo() {
@@ -1836,10 +1859,34 @@
       _histStack.push(next);
       _inUndoRedo = false;
       _restoreSnap(next);
+      _updateUndoRedoState();
+    }
+
+    // Met à jour l'état visuel des boutons Annuler/Rétablir (grisé = indisponible)
+    function _updateUndoRedoState() {
+      var undoBtn = document.getElementById('diaryFmtUndo');
+      var redoBtn = document.getElementById('diaryFmtRedo');
+      if (!undoBtn || !redoBtn) return;
+
+      var canUndo = _histStack.length > 1;
+      var canRedo = _redoStack.length > 0;
+
+      function _setBtnState(btn, active) {
+        btn.style.opacity      = active ? '1'           : '0.3';
+        btn.style.cursor       = active ? 'pointer'     : 'not-allowed';
+        btn.style.pointerEvents = active ? ''           : 'none';
+        var sp = btn.querySelector('span');
+        if (sp) sp.style.color = active ? 'var(--text)' : 'var(--muted)';
+        // SVG stroke color via currentColor
+        btn.style.color = active ? 'var(--text)' : 'var(--muted)';
+      }
+
+      _setBtnState(undoBtn, canUndo);
+      _setBtnState(redoBtn, canRedo);
     }
 
     // Snapshot initial
-    if (editor) { setTimeout(function() { _histSnapshot(); }, 100); }
+    if (editor) { setTimeout(function() { _histSnapshot(); _updateUndoRedoState(); }, 100); }
 
     // Exposer au niveau module
     _histSnapshotNow = _histSnapshotNowLocal;
@@ -2331,8 +2378,8 @@
     // (bouton emoji supprimé de la toolbar)
 
     // Undo / Redo — système custom (couvre couleur, police, taille, listes, etc.)
-    _bindFmt('diaryFmtUndo', function() { _doHistUndo(); });
-    _bindFmt('diaryFmtRedo', function() { _doHistRedo(); });
+    _bindFmt('diaryFmtUndo', function() { _doHistUndo(); _updateUndoRedoState(); });
+    _bindFmt('diaryFmtRedo', function() { _doHistRedo(); _updateUndoRedoState(); });
 
     // Fix3 — Size picker
     var sizePicker = document.getElementById('diarySizePicker');
