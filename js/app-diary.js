@@ -104,12 +104,12 @@
   function _getBadgeState() {
     var u = yamGetUser();
     if (!u) return { seenIds: {}, lastUpdateSeen: {} };
-    try { return JSON.parse(localStorage.getItem('diary_badge_' + u.id) || '{"seenIds":{},"lastUpdateSeen":{}}'); } catch(e) { return { seenIds: {}, lastUpdateSeen: {} }; }
+    try { return JSON.parse(localStorage.getItem('diary_badge_' + u.couple_id) || '{"seenIds":{},"lastUpdateSeen":{}}'); } catch(e) { return { seenIds: {}, lastUpdateSeen: {} }; }
   }
   function _saveBadgeState(state) {
     var u = yamGetUser();
     if (!u) return;
-    try { localStorage.setItem('diary_badge_' + u.id, JSON.stringify(state)); } catch(e) {}
+    try { localStorage.setItem('diary_badge_' + u.couple_id, JSON.stringify(state)); } catch(e) {}
   }
   // Marque une page comme vue (nouvelle page partagée)
   function _markPageSeen(pageId) {
@@ -133,28 +133,32 @@
     var u = yamGetUser();
     if (!u) return 0;
     var me = getProfile();
+    var partnerRole = me === 'girl' ? 'boy' : 'girl';
     var state = _getBadgeState();
-    // Nouvelle page = jamais vue ET ce n'est pas moi qui l'ai créée/modifiée
     return _pages.filter(function(p) {
-      if (!p.is_shared) return false;
-      var editorIsMe = p.last_editor_role && p.last_editor_role === me;
-      return !state.seenIds[p.id] && !editorIsMe;
+      return p.author_role === partnerRole && p.is_shared && !state.seenIds[p.id];
     }).length;
   }
-  // Compte les pages avec mise à jour non vue (modifiée par le partenaire)
+  // Compte les pages avec mise à jour non vue faite par le partenaire :
+  // - pages du partenaire (partagées) qu'il a lui-même modifiées
+  // - mes propres pages co-écriture que le partenaire a modifiées
   function _countUpdatedPartnerPages() {
     var u = yamGetUser();
     if (!u) return 0;
     var me = getProfile();
+    var partnerRole = me === 'girl' ? 'boy' : 'girl';
     var state = _getBadgeState();
     var updSeen = state.lastUpdateSeen || {};
     return _pages.filter(function(p) {
-      if (!p.is_shared) return false;
       if (!p.updated_at) return false;
-      if (!state.seenIds[p.id]) return false; // nouvelle page → géré par _countNewPartnerPages
-      // Pas de badge si c'est moi qui ai fait la dernière modif
-      var editorIsMe = p.last_editor_role && p.last_editor_role === me;
-      if (editorIsMe) return false;
+      // La dernière modif doit être du partenaire (pas de moi)
+      if (p.last_editor_role !== partnerRole) return false;
+      // Cas 1 : page du partenaire partagée, déjà vue (nouvelle page gérée par _countNewPartnerPages)
+      var isPartnerSharedPage = p.author_role === partnerRole && p.is_shared;
+      if (isPartnerSharedPage && !state.seenIds[p.id]) return false; // nouvelle → autre compteur
+      // Cas 2 : ma propre page co-écriture modifiée par le partenaire
+      var isMyCowritePage = p.author_role === me && p.partner_can_edit;
+      if (!isPartnerSharedPage && !isMyCowritePage) return false;
       var seenUpd = updSeen[p.id];
       return !seenUpd || seenUpd < p.updated_at;
     }).length;
@@ -261,15 +265,8 @@
             _renderReadPage(_currentPage);
           }
           // Badge : mise à jour page partenaire
-          // Si c'est MOI qui ai fait la modification (last_editor_role === mon rôle),
-          // marquer directement comme vu pour ne pas afficher le badge chez moi.
-          if (payload.new.last_editor_role && payload.new.last_editor_role === getProfile()) {
-            _markPageSeen(payload.new.id);
-            if (payload.new.updated_at) _markUpdateSeen(payload.new.id, payload.new.updated_at);
-          } else {
-            _updateHomeBadge();
-            _updateTabBadges();
-          }
+          _updateHomeBadge();
+          _updateTabBadges();
         } else if (payload.eventType === 'DELETE') {
           _pages = _pages.filter(function(p){ return p.id !== payload.old.id; });
           _updateHomeBadge();
@@ -493,12 +490,17 @@
     var hasImg   = page.bg_image_url || (page.images && JSON.parse(page.images || '[]').length > 0);
     var pinned   = _isPinned(page.id);
     var state    = _getBadgeState();
-    // Badge : s'affiche si c'est le PARTENAIRE qui a créé/modifié (pas moi)
-    // Peu importe qui est l'auteur de la page — ce qui compte c'est last_editor_role
-    var editorIsMe = page.last_editor_role && page.last_editor_role === me;
-    var isNewForMe = !state.seenIds[page.id] && !editorIsMe;
-    var hasUpdateForMe = !isNewForMe && page.updated_at && !editorIsMe &&
-      (!state.lastUpdateSeen || !state.lastUpdateSeen[page.id] || state.lastUpdateSeen[page.id] < page.updated_at);
+    var isNewForMe = !isOwn && !state.seenIds[page.id];
+    // Mise à jour non vue : soit page du partenaire, soit MA page co-écriture modifiée par lui/elle
+    // Dans tous les cas : la dernière modif doit être du partenaire (pas de moi)
+    var partnerRole = me === 'girl' ? 'boy' : 'girl';
+    var isMyCowrite = isOwn && page.partner_can_edit;
+    var editorWasPartner = page.last_editor_role === partnerRole;
+    var hasUpdateForMe = editorWasPartner && page.updated_at && (
+      (!isOwn && !isNewForMe) || isMyCowrite
+    ) && (
+      !state.lastUpdateSeen || !state.lastUpdateSeen[page.id] || state.lastUpdateSeen[page.id] < page.updated_at
+    );
 
     // Infos de dernière modification pour co-écriture
     var lastEditInfo = '';
@@ -3325,11 +3327,6 @@
       // Mettre à jour le cache local
       if (_currentPage && _currentPage.id) {
         _pages = _pages.map(function(p) { return p.id === _currentPage.id ? Object.assign({}, p, payload, { id: _currentPage.id }) : p; });
-        // Je viens de faire cette modif moi-même : marquer l'update comme vu dans MON
-        // localStorage pour que le badge ne clignote pas chez moi.
-        // Le Realtime notifiera le partenaire de son côté (son localStorage à lui est intact).
-        _markPageSeen(_currentPage.id);
-        _markUpdateSeen(_currentPage.id, payload.updated_at);
       } else {
         _loadPages(false);
       }
