@@ -1902,12 +1902,13 @@
       document.execCommand(isCentered ? 'justifyLeft' : 'justifyCenter', false, null);
       _saveSelection();
     });
-    // Menu liste — toggle affichage
+    // Menu liste — toggle affichage + sauvegarder la sélection au moment de l'ouverture
     var listMenu = document.getElementById('diaryListMenu');
+    var _listMenuSavedRange = null; // sélection au moment où le menu liste s'ouvre
+
     _bindFmt('diaryFmtList', function() {
       if (!listMenu) return;
       var open = listMenu.style.display !== 'none';
-      listMenu.style.display = open ? 'none' : 'flex';
       // Fermer tous les autres pickers
       var cp = document.getElementById('diaryColorPicker');
       var ep = document.getElementById('diaryEmojiPicker');
@@ -1915,6 +1916,16 @@
       if (cp) cp.style.display = 'none';
       if (ep) ep.style.display = 'none';
       if (fp) fp.style.display = 'none';
+      if (open) {
+        listMenu.style.display = 'none';
+        _listMenuSavedRange = null;
+      } else {
+        // Sauvegarder la sélection MAINTENANT — avant que l'éditeur perde le focus
+        _saveSelection();
+        var sel = window.getSelection();
+        _listMenuSavedRange = (sel && sel.rangeCount > 0) ? sel.getRangeAt(0).cloneRange() : null;
+        listMenu.style.display = 'flex';
+      }
     });
 
     // Sélection type de liste
@@ -1922,33 +1933,42 @@
       function insertList() {
         _histSnapshotNow();
         var type = btn.getAttribute('data-diary-list-type');
-        _restoreSelection();
+
+        // Restaurer la sélection sauvegardée au moment de l'ouverture du menu
+        var editorEl = document.getElementById('diaryEditor');
+        if (!editorEl) { listMenu.style.display = 'none'; return; }
+        editorEl.focus();
+
         var sel = window.getSelection();
+        if (_listMenuSavedRange) {
+          sel.removeAllRanges();
+          sel.addRange(_listMenuSavedRange.cloneRange());
+        } else {
+          // Fallback : restaurer depuis _savedRange
+          _restoreSelection();
+          sel = window.getSelection();
+        }
+
         if (!sel || sel.rangeCount === 0) { listMenu.style.display = 'none'; return; }
 
         var range = sel.getRangeAt(0);
-        var editor = document.getElementById('diaryEditor');
 
         // ── Détecter si la sélection couvre une liste existante ──
-        // Si le commonAncestorContainer est dans un <ul> ou contient des <ul>
         var ancestor = range.commonAncestorContainer;
         var anchorEl = ancestor.nodeType === 3 ? ancestor.parentElement : ancestor;
 
-        // Trouver tous les <ul> dans la sélection (ou ancêtres)
         var existingUl = anchorEl.closest ? anchorEl.closest('ul') : null;
         if (!existingUl) {
-          // Chercher des <ul> dans le fragment sélectionné
           var fragCheck = range.cloneContents();
           var fragDiv = document.createElement('div');
           fragDiv.appendChild(fragCheck);
           existingUl = fragDiv.querySelector('ul');
         }
 
-        if (existingUl && editor && editor.contains(anchorEl)) {
+        if (existingUl && editorEl && editorEl.contains(anchorEl)) {
           // ── MODE REMPLACEMENT / SUPPRESSION ──
-          // Trouver toutes les <ul> dans/autour de la sélection
           var ulsToConvert = [];
-          editor.querySelectorAll('ul').forEach(function(ul) {
+          editorEl.querySelectorAll('ul').forEach(function(ul) {
             if (range.intersectsNode ? range.intersectsNode(ul) :
                 (range.compareBoundaryPoints(Range.END_TO_START, range) <= 0)) {
               ulsToConvert.push(ul);
@@ -1959,24 +1979,21 @@
           }
 
           ulsToConvert.forEach(function(ul) {
-            // Détecter le type actuel de ce <ul>
             var currentType = 'disc';
             if (ul.classList.contains('diary-list-dash'))   currentType = 'dash';
             if (ul.classList.contains('diary-list-square')) currentType = 'square';
 
             if (currentType === type) {
-              // ── MÊME TYPE → Supprimer la liste, garder le texte ──
-              // Extraire les textes des <li> et les remplacer par des <p>
+              // Même type → supprimer la liste, garder le texte
               var fragment = document.createDocumentFragment();
               Array.prototype.forEach.call(ul.querySelectorAll('li'), function(li) {
                 var p = document.createElement('p');
-                // Déplacer le contenu du li dans le p
                 while (li.firstChild) p.appendChild(li.firstChild);
                 fragment.appendChild(p);
               });
               ul.parentNode.replaceChild(fragment, ul);
             } else {
-              // ── TYPE DIFFÉRENT → Changer la classe ──
+              // Type différent → changer la classe
               ul.className = '';
               if (type === 'dash')   ul.className = 'diary-list-dash';
               if (type === 'square') ul.className = 'diary-list-square';
@@ -1984,27 +2001,30 @@
           });
 
           listMenu.style.display = 'none';
+          _listMenuSavedRange = null;
           _saveSelection();
           setTimeout(function() { _fixListColors(); }, 10);
           return;
         }
 
-        // ── MODE CRÉATION : convertir la sélection en liste ──
-        // Extraire le contenu HTML sélectionné
-        var frag = range.cloneContents();
-        var tmp  = document.createElement('div');
-        tmp.appendChild(frag);
-        var selHTML = tmp.innerHTML;
+        // ── MODE CRÉATION ──
+        // Si sélection collapsed (curseur seul), créer un li vide sur la ligne courante
+        var selHTML = '';
+        if (!range.collapsed) {
+          var frag = range.cloneContents();
+          var tmp  = document.createElement('div');
+          tmp.appendChild(frag);
+          selHTML = tmp.innerHTML;
+          // Normaliser les blocs en <br>
+          selHTML = selHTML
+            .replace(/<\/?(p|div|h[1-6])[^>]*>/gi, '<br>')
+            .replace(/(<br\s*\/?>)+/gi, '<br>')
+            .replace(/^<br>|<br>$/gi, '');
+        }
 
-        // Normaliser les blocs en <br>
-        selHTML = selHTML
-          .replace(/<\/?(p|div|h[1-6])[^>]*>/gi, '<br>')
-          .replace(/(<br\s*\/?>)+/gi, '<br>')
-          .replace(/^<br>|<br>$/gi, '');
-
-        var lines = selHTML.split(/<br\s*\/?>/i);
+        var lines = selHTML ? selHTML.split(/<br\s*\/?>/i) : [];
         lines = lines.filter(function(l) { return l.replace(/<[^>]+>/g,'').trim() !== ''; });
-        if (lines.length === 0) lines = [''];
+        if (lines.length === 0) lines = ['&#8203;']; // li vide avec zero-width space
 
         var liHTML = lines.map(function(line) {
           return '<li>' + (line.trim() || '&#8203;') + '</li>';
@@ -2019,6 +2039,7 @@
         document.execCommand('insertHTML', false, listHTML + '<p>&#8203;</p>');
 
         listMenu.style.display = 'none';
+        _listMenuSavedRange = null;
         _saveSelection();
         setTimeout(function() { _fixListColors(); }, 10);
       }
