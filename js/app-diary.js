@@ -1804,12 +1804,12 @@
     var MAX_HIST     = 50;
 
     function _histSnapshot() {
-      if (_histPaused || !editor) return;
+      if (_histPaused || _inUndoRedo || !editor) return;
       var snap = editor.innerHTML;
       if (_histStack.length > 0 && _histStack[_histStack.length - 1] === snap) return;
       _histStack.push(snap);
       if (_histStack.length > MAX_HIST) _histStack.shift();
-      if (!_inUndoRedo) _redoStack = []; // n'effacer redo que sur vraie action user
+      _redoStack = []; // toute nouvelle action efface le redo
       _updateUndoRedoState();
     }
 
@@ -1824,12 +1824,15 @@
     }
 
     function _restoreSnap(snap) {
+      // Bloquer TOUT snapshot pendant ET après la restauration
+      // jusqu'au prochain tick — sinon keyup/input capturent l'état restauré
       _histPaused = true;
       _inUndoRedo = true;
       editor.innerHTML = snap;
-      _histPaused = false;
-      _inUndoRedo = false;
+      // _histPaused et _inUndoRedo restent true jusqu'au setTimeout
       setTimeout(function() {
+        _histPaused = false;
+        _inUndoRedo = false;
         _bindImgResizeHandles(editor);
         _fixListColors();
         _updateToolbarState();
@@ -1840,17 +1843,17 @@
 
     function _histUndo() {
       if (!editor) return;
-      // S'assurer que l'état actuel est dans la pile
+      // Capturer les frappes non encore snapshotées (une seule fois)
       var current = editor.innerHTML;
       if (_histStack.length === 0 || _histStack[_histStack.length - 1] !== current) {
         _histStack.push(current);
       }
       if (_histStack.length <= 1) {
-        _updateUndoRedoState(); // grise le bouton même à la limite
+        _updateUndoRedoState();
         return;
       }
-      var undone = _histStack.pop();
-      _redoStack.push(undone);
+      // Pop l'état actuel → redo, puis restaurer le précédent
+      _redoStack.push(_histStack.pop());
       _restoreSnap(_histStack[_histStack.length - 1]);
       // _updateUndoRedoState appelé dans le setTimeout de _restoreSnap
     }
@@ -1858,13 +1861,11 @@
     function _histRedo() {
       if (!editor) return;
       if (_redoStack.length === 0) {
-        _updateUndoRedoState(); // grise le bouton même à la limite
+        _updateUndoRedoState();
         return;
       }
       var next = _redoStack.pop();
-      _inUndoRedo = true;
       _histStack.push(next);
-      _inUndoRedo = false;
       _restoreSnap(next);
       // _updateUndoRedoState appelé dans le setTimeout de _restoreSnap
     }
