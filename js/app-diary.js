@@ -104,12 +104,14 @@
   function _getBadgeState() {
     var u = yamGetUser();
     if (!u) return { seenIds: {}, lastUpdateSeen: {} };
-    try { return JSON.parse(localStorage.getItem('diary_badge_' + u.couple_id) || '{"seenIds":{},"lastUpdateSeen":{}}'); } catch(e) { return { seenIds: {}, lastUpdateSeen: {} }; }
+    // Clé par user ID (et non couple_id) : chaque partenaire a son propre état de badges
+    try { return JSON.parse(localStorage.getItem('diary_badge_' + u.id) || '{"seenIds":{},"lastUpdateSeen":{}}'); } catch(e) { return { seenIds: {}, lastUpdateSeen: {} }; }
   }
   function _saveBadgeState(state) {
     var u = yamGetUser();
     if (!u) return;
-    try { localStorage.setItem('diary_badge_' + u.couple_id, JSON.stringify(state)); } catch(e) {}
+    // Clé par user ID (et non couple_id) : chaque partenaire a son propre état de badges
+    try { localStorage.setItem('diary_badge_' + u.id, JSON.stringify(state)); } catch(e) {}
   }
   // Marque une page comme vue (nouvelle page partagée)
   function _markPageSeen(pageId) {
@@ -154,8 +156,7 @@
       if (!state.seenIds[p.id]) return false; // nouvelle page → géré par _countNewPartnerPages
       // Si c'est MOI qui ai fait la dernière modification, pas besoin de notifier
       if (p.last_editor_role && p.last_editor_role === me) return false;
-      var seenUpd = updSeen[p.id];
-      return !seenUpd || seenUpd < p.updated_at;
+      var seenUpd = updSeen[p.id];      return !seenUpd || seenUpd < p.updated_at;
     }).length;
   }
   // Met à jour le badge "NEW" sur la carte My Diary — même approche que le badge Boutique :
@@ -487,7 +488,6 @@
     var state    = _getBadgeState();
     var isNewForMe = !isOwn && !state.seenIds[page.id];
     var hasUpdateForMe = !isOwn && !isNewForMe && page.updated_at &&
-      (!page.last_editor_role || page.last_editor_role !== me) &&
       (!state.lastUpdateSeen || !state.lastUpdateSeen[page.id] || state.lastUpdateSeen[page.id] < page.updated_at);
 
     // Infos de dernière modification pour co-écriture
@@ -3315,6 +3315,9 @@
       // Mettre à jour le cache local
       if (_currentPage && _currentPage.id) {
         _pages = _pages.map(function(p) { return p.id === _currentPage.id ? Object.assign({}, p, payload, { id: _currentPage.id }) : p; });
+        // C'est moi qui viens de modifier : marquer comme vu pour ne pas avoir la notif
+        _markPageSeen(_currentPage.id);
+        _markUpdateSeen(_currentPage.id, payload.updated_at);
       } else {
         _loadPages(false);
       }
