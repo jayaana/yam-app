@@ -1845,21 +1845,28 @@
       if (_histStack.length === 0 || _histStack[_histStack.length - 1] !== current) {
         _histStack.push(current);
       }
-      if (_histStack.length <= 1) return; // rien à annuler
+      if (_histStack.length <= 1) {
+        _updateUndoRedoState(); // grise le bouton même à la limite
+        return;
+      }
       var undone = _histStack.pop();
       _redoStack.push(undone);
       _restoreSnap(_histStack[_histStack.length - 1]);
-      _updateUndoRedoState();
+      // _updateUndoRedoState appelé dans le setTimeout de _restoreSnap
     }
 
     function _histRedo() {
-      if (!editor || _redoStack.length === 0) return;
+      if (!editor) return;
+      if (_redoStack.length === 0) {
+        _updateUndoRedoState(); // grise le bouton même à la limite
+        return;
+      }
       var next = _redoStack.pop();
       _inUndoRedo = true;
       _histStack.push(next);
       _inUndoRedo = false;
       _restoreSnap(next);
-      _updateUndoRedoState();
+      // _updateUndoRedoState appelé dans le setTimeout de _restoreSnap
     }
 
     // Met à jour l'état visuel des boutons Annuler/Rétablir (grisé = indisponible)
