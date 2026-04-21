@@ -1908,6 +1908,27 @@
     var listMenu = document.getElementById('diaryListMenu');
     var _listMenuSavedRange = null; // sélection au moment où le menu liste s'ouvre
 
+    // ── Capturer la sélection le plus tôt possible (touchstart/mousedown) ──
+    // Sur iOS, le blur se produit APRÈS touchstart mais AVANT touchend/mousedown.
+    // _bindFmt utilise touchend, donc la sélection est déjà perdue quand il s'exécute.
+    // Solution : écouter touchstart ET mousedown directement sur le bouton liste
+    // pour sauvegarder le Range AVANT que le focus quitte l'éditeur.
+    var _listFmtBtn = document.getElementById('diaryFmtList');
+    if (_listFmtBtn) {
+      function _captureListSel(e) {
+        var sel = window.getSelection();
+        if (sel && sel.rangeCount > 0 && sel.anchorNode) {
+          _listMenuSavedRange = sel.getRangeAt(0).cloneRange();
+          _saveSelection(); // aussi dans _savedRange pour cohérence
+        }
+      }
+      // touchstart = avant le blur iOS
+      _listFmtBtn.addEventListener('touchstart', _captureListSel, { passive: true });
+      // mousedown = avant le blur desktop (preventDefault de _bindFmt empêche déjà le blur,
+      // mais on capture quand même ici pour être sûr)
+      _listFmtBtn.addEventListener('mousedown', _captureListSel);
+    }
+
     _bindFmt('diaryFmtList', function() {
       if (!listMenu) return;
       var open = listMenu.style.display !== 'none';
@@ -1922,10 +1943,13 @@
         listMenu.style.display = 'none';
         _listMenuSavedRange = null;
       } else {
-        // Sauvegarder la sélection MAINTENANT — avant que l'éditeur perde le focus
-        _saveSelection();
-        var sel = window.getSelection();
-        _listMenuSavedRange = (sel && sel.rangeCount > 0) ? sel.getRangeAt(0).cloneRange() : null;
+        // Fallback si touchstart n'a pas encore capturé (cas edge)
+        if (!_listMenuSavedRange) {
+          var sel = window.getSelection();
+          if (sel && sel.rangeCount > 0) {
+            _listMenuSavedRange = sel.getRangeAt(0).cloneRange();
+          }
+        }
         listMenu.style.display = 'flex';
       }
     });
@@ -1939,18 +1963,32 @@
         // Restaurer la sélection sauvegardée au moment de l'ouverture du menu
         var editorEl = document.getElementById('diaryEditor');
         if (!editorEl) { listMenu.style.display = 'none'; return; }
-        editorEl.focus();
 
+        // ⚠️ iOS Safari : NE PAS appeler focus() avant addRange().
+        // focus() réinitialise la sélection sur iOS et place le curseur en fin de texte.
+        // La séquence correcte : addRange() d'abord → le focus suit automatiquement.
         var sel = window.getSelection();
-        if (_listMenuSavedRange) {
-          sel.removeAllRanges();
-          sel.addRange(_listMenuSavedRange.cloneRange());
+        var rangeToRestore = _listMenuSavedRange || _savedRange;
+        if (rangeToRestore) {
+          try {
+            sel.removeAllRanges();
+            sel.addRange(rangeToRestore.cloneRange());
+            // Focus APRÈS addRange pour que iOS ne le détruise pas
+            editorEl.focus();
+            // Ré-appliquer le range car certains navigateurs le perdent après focus()
+            sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0) {
+              sel.removeAllRanges();
+              sel.addRange(rangeToRestore.cloneRange());
+            }
+          } catch(e) {
+            editorEl.focus();
+          }
         } else {
-          // Fallback : restaurer depuis _savedRange
-          _restoreSelection();
-          sel = window.getSelection();
+          editorEl.focus();
         }
 
+        sel = window.getSelection();
         if (!sel || sel.rangeCount === 0) { listMenu.style.display = 'none'; return; }
 
         var range = sel.getRangeAt(0);
@@ -2107,6 +2145,14 @@
         _saveSelection();
         setTimeout(function() { _fixListColors(); }, 10);
       }
+      // Sur iOS : touchstart pour prévenir tout blur parasite avant l'insertion
+      btn.addEventListener('touchstart', function(e) {
+        // Re-capturer la sélection si elle a pu changer depuis l'ouverture du menu
+        // (normalement déjà capturée sur le bouton liste, mais double sécurité)
+        if (!_listMenuSavedRange && _savedRange) {
+          _listMenuSavedRange = _savedRange.cloneRange();
+        }
+      }, { passive: true });
       btn.addEventListener('mousedown', function(e) { e.preventDefault(); insertList(); });
       btn.addEventListener('touchend',  function(e) { e.preventDefault(); insertList(); }, { passive: false });
     });
