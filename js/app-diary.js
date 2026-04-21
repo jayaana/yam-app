@@ -133,25 +133,28 @@
     var u = yamGetUser();
     if (!u) return 0;
     var me = getProfile();
-    var partnerRole = me === 'girl' ? 'boy' : 'girl';
     var state = _getBadgeState();
+    // Nouvelle page = jamais vue ET ce n'est pas moi qui l'ai créée/modifiée
     return _pages.filter(function(p) {
-      return p.author_role === partnerRole && p.is_shared && !state.seenIds[p.id];
+      if (!p.is_shared) return false;
+      var editorIsMe = p.last_editor_role && p.last_editor_role === me;
+      return !state.seenIds[p.id] && !editorIsMe;
     }).length;
   }
-  // Compte les pages co-écriture ou partagées avec mise à jour non vue
+  // Compte les pages avec mise à jour non vue (modifiée par le partenaire)
   function _countUpdatedPartnerPages() {
     var u = yamGetUser();
     if (!u) return 0;
     var me = getProfile();
-    var partnerRole = me === 'girl' ? 'boy' : 'girl';
     var state = _getBadgeState();
     var updSeen = state.lastUpdateSeen || {};
     return _pages.filter(function(p) {
-      if (!(p.author_role === partnerRole && p.is_shared)) return false;
+      if (!p.is_shared) return false;
       if (!p.updated_at) return false;
-      // Déjà vu si on a déjà enregistré cet updated_at
       if (!state.seenIds[p.id]) return false; // nouvelle page → géré par _countNewPartnerPages
+      // Pas de badge si c'est moi qui ai fait la dernière modif
+      var editorIsMe = p.last_editor_role && p.last_editor_role === me;
+      if (editorIsMe) return false;
       var seenUpd = updSeen[p.id];
       return !seenUpd || seenUpd < p.updated_at;
     }).length;
@@ -490,8 +493,11 @@
     var hasImg   = page.bg_image_url || (page.images && JSON.parse(page.images || '[]').length > 0);
     var pinned   = _isPinned(page.id);
     var state    = _getBadgeState();
-    var isNewForMe = !isOwn && !state.seenIds[page.id];
-    var hasUpdateForMe = !isOwn && !isNewForMe && page.updated_at &&
+    // Badge : s'affiche si c'est le PARTENAIRE qui a créé/modifié (pas moi)
+    // Peu importe qui est l'auteur de la page — ce qui compte c'est last_editor_role
+    var editorIsMe = page.last_editor_role && page.last_editor_role === me;
+    var isNewForMe = !state.seenIds[page.id] && !editorIsMe;
+    var hasUpdateForMe = !isNewForMe && page.updated_at && !editorIsMe &&
       (!state.lastUpdateSeen || !state.lastUpdateSeen[page.id] || state.lastUpdateSeen[page.id] < page.updated_at);
 
     // Infos de dernière modification pour co-écriture
