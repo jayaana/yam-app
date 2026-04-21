@@ -180,17 +180,48 @@
   function _bindHomeBadgeScroll() {} // no-op
   // Met à jour les badges sur les onglets "Mon journal" et "Partenaire"
   function _updateTabBadges() {
-    // Badge onglet partenaire : nouvelles pages
+    var me = getProfile();
     var newCount = _countNewPartnerPages();
-    var updCount = _countUpdatedPartnerPages();
+
+    // Pages partenaire mises à jour (author=partner) → badge onglet partenaire
+    var partnerRole = me === 'girl' ? 'boy' : 'girl';
+    var state = _getBadgeState();
+    var updSeen = state.lastUpdateSeen || {};
+    var updPartnerCount = _pages.filter(function(p) {
+      if (!p.updated_at) return false;
+      if (p.last_editor_role !== partnerRole) return false;
+      if (!(p.author_role === partnerRole && p.is_shared)) return false;
+      if (!state.seenIds[p.id]) return false; // nouvelle → _countNewPartnerPages
+      var s = updSeen[p.id];
+      return !s || s < p.updated_at;
+    }).length;
+
+    // Mes pages co-écriture modifiées par elle → badge onglet "Mon journal"
+    var updMineCount = _pages.filter(function(p) {
+      if (!p.updated_at) return false;
+      if (p.last_editor_role !== partnerRole) return false;
+      if (!(p.author_role === me && p.partner_can_edit)) return false;
+      var s = updSeen[p.id];
+      return !s || s < p.updated_at;
+    }).length;
+
     var partnerBadge = document.querySelector('[data-diary-tab-badge="partner"]');
     if (partnerBadge) {
-      var total = newCount + updCount;
+      var total = newCount + updPartnerCount;
       if (total > 0) {
         partnerBadge.textContent = total > 9 ? '9+' : String(total);
         partnerBadge.style.display = '';
       } else {
         partnerBadge.style.display = 'none';
+      }
+    }
+    var mineBadge = document.querySelector('[data-diary-tab-badge="mine"]');
+    if (mineBadge) {
+      if (updMineCount > 0) {
+        mineBadge.textContent = updMineCount > 9 ? '9+' : String(updMineCount);
+        mineBadge.style.display = '';
+      } else {
+        mineBadge.style.display = 'none';
       }
     }
   }
@@ -388,9 +419,27 @@
     myPages      = _sortWithPins(myPages);
     partnerPages = _sortWithPins(partnerPages);
 
+    var me2 = getProfile();
+    var partnerRole2 = me2 === 'girl' ? 'boy' : 'girl';
+    var state2 = _getBadgeState();
+    var updSeen2 = state2.lastUpdateSeen || {};
     var newCount = _countNewPartnerPages();
-    var updCount = _countUpdatedPartnerPages();
-    var totalBadge = newCount + updCount;
+    // Badge onglet partenaire : nouvelles pages + pages partenaire mises à jour par elle
+    var updPartnerBadge = _pages.filter(function(p) {
+      if (!p.updated_at) return false;
+      if (p.last_editor_role !== partnerRole2) return false;
+      if (!(p.author_role === partnerRole2 && p.is_shared)) return false;
+      if (!state2.seenIds[p.id]) return false;
+      var s = updSeen2[p.id]; return !s || s < p.updated_at;
+    }).length;
+    var totalBadge = newCount + updPartnerBadge;
+    // Badge onglet mon journal : mes pages co-écriture modifiées par elle
+    var mineBadge = _pages.filter(function(p) {
+      if (!p.updated_at) return false;
+      if (p.last_editor_role !== partnerRole2) return false;
+      if (!(p.author_role === me2 && p.partner_can_edit)) return false;
+      var s = updSeen2[p.id]; return !s || s < p.updated_at;
+    }).length;
 
     var html = '<div style="display:flex;flex-direction:column;height:100%;background:var(--bg);overflow:hidden;">';
 
@@ -399,7 +448,7 @@
 
     // Tabs
     html += '<div style="display:flex;gap:0;flex-shrink:0;padding:0 16px 0;margin-top:4px;">' +
-      _tabBtn('mine',    '💌 Mon journal', _tab === 'mine',    myPages.length, 0) +
+      _tabBtn('mine',    '💌 Mon journal', _tab === 'mine',    myPages.length, mineBadge) +
       _tabBtn('partner', '💌 ' + escHtml(yamGetDisplayName(partnerRole)), _tab === 'partner', partnerPages.length, totalBadge) +
     '</div>';
 
@@ -647,11 +696,15 @@
     _currentPage = page;
     _mode = 'read';
 
-    // Marquer comme vu si c'est une page partenaire
+    // Marquer comme vu :
+    // - page du partenaire → marquer vue + update vue
+    // - ma propre page co-écriture → marquer uniquement l'update vue (pas _markPageSeen)
     var me = getProfile();
     if (page.author_role !== me) {
       _markPageSeen(page.id);
       if (page.updated_at) _markUpdateSeen(page.id, page.updated_at);
+    } else if (page.partner_can_edit && page.updated_at) {
+      _markUpdateSeen(page.id, page.updated_at);
     }
 
     _renderReadPage(page);
