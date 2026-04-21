@@ -152,6 +152,8 @@
       if (!p.updated_at) return false;
       // Déjà vu si on a déjà enregistré cet updated_at
       if (!state.seenIds[p.id]) return false; // nouvelle page → géré par _countNewPartnerPages
+      // Si c'est MOI qui ai fait la dernière modification, pas besoin de notifier
+      if (p.last_editor_role && p.last_editor_role === me) return false;
       var seenUpd = updSeen[p.id];
       return !seenUpd || seenUpd < p.updated_at;
     }).length;
@@ -485,6 +487,7 @@
     var state    = _getBadgeState();
     var isNewForMe = !isOwn && !state.seenIds[page.id];
     var hasUpdateForMe = !isOwn && !isNewForMe && page.updated_at &&
+      (!page.last_editor_role || page.last_editor_role !== me) &&
       (!state.lastUpdateSeen || !state.lastUpdateSeen[page.id] || state.lastUpdateSeen[page.id] < page.updated_at);
 
     // Infos de dernière modification pour co-écriture
