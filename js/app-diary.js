@@ -2004,14 +2004,20 @@
 
         if (existingUl && editorEl && editorEl.contains(anchorEl)) {
           // ── MODE REMPLACEMENT / SUPPRESSION ──
+          // Collecter tous les <ul> de PREMIER NIVEAU (non imbriqués) touchés par la sélection.
+          // On exclut les <ul> imbriqués dans un autre <ul> déjà dans la liste pour éviter
+          // de traiter deux fois le même contenu (ce qui génère des doubles puces).
           var ulsToConvert = [];
           editorEl.querySelectorAll('ul').forEach(function(ul) {
-            if (editorEl.contains(anchorEl) && (ul.contains(anchorEl) || (range.intersectsNode && range.intersectsNode(ul)))) {
-              ulsToConvert.push(ul);
-            }
+            // Exclure les <ul> imbriqués dans un autre <ul> de l'éditeur
+            if (ul.parentNode && ul.parentNode.closest && ul.parentNode.closest('ul')) return;
+            // Vérifier que ce <ul> est touché par la sélection
+            var touched = ul.contains(anchorEl) ||
+              (range.intersectsNode ? range.intersectsNode(ul) : false);
+            if (touched) ulsToConvert.push(ul);
           });
-          if (ulsToConvert.length === 0 && anchorEl.closest && anchorEl.closest('ul')) {
-            ulsToConvert.push(anchorEl.closest('ul'));
+          if (ulsToConvert.length === 0 && existingUl) {
+            ulsToConvert.push(existingUl);
           }
 
           ulsToConvert.forEach(function(ul) {
@@ -2020,7 +2026,7 @@
             if (ul.classList.contains('diary-list-square')) currentType = 'square';
 
             if (currentType === type) {
-              // Même type → supprimer la liste, garder le texte
+              // Même type → toggle : supprimer la liste, garder le texte en <p>
               var fragment = document.createDocumentFragment();
               Array.prototype.forEach.call(ul.querySelectorAll('li'), function(li) {
                 var p = document.createElement('p');
@@ -2029,10 +2035,13 @@
               });
               ul.parentNode.replaceChild(fragment, ul);
             } else {
-              // Type différent → changer la classe
+              // Type différent → changer UNIQUEMENT la classe, ne pas toucher les <li>
+              // Réinitialiser toutes les classes et n'en mettre qu'une seule
               ul.className = '';
-              if (type === 'dash')   ul.className = 'diary-list-dash';
-              if (type === 'square') ul.className = 'diary-list-square';
+              if (type === 'dash')   ul.classList.add('diary-list-dash');
+              if (type === 'square') ul.classList.add('diary-list-square');
+              // Pour 'disc' : pas de classe personnalisée, list-style:disc du CSS global suffit
+              // → le CSS #diaryEditor ul.diary-list-dash/square surcharge list-style:none
             }
           });
 
@@ -3703,15 +3712,18 @@
       '.diary-rich-content img { max-width:100%;border-radius:10px;margin:8px 0;display:block; }',
       '.diary-rich-content a  { color:var(--accent);text-decoration:underline; }',
       /* Listes : puce même couleur que le texte, alignement parfait */
-      /* Disc natif */
+      /* Disc natif — list-style appliqué uniquement aux ul sans classe custom */
       '#diaryEditor ul, .diary-rich-content ul { list-style:disc;padding-left:1.5em;margin:6px 0; }',
+      /* Listes custom : désactiver disc natif pour éviter les doubles puces */
+      '#diaryEditor ul.diary-list-dash, #diaryEditor ul.diary-list-square,',
+      '.diary-rich-content ul.diary-list-dash, .diary-rich-content ul.diary-list-square {',
+      '  list-style:none !important;',
+      '}',
       '#diaryEditor li, .diary-rich-content li { margin:2px 0;line-height:1.75;color:inherit;padding-left:0.2em;position:relative; }',
       /* ::marker hérite de color du li (fixé inline par _fixListColors) */
-      '#diaryEditor ul li::marker, .diary-rich-content ul li::marker { color:inherit;font-size:1em; }',
-      /* Tirets — padding-left sur li + ::before absolute — robuste au splitText, pas de flex */
-      '#diaryEditor ul.diary-list-dash, .diary-rich-content ul.diary-list-dash {',
-      '  list-style:none !important;padding-left:0 !important;margin:6px 0;',
-      '}',
+      '#diaryEditor ul:not(.diary-list-dash):not(.diary-list-square) li::marker,',
+      '.diary-rich-content ul:not(.diary-list-dash):not(.diary-list-square) li::marker { color:inherit;font-size:1em; }',
+      /* Tirets */
       '#diaryEditor ul.diary-list-dash li, .diary-rich-content ul.diary-list-dash li {',
       '  display:block !important;position:relative !important;padding-left:1.4em !important;margin:2px 0;line-height:1.75;',
       '}',
@@ -3720,9 +3732,6 @@
       '  color:inherit;font-weight:700;font-size:1em;line-height:1.75;z-index:0;pointer-events:none;',
       '}',
       /* Carrés */
-      '#diaryEditor ul.diary-list-square, .diary-rich-content ul.diary-list-square {',
-      '  list-style:none !important;padding-left:0 !important;margin:6px 0;',
-      '}',
       '#diaryEditor ul.diary-list-square li, .diary-rich-content ul.diary-list-square li {',
       '  display:block !important;position:relative !important;padding-left:1.4em !important;margin:2px 0;line-height:1.75;',
       '}',
