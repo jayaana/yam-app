@@ -258,8 +258,15 @@
             _renderReadPage(_currentPage);
           }
           // Badge : mise à jour page partenaire
-          _updateHomeBadge();
-          _updateTabBadges();
+          // Si c'est MOI qui ai fait la modification (last_editor_role === mon rôle),
+          // marquer directement comme vu pour ne pas afficher le badge chez moi.
+          if (payload.new.last_editor_role && payload.new.last_editor_role === getProfile()) {
+            _markPageSeen(payload.new.id);
+            if (payload.new.updated_at) _markUpdateSeen(payload.new.id, payload.new.updated_at);
+          } else {
+            _updateHomeBadge();
+            _updateTabBadges();
+          }
         } else if (payload.eventType === 'DELETE') {
           _pages = _pages.filter(function(p){ return p.id !== payload.old.id; });
           _updateHomeBadge();
