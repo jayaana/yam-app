@@ -655,10 +655,12 @@
 
     var html = '<div id="diaryReadWrap" style="display:flex;flex-direction:column;height:100%;background:var(--bg);overflow:hidden;">';
 
+    var _readPinned = _isPinned(page.id);
+
     // Header lecture
     html += '<div style="flex-shrink:0;background:var(--bg);border-bottom:1px solid var(--border);' +
       'padding:calc(var(--safe-top,0px) + 10px) 16px 10px;">' +
-      '<div style="display:flex;align-items:center;gap:10px;">' +
+      '<div style="display:flex;align-items:center;gap:8px;">' +
         '<button id="diaryReadBack" style="width:34px;height:34px;border-radius:50%;background:var(--s2);' +
           'border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">' +
           '<svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round"><polyline points="7 1 1 7 7 13"/></svg>' +
@@ -674,6 +676,17 @@
               : '') +
           '</div>' +
         '</div>' +
+        // Bouton pin — toujours présent (Canva ET texte)
+        '<button id="diaryReadPin" title="' + (_readPinned ? 'Désépingler' : 'Épingler en tête') + '" ' +
+          'style="width:34px;height:34px;border-radius:50%;flex-shrink:0;cursor:pointer;' +
+          'border:1.5px solid ' + (_readPinned ? 'var(--accent)' : 'var(--border)') + ';' +
+          'background:' + (_readPinned ? 'var(--accent)' : 'var(--s2)') + ';' +
+          'display:flex;align-items:center;justify-content:center;transition:all 0.2s;">' +
+          '<svg width="14" height="16" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+            '<path d="M7 1C5.34 1 4 2.34 4 4c0 1.1.47 2.08 1.22 2.77L4.5 9H2v1.5h4.25V15l.75.75.75-.75v-4.25H12V9H9.5L8.78 6.77C9.53 6.08 10 5.1 10 4c0-1.66-1.34-3-3-3z" ' +
+              'fill="' + (_readPinned ? '#fff' : 'var(--muted)') + '"/>' +
+          '</svg>' +
+        '</button>' +
         (canEdit ? '<button id="diaryReadEdit" style="padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;' +
           'border:1px solid var(--accent);background:var(--accent-s);color:var(--accent);cursor:pointer;' +
           'font-family:DM Sans,sans-serif;flex-shrink:0;">✏️ Modifier</button>' : '') +
