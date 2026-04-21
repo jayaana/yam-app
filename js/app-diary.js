@@ -1511,7 +1511,6 @@
         var uid = 'puce-' + idx;
         li.setAttribute('data-puce-id', uid);
         rules.push(
-          '[data-puce-id="' + uid + '"]::before,' +
           '[data-puce-id="' + uid + '"]::marker{color:' + bulletColor + ' !important;}'
         );
       } else {
@@ -3713,31 +3712,24 @@
       '.diary-rich-content hr { border:none;border-top:1.5px solid var(--border);margin:14px 0; }',
       '.diary-rich-content img { max-width:100%;border-radius:10px;margin:8px 0;display:block; }',
       '.diary-rich-content a  { color:var(--accent);text-decoration:underline; }',
-      /* Listes : puce même couleur que le texte, alignement parfait */
-      /* Disc natif — list-style appliqué uniquement aux ul sans classe custom */
+      /* Listes — toutes via list-style natif + ::marker, jamais ::before */
+      /* ::marker est hors du flux éditable → curseur toujours après le marqueur, jamais avant */
       '#diaryEditor ul, .diary-rich-content ul { list-style:disc;padding-left:1.5em;margin:6px 0; }',
-      /* Listes custom : désactiver disc natif pour éviter les doubles puces */
-      '#diaryEditor ul.diary-list-dash, #diaryEditor ul.diary-list-square,',
-      '.diary-rich-content ul.diary-list-dash, .diary-rich-content ul.diary-list-square {',
-      '  list-style:none !important; padding-left:0 !important;',
+      '#diaryEditor li, .diary-rich-content li { margin:2px 0;line-height:1.75;color:inherit; }',
+      /* Disc : marqueur natif */
+      '#diaryEditor ul li::marker, .diary-rich-content ul li::marker { color:inherit;font-size:1em; }',
+      /* Tirets via list-style-type string — natif, curseur correct */
+      '#diaryEditor ul.diary-list-dash, .diary-rich-content ul.diary-list-dash {',
+      '  list-style-type:"– ";',
       '}',
-      '#diaryEditor li, .diary-rich-content li { margin:2px 0;line-height:1.75;color:inherit;padding-left:0;position:relative; }',
-      /* ::marker hérite de color du li (fixé inline par _fixListColors) */
-      '#diaryEditor ul:not(.diary-list-dash):not(.diary-list-square) li::marker,',
-      '.diary-rich-content ul:not(.diary-list-dash):not(.diary-list-square) li::marker { color:inherit;font-size:1em; }',
-      /* Tirets — le tiret est inline, pas en position:absolute, pour éviter l'alinéa */
-      '#diaryEditor ul.diary-list-dash li, .diary-rich-content ul.diary-list-dash li {',
-      '  display:block !important;padding-left:0 !important;margin:2px 0;line-height:1.75;',
+      /* Carrés via list-style-type string */
+      '#diaryEditor ul.diary-list-square, .diary-rich-content ul.diary-list-square {',
+      '  list-style-type:"▪ ";',
       '}',
-      '#diaryEditor ul.diary-list-dash li::before, .diary-rich-content ul.diary-list-dash li::before {',
-      '  content:"– " !important;color:inherit;font-weight:700;font-size:1em;line-height:1.75;',
-      '}',
-      /* Carrés */
-      '#diaryEditor ul.diary-list-square li, .diary-rich-content ul.diary-list-square li {',
-      '  display:block !important;padding-left:0 !important;margin:2px 0;line-height:1.75;',
-      '}',
-      '#diaryEditor ul.diary-list-square li::before, .diary-rich-content ul.diary-list-square li::before {',
-      '  content:"▪ " !important;color:inherit;font-size:0.85em;line-height:1.9;',
+      /* Couleur du marqueur héritée du li dans tous les cas */
+      '#diaryEditor ul.diary-list-dash li::marker, .diary-rich-content ul.diary-list-dash li::marker,',
+      '#diaryEditor ul.diary-list-square li::marker, .diary-rich-content ul.diary-list-square li::marker {',
+      '  color:inherit;',
       '}',
       '@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }',
       '@keyframes diaryBadgePulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }',
