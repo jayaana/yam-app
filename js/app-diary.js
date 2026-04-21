@@ -1482,6 +1482,7 @@
     // direct est un <span style="color:...">
     // On NE SET JAMAIS li.style.color — cela propage la couleur à tout le texte
     // On utilise data-puce-id + règle CSS injectée pour cibler uniquement ::before/::marker
+    // data-puce-id est basé sur l'index stable — PAS Date.now() pour éviter les règles orphelines
 
     var rules = [];
 
@@ -1501,7 +1502,8 @@
       }
 
       if (bulletColor) {
-        var uid = 'puce-' + idx + '-' + Date.now();
+        // ID stable basé sur l'index uniquement (pas Date.now)
+        var uid = 'puce-' + idx;
         li.setAttribute('data-puce-id', uid);
         rules.push(
           '[data-puce-id="' + uid + '"]::before,' +
@@ -1953,24 +1955,20 @@
 
         var range = sel.getRangeAt(0);
 
-        // ── Détecter si la sélection couvre une liste existante ──
+        // ── Détecter si le curseur/sélection est dans une liste existante ──
         var ancestor = range.commonAncestorContainer;
         var anchorEl = ancestor.nodeType === 3 ? ancestor.parentElement : ancestor;
 
-        var existingUl = anchorEl.closest ? anchorEl.closest('ul') : null;
-        if (!existingUl) {
-          var fragCheck = range.cloneContents();
-          var fragDiv = document.createElement('div');
-          fragDiv.appendChild(fragCheck);
-          existingUl = fragDiv.querySelector('ul');
-        }
+        // Chercher uniquement dans l'éditeur DOM — pas dans un fragment cloné
+        var existingUl = (anchorEl.closest && editorEl.contains(anchorEl))
+          ? anchorEl.closest('ul')
+          : null;
 
         if (existingUl && editorEl && editorEl.contains(anchorEl)) {
           // ── MODE REMPLACEMENT / SUPPRESSION ──
           var ulsToConvert = [];
           editorEl.querySelectorAll('ul').forEach(function(ul) {
-            if (range.intersectsNode ? range.intersectsNode(ul) :
-                (range.compareBoundaryPoints(Range.END_TO_START, range) <= 0)) {
+            if (editorEl.contains(anchorEl) && (ul.contains(anchorEl) || (range.intersectsNode && range.intersectsNode(ul)))) {
               ulsToConvert.push(ul);
             }
           });
@@ -2007,12 +2005,11 @@
           return;
         }
 
-        // ── MODE CRÉATION — comportement Word ──
-        // Étendre la sélection au(x) bloc(s) entier(s) puis remplacer via insertHTML
+        // ── MODE CRÉATION — manipulation DOM directe (pas insertHTML pour éviter bugs iOS) ──
 
         var cls = '';
-        if (type === 'dash')   cls = ' class="diary-list-dash"';
-        if (type === 'square') cls = ' class="diary-list-square"';
+        if (type === 'dash')   cls = 'diary-list-dash';
+        if (type === 'square') cls = 'diary-list-square';
 
         // Trouver l'enfant direct de editorEl qui contient un nœud donné
         function _directChild(node) {
@@ -2027,9 +2024,21 @@
         var endBlock   = _directChild(range.endContainer) || startBlock;
 
         if (!startBlock) {
-          // Éditeur vide — insérer directement
-          document.execCommand('insertHTML', false,
-            '<ul' + cls + '><li></li></ul><p><br></p>');
+          // Éditeur vide — créer liste via DOM pur
+          var emptyUl = document.createElement('ul');
+          if (cls) emptyUl.className = cls;
+          var emptyLi = document.createElement('li');
+          emptyUl.appendChild(emptyLi);
+          var emptyP = document.createElement('p');
+          emptyP.innerHTML = '<br>';
+          editorEl.appendChild(emptyUl);
+          editorEl.appendChild(emptyP);
+          // Placer le curseur dans le li
+          var newRange = document.createRange();
+          newRange.setStart(emptyLi, 0);
+          newRange.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(newRange);
           listMenu.style.display = 'none';
           _listMenuSavedRange = null;
           _saveSelection();
@@ -2046,31 +2055,52 @@
           cur = cur.nextSibling;
         }
 
-        // Construire le HTML de la liste à partir du innerHTML de chaque bloc
-        var liItems = blocks.map(function(block) {
-          var inner = '';
+        // Construire la liste via DOM pur — évite tous les bugs de insertHTML sur iOS/Android
+        var newUl = document.createElement('ul');
+        if (cls) newUl.className = cls;
+
+        blocks.forEach(function(block) {
+          var li = document.createElement('li');
           if (block.nodeType === 3) {
             // Nœud texte brut
-            inner = block.textContent;
+            li.textContent = block.textContent;
           } else {
-            inner = block.innerHTML || '';
+            // Déplacer les enfants du bloc dans le li (ne pas cloner pour garder les refs)
+            var inner = block.innerHTML || '';
+            if (inner === '<br>' || !inner.trim()) {
+              li.innerHTML = '';
+            } else {
+              li.innerHTML = inner;
+            }
           }
-          // Nettoyer le contenu vide
-          if (!inner.trim() || inner === '<br>') inner = '';
-          return '<li>' + inner + '</li>';
-        }).join('');
+          newUl.appendChild(li);
+        });
 
-        var listHTML = '<ul' + cls + '>' + liItems + '</ul><p><br></p>';
+        // Insérer la liste avant le premier bloc, puis supprimer les blocs originaux
+        var firstBlock = blocks[0];
+        editorEl.insertBefore(newUl, firstBlock);
 
-        // Étendre le range pour couvrir les blocs entiers
-        var extRange = document.createRange();
-        extRange.setStartBefore(blocks[0]);
-        extRange.setEndAfter(blocks[blocks.length - 1]);
-        sel.removeAllRanges();
-        sel.addRange(extRange);
+        // Ajouter un <p> après la liste pour permettre de continuer à écrire
+        var afterP = document.createElement('p');
+        afterP.innerHTML = '<br>';
+        editorEl.insertBefore(afterP, firstBlock);
 
-        // Remplacer avec insertHTML — le navigateur gère proprement le contenteditable
-        document.execCommand('insertHTML', false, listHTML);
+        // Supprimer les blocs originaux
+        blocks.forEach(function(block) {
+          if (block.parentNode === editorEl) {
+            editorEl.removeChild(block);
+          }
+        });
+
+        // Placer le curseur dans le dernier li
+        var lastLi = newUl.lastChild;
+        if (lastLi) {
+          var newRange2 = document.createRange();
+          newRange2.selectNodeContents(lastLi);
+          newRange2.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(newRange2);
+        }
 
         listMenu.style.display = 'none';
         _listMenuSavedRange = null;
@@ -3628,8 +3658,8 @@
       '.diary-rich-content a  { color:var(--accent);text-decoration:underline; }',
       /* Listes : puce même couleur que le texte, alignement parfait */
       /* Disc natif */
-      '#diaryEditor ul, .diary-rich-content ul { list-style:disc;padding-left:1.4em;margin:6px 0; }',
-      '#diaryEditor li, .diary-rich-content li { margin:2px 0;line-height:1.75;color:inherit;padding-left:0.2em; }',
+      '#diaryEditor ul, .diary-rich-content ul { list-style:disc;padding-left:1.5em;margin:6px 0; }',
+      '#diaryEditor li, .diary-rich-content li { margin:2px 0;line-height:1.75;color:inherit;padding-left:0.2em;position:relative; }',
       /* ::marker hérite de color du li (fixé inline par _fixListColors) */
       '#diaryEditor ul li::marker, .diary-rich-content ul li::marker { color:inherit;font-size:1em; }',
       /* Tirets — padding-left sur li + ::before absolute — robuste au splitText, pas de flex */
@@ -3637,20 +3667,22 @@
       '  list-style:none !important;padding-left:0 !important;margin:6px 0;',
       '}',
       '#diaryEditor ul.diary-list-dash li, .diary-rich-content ul.diary-list-dash li {',
-      '  display:block !important;position:relative !important;padding-left:1.2em !important;',
+      '  display:block !important;position:relative !important;padding-left:1.4em !important;margin:2px 0;line-height:1.75;',
       '}',
       '#diaryEditor ul.diary-list-dash li::before, .diary-rich-content ul.diary-list-dash li::before {',
-      '  content:"–" !important;position:absolute !important;left:0 !important;top:0;color:inherit;font-weight:700;font-size:1em;line-height:1.75;',
+      '  content:"–" !important;position:absolute !important;left:0 !important;top:0 !important;',
+      '  color:inherit;font-weight:700;font-size:1em;line-height:1.75;z-index:0;pointer-events:none;',
       '}',
       /* Carrés */
       '#diaryEditor ul.diary-list-square, .diary-rich-content ul.diary-list-square {',
       '  list-style:none !important;padding-left:0 !important;margin:6px 0;',
       '}',
       '#diaryEditor ul.diary-list-square li, .diary-rich-content ul.diary-list-square li {',
-      '  display:block !important;position:relative !important;padding-left:1.2em !important;',
+      '  display:block !important;position:relative !important;padding-left:1.4em !important;margin:2px 0;line-height:1.75;',
       '}',
       '#diaryEditor ul.diary-list-square li::before, .diary-rich-content ul.diary-list-square li::before {',
-      '  content:"▪" !important;position:absolute !important;left:0 !important;top:0;color:inherit;font-size:0.85em;line-height:1.9;',
+      '  content:"▪" !important;position:absolute !important;left:0 !important;top:0 !important;',
+      '  color:inherit;font-size:0.85em;line-height:1.9;z-index:0;pointer-events:none;',
       '}',
       '@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }',
       '@keyframes diaryBadgePulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }',
