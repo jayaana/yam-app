@@ -403,10 +403,24 @@
     if (list.length === 0) {
       html += _emptyState(_tab === 'mine');
     } else {
+      var pinnedList = list.filter(function(p) { return _isPinned(p.id); });
+      var normalList = list.filter(function(p) { return !_isPinned(p.id); });
+
       html += '<div style="display:flex;flex-direction:column;gap:12px;">';
-      list.forEach(function(page) {
-        html += _pageCard(page, me);
-      });
+
+      // ── Pages épinglées ──
+      if (pinnedList.length > 0) {
+        pinnedList.forEach(function(page) { html += _pageCard(page, me); });
+
+        // Séparateur uniquement s'il y a aussi des pages normales
+        if (normalList.length > 0) {
+          html += '<div style="height:1px;background:var(--border);margin:4px 0;"></div>';
+        }
+      }
+
+      // ── Pages normales ──
+      normalList.forEach(function(page) { html += _pageCard(page, me); });
+
       html += '</div>';
     }
 
@@ -780,6 +794,21 @@
       _stopCommentRT();
       _renderList();
     });
+
+    var pinBtn = document.getElementById('diaryReadPin');
+    if (pinBtn) {
+      pinBtn.addEventListener('click', function() {
+        _togglePin(page.id);
+        haptic('light');
+        // Re-render le bouton pin seulement (évite de re-render toute la page)
+        var nowPinned = _isPinned(page.id);
+        pinBtn.title = nowPinned ? 'Désépingler' : 'Épingler en tête';
+        pinBtn.style.background = nowPinned ? 'var(--accent)' : 'var(--s2)';
+        pinBtn.style.borderColor = nowPinned ? 'var(--accent)' : 'var(--border)';
+        var svg = pinBtn.querySelector('path');
+        if (svg) svg.setAttribute('fill', nowPinned ? '#fff' : 'var(--text)');
+      });
+    }
 
     var editBtn = document.getElementById('diaryReadEdit');
     if (editBtn) editBtn.addEventListener('click', function() {
