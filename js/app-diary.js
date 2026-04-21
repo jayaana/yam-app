@@ -2031,31 +2031,23 @@
       function insertList() {
         _histSnapshotNow();
         var type = btn.getAttribute('data-diary-list-type');
-
-        // Restaurer la sélection sauvegardée au moment de l'ouverture du menu
         var editorEl = document.getElementById('diaryEditor');
         if (!editorEl) { listMenu.style.display = 'none'; return; }
 
-        // ⚠️ iOS Safari : NE PAS appeler focus() avant addRange().
-        // focus() réinitialise la sélection sur iOS et place le curseur en fin de texte.
-        // La séquence correcte : addRange() d'abord → le focus suit automatiquement.
+        // ── Restaurer la sélection ──
         var sel = window.getSelection();
         var rangeToRestore = _listMenuSavedRange || _savedRange;
         if (rangeToRestore) {
           try {
             sel.removeAllRanges();
             sel.addRange(rangeToRestore.cloneRange());
-            // Focus APRÈS addRange pour que iOS ne le détruise pas
             editorEl.focus();
-            // Ré-appliquer le range car certains navigateurs le perdent après focus()
             sel = window.getSelection();
             if (!sel || sel.rangeCount === 0) {
               sel.removeAllRanges();
               sel.addRange(rangeToRestore.cloneRange());
             }
-          } catch(e) {
-            editorEl.focus();
-          }
+          } catch(e) { editorEl.focus(); }
         } else {
           editorEl.focus();
         }
@@ -2064,19 +2056,39 @@
         if (!sel || sel.rangeCount === 0) { listMenu.style.display = 'none'; return; }
 
         var range = sel.getRangeAt(0);
+        var cls = type === 'dash' ? 'diary-list-dash' : type === 'square' ? 'diary-list-square' : '';
 
-        // ── Détecter toutes les listes touchées par la sélection ──
-        // On collecte les <ul> de premier niveau intersectant le range,
-        // QUELLE QUE SOIT la position de l'ancêtre commun (éditeur entier ou li).
-        // Cela couvre : curseur dans un li, sélection multi-listes, sélection depuis l'éditeur.
+        // ── Trouver le bloc conteneur le plus proche (p, div, li, h2...) dans l'éditeur ──
+        // Ne remonte PAS jusqu'à l'enfant direct de editorEl — s'arrête au bloc de texte réel.
+        function _nearestBlock(node) {
+          var BLOCK_TAGS = {DIV:1, P:1, H2:1, H3:1, BLOCKQUOTE:1, LI:1};
+          var n = (node.nodeType === 3) ? node.parentNode : node;
+          while (n && n !== editorEl) {
+            if (BLOCK_TAGS[n.tagName]) return n;
+            n = n.parentNode;
+          }
+          // Fallback : si on n'a trouvé aucun bloc, retourner l'enfant direct de editorEl
+          n = (node.nodeType === 3) ? node.parentNode : node;
+          while (n && n.parentNode && n.parentNode !== editorEl) n = n.parentNode;
+          return (n && n.parentNode === editorEl) ? n : null;
+        }
+
+        // ── Collecter tous les blocs touchés par la sélection ──
+        // Stratégie : trouver startBlock et endBlock, puis collecter les frères entre eux
+        // dans le même parent commun.
+        var startNode = range.startContainer;
+        var endNode   = range.endContainer;
+        var startBlock = _nearestBlock(startNode);
+        var endBlock   = _nearestBlock(endNode) || startBlock;
+
+        // ── CAS 1 : curseur/sélection dans une liste existante ──
+        // Chercher les <ul> qui intersectent la sélection
         var ulsToConvert = [];
         editorEl.querySelectorAll('ul').forEach(function(ul) {
-          // Ignorer les <ul> imbriqués dans un autre <ul>
-          if (ul.parentElement && ul.parentElement.closest('ul')) return;
+          if (ul.parentElement && ul.parentElement.closest('ul')) return; // ignorer imbriqués
           var touched = false;
           try { touched = range.intersectsNode(ul); } catch(e) {}
           if (!touched) {
-            // Fallback : vérifier si l'ancêtre commun du range contient ce ul
             var anc = range.commonAncestorContainer;
             var ancEl = anc.nodeType === 3 ? anc.parentElement : anc;
             if (ancEl && (ancEl === ul || ancEl.contains(ul) || ul.contains(ancEl))) touched = true;
@@ -2087,30 +2099,23 @@
         if (ulsToConvert.length > 0) {
           // ── MODE REMPLACEMENT / SUPPRESSION ──
           ulsToConvert.forEach(function(ul) {
-            var currentType = 'disc';
-            if (ul.classList.contains('diary-list-dash'))   currentType = 'dash';
-            if (ul.classList.contains('diary-list-square')) currentType = 'square';
-
+            var currentType = ul.classList.contains('diary-list-dash') ? 'dash'
+              : ul.classList.contains('diary-list-square') ? 'square' : 'disc';
             if (currentType === type) {
-              // Même type → toggle : supprimer la liste, garder le texte en <p>
+              // Même type → toggle off : dé-lister
               var frag = document.createDocumentFragment();
-              // Copier les li avant de les modifier (replaceChild peut invalider la liste)
-              var lis = Array.prototype.slice.call(ul.querySelectorAll('li'));
-              lis.forEach(function(li) {
+              Array.prototype.slice.call(ul.querySelectorAll('li')).forEach(function(li) {
                 var p = document.createElement('p');
                 while (li.firstChild) p.appendChild(li.firstChild);
                 frag.appendChild(p);
               });
               ul.parentNode.replaceChild(frag, ul);
             } else {
-              // Type différent → changer UNIQUEMENT la classe CSS, ne pas recréer les <li>
+              // Type différent → changer la classe uniquement
               ul.className = '';
-              if (type === 'dash')   ul.classList.add('diary-list-dash');
-              if (type === 'square') ul.classList.add('diary-list-square');
-              // disc : pas de classe, list-style:disc du CSS global s'applique
+              if (cls) ul.classList.add(cls);
             }
           });
-
           listMenu.style.display = 'none';
           _listMenuSavedRange = null;
           _saveSelection();
@@ -2118,37 +2123,17 @@
           return;
         }
 
-        // ── MODE CRÉATION — manipulation DOM directe (pas insertHTML pour éviter bugs iOS) ──
-
-        var cls = '';
-        if (type === 'dash')   cls = 'diary-list-dash';
-        if (type === 'square') cls = 'diary-list-square';
-
-        // Trouver l'enfant direct de editorEl qui contient un nœud donné
-        function _directChild(node) {
-          var n = (node.nodeType === 3) ? node.parentNode : node;
-          while (n && n.parentNode && n.parentNode !== editorEl) {
-            n = n.parentNode;
-          }
-          return (n && n.parentNode === editorEl) ? n : null;
-        }
-
-        var startBlock = _directChild(range.startContainer);
-        var endBlock   = _directChild(range.endContainer) || startBlock;
-
+        // ── CAS 2 : pas de liste existante — créer ──
         if (!startBlock) {
-          // Éditeur vide — créer liste via DOM pur
+          // Éditeur vide
           var emptyUl = document.createElement('ul');
           if (cls) emptyUl.className = cls;
           var emptyLi = document.createElement('li');
           emptyUl.appendChild(emptyLi);
           editorEl.appendChild(emptyUl);
-          // Placer le curseur dans le li
-          var newRange = document.createRange();
-          newRange.setStart(emptyLi, 0);
-          newRange.collapse(true);
-          sel.removeAllRanges();
-          sel.addRange(newRange);
+          var nr = document.createRange();
+          nr.setStart(emptyLi, 0); nr.collapse(true);
+          sel.removeAllRanges(); sel.addRange(nr);
           listMenu.style.display = 'none';
           _listMenuSavedRange = null;
           _saveSelection();
@@ -2156,66 +2141,68 @@
           return;
         }
 
-        // Collecter les blocs entre startBlock et endBlock
+        // Vérifier que startBlock et endBlock ont le même parent
+        // Si non (sélection cross-parent), se limiter au seul startBlock
+        if (startBlock.parentNode !== endBlock.parentNode) {
+          endBlock = startBlock;
+        }
+
+        var parent = startBlock.parentNode;
+
+        // Collecter les blocs frères entre startBlock et endBlock (inclus)
         var blocks = [];
         var cur = startBlock;
         while (cur) {
-          blocks.push(cur);
+          // Ignorer les nœuds texte vides entre blocs
+          if (cur.nodeType !== 3 || cur.textContent.trim()) blocks.push(cur);
           if (cur === endBlock) break;
           cur = cur.nextSibling;
         }
+        if (blocks.length === 0) blocks = [startBlock];
 
-        // Construire la liste via DOM pur — évite tous les bugs de insertHTML sur iOS/Android
+        // ── Construire la <ul> ──
         var newUl = document.createElement('ul');
         if (cls) newUl.className = cls;
 
         blocks.forEach(function(block) {
           var li = document.createElement('li');
           if (block.nodeType === 3) {
-            // Nœud texte brut
             li.textContent = block.textContent;
           } else {
-            // Déplacer les enfants du bloc dans le li (ne pas cloner pour garder les refs)
             var inner = block.innerHTML || '';
-            if (inner === '<br>' || !inner.trim()) {
-              li.innerHTML = '';
-            } else {
-              li.innerHTML = inner;
-            }
+            // Ne pas conserver un simple <br> vide
+            li.innerHTML = (inner === '<br>' || !inner.trim()) ? '' : inner;
           }
           newUl.appendChild(li);
         });
 
-        // Insérer la liste avant le premier bloc, puis supprimer les blocs originaux
-        var firstBlock = blocks[0];
-        editorEl.insertBefore(newUl, firstBlock);
+        // Insérer la liste à la place du premier bloc (dans le bon parent)
+        parent.insertBefore(newUl, blocks[0]);
 
         // Supprimer les blocs originaux
         blocks.forEach(function(block) {
-          if (block.parentNode === editorEl) {
-            editorEl.removeChild(block);
-          }
+          if (block.parentNode === parent) parent.removeChild(block);
         });
 
-        // Ajouter un <p> après la liste UNIQUEMENT s'il n'y a pas déjà un nœud éditable après
-        var nextSibling = newUl.nextSibling;
-        var needsAfterP = !nextSibling ||
-          (nextSibling.nodeType === 3 && !nextSibling.textContent.trim()) ||
-          (nextSibling.nodeType === 1 && nextSibling.tagName === 'BR');
-        if (needsAfterP) {
+        // S'assurer qu'il y a un <p> éditable après la liste pour continuer à écrire
+        var nextSib = newUl.nextSibling;
+        var needsP = !nextSib
+          || (nextSib.nodeType === 3 && !nextSib.textContent.trim())
+          || (nextSib.nodeType === 1 && nextSib.tagName === 'BR');
+        if (needsP) {
           var afterP = document.createElement('p');
           afterP.innerHTML = '<br>';
-          newUl.parentNode.insertBefore(afterP, newUl.nextSibling);
+          parent.insertBefore(afterP, newUl.nextSibling);
         }
 
-        // Placer le curseur à la fin du dernier li (pas après la liste)
+        // Placer le curseur à la fin du dernier <li>
         var lastLi = newUl.lastChild;
         if (lastLi) {
-          var newRange2 = document.createRange();
-          newRange2.selectNodeContents(lastLi);
-          newRange2.collapse(false);
+          var nr2 = document.createRange();
+          nr2.selectNodeContents(lastLi);
+          nr2.collapse(false);
           sel.removeAllRanges();
-          sel.addRange(newRange2);
+          sel.addRange(nr2);
         }
 
         listMenu.style.display = 'none';
