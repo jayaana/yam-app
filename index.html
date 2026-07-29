@@ -3239,18 +3239,14 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     </div>
     <div class="dm-input-bar">
       <div class="dm-input-wrap">
-        <!-- Poubelle extrême — recouvre dmPhotoBtn en mode extreme swipe -->
+        <!-- Poubelle extrême — recouvre dmCameraBtn en mode extreme swipe -->
         <button class="dm-extreme-trash" id="dmExtremeTrash" aria-hidden="true">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
         </button>
-        <button class="dm-photo-btn" id="dmPhotoBtn" title="Envoyer une photo">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <button class="dm-photo-btn" id="dmCameraBtn" title="Prendre une photo ou une vidéo">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
         </button>
-        <input type="file" id="dmPhotoInput" accept="image/*" style="display:none">
-        <button class="dm-photo-btn" id="dmVideoBtn" title="Envoyer une vidéo (1 min max)">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="14" height="12" rx="2.5"/><path d="M16 10.5l5-3v9l-5-3z"/></svg>
-        </button>
-        <input type="file" id="dmVideoInput" accept="video/*" style="display:none">
+        <input type="file" id="dmCameraInput" accept="image/*,video/*" capture="environment" style="display:none">
         <div class="dm-emoji-picker" id="dmEmojiPicker">
           <span>❤️</span><span>😍</span><span>🥺</span><span>😂</span>
           <span>🔥</span><span>✨</span><span>💀</span><span>🫶</span>
@@ -3284,6 +3280,10 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
         <button class="dm-mic-btn" id="dmMicBtn" title="Maintenir pour enregistrer">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm-1 16.93A8.001 8.001 0 0 1 4 10H2a10 10 0 0 0 9 9.93V22h2v-2.07A10 10 0 0 0 22 10h-2a8 8 0 0 1-7 7.93V17.93z"/></svg>
         </button>
+        <button class="dm-photo-btn" id="dmGalleryBtn" title="Envoyer une photo ou une vidéo">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        </button>
+        <input type="file" id="dmGalleryInput" accept="image/*,video/*" style="display:none">
         <button class="dm-send-btn" id="dmSendBtn">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
         </button>
@@ -6504,23 +6504,6 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 </div>
 
 <!-- Overlay prévisualisation vidéo avant envoi -->
-<!-- Menu perso "Photo" / "Vidéo" — texte clair et sans ambiguïté, affiché AVANT le sélecteur natif -->
-<div id="dmMediaSheet" style="display:none">
-  <div id="dmMediaSheetBg"></div>
-  <div id="dmMediaSheetContent">
-    <div id="dmMediaSheetTitle"></div>
-    <button id="dmMediaSheetCapture" class="dm-media-sheet-btn">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-      <span></span>
-    </button>
-    <button id="dmMediaSheetLibrary" class="dm-media-sheet-btn">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-      <span></span>
-    </button>
-    <button id="dmMediaSheetCancel" class="dm-media-sheet-cancel">Annuler</button>
-  </div>
-</div>
-
 <div id="dmVideoPreview" style="display:none">
   <div id="dmVideoPreviewBg"></div>
   <div id="dmVideoPreviewContent">
