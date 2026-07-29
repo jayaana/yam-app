@@ -382,10 +382,10 @@
   function attachListeners(){
     var input    = $('dmInput');
     var sendBtn  = $('dmSendBtn');
-    var photoBtn = $('dmPhotoBtn');
-    var photoInput = $('dmPhotoInput');
-    var videoBtn = $('dmVideoBtn');
-    var videoInput = $('dmVideoInput');
+    var cameraBtn = $('dmCameraBtn');
+    var cameraInput = $('dmCameraInput');
+    var galleryBtn = $('dmGalleryBtn');
+    var galleryInput = $('dmGalleryInput');
 
     if(input){
       input.maxLength = 2000;
@@ -406,59 +406,37 @@
     }
     if(sendBtn) sendBtn.addEventListener('click', doSend);
 
-    // ── Menu perso Photo / Vidéo — texte clair, affiché avant le sélecteur natif ──
-    function _dmOpenMediaSheet(kind){
-      var sheet   = document.getElementById('dmMediaSheet');
-      var title   = document.getElementById('dmMediaSheetTitle');
-      var btnCap  = document.getElementById('dmMediaSheetCapture');
-      var btnLib  = document.getElementById('dmMediaSheetLibrary');
-      var btnCancel = document.getElementById('dmMediaSheetCancel');
-      var bg      = document.getElementById('dmMediaSheetBg');
-      if(!sheet || !title || !btnCap || !btnLib) return;
-
-      var input     = (kind === 'video') ? videoInput : photoInput;
-      var captureLbl= (kind === 'video') ? 'Filmer une vidéo'      : 'Prendre une photo';
-      var libraryLbl= (kind === 'video') ? 'Choisir une vidéo'     : 'Choisir une photo';
-      title.textContent = (kind === 'video') ? 'Vidéo' : 'Photo';
-      btnCap.querySelector('span').textContent = captureLbl;
-      btnLib.querySelector('span').textContent = libraryLbl;
-
-      function close(){ sheet.style.display = 'none'; }
-
-      btnCap.onclick = function(){
-        close();
-        if(input){ input.setAttribute('capture', 'environment'); input.click(); }
-      };
-      btnLib.onclick = function(){
-        close();
-        if(input){ input.removeAttribute('capture'); input.click(); }
-      };
-      btnCancel.onclick = close;
-      bg.onclick = close;
-
-      sheet.style.display = 'flex';
-    }
-
-    // ── Bouton galerie photo ──
-    if(photoBtn && photoInput){
-      photoBtn.addEventListener('click', function(){ _dmOpenMediaSheet('photo'); });
-      photoInput.addEventListener('change', function(){
-        var file = photoInput.files && photoInput.files[0];
+    // ── Bouton caméra (photo ou vidéo, à l'instant) ──
+    if(cameraBtn && cameraInput){
+      cameraBtn.addEventListener('click', function(){ cameraInput.click(); });
+      cameraInput.addEventListener('change', function(){
+        var file = cameraInput.files && cameraInput.files[0];
         if(!file) return;
-        photoInput.value = ''; // reset pour permettre de resélectionner le même fichier
-        _dmShowPhotoPreview(file);
+        cameraInput.value = '';
+        _dmRouteMediaFile(file);
       });
     }
 
-    // ── Bouton vidéo (1 min max) ──
-    if(videoBtn && videoInput){
-      videoBtn.addEventListener('click', function(){ _dmOpenMediaSheet('video'); });
-      videoInput.addEventListener('change', function(){
-        var file = videoInput.files && videoInput.files[0];
+    // ── Bouton galerie (photo ou vidéo existante) ──
+    if(galleryBtn && galleryInput){
+      galleryBtn.addEventListener('click', function(){ galleryInput.click(); });
+      galleryInput.addEventListener('change', function(){
+        var file = galleryInput.files && galleryInput.files[0];
         if(!file) return;
-        videoInput.value = '';
-        _dmHandleVideoFile(file);
+        galleryInput.value = '';
+        _dmRouteMediaFile(file);
       });
+    }
+  }
+
+  // Aiguille un fichier choisi (caméra ou galerie) vers le bon flux photo/vidéo
+  function _dmRouteMediaFile(file){
+    if(file.type && file.type.indexOf('video/') === 0){
+      _dmHandleVideoFile(file);
+    } else if(file.type && file.type.indexOf('image/') === 0){
+      _dmShowPhotoPreview(file);
+    } else if(typeof showToast === 'function'){
+      showToast('Format non supporté', 'error');
     }
   }
 
