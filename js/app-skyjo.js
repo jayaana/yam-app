@@ -166,6 +166,7 @@
     _gameEndShown=false;
     _sjPendingEndState=null;
     _sjPendingEndType=null;
+    _sjCloseMancheDropdown();
     _sjAnimPlaying=false;
     _sjPendingRenderRow=null;
     window._sjLastSeenLiveTs=0;
@@ -245,7 +246,7 @@
           deck:deck, discard:[top],
           girl_cards:gc, boy_cards:bc,
           phase:'init1', turn:null,
-          round:1, scores:{girl:0,boy:0},
+          round:1, scores:{girl:0,boy:0}, round_history:[],
           held_card:null, must_flip:null, last_player:null, round_closer:null,
           ts_turn: Date.now()
         };
@@ -382,6 +383,74 @@
     _doRenderState(gameRow);
   }
 
+  var _sjMancheDropdownBound = false;
+
+  function _sjInjectMancheDropdownStyle(){
+    if(document.getElementById('sjMancheDropdownStyle'))return;
+    var s=document.createElement('style'); s.id='sjMancheDropdownStyle';
+    s.textContent=[
+      '.skyjo-manche-badge{cursor:pointer;user-select:none;}',
+      '.sj-manche-dd{position:absolute;top:calc(100% + 4px);left:0;min-width:150px;max-width:220px;background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:8px 10px;box-shadow:0 6px 20px rgba(0,0,0,0.3);z-index:50;display:none;}',
+      '.sj-manche-dd.open{display:block;}',
+      '.sj-manche-dd-title{font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;white-space:nowrap;}',
+      '.sj-manche-dd-row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:11px;font-weight:700;color:var(--text);padding:3px 0;white-space:nowrap;}',
+      '.sj-manche-dd-row+.sj-manche-dd-row{border-top:1px solid var(--border);}',
+      '.sj-manche-dd-empty{font-size:11px;color:var(--muted);padding:2px 0;white-space:nowrap;}'
+    ].join('');
+    document.head.appendChild(s);
+  }
+
+  function _sjRenderMancheDropdown(){
+    var dd=document.getElementById('sjMancheDropdown');
+    if(!dd)return;
+    var hist=(_gameState&&_gameState.round_history)||[];
+    if(!hist.length){
+      dd.innerHTML='<div class="sj-manche-dd-title">Scores par manche</div><div class="sj-manche-dd-empty">Aucune manche terminée</div>';
+      return;
+    }
+    var html='<div class="sj-manche-dd-title">Scores par manche</div>';
+    hist.forEach(function(h){
+      html+='<div class="sj-manche-dd-row"><span>Manche '+h.round+'</span><span>👧'+h.girl+' · 👦'+h.boy+'</span></div>';
+    });
+    dd.innerHTML=html;
+  }
+
+  function _sjToggleMancheDropdown(e){
+    if(e){e.stopPropagation();}
+    var badge=document.getElementById('skyjoMancheBadge');
+    if(!badge)return;
+    var dd=document.getElementById('sjMancheDropdown');
+    if(!dd){
+      dd=document.createElement('div');
+      dd.id='sjMancheDropdown';
+      dd.className='sj-manche-dd';
+      badge.appendChild(dd);
+    }
+    _sjRenderMancheDropdown();
+    dd.classList.toggle('open');
+  }
+
+  function _sjCloseMancheDropdown(){
+    var dd=document.getElementById('sjMancheDropdown');
+    if(dd) dd.classList.remove('open');
+  }
+
+  function _sjBindMancheBadge(){
+    if(_sjMancheDropdownBound)return;
+    var badge=document.getElementById('skyjoMancheBadge');
+    if(!badge)return;
+    _sjMancheDropdownBound=true;
+    _sjInjectMancheDropdownStyle();
+    badge.addEventListener('click',_sjToggleMancheDropdown);
+    // Clic ailleurs → referme le menu sans quitter la partie
+    document.addEventListener('click',function(e){
+      var dd=document.getElementById('sjMancheDropdown');
+      if(!dd||!dd.classList.contains('open'))return;
+      if(badge.contains(e.target))return;
+      _sjCloseMancheDropdown();
+    });
+  }
+
   function _doRenderState(gameRow){
     var state=gameRow.state;
     if(!state) return;
@@ -431,6 +500,8 @@
     document.getElementById('skyjoScoreBoy').textContent=myScore;
     document.getElementById('skyjoScoreGirl').textContent=oppScore;
     document.getElementById('skyjoRound').textContent=state.round||1;
+    _sjBindMancheBadge();
+    _sjRenderMancheDropdown();
 
     var lrBadge=document.getElementById('skyjoLastRoundBadge');
     if(lrBadge&&state.round_scores&&(state.round||1)>1){
@@ -931,6 +1002,7 @@
     ns.scores.girl=(ns.scores.girl||0)+gs;
     ns.scores.boy=(ns.scores.boy||0)+gb;
     ns.round_scores={girl:gs,boy:gb};
+    ns.round_history=(ns.round_history||[]).concat([{round:ns.round||1,girl:gs,boy:gb}]);
     if(ns.scores.girl>=100||ns.scores.boy>=100){ ns.phase='gameEnd'; }
     else { ns.phase='roundEnd'; }
   }
@@ -1149,6 +1221,7 @@
       turn:_gameState?((_gameState.round_closer==='girl'?'boy':'girl')):'girl',
       round:_gameState?(_gameState.round||1)+1:2,
       scores:_gameState?_gameState.scores:{girl:0,boy:0},
+      round_history:_gameState?(_gameState.round_history||[]):[],
       held_card:null,must_flip:null,last_player:null,round_closer:null,
       ts_turn:Date.now()
     };
