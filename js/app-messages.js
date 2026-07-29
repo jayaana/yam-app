@@ -703,8 +703,10 @@
     if(!coupleId || !identity || !fileBlob) return;
 
     var uuid = 'dm_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
-    var ext  = (fileBlob.type && fileBlob.type.indexOf('quicktime') !== -1) ? 'mov' : 'mp4';
-    var videoPath  = 'dm_videos/' + coupleId + '/' + uuid + '.' + ext;
+    // On force toujours .mp4 / video/mp4 à l'upload — un .mov iPhone servi en
+    // "video/quicktime" est refusé par Chrome/Firefox/Android dans une balise <video>,
+    // alors que le même flux H.264 déclaré en video/mp4 est lu presque partout.
+    var videoPath  = 'dm_videos/' + coupleId + '/' + uuid + '.mp4';
     var posterPath = 'dm_videos/' + coupleId + '/' + uuid + '_poster.jpg';
     var videoStorageUrl  = SB_URL + '/storage/v1/object/images/' + videoPath;
     var posterStorageUrl = SB_URL + '/storage/v1/object/images/' + posterPath;
@@ -722,7 +724,7 @@
     appendBubble(tmpMsg, cache.length - 1, cache);
     scrollBottom();
 
-    var videoContentType = fileBlob.type || 'video/mp4';
+    var videoContentType = 'video/mp4';
 
     fetch(videoStorageUrl, {
       method: 'POST',
@@ -805,6 +807,9 @@
     var v   = document.getElementById('dmVideoViewer');
     var vid = document.getElementById('dmVideoViewerVid');
     if(!v || !vid) return;
+    vid.onerror = function(){
+      if(typeof showToast === 'function') showToast('Vidéo illisible sur cet appareil (format non supporté)', 'error', 3000);
+    };
     vid.src = url;
     v.style.display = 'flex';
     var closeVid = function(){
