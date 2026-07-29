@@ -384,6 +384,8 @@
     var sendBtn  = $('dmSendBtn');
     var photoBtn = $('dmPhotoBtn');
     var photoInput = $('dmPhotoInput');
+    var videoBtn = $('dmVideoBtn');
+    var videoInput = $('dmVideoInput');
 
     if(input){
       input.maxLength = 2000;
@@ -412,6 +414,17 @@
         if(!file) return;
         photoInput.value = ''; // reset pour permettre de resélectionner le même fichier
         _dmShowPhotoPreview(file);
+      });
+    }
+
+    // ── Bouton vidéo (1 min max) ──
+    if(videoBtn && videoInput){
+      videoBtn.addEventListener('click', function(){ videoInput.click(); });
+      videoInput.addEventListener('change', function(){
+        var file = videoInput.files && videoInput.files[0];
+        if(!file) return;
+        videoInput.value = '';
+        _dmHandleVideoFile(file);
       });
     }
   }
@@ -568,6 +581,214 @@
     });
   }
 
+  /* ══ VIDÉOS ══════════════════════════════════════════════════════════ */
+
+  var VIDEO_MAX_DURATION = 61;        // secondes (1 min + petite marge de tolérance)
+  var VIDEO_MAX_SIZE_MB  = 40;        // protège l'egress Supabase
+
+  var _dmPendingVideoFile        = null;
+  var _dmPendingVideoPosterBlob  = null;
+  var _dmPendingVideoDuration    = 0;
+  var _dmPendingVideoEphemeral   = false;
+
+  // Vérifie la durée/poids, puis génère un poster (miniature) avant d'afficher l'aperçu
+  function _dmHandleVideoFile(file){
+    if(file.size > VIDEO_MAX_SIZE_MB * 1024 * 1024){
+      if(typeof showToast === 'function') showToast('Vidéo trop lourde (max ' + VIDEO_MAX_SIZE_MB + ' Mo)', 'error');
+      return;
+    }
+    var objUrl = URL.createObjectURL(file);
+    var probe = document.createElement('video');
+    probe.preload = 'metadata';
+    probe.muted = true;
+    probe.playsInline = true;
+    probe.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;';
+    probe.src = objUrl;
+    document.body.appendChild(probe);
+
+    var settled = false;
+    function fail(msg){
+      if(settled) return; settled = true;
+      URL.revokeObjectURL(objUrl);
+      if(probe.parentNode) probe.parentNode.removeChild(probe);
+      if(typeof showToast === 'function') showToast(msg, 'error');
+    }
+
+    probe.onloadedmetadata = function(){
+      var duration = probe.duration;
+      if(!isFinite(duration) || duration <= 0){ fail('Vidéo illisible'); return; }
+      if(duration > VIDEO_MAX_DURATION){ fail('Vidéo trop longue (1 min max)'); return; }
+      _dmMakeVideoPoster(probe, function(posterBlob){
+        if(settled) return; settled = true;
+        if(probe.parentNode) probe.parentNode.removeChild(probe);
+        _dmShowVideoPreview(file, objUrl, posterBlob, duration);
+      });
+    };
+    probe.onerror = function(){ fail('Format vidéo non supporté'); };
+  }
+
+  // Capture une image de la vidéo (via canvas) pour servir de miniature légère
+  function _dmMakeVideoPoster(videoEl, cb){
+    var seekTo = Math.min(0.2, Math.max(0, (videoEl.duration || 1) / 4));
+    var captured = false;
+    function capture(){
+      if(captured) return; captured = true;
+      try {
+        var canvas = document.createElement('canvas');
+        canvas.width = videoEl.videoWidth || 320;
+        canvas.height = videoEl.videoHeight || 240;
+        canvas.getContext('2d').drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(function(blob){ cb(blob); }, 'image/jpeg', 0.75);
+      } catch(e){ cb(null); }
+    }
+    videoEl.addEventListener('seeked', capture, { once:true });
+    try { videoEl.currentTime = seekTo; } catch(e){}
+    setTimeout(capture, 900); // filet de sécurité si l'event 'seeked' ne part pas
+  }
+
+  // Afficher la prévisualisation avant envoi
+  function _dmShowVideoPreview(file, objUrl, posterBlob, duration){
+    _dmPendingVideoFile       = file;
+    _dmPendingVideoPosterBlob = posterBlob;
+    _dmPendingVideoDuration   = duration;
+    _dmPendingVideoEphemeral  = false;
+
+    var overlay   = document.getElementById('dmVideoPreview');
+    var vid       = document.getElementById('dmVideoPreviewVid');
+    var info      = document.getElementById('dmVideoPreviewInfo');
+    var btnSend   = document.getElementById('dmVideoPreviewSend');
+    var btnCancel = document.getElementById('dmVideoPreviewCancel');
+    var btnEphem  = document.getElementById('dmVideoEphemeralToggle');
+    if(!overlay || !vid) return;
+
+    vid.src = objUrl;
+    overlay.style.display = 'flex';
+    var sizeMb = (file.size / (1024*1024)).toFixed(1);
+    if(info){ info.textContent = _dmFmtDur(duration) + ' · ' + sizeMb + ' Mo'; info.classList.remove('warn'); }
+
+    if(btnEphem){
+      btnEphem.classList.remove('active');
+      btnEphem.setAttribute('aria-pressed','false');
+      btnEphem.onclick = function(){
+        _dmPendingVideoEphemeral = !_dmPendingVideoEphemeral;
+        btnEphem.classList.toggle('active', _dmPendingVideoEphemeral);
+        btnEphem.setAttribute('aria-pressed', _dmPendingVideoEphemeral ? 'true' : 'false');
+      };
+    }
+
+    function cleanup(){
+      overlay.style.display = 'none';
+      vid.pause();
+      vid.removeAttribute('src'); vid.load();
+      URL.revokeObjectURL(objUrl);
+      _dmPendingVideoFile = null;
+      _dmPendingVideoPosterBlob = null;
+      _dmPendingVideoEphemeral = false;
+    }
+
+    btnSend.onclick = function(){
+      var f = _dmPendingVideoFile, pb = _dmPendingVideoPosterBlob, dur = _dmPendingVideoDuration, eph = _dmPendingVideoEphemeral;
+      cleanup();
+      _dmSendVideo(f, pb, dur, eph);
+    };
+    btnCancel.onclick = cleanup;
+    var bg = document.getElementById('dmVideoPreviewBg');
+    if(bg) bg.onclick = cleanup;
+  }
+
+  // Upload vidéo + poster vers Supabase Storage, puis enregistrement du message
+  function _dmSendVideo(fileBlob, posterBlob, duration, isEphemeral){
+    var s = yamGetUser ? yamGetUser() : null;
+    var coupleId = s && s.couple_id ? s.couple_id : null;
+    if(!coupleId || !identity || !fileBlob) return;
+
+    var uuid = 'dm_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    var ext  = (fileBlob.type && fileBlob.type.indexOf('quicktime') !== -1) ? 'mov' : 'mp4';
+    var videoPath  = 'dm_videos/' + coupleId + '/' + uuid + '.' + ext;
+    var posterPath = 'dm_videos/' + coupleId + '/' + uuid + '_poster.jpg';
+    var videoStorageUrl  = SB_URL + '/storage/v1/object/images/' + videoPath;
+    var posterStorageUrl = SB_URL + '/storage/v1/object/images/' + posterPath;
+
+    // Miniature "en cours d'envoi" immédiate (poster local, pas la vidéo)
+    var tmpId = 'tmp_video_' + Date.now();
+    var localPosterUrl = posterBlob ? URL.createObjectURL(posterBlob) : '';
+    var tmpMsg = {
+      id: tmpId, sender_role: identity, message_type: 'video',
+      poster_url: localPosterUrl, video_url: null, video_duration: Math.round(duration),
+      text: '', seen: false, is_ephemeral: !!isEphemeral, seen_at: null,
+      created_at: new Date().toISOString()
+    };
+    cache.push(tmpMsg);
+    appendBubble(tmpMsg, cache.length - 1, cache);
+    scrollBottom();
+
+    var videoContentType = fileBlob.type || 'video/mp4';
+
+    fetch(videoStorageUrl, {
+      method: 'POST',
+      headers: Object.assign(sb2Headers(), { 'Content-Type': videoContentType, 'x-upsert': 'true' }),
+      body: fileBlob
+    })
+    .then(function(r){
+      if(!r.ok) throw new Error('Upload vidéo échoué ' + r.status);
+      return fetch(posterStorageUrl, {
+        method: 'POST',
+        headers: Object.assign(sb2Headers(), { 'Content-Type': 'image/jpeg', 'x-upsert': 'true' }),
+        body: posterBlob || new Blob([], {type:'image/jpeg'})
+      });
+    })
+    .then(function(r){
+      if(!r.ok) throw new Error('Upload miniature échoué ' + r.status);
+      var publicVideoUrl  = SB_URL + '/storage/v1/object/public/images/' + videoPath;
+      var publicPosterUrl = SB_URL + '/storage/v1/object/public/images/' + posterPath;
+      return fetch(SB_URL + '/rest/v1/' + TABLE, {
+        method: 'POST',
+        headers: sb2Headers({'Prefer':'return=representation'}),
+        body: JSON.stringify({
+          couple_id: coupleId, sender_role: identity, sender_id: yamGetUser ? yamGetUser().id : null,
+          text: '', message_type: 'video', video_url: publicVideoUrl, poster_url: publicPosterUrl,
+          video_duration: Math.round(duration), is_ephemeral: !!isEphemeral
+        })
+      });
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(rows){
+      var real = Array.isArray(rows) ? rows[0] : null;
+      if(localPosterUrl) URL.revokeObjectURL(localPosterUrl);
+      if(real && real.id){
+        for(var i=0; i<cache.length; i++){
+          if(cache[i].id === tmpId){ cache[i] = real; break; }
+        }
+        Object.assign(tmpMsg, real);
+        var node = document.querySelector('[data-id="'+tmpId+'"]');
+        if(node){
+          node.dataset.id = real.id;
+          var img = node.querySelector('.dm-video-inner img');
+          if(img) img.src = real.poster_url;
+          var inner = node.querySelector('.dm-video-inner');
+          if(inner) inner.classList.remove('sending');
+        }
+      }
+      if(typeof window.yamPushNotify==='function'){
+        window.yamPartnerOnlineCheck().then(function(online){
+          if(!online){
+            var _me3 = yamGetUser && yamGetUser();
+            var pName = (_me3 && _me3.pseudo) || (v2GetPartnerPseudo && v2GetPartnerPseudo()) || 'Partenaire';
+            window.yamPushNotify({ title: pName + ' 🎥', body: 'T\'a envoyé une vidéo', tag: 'yam-message', data: { tab: 'messages' } });
+          }
+        });
+      }
+    })
+    .catch(function(err){
+      console.error('[DM VIDEO]', err);
+      if(localPosterUrl) URL.revokeObjectURL(localPosterUrl);
+      cache = cache.filter(function(m){ return m.id !== tmpId; });
+      var node = document.querySelector('[data-id="'+tmpId+'"]');
+      if(node) node.remove();
+      if(typeof showToast === 'function') showToast('Erreur envoi vidéo', 'error');
+    });
+  }
+
   // Ouvrir une photo en plein écran
   window._dmOpenPhotoViewer = function(url){
     var v = document.getElementById('dmPhotoViewer');
@@ -578,6 +799,29 @@
     document.getElementById('dmPhotoViewerClose').onclick = function(){ v.style.display = 'none'; img.src = ''; };
     document.getElementById('dmPhotoViewerBg').onclick    = function(){ v.style.display = 'none'; img.src = ''; };
   };
+
+  // Ouvrir une vidéo en plein écran — la vidéo n'est chargée qu'à cet instant précis (lazy load)
+  window._dmOpenVideoViewer = function(url){
+    var v   = document.getElementById('dmVideoViewer');
+    var vid = document.getElementById('dmVideoViewerVid');
+    if(!v || !vid) return;
+    vid.src = url;
+    v.style.display = 'flex';
+    var closeVid = function(){
+      v.style.display = 'none';
+      vid.pause();
+      vid.removeAttribute('src');
+      vid.load(); // libère le buffer réseau/mémoire — la vidéo devra être rechargée si rouverte
+    };
+    document.getElementById('dmVideoViewerClose').onclick = closeVid;
+    document.getElementById('dmVideoViewerBg').onclick    = closeVid;
+  };
+
+  // Formate une durée en secondes → "m:ss"
+  function _dmFmtDur(sec){
+    sec = Math.round(sec || 0);
+    return Math.floor(sec/60) + ':' + ('0'+Math.floor(sec%60)).slice(-2);
+  }
 
   /* ══ FLASH NOUVEAU MESSAGE ══ */
   function flashNewMsg(){
@@ -690,7 +934,7 @@
     var txt  = $('dmReplyBarText');
     if(!bar || !txt) return;
     var who  = (typeof v2GetDisplayName==="function"?v2GetDisplayName(msg.sender_role):(msg.sender_role==="girl"?"Elle":"Lui"));
-    var preview = msg.message_type === 'audio' ? '🎤 Vocal' : (msg.message_type === 'photo' ? '📷 Photo' : (msg.text || ''));
+    var preview = msg.message_type === 'audio' ? '🎤 Vocal' : (msg.message_type === 'photo' ? '📷 Photo' : (msg.message_type === 'video' ? '🎥 Vidéo' : (msg.text || '')));
     if(preview.length > 40) preview = preview.slice(0,40) + '…';
     txt.textContent = who + ' : ' + preview;
     bar.classList.add('show');
@@ -821,7 +1065,7 @@
     // Ancre : created_at du plus vieux message en cache
     var oldest = cache[0];
     var anchor = oldest ? ('&created_at=lt.' + encodeURIComponent(oldest.created_at)) : '';
-    var _SEL = 'id,couple_id,sender_role,sender_id,text,message_type,seen,seen_at,is_ephemeral,created_at,reply_to_id,reply_to_text,reply_to_sender,deleted,reactions,audio_duration,audio_mime,photo_url';
+    var _SEL = 'id,couple_id,sender_role,sender_id,text,message_type,seen,seen_at,is_ephemeral,created_at,reply_to_id,reply_to_text,reply_to_sender,deleted,reactions,audio_duration,audio_mime,photo_url,video_url,poster_url,video_duration';
     fetch(SB_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId + anchor
         + '&order=created_at.desc&limit=' + _msgPageSize + '&select=' + _SEL, {
       headers: sb2Headers()
@@ -875,7 +1119,7 @@
 
     // Premier chargement : les 50 derniers en ASC
     // ⚡ EGRESS FIX : audio_data (base64) exclu du poll — chargé uniquement au tap
-    var _SELECT_FIELDS = 'id,couple_id,sender_role,sender_id,text,message_type,seen,seen_at,is_ephemeral,created_at,reply_to_id,reply_to_text,reply_to_sender,deleted,reactions,audio_duration,audio_mime,photo_url';
+    var _SELECT_FIELDS = 'id,couple_id,sender_role,sender_id,text,message_type,seen,seen_at,is_ephemeral,created_at,reply_to_id,reply_to_text,reply_to_sender,deleted,reactions,audio_duration,audio_mime,photo_url,video_url,poster_url,video_duration';
     var url = SB_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId
             + '&order=created_at.desc&limit=' + _msgPageSize + '&select=' + _SELECT_FIELDS;
 
@@ -951,8 +1195,8 @@
           cached.text = 'Message supprimé';
           var wrap = document.querySelector('[data-id="'+msg.id+'"]');
           if(wrap){
-            if(cached.message_type === 'photo'){
-              // Photo : photoWrap n'a pas de .dm-bubble — remplacer par bulle texte standard
+            if(cached.message_type === 'photo' || cached.message_type === 'video'){
+              // Photo/vidéo : pas de .dm-bubble — remplacer par bulle texte standard
               _dmConvertPhotoToDeletedBubble(cached);
             } else {
               // Texte ou vocal
@@ -1069,6 +1313,7 @@
 
     // ── Clone du message isolé au centre ──
     var isPhoto = (msg.message_type === 'photo');
+    var isVideo = (msg.message_type === 'video');
     var msgClone = document.createElement('div');
     msgClone.className = 'dm-ctx-msg-preview';
     if(isPhoto && msg.photo_url){
@@ -1076,6 +1321,12 @@
       cloneImg.src = msg.photo_url;
       cloneImg.className = 'dm-ctx-preview-photo';
       msgClone.appendChild(cloneImg);
+    } else if(isVideo && msg.poster_url){
+      // On clone le poster (léger), pas la vidéo — pas de chargement inutile ici
+      var cloneVidImg = document.createElement('img');
+      cloneVidImg.src = msg.poster_url;
+      cloneVidImg.className = 'dm-ctx-preview-photo';
+      msgClone.appendChild(cloneVidImg);
     } else {
       var cloneBbl = document.createElement('div');
       cloneBbl.className = 'dm-bubble dm-ctx-preview-bubble' + (mine ? ' mine-preview' : '');
@@ -1155,8 +1406,8 @@
     replyItem.addEventListener('click', function(e){ e.stopPropagation(); startReply(msg); closeCtxMenu(); });
     ctxMenu.appendChild(replyItem);
 
-    // Enregistrer (photos uniquement)
-    if(isPhoto && msg.photo_url){
+    // Enregistrer (photos et vidéos uniquement)
+    if((isPhoto && msg.photo_url) || (isVideo && msg.video_url)){
       var dlItem = document.createElement('div');
       dlItem.className = 'dm-ctx-item';
       dlItem.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Enregistrer';
@@ -1165,18 +1416,21 @@
       dlItem.addEventListener('click', function(e){
         e.stopPropagation();
         closeCtxMenu();
-        fetch(msg.photo_url).then(function(r){ return r.blob(); }).then(function(blob){
+        var srcUrl = isVideo ? msg.video_url : msg.photo_url;
+        var ext    = isVideo ? 'mp4' : 'jpg';
+        var prefix = isVideo ? 'video-yam-' : 'photo-yam-';
+        fetch(srcUrl).then(function(r){ return r.blob(); }).then(function(blob){
           var a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
-          a.download = 'photo-yam-' + Date.now() + '.jpg';
+          a.download = prefix + Date.now() + '.' + ext;
           document.body.appendChild(a); a.click();
           setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
-        }).catch(function(){ window.open(msg.photo_url, '_blank'); });
+        }).catch(function(){ window.open(srcUrl, '_blank'); });
       });
       ctxMenu.appendChild(dlItem);
     }
 
-    if(mine && !msg.deleted && !isPhoto && msg.message_type !== 'audio'){
+    if(mine && !msg.deleted && !isPhoto && !isVideo && msg.message_type !== 'audio'){
       var editItem = document.createElement('div');
       editItem.className = 'dm-ctx-item';
       editItem.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Modifier';
@@ -1186,7 +1440,7 @@
       ctxMenu.appendChild(editItem);
     }
 
-    if(!isPhoto){
+    if(!isPhoto && !isVideo){
       var copyItem = document.createElement('div');
       copyItem.className = 'dm-ctx-item';
       copyItem.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copier';
@@ -1370,20 +1624,9 @@
   function deleteMsg(msg, wrap){
     if(msg.deleted) return; // ✅ Guard — déjà supprimé, ne pas re-PATCHer
 
-    // ── Cas photo : photoWrap n'a pas de .dm-bubble — remplacer par bulle texte ──
-    if(msg.message_type === 'photo'){
-      var mineBubble = (msg.sender_role === identity);
-      var deletedWrap = document.createElement('div');
-      deletedWrap.className = 'dm-wrap' + (mineBubble ? ' mine' : '');
-      deletedWrap.dataset.id = msg.id;
-      var deletedBbl = document.createElement('div');
-      deletedBbl.className = 'dm-bubble deleted';
-      var deletedTxt = document.createElement('span');
-      deletedTxt.className = 'dm-bubble-text';
-      deletedTxt.textContent = 'Message supprimé';
-      deletedBbl.appendChild(deletedTxt);
-      deletedWrap.appendChild(deletedBbl);
-      if(wrap.parentNode) wrap.parentNode.replaceChild(deletedWrap, wrap);
+    // ── Cas photo/vidéo : pas de .dm-bubble — remplacer par bulle texte ──
+    if(msg.message_type === 'photo' || msg.message_type === 'video'){
+      _dmConvertPhotoToDeletedBubble(msg);
     } else {
       // Soft delete UI — bulle texte ou vocal
       var bbl = wrap.querySelector('.dm-bubble');
@@ -1527,6 +1770,87 @@
         });
         innerEl.addEventListener('click', function(e){ e.stopPropagation(); });
       })(msg, photoWrap, inner);
+      return; // pas de bulle classique
+    }
+
+    // ── Rendu spécial VIDÉO (poster uniquement — la vidéo ne charge qu'à l'ouverture) ──
+    if(msg.message_type === 'video' && msg.poster_url && !msg.deleted){
+      var videoWrap = document.createElement('div');
+      videoWrap.className = 'dm-video-wrap' + (mine ? ' mine' : '');
+      videoWrap.dataset.id = msg.id;
+
+      var vInner = document.createElement('div');
+      vInner.className = 'dm-video-inner' + (String(msg.id).indexOf('tmp_') === 0 ? ' sending' : '');
+
+      var posterImg = document.createElement('img');
+      posterImg.src = msg.poster_url;
+      posterImg.alt = 'Vidéo';
+      posterImg.loading = 'lazy';
+
+      var playIcon = document.createElement('div');
+      playIcon.className = 'dm-video-play';
+      playIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+
+      var durEl = document.createElement('div');
+      durEl.className = 'dm-video-duration';
+      durEl.textContent = _dmFmtDur(msg.video_duration || 0);
+
+      vInner.appendChild(posterImg);
+      vInner.appendChild(playIcon);
+      vInner.appendChild(durEl);
+      if(msg.is_ephemeral && msg.seen_at){
+        var vEphBadge = document.createElement('div');
+        vEphBadge.className = 'dm-photo-ephemeral-badge';
+        vEphBadge.title = 'Cette vidéo va disparaître';
+        vEphBadge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9 2h6"/></svg>';
+        vInner.appendChild(vEphBadge);
+      }
+      videoWrap.appendChild(vInner);
+
+      // Réactions existantes sur la vidéo (girl + boy)
+      if(msg.reactions && (msg.reactions['girl'] || msg.reactions['boy'])) renderReactions(msg, videoWrap);
+
+      el.appendChild(videoWrap);
+
+      posterImg.addEventListener('contextmenu', function(e){ e.preventDefault(); e.stopPropagation(); });
+      posterImg.draggable = false;
+
+      (function(m, vw, innerEl){
+        var tapT = null, moved = false, lpFired = false;
+
+        vw.addEventListener('touchstart', function(e){
+          moved = false; lpFired = false;
+          tapT = setTimeout(function(){
+            if(!moved){
+              lpFired = true;
+              vw.style.opacity = '0';
+              openCtxMenu({clientX: window.innerWidth/2, clientY: window.innerHeight/2}, m, vw, vw);
+              var tid = setInterval(function(){
+                if(!document.querySelector('.dm-ctx-overlay-blur')){
+                  vw.style.opacity = '';
+                  clearInterval(tid);
+                }
+              }, 100);
+            }
+          }, 500);
+        }, {passive:true});
+
+        vw.addEventListener('touchmove', function(){ moved = true; clearTimeout(tapT); }, {passive:true});
+
+        vw.addEventListener('touchend', function(e){
+          clearTimeout(tapT);
+          if(lpFired){ e.preventDefault(); e.stopPropagation(); }
+        });
+
+        vw.addEventListener('contextmenu', function(e){ e.preventDefault(); e.stopPropagation(); });
+
+        // Tap court → lecture plein écran (seul moment où la vidéo est réellement chargée)
+        innerEl.addEventListener('touchend', function(e){
+          if(lpFired){ lpFired = false; return; }
+          if(!moved && m.video_url) window._dmOpenVideoViewer && window._dmOpenVideoViewer(m.video_url);
+        });
+        innerEl.addEventListener('click', function(e){ e.stopPropagation(); });
+      })(msg, videoWrap, vInner);
       return; // pas de bulle classique
     }
 
@@ -1850,7 +2174,7 @@
 
     // Capture reply avant de le cancel
     var replyId   = _replyMsg ? _replyMsg.id   : null;
-    var replyText = _replyMsg ? (_replyMsg.message_type === 'audio' ? '🎤 Vocal' : (_replyMsg.message_type === 'photo' ? '📷 Photo' : (_replyMsg.text || ''))) : null;
+    var replyText = _replyMsg ? (_replyMsg.message_type === 'audio' ? '🎤 Vocal' : (_replyMsg.message_type === 'photo' ? '📷 Photo' : (_replyMsg.message_type === 'video' ? '🎥 Vidéo' : (_replyMsg.text || '')))) : null;
     var replySender = _replyMsg ? (_replyMsg.sender_role || _replyMsg.sender) : null;
     window.dmCancelReply();
 
@@ -2409,13 +2733,13 @@
     }).then(function(){ if(window._checkUnread) window._checkUnread(); }).catch(function(){});
   }
 
-  // Ajoute le petit badge "va disparaître" sur une bulle photo déjà rendue
+  // Ajoute le petit badge "va disparaître" sur une bulle photo/vidéo déjà rendue
   function _dmShowEphemeralBadge(wrap){
-    var inner = wrap.querySelector('.dm-photo-inner');
+    var inner = wrap.querySelector('.dm-photo-inner') || wrap.querySelector('.dm-video-inner');
     if(!inner || inner.querySelector('.dm-photo-ephemeral-badge')) return;
     var badge = document.createElement('div');
     badge.className = 'dm-photo-ephemeral-badge';
-    badge.title = 'Cette photo va disparaître';
+    badge.title = 'Ça va disparaître';
     badge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9 2h6"/></svg>';
     inner.appendChild(badge);
   }
@@ -2438,27 +2762,32 @@
     if(wrap.parentNode) wrap.parentNode.replaceChild(deletedWrap, wrap);
   }
 
-  // Supprime définitivement une photo éphémère expirée (vue depuis >10 min)
+  // Supprime définitivement une photo/vidéo éphémère expirée (vue depuis >10 min)
   function _dmExpireEphemeralPhoto(msg){
     var _es = yamGetUser ? yamGetUser() : null;
     var _ecid = _es ? _es.couple_id : null;
     if(!_ecid) return;
     msg.deleted = true; msg.text = 'Message supprimé';
     _dmConvertPhotoToDeletedBubble(msg);
+    var patchBody = { deleted: true, photo_url: null };
+    if(msg.message_type === 'video'){ patchBody.video_url = null; patchBody.poster_url = null; }
     fetch(SB_URL + '/rest/v1/' + TABLE + '?id=eq.' + msg.id + '&couple_id=eq.' + _ecid, {
       method: 'PATCH',
       headers: sb2Headers({'Prefer':'return=minimal'}),
-      body: JSON.stringify({ deleted: true, photo_url: null })
+      body: JSON.stringify(patchBody)
     }).catch(function(){});
-    // Best-effort : supprime aussi le fichier du Storage
-    if(msg.photo_url && msg.photo_url.indexOf('/storage/v1/object/public/images/') !== -1){
-      var storagePath = msg.photo_url.split('/storage/v1/object/public/images/')[1];
-      if(storagePath){
-        fetch(SB_URL + '/storage/v1/object/images/' + storagePath, {
-          method: 'DELETE', headers: sb2Headers()
-        }).catch(function(){});
-      }
-    }
+    // Best-effort : supprime aussi le(s) fichier(s) du Storage
+    var _dmDeleteStorageUrl = function(url){
+      if(!url || url.indexOf('/storage/v1/object/public/images/') === -1) return;
+      var storagePath = url.split('/storage/v1/object/public/images/')[1];
+      if(!storagePath) return;
+      fetch(SB_URL + '/storage/v1/object/images/' + storagePath, {
+        method: 'DELETE', headers: sb2Headers()
+      }).catch(function(){});
+    };
+    _dmDeleteStorageUrl(msg.photo_url);
+    _dmDeleteStorageUrl(msg.video_url);
+    _dmDeleteStorageUrl(msg.poster_url);
   }
 
   var EPHEMERAL_MAX_MS = 10 * 60 * 1000; // 10 minutes max après visionnage
@@ -2519,7 +2848,7 @@
 
       if(p && last){
         var who = (typeof v2GetDisplayName==="function"?v2GetDisplayName(last.sender_role):(last.sender_role==="girl"?"Elle":"Lui"));
-        var txt = last.deleted ? '🚫 Message supprimé' : (last.message_type === 'audio' ? '🎤 Vocal' : (last.message_type === 'photo' ? '📷 Photo' : (last.text || '')));
+        var txt = last.deleted ? '🚫 Message supprimé' : (last.message_type === 'audio' ? '🎤 Vocal' : (last.message_type === 'photo' ? '📷 Photo' : (last.message_type === 'video' ? '🎥 Vidéo' : (last.text || ''))));
         if(txt.length > 34) txt = txt.slice(0,34) + '…';
       }
       if(t){
