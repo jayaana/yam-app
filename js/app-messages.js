@@ -2841,8 +2841,14 @@
     if(!url || url.indexOf('/storage/v1/object/public/images/') === -1) return;
     var storagePath = url.split('/storage/v1/object/public/images/')[1];
     if(!storagePath) return;
+    // Pas de corps envoyé sur ce DELETE — retirer Content-Type sinon le serveur
+    // Storage (Fastify) refuse avec "Body cannot be empty when content-type is
+    // set to application/json"
+    var delHeaders = sb2Headers();
+    delete delHeaders['Content-Type'];
+    delete delHeaders['content-type'];
     fetch(SB_URL + '/storage/v1/object/images/' + storagePath, {
-      method: 'DELETE', headers: sb2Headers()
+      method: 'DELETE', headers: delHeaders
     }).then(function(r){
       if(!r.ok){
         r.text().then(function(t){
