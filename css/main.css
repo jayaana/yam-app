@@ -4783,12 +4783,19 @@ body.light .dm-react { background:#fff; border-color:rgba(0,0,0,0.1); }
 
 .dm-photo-inner.has-reaction { overflow: visible; }
 .dm-photo-wrap.has-reaction .dm-photo-inner { margin-bottom: 14px; overflow: visible; }
-/* Réactions photo — row absolu sous la photo */
+.dm-video-inner.has-reaction { overflow: visible; }
+.dm-video-wrap.has-reaction .dm-video-inner { margin-bottom: 14px; overflow: visible; }
+/* Réactions photo/vidéo — row absolu sous le média */
 .dm-photo-wrap { position: relative; }
 .dm-photo-wrap .dm-react-row { position: absolute; bottom: -22px; }
 .dm-photo-wrap:not(.mine) .dm-react-row { left: 0; }
 .dm-photo-wrap.mine .dm-react-row { right: 0; }
 .dm-photo-wrap.has-reaction { margin-bottom: 26px; }
+.dm-video-wrap { position: relative; }
+.dm-video-wrap .dm-react-row { position: absolute; bottom: -22px; }
+.dm-video-wrap:not(.mine) .dm-react-row { left: 0; }
+.dm-video-wrap.mine .dm-react-row { right: 0; }
+.dm-video-wrap.has-reaction { margin-bottom: 26px; }
 
 /* ── Emoji picker modal réactions ── */
 #dmReactPickerModal {
@@ -5167,6 +5174,123 @@ body.light .dm-rec-lock-bar {
   font-size:15px; font-weight:600; cursor:pointer;
   display:flex; align-items:center; gap:8px;
 }
+
+/* ══ VIDÉO — bulle dans le chat (poster only, chargement paresseux) ══ */
+.dm-video-wrap {
+  display:flex; margin-bottom:2px; position:relative;
+  animation:dmMsgIn 0.22s cubic-bezier(.4,0,.2,1);
+}
+.dm-video-wrap.mine { justify-content:flex-end; }
+.dm-video-wrap:not(.mine) { justify-content:flex-start; padding-left:32px; }
+.dm-video-inner {
+  position:relative; cursor:pointer; border-radius:16px; overflow:hidden;
+  max-width:220px; max-height:280px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.25);
+  background:#000;
+}
+.dm-video-inner img {
+  display:block; width:100%; height:100%;
+  object-fit:cover; border-radius:16px;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  pointer-events: none;
+}
+.dm-video-inner { touch-action: manipulation; }
+.dm-video-play {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:44px; height:44px; border-radius:50%;
+  background:rgba(0,0,0,0.5); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; pointer-events:none;
+}
+.dm-video-play svg { width:18px; height:18px; margin-left:2px; }
+.dm-video-duration {
+  position:absolute; bottom:6px; right:8px;
+  font-size:10px; font-weight:600; color:#fff;
+  text-shadow:0 1px 3px rgba(0,0,0,0.6);
+}
+/* Vidéo en cours d'envoi */
+.dm-video-inner.sending { opacity:0.6; }
+.dm-video-inner.sending::after {
+  content:''; position:absolute; inset:0;
+  background:rgba(0,0,0,0.3); border-radius:16px;
+  display:flex; align-items:center; justify-content:center;
+}
+
+/* Overlay vidéo plein écran */
+#dmVideoViewer {
+  position:fixed; inset:0; z-index:9999;
+  display:flex; align-items:center; justify-content:center;
+}
+#dmVideoViewerBg {
+  position:absolute; inset:0; background:rgba(0,0,0,0.92);
+}
+#dmVideoViewerVid {
+  position:relative; max-width:95vw; max-height:90vh;
+  border-radius:8px;
+  box-shadow:0 8px 40px rgba(0,0,0,0.5);
+}
+#dmVideoViewerClose {
+  position:absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
+  right:16px;
+  width:44px; height:44px; border-radius:50%; border:none;
+  background:rgba(0,0,0,0.45); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; z-index:10;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Overlay prévisualisation vidéo avant envoi */
+#dmVideoPreview {
+  position:fixed; inset:0; z-index:9998;
+  display:flex; align-items:center; justify-content:center;
+}
+#dmVideoPreviewBg {
+  position:absolute; inset:0; background:rgba(0,0,0,0.85);
+}
+#dmVideoPreviewContent {
+  position:relative; display:flex; flex-direction:column;
+  align-items:center; gap:14px; padding:20px;
+}
+#dmVideoPreviewVid {
+  max-width:80vw; max-height:60vh;
+  border-radius:12px;
+  box-shadow:0 4px 24px rgba(0,0,0,0.4);
+}
+#dmVideoPreviewInfo {
+  font-size:12px; font-weight:600; color:rgba(255,255,255,0.75);
+  text-align:center;
+}
+#dmVideoPreviewInfo.warn { color:#f87168; }
+#dmVideoPreviewActions {
+  display:flex; gap:12px; align-items:center;
+}
+#dmVideoEphemeralToggle {
+  width:38px; height:38px; border-radius:50%;
+  border:1.5px solid rgba(255,255,255,0.25);
+  background:rgba(255,255,255,0.08); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; flex-shrink:0;
+  transition:background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
+}
+#dmVideoEphemeralToggle:active { transform:scale(0.92); }
+#dmVideoEphemeralToggle.active {
+  background:var(--accent); border-color:var(--accent); color:#fff;
+}
+#dmVideoPreviewCancel {
+  padding:10px 24px; border-radius:24px; border:none;
+  background:rgba(255,255,255,0.15); color:#fff;
+  font-size:15px; font-weight:600; cursor:pointer;
+}
+#dmVideoPreviewSend {
+  padding:10px 24px; border-radius:24px; border:none;
+  background:var(--accent); color:#fff;
+  font-size:15px; font-weight:600; cursor:pointer;
+  display:flex; align-items:center; gap:8px;
+}
+#dmVideoPreviewSend:disabled { opacity:0.4; cursor:not-allowed; }
 
 /* Bouton galerie — ancien .dm-emoji-btn pour compatibilité */
 .dm-emoji-btn {
