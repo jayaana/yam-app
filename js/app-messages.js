@@ -419,6 +419,7 @@
   /* ══ PHOTOS ══════════════════════════════════════════════════════════ */
 
   var _dmPendingPhotoBlob = null;
+  var _dmPendingEphemeral = false;
 
   // Compression canvas avant upload
   function _dmCompressImage(file, maxW, maxH, quality, cb){
@@ -443,32 +444,46 @@
     _dmCompressImage(file, 1200, 1200, 0.82, function(blob){
       if(!blob) return;
       _dmPendingPhotoBlob = blob;
+      _dmPendingEphemeral = false;
       var previewUrl = URL.createObjectURL(blob);
       var overlay  = document.getElementById('dmPhotoPreview');
       var img      = document.getElementById('dmPhotoPreviewImg');
       var btnSend  = document.getElementById('dmPhotoPreviewSend');
       var btnCancel= document.getElementById('dmPhotoPreviewCancel');
+      var btnEphem = document.getElementById('dmPhotoEphemeralToggle');
       if(!overlay || !img) return;
       img.src = previewUrl;
       overlay.style.display = 'flex';
 
+      if(btnEphem){
+        btnEphem.classList.remove('active');
+        btnEphem.setAttribute('aria-pressed','false');
+        btnEphem.onclick = function(){
+          _dmPendingEphemeral = !_dmPendingEphemeral;
+          btnEphem.classList.toggle('active', _dmPendingEphemeral);
+          btnEphem.setAttribute('aria-pressed', _dmPendingEphemeral ? 'true' : 'false');
+        };
+      }
+
       btnSend.onclick = function(){
         overlay.style.display = 'none';
         URL.revokeObjectURL(previewUrl);
-        _dmSendPhoto(_dmPendingPhotoBlob);
+        _dmSendPhoto(_dmPendingPhotoBlob, _dmPendingEphemeral);
         _dmPendingPhotoBlob = null;
+        _dmPendingEphemeral = false;
       };
       btnCancel.onclick = function(){
         overlay.style.display = 'none';
         URL.revokeObjectURL(previewUrl);
         _dmPendingPhotoBlob = null;
+        _dmPendingEphemeral = false;
       };
       document.getElementById('dmPhotoPreviewBg').onclick = btnCancel.onclick;
     });
   }
 
   // Upload vers Supabase Storage + envoi du message
-  function _dmSendPhoto(blob){
+  function _dmSendPhoto(blob, isEphemeral){
     var s = yamGetUser ? yamGetUser() : null;
     var coupleId = s && s.couple_id ? s.couple_id : null;
     if(!coupleId || !identity) return;
@@ -482,7 +497,7 @@
     var localUrl = URL.createObjectURL(blob);
     var tmpMsg = {
       id: tmpId, sender_role: identity, message_type: 'photo',
-      photo_url: localUrl, text: '', seen: false,
+      photo_url: localUrl, text: '', seen: false, is_ephemeral: !!isEphemeral, seen_at: null,
       created_at: new Date().toISOString()
     };
     cache.push(tmpMsg);
@@ -505,7 +520,7 @@
         headers: sb2Headers({'Prefer':'return=representation'}),
         body: JSON.stringify({
           couple_id: coupleId, sender_role: identity, sender_id: yamGetUser ? yamGetUser().id : null,
-          text: '', message_type: 'photo', photo_url: publicUrl
+          text: '', message_type: 'photo', photo_url: publicUrl, is_ephemeral: !!isEphemeral
         })
       });
     })
@@ -806,7 +821,7 @@
     // Ancre : created_at du plus vieux message en cache
     var oldest = cache[0];
     var anchor = oldest ? ('&created_at=lt.' + encodeURIComponent(oldest.created_at)) : '';
-    var _SEL = 'id,couple_id,sender_role,sender_id,text,message_type,seen,created_at,reply_to_id,reply_to_text,reply_to_sender,deleted,reactions,audio_duration,audio_mime,photo_url';
+    var _SEL = 'id,couple_id,sender_role,sender_id,text,message_type,seen,seen_at,is_ephemeral,created_at,reply_to_id,reply_to_text,reply_to_sender,deleted,reactions,audio_duration,audio_mime,photo_url';
     fetch(SB_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId + anchor
         + '&order=created_at.desc&limit=' + _msgPageSize + '&select=' + _SEL, {
       headers: sb2Headers()
@@ -860,7 +875,7 @@
 
     // Premier chargement : les 50 derniers en ASC
     // ⚡ EGRESS FIX : audio_data (base64) exclu du poll — chargé uniquement au tap
-    var _SELECT_FIELDS = 'id,couple_id,sender_role,sender_id,text,message_type,seen,created_at,reply_to_id,reply_to_text,reply_to_sender,deleted,reactions,audio_duration,audio_mime,photo_url';
+    var _SELECT_FIELDS = 'id,couple_id,sender_role,sender_id,text,message_type,seen,seen_at,is_ephemeral,created_at,reply_to_id,reply_to_text,reply_to_sender,deleted,reactions,audio_duration,audio_mime,photo_url';
     var url = SB_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId
             + '&order=created_at.desc&limit=' + _msgPageSize + '&select=' + _SELECT_FIELDS;
 
@@ -923,6 +938,13 @@
           var wrap = document.querySelector('[data-id="'+msg.id+'"]');
           if(wrap) renderReactions(cached, wrap);
         }
+        // Sync seen_at (photo éphémère vue depuis l'autre appareil) — permet à CHAQUE
+        // client de déclencher la suppression après 10 min, peu importe qui a vu la photo
+        if(cached && cached.is_ephemeral && !cached.seen_at && msg.seen_at){
+          cached.seen_at = msg.seen_at;
+          var wrapEph = document.querySelector('[data-id="'+msg.id+'"]');
+          if(wrapEph) _dmShowEphemeralBadge(wrapEph);
+        }
         // ✅ Fix — Sync deleted depuis serveur (photo/vocal/texte — même logique que deleteMsg)
         if(cached && !cached.deleted && msg.deleted){
           cached.deleted = true;
@@ -931,18 +953,7 @@
           if(wrap){
             if(cached.message_type === 'photo'){
               // Photo : photoWrap n'a pas de .dm-bubble — remplacer par bulle texte standard
-              var mineBubble = (cached.sender_role === identity);
-              var deletedWrap = document.createElement('div');
-              deletedWrap.className = 'dm-wrap' + (mineBubble ? ' mine' : '');
-              deletedWrap.dataset.id = cached.id;
-              var deletedBbl = document.createElement('div');
-              deletedBbl.className = 'dm-bubble deleted';
-              var deletedTxt = document.createElement('span');
-              deletedTxt.className = 'dm-bubble-text';
-              deletedTxt.textContent = 'Message supprimé';
-              deletedBbl.appendChild(deletedTxt);
-              deletedWrap.appendChild(deletedBbl);
-              if(wrap.parentNode) wrap.parentNode.replaceChild(deletedWrap, wrap);
+              _dmConvertPhotoToDeletedBubble(cached);
             } else {
               // Texte ou vocal
               var bbl = wrap.querySelector('.dm-bubble');
@@ -971,6 +982,7 @@
         }
       });
       if(seenChanged) updateSeenLabel();
+      _dmCheckEphemeralExpiry();
     })
     .catch(function(err){ console.error('[DM] fetchMsgs erreur:', err); });
   }
@@ -1029,6 +1041,7 @@
       }
     }
     updateSeenLabel();
+    _dmCheckEphemeralExpiry();
   }
 
   /* ══ MENU CONTEXTUEL ══ */
@@ -1456,6 +1469,13 @@
 
       inner.appendChild(img);
       inner.appendChild(timeEl);
+      if(msg.is_ephemeral && msg.seen_at){
+        var ephBadge = document.createElement('div');
+        ephBadge.className = 'dm-photo-ephemeral-badge';
+        ephBadge.title = 'Cette photo va disparaître';
+        ephBadge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9 2h6"/></svg>';
+        inner.appendChild(ephBadge);
+      }
       photoWrap.appendChild(inner);
 
       // Réactions existantes sur la photo (girl + boy)
@@ -2373,11 +2393,86 @@
     var _ms = yamGetUser ? yamGetUser() : null;
     var _mcid = _ms ? _ms.couple_id : null;
     if(!_mcid) return;
+    var body = { seen: true };
+    var cached = cache.find(function(m){ return m.id === id; });
+    if(cached && cached.is_ephemeral && !cached.seen_at){
+      var nowIso = new Date().toISOString();
+      body.seen_at = nowIso;
+      cached.seen_at = nowIso; // reflet local immédiat → l'indicateur peut s'afficher tout de suite
+      var wrap = document.querySelector('[data-id="'+id+'"]');
+      if(wrap) _dmShowEphemeralBadge(wrap);
+    }
     fetch(SB_URL + '/rest/v1/' + TABLE + '?id=eq.' + id + '&couple_id=eq.' + _mcid, {
       method: 'PATCH',
       headers: sb2Headers({'Prefer':'return=minimal'}),
-      body: JSON.stringify({ seen: true })
+      body: JSON.stringify(body)
     }).then(function(){ if(window._checkUnread) window._checkUnread(); }).catch(function(){});
+  }
+
+  // Ajoute le petit badge "va disparaître" sur une bulle photo déjà rendue
+  function _dmShowEphemeralBadge(wrap){
+    var inner = wrap.querySelector('.dm-photo-inner');
+    if(!inner || inner.querySelector('.dm-photo-ephemeral-badge')) return;
+    var badge = document.createElement('div');
+    badge.className = 'dm-photo-ephemeral-badge';
+    badge.title = 'Cette photo va disparaître';
+    badge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9 2h6"/></svg>';
+    inner.appendChild(badge);
+  }
+
+  // Convertit une bulle photo en bulle "Message supprimé" (partagé : sync serveur + expiration locale)
+  function _dmConvertPhotoToDeletedBubble(msg){
+    var wrap = document.querySelector('[data-id="'+msg.id+'"]');
+    if(!wrap) return;
+    var mineBubble = (msg.sender_role === identity);
+    var deletedWrap = document.createElement('div');
+    deletedWrap.className = 'dm-wrap' + (mineBubble ? ' mine' : '');
+    deletedWrap.dataset.id = msg.id;
+    var deletedBbl = document.createElement('div');
+    deletedBbl.className = 'dm-bubble deleted';
+    var deletedTxt = document.createElement('span');
+    deletedTxt.className = 'dm-bubble-text';
+    deletedTxt.textContent = 'Message supprimé';
+    deletedBbl.appendChild(deletedTxt);
+    deletedWrap.appendChild(deletedBbl);
+    if(wrap.parentNode) wrap.parentNode.replaceChild(deletedWrap, wrap);
+  }
+
+  // Supprime définitivement une photo éphémère expirée (vue depuis >10 min)
+  function _dmExpireEphemeralPhoto(msg){
+    var _es = yamGetUser ? yamGetUser() : null;
+    var _ecid = _es ? _es.couple_id : null;
+    if(!_ecid) return;
+    msg.deleted = true; msg.text = 'Message supprimé';
+    _dmConvertPhotoToDeletedBubble(msg);
+    fetch(SB_URL + '/rest/v1/' + TABLE + '?id=eq.' + msg.id + '&couple_id=eq.' + _ecid, {
+      method: 'PATCH',
+      headers: sb2Headers({'Prefer':'return=minimal'}),
+      body: JSON.stringify({ deleted: true, photo_url: null })
+    }).catch(function(){});
+    // Best-effort : supprime aussi le fichier du Storage
+    if(msg.photo_url && msg.photo_url.indexOf('/storage/v1/object/public/images/') !== -1){
+      var storagePath = msg.photo_url.split('/storage/v1/object/public/images/')[1];
+      if(storagePath){
+        fetch(SB_URL + '/storage/v1/object/images/' + storagePath, {
+          method: 'DELETE', headers: sb2Headers()
+        }).catch(function(){});
+      }
+    }
+  }
+
+  var EPHEMERAL_MAX_MS = 10 * 60 * 1000; // 10 minutes max après visionnage
+
+  // Vérifie le cache pour repérer les photos éphémères vues depuis plus de 10 min
+  function _dmCheckEphemeralExpiry(){
+    var now = Date.now();
+    cache.forEach(function(m){
+      if(!m.is_ephemeral || m.deleted || !m.seen_at) return;
+      var seenTs = new Date(m.seen_at).getTime();
+      if(!isNaN(seenTs) && (now - seenTs) >= EPHEMERAL_MAX_MS){
+        _dmExpireEphemeralPhoto(m);
+      }
+    });
   }
 
   function updateSendBtn(){
