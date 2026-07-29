@@ -1660,16 +1660,31 @@
     var cached = cache.find(function(m){ return m.id === msg.id; });
     if(cached){ cached.deleted = true; cached.text = 'Message supprimé'; }
 
-    // Soft delete Supabase
+    // Soft delete Supabase — le texte affiché reste "Message supprimé",
+    // mais le contenu d'origine (photo/vidéo/vocal) est effacé à la source
     var _ds = yamGetUser ? yamGetUser() : null;
     var _dcid = _ds ? _ds.couple_id : null;
+    var patchBody = { deleted: true, text: 'Message supprimé' };
+    if(msg.message_type === 'photo'){
+      patchBody.photo_url = null;
+    } else if(msg.message_type === 'video'){
+      patchBody.video_url = null;
+      patchBody.poster_url = null;
+    } else if(msg.message_type === 'audio'){
+      patchBody.audio_data = null;
+    }
     fetch(SB_URL + '/rest/v1/' + TABLE + '?id=eq.' + msg.id + (_dcid ? '&couple_id=eq.' + _dcid : ''), {
       method: 'PATCH',
       headers: sb2Headers({'Content-Type': 'application/json', 'Prefer': 'return=minimal'}),
-      body: JSON.stringify({ deleted: true, text: 'Message supprimé' })
+      body: JSON.stringify(patchBody)
     }).then(function(r){
       if(!r.ok) r.text().then(function(t){ console.error('[DM] delete PATCH err:', r.status, t); });
     }).catch(function(err){ console.error('[DM] delete err:', err); });
+
+    // Best-effort : supprime aussi le(s) fichier(s) du Storage (photo/vidéo/poster)
+    _dmDeleteStorageUrl(msg.photo_url);
+    _dmDeleteStorageUrl(msg.video_url);
+    _dmDeleteStorageUrl(msg.poster_url);
 
     // ✅ Fix badge — message supprimé ne doit plus compter comme non-lu
     if(window._checkUnread) window._checkUnread();
@@ -2767,6 +2782,16 @@
     if(wrap.parentNode) wrap.parentNode.replaceChild(deletedWrap, wrap);
   }
 
+  // Best-effort : supprime un fichier du Storage à partir de son URL publique
+  function _dmDeleteStorageUrl(url){
+    if(!url || url.indexOf('/storage/v1/object/public/images/') === -1) return;
+    var storagePath = url.split('/storage/v1/object/public/images/')[1];
+    if(!storagePath) return;
+    fetch(SB_URL + '/storage/v1/object/images/' + storagePath, {
+      method: 'DELETE', headers: sb2Headers()
+    }).catch(function(){});
+  }
+
   // Supprime définitivement une photo/vidéo éphémère expirée (vue depuis >10 min)
   function _dmExpireEphemeralPhoto(msg){
     var _es = yamGetUser ? yamGetUser() : null;
@@ -2782,14 +2807,6 @@
       body: JSON.stringify(patchBody)
     }).catch(function(){});
     // Best-effort : supprime aussi le(s) fichier(s) du Storage
-    var _dmDeleteStorageUrl = function(url){
-      if(!url || url.indexOf('/storage/v1/object/public/images/') === -1) return;
-      var storagePath = url.split('/storage/v1/object/public/images/')[1];
-      if(!storagePath) return;
-      fetch(SB_URL + '/storage/v1/object/images/' + storagePath, {
-        method: 'DELETE', headers: sb2Headers()
-      }).catch(function(){});
-    };
     _dmDeleteStorageUrl(msg.photo_url);
     _dmDeleteStorageUrl(msg.video_url);
     _dmDeleteStorageUrl(msg.poster_url);
