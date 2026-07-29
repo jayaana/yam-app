@@ -418,10 +418,13 @@
     if (!soonest) return;
     var badge = document.createElement('span');
     badge.className   = 'evt-alert-badge';
-    badge.textContent = soonest.days === 0 ? soonest.icon : 'J-' + soonest.days;
+    var isEmoji = soonest.days === 0;
+    badge.textContent = isEmoji ? soonest.icon : 'J-' + soonest.days;
     var urgent = soonest.days <= 1;
+    var color = urgent ? '#e75a7c' : '#f5a623';
     badge.style.cssText = 'position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;padding:0 5px;'
-      + 'border-radius:10px;font-size:10px;font-weight:800;background:' + (urgent ? '#e75a7c' : '#f5a623') + ';'
+      + 'border-radius:10px;font-size:10px;font-weight:800;'
+      + (isEmoji ? 'background:transparent;border:1.5px solid ' + color + ';' : 'background:' + color + ';')
       + 'color:#fff;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:10;'
       + 'line-height:1;animation:' + (urgent ? 'evtPulse 1s infinite' : 'none') + ';';
     btn.appendChild(badge);
