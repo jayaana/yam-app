@@ -98,6 +98,9 @@
   var _sjPendingRenderRow= null;
   var _waitingNextRound  = false;
   var _roundEndShown     = false;
+  var _gameEndShown      = false;
+  var _sjPendingEndState = null;
+  var _sjPendingEndType  = null;
   var _sjGameStartedAt   = 0;   // timestamp ms — démarré à onMatchFound
 
   // ─── Deck ─────────────────────────────────────────────
@@ -160,6 +163,9 @@
     _phase=null;
     _waitingNextRound=false;
     _roundEndShown=false;
+    _gameEndShown=false;
+    _sjPendingEndState=null;
+    _sjPendingEndType=null;
     _sjAnimPlaying=false;
     _sjPendingRenderRow=null;
     window._sjLastSeenLiveTs=0;
@@ -362,6 +368,12 @@
       var row=_sjPendingRenderRow;
       _sjPendingRenderRow=null;
       _doRenderState(row);
+      return;
+    }
+    if(_sjPendingEndState){
+      var es=_sjPendingEndState,et=_sjPendingEndType;
+      _sjPendingEndState=null;_sjPendingEndType=null;
+      if(et==='roundEnd') showRoundEnd(es); else showGameEnd(es);
     }
   }
 
@@ -664,8 +676,16 @@
       else { phaseMsg.textContent='✅ Tu as retourné tes 2 cartes — en attente que '+oppName+' fasse pareil…'; }
     } else { phaseMsg.style.display='none'; }
 
-    if(state.phase==='roundEnd'){_sjStopTimer();showRoundEnd(state);}
-    else if(state.phase==='gameEnd'){_sjStopTimer();if(_mp)_mp.stopPoll();showGameEnd(state);}
+    if(state.phase==='roundEnd'||state.phase==='gameEnd'){
+      _sjStopTimer();
+      if(state.phase==='gameEnd'&&_mp) _mp.stopPoll();
+      if(_sjAnimPlaying){
+        // Une animation (ex: dernière carte adverse qui atterrit) est encore en cours —
+        // on laisse le temps de la voir avant d'enchaîner sur l'écran de fin
+        _sjPendingEndState=state;_sjPendingEndType=state.phase;
+      } else if(state.phase==='roundEnd'){ showRoundEnd(state); }
+      else { showGameEnd(state); }
+    }
   }
 
   function renderGrid(gridId,cards,isMe,isMyTurn,state,iHold,skipFlipIdx){
@@ -1461,6 +1481,16 @@
 
   // ─── Fin de partie ────────────────────────────────────
   function showGameEnd(state){
+    if(_gameEndShown)return;
+    _gameEndShown=true;
+    _sjAnimPlaying=false;
+    _sjPendingRenderRow=null;
+    _flipAllHiddenCards(state,function(){
+      setTimeout(function(){_showGameEndPopup(state);},2000);
+    });
+  }
+
+  function _showGameEndPopup(state){
     document.getElementById('skyjoRoundEnd').style.display='none';
     var btn=document.getElementById('skyjoAbandonBtn');if(btn)btn.style.display='none';
     var gg=state.scores.girl,gb=state.scores.boy;
