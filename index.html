@@ -6504,6 +6504,23 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 </div>
 
 <!-- Overlay prévisualisation vidéo avant envoi -->
+<!-- Menu perso "Photo" / "Vidéo" — texte clair et sans ambiguïté, affiché AVANT le sélecteur natif -->
+<div id="dmMediaSheet" style="display:none">
+  <div id="dmMediaSheetBg"></div>
+  <div id="dmMediaSheetContent">
+    <div id="dmMediaSheetTitle"></div>
+    <button id="dmMediaSheetCapture" class="dm-media-sheet-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      <span></span>
+    </button>
+    <button id="dmMediaSheetLibrary" class="dm-media-sheet-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      <span></span>
+    </button>
+    <button id="dmMediaSheetCancel" class="dm-media-sheet-cancel">Annuler</button>
+  </div>
+</div>
+
 <div id="dmVideoPreview" style="display:none">
   <div id="dmVideoPreviewBg"></div>
   <div id="dmVideoPreviewContent">
