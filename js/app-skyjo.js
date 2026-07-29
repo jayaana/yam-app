@@ -392,9 +392,16 @@
       '.skyjo-manche-badge{cursor:pointer;user-select:none;}',
       '.sj-manche-dd{position:absolute;top:calc(100% + 4px);left:0;min-width:150px;max-width:220px;background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:8px 10px;box-shadow:0 6px 20px rgba(0,0,0,0.3);z-index:50;display:none;}',
       '.sj-manche-dd.open{display:block;}',
-      '.sj-manche-dd-title{font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;white-space:nowrap;}',
-      '.sj-manche-dd-row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:11px;font-weight:700;color:var(--text);padding:3px 0;white-space:nowrap;}',
+      '.sj-manche-dd-title{font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;white-space:nowrap;}',
+      '.sj-manche-dd-head,.sj-manche-dd-row{display:grid;grid-template-columns:24px 30px 30px;align-items:center;column-gap:4px;}',
+      '.sj-manche-dd-head{padding-bottom:4px;margin-bottom:2px;border-bottom:1px solid var(--border);}',
+      '.sj-manche-dd-head span{display:flex;justify-content:center;}',
+      '.sj-manche-dd-av{width:17px;height:17px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1.5px solid var(--border);}',
+      '.sj-manche-dd-av img{width:100%;height:100%;object-fit:cover;display:block;}',
+      '.sj-manche-dd-row{font-size:11px;font-weight:700;color:var(--text);padding:3px 0;white-space:nowrap;font-variant-numeric:tabular-nums;}',
       '.sj-manche-dd-row+.sj-manche-dd-row{border-top:1px solid var(--border);}',
+      '.sj-manche-dd-lbl{font-size:10px;font-weight:800;color:var(--muted);text-align:left;}',
+      '.sj-manche-dd-val{text-align:center;}',
       '.sj-manche-dd-empty{font-size:11px;color:var(--muted);padding:2px 0;white-space:nowrap;}'
     ].join('');
     document.head.appendChild(s);
@@ -404,13 +411,26 @@
     var dd=document.getElementById('sjMancheDropdown');
     if(!dd)return;
     var hist=(_gameState&&_gameState.round_history)||[];
+    var _avSrc=typeof window.yamAvatarSrc==='function';
+    var girlSrc=_avSrc?window.yamAvatarSrc('girl'):'assets/images/profil_girl.png';
+    var boySrc =_avSrc?window.yamAvatarSrc('boy') :'assets/images/profil_boy.png';
+    // En-tête : avatars affichés une seule fois pour ne pas surcharger chaque ligne
+    var head='<div class="sj-manche-dd-title">Scores par manche</div>'
+      +'<div class="sj-manche-dd-head"><span></span>'
+      +'<span class="sj-manche-dd-av"><img src="'+girlSrc+'" alt=""></span>'
+      +'<span class="sj-manche-dd-av"><img src="'+boySrc+'" alt=""></span>'
+      +'</div>';
     if(!hist.length){
-      dd.innerHTML='<div class="sj-manche-dd-title">Scores par manche</div><div class="sj-manche-dd-empty">Aucune manche terminée</div>';
+      dd.innerHTML=head+'<div class="sj-manche-dd-empty">Aucune manche terminée</div>';
       return;
     }
-    var html='<div class="sj-manche-dd-title">Scores par manche</div>';
+    var html=head;
     hist.forEach(function(h){
-      html+='<div class="sj-manche-dd-row"><span>Manche '+h.round+'</span><span>👧'+h.girl+' · 👦'+h.boy+'</span></div>';
+      html+='<div class="sj-manche-dd-row">'
+        +'<span class="sj-manche-dd-lbl">M.'+h.round+'</span>'
+        +'<span class="sj-manche-dd-val">'+h.girl+'</span>'
+        +'<span class="sj-manche-dd-val">'+h.boy+'</span>'
+        +'</div>';
     });
     dd.innerHTML=html;
   }
