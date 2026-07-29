@@ -2841,14 +2841,13 @@
     if(!url || url.indexOf('/storage/v1/object/public/images/') === -1) return;
     var storagePath = url.split('/storage/v1/object/public/images/')[1];
     if(!storagePath) return;
-    // Pas de corps envoyé sur ce DELETE — retirer Content-Type sinon le serveur
-    // Storage (Fastify) refuse avec "Body cannot be empty when content-type is
-    // set to application/json"
-    var delHeaders = sb2Headers();
-    delete delHeaders['Content-Type'];
-    delete delHeaders['content-type'];
-    fetch(SB_URL + '/storage/v1/object/images/' + storagePath, {
-      method: 'DELETE', headers: delHeaders
+    // Endpoint de suppression groupée (attend un vrai corps JSON) plutôt que le
+    // DELETE mono-fichier sans corps, qui se heurtait à "Body cannot be empty
+    // when content-type is set to application/json" côté serveur Storage.
+    fetch(SB_URL + '/storage/v1/object/images', {
+      method: 'DELETE',
+      headers: sb2Headers({'Content-Type': 'application/json'}),
+      body: JSON.stringify({ prefixes: [storagePath] })
     }).then(function(r){
       if(!r.ok){
         r.text().then(function(t){
