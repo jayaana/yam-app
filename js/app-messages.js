@@ -2805,7 +2805,15 @@
     if(!storagePath) return;
     fetch(SB_URL + '/storage/v1/object/images/' + storagePath, {
       method: 'DELETE', headers: sb2Headers()
-    }).catch(function(){});
+    }).then(function(r){
+      if(!r.ok){
+        r.text().then(function(t){
+          console.error('[YAM STORAGE DELETE] échec', r.status, storagePath, t);
+        });
+      }
+    }).catch(function(err){
+      console.error('[YAM STORAGE DELETE] erreur réseau', storagePath, err);
+    });
   }
 
   // Supprime définitivement une photo/vidéo éphémère expirée (vue depuis >10 min)
