@@ -2203,15 +2203,30 @@
     if(!msg.deleted){
       var tapT = null;
       var moved = false;
+      var pressActive = false;
       wrap.addEventListener('touchstart', function(e){ 
-        moved = false; 
+        moved = false; pressActive = true;
         tapT = setTimeout(function(){ 
-          if(!moved) openCtxMenu({clientX: window.innerWidth/2, clientY: window.innerHeight/2}, msg, wrap, bbl); 
+          if(!moved && pressActive) openCtxMenu({clientX: window.innerWidth/2, clientY: window.innerHeight/2}, msg, wrap, bbl); 
         }, 500); 
       }, {passive:true});
       wrap.addEventListener('touchmove',  function(){ moved = true; clearTimeout(tapT); }, {passive:true});
-      wrap.addEventListener('touchend',   function(e){ clearTimeout(tapT); }, {passive:true});
+      wrap.addEventListener('touchend',   function(e){ pressActive = false; clearTimeout(tapT); }, {passive:true});
       wrap.addEventListener('contextmenu', function(e){ e.preventDefault(); openCtxMenu(e, msg, wrap, bbl); });
+
+      // Souris (desktop) — clic maintenu ~500ms, même logique que le tactile
+      wrap.addEventListener('mousedown', function(e){
+        moved = false; pressActive = true;
+        var mx = e.clientX, my = e.clientY;
+        tapT = setTimeout(function(){
+          if(!moved && pressActive) openCtxMenu({clientX: mx, clientY: my}, msg, wrap, bbl);
+        }, 500);
+        document.addEventListener('mouseup', function(){
+          pressActive = false;
+          clearTimeout(tapT);
+        }, { once:true });
+      });
+      wrap.addEventListener('mousemove', function(){ if(pressActive){ moved = true; clearTimeout(tapT); } });
     }
   }
 
