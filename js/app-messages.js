@@ -1753,15 +1753,15 @@
       // Long press → menu réactions
       // _photoLpBlocked : bloque le click synthétique iOS qui suit un long-press
       (function(m, pw, innerEl){
-        var tapT = null, moved = false, lpFired = false;
+        var tapT = null, moved = false, lpFired = false, pressActive = false;
 
-        pw.addEventListener('touchstart', function(e){
-          moved = false; lpFired = false;
+        function startPress(x, y){
+          moved = false; lpFired = false; pressActive = true;
           tapT = setTimeout(function(){
-            if(!moved){
+            if(!moved && pressActive){
               lpFired = true;
               pw.style.opacity = '0';
-              openCtxMenu({clientX: window.innerWidth/2, clientY: window.innerHeight/2}, m, pw, pw);
+              openCtxMenu({clientX: x, clientY: y}, m, pw, pw);
               // Restaurer opacité quand l'overlay est retiré
               var tid = setInterval(function(){
                 if(!document.querySelector('.dm-ctx-overlay-blur')){
@@ -1771,24 +1771,43 @@
               }, 100);
             }
           }, 500);
+        }
+
+        pw.addEventListener('touchstart', function(e){
+          startPress(window.innerWidth/2, window.innerHeight/2);
         }, {passive:true});
 
         pw.addEventListener('touchmove', function(){ moved = true; clearTimeout(tapT); }, {passive:true});
 
         // touchend : bloquer propagation si long-press pour ne pas déclencher l'overlay
         pw.addEventListener('touchend', function(e){
+          pressActive = false;
           clearTimeout(tapT);
           if(lpFired){ e.preventDefault(); e.stopPropagation(); }
         });
 
         pw.addEventListener('contextmenu', function(e){ e.preventDefault(); e.stopPropagation(); });
 
-        // Tap court → plein écran
+        // Souris (desktop) — même logique d'appui long, sans toucher au comportement tactile
+        pw.addEventListener('mousedown', function(e){
+          startPress(e.clientX, e.clientY);
+          document.addEventListener('mouseup', function(){
+            pressActive = false;
+            clearTimeout(tapT);
+          }, { once:true });
+        });
+        pw.addEventListener('mousemove', function(){ if(pressActive){ moved = true; clearTimeout(tapT); } });
+
+        // Tap court / clic court → plein écran
         innerEl.addEventListener('touchend', function(e){
           if(lpFired){ lpFired = false; return; }
           if(!moved) window._dmOpenPhotoViewer && window._dmOpenPhotoViewer(m.photo_url);
         });
-        innerEl.addEventListener('click', function(e){ e.stopPropagation(); });
+        innerEl.addEventListener('click', function(e){
+          e.stopPropagation();
+          if(lpFired){ lpFired = false; return; }
+          if(!moved) window._dmOpenPhotoViewer && window._dmOpenPhotoViewer(m.photo_url);
+        });
       })(msg, photoWrap, inner);
       return; // pas de bulle classique
     }
@@ -1852,15 +1871,15 @@
       posterImg.draggable = false;
 
       (function(m, vw, innerEl){
-        var tapT = null, moved = false, lpFired = false;
+        var tapT = null, moved = false, lpFired = false, pressActive = false;
 
-        vw.addEventListener('touchstart', function(e){
-          moved = false; lpFired = false;
+        function startPress(x, y){
+          moved = false; lpFired = false; pressActive = true;
           tapT = setTimeout(function(){
-            if(!moved){
+            if(!moved && pressActive){
               lpFired = true;
               vw.style.opacity = '0';
-              openCtxMenu({clientX: window.innerWidth/2, clientY: window.innerHeight/2}, m, vw, vw);
+              openCtxMenu({clientX: x, clientY: y}, m, vw, vw);
               var tid = setInterval(function(){
                 if(!document.querySelector('.dm-ctx-overlay-blur')){
                   vw.style.opacity = '';
@@ -1869,23 +1888,42 @@
               }, 100);
             }
           }, 500);
+        }
+
+        vw.addEventListener('touchstart', function(e){
+          startPress(window.innerWidth/2, window.innerHeight/2);
         }, {passive:true});
 
         vw.addEventListener('touchmove', function(){ moved = true; clearTimeout(tapT); }, {passive:true});
 
         vw.addEventListener('touchend', function(e){
+          pressActive = false;
           clearTimeout(tapT);
           if(lpFired){ e.preventDefault(); e.stopPropagation(); }
         });
 
         vw.addEventListener('contextmenu', function(e){ e.preventDefault(); e.stopPropagation(); });
 
-        // Tap court → lecture plein écran (seul moment où la vidéo est réellement chargée)
+        // Souris (desktop) — même logique d'appui long, sans toucher au comportement tactile
+        vw.addEventListener('mousedown', function(e){
+          startPress(e.clientX, e.clientY);
+          document.addEventListener('mouseup', function(){
+            pressActive = false;
+            clearTimeout(tapT);
+          }, { once:true });
+        });
+        vw.addEventListener('mousemove', function(){ if(pressActive){ moved = true; clearTimeout(tapT); } });
+
+        // Tap court / clic court → lecture plein écran (seul moment où la vidéo est réellement chargée)
         innerEl.addEventListener('touchend', function(e){
           if(lpFired){ lpFired = false; return; }
           if(!moved && m.video_url) window._dmOpenVideoViewer && window._dmOpenVideoViewer(m.video_url);
         });
-        innerEl.addEventListener('click', function(e){ e.stopPropagation(); });
+        innerEl.addEventListener('click', function(e){
+          e.stopPropagation();
+          if(lpFired){ lpFired = false; return; }
+          if(!moved && m.video_url) window._dmOpenVideoViewer && window._dmOpenVideoViewer(m.video_url);
+        });
       })(msg, videoWrap, vInner);
       return; // pas de bulle classique
     }
