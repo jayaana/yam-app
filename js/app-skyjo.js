@@ -390,7 +390,7 @@
     var s=document.createElement('style'); s.id='sjMancheDropdownStyle';
     s.textContent=[
       '.skyjo-manche-badge{cursor:pointer;user-select:none;}',
-      '.sj-manche-dd{position:absolute;top:calc(100% + 4px);left:0;min-width:150px;max-width:220px;background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:8px 10px;box-shadow:0 6px 20px rgba(0,0,0,0.3);z-index:50;display:none;}',
+      '.sj-manche-dd{position:absolute;top:calc(100% + 4px);left:0;max-width:220px;background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:8px 10px;box-shadow:0 6px 20px rgba(0,0,0,0.3);z-index:50;display:none;}',
       '.sj-manche-dd.open{display:block;}',
       '.sj-manche-dd-title{font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;white-space:nowrap;}',
       '.sj-manche-dd-table{display:grid;grid-template-columns:22px 28px 28px;row-gap:3px;column-gap:4px;align-items:center;}',
@@ -414,8 +414,8 @@
     // Header + lignes dans UNE seule grille → colonnes garanties identiques (alignement parfait)
     var html='<div class="sj-manche-dd-title">Scores par manche</div><div class="sj-manche-dd-table">'
       +'<span class="sj-manche-dd-hcell"></span>'
-      +'<span class="sj-manche-dd-hcell sj-manche-dd-av"><img src="'+girlSrc+'" alt=""></span>'
-      +'<span class="sj-manche-dd-hcell sj-manche-dd-av"><img src="'+boySrc+'" alt=""></span>';
+      +'<span class="sj-manche-dd-hcell"><span class="sj-manche-dd-av"><img src="'+girlSrc+'" alt=""></span></span>'
+      +'<span class="sj-manche-dd-hcell"><span class="sj-manche-dd-av"><img src="'+boySrc+'" alt=""></span></span>';
     if(!hist.length){
       html+='</div><div class="sj-manche-dd-empty">Aucun score</div>';
       dd.innerHTML=html;
