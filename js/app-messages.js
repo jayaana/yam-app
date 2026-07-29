@@ -1793,6 +1793,22 @@
       return; // pas de bulle classique
     }
 
+    // ── Vidéo expirée (contenu vidé par le nettoyage 30 jours, mais pas supprimée manuellement) ──
+    if(msg.message_type === 'video' && !msg.poster_url && !msg.deleted){
+      var expWrap = document.createElement('div');
+      expWrap.className = 'dm-wrap' + (mine ? ' mine' : '');
+      expWrap.dataset.id = msg.id;
+      var expBbl = document.createElement('div');
+      expBbl.className = 'dm-bubble deleted';
+      var expTxt = document.createElement('span');
+      expTxt.className = 'dm-bubble-text';
+      expTxt.textContent = '🎥 Vidéo expirée (+30 jours)';
+      expBbl.appendChild(expTxt);
+      expWrap.appendChild(expBbl);
+      el.appendChild(expWrap);
+      return;
+    }
+
     // ── Rendu spécial VIDÉO (poster uniquement — la vidéo ne charge qu'à l'ouverture) ──
     if(msg.message_type === 'video' && msg.poster_url && !msg.deleted){
       var videoWrap = document.createElement('div');
