@@ -406,9 +406,42 @@
     }
     if(sendBtn) sendBtn.addEventListener('click', doSend);
 
+    // ── Menu perso Photo / Vidéo — texte clair, affiché avant le sélecteur natif ──
+    function _dmOpenMediaSheet(kind){
+      var sheet   = document.getElementById('dmMediaSheet');
+      var title   = document.getElementById('dmMediaSheetTitle');
+      var btnCap  = document.getElementById('dmMediaSheetCapture');
+      var btnLib  = document.getElementById('dmMediaSheetLibrary');
+      var btnCancel = document.getElementById('dmMediaSheetCancel');
+      var bg      = document.getElementById('dmMediaSheetBg');
+      if(!sheet || !title || !btnCap || !btnLib) return;
+
+      var input     = (kind === 'video') ? videoInput : photoInput;
+      var captureLbl= (kind === 'video') ? 'Filmer une vidéo'      : 'Prendre une photo';
+      var libraryLbl= (kind === 'video') ? 'Choisir une vidéo'     : 'Choisir une photo';
+      title.textContent = (kind === 'video') ? 'Vidéo' : 'Photo';
+      btnCap.querySelector('span').textContent = captureLbl;
+      btnLib.querySelector('span').textContent = libraryLbl;
+
+      function close(){ sheet.style.display = 'none'; }
+
+      btnCap.onclick = function(){
+        close();
+        if(input){ input.setAttribute('capture', 'environment'); input.click(); }
+      };
+      btnLib.onclick = function(){
+        close();
+        if(input){ input.removeAttribute('capture'); input.click(); }
+      };
+      btnCancel.onclick = close;
+      bg.onclick = close;
+
+      sheet.style.display = 'flex';
+    }
+
     // ── Bouton galerie photo ──
     if(photoBtn && photoInput){
-      photoBtn.addEventListener('click', function(){ photoInput.click(); });
+      photoBtn.addEventListener('click', function(){ _dmOpenMediaSheet('photo'); });
       photoInput.addEventListener('change', function(){
         var file = photoInput.files && photoInput.files[0];
         if(!file) return;
@@ -419,7 +452,7 @@
 
     // ── Bouton vidéo (1 min max) ──
     if(videoBtn && videoInput){
-      videoBtn.addEventListener('click', function(){ videoInput.click(); });
+      videoBtn.addEventListener('click', function(){ _dmOpenMediaSheet('video'); });
       videoInput.addEventListener('change', function(){
         var file = videoInput.files && videoInput.files[0];
         if(!file) return;
