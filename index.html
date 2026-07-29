@@ -14,7 +14,7 @@
      • style-src : 'unsafe-inline' conservé (552 attributs style= dans le HTML)
      • connect-src : uniquement le projet Supabase YAM (REST + Storage + Edge + Realtime WSS)
      • img-src : blob: (photos DM) + GitHub raw (GIFs mascotte) + Supabase Storage + YouTube thumbnails (cowatch)
-     • media-src : blob: + data: pour vocaux (aperçu local + base64 décodé)
+     • media-src : blob: + data: (vocaux : aperçu local + base64 décodé) + Supabase Storage (vidéos DM)
      • frame-ancestors 'none' : bloque le clickjacking
      • Fichiers externalisés : js/app-inline.js (14 blocs) + js/app-realtime-init.js
 ════════════════════════════════════════════════ -->
@@ -24,7 +24,7 @@
   style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.jsdelivr.net;
   font-src 'self' fonts.gstatic.com cdn.jsdelivr.net data:;
   img-src 'self' blob: data: raw.githubusercontent.com https://jstiwtbgkbedtldqjdhp.supabase.co https://img.youtube.com https://i.ytimg.com https://lh3.googleusercontent.com https://www.gutenberg.org https://www.canva.com https://*.canva.com https://canva.link;
-  media-src 'self' blob: data:;
+  media-src 'self' blob: data: https://jstiwtbgkbedtldqjdhp.supabase.co;
   connect-src 'self'
     https://jstiwtbgkbedtldqjdhp.supabase.co
     wss://jstiwtbgkbedtldqjdhp.supabase.co
