@@ -74,7 +74,7 @@
     }).catch(function(){cb(null);});
   }
   function _saveSB(cid,role,phrases){
-    fetch(SB_URL+'/rest/v1/photo_descs',{
+    fetch(SB_URL+'/rest/v1/photo_descs?on_conflict=couple_id,category,slot',{
       method:'POST',
       headers:sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),
       body:JSON.stringify({couple_id:cid,category:'mascot',slot:_sbSlot(role),description:JSON.stringify(phrases)})
@@ -315,7 +315,7 @@
     if(_rowId){
       fetch(SB_URL+'/rest/v1/photo_descs?id=eq.'+_rowId,{method:'PATCH',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify({description:JSON.stringify(_data)})}).catch(function(){});
     } else {
-      fetch(SB_URL+'/rest/v1/photo_descs',{method:'POST',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=representation'}),body:JSON.stringify({couple_id:cid,category:CAT,slot:SLOT,description:JSON.stringify(_data)})})
+      fetch(SB_URL+'/rest/v1/photo_descs?on_conflict=couple_id,category,slot',{method:'POST',headers:sb2Headers({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=representation'}),body:JSON.stringify({couple_id:cid,category:CAT,slot:SLOT,description:JSON.stringify(_data)})})
       .then(function(r){return r.ok?r.json():null;}).then(function(rows){if(rows&&rows[0])_rowId=rows[0].id;}).catch(function(){});
     }
   }
