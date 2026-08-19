@@ -614,22 +614,27 @@ function _nousInitBatch(onSuccess, onFallback) {
 
   var profile = (typeof getProfile==='function') ? getProfile() : 'girl';
 
-  fetch(SB2_EDGE_YAM_INIT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (yamGetAccessToken ? yamGetAccessToken() : '') },
-    body: JSON.stringify({ couple_id: u.couple_id, profile: profile })
-  })
-  .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
-  .then(function(res) {
-    if(res && res.ok && res.data) {
-      _nousApplyBatchData(res.data);
-      onSuccess();
-    } else {
+  // Rafraîchit le JWT si nécessaire avant l'appel — évite un 401 sur token expiré
+  var _refreshStep = (typeof yamRefreshIfNeeded==='function') ? yamRefreshIfNeeded() : Promise.resolve(null);
+
+  Promise.resolve(_refreshStep).then(function(){
+    fetch(SB2_EDGE_YAM_INIT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (yamGetAccessToken ? yamGetAccessToken() : '') },
+      body: JSON.stringify({ couple_id: u.couple_id, profile: profile })
+    })
+    .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function(res) {
+      if(res && res.ok && res.data) {
+        _nousApplyBatchData(res.data);
+        onSuccess();
+      } else {
+        onFallback();
+      }
+    })
+    .catch(function() {
       onFallback();
-    }
-  })
-  .catch(function() {
-    onFallback();
+    });
   });
 }
 
