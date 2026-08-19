@@ -620,7 +620,7 @@ function _nousInitBatch(onSuccess, onFallback) {
   Promise.resolve(_refreshStep).then(function(){
     fetch(SB2_EDGE_YAM_INIT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SB_ANON_KEY, 'Authorization': 'Bearer ' + (yamGetAccessToken ? yamGetAccessToken() : '') },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (yamGetAccessToken ? yamGetAccessToken() : '') },
       body: JSON.stringify({ couple_id: u.couple_id, profile: profile })
     })
     .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
