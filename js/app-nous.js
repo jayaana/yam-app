@@ -620,7 +620,7 @@ function _nousInitBatch(onSuccess, onFallback) {
   Promise.resolve(_refreshStep).then(function(){
     fetch(SB2_EDGE_YAM_INIT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (yamGetAccessToken ? yamGetAccessToken() : '') },
+      headers: { 'Content-Type': 'application/json', 'apikey': SB_ANON_KEY, 'Authorization': 'Bearer ' + (yamGetAccessToken ? yamGetAccessToken() : '') },
       body: JSON.stringify({ couple_id: u.couple_id, profile: profile })
     })
     .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
@@ -4363,7 +4363,7 @@ document.addEventListener('yam:session_ready',function(){
 
     var prompt = 'Tu es un passionné de littérature. Propose EXACTEMENT 5 livres à lire en couple, variés et captivants.\n\nRÉPARTITION OBLIGATOIRE des genres :\n- 2 livres sur 5 : romance, amour, émotion, histoire touchante (priorité)\n- 1 livre sur 5 : thriller ou suspense\n- 1 livre sur 5 : fantasy ou science-fiction\n- 1 livre sur 5 : développement personnel ou feel-good\n\nRÈGLES :\n- Titres en français (version traduite si livre étranger)\n- Pas de bestsellers ultra-connus comme Le Petit Prince ou L\'Alchimiste\n- Propose des livres variés, pas toujours les mêmes classiques\n- La description doit être riche, détaillée et donner vraiment envie de lire le livre : raconte l\'ambiance, les émotions, pourquoi ce livre est marquant\n\nFORMAT : réponds UNIQUEMENT en JSON strict sans texte autour :\n[{"title":"Titre","author":"Auteur","desc":"Description riche et détaillée"},...]';
 
-    fetch(GROQ_EDGE,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(yamGetAccessToken?yamGetAccessToken():'')},body:JSON.stringify({prompt:prompt})})
+    fetch(GROQ_EDGE,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON_KEY,'Authorization':'Bearer '+(yamGetAccessToken?yamGetAccessToken():'')},body:JSON.stringify({prompt:prompt})})
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(data.error) throw new Error(data.error);
@@ -4692,7 +4692,7 @@ window.nousLoad = function(){
 
     fetch(GROQ_EDGE, {
       method: 'POST',
-      headers: {'Content-Type':'application/json','Authorization':'Bearer '+(yamGetAccessToken?yamGetAccessToken():'')},
+      headers: {'Content-Type':'application/json','apikey':SB_ANON_KEY,'Authorization':'Bearer '+(yamGetAccessToken?yamGetAccessToken():'')},
       body: JSON.stringify({prompt: prompt})
     })
     .then(function(r){ return r.json(); })
