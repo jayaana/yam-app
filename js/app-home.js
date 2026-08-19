@@ -201,10 +201,14 @@
     fetch(GROQ_EDGE, {method:'POST', headers:headers, body:JSON.stringify({prompt:prompt})})
     .then(function(r){ return r.json(); })
     .then(function(d){
+      if(d.error) throw new Error(d.error);
       var raw = (d.text || '').trim();
       var match = raw.match(/\[[\s\S]*\]/);
       var phrases = [];
       if(match){ try{ phrases = JSON.parse(match[0]); }catch(e){} }
+      if(!Array.isArray(phrases) || phrases.filter(function(p){return p && p.toString().trim().length>3;}).length < 10){
+        throw new Error('Reponse Groq invalide ou incomplete');
+      }
       function _fixText(s){
         // Récupération des apostrophes mangées par certains parseurs JSON
         return s
