@@ -4588,7 +4588,7 @@ window.nousLoad = function(){
     var cid = _getCoupleId(); if(!cid) return;
     var wk = _getWeekKey();
     var payload = { words: words, regen: regenCount||0 };
-    fetch(SB_URL+'/rest/v1/photo_descs', {
+    fetch(SB_URL+'/rest/v1/photo_descs?on_conflict=couple_id,category,slot', {
       method: 'POST',
       headers: sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),
       body: JSON.stringify({ couple_id: cid, category: 'semaine', slot: wk, description: JSON.stringify(payload) })
