@@ -3918,7 +3918,13 @@ function _mindApplyState(state) {
         _mindOppCount = _mindOppCards.length;
       }
       // Toast + flash rouge
-      _mindShowToast('🔥 ' + _memGetName(burnRole) + ' avait ' + burnedList.join(', ') + ' — défaussé ! -1 ❤️', '#3a1500');
+      var burnTxt = [];
+      ['girl', 'boy'].forEach(function(r) {
+        var l = state.burned.by && state.burned.by[r];
+        if (l && l.length) burnTxt.push(_memGetName(r) + ' avait ' + l.join(', '));
+      });
+      if (!burnTxt.length) burnTxt.push(_memGetName(burnRole) + ' avait ' + burnedList.join(', '));
+      _mindShowToast('🔥 ' + burnTxt.join(' · ') + ' — défaussé ! -1 ❤️', '#3a1500');
       if (navigator.vibrate) navigator.vibrate([60, 40, 60, 40, 60]);
       var flash = document.createElement('div');
       flash.style.cssText = 'position:fixed;inset:0;background:rgba(200,60,20,0.18);pointer-events:none;z-index:9990;transition:opacity 0.4s;';
@@ -4176,24 +4182,11 @@ function _mindPlayCard(idx) {
   // Mettre à jour la main du joueur courant dans le state partagé
   ns[_memProfile + '_cards'] = _mindMyCards.slice();
 
-  var isError = (card < top);
+  // Règle officielle : la carte jouée est toujours posée ; si un joueur (moi compris)
+  // tenait une carte plus petite, c'est UNE erreur (-1 vie) et toutes les cartes
+  // plus petites sont défaussées des deux mains (voir _mindDoPlayWithOppCards).
 
-  if (isError) {
-    // ── Erreur : ordre cassé ──
-    // pile inchangée — la carte jouée hors ordre n'est pas posée
-    ns[_memProfile + '_cards'] = _mindMyCards.slice();  // déjà mis à jour
-    ns.lives = Math.max(0, (ns.lives || 5) - 1);
-    ns.error = { role: _memProfile, card: card, ts: Date.now() };
-    ns.last_played = null;
-    if (ns.lives <= 0) ns.winner = 'lose';
-    // Déverrouiller après l'animation d'erreur (gérée dans _mindApplyState via realtime)
-    // Mais si le realtime est lent, on déverrouille quand même après 1.5s
-    setTimeout(function() { if (_mindLocked) { _mindLocked = false; _mindRenderMyCards(); } }, 1500);
-    _memMp.saveState(ns);
-    return;
-  }
-
-  // ── Coup valide : ajouter la carte à la pile
+  // ── Coup : ajouter la carte à la pile
   pile.push(card);
   ns.pile  = pile;
   ns.error = null;
@@ -4206,11 +4199,22 @@ function _mindPlayCard(idx) {
     // Source de vérité : la main adversaire EST dans le state partagé (ns[otherRole+'_cards']).
     // Pas de fetch, pas de variable locale — les deux joueurs lisent/écrivent le même objet.
     var oppCardsInState = (ns[_memOther + '_cards'] || []).slice();
-    var burnedCards = oppCardsInState.filter(function(c) { return c < card; });
+    var burnedOpp = oppCardsInState.filter(function(c) { return c < card; });
+    var burnedMine = _mindMyCards.filter(function(c) { return c < card; });
+    var burnedCards = burnedOpp.concat(burnedMine).sort(function(a, b) { return a - b; });
 
     if (burnedCards.length > 0) {
-      // Retirer les cartes brûlées de la main adverse dans le state partagé
+      // Retirer les cartes plus petites des DEUX mains (la mienne comprise)
       var newOppCards = oppCardsInState.filter(function(c) { return c >= card; });
+      if (burnedMine.length > 0) {
+        _mindMyCards = _mindMyCards.filter(function(c) { return c >= card; });
+        ns[_memProfile + '_cards'] = _mindMyCards.slice();
+        var coupleIdMine = _memGetCoupleId();
+        if (coupleIdMine) {
+          _mindPatch('couple_id=eq.' + coupleIdMine + '&role=eq.' + _memProfile, { cards: _mindMyCards }).catch(function(){});
+        }
+        _mindRenderMyCards();
+      }
       ns[_memOther + '_cards'] = newOppCards;
       // Mettre à jour aussi le cache local pour le rendu
       _mindOppCards = newOppCards;
@@ -4225,7 +4229,10 @@ function _mindPlayCard(idx) {
       // Perdre 1 PV
       ns.lives = Math.max(0, (ns.lives || 5) - 1);
       // Signaler les cartes brûlées pour l'animation de révélation
-      ns.burned = { cards: burnedCards, role: _memOther, ts: Date.now() };
+      var burnedBy = {};
+      burnedBy[_memOther] = burnedOpp;
+      burnedBy[_memProfile] = burnedMine;
+      ns.burned = { cards: burnedCards, role: burnedOpp.length ? _memOther : _memProfile, by: burnedBy, ts: Date.now() };
       if (ns.lives <= 0) { ns.winner = 'lose'; }
     } else {
       ns.pile  = pile;
@@ -4237,7 +4244,7 @@ function _mindPlayCard(idx) {
     // n'y sont plus pushées — le count serait faux après un burn.
     var myCardsEmpty  = (ns[_memProfile + '_cards'] || []).length === 0;
     var oppCardsEmpty = (ns[_memOther   + '_cards'] || []).length === 0;
-    if (myCardsEmpty && oppCardsEmpty) {
+    if (myCardsEmpty && oppCardsEmpty && !ns.winner) {
       if (ns.level >= 12) {
         ns.winner = 'win';
       } else {
