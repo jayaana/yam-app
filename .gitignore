@@ -6,3 +6,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Doc privée (détaillée) : reste en local, jamais dans le dépôt public
+CLAUDE.md
