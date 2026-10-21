@@ -417,7 +417,7 @@
     // Regénérer si : aucun rappel actif disponible ET pas encore généré aujourd'hui
     var cid=_cid(); if(!cid) return;
     if(_active().length>0) return;   // il reste des rappels à faire
-    if(!_canGenToday()) return;       // déjà généré aujourd'hui
+    if(!_canGenToday()){ _card(); return; }       // déjà généré aujourd'hui (_card remplace « Chargement… »)
     var loader=document.getElementById('rshLoader'); if(loader) loader.style.display='flex';
     var _days=window.startDate?Math.floor((Date.now()-new Date(window.startDate))/(1000*60*60*24)):0;
     var _saison=['hiver','hiver','printemps','printemps','printemps','ete','ete','ete','automne','automne','automne','hiver'][new Date().getMonth()];
