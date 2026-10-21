@@ -7,7 +7,6 @@
 // ═══════════════════════════════════════════════════════════
 
 var _gamesLoaded = true;
-function _loadGames() {}
 
 // ── État courant (mis à jour à chaque onStateUpdate) ──
 var _memLastState = null;
@@ -257,7 +256,7 @@ function _memCleanup() {
 // OUVERTURE / FERMETURE
 // ═══════════════════════════════════════════════════════════
 
-function openMemoryGame() {
+function _memOpenGameImpl() {
   _memProfile = _memGetProfile();
   _memOther   = _memProfile === 'girl' ? 'boy' : 'girl';
   _yamSlide(document.getElementById('memoryView'), document.getElementById('gamesView'), 'forward');
@@ -283,14 +282,14 @@ function openMemoryGame() {
 }
 
 // Quitter définitivement — même comportement qu'Ocho/Skyjo
-function closeMemoryGame() {
+function _memCloseGameImpl() {
   // Mode ALL en cours (pas encore terminé) → AFK, exactement comme les autres modes :
   // stopAll() coupe le heartbeat (_presenceActive=false) PUIS deletePresence() vide la
   // ligne en base. Au retour, enterLobby() vérifie presenceEmpty :
   //   • Les deux partis → presenceEmpty=true → purge la partie fantôme
   //   • Un seul parti  → l'adversaire a relancé la présence → rejoint directement
   // _memMp et _memLastState restent en mémoire (pas de cleanup) pour que le flag
-  // _memAllAfk puisse être détecté dans openMemoryGame().
+  // _memAllAfk puisse être détecté dans _memOpenGameImpl().
   var _isAllInProgress = (_memCurrentMode === 'all' || (_memLastState && _memLastState.mode === 'all'))
                           && _memMp && _memLastState && !_memLastState.winner;
   if (_isAllInProgress) {
@@ -441,7 +440,7 @@ function _memStartLobby() {
         'Quitter', function(){
           // Forcer le cleanup même en mode ALL (l'adversaire a choisi de quitter)
           _memCurrentMode = null;
-          closeMemoryGame();
+          _memCloseGameImpl();
         });
     }
   });
@@ -1608,7 +1607,7 @@ function _allBuildArchiState() {
 
 function _allStart(gameRow) {
   // Reset complet de tout l'etat ALL — critique pour eviter les residus d'une partie precedente
-  _memCurrentMode = 'all'; // marquer explicitement pour closeMemoryGame et openMemoryGame
+  _memCurrentMode = 'all'; // marquer explicitement pour _memCloseGameImpl et _memOpenGameImpl
   _allStep = null; _allResults = {}; _allResultShown = false;
   _allEchoSaved = false; _allEchoPublished = false; _allArchiSaved = false; _allArchiShowUntil = 0;
   // Reset etat Classic ALL
@@ -2436,10 +2435,8 @@ function _memEnsureProfileBar(screenId, meId, oppId, extraClass) {
 }
 
 // ── Expose globaux ──
-window.openMemoryGame  = openMemoryGame;
-window.closeMemoryGame = closeMemoryGame;
-window._memOpenGame    = openMemoryGame;
-window._memCloseGame   = closeMemoryGame;
+window._memOpenGame    = _memOpenGameImpl;
+window._memCloseGame   = _memCloseGameImpl;
 window._memRouteState  = _memRouteState;
 
 // ═══════════════════════════════════════════════════════════
