@@ -1441,7 +1441,7 @@
           a.download = prefix + Date.now() + '.' + ext;
           document.body.appendChild(a); a.click();
           setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
-        }).catch(function(){ window.open(srcUrl, '_blank'); });
+        }).catch(function(){ if(/^https:\/\//i.test(srcUrl)) window.open(srcUrl, '_blank', 'noopener,noreferrer'); });
       });
       ctxMenu.appendChild(dlItem);
     }
