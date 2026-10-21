@@ -341,7 +341,12 @@ function _yamInitRealtime() {
   if (window._yamRT) return;
   if (!window.supabase) { console.warn('[RT] supabase-js non chargé'); return; }
 
-  window._yamRT = window.supabase.createClient(SB_URL, SB_ANON_KEY);
+  // accessToken : supabase-js >= 2.1xx ré-applique la clé anon à la connexion du WebSocket
+  // et écrase setAuth(jwt) → canaux joints en anon → plus aucun événement (RLS). Le callback
+  // redonne toujours le JWT de la session à chaque (re)connexion.
+  window._yamRT = window.supabase.createClient(SB_URL, SB_ANON_KEY, {
+    accessToken: function() { return Promise.resolve(yamGetAccessToken() || SB_ANON_KEY); }
+  });
 
   // ── CLEF : passer le JWT Supabase Auth natif au client Realtime
   // Cela active auth.uid() dans les policies Realtime côté Supabase
