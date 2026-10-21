@@ -75,6 +75,45 @@ var _gAudio = (function(){
   return a;
 })();
 
+// ════════════════════════════════════════════════════════════
+// MP3 dans Supabase Storage (bucket privé "music")
+// Les 48 adresses signées sont demandées d'un coup, pour que le changement
+// de piste reste synchrone (indispensable en arrière-plan sur iOS).
+// ════════════════════════════════════════════════════════════
+var _MUSIC_KEY = 'yam_music_urls_v1', _MUSIC_TTL = 86400, _MUSIC_REUSE_MS = 20 * 3600 * 1000;
+var _musicUrls = {}, _musicLoading = null, _musicTried = false;
+
+function _musicStorageName(file){
+  return file.replace(/\.mp3$/i, '').normalize('NFKD').replace(/[^\x00-\x7F]/g, '').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') + '.mp3';
+}
+
+function _musicEnsureUrls(){
+  if(Object.keys(_musicUrls).length) return Promise.resolve();
+  if(_musicLoading) return _musicLoading;
+  try {
+    var saved = JSON.parse(localStorage.getItem(_MUSIC_KEY) || 'null');
+    if(saved && saved.urls && Date.now() - saved.t < _MUSIC_REUSE_MS){ _musicUrls = saved.urls; return Promise.resolve(); }
+  } catch(e) {}
+  if(!yamGetAccessToken()) return Promise.resolve();
+  var names = songsLove.map(function(s){ return _musicStorageName(s.file); });
+  _musicLoading = fetch(SB_URL + '/storage/v1/object/sign/music', {
+    method: 'POST', headers: sb2Headers(), body: JSON.stringify({ expiresIn: _MUSIC_TTL, paths: names })
+  }).then(function(r){ if(!r.ok) throw new Error('sign ' + r.status); return r.json(); })
+  .then(function(rows){
+    var byName = {};
+    rows.forEach(function(x){ if(x.signedURL && !x.error) byName[x.path] = SB_URL + '/storage/v1' + x.signedURL; });
+    songsLove.forEach(function(s){ var u = byName[_musicStorageName(s.file)]; if(u) _musicUrls[s.file] = u; });
+    try { localStorage.setItem(_MUSIC_KEY, JSON.stringify({ t: Date.now(), urls: _musicUrls })); } catch(e) {}
+  }).catch(function(e){ console.warn('[YAM] adresses musique indisponibles:', e); })
+  .then(function(){ _musicLoading = null; });
+  return _musicLoading;
+}
+
+// Adresse de lecture : Storage si disponible, sinon fichier du dépôt (transition)
+function _musicSrc(song){ return _musicUrls[song.file] || song.file; }
+function _musicSetSrc(song){ _gAudio.src = _musicSrc(song); _gAudio.dataset.yamFile = song.file; }
+
 // État courant du player
 var _currentSong  = null;  // objet songsLove en cours
 var _currentIndex = -1;    // index dans la playlist triée courante
@@ -152,6 +191,13 @@ function _updateRowUI(song, playing){
 function _playSong(song){
   if(!song) return;
 
+  // Adresses Storage pas encore prêtes (1er clic juste après connexion) : on les attend une seule fois
+  if(!Object.keys(_musicUrls).length && !_musicTried && yamGetAccessToken()){
+    _musicTried = true;
+    _musicEnsureUrls().then(function(){ _playSong(song); });
+    return;
+  }
+
   var wasPlaying = _currentSong;
 
   // Met à jour l'UI de l'ancienne piste
@@ -162,12 +208,8 @@ function _playSong(song){
   _isPlaying = true;
 
   // Pas de pause/play — on change juste le src si nécessaire
-  var newSrc = song.file;
-  var curSrc = '';
-  try { curSrc = decodeURIComponent(_gAudio.src).split('/').pop(); } catch(e) { curSrc = _gAudio.src; }
-
-  if(curSrc !== newSrc){
-    _gAudio.src = newSrc;
+  if(_gAudio.dataset.yamFile !== song.file){
+    _musicSetSrc(song);
   }
 
   var playPromise = _gAudio.play();
@@ -242,7 +284,7 @@ _gAudio.addEventListener('ended', function(){
     _currentSong = next;
     _currentIndex = _playlist.indexOf(next);
     _isPlaying = true;
-    _gAudio.src = next.file;
+    _musicSetSrc(next);
     var ep = _gAudio.play();
     if(ep && ep.catch) ep.catch(function(e){
       console.warn('[YAM] ended->play() rejected:', e);
@@ -299,6 +341,7 @@ var TOP_VISIBLE = 4, top50Expanded = false;
 var favoritesCache = {};
 
 function renderTop50(){
+  _musicEnsureUrls();
   var sorted = songsLove.slice().sort(function(a,b){ return b.plays - a.plays; });
   var newRanks = {};
   sorted.forEach(function(s,i){ newRanks[s.file] = i+1; });
