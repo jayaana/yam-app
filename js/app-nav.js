@@ -1156,6 +1156,10 @@ setTimeout(function(){
     var dx = e.changedTouches[0].clientX - _gsx;
     var dy = e.changedTouches[0].clientY - _gsy;
 
+    // Snake : le glissement sert à diriger le serpent → retour seulement depuis le bord gauche
+    var sv = document.getElementById('snakeView');
+    if(sv && sv.classList.contains('active') && _gsx > 30) return;
+
     if(dx <= 0) return;
     if(Math.abs(dx) < 55) return;
     if(Math.abs(dy) > Math.abs(dx) * 0.7) return;

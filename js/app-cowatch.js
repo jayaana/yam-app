@@ -1077,6 +1077,19 @@
         _handleReacts(state);
         _updatePresenceUI(row.presence||{});
         _applyChat(row.chat||[]);
+        // Hôte absent depuis plus d'une minute (page rechargée/fermée) : on libère le salon
+        if(!_isHost){
+          var hp=(row.presence||{})[_otherRole(_myRole)];
+          if(hp&&(Date.now()-hp)>60000){
+            fetch(SB_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId),{
+              method:'PATCH',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
+              body:JSON.stringify({active:false,chat:[],presence:{},state:{playing:false,currentTime:0,ts:0,reactions:[],joined:false}})
+            }).catch(function(){});
+            _stopAll();
+            if(typeof showToast==='function')showToast("L'hôte est parti, session terminée",'info');
+            _sc('cwScLobby');
+          }
+        }
       }).catch(function(){});
     },interval);
   }
@@ -1369,12 +1382,20 @@
     if(_plJustOpened&&items[_plIndex]){items[_plIndex].scrollIntoView({block:'nearest'});_plJustOpened=false;}
   }
 
+  // Fusionne avec l'état en base : ne perd plus réactions, commandes ni flag joined
   function _saveState(patch){
     if(!_sessionId)return;
-    fetch(SB_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId),{
-      method:'PATCH',
-      headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
-      body:JSON.stringify({state:patch,updated_at:new Date().toISOString()})
+    var sid=_sessionId;
+    fetch(SB_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(sid)+'&select=state',{headers:sb2Headers()})
+    .then(function(r){return r.json();})
+    .then(function(rows){
+      var cur=(rows&&rows[0]&&rows[0].state)||{};
+      var merged=Object.assign({},cur,patch);
+      return fetch(SB_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(sid),{
+        method:'PATCH',
+        headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
+        body:JSON.stringify({state:merged,updated_at:new Date().toISOString()})
+      });
     }).catch(function(){});
   }
 
@@ -1809,7 +1830,11 @@
     )
     .then(function(r){ return r.json(); })
     .then(function(rows){
-      _applyLiveState(!!(rows && rows.length && rows[0].active));
+      var r0 = rows && rows[0];
+      var ok = !!(r0 && r0.active);
+      // session en lecture sans signe de vie depuis plus de 2 min = fantôme
+      if(ok && r0.state && r0.state.joined && r0.updated_at && (Date.now() - new Date(r0.updated_at).getTime()) > 120000) ok = false;
+      _applyLiveState(ok);
     }).catch(function(){});
   }
 

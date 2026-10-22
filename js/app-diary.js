@@ -1438,8 +1438,9 @@
 
     html += '</div>'; // fin diaryCanvaSection
 
-    // ── Partage ──
-    html += '<div style="margin-top:20px;padding:14px;background:var(--s2);border-radius:16px;' +
+    // Seul l'auteur gère le partage et la suppression (n° 7)
+    var _isAuthorEd = !page || page.author_role === getProfile();
+    if (_isAuthorEd) html += '<div style="margin-top:20px;padding:14px;background:var(--s2);border-radius:16px;' +
       'border:1px solid var(--border);">' +
       '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;">🔒 Accès partenaire</div>' +
       '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:8px;">' +
@@ -1466,7 +1467,7 @@
     '</div>';
 
     // Supprimer (si existant)
-    if (page) {
+    if (page && _isAuthorEd) {
       html += '<button id="diaryDeleteBtn" style="margin-top:14px;width:100%;padding:11px;' +
         'border-radius:14px;border:1px solid rgba(255,59,48,0.35);background:rgba(255,59,48,0.08);' +
         'color:#ff3b30;font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;">' +
@@ -1736,13 +1737,28 @@
   function _bindEditorEvents(page) {
     // Retour
     var backBtn = document.getElementById('diaryEditorBack');
-    if (backBtn) backBtn.addEventListener('click', function() {
+    function _editorSnap() {
+      var t = document.getElementById('diaryEditorTitle');
+      var e = document.getElementById('diaryEditor');
+      var n = document.getElementById('diaryCanvaNote');
+      return (t ? t.value : '') + '|' + (e ? e.textContent : '') + '|' + (n ? n.value : '') + '|' + _editorImages.length;
+    }
+    var _snap0 = null;
+    setTimeout(function() { _snap0 = _editorSnap(); }, 500);
+    function _goBack() {
       if (_currentPage) {
         _mode = 'read';
         _renderReadPage(_currentPage);
       } else {
         _mode = 'list';
         _renderList();
+      }
+    }
+    if (backBtn) backBtn.addEventListener('click', function() {
+      if (_snap0 !== null && _editorSnap() !== _snap0) {
+        _confirmSheet('Quitter sans enregistrer ?', 'Quitter', _goBack);
+      } else {
+        _goBack();
       }
     });
 
@@ -3428,7 +3444,13 @@
     var bgImageUrl = (_currentPage && _currentPage.bg_image_url) || null;
 
     // Garder l'auteur original si co-écriture (page appartenant au partenaire)
+    var isAuthorSave = !_currentPage || !_currentPage.author_role || _currentPage.author_role === u.role;
     var originalAuthor = (_currentPage && _currentPage.author_role) ? _currentPage.author_role : u.role;
+
+    if (content.length > 50000) {
+      showToast('Texte trop long (50 000 caractères maximum)', 'error');
+      return;
+    }
 
     var payload = {
       couple_id:        u.couple_id,
@@ -3441,13 +3463,14 @@
       canva_url:        canvaUrl,
       canva_design_id:  canvaDesignId,
       images:           JSON.stringify(_editorImages),
-      is_shared:        isShared,
-      partner_can_edit: isShared && canCowrite,
+      is_shared:        isAuthorSave ? isShared : !!_currentPage.is_shared,
+      partner_can_edit: isAuthorSave ? (isShared && canCowrite) : !!_currentPage.partner_can_edit,
       bg_image_url:     bgImageUrl,
       last_editor_role: u.role,   // auteur de cette modification
       updated_at:       new Date().toISOString(),
     };
 
+    function _go() {
     _saving = true;
     var saveBtn = document.getElementById('diaryEditorSave');
     if (saveBtn) { saveBtn.textContent = '⏳'; saveBtn.disabled = true; }
@@ -3490,6 +3513,20 @@
       yamLog('[Diary] Erreur save:', err);
       showToast('Erreur sauvegarde', 'error');
     });
+    }
+
+    // Avertir si l'autre a modifié la page depuis l'ouverture (n° 8)
+    if (_currentPage && _currentPage.id && _currentPage.updated_at) {
+      var base = new Date(_currentPage.updated_at).getTime();
+      sb2Fetch(DIARY_TBL, 'id=eq.' + _currentPage.id + '&select=updated_at,last_editor_role')
+        .then(function(rows) {
+          var r = rows && rows[0];
+          if (r && r.updated_at && new Date(r.updated_at).getTime() > base + 1000 && r.last_editor_role && r.last_editor_role !== u.role) {
+            _confirmSheet("L'autre a modifié cette page. Écraser ses changements ?", 'Écraser', _go);
+          } else { _go(); }
+        })
+        .catch(function() { _go(); });
+    } else { _go(); }
   }
 
   // ─── 12. SUPPRESSION ──────────────────────────────────────────────
