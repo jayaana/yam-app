@@ -17,11 +17,14 @@
   var GUTENDEX_API    = 'https://gutendex.com/books/';
   var GUTENBERG_BASE  = 'https://www.gutenberg.org';
   // Gutenberg bloque CORS sur toutes ses URLs — proxy obligatoire
-  // Deux proxys CORS gratuits (le 2e sert de secours), renvoient directement le texte
+  // Proxys CORS gratuits essayés dans l'ordre. r.jina.ai (testé le 22 oct) renvoie le texte
+  // précédé d'un petit en-tête « Markdown Content: » (retiré par _bkStripProxyHeader)
   var CORS_PROXIES    = [
+    'https://r.jina.ai/',
     'https://api.allorigins.win/raw?url=',
     'https://api.codetabs.com/v1/proxy?quest='
   ];
+  var BK_FETCH_TIMEOUT = 20000; // ms : sans limite, l'écran « Chargement… » ne finissait jamais
   var BK_LIBRARY_TBL  = 'book_library';
   var BK_READS_TBL    = 'book_reads';
   var BK_SESSIONS_TBL = 'book_sessions';
@@ -800,7 +803,7 @@
     var fallbackUrls = _bkBuildTextUrls(gutenbergId);
 
     // Essayer gutendex pour avoir l'URL exacte du fichier
-    fetch(GUTENDEX_API + gutenbergId + '/')
+    fetch(GUTENDEX_API + gutenbergId + '/', { signal: _bkTimeoutSignal(8000) })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         var formats = data.formats || {};
@@ -962,6 +965,14 @@
     });
   }
 
+  // Signal d'annulation après ms millisecondes (undefined si AbortController absent)
+  function _bkTimeoutSignal(ms) {
+    if (typeof AbortController === 'undefined') return undefined;
+    var c = new AbortController();
+    setTimeout(function () { c.abort(); }, ms);
+    return c.signal;
+  }
+
   // Fetch avec fallback en cascade — essaie chaque URL jusqu'à succès
   // Les URLs Gutenberg passent par un proxy CORS (bloqué nativement) ; chaque URL est essayée
   // avec chaque proxy (idx = index URL × nb proxys + index proxy)
@@ -972,18 +983,23 @@
     var isGut = originalUrl.indexOf('gutenberg.org') !== -1;
     // Une URL hors Gutenberg n'a pas besoin de proxy : on saute les proxys suivants
     if (!isGut && idx % nbP !== 0) { _bkFetchWithFallback(urls, idx + 1, cb); return; }
+    var proxy = CORS_PROXIES[idx % nbP];
     var fetchUrl = isGut
-      ? CORS_PROXIES[idx % nbP] + encodeURIComponent(originalUrl)
+      ? proxy + (proxy.indexOf('jina') !== -1 ? originalUrl : encodeURIComponent(originalUrl))
       : originalUrl;
 
     yamLog('[Books] Essai URL ' + (Math.floor(idx / nbP) + 1) + '/' + urls.length + ' (proxy ' + (idx % nbP + 1) + '):', originalUrl);
 
-    fetch(fetchUrl)
+    fetch(fetchUrl, { signal: _bkTimeoutSignal(BK_FETCH_TIMEOUT) })
       .then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.text();
       })
       .then(function (text) {
+        if (isGut && proxy.indexOf('jina') !== -1) {
+          var k = text.indexOf('Markdown Content:');
+          if (k !== -1) text = text.slice(k + 17).replace(/^\s+/, '');
+        }
         if (!text || text.trim().length < 100) throw new Error('Contenu trop court');
         // Un proxy en panne peut renvoyer une page HTML d'erreur au lieu du texte
         if (/^\s*<(!doctype|html)/i.test(text)) throw new Error('Réponse HTML');

@@ -1431,28 +1431,36 @@
     _showFloat(emoji,_myRole);
     _addChatMsg({type:'react',emoji:emoji,role:_myRole,ts:Date.now()},true);
     if(!_sessionId)return;
-    fetch(SB_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId)+'&select=state',{headers:sb2Headers()})
-    .then(function(r){return r.json();})
-    .then(function(rows){
-      if(!rows||!rows[0])return;
-      var state=rows[0].state||{};
-      var reacts=(state.reactions||[]).slice(-9);
-      reacts.push({emoji:emoji,role:_myRole,ts:Date.now()});
-      state.reactions=reacts;
-      fetch(SB_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(_sessionId),{
-        method:'PATCH',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
-        body:JSON.stringify({state:state})
+    var sid=_sessionId,sentTs=Date.now();
+    // File d'attente : deux envois rapprochés ne doivent pas lire le même état puis s'écraser
+    _reactChain=_reactChain.then(function(){
+      return fetch(SB_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(sid)+'&select=state',{headers:sb2Headers()})
+      .then(function(r){return r.json();})
+      .then(function(rows){
+        if(!rows||!rows[0])return;
+        var state=rows[0].state||{};
+        var reacts=(state.reactions||[]).slice(-9);
+        reacts.push({emoji:emoji,role:_myRole,ts:sentTs});
+        state.reactions=reacts;
+        return fetch(SB_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(sid),{
+          method:'PATCH',headers:sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
+          body:JSON.stringify({state:state})
+        });
       }).catch(function(){});
-    }).catch(function(){});
+    });
   };
+  var _reactChain=Promise.resolve();
 
   function _handleReacts(state){
     if(!Array.isArray(state.reactions)||!state.reactions.length)return;
-    var last=state.reactions[state.reactions.length-1];
-    if(!last||last.ts<=_lastReactTs||last.role===_myRole)return;
-    _lastReactTs=last.ts;
-    _showFloat(last.emoji,last.role);
-    _addChatMsg({type:'react',emoji:last.emoji,role:last.role,ts:last.ts},false);
+    // Toutes les réactions nouvelles de l'autre (deux envois rapprochés arrivent dans la même mise à jour)
+    var prevTs=_lastReactTs;
+    state.reactions.forEach(function(r){
+      if(!r||r.ts<=prevTs||r.role===_myRole)return;
+      if(r.ts>_lastReactTs)_lastReactTs=r.ts;
+      _showFloat(r.emoji,r.role);
+      _addChatMsg({type:'react',emoji:r.emoji,role:r.role,ts:r.ts},false);
+    });
   }
 
   function _showFloat(emoji,role){
