@@ -164,7 +164,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     var btn = document.getElementById('prankCancelAllBtn');
     if(btn) btn.textContent = '⏳ Annulation…';
     // PATCH active=false au lieu de DELETE — permet à la victime de détecter l'annulation en cours
-    fetch(SB_URL+'/rest/v1/'+PRANK_TABLE+'?couple_id=eq.'+coupleId+'&sender_role=eq.'+profile+'&active=eq.true', {
+    yamFetchOk(SB_URL+'/rest/v1/'+PRANK_TABLE+'?couple_id=eq.'+coupleId+'&sender_role=eq.'+profile+'&active=eq.true', {
       method: 'PATCH',
       headers: sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
       body: JSON.stringify({ active: false })
@@ -181,9 +181,9 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
         document.body.style.overflow = '';
         window.scrollTo(0, scrollY);
       }, 1200);
-    }).catch(function(){
+    }).catch(function(e){
       if(btn) btn.textContent = '🗑️ Annuler toutes mes bêtises en attente';
-      alert('Erreur réseau, réessaie !');
+      showPrankToast('❌ Annulation impossible : ' + e.message + '. Réessaie.');
     });
   };
 
@@ -234,7 +234,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     if(!partnerPseudo){ showPrankToast('🔒 Lie-toi à un couple d\'abord !'); return; }
     var victim = profile === 'boy' ? 'girl' : 'boy';
     var body = { type: type, sender_role: profile, couple_id: coupleId, active: true };
-    fetch(SB_URL+'/rest/v1/'+PRANK_TABLE, {
+    yamFetchOk(SB_URL+'/rest/v1/'+PRANK_TABLE, {
       method:'POST', headers: sb2Headers({'Prefer':'return=minimal'}),
       body: JSON.stringify(body)
     }).then(function(){
@@ -243,7 +243,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
       fb.style.fontSize = '18px'; fb.style.fontWeight = '700'; fb.style.color = '#e8507a';
       document.body.appendChild(fb);
       setTimeout(function(){ fb.remove(); }, 1200);
-    }).catch(function(){ alert('Erreur réseau, réessaie !'); });
+    }).catch(function(e){ showPrankToast('❌ Bêtise non envoyée : ' + e.message + '. Réessaie.'); });
   }
 
   window.closePrankMsg = function(){
@@ -277,7 +277,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     var body = { type: _selectedType, sender_role: profile, couple_id: coupleId, active: true };
     if(lockWord) body.lock_word = lockWord;
     // On insère directement sans effacer les bêtises précédentes — la file d'attente s'en charge
-    fetch(SB_URL+'/rest/v1/'+PRANK_TABLE, {
+    yamFetchOk(SB_URL+'/rest/v1/'+PRANK_TABLE, {
       method:'POST', headers: sb2Headers({'Prefer':'return=minimal'}),
       body: JSON.stringify(body)
     }).then(function(){
@@ -287,7 +287,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
       fb.style.fontSize = '18px'; fb.style.fontWeight = '700'; fb.style.color = '#e8507a';
       document.body.appendChild(fb);
       setTimeout(function(){ fb.remove(); }, 1200);
-    }).catch(function(){ alert('Erreur réseau, réessaie !'); });
+    }).catch(function(e){ showPrankToast('❌ Bêtise non envoyée : ' + e.message + '. Réessaie.'); });
   };
 
   /* ── File d'attente des bêtises ── */

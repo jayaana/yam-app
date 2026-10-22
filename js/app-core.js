@@ -201,6 +201,23 @@ function sb2Delete(table, filter) {
   .then(function(r) { return r.ok; });
 }
 
+// Envoi contrôlé (n°15) : délai max, refus si le serveur répond une erreur, message honnête.
+// Retourne la réponse si OK ; sinon rejette avec une Error dont .message est lisible.
+function yamFetchOk(url, opts, ms) {
+  var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, ms || 15000) : null;
+  var o = Object.assign({}, opts || {}); if (ctrl) o.signal = ctrl.signal;
+  return fetch(url, o).then(function(r) {
+    if (timer) clearTimeout(timer);
+    if (r.status === 401) return _sb2Handle401(r);
+    if (!r.ok) throw new Error('Le serveur a refusé (' + r.status + ')');
+    return r;
+  }, function(e) {
+    if (timer) clearTimeout(timer);
+    throw new Error(e && e.name === 'AbortError' ? 'Le serveur met trop de temps à répondre' : (navigator.onLine === false ? 'Pas de connexion internet' : 'Connexion impossible'));
+  });
+}
+
 function sb2Upsert(table, body, prefer) {
   var conflictMap = {
     'presence':          'user_id,couple_id',

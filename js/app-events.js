@@ -950,9 +950,9 @@
   function _deleteEvent(id) {
     if (!confirm('Supprimer cet événement ?')) return;
     var coupleId = _cid(); if (!coupleId) return;
-    fetch(SB2 + '?id=eq.' + id + '&couple_id=eq.' + coupleId, { method: 'DELETE', headers: sb2Headers() })
+    yamFetchOk(SB2 + '?id=eq.' + id + '&couple_id=eq.' + coupleId, { method: 'DELETE', headers: sb2Headers() })
     .then(function() { _toast('Événement supprimé', 'success'); _editingId = null; _loadEvents(); _renderList(); })
-    .catch(function() { _toast('Erreur de suppression', 'error'); });
+    .catch(function(e) { _toast('Suppression impossible : ' + e.message, 'error'); });
   }
 
   // ═══════════════════════════════════════════════════════════

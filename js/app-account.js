@@ -1820,20 +1820,26 @@ body.settings-open{overflow:hidden!important;}\
     if(msg){ msg.textContent = '⏳ Envoi...'; msg.style.color = 'var(--muted)'; }
     if(btn) btn.disabled = true;
 
-    // Envoyer via mailto (fallback universel) + log en base si possible
+    // Log en base d'abord ; « Merci » seulement si l'envoi a réussi (mailto en secours si échec)
     var mailto = 'mailto:jacoob.jr22@gmail.com?subject=' + encodeURIComponent('[YAM Bug] ' + catLabel) + '&body=' + encodeURIComponent(body);
-    window.location.href = mailto;
-
-    // Log en base
-    if(typeof sb2Post === 'function'){
-      sb2Post('errors_log', { message: '[BUG SIGNALÉ] ' + catLabel, context: descText, couple_id: u ? u.couple_id : null }).catch(function(){});
-    }
-
-    setTimeout(function(){
+    yamFetchOk(SB_URL + '/rest/v1/errors_log', {
+      method: 'POST',
+      headers: sb2Headers({ 'Prefer': 'return=minimal' }),
+      body: JSON.stringify({ message: '[BUG SIGNALÉ] ' + catLabel, context: descText, couple_id: u ? u.couple_id : null })
+    }).then(function(){
       if(msg){ msg.textContent = '✅ Merci pour ton signalement !'; msg.style.color = 'var(--green)'; }
       if(btn) btn.disabled = false;
       setTimeout(_closeBugModal, 2000);
-    }, 1000);
+    }).catch(function(e){
+      if(msg){
+        msg.style.color = 'var(--red, #e53935)';
+        msg.innerHTML = '❌ Envoi impossible : ' + escHtml(e.message) + '. <a href="#" id="bugRetryLnk">Réessayer</a> · <a href="#" id="bugMailLnk">Envoyer par e-mail</a>';
+        var r1 = document.getElementById('bugRetryLnk'), r2 = document.getElementById('bugMailLnk');
+        if(r1) r1.addEventListener('click', function(ev){ ev.preventDefault(); _sendBugReport(); });
+        if(r2) r2.addEventListener('click', function(ev){ ev.preventDefault(); window.location.href = mailto; });
+      }
+      if(btn) btn.disabled = false;
+    });
   }
 
   /* ──────────────────────────────────────────
@@ -2296,16 +2302,16 @@ window.acCopyCode = function(){
   var code = document.getElementById('acCoupleCode').textContent;
   var btn  = document.getElementById('acCopyBtn');
   if(!code || code === '—') return;
-  if(navigator.clipboard){
-    navigator.clipboard.writeText(code).catch(function(){});
-  } else {
-    var tmp = document.createElement('input');
+  var ok = function(){ btn.textContent = '✅ Copié !'; setTimeout(function(){ btn.textContent = 'Copier'; }, 2000); };
+  var ko = function(){ btn.textContent = '❌ Copie impossible'; setTimeout(function(){ btn.textContent = 'Copier'; }, 2500); };
+  var legacy = function(){
+    var tmp = document.createElement('input'), res = false;
     tmp.value = code; document.body.appendChild(tmp);
-    tmp.select(); document.execCommand('copy');
+    tmp.select(); try{ res = document.execCommand('copy'); }catch(e){}
     document.body.removeChild(tmp);
-  }
-  btn.textContent = '✅ Copié !';
-  setTimeout(function(){ btn.textContent = 'Copier'; }, 2000);
+    res ? ok() : ko();
+  };
+  if(navigator.clipboard){ navigator.clipboard.writeText(code).then(ok).catch(legacy); } else { legacy(); }
 };
 
 window.acSaveStartDate = function(){
@@ -3806,8 +3812,9 @@ window.v2SetLoading = function(on){
 
 window.v2CopyCode = function(el, code){
   var done = function(){ el.textContent = '✅ Copié !'; setTimeout(function(){ el.textContent = code; }, 2000); };
-  if(navigator.clipboard){ navigator.clipboard.writeText(code).then(done).catch(done); }
-  else { done(); }
+  var fail = function(){ el.textContent = '❌ Copie impossible'; setTimeout(function(){ el.textContent = code; }, 2500); };
+  if(navigator.clipboard){ navigator.clipboard.writeText(code).then(done).catch(fail); }
+  else { fail(); }
 };
 
 // yamSplashOpen — ouvre le modal de connexion
