@@ -869,7 +869,9 @@
   }
 
   function _bkDeleteBook(bookId) {
-    if (!confirm('Retirer ce livre de votre bibliothèque ?')) return;
+    yamConfirm('Retirer ce livre de votre bibliothèque ?', { ok: 'Retirer' }).then(function (ok) { if (ok) _bkDeleteBookGo(bookId); });
+  }
+  function _bkDeleteBookGo(bookId) {
     sb2Delete(BK_LIBRARY_TBL, 'id=eq.' + bookId)
       .then(function () {
         _bkLibrary = _bkLibrary.filter(function (b) { return b.id !== bookId; });

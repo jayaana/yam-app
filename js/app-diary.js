@@ -3532,7 +3532,10 @@
   // ─── 12. SUPPRESSION ──────────────────────────────────────────────
   function _deletePage() {
     if (!_currentPage || !_currentPage.id) return;
-    if (!confirm('Supprimer définitivement cette page ?')) return;
+    yamConfirm('Supprimer définitivement cette page ?').then(function (ok) { if (ok) _deletePageGo(); });
+  }
+  function _deletePageGo() {
+    if (!_currentPage || !_currentPage.id) return;
 
     sb2Delete(DIARY_TBL, 'id=eq.' + _currentPage.id)
       .then(function() {

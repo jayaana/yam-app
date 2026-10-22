@@ -299,6 +299,39 @@ function yamLogin(email, password) {
     });
 }
 
+// Feuille de confirmation YAM (n°16) : remplace confirm(). yamConfirm(msg, {ok, cancel, danger}) -> Promise<bool>
+window.yamConfirm = function(msg, o) {
+  o = o || {};
+  return new Promise(function(resolve) {
+    var old = document.getElementById('yamConfirmSheet'); if (old) old.remove();
+    var prevFocus = document.activeElement;
+    var ov = document.createElement('div');
+    ov.id = 'yamConfirmSheet'; ov.className = 'yam-cf-ov';
+    ov.setAttribute('role', 'alertdialog'); ov.setAttribute('aria-modal', 'true');
+    var box = document.createElement('div'); box.className = 'yam-cf-box';
+    var t = document.createElement('div'); t.className = 'yam-cf-msg'; t.textContent = msg;
+    var bOk = document.createElement('button'); bOk.type = 'button';
+    bOk.className = 'yam-cf-btn' + (o.danger === false ? ' yam-cf-ok' : ' yam-cf-danger');
+    bOk.textContent = o.ok || 'Supprimer';
+    var bNo = document.createElement('button'); bNo.type = 'button';
+    bNo.className = 'yam-cf-btn yam-cf-cancel'; bNo.textContent = o.cancel || 'Annuler';
+    box.appendChild(t); box.appendChild(bOk); box.appendChild(bNo); ov.appendChild(box);
+    function done(v) {
+      document.removeEventListener('keydown', onKey, true);
+      ov.remove();
+      try { if (prevFocus && prevFocus.focus) prevFocus.focus(); } catch (e) {}
+      resolve(v);
+    }
+    function onKey(e) { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(false); } }
+    bOk.addEventListener('click', function() { done(true); });
+    bNo.addEventListener('click', function() { done(false); });
+    ov.addEventListener('click', function(e) { if (e.target === ov) done(false); });
+    document.addEventListener('keydown', onKey, true);
+    document.body.appendChild(ov);
+    bNo.focus();
+  });
+};
+
 async function yamLogout() {
   // Invalider le JWT côté Supabase Auth
   try {
@@ -320,6 +353,10 @@ async function yamLogout() {
 
 // Compat alias
 window.nativeLogout  = yamLogout;
+// Déconnexion demandée par l'utilisateur : avec confirmation (n°16)
+window.askLogout = function() {
+  window.yamConfirm('Te déconnecter de YAM ?', { ok: 'Me déconnecter' }).then(function(v) { if (v && window.nativeLogout) window.nativeLogout(); });
+};
 window.v3Auth        = function(action, payload) { return _authPostWithJwt(Object.assign({ action }, payload)); };
 
 // Rafraîchit le profil complet depuis auth-v3 (ex: après join_couple ou update_pseudo)

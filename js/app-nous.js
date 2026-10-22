@@ -1476,7 +1476,10 @@ window.nousSignalNew = function() {
   // Supprime uniquement la photo du slot — titre et description inchangés
   window.slotDeleteSlot = function(){
     if(!_editSection||!_editSlot) return;
-    if(!confirm('Supprimer cette pochette (photo, titre et description) ?')) return;
+    yamConfirm('Supprimer cette pochette (photo, titre et description) ?').then(function(ok){ if(ok) window.slotDeleteSlotGo(); });
+  };
+  window.slotDeleteSlotGo=function(){
+    if(!_editSection||!_editSlot) return;
     var coupleId=_getCoupleId(); if(!coupleId) return;
     var s=_editSection; var sl=_editSlot;
     var banners=s==='elle'?_elleBanners:_luiBanners;
@@ -1754,9 +1757,11 @@ function _startReasonAuto(){
           (function(m){
             row.querySelector('.petits-mots-edit-btn').addEventListener('click',function(){ _openPetitsMotsEditor(m); });
             row.querySelector('.petits-mots-del-btn').addEventListener('click',function(){
-              if(!confirm('Supprimer ce mot ?')) return;
-              fetch(SB_URL+'/rest/v1/petits_mots?id=eq.'+m.id+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()})
-              .then(function(){ _renderPetitsMotsGestion(); _petitsMotsLoad(); }).catch(function(){});
+              yamConfirm('Supprimer ce mot ?').then(function(ok){
+                if(!ok) return;
+                fetch(SB_URL+'/rest/v1/petits_mots?id=eq.'+m.id+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()})
+                .then(function(){ _renderPetitsMotsGestion(); _petitsMotsLoad(); }).catch(function(){});
+              });
             });
           })(mot);
           list.appendChild(row);
@@ -3011,7 +3016,11 @@ document.addEventListener('yam:session_ready',function(){
   window.souvenirDelete=function(){
     var modal=document.getElementById('souvenirModal'); if(!modal) return;
     var id=modal.dataset.souvenirId; if(!id) return;
-    if(!confirm('Supprimer ce souvenir ?')) return;
+    yamConfirm('Supprimer ce souvenir ?').then(function(ok){ if(ok) window.souvenirDeleteGo(); });
+  };
+  window.souvenirDeleteGo=function(){
+    var modal=document.getElementById('souvenirModal'); if(!modal) return;
+    var id=modal.dataset.souvenirId; if(!id) return;
     fetch(SB_URL+'/rest/v1/memories?id=eq.'+id,{method:'DELETE',headers:sb2Headers()})
     .then(function(){ window.closeSouvenirModal(); window.nousLoadSouvenirs(); if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('souvenirsSection'); }).catch(function(){});
   };
@@ -3401,7 +3410,11 @@ document.addEventListener('yam:session_ready',function(){
   window.activiteDelete=function(){
     var modal=document.getElementById('activiteModal'); if(!modal) return;
     var id=modal.dataset.actId; if(!id) return;
-    if(!confirm('Supprimer cette activité ?')) return;
+    yamConfirm('Supprimer cette activité ?').then(function(ok){ if(ok) window.activiteDeleteGo(); });
+  };
+  window.activiteDeleteGo=function(){
+    var modal=document.getElementById('activiteModal'); if(!modal) return;
+    var id=modal.dataset.actId; if(!id) return;
     var coupleId=_getCoupleId(); if(!coupleId) return;
     fetch(SB_URL+'/rest/v1/activites?id=eq.'+id+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()})
     .then(function(){ window.closeActiviteModal(); window.nousLoadActivites(); if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('activitesSection'); }).catch(function(){});
@@ -3990,7 +4003,10 @@ document.addEventListener('yam:session_ready',function(){
 
   window.histoireDeleteItem = function(){
     if(!_histoireEditingId) return;
-    if(!confirm('Supprimer ce chapitre ?')) return;
+    yamConfirm('Supprimer ce chapitre ?').then(function(ok){ if(ok) window.histoireDeleteItemGo(); });
+  };
+  window.histoireDeleteItemGo=function(){
+    if(!_histoireEditingId) return;
     var coupleId = _getCoupleId();
     fetch(SB_URL+'/rest/v1/histoire?id=eq.'+_histoireEditingId+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()})
     .then(function(){ window.histoireCloseItemModal(); window.histoireLoad(); }).catch(function(){});
@@ -4364,7 +4380,10 @@ document.addEventListener('yam:session_ready',function(){
   // ── Suppression ──
   window.livresDelete = function(){
     if(!_livreEditingId) return;
-    if(!confirm('Supprimer ce livre ?')) return;
+    yamConfirm('Supprimer ce livre ?').then(function(ok){ if(ok) window.livresDeleteGo(); });
+  };
+  window.livresDeleteGo=function(){
+    if(!_livreEditingId) return;
     var coupleId = _getCoupleId(); if(!coupleId) return;
     fetch(SB_URL+'/rest/v1/books?id=eq.'+_livreEditingId+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()})
     .then(function(){ window.livresCloseEdit(); window.livresLoad(); if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('Books'); }).catch(function(){});

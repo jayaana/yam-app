@@ -1435,7 +1435,7 @@ body.settings-open{overflow:hidden!important;}\
 
     // Déconnexion
     if (t.id === 'stgLogoutBtn' || (t.closest && t.closest('#stgLogoutBtn'))) {
-      window.nativeLogout && window.nativeLogout(); return;
+      window.askLogout && window.askLogout(); return;
     }
 
     // Vider cache
@@ -2714,7 +2714,11 @@ window.acHandleAvatarUpload = function(input){
 window.acDeleteAvatar = function(){
   var u = yamGetUser ? yamGetUser() : null;
   if(!u) return;
-  if(!confirm('Supprimer ta photo de profil ?')) return;
+  yamConfirm('Supprimer ta photo de profil ?').then(function(ok){ if(ok) window.acDeleteAvatarGo(); });
+};
+window.acDeleteAvatarGo = function(){
+  var u = yamGetUser ? yamGetUser() : null;
+  if(!u) return;
   // ✅ Passe par l'Edge Function auth-v2 (service_role requis pour supprimer du storage)
   v3Auth('delete_avatar', { user_id: u.id })
   .then(function(res){

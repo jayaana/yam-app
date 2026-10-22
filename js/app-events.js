@@ -948,7 +948,9 @@
 
   // ── Supprimer ─────────────────────────────────────────────
   function _deleteEvent(id) {
-    if (!confirm('Supprimer cet événement ?')) return;
+    yamConfirm('Supprimer cet événement ?').then(function (ok) { if (ok) _deleteEventGo(id); });
+  }
+  function _deleteEventGo(id) {
     var coupleId = _cid(); if (!coupleId) return;
     yamFetchOk(SB2 + '?id=eq.' + id + '&couple_id=eq.' + coupleId, { method: 'DELETE', headers: sb2Headers() })
     .then(function() { _toast('Événement supprimé', 'success'); _editingId = null; _loadEvents(); _renderList(); })

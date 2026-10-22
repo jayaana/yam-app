@@ -328,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function(){
   _on('ppBtnGirl',   'click', function(){ window.setProfile && window.setProfile('girl'); });
   _on('ppBtnBoy',    'click', function(){ window.setProfile && window.setProfile('boy'); });
   _on('ppBtnMood',   'click', function(e){ window.openMoodPicker && window.openMoodPicker(e); });
-  _on('ppBtnLogout', 'click', function(){ window.nativeLogout && window.nativeLogout(); });
+  _on('ppBtnLogout', 'click', function(){ window.askLogout && window.askLogout(); });
   _on('homeMoodElleEditBtn', 'click', function(e){ window.openMoodPicker && window.openMoodPicker(e); });
   _on('homeMoodLuiEditBtn',  'click', function(e){ window.openMoodPicker && window.openMoodPicker(e); });
   _on('moodPickerOverlay',   'click', function(){ window.closeMoodPicker && window.closeMoodPicker(); });
