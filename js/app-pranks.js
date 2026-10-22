@@ -795,6 +795,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     msg.classList.add('show');
     setTimeout(function(){
       msg.classList.remove('show');
+      _prankUnlockScroll();
       if(_activePrank){
         fetch(SB_URL+'/rest/v1/'+PRANK_TABLE+'?id=eq.'+_activePrank.id, {
           method:'PATCH',
@@ -840,11 +841,9 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     var overlay = document.getElementById('prankNotifOverlay');
     notif.classList.remove('show');
     if(overlay) overlay.classList.remove('active');
-    // Débloquer le scroll
-    document.body.style.overflow = '';
-    document.body.style.position = '';
+    // Débloquer le scroll et retirer le voile (body.prank-active)
     document.body.style.width = '';
-    document.body.style.top = '';
+    _prankUnlockScroll();
     setTimeout(function(){
       if(_activePrank){
         fetch(SB_URL+'/rest/v1/'+PRANK_TABLE+'?id=eq.'+_activePrank.id, {
