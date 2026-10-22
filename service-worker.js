@@ -1,0 +1,227 @@
+// ⚡ YAM Service Worker v1.1
+// Cache les assets statiques pour un chargement rapide
+// Ne met PAS en cache les requêtes Supabase (données toujours fraîches)
+
+var CACHE_NAME = 'yam-v109';
+
+// Assets à mettre en cache au premier chargement
+var STATIC_ASSETS = [
+  '/yam-app/',
+  '/yam-app/index.html',
+  '/yam-app/css/main.css',
+  '/yam-app/css/design-system.css',
+  '/yam-app/js/app-ios-touch.js',
+  '/yam-app/js/app-core.js',
+  '/yam-app/js/app-account.js',
+  '/yam-app/js/app-nous.js',
+  '/yam-app/js/app-music.js',
+  '/yam-app/js/app-games.js',
+  '/yam-app/js/app-memory.js',
+  '/yam-app/js/app-multiplayer.js',
+  '/yam-app/js/app-books.js',
+  '/yam-app/js/app-cowatch.js',
+  '/yam-app/js/app-skyjo.js',
+  '/yam-app/js/app-ocho.js',
+  '/yam-app/js/app-pranks.js',
+  '/yam-app/js/app-messages.js',
+  '/yam-app/js/app-events.js',
+  '/yam-app/js/app-nav.js',
+  '/yam-app/js/app-realtime-init.js',
+  '/yam-app/js/app-home.js',
+  '/yam-app/js/app-diary.js',
+  '/yam-app/js/app-inline.js',
+  'js/app-jeux-dashboard.js',
+  '/yam-app/assets/icons/icon-192.png',
+  '/yam-app/assets/icons/icon-512.png',
+  '/yam-app/assets/images/reaction_1.png',
+  '/yam-app/assets/images/reaction_2.png',
+  '/yam-app/assets/images/reaction_3.png',
+  '/yam-app/assets/images/reaction_4.png',
+  '/yam-app/assets/images/reaction_5.png',
+  '/yam-app/assets/images/reaction_6.png',
+  '/yam-app/assets/images/reaction_7.png'
+];
+
+// ── Installation : mise en cache des assets statiques ──
+self.addEventListener('install', function(event) {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(function(cache) {
+      // On cache ce qu'on peut, sans bloquer si un asset manque
+      return Promise.allSettled(
+        STATIC_ASSETS.map(function(url) {
+          return cache.add(url).catch(function(e) {
+            console.warn('[SW] Impossible de cacher :', url, e);
+          });
+        })
+      );
+    }).then(function() {
+      // Prend le contrôle immédiatement sans attendre le rechargement
+      return self.skipWaiting();
+    })
+  );
+});
+
+// ── Activation : supprime les anciens caches ──
+self.addEventListener('activate', function(event) {
+  event.waitUntil(
+    caches.keys().then(function(keys) {
+      return Promise.all(
+        keys.filter(function(key) {
+          return key !== CACHE_NAME;
+        }).map(function(key) {
+          console.log('[SW] Suppression ancien cache :', key);
+          return caches.delete(key);
+        })
+      );
+    }).then(function() {
+      return self.clients.claim();
+    })
+  );
+});
+
+// ── Fetch : stratégie hybride ──
+self.addEventListener('fetch', function(event) {
+  var url = event.request.url;
+
+  // ❌ Ne jamais cacher : Supabase (données temps réel)
+  if (url.includes('supabase.co')) {
+    return; // laisse passer sans interception
+  }
+
+  // ❌ Ne jamais cacher : requêtes POST/PATCH/DELETE
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  // ❌ Ne jamais cacher : GitHub raw (mascotte externe)
+  if (url.includes('raw.githubusercontent.com')) {
+    return;
+  }
+
+  // ✅ Network-First pour index.html — toujours frais après déploiement
+  var isDocument = event.request.destination === 'document'
+    || url.endsWith('/yam-app/')
+    || url.endsWith('/yam-app/index.html');
+
+  if (isDocument) {
+    event.respondWith(
+      fetch(event.request).then(function(response) {
+        if (response && response.status === 200) {
+          caches.open(CACHE_NAME).then(function(cache) {
+            cache.put(event.request, response.clone());
+          });
+        }
+        return response;
+      }).catch(function() {
+        // Hors ligne : fallback cache
+        return caches.match(event.request).then(function(cached) {
+          return cached || caches.match('/yam-app/index.html');
+        });
+      })
+    );
+    return;
+  }
+
+  // ✅ Assets statiques : Cache First (rapide, offline)
+  event.respondWith(
+    caches.match(event.request).then(function(cached) {
+      if (cached) {
+        // Retourne le cache ET met à jour en arrière-plan (stale-while-revalidate)
+        fetch(event.request).then(function(network) {
+          if (network && network.status === 200) {
+            var toCache = network.clone();
+            caches.open(CACHE_NAME).then(function(cache) {
+              cache.put(event.request, toCache);
+            });
+          }
+        }).catch(function() {});
+        return cached;
+      }
+
+      // Pas en cache : fetch réseau, puis mise en cache
+      return fetch(event.request).then(function(response) {
+        if (!response || response.status !== 200 || response.type === 'opaque') {
+          return response;
+        }
+        var toCache = response.clone();
+        caches.open(CACHE_NAME).then(function(cache) {
+          cache.put(event.request, toCache);
+        });
+        return response;
+      }).catch(function() {
+        // Offline et pas en cache : page d'erreur minimale
+        if (event.request.destination === 'document') {
+          return caches.match('/yam-app/index.html');
+        }
+      });
+    })
+  );
+});
+
+// ── Push Notifications ────────────────────────────────────────────────────────
+
+self.addEventListener('push', function(event) {
+  if (!event.data) return;
+  var payload;
+  try { payload = event.data.json(); }
+  catch(e) { payload = { title: 'YAM 💕', body: event.data.text() || '', tag: 'yam-notif', data: { url: '/yam-app/' } }; }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title || 'YAM 💕', {
+      body:    payload.body  || '',
+      icon:    '/yam-app/assets/icons/icon-192.png',
+      badge:   '/yam-app/assets/icons/icon-192.png',
+      tag:     payload.tag   || 'yam-notif',
+      data:    payload.data  || { url: '/yam-app/' },
+      vibrate: [100, 50, 100],
+      requireInteraction: false,
+    }).then(function() {
+      if ('setAppBadge' in self.navigator) {
+        return self.registration.getNotifications().then(function(notifs) {
+          self.navigator.setAppBadge(notifs.length || 1);
+        });
+      }
+    })
+  );
+});
+
+// Reset badge et ferme les notifications en attente quand l'utilisateur lit les messages
+self.addEventListener('message', function(event) {
+  if (event.data && event.data.type === 'YAM_CLEAR_BADGE') {
+    if ('clearAppBadge' in self.navigator) self.navigator.clearAppBadge();
+  }
+  if (event.data && event.data.type === 'YAM_CLOSE_NOTIFICATIONS') {
+    self.registration.getNotifications().then(function(notifs) {
+      notifs.forEach(function(n) {
+        // Fermer uniquement les notifs de messages (pas les autres types)
+        if (!n.tag || n.tag === 'yam-message' || n.tag === 'yam-notif') n.close();
+      });
+    });
+    if ('clearAppBadge' in self.navigator) self.navigator.clearAppBadge();
+  }
+});
+
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  // Reset du badge quand l'utilisateur clique sur la notif
+  if ('clearAppBadge' in self.navigator) self.navigator.clearAppBadge();
+  var targetUrl = (event.notification.data && event.notification.data.url) || '/yam-app/';
+  var tab       = event.notification.data && event.notification.data.tab;
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(wins) {
+      for (var i = 0; i < wins.length; i++) {
+        if (wins[i].url.includes('/yam-app/') && 'focus' in wins[i]) {
+          wins[i].focus();
+          if (tab) wins[i].postMessage({ type: 'YAM_PUSH_OPEN_TAB', tab: tab });
+          return;
+        }
+      }
+      // App fermée — ouvrir avec le tab dans l'URL
+      if (clients.openWindow) {
+        var openUrl = tab ? (targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'open_tab=' + tab) : targetUrl;
+        return clients.openWindow(openUrl);
+      }
+    })
+  );
+});
