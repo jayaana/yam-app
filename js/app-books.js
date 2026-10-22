@@ -538,7 +538,7 @@
     var myRead      = book['read_' + me]          || 0;
     var partnerRead = book['read_' + partnerRole] || 0;
     var total       = book.total_chars || 1;
-    var myPct       = Math.round((myRead / total) * 100);
+    var myPct       = Math.min(100, Math.round((myRead / total) * 100));
     var partnerPage = book.total_chars > 0 ? Math.round(partnerRead / CHARS_PER_PAGE) + 1 : '—';
     var totalPages  = book.total_chars > 0 ? Math.ceil(book.total_chars / CHARS_PER_PAGE) : '—';
 
@@ -629,7 +629,7 @@
     var total = book.total_chars || 1;
     var myRead      = book['read_' + me]          || 0;
     var partnerRead = book['read_' + partnerRole] || 0;
-    var myPct       = Math.round((myRead / total) * 100);
+    var myPct       = Math.min(100, Math.round((myRead / total) * 100));
     var partnerPage = book.total_chars > 0 ? Math.round(partnerRead / CHARS_PER_PAGE) + 1 : 1;
     var totalPages  = book.total_chars > 0 ? Math.ceil(book.total_chars / CHARS_PER_PAGE) : '—';
     var partnerName = yamGetDisplayName(partnerRole);
