@@ -57,7 +57,7 @@
     { gutenberg_id: 17989, title: 'Le Comte de Monte-Cristo — Tome I', author: 'Alexandre Dumas', cover: '⚔️', genre: 'Aventure' },
     { gutenberg_id: 13704, title: "L'homme à l'oreille cassée",  author: 'Edmond About',          cover: '📖', genre: 'Roman' },
     { gutenberg_id: 14155, title: 'Madame Bovary',               author: 'Gustave Flaubert',      cover: '💔', genre: 'Roman' },
-    { gutenberg_id: 20973, title: 'Le Tour du monde en 80 jours',author: 'Jules Verne',           cover: '🌍', genre: 'Aventure' },
+    { gutenberg_id: 800,   title: 'Le Tour du monde en 80 jours',author: 'Jules Verne',           cover: '🌍', genre: 'Aventure' },
     { gutenberg_id: 798,   title: 'Le Rouge et le Noir',         author: 'Stendhal',              cover: '🖤', genre: 'Roman' },
     { gutenberg_id: 5097,  title: 'Vingt mille lieues sous les mers', author: 'Jules Verne',      cover: '🌊', genre: 'Aventure' },
     { gutenberg_id: 38674, title: 'De la Terre à la Lune',       author: 'Jules Verne',           cover: '🚀', genre: 'Aventure' },
@@ -1003,6 +1003,8 @@
         if (!text || text.trim().length < 100) throw new Error('Contenu trop court');
         // Un proxy en panne peut renvoyer une page HTML d'erreur au lieu du texte
         if (/^\s*<(!doctype|html)/i.test(text)) throw new Error('Réponse HTML');
+        // Un proxy peut renvoyer HTTP 200 avec la page « Error 404 » de Gutenberg
+        if (/Error 404|404 Not Found|File not found/i.test(text.slice(0, 400))) throw new Error('Page 404');
         cb(text, originalUrl);
       })
       .catch(function (err) {
