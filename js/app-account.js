@@ -3756,7 +3756,6 @@ window.yamToggleAccountModal = function() {
     var dmSelf=document.getElementById('dmHeaderAvatarSelf'), dmOther=document.getElementById('dmHeaderAvatarOther');
     if(dmSelf) {var i1=dmSelf.querySelector('img');if(i1)i1.src=window.yamAvatarSrc(self);}
     if(dmOther){var i2=dmOther.querySelector('img');if(i2)i2.src=window.yamAvatarSrc(other);}
-    var mhp=document.getElementById('mhpAvatar'); if(mhp){var im=mhp.querySelector('img');if(im)im.src=window.yamAvatarSrc(self);}
   }
 
   // Patch _acSyncAvatarTopbar (défini plus haut dans ce fichier) pour rafraîchir

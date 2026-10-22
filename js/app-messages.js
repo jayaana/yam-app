@@ -1173,12 +1173,6 @@
           if(msg.sender_role !== identity){
             if(navigator.vibrate) navigator.vibrate([40, 30, 40]);
             flashNewMsg();
-            // Pilule notif dans le header (seulement si pas sur onglet messages)
-            if(window._currentTab !== 'messages'){
-              var senderName = (typeof v2GetDisplayName==="function"?v2GetDisplayName(msg.sender_role):(msg.sender_role==="girl"?"Elle":"Lui"));
-              var senderAvatarSrc = window.yamAvatarSrc ? window.yamAvatarSrc(msg.sender_role) : ('assets/images/profil_'+msg.sender_role+'.png');
-              showMsgHeaderPill(senderAvatarSrc, senderName, msg.text || '💬', true);
-            }
           }
         }
       });
@@ -3128,13 +3122,6 @@ function _startLockBadgePolling(){
         lockBadge.textContent = unread > 99 ? '99+' : unread;
         lockBadge.classList.add('visible');
         if(lockBtn) lockBtn.classList.add('has-unread');
-        if(_prevUnreadCount >= 0 && unread > _prevUnreadCount && window._currentTab !== 'messages'){
-          var last = rows[0];
-          var avatarSrc = window.yamAvatarSrc ? window.yamAvatarSrc(other) : ('assets/images/profil_' + other + '.png');
-          var name = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName(other) : (other === 'girl' ? 'Elle' : 'Lui');
-          var txt = (last && last.text) ? last.text : 'Nouveau message';
-          if(window.showMsgHeaderPill) window.showMsgHeaderPill(avatarSrc, name, txt, true);
-        }
       } else {
         lockBadge.classList.remove('visible');
         if(lockBtn) lockBtn.classList.remove('has-unread');
@@ -3186,90 +3173,3 @@ function _startLockBadgePolling(){
 
 _startLockBadgePolling();
 
-/* ══════════════════════════════════════════
-   NOTIF PILULE HEADER — nouveau message
-══════════════════════════════════════════ */
-(function(){
-  var _pillTimer = null;
-
-  window.showMsgHeaderPill = function(emoji, name, text, isImgSrc){
-    var pill = document.getElementById('msgHeaderPill');
-    var av   = document.getElementById('mhpAvatar');
-    var nm   = document.getElementById('mhpName');
-    var tx   = document.getElementById('mhpText');
-    if(!pill) return;
-
-    if(_pillTimer){ clearTimeout(_pillTimer); _pillTimer = null; }
-
-    if(av){
-      var _img = av.querySelector('img');
-      if(isImgSrc){
-        // URL d'avatar — afficher l'img, supprimer tout span texte résiduel
-        if(_img){ _img.src = emoji; _img.style.display='block'; }
-        var _spanOld = av.querySelector('span.mhp-em');
-        if(_spanOld) _spanOld.parentNode.removeChild(_spanOld);
-        av.style.fontSize='';
-      } else {
-        // Emoji/texte — cacher l'img, afficher un span
-        if(_img) _img.style.display='none';
-        av.style.fontSize='18px';
-        var _span = av.querySelector('span.mhp-em');
-        if(!_span){ _span=document.createElement('span'); _span.className='mhp-em'; av.appendChild(_span); }
-        _span.textContent = emoji || '💬';
-      }
-    }
-    if(nm) nm.textContent = name  || 'Nouveau message';
-    var display = (text || '…').toString();
-    if(display.length > 40) display = display.slice(0, 40) + '…';
-    if(tx) tx.textContent = display;
-
-    pill.classList.remove('hiding');
-    pill.style.display = 'flex';
-    void pill.offsetWidth; // reflow pour relancer l'animation
-    document.body.classList.add('msg-pill-active');
-    var ov = document.getElementById('msgPillOverlay');
-    if(ov){ ov.style.display='block'; void ov.offsetWidth; ov.classList.add('active'); }
-
-    _pillTimer = setTimeout(function(){
-      pill.classList.add('hiding');
-      document.body.classList.remove('msg-pill-active');
-      if(ov){ ov.classList.remove('active'); setTimeout(function(){ ov.style.display='none'; }, 350); }
-      setTimeout(function(){
-        pill.style.display = 'none';
-        pill.classList.remove('hiding');
-      }, 300);
-      _pillTimer = null;
-    }, 4000);
-  };
-
-  // Cacher la pilule et ouvrir directement le chat
-  window._hidePillAndOpenChat = function(){
-    _hidePill();
-    // Ouvrir InstaLove directement sur le chat
-    if(window.openHiddenPage) window.openHiddenPage();
-    setTimeout(function(){
-      if(window.dmOpenMessaging) window.dmOpenMessaging();
-    }, 120);
-  };
-
-  // Cacher la pilule quand on passe sur l'onglet messages
-  document.addEventListener('yamTabChange', function(e){
-    if(e.detail === 'messages') _hidePill();
-  });
-  function _hidePill(){
-    var pill = document.getElementById('msgHeaderPill');
-    if(!pill || pill.style.display === 'none') return;
-    if(_pillTimer){ clearTimeout(_pillTimer); _pillTimer = null; }
-    document.body.classList.remove('msg-pill-active');
-    var ov = document.getElementById('msgPillOverlay');
-    if(ov){ ov.classList.remove('active'); setTimeout(function(){ ov.style.display='none'; }, 350); }
-    pill.classList.add('hiding');
-    setTimeout(function(){ pill.style.display='none'; pill.classList.remove('hiding'); }, 280);
-  }
-  // Hook sur yamSwitchTab
-  var _origSwitchPill = window.yamSwitchTab;
-  window.yamSwitchTab = function(tab){
-    if(_origSwitchPill) _origSwitchPill.apply(this, arguments);
-    if(tab === 'messages') _hidePill();
-  };
-})();

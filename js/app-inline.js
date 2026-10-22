@@ -103,7 +103,6 @@ if ('serviceWorker' in navigator) {
       var otherMood = document.getElementById(role === 'girl' ? 'yamMoodElleAvatar' : 'yamMoodLuiAvatar');
       if(otherMood){ var i3 = otherMood.querySelector('img'); if(i3) i3.src = url; }
       var dmOther = document.getElementById('dmHeaderAvatarOther'); if(dmOther){ var i4=dmOther.querySelector('img'); if(i4) i4.src=url; }
-      var mhp = document.getElementById('mhpAvatar'); if(mhp){ var i5=mhp.querySelector('img'); if(i5) i5.src=url; }
     }
     var nousGirl = document.getElementById('nousProfilGirlAvatar'); if(nousGirl){ var ig=nousGirl.querySelector('img'); if(ig) ig.src = (role==='girl'?url:ig.src); }
     var nousBoy  = document.getElementById('nousProfilBoyAvatar');  if(nousBoy){  var ib=nousBoy.querySelector('img');  if(ib) ib.src  = (role==='boy' ?url:ib.src);  }
@@ -595,7 +594,6 @@ document.addEventListener('DOMContentLoaded', function(){
   _on('dmIdBtnBoy',            'click', function(){ window.dmSetIdentity && window.dmSetIdentity('boy'); });
   _on('dmCancelReplyBtn',      'click', function(){ window.dmCancelReply && window.dmCancelReply(); });
   _on('dmReactPickerCloseBtn', 'click', function(){ window.closeDmReactPicker && window.closeDmReactPicker(); });
-  _on('msgHeaderPill',         'click', function(){ window._hidePillAndOpenChat && window._hidePillAndOpenChat(); });
 
   // ── Jeux — vues ──
   _on('gamesBackBtn',  'click', function(){ window.closeGames && window.closeGames(); });

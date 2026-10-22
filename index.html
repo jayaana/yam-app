@@ -302,13 +302,6 @@ body.v2-login-active #themeToggleHome {
   height: 100% !important;
 }
 
-/* ── Pilule notification message — devant header, sticky, nav ── */
-#msgHeaderPill,
-#msgPillOverlay {
-  z-index: 99998 !important;
-  position: fixed !important;
-}
-
 /* ── Musique — désactiver le rendu ios-group / section card dans cet onglet ── */
 #yamMusiqueTab .section,
 #yamMusiqueTab .ios-group,
@@ -5472,18 +5465,6 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
   </div>
 </div>
 
-<!-- Overlay sombre pendant notif message -->
-<div id="msgPillOverlay"></div>
-
-<!-- Notif pilule message — fixed, visible sur tous les onglets -->
-<div id="msgHeaderPill">
-  <div class="mhp-avatar" id="mhpAvatar" style="overflow:hidden;"><img class="yam-av-img" src="assets/images/profil_girl.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;pointer-events:none;"></div>
-  <div class="mhp-content">
-    <div class="mhp-name" id="mhpName">Message</div>
-    <div class="mhp-text" id="mhpText">…</div>
-  </div>
-  <div class="mhp-arrow">›</div>
-</div>
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
