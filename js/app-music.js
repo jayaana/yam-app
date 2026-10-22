@@ -877,6 +877,17 @@ var particleActive = false;
 
   renderSuggestions();
   window.sgLoad = function(){ renderSuggestions(); loadFavorites(); };
+  // Temps réel (n°14) : suggestions et favoris de l'autre
+  if(typeof window.yamRTWatch==='function'){
+    window.yamRTWatch('music_sugg', [{table:'suggestion_songs'}], function(){
+      var l=document.getElementById('sgList');
+      var em=document.getElementById('sgEditModal');
+      if(l && l.offsetParent!==null && !(em && em.classList.contains('open'))) renderSuggestions();
+      var mm=document.getElementById('sgManageModal');
+      if(mm && mm.classList.contains('open') && !(em && em.classList.contains('open'))) renderSgManageList();
+    }, 30000);
+    window.yamRTWatch('music_favs', [{table:'favorites'}], function(){ loadFavorites(); }, 30000);
+  }
 
   (function(){
     function patchSync(){

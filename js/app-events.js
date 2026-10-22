@@ -596,6 +596,7 @@
     _injectModal();
     document.getElementById('eventsModal').style.display = 'flex';
     _renderList();
+    _loadEvents();
   };
   window.closeEventsModal = _closeModal;
 
@@ -961,6 +962,14 @@
     var coupleId = _cid(); if (!coupleId) return;
     _migrateAnniv(coupleId);
     _loadEvents();
+    if (typeof window.yamRTWatch === 'function' && !window._evtRTWatching) {
+      window._evtRTWatching = true;
+      window.yamRTWatch('couple_events', [{ table: 'couple_events' }], function() {
+        _loadEvents();
+        var m = document.getElementById('eventsModal');
+        if (m && m.style.display !== 'none' && !_editingId) setTimeout(_renderList, 400);
+      }, 30000);
+    }
     setTimeout(function() {
       document.querySelectorAll('.home-feat-btn').forEach(function(b) {
         if (b.textContent.includes('Events')) {

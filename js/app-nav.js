@@ -1509,7 +1509,7 @@ setTimeout(function(){
         var chSP = window._yamRT
           .channel('song_plays_' + cid)
           .on('postgres_changes', {
-            event: 'UPDATE',
+            event: '*',
             schema: 'public',
             table: 'song_plays',
             filter: 'couple_id=eq.' + cid

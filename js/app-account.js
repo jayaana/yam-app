@@ -521,6 +521,10 @@ window.YAM_COUPLE = {
   loaded: false
 };
 
+if(typeof window.yamRTWatch==='function'){
+  window.yamRTWatch('couple_cfg', [{table:'couples', event:'UPDATE', idCol:'id'}], function(){ loadCoupleConfig(); }, 0);
+}
+
 function loadCoupleConfig(){
   var u = yamGetUser ? yamGetUser() : null;
   if(!u || !u.couple_id) return Promise.resolve(null);
@@ -3458,6 +3462,9 @@ window.addEventListener('load', function(){
           table: 'moods',
           filter: 'couple_id=eq.' + cid
         }, function(){
+          if(get()) loadMoods();
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'moods' }, function(){
           if(get()) loadMoods();
         })
         .subscribe(function(status){

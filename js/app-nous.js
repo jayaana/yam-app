@@ -865,7 +865,18 @@ function _nousLoadProfil() {
     _applyBadges();               // affichage immédiat côté local
   };
 
-  // Pas de polling — refresh unique au lancement via _tryRefreshBadges dans _nousInitAll
+  // Temps réel (n°14) : le badge de l'icône Nous s'allume chez l'autre quand une nouveauté est marquée
+  if(typeof window.yamRTWatch==='function'){
+    window.yamRTWatch('new_badges', [{table:'new_badges', event:'INSERT'}, {table:'new_badges', event:'UPDATE'}], function(p){
+      var row = p && p.new;
+      if(!row || !row.section){ return; }
+      var ts = new Date(row.marked_at).getTime();
+      var mine = _badgeCache[row.section] && Math.abs(_badgeCache[row.section] - ts) < 4000;
+      _badgeCache[row.section] = ts;
+      _applyBadges();
+      if(!mine && typeof window.nousSignalNew === 'function') window.nousSignalNew();
+    }, 0);
+  }
 
 })();
 
@@ -2063,6 +2074,7 @@ function _startMemoRT(cid) {
   _memoRTCh = window._yamRT.channel('memo-'+cid)
     .on('postgres_changes',{event:'*',schema:'public',table:'memo_notes',filter:'couple_id=eq.'+cid},
         function(){ if(typeof renderMemoCouple==='function') renderMemoCouple(); })
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'memo_notes'},function(){ if(typeof renderMemoCouple==='function') renderMemoCouple(); })
     .subscribe(function(s){
       if(s==='SUBSCRIBED'){ if(_memoPollIv){clearInterval(_memoPollIv);_memoPollIv=null;} }
       else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){
@@ -2091,6 +2103,7 @@ function _startMemotodoRT(cid) {
   _memoTodoRTCh = window._yamRT.channel('memoTodo-'+cid)
     .on('postgres_changes',{event:'*',schema:'public',table:'memo_todos',filter:'couple_id=eq.'+cid},
         function(){ _reloadTodos(); })
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'memo_todos'},function(){ _reloadTodos(); })
     .subscribe(function(s){
       if(s==='SUBSCRIBED'){ if(_memoTodoPollIv){clearInterval(_memoTodoPollIv);_memoTodoPollIv=null;} }
       else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){
@@ -2107,6 +2120,7 @@ function _startPetitsmotsRT(cid) {
   _petitsMotsRTCh = window._yamRT.channel('petitsMots-'+cid)
     .on('postgres_changes',{event:'*',schema:'public',table:'petits_mots',filter:'couple_id=eq.'+cid},
         function(){ if(typeof window._petitsMotsLoad==='function') window._petitsMotsLoad(); })
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'petits_mots'},function(){ if(typeof window._petitsMotsLoad==='function') window._petitsMotsLoad(); })
     .subscribe(function(s){
       if(s==='SUBSCRIBED'){ if(_petitsMotsPollIv){clearInterval(_petitsMotsPollIv);_petitsMotsPollIv=null;} }
       else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){
@@ -2123,6 +2137,7 @@ function _startSouvenirsRT(cid) {
   _souvenirsRTCh = window._yamRT.channel('souvenirs-'+cid)
     .on('postgres_changes',{event:'*',schema:'public',table:'memories',filter:'couple_id=eq.'+cid},
         function(){ if(window._souvenirSaving) return; if(typeof window.nousLoadSouvenirs==='function') window.nousLoadSouvenirs(true); })
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'memories'},function(){ if(window._souvenirSaving) return; if(typeof window.nousLoadSouvenirs==='function') window.nousLoadSouvenirs(true); })
     .subscribe(function(s){
       if(s==='SUBSCRIBED'){ if(_souvenirsPollIv){clearInterval(_souvenirsPollIv);_souvenirsPollIv=null;} }
       else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){
@@ -2139,6 +2154,7 @@ function _startActivitesRT(cid) {
   _activitesRTCh = window._yamRT.channel('activites-'+cid)
     .on('postgres_changes',{event:'*',schema:'public',table:'activites',filter:'couple_id=eq.'+cid},
         function(){ window.nousInvalidateActivitesCache(); window.nousLoadActivites(true); if(typeof _nidAutoDetect==='function') setTimeout(_nidAutoDetect,300); })
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'activites'},function(){ window.nousInvalidateActivitesCache(); window.nousLoadActivites(true); if(typeof _nidAutoDetect==='function') setTimeout(_nidAutoDetect,300); })
     .subscribe(function(s){
       if(s==='SUBSCRIBED'){ if(_activitesPollIv){clearInterval(_activitesPollIv);_activitesPollIv=null;} }
       else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){
@@ -2155,6 +2171,7 @@ function _startLivresRT(cid) {
   _livresRTCh = window._yamRT.channel('livres-'+cid)
     .on('postgres_changes',{event:'*',schema:'public',table:'books',filter:'couple_id=eq.'+cid},
         function(){ if(typeof window.livresLoad==='function') window.livresLoad(); })
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'books'},function(){ if(typeof window.livresLoad==='function') window.livresLoad(); })
     .subscribe(function(s){
       if(s==='SUBSCRIBED'){ if(_livresPollIv){clearInterval(_livresPollIv);_livresPollIv=null;} }
       else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){
@@ -2171,6 +2188,7 @@ function _startHistoireRT(cid) {
   _histoireRTCh = window._yamRT.channel('histoire-'+cid)
     .on('postgres_changes',{event:'*',schema:'public',table:'histoire',filter:'couple_id=eq.'+cid},
         function(){ if(typeof window.histoireLoad==='function') window.histoireLoad(); })
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'histoire'},function(){ if(typeof window.histoireLoad==='function') window.histoireLoad(); })
     .subscribe(function(s){
       if(s==='SUBSCRIBED'){ if(_histoirePollIv){clearInterval(_histoirePollIv);_histoirePollIv=null;} }
       else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){
@@ -2187,6 +2205,25 @@ function _startPhotodescsRT(cid) {
   _photoDescsRTCh = window._yamRT.channel('photoDescs-'+cid)
     .on('postgres_changes',{event:'*',schema:'public',table:'photo_descs',filter:'couple_id=eq.'+cid},
         function(){
+          var cid3=(typeof yamGetUser==='function'&&yamGetUser())?yamGetUser().couple_id:null;
+          if(!cid3) return;
+          ['elle','lui'].forEach(function(sec){
+            fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+cid3+'&category=eq.'+sec+'_img&select=slot,description',{headers:sb2Headers()})
+              .then(function(r){return r.ok?r.json():[];})
+              .then(function(rows){ if(typeof _applyImagesFromDB==='function') _applyImagesFromDB(sec,rows); })
+              .catch(function(){});
+          });
+          // Titres, banners et descriptions — RT couvre tout photo_descs
+          if(typeof window._loadSectionTitles==='function') window._loadSectionTitles();
+          if(typeof window.elleLoadDescs==='function') window.elleLoadDescs();
+          if(typeof window.luiLoadDescs==='function')  window.luiLoadDescs();
+          if(typeof window.elleSyncSections==='function') window.elleSyncSections();
+          // Progression NID partagée — recharger et réappliquer si nous_progress a changé
+          if(typeof _nidLoad==='function') _nidLoad(function(){ if(typeof _nidApply==='function') _nidApply(); if(typeof _nidAutoDetect==='function') _nidAutoDetect(); });
+          // Notifier app-home.js que photo_descs a changé (rappels inclus) → stoppe son poll
+          document.dispatchEvent(new CustomEvent('yam:rappels_changed'));
+        })
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'photo_descs'},function(){
           var cid3=(typeof yamGetUser==='function'&&yamGetUser())?yamGetUser().couple_id:null;
           if(!cid3) return;
           ['elle','lui'].forEach(function(sec){
