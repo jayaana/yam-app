@@ -907,6 +907,14 @@
     if (bookView) bookView.classList.add('bk-reading');
     haptic('light');
 
+    // Livre ajouté avant une correction d'id : le catalogue (même titre) fait foi → on répare la bibliothèque
+    var cat = BK_CATALOG.find(function (i) { return i.title === book.title; });
+    if (cat && book.gutenberg_id !== cat.gutenberg_id) {
+      book.gutenberg_id = cat.gutenberg_id;
+      book.content_url = null;
+      if (book.id) sb2Patch(BK_LIBRARY_TBL, 'id=eq.' + book.id, { gutenberg_id: cat.gutenberg_id, content_url: null }).catch(function () {});
+    }
+
     // Filtrer les URLs invalides : /ebooks/xxx est une page HTML, pas un fichier texte
     function isDirectTextUrl(url) {
       if (!url) return false;
