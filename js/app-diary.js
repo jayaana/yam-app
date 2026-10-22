@@ -267,6 +267,13 @@
       .catch(function() {});
   }
 
+  // images : tableau (realtime) ou chaîne JSON (REST)
+  function _parseImages(v) {
+    if (Array.isArray(v)) return v;
+    if (!v) return [];
+    try { var r = JSON.parse(v); return Array.isArray(r) ? r : []; } catch (e) { return []; }
+  }
+
   // ─── 3. REALTIME ──────────────────────────────────────────────────
   function _initRT() {
     var u = yamGetUser();
@@ -275,6 +282,21 @@
 
     _rtChannel = window._yamRT
       .channel('diary_pages_' + u.couple_id)
+      // DELETE : sans REPLICA IDENTITY FULL le filtre couple_id n'est pas évalué
+      // (old = id seul) → écoute sans filtre, on ne retient que nos pages locales
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: DIARY_TBL }, function (payload) {
+        var id = payload.old && payload.old.id;
+        if (!id || !_pages.find(function(p){ return p.id === id; })) return;
+        _pages = _pages.filter(function(p){ return p.id !== id; });
+        if (_currentPage && _currentPage.id === id && _mode === 'read') {
+          _currentPage = null;
+          _mode = 'list';
+          showToast('Cette page a été supprimée 🗑️', 'info');
+        }
+        _updateHomeBadge();
+        _updateTabBadges();
+        if (_mode === 'list') _renderList();
+      })
       .on('postgres_changes', {
         event: '*', schema: 'public',
         table: DIARY_TBL,
@@ -536,7 +558,7 @@
     var coverEmoji = page.cover_emoji || '📖';
     var isCanva  = !!page.canva_url;
     var date     = new Date(page.created_at).toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' });
-    var hasImg   = page.bg_image_url || (page.images && JSON.parse(page.images || '[]').length > 0);
+    var hasImg   = page.bg_image_url || (_parseImages(page.images).length > 0);
     var pinned   = _isPinned(page.id);
     var state    = _getBadgeState();
     var isNewForMe = !isOwn && !state.seenIds[page.id];
@@ -1039,7 +1061,7 @@
     _editorCoverEmoji = (page && page.cover_emoji) ? page.cover_emoji : null;
 
     try {
-      if (page && page.images) _editorImages = JSON.parse(page.images);
+      if (page && page.images) _editorImages = _parseImages(page.images);
     } catch(e) {}
 
     _renderEditor(page);
