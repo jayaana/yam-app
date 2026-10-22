@@ -641,7 +641,7 @@
         lastEditInfo +
         (page.content && !isCanva ? '<div style="font-size:12px;color:var(--sub);line-height:1.4;' +
           'display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' +
-          _stripHTML(page.content).substring(0, 120) + '</div>' : '') +
+          escHtml(_stripHTML(page.content).substring(0, 120)) + '</div>' : '') +
         (isCanva ? '<div style="font-size:11px;color:var(--muted);">📐 Présentation Canva</div>' : '') +
       '</div>' +    // fin zone infos
 
@@ -3535,8 +3535,8 @@
   // Strip HTML pour aperçu texte brut
   function _stripHTML(html) {
     if (!html) return '';
-    var tmp = document.createElement('div');
-    tmp.innerHTML = html;
+    // DOMParser : document inerte (pas d'exécution de onerror/script)
+    var tmp = new DOMParser().parseFromString(html, 'text/html').body;
     // Supprimer les éléments d'UI (bouton crop, poignée resize) avant extraction texte
     tmp.querySelectorAll('.diary-img-crop-btn,.diary-img-handle').forEach(function(el){ el.remove(); });
     return tmp.textContent || tmp.innerText || '';
