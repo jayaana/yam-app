@@ -1164,8 +1164,8 @@
     var content = document.getElementById('bkTextContent');
     if (!content) return;
 
-    // Mettre à jour le total_chars en base si pas encore défini
-    if (!book.total_chars || book.total_chars === 0) {
+    // Total aligné sur le texte réellement affiché (un ancien total venait d'une page d'erreur → % absurde)
+    if (book.total_chars !== text.length) {
       book.total_chars = text.length;
       sb2Patch(BK_LIBRARY_TBL, 'id=eq.' + book.id, { total_chars: text.length }).catch(function () {});
     }
