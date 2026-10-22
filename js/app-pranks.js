@@ -1216,6 +1216,14 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   function _startPrankRealtime(coupleId, gender) {
     if (!window._yamRT || !coupleId || _prankRTChannel) return;
 
+    // Un canal du même nom déjà souscrit ferait lever .on() : on le retire d'abord
+    try {
+      (window._yamRT.getChannels ? window._yamRT.getChannels() : []).forEach(function(ch){
+        if (ch.topic === 'realtime:pranks-' + coupleId) window._yamRT.removeChannel(ch);
+      });
+    } catch(e) {}
+
+    try {
     _prankRTChannel = window._yamRT
       .channel('pranks-' + coupleId)
       .on('postgres_changes', {
@@ -1261,6 +1269,12 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
       });
 
     window._yamRTChannels['pranks'] = _prankRTChannel;
+    } catch(e) {
+      // Filet de sécurité : si l'abonnement échoue, le poll prend le relais
+      _prankRTChannel = null;
+      console.warn('[RT] Pranks abonnement impossible — fallback poll', e);
+      if (!_prankPollTimer) startPrankPoll(gender);
+    }
   }
 
   function _stopPrankRealtime() {
@@ -1303,7 +1317,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
     var coupleId = u ? u.couple_id : null;
     if (window._yamRT && coupleId) {
-      _prankRTChannel = null;
+      _stopPrankRealtime();
       _startPrankRealtime(coupleId, gender);
     } else {
       if(_prankPollTimer) return;
