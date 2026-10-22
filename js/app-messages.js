@@ -379,6 +379,14 @@
     window._chatPollId = pollId;
   };
 
+  function _dmAutoGrow(el){
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+  function _dmIsTouchDevice(){
+    return !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  }
+
   function attachListeners(){
     var input    = $('dmInput');
     var sendBtn  = $('dmSendBtn');
@@ -388,8 +396,9 @@
     var galleryInput = $('dmGalleryInput');
 
     if(input){
-      input.maxLength = 2000;
+      input.maxLength = 1000;
       input.addEventListener('input', function(){
+        _dmAutoGrow(input);
         updateSendBtn();
         if(input.value.trim() === '') {
           _sendTypingStop();
@@ -398,7 +407,8 @@
         }
       });
       input.addEventListener('keydown', function(e){
-        if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); doSend(); }
+        // Entrée envoie sur ordinateur ; Maj+Entrée = retour à la ligne ; sur mobile Entrée = retour à la ligne
+        if(e.key === 'Enter' && !e.shiftKey && !e.isComposing && !_dmIsTouchDevice()){ e.preventDefault(); doSend(); }
       });
       input.addEventListener('blur', function(){
         _sendTypingStop();
@@ -466,7 +476,10 @@
   // Afficher la prévisualisation avant envoi
   function _dmShowPhotoPreview(file){
     _dmCompressImage(file, 1200, 1200, 0.82, function(blob){
-      if(!blob) return;
+      if(!blob){
+        if(typeof showToast === 'function') showToast('Photo illisible (format non supporté, ex. HEIC)', 'error', 4000);
+        return;
+      }
       _dmPendingPhotoBlob = blob;
       _dmPendingEphemeral = false;
       var previewUrl = URL.createObjectURL(blob);
@@ -973,7 +986,7 @@
     editInput.type = 'text';
     editInput.className = 'dm-edit-input';
     editInput.value = oldText;
-    editInput.maxLength = 500;
+    editInput.maxLength = 1000;
 
     var actions = document.createElement('div');
     actions.className = 'dm-edit-actions';
@@ -1005,6 +1018,7 @@
       txt.style.display = '';
       txt.textContent = newText;
       msg.text = newText;
+      msg.edited = true;
       // Ajouter label "(modifié)"
       var edited = wrap.querySelector('.dm-edited-label');
       if(!edited){
@@ -1021,7 +1035,7 @@
       fetch(SB_URL + '/rest/v1/' + TABLE + '?' + _editFilter, {
         method: 'PATCH',
         headers: sb2Headers({'Prefer':'return=minimal'}),
-        body: JSON.stringify({ text: newText })
+        body: JSON.stringify({ text: newText, edited: true })
       }).then(function(r){
         if(!r.ok) r.text().then(function(t){ console.error('[DM] edit err:', r.status, t); });
       }).catch(function(err){ console.error('[DM] edit err:', err); });
@@ -1081,7 +1095,7 @@
     // Ancre : created_at du plus vieux message en cache
     var oldest = cache[0];
     var anchor = oldest ? ('&created_at=lt.' + encodeURIComponent(oldest.created_at)) : '';
-    var _SEL = 'id,couple_id,sender_role,sender_id,text,message_type,seen,seen_at,is_ephemeral,created_at,reply_to_id,reply_to_text,reply_to_sender,deleted,reactions,audio_duration,audio_mime,photo_url,video_url,poster_url,video_duration';
+    var _SEL = 'id,couple_id,sender_role,sender_id,text,message_type,seen,seen_at,is_ephemeral,created_at,reply_to_id,reply_to_text,reply_to_sender,deleted,reactions,audio_duration,audio_mime,photo_url,video_url,poster_url,video_duration,edited';
     fetch(SB_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId + anchor
         + '&order=created_at.desc&limit=' + _msgPageSize + '&select=' + _SEL, {
       headers: sb2Headers()
@@ -1135,7 +1149,7 @@
 
     // Premier chargement : les 50 derniers en ASC
     // ⚡ EGRESS FIX : audio_data (base64) exclu du poll — chargé uniquement au tap
-    var _SELECT_FIELDS = 'id,couple_id,sender_role,sender_id,text,message_type,seen,seen_at,is_ephemeral,created_at,reply_to_id,reply_to_text,reply_to_sender,deleted,reactions,audio_duration,audio_mime,photo_url,video_url,poster_url,video_duration';
+    var _SELECT_FIELDS = 'id,couple_id,sender_role,sender_id,text,message_type,seen,seen_at,is_ephemeral,created_at,reply_to_id,reply_to_text,reply_to_sender,deleted,reactions,audio_duration,audio_mime,photo_url,video_url,poster_url,video_duration,edited';
     var url = SB_URL + '/rest/v1/' + TABLE + '?couple_id=eq.' + coupleId
             + '&order=created_at.desc&limit=' + _msgPageSize + '&select=' + _SELECT_FIELDS;
 
@@ -1192,6 +1206,23 @@
           var wrap = document.querySelector('[data-id="'+msg.id+'"]');
           if(wrap) renderReactions(cached, wrap);
         }
+        // Sync texte modifié par l'autre : mise à jour du texte et de « (modifié) »
+        if(cached && cached.sender_role !== identity && !cached.deleted && !msg.deleted && (!cached.message_type || cached.message_type === 'text') &&
+           typeof msg.text === 'string' && msg.text !== cached.text){
+          cached.text = msg.text;
+          cached.edited = true;
+          var wrapEd = document.querySelector('[data-id="'+msg.id+'"]');
+          var txtEd = wrapEd ? wrapEd.querySelector('.dm-bubble-text') : null;
+          if(txtEd && !wrapEd.querySelector('.dm-edit-input')){
+            txtEd.textContent = msg.text;
+            if(!wrapEd.querySelector('.dm-edited-label')){
+              var lblEd = document.createElement('span');
+              lblEd.className = 'dm-edited-label';
+              lblEd.textContent = '(modifié)';
+              txtEd.after(lblEd);
+            }
+          }
+        }
         // Sync seen_at (photo éphémère vue depuis l'autre appareil) — permet à CHAQUE
         // client de déclencher la suppression après 10 min, peu importe qui a vu la photo
         if(cached && cached.is_ephemeral && !cached.seen_at && msg.seen_at){
@@ -1203,6 +1234,7 @@
         if(cached && !cached.deleted && msg.deleted){
           cached.deleted = true;
           cached.text = 'Message supprimé';
+          _dmMarkReplyDeleted(msg.id);
           var wrap = document.querySelector('[data-id="'+msg.id+'"]');
           if(wrap){
             if(cached.message_type === 'photo' || cached.message_type === 'video'){
@@ -1631,6 +1663,13 @@
   }
 
   /* ══ SUPPRESSION ══ */
+  // Les citations de réponse vers un message supprimé affichent « Message supprimé »
+  function _dmMarkReplyDeleted(id){
+    document.querySelectorAll('.dm-reply-preview').forEach(function(rp){
+      if(rp.dataset.replyId === String(id)) rp.textContent = 'Message supprimé';
+    });
+  }
+
   function deleteMsg(msg, wrap){
     if(msg.deleted) return; // ✅ Guard — déjà supprimé, ne pas re-PATCHer
 
@@ -1662,6 +1701,7 @@
     // et le cache pour éviter réapparition au prochain fetchMsgs
     msg.deleted = true;
     msg.text = 'Message supprimé';
+    _dmMarkReplyDeleted(msg.id);
     var cached = cache.find(function(m){ return m.id === msg.id; });
     if(cached){ cached.deleted = true; cached.text = 'Message supprimé'; }
 
@@ -1696,6 +1736,7 @@
   }
 
   /* ══ BULLE ══ */
+  var _dmEphRevealed = {}; // photos éphémères reçues déjà touchées (floues avant)
   function appendBubble(msg, idx, all){
     var el = $('dmMessages');
     if(!el) return;
@@ -1737,6 +1778,7 @@
 
       inner.appendChild(img);
       inner.appendChild(timeEl);
+      if(!mine && msg.is_ephemeral && !_dmEphRevealed[msg.id]) inner.classList.add('dm-eph-blur');
       if(msg.is_ephemeral && msg.seen_at){
         var ephBadge = document.createElement('div');
         ephBadge.className = 'dm-photo-ephemeral-badge';
@@ -1804,14 +1846,25 @@
         pw.addEventListener('mousemove', function(){ if(pressActive){ moved = true; clearTimeout(tapT); } });
 
         // Tap court / clic court → plein écran
+        var lastReveal = 0;
+        function tapOpen(){
+          if(innerEl.classList.contains('dm-eph-blur')){
+            innerEl.classList.remove('dm-eph-blur');
+            _dmEphRevealed[m.id] = true;
+            lastReveal = Date.now();
+            return;
+          }
+          if(Date.now() - lastReveal < 700) return; // touchend + click du même geste
+          window._dmOpenPhotoViewer && window._dmOpenPhotoViewer(m.photo_url);
+        }
         innerEl.addEventListener('touchend', function(e){
           if(lpFired){ lpFired = false; return; }
-          if(!moved) window._dmOpenPhotoViewer && window._dmOpenPhotoViewer(m.photo_url);
+          if(!moved) tapOpen();
         });
         innerEl.addEventListener('click', function(e){
           e.stopPropagation();
           if(lpFired){ lpFired = false; return; }
-          if(!moved) window._dmOpenPhotoViewer && window._dmOpenPhotoViewer(m.photo_url);
+          if(!moved) tapOpen();
         });
       })(msg, photoWrap, inner);
       return; // pas de bulle classique
@@ -1961,6 +2014,11 @@
       var rpWho = (typeof v2GetDisplayName==="function"?v2GetDisplayName(msg.reply_to_sender):(msg.reply_to_sender==="girl"?"Elle":"Lui"));
       var rpTxt = msg.reply_to_text.length > 45 ? msg.reply_to_text.slice(0,45)+'…' : msg.reply_to_text;
       rp.textContent = rpWho + ' : ' + rpTxt;
+      if(msg.reply_to_id){
+        rp.dataset.replyId = msg.reply_to_id;
+        var rpOrig = cache.find(function(m){ return m.id === msg.reply_to_id; });
+        if(rpOrig && rpOrig.deleted) rp.textContent = 'Message supprimé';
+      }
       bbl.appendChild(rp);
     }
 
@@ -2248,11 +2306,12 @@
     if(!input) return;
     var text = input.value.trim();
     if(!text) return;
-    if(text.length > 2000){
-      if(typeof showToast === 'function') showToast('Message trop long (2000 caractères max)', 'error', 3000);
+    if(text.length > 1000){
+      if(typeof showToast === 'function') showToast('Message trop long (1000 caractères max)', 'error', 3000);
       return;
     }
     input.value = '';
+    _dmAutoGrow(input);
     // ✅ FIX iOS — setTimeout(0) obligatoire pour fermer le clavier sur iPhone/iPad
     setTimeout(function(){ input.blur(); }, 0);
     updateSendBtn();
@@ -2959,6 +3018,7 @@
         var who = (typeof v2GetDisplayName==="function"?v2GetDisplayName(last.sender_role):(last.sender_role==="girl"?"Elle":"Lui"));
         var txt = last.deleted ? '🚫 Message supprimé' : (last.message_type === 'audio' ? '🎤 Vocal' : (last.message_type === 'photo' ? '📷 Photo' : (last.message_type === 'video' ? '🎥 Vidéo' : (last.text || ''))));
         if(txt.length > 34) txt = txt.slice(0,34) + '…';
+        p.textContent = txt;
       }
       if(t){
         var d  = new Date(last.created_at);

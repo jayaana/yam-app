@@ -4511,7 +4511,7 @@ body.light .dm-msg-wrap.mine .dm-bubble {
   box-shadow:0 2px 12px rgba(231,90,124,0.25);
 }
 .dm-msg-wrap.mine.first-in-group .dm-bubble { border-radius:20px 4px 20px 20px; }
-.dm-bubble-text { display:block; letter-spacing:0.01em; }
+.dm-bubble-text { display:block; letter-spacing:0.01em; white-space:pre-wrap; overflow-wrap:anywhere; }
 .dm-bubble-meta { font-size:9px; margin-top:4px; text-align:right; opacity:0.7; display:none; }
 .dm-msg-wrap.last-in-group .dm-bubble-meta { display:block; }
 .dm-msg-wrap.mine .dm-bubble-meta { color:rgba(255,255,255,0.8); }
@@ -4776,6 +4776,7 @@ body.light .dm-input-wrap:focus-within { border-color:var(--green); box-shadow:0
   flex:1; border:none; background:transparent;
   font-family:'Bricolage Grotesque',sans-serif; font-size:16px !important;
   color:var(--text); outline:none; caret-color:#ee2a7b; padding:2px 0;
+  resize:none; overflow-y:auto; max-height:120px; line-height:1.35; display:block;
 }
 .dm-input::placeholder { color:var(--muted); }
 .dm-send-btn {
@@ -5000,6 +5001,14 @@ body.light .dm-rec-lock-bar {
   color:#fff; pointer-events:none;
 }
 .dm-photo-ephemeral-badge svg { width:11px; height:11px; }
+/* Photo éphémère reçue : floue jusqu'au toucher */
+.dm-photo-inner.dm-eph-blur img { filter:blur(24px); transform:scale(1.15); }
+.dm-photo-inner.dm-eph-blur::after {
+  content:'Touchez pour voir'; position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center; text-align:center;
+  font-size:13px; font-weight:600; color:#fff; padding:8px;
+  text-shadow:0 1px 4px rgba(0,0,0,0.7); pointer-events:none;
+}
 /* Photo en cours d'envoi */
 .dm-photo-inner.sending { opacity:0.6; }
 .dm-photo-inner.sending::after {
@@ -5281,19 +5290,6 @@ body.light #dmLoadMoreBtn { background:#f0e8f8; }
   line-height:1; align-self:flex-start;
 }
 .dm-msg-wrap:not(.mine) .dm-audio-dur { color:var(--muted); }
-
-.dm-emoji-picker {
-  position:absolute; bottom:calc(100% + 10px); left:0; right:0;
-  background:var(--s1); border:1px solid var(--border); border-radius:16px;
-  padding:12px; display:none; flex-wrap:wrap; gap:6px; justify-content:center;
-  box-shadow:0 8px 32px rgba(0,0,0,0.3); z-index:10;
-}
-.dm-emoji-picker.open { display:flex; }
-.dm-emoji-picker span {
-  font-size:22px; cursor:pointer; padding:4px; border-radius:8px;
-  transition:transform 0.12s,background 0.1s; user-select:none;
-}
-.dm-emoji-picker span:hover { transform:scale(1.35); background:var(--s2); }
 
 /* ══ NOUVELLES FEATURES INSTALOVE ══ */
 
