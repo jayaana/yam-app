@@ -912,7 +912,8 @@
     if (cat && book.gutenberg_id !== cat.gutenberg_id) {
       book.gutenberg_id = cat.gutenberg_id;
       book.content_url = null;
-      if (book.id) sb2Patch(BK_LIBRARY_TBL, 'id=eq.' + book.id, { gutenberg_id: cat.gutenberg_id, content_url: null }).catch(function () {});
+      book.total_chars = 0; // l'ancien total venait d'un autre texte → recalculé à l'affichage
+      if (book.id) sb2Patch(BK_LIBRARY_TBL, 'id=eq.' + book.id, { gutenberg_id: cat.gutenberg_id, content_url: null, total_chars: 0 }).catch(function () {});
     }
 
     // Filtrer les URLs invalides : /ebooks/xxx est une page HTML, pas un fichier texte
