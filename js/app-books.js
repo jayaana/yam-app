@@ -17,8 +17,11 @@
   var GUTENDEX_API    = 'https://gutendex.com/books/';
   var GUTENBERG_BASE  = 'https://www.gutenberg.org';
   // Gutenberg bloque CORS sur toutes ses URLs — proxy obligatoire
-  // corsproxy.io : proxy CORS gratuit, retourne directement le texte (pas de wrapping JSON)
-  var CORS_PROXY      = 'https://corsproxy.io/?url=';
+  // Deux proxys CORS gratuits (le 2e sert de secours), renvoient directement le texte
+  var CORS_PROXIES    = [
+    'https://api.allorigins.win/raw?url=',
+    'https://api.codetabs.com/v1/proxy?quest='
+  ];
   var BK_LIBRARY_TBL  = 'book_library';
   var BK_READS_TBL    = 'book_reads';
   var BK_SESSIONS_TBL = 'book_sessions';
@@ -44,37 +47,26 @@
 
   // ─── 2. CATALOGUE CURÉ (~50 classiques FR) ───────────────────────
 
+  // IDs vérifiés sur Gutenberg (titre contrôlé) le 22 oct 2026 ; livres en plusieurs tomes = tome indiqué
   var BK_CATALOG = [
-    { gutenberg_id: 17489, title: 'Les Misérables',              author: 'Victor Hugo',           cover: '📚', genre: 'Roman' },
-    { gutenberg_id: 14155, title: 'Notre-Dame de Paris',         author: 'Victor Hugo',           cover: '📚', genre: 'Roman' },
-    { gutenberg_id: 5246,  title: 'Le Comte de Monte-Cristo',    author: 'Alexandre Dumas',       cover: '⚔️', genre: 'Aventure' },
+    { gutenberg_id: 17489, title: 'Les Misérables — Tome I',     author: 'Victor Hugo',           cover: '📚', genre: 'Roman' },
+    { gutenberg_id: 19657, title: 'Notre-Dame de Paris',         author: 'Victor Hugo',           cover: '📚', genre: 'Roman' },
+    { gutenberg_id: 17989, title: 'Le Comte de Monte-Cristo — Tome I', author: 'Alexandre Dumas', cover: '⚔️', genre: 'Aventure' },
     { gutenberg_id: 13704, title: "L'homme à l'oreille cassée",  author: 'Edmond About',          cover: '📖', genre: 'Roman' },
-    { gutenberg_id: 600,   title: 'Madame Bovary',               author: 'Gustave Flaubert',      cover: '💔', genre: 'Roman' },
-    { gutenberg_id: 4650,  title: 'Le Tour du monde en 80 jours',author: 'Jules Verne',           cover: '🌍', genre: 'Aventure' },
-    { gutenberg_id: 800,   title: 'Le Rouge et le Noir',         author: 'Stendhal',              cover: '🖤', genre: 'Roman' },
-    { gutenberg_id: 4461,  title: 'Vingt mille lieues sous les mers', author: 'Jules Verne',      cover: '🌊', genre: 'Aventure' },
-    { gutenberg_id: 1257,  title: "De la Terre à la Lune",       author: 'Jules Verne',           cover: '🚀', genre: 'Aventure' },
-    { gutenberg_id: 14836, title: 'Germinal',                    author: 'Émile Zola',            cover: '⚒️', genre: 'Roman' },
-    { gutenberg_id: 1069,  title: "L'Assommoir",                 author: 'Émile Zola',            cover: '🍷', genre: 'Roman' },
-    { gutenberg_id: 5711,  title: 'Nana',                        author: 'Émile Zola',            cover: '🌹', genre: 'Roman' },
-    { gutenberg_id: 4364,  title: 'Bel-Ami',                     author: 'Guy de Maupassant',     cover: '🎩', genre: 'Roman' },
-    { gutenberg_id: 3175,  title: 'Une vie',                     author: 'Guy de Maupassant',     cover: '🌾', genre: 'Roman' },
-    { gutenberg_id: 2413,  title: 'Le Père Goriot',              author: 'Honoré de Balzac',      cover: '👴', genre: 'Roman' },
-    { gutenberg_id: 1237,  title: 'Eugénie Grandet',             author: 'Honoré de Balzac',      cover: '💰', genre: 'Roman' },
-    { gutenberg_id: 17989, title: 'Candide',                     author: 'Voltaire',              cover: '💡', genre: 'Philosophie' },
-    { gutenberg_id: 2650,  title: 'Les Trois Mousquetaires',     author: 'Alexandre Dumas',       cover: '⚔️', genre: 'Aventure' },
-    { gutenberg_id: 36,    title: "Les Fleurs du Mal",           author: 'Charles Baudelaire',    cover: '🌸', genre: 'Poésie' },
-    { gutenberg_id: 3748,  title: "L'Étranger",                  author: 'Albert Camus',          cover: '☀️', genre: 'Roman' },
-    { gutenberg_id: 4606,  title: 'Le Petit Prince',             author: 'Antoine de Saint-Exupéry', cover: '🌟', genre: 'Conte' },
-    { gutenberg_id: 13951, title: 'Cyrano de Bergerac',          author: 'Edmond Rostand',        cover: '🎭', genre: 'Théâtre' },
-    { gutenberg_id: 910,   title: "L'Île mystérieuse",           author: 'Jules Verne',           cover: '🏝️', genre: 'Aventure' },
-    { gutenberg_id: 2413,  title: 'La Cousine Bette',            author: 'Honoré de Balzac',      cover: '👩', genre: 'Roman' },
-    { gutenberg_id: 14155, title: 'Les Misérables — Tome II',    author: 'Victor Hugo',           cover: '📚', genre: 'Roman' },
-    { gutenberg_id: 8700,  title: 'Poil de Carotte',             author: 'Jules Renard',          cover: '🥕', genre: 'Roman' },
-    { gutenberg_id: 4651,  title: 'Michel Strogoff',             author: 'Jules Verne',           cover: '🐴', genre: 'Aventure' },
-    { gutenberg_id: 5791,  title: 'Carmen',                      author: 'Prosper Mérimée',       cover: '💃', genre: 'Nouvelle' },
-    { gutenberg_id: 14287, title: 'Le Horla',                    author: 'Guy de Maupassant',     cover: '👻', genre: 'Nouvelle' },
-    { gutenberg_id: 1150,  title: 'Jacques le Fataliste',        author: 'Denis Diderot',         cover: '🤔', genre: 'Roman' },
+    { gutenberg_id: 14155, title: 'Madame Bovary',               author: 'Gustave Flaubert',      cover: '💔', genre: 'Roman' },
+    { gutenberg_id: 20973, title: 'Le Tour du monde en 80 jours',author: 'Jules Verne',           cover: '🌍', genre: 'Aventure' },
+    { gutenberg_id: 798,   title: 'Le Rouge et le Noir',         author: 'Stendhal',              cover: '🖤', genre: 'Roman' },
+    { gutenberg_id: 5097,  title: 'Vingt mille lieues sous les mers', author: 'Jules Verne',      cover: '🌊', genre: 'Aventure' },
+    { gutenberg_id: 38674, title: 'De la Terre à la Lune',       author: 'Jules Verne',           cover: '🚀', genre: 'Aventure' },
+    { gutenberg_id: 5711,  title: 'Germinal',                    author: 'Émile Zola',            cover: '⚒️', genre: 'Roman' },
+    { gutenberg_id: 6497,  title: "L'Assommoir",                 author: 'Émile Zola',            cover: '🍷', genre: 'Roman' },
+    { gutenberg_id: 5250,  title: 'Nana',                        author: 'Émile Zola',            cover: '🌹', genre: 'Roman' },
+    { gutenberg_id: 17457, title: 'Une vie',                     author: 'Guy de Maupassant',     cover: '🌾', genre: 'Roman' },
+    { gutenberg_id: 11049, title: 'Eugénie Grandet',             author: 'Honoré de Balzac',      cover: '💰', genre: 'Roman' },
+    { gutenberg_id: 4650,  title: 'Candide',                     author: 'Voltaire',              cover: '💡', genre: 'Philosophie' },
+    { gutenberg_id: 13951, title: 'Les Trois Mousquetaires',     author: 'Alexandre Dumas',       cover: '⚔️', genre: 'Aventure' },
+    { gutenberg_id: 6099,  title: 'Les Fleurs du Mal',           author: 'Charles Baudelaire',    cover: '🌸', genre: 'Poésie' },
+    { gutenberg_id: 14287, title: "L'Île mystérieuse",           author: 'Jules Verne',           cover: '🏝️', genre: 'Aventure' },
   ];
 
 
@@ -952,7 +944,12 @@
         if (content) content.innerHTML =
           '<div style="padding:24px;text-align:center;color:var(--muted);">' +
           'Impossible de charger le texte.<br>' +
-          '<span style="font-size:11px;">Toutes les sources ont échoué — vérifie ta connexion.</span></div>';
+          '<span style="font-size:11px;">Toutes les sources ont échoué — vérifie ta connexion.</span><br>' +
+          '<button id="bkRetryBtn" style="margin-top:14px;padding:8px 18px;border-radius:20px;font-size:12px;font-weight:700;' +
+          'border:1px solid var(--accent);background:var(--accent-s);color:var(--accent);cursor:pointer;' +
+          'font-family:DM Sans,sans-serif;">Réessayer</button></div>';
+        var retryBtn = document.getElementById('bkRetryBtn');
+        if (retryBtn) retryBtn.addEventListener('click', function () { _bkShowReader(book); });
         return;
       }
       // Mettre à jour content_url avec l'URL qui a marché
@@ -966,16 +963,20 @@
   }
 
   // Fetch avec fallback en cascade — essaie chaque URL jusqu'à succès
-  // Toutes les URLs Gutenberg passent par corsproxy.io (CORS bloqué nativement)
+  // Les URLs Gutenberg passent par un proxy CORS (bloqué nativement) ; chaque URL est essayée
+  // avec chaque proxy (idx = index URL × nb proxys + index proxy)
   function _bkFetchWithFallback(urls, idx, cb) {
-    if (idx >= urls.length) { cb(null, null); return; }
-    var originalUrl = urls[idx];
-    // Wrapper CORS — corsproxy.io retourne directement le contenu texte
-    var fetchUrl = originalUrl.indexOf('gutenberg.org') !== -1
-      ? CORS_PROXY + encodeURIComponent(originalUrl)
+    var nbP = CORS_PROXIES.length;
+    if (Math.floor(idx / nbP) >= urls.length) { cb(null, null); return; }
+    var originalUrl = urls[Math.floor(idx / nbP)];
+    var isGut = originalUrl.indexOf('gutenberg.org') !== -1;
+    // Une URL hors Gutenberg n'a pas besoin de proxy : on saute les proxys suivants
+    if (!isGut && idx % nbP !== 0) { _bkFetchWithFallback(urls, idx + 1, cb); return; }
+    var fetchUrl = isGut
+      ? CORS_PROXIES[idx % nbP] + encodeURIComponent(originalUrl)
       : originalUrl;
 
-    yamLog('[Books] Essai URL ' + (idx + 1) + '/' + urls.length + ':', originalUrl);
+    yamLog('[Books] Essai URL ' + (Math.floor(idx / nbP) + 1) + '/' + urls.length + ' (proxy ' + (idx % nbP + 1) + '):', originalUrl);
 
     fetch(fetchUrl)
       .then(function (r) {
@@ -984,6 +985,8 @@
       })
       .then(function (text) {
         if (!text || text.trim().length < 100) throw new Error('Contenu trop court');
+        // Un proxy en panne peut renvoyer une page HTML d'erreur au lieu du texte
+        if (/^\s*<(!doctype|html)/i.test(text)) throw new Error('Réponse HTML');
         cb(text, originalUrl);
       })
       .catch(function (err) {
