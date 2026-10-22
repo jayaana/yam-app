@@ -967,8 +967,9 @@
         '<div style="font-size:9px;color:var(--muted);display:flex;align-items:center;gap:5px;">' +
           escHtml(yamGetDisplayName(c.author_role)) + ' · ' + date +
           (isMe ? ' <button data-diary-del-comment="' + escHtml(c.id) + '" ' +
-            'style="background:none;border:none;cursor:pointer;color:rgba(255,59,48,0.75);' +
-            'font-size:11px;padding:0 2px;line-height:1;flex-shrink:0;" title="Supprimer mon commentaire">✕</button>' : '') +
+            'style="background:none;border:none;cursor:pointer;color:rgba(255,59,48,0.85);' +
+            'font-size:14px;min-width:44px;min-height:44px;margin:-16px -8px;padding:0;line-height:1;flex-shrink:0;" ' +
+            'title="Supprimer mon commentaire" aria-label="Supprimer mon commentaire">✕</button>' : '') +
         '</div>' +
         '<div style="max-width:85%;padding:8px 12px;border-radius:' + (isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px') + ';' +
           'background:' + (isMe ? 'var(--accent)' : 'var(--s2)') + ';' +
@@ -990,12 +991,39 @@
   // Fix6 — Supprimer un commentaire (auteur uniquement — RLS Supabase)
   function _deleteComment(commentId) {
     if (!commentId || !_currentPage) return;
-    sb2Delete(COMMENT_TBL, 'id=eq.' + commentId)
-      .then(function() {
-        haptic('light');
-        _loadComments(_currentPage.id);
-      })
-      .catch(function() { showToast('Erreur suppression', 'error'); });
+    _confirmSheet('Supprimer ce commentaire ?', 'Supprimer', function() {
+      if (!_currentPage) return;
+      sb2Delete(COMMENT_TBL, 'id=eq.' + commentId)
+        .then(function() {
+          haptic('light');
+          if (_currentPage) _loadComments(_currentPage.id);
+        })
+        .catch(function() { showToast('Erreur suppression', 'error'); });
+    });
+  }
+
+  // Feuille de confirmation aux couleurs de YAM (Annuler / action)
+  function _confirmSheet(title, okLabel, onOk) {
+    var old = document.getElementById('diaryConfirmSheet');
+    if (old) old.remove();
+    var ov = document.createElement('div');
+    ov.id = 'diaryConfirmSheet';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.45);' +
+      'display:flex;align-items:flex-end;justify-content:center;';
+    ov.innerHTML =
+      '<div style="width:100%;max-width:480px;background:var(--bg);border-radius:20px 20px 0 0;' +
+        'padding:20px 16px calc(var(--safe-bottom,0px) + 16px);display:flex;flex-direction:column;gap:10px;">' +
+        '<div style="text-align:center;font-size:15px;font-weight:700;color:var(--text);padding:4px 0 8px;">' + escHtml(title) + '</div>' +
+        '<button id="diaryConfirmOk" style="min-height:48px;border-radius:14px;border:none;cursor:pointer;' +
+          'background:#ff3b30;color:#fff;font-size:15px;font-weight:700;font-family:DM Sans,sans-serif;">' + escHtml(okLabel) + '</button>' +
+        '<button id="diaryConfirmCancel" style="min-height:48px;border-radius:14px;border:1px solid var(--border);cursor:pointer;' +
+          'background:var(--s2);color:var(--text);font-size:15px;font-weight:600;font-family:DM Sans,sans-serif;">Annuler</button>' +
+      '</div>';
+    function close() { ov.remove(); }
+    ov.addEventListener('click', function(e) { if (e.target === ov) close(); });
+    document.body.appendChild(ov);
+    document.getElementById('diaryConfirmCancel').addEventListener('click', close);
+    document.getElementById('diaryConfirmOk').addEventListener('click', function() { close(); onOk(); });
   }
 
   var _commentRTCh = null;
@@ -1011,6 +1039,9 @@
         event: 'INSERT', schema: 'public', table: COMMENT_TBL,
         filter: 'page_id=eq.' + pageId,
       }, function() { _loadComments(pageId); })
+      // DELETE : le filtre n'est pas évalué sans REPLICA IDENTITY FULL → sans filtre, on recharge
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: COMMENT_TBL },
+        function() { _loadComments(pageId); })
       .subscribe();
   }
 
