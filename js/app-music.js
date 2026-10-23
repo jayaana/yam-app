@@ -12,7 +12,7 @@ var songsLove = [
   {title:"Imagine",              artist:"Carbone",              file:"imagine_carbone.mp3",                  yt:"https://www.youtube.com/watch?v=iuSUZyTWi6o"},
   {title:"Nanani",               artist:"Gazo",                 file:"nanani.mp3",                           yt:"https://www.youtube.com/watch?v=8Bkgi6yB6P8"},
   {title:"Angela",               artist:"Hatik",                file:"angela.mp3",                           yt:"https://www.youtube.com/watch?v=uqsGUAM9WDk"},
-  {title:"Bebe de Bogoda",       artist:"Moha la Squale",       file:"bebe_de_bogoda.mp3",                   yt:"https://www.youtube.com/watch?v=oW-xRDJhoqo"},
+  {title:"Bebe de Bogota",       artist:"Moha la Squale",       file:"bebe_de_bogota.mp3",                  yt:"https://www.youtube.com/watch?v=oW-xRDJhoqo"},
   {title:"Ma Belle",             artist:"Moha La Squale",       file:"ma_belle_moha_la_squale.mp3",          yt:"https://www.youtube.com/watch?v=NsxdxA_j8nk"},
   {title:"Luna",                 artist:"Moha La Squale",       file:"luna_moha_la_squale.mp3",              yt:"https://www.youtube.com/watch?v=qJZy8zy0Uy0"},
   {title:"Jaloux",               artist:"Dadju",                file:"dadju_jaloux.mp3",                     yt:"https://www.youtube.com/watch?v=254EHfv9RvM"},
@@ -83,6 +83,8 @@ var _gAudio = (function(){
 // ════════════════════════════════════════════════════════════
 var _MUSIC_KEY = 'yam_music_urls_v1', _MUSIC_TTL = 86400, _MUSIC_REUSE_MS = 20 * 3600 * 1000;
 var _musicUrls = {}, _musicLoading = null, _musicTried = false;
+var _coverUrls = {};  // pochettes (bucket music, dossier album_cover), affichées seulement dans le lecteur
+function _coverStorageName(file){ return _musicStorageName(file).replace(/\.mp3$/, '.jpg'); }
 
 function _musicStorageName(file){
   return file.replace(/\.mp3$/i, '').normalize('NFKD').replace(/[^\x00-\x7F]/g, '').toLowerCase()
@@ -94,7 +96,7 @@ function _musicEnsureUrls(){
   if(_musicLoading) return _musicLoading;
   try {
     var saved = JSON.parse(localStorage.getItem(_MUSIC_KEY) || 'null');
-    if(saved && saved.urls && Date.now() - saved.t < _MUSIC_REUSE_MS && songsLove.every(function(s){ return saved.urls[s.file]; })){ _musicUrls = saved.urls; return Promise.resolve(); }
+    if(saved && saved.urls && Date.now() - saved.t < _MUSIC_REUSE_MS && songsLove.every(function(s){ return saved.urls[s.file]; }) && saved.covers){ _musicUrls = saved.urls; _coverUrls = saved.covers; return Promise.resolve(); }
   } catch(e) {}
   if(!yamGetAccessToken()) return Promise.resolve();
   var names = songsLove.map(function(s){ return _musicStorageName(s.file); });
@@ -105,7 +107,16 @@ function _musicEnsureUrls(){
     var byName = {};
     rows.forEach(function(x){ if(x.signedURL && !x.error) byName[x.path] = SB_URL + '/storage/v1' + x.signedURL; });
     songsLove.forEach(function(s){ var u = byName[_musicStorageName(s.file)]; if(u) _musicUrls[s.file] = u; });
-    try { localStorage.setItem(_MUSIC_KEY, JSON.stringify({ t: Date.now(), urls: _musicUrls })); } catch(e) {}
+    // Pochettes : bucket privé à part "album_cover" ; un échec ne gêne pas la musique (repli 🎵)
+    return fetch(SB_URL + '/storage/v1/object/sign/album_cover', {
+      method: 'POST', headers: sb2Headers(),
+      body: JSON.stringify({ expiresIn: _MUSIC_TTL, paths: songsLove.map(function(s){ return _coverStorageName(s.file); }) })
+    }).then(function(r){ return r.ok ? r.json() : []; }).catch(function(){ return []; }).then(function(crow){
+      var cb = {};
+      (crow || []).forEach(function(x){ if(x.signedURL && !x.error) cb[x.path] = SB_URL + '/storage/v1' + x.signedURL; });
+      songsLove.forEach(function(s){ var c = cb[_coverStorageName(s.file)]; if(c) _coverUrls[s.file] = c; });
+      try { localStorage.setItem(_MUSIC_KEY, JSON.stringify({ t: Date.now(), urls: _musicUrls, covers: _coverUrls })); } catch(e) {}
+    });
   }).catch(function(e){ console.warn('[YAM] adresses musique indisponibles:', e); })
   .then(function(){ _musicLoading = null; });
   return _musicLoading;
@@ -457,15 +468,40 @@ function updateTop50(){
 }
 
 document.getElementById('top50Expand').addEventListener('click', function(){
+  if(document.getElementById('Love')._muAnim) return;
   top50Expanded = !top50Expanded;
   var tabEl = document.getElementById('yamMusiqueTab'); if(tabEl) tabEl.classList.toggle('mu-expanded', top50Expanded);
   var rows = document.querySelectorAll('#Love .sp-song.hidden-row');
-  if(top50Expanded){ rows.forEach(function(r,i){ setTimeout(function(){ r.classList.add('revealed'); }, i*35); }); }
-  else { rows.forEach(function(r){ r.classList.remove('revealed'); }); }
+  var box = document.getElementById('Love');
+  var still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var h0 = box.offsetHeight, h1 = h0;
+  if(top50Expanded){
+    rows.forEach(function(r,i){ r.style.animationDelay = Math.min(i, 12) * 25 + 'ms'; r.classList.add('revealed'); });
+    h1 = box.offsetHeight;
+  } else {
+    h1 = box.offsetHeight;
+    rows.forEach(function(r){ r.classList.remove('revealed'); });
+    h0 = box.offsetHeight;
+    rows.forEach(function(r){ r.classList.add('revealed'); });
+  }
+  var from = top50Expanded ? h0 : h1, to = top50Expanded ? h1 : h0;
+  var done = function(){
+    box.style.cssText = ''; box.classList.remove('mu-anim', 'mu-collapsing');
+    rows.forEach(function(r){ r.style.animationDelay = ''; if(!top50Expanded) r.classList.remove('revealed'); });
+    box._muAnim = false;
+    if(!top50Expanded && window.fitTop50) fitTop50();
+  };
+  if(!still && from !== to){
+    box._muAnim = true;
+    box.classList.add('mu-anim'); if(!top50Expanded) box.classList.add('mu-collapsing');
+    box.style.height = from + 'px';
+    void box.offsetHeight;
+    box.style.height = to + 'px';
+    setTimeout(done, 380);
+  } else { done(); }
   var remaining = songsLove.length - TOP_VISIBLE;
   this.querySelector('span:first-child').textContent = top50Expanded ? 'Réduire' : 'Voir tout ('+remaining+' titres)';
   this.classList.toggle('open', top50Expanded);
-  if(!top50Expanded) setTimeout(function(){ if(window.fitTop50) fitTop50(); }, 40);
 });
 
 // ── PLAY MODE ──
@@ -769,6 +805,18 @@ window.fitTop50Later = function(){ requestAnimationFrame(function(){ fitTop50();
     if(on){
       $('muHeroTitle').textContent = _currentSong.title;
       $('muHeroArtist').textContent = _currentSong.artist;
+      var cv = $('muHeroCover'), cu = _coverUrls[_currentSong.file];
+      if(cv){
+        if(cu){
+          if(cv.dataset.src !== cu){
+            cv.dataset.src = cu; cv.textContent = '';
+            var im = new Image(); im.alt = '';
+            im.addEventListener('error', function(){ cv.textContent = '🎵'; cv.dataset.src = ''; cv.classList.remove('has-img'); });
+            im.src = cu; cv.appendChild(im);
+          }
+          cv.classList.add('has-img');
+        } else if(cv.dataset.src){ cv.textContent = '🎵'; cv.dataset.src = ''; cv.classList.remove('has-img'); }
+      }
       var playing = !_gAudio.paused;
       $('muHeroIconPlay').style.display = playing ? 'none' : '';
       $('muHeroIconPause').style.display = playing ? '' : 'none';
@@ -1400,7 +1448,8 @@ function filterSongs(q){
       navigator.mediaSession.metadata=new MediaMetadata({
         title:  song?song.title:'',
         artist: song?song.artist:'',
-        album:  'YAM — You And Me'
+        album:  'YAM — You And Me',
+        artwork: (song && _coverUrls[song.file]) ? [{ src:_coverUrls[song.file], sizes:'250x250', type:'image/jpeg' }] : []
       });
     } catch(e){ _log('metadata err: '+e.message); }
     navigator.mediaSession.playbackState='playing';

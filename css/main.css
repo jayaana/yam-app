@@ -7111,3 +7111,14 @@ html body #uxToast.success { border-color: rgba(231,90,124,.4); }
 
 /* Accueil : espace en bas = hauteur réelle de la barre nav (64 px + zone sûre d'au moins 32 px) pour ne rien rogner */
 #yamHomeTab.active { padding-bottom: calc(max(env(safe-area-inset-bottom, 0px), 32px) + 8px); }
+
+/* Onglet Musique : pochette dans le lecteur + repli/dépli animé de la liste */
+.mu-hero-cover.has-img { width: 56px; height: 56px; padding: 0; overflow: hidden; background: none; }
+.mu-hero-cover.has-img img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: inherit; }
+#Love.mu-anim { overflow: hidden; transition: height .35s cubic-bezier(.4,0,.2,1); }
+#Love.mu-collapsing .sp-song.hidden-row.revealed { opacity: 0; transition: opacity .25s ease; }
+@media (prefers-reduced-motion: reduce) {
+  #Love.mu-anim { transition: none; }
+  .sp-song.hidden-row.revealed { animation: none; }
+  .top50-expand-icon { transition: none; }
+}
