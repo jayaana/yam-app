@@ -92,13 +92,20 @@
     // Jeux : le tableau de bord s'injecte après coup (jxLoadDashboard), ce qui peut décaler
     // la page de façon aléatoire au 1er affichage → on re-cale à 0 tant que rien n'a bougé volontairement
     if(tab === 'jeux'){
-      [350, 700, 1200].forEach(function(d){
-        setTimeout(function(){
-          if(_currentTab === 'jeux' && window.scrollY > 0 && !document.body.classList.contains('subview-active')){
-            window.scrollTo(0, 0);
-          }
-        }, d);
-      });
+      // Re-calage immédiat (événement scroll = avant l'affichage, donc invisible), pendant 1,5 s
+      // ou jusqu'au 1er geste volontaire de l'utilisateur
+      var _jxStop = function(){
+        window.removeEventListener('scroll', _jxFix);
+        ['touchstart','wheel','keydown','mousedown'].forEach(function(ev){ window.removeEventListener(ev, _jxStop); });
+      };
+      var _jxFix = function(){
+        if(_currentTab !== 'jeux' || document.body.classList.contains('subview-active')){ _jxStop(); return; }
+        if(window.scrollY > 0) window.scrollTo(0, 0);
+      };
+      window.addEventListener('scroll', _jxFix, { passive: true });
+      ['touchstart','wheel','keydown','mousedown'].forEach(function(ev){ window.addEventListener(ev, _jxStop, { passive: true }); });
+      setTimeout(_jxStop, 1500);
+      _jxFix();
     }
 
     // Particules : actives seulement sur musique/nous, et si musique en cours
