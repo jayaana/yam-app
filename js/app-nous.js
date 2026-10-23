@@ -4090,10 +4090,10 @@ document.addEventListener('yam:session_ready',function(){
     if(btn){ btn.textContent='...'; btn.disabled=true; }
     var done = function(){ if(btn){btn.textContent='Sauvegarder';btn.disabled=false;} window.histoireCloseItemModal(); window.histoireLoad(); };
     if(_histoireEditingId){
-      fetch(SB_URL+'/rest/v1/histoire?id=eq.'+_histoireEditingId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(done).catch(done);
+      fetch(SB_URL+'/rest/v1/histoire?id=eq.'+_histoireEditingId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(function(){ if(window.yamMarkNew) window.yamMarkNew('histoire'); done(); }).catch(done);
     } else {
       fetch(SB_URL+'/rest/v1/histoire',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
-      .then(function(){ if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('histoire_new'); done(); }).catch(done);
+      .then(function(){ if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('histoire_new'); if(window.yamMarkNew) window.yamMarkNew('histoire'); done(); }).catch(done);
     }
   };
 
@@ -4105,7 +4105,7 @@ document.addEventListener('yam:session_ready',function(){
     if(!_histoireEditingId) return;
     var coupleId = _getCoupleId();
     fetch(SB_URL+'/rest/v1/histoire?id=eq.'+_histoireEditingId+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()})
-    .then(function(){ window.histoireCloseItemModal(); window.histoireLoad(); }).catch(function(){});
+    .then(function(){ if(window.yamMarkNew) window.yamMarkNew('histoire'); window.histoireCloseItemModal(); window.histoireLoad(); }).catch(function(){});
   };
 
   // Click-dehors modal item
@@ -4548,10 +4548,15 @@ document.addEventListener('yam:session_ready',function(){
     if(!_ideaCache) return;
     var coupleId = _getCoupleId(); if(!coupleId) return;
     var data = {couple_id:coupleId, title:_ideaCache.title||'Livre', description:(_ideaCache.author||'')+(_ideaCache.desc?' — '+_ideaCache.desc:''), has_image:false, position:_livresAllRows.length};
-    fetch(SB_URL+'/rest/v1/books',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
+    fetch(SB_URL+'/rest/v1/books',{method:'POST',headers:sb2Headers({'Prefer':'return=representation','Content-Type':'application/json'}),body:JSON.stringify(data)})
     .then(function(r){
       if(!r.ok) return r.json().then(function(e){ throw new Error(e.message||e.hint||r.status); });
-      window.yamMarkNew && window.yamMarkNew('livre');
+      return r.json().then(function(rows){
+        var newId = Array.isArray(rows) && rows[0] ? rows[0].id : null;
+        if(newId && window.yamMarkNew) window.yamMarkNew('livre_'+newId);
+        window.yamMarkNew && window.yamMarkNew('livre');
+      });
+    }).then(function(){
       window.yamRefreshNewBadges && window.yamRefreshNewBadges();
       var card = document.getElementById('livreIdeaCard'); if(card) card.style.display='none';
       window.livresLoad();
