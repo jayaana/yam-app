@@ -60,6 +60,7 @@
 
     _currentTab = tab;
     window._currentTab = tab;
+    if(tab === 'nous'){ var _nnb = document.getElementById('navNousBadge'); if(_nnb) _nnb.style.display = 'none'; }
 
     if(window.updateFloatingThemeBtn) window.updateFloatingThemeBtn();
 
