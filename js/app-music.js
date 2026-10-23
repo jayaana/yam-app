@@ -32,32 +32,32 @@ var songsLove = [
   {title:"Dégaine",              artist:"Aya Nakamura ft. Damso",file:"Aya_Nakamura_Dégaine.mp3",            yt:"https://youtu.be/7Lp9clJSB7E"},
   {title:"Baida",                artist:"DTF",                  file:"DTF_Baida.mp3",                        yt:"https://youtu.be/BogS6A_P5Cc"},
   // ── Nouveaux (badge NEW) ──
-  {title:"Dolce Camara",         artist:"Booba",                file:"Booba - Dolce Camara.mp3",             yt:"https://youtu.be/AgFG6_TGdTY",             isNew:true},
-  {title:"T.I.A",                artist:"Tiakola",              file:"Tiakola - T.I.A.mp3",                  yt:"https://youtu.be/vaeio3idHzU",             isNew:true},
-  {title:"Tu connais",           artist:"Werenoi",              file:"Werenoi – Tu connais.mp3",             yt:"https://youtu.be/35RQgMvjpLA",             isNew:true},
-  {title:"Bolide noir",          artist:"Central Cee & JRK 19", file:"CENTRAL CEE X JRK 19 - BOLIDE NOIR.mp3", yt:"https://youtu.be/i8Iy7F1rQic",  isNew:true},
-  {title:"Terminal 2F",          artist:"GIMS & Dadju",         file:"GIMS & Dadju - Terminal 2F.mp3", yt:"https://youtu.be/lStAbvvWOnQ",         isNew:true},
-  {title:"Bolide allemand",      artist:"SDM",                  file:"SDM - BOLIDE ALLEMAND.mp3",            yt:"https://youtu.be/WcX37NouKxw",             isNew:true},
-  {title:"Loco",                 artist:"GIMS & Lossa",         file:"GIMS & Lossa - LOCO.mp3",              yt:"https://youtu.be/2UPYd3IA-ds",             isNew:true},
-  {title:"4 Kampé",              artist:"Joé Dwèt Filé",        file:"Joé Dwèt Filé - 4 Kampé.mp3",         yt:"https://youtu.be/Srvt_6up-0o",             isNew:true},
-  {title:"Tout donner",          artist:"Naza & SDM",         file:"Naza (ft. SDM) - Tout donner.mp3",     yt:"https://youtu.be/RCgjYlZ34jw",             isNew:true},
-  {title:"Flashback",            artist:"Favé & Gazo",        file:"Favé - FLASHBACK ft. Gazo.mp3",        yt:"https://youtu.be/zJPEOhz5zZ4",             isNew:true},
-  {title:"I'm sorry",            artist:"La Mano 1.9",          file:"La Mano 1.9 - I'M SORRY.mp3",         yt:"https://youtu.be/Cw8iQOYuiNA",             isNew:true},
-  {title:"Death bed 2",      artist:"Powfu",                file:"Powfu - death bed pt- 2.mp3",           yt:"https://youtu.be/eLPkIwbXTdI",             isNew:true},
-  {title:"Blue",                 artist:"yung kai",             file:"yung kai - blue.mp3",                  yt:"https://youtu.be/IpFX2vq8HKw",             isNew:true},
-  {title:"La recette",           artist:"Jeck & Carla",         file:"Jeck & Carla – La recette.mp3",        yt:"https://youtu.be/9kBpbQDZdbQ",             isNew:true},
-  {title:"What You Want",        artist:"Angèle",               file:"Angèle - What You Want.mp3",           yt:"https://youtu.be/e5s8MdtnbMM",             isNew:true},
-  {title:"Simba",                artist:"Dr. Yaro",             file:"Dr. Yaro - Simba.mp3",                 yt:"https://youtu.be/qvVGbUWorUo",             isNew:true},
-  {title:"Ce soir",              artist:"Adèle Castillon & Gazo", file:"Adèle Castillon ft. Gazo - Ce soir.mp3", yt:"https://youtu.be/yD_ZQdKWeFc",       isNew:true},
-  {title:"Les pompiers", artist:"Naza",                 file:"Naza - Appelle les pompiers.mp3",      yt:"https://youtu.be/AycI9MTlkQU",             isNew:true},
-  {title:"Essential",   artist:"Joé Dwèt Filé",        file:"Joé Dwèt Filé - Essential Feat KLN.mp3", yt:"https://youtu.be/VQzX2pg8oF0",          isNew:true},
-  {title:"Ma meilleure",         artist:"La Fouine",            file:"La Fouine - Ma meilleure.mp3",         yt:"https://youtu.be/G_5pzLWjQjY",             isNew:true},
-  {title:"Lucid Dreams",         artist:"Juice WRLD",           file:"Juice WRLD - Lucid Dreams.mp3",        yt:"https://youtu.be/mzB1VGEGcSU",             isNew:true},
-  {title:"I Follow Rivers",      artist:"Lykke Li",             file:"Lykke Li - I Follow Rivers.mp3",       yt:"https://youtu.be/K3JGxj2rvAs",             isNew:true},
-  {title:"Here With Me",         artist:"d4vd",                 file:"d4vd - Here With Me.mp3",              yt:"https://youtu.be/Ip6cw8gfHHI",             isNew:true},
-  {title:"Love Me Not",          artist:"Ravyn Lenae",          file:"Ravyn Lenae - Love Me Not.mp3",        yt:"https://youtu.be/NB7WuqWzDhw",             isNew:true},
-  {title:"On s'attache",         artist:"Christophe Maé",       file:"Christophe Maé - On sattache.mp3",     yt:"https://youtu.be/NeRLnsPNSg0",             isNew:true},
-  {title:"Melo Decale",          artist:"Tiakola",              file:"Tiakola_Melo Decale.mp3",              yt:""}
+  {title:"Dolce Camara",         artist:"Booba",                file:"Booba - Dolce Camara.mp3",             yt:"https://youtu.be/AgFG6_TGdTY"},
+  {title:"T.I.A",                artist:"Tiakola",              file:"Tiakola - T.I.A.mp3",                  yt:"https://youtu.be/vaeio3idHzU"},
+  {title:"Tu connais",           artist:"Werenoi",              file:"Werenoi – Tu connais.mp3",             yt:"https://youtu.be/35RQgMvjpLA"},
+  {title:"Bolide noir",          artist:"Central Cee & JRK 19", file:"CENTRAL CEE X JRK 19 - BOLIDE NOIR.mp3", yt:"https://youtu.be/i8Iy7F1rQic"},
+  {title:"Terminal 2F",          artist:"GIMS & Dadju",         file:"GIMS & Dadju - Terminal 2F.mp3", yt:"https://youtu.be/lStAbvvWOnQ"},
+  {title:"Bolide allemand",      artist:"SDM",                  file:"SDM - BOLIDE ALLEMAND.mp3",            yt:"https://youtu.be/WcX37NouKxw"},
+  {title:"Loco",                 artist:"GIMS & Lossa",         file:"GIMS & Lossa - LOCO.mp3",              yt:"https://youtu.be/2UPYd3IA-ds"},
+  {title:"4 Kampé",              artist:"Joé Dwèt Filé",        file:"Joé Dwèt Filé - 4 Kampé.mp3",         yt:"https://youtu.be/Srvt_6up-0o"},
+  {title:"Tout donner",          artist:"Naza & SDM",         file:"Naza (ft. SDM) - Tout donner.mp3",     yt:"https://youtu.be/RCgjYlZ34jw"},
+  {title:"Flashback",            artist:"Favé & Gazo",        file:"Favé - FLASHBACK ft. Gazo.mp3",        yt:"https://youtu.be/zJPEOhz5zZ4"},
+  {title:"I'm sorry",            artist:"La Mano 1.9",          file:"La Mano 1.9 - I'M SORRY.mp3",         yt:"https://youtu.be/Cw8iQOYuiNA"},
+  {title:"Death bed 2",      artist:"Powfu",                file:"Powfu - death bed pt- 2.mp3",           yt:"https://youtu.be/eLPkIwbXTdI"},
+  {title:"Blue",                 artist:"yung kai",             file:"yung kai - blue.mp3",                  yt:"https://youtu.be/IpFX2vq8HKw"},
+  {title:"La recette",           artist:"Jeck & Carla",         file:"Jeck & Carla – La recette.mp3",        yt:"https://youtu.be/9kBpbQDZdbQ"},
+  {title:"What You Want",        artist:"Angèle",               file:"Angèle - What You Want.mp3",           yt:"https://youtu.be/e5s8MdtnbMM"},
+  {title:"Simba",                artist:"Dr. Yaro",             file:"Dr. Yaro - Simba.mp3",                 yt:"https://youtu.be/qvVGbUWorUo"},
+  {title:"Ce soir",              artist:"Adèle Castillon & Gazo", file:"Adèle Castillon ft. Gazo - Ce soir.mp3", yt:"https://youtu.be/yD_ZQdKWeFc"},
+  {title:"Les pompiers", artist:"Naza",                 file:"Naza - Appelle les pompiers.mp3",      yt:"https://youtu.be/AycI9MTlkQU"},
+  {title:"Essential",   artist:"Joé Dwèt Filé",        file:"Joé Dwèt Filé - Essential Feat KLN.mp3", yt:"https://youtu.be/VQzX2pg8oF0"},
+  {title:"Ma meilleure",         artist:"La Fouine",            file:"La Fouine - Ma meilleure.mp3",         yt:"https://youtu.be/G_5pzLWjQjY"},
+  {title:"Lucid Dreams",         artist:"Juice WRLD",           file:"Juice WRLD - Lucid Dreams.mp3",        yt:"https://youtu.be/mzB1VGEGcSU"},
+  {title:"I Follow Rivers",      artist:"Lykke Li",             file:"Lykke Li - I Follow Rivers.mp3",       yt:"https://youtu.be/K3JGxj2rvAs"},
+  {title:"Here With Me",         artist:"d4vd",                 file:"d4vd - Here With Me.mp3",              yt:"https://youtu.be/Ip6cw8gfHHI"},
+  {title:"Love Me Not",          artist:"Ravyn Lenae",          file:"Ravyn Lenae - Love Me Not.mp3",        yt:"https://youtu.be/NB7WuqWzDhw"},
+  {title:"On s'attache",         artist:"Christophe Maé",       file:"Christophe Maé - On sattache.mp3",     yt:"https://youtu.be/NeRLnsPNSg0"},
+  {title:"Melo Decale",          artist:"Tiakola",              file:"Tiakola_Melo Decale.mp3",              yt:"",isNew:true}
 ];
 songsLove.forEach(function(x){ x.plays = 0; });
 
@@ -476,20 +476,21 @@ document.getElementById('top50Expand').addEventListener('click', function(){
   var still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var h0 = box.offsetHeight, h1 = h0;
   if(top50Expanded){
-    rows.forEach(function(r,i){ r.style.animationDelay = Math.min(i, 12) * 25 + 'ms'; r.classList.add('revealed'); });
+    rows.forEach(function(r){ r.classList.add('revealed'); });
     h1 = box.offsetHeight;
   } else {
     h1 = box.offsetHeight;
-    rows.forEach(function(r){ r.classList.remove('revealed'); });
+    document.querySelectorAll('#Love .sp-song').forEach(function(r){ r.classList.remove('revealed'); });
+    if(window.fitTop50) fitTop50();   // nombre de lignes visibles définitif AVANT de mesurer (pas de saut à la fin)
     h0 = box.offsetHeight;
+    rows = document.querySelectorAll('#Love .sp-song.hidden-row');
     rows.forEach(function(r){ r.classList.add('revealed'); });
   }
   var from = top50Expanded ? h0 : h1, to = top50Expanded ? h1 : h0;
   var done = function(){
     box.style.cssText = ''; box.classList.remove('mu-anim', 'mu-collapsing');
-    rows.forEach(function(r){ r.style.animationDelay = ''; if(!top50Expanded) r.classList.remove('revealed'); });
+    rows.forEach(function(r){ if(!top50Expanded) r.classList.remove('revealed'); });
     box._muAnim = false;
-    if(!top50Expanded && window.fitTop50) fitTop50();
   };
   if(!still && from !== to){
     box._muAnim = true;
@@ -497,7 +498,7 @@ document.getElementById('top50Expand').addEventListener('click', function(){
     box.style.height = from + 'px';
     void box.offsetHeight;
     box.style.height = to + 'px';
-    setTimeout(done, 380);
+    setTimeout(done, 520);
   } else { done(); }
   var remaining = songsLove.length - TOP_VISIBLE;
   this.querySelector('span:first-child').textContent = top50Expanded ? 'Réduire' : 'Voir tout ('+remaining+' titres)';
@@ -1358,7 +1359,7 @@ function filterSongs(q){
     var row=document.createElement('div');
     row.className='sp-song';
     row.style.cssText='display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;';
-    row.innerHTML='<div class="sp-info"><div class="sp-title">'+escHtml(s.title)+'</div><div class="sp-artist">'+escHtml(s.artist)+'</div></div><div style="font-size:11px;color:var(--green);font-weight:600;flex-shrink:0">▶</div>';
+    row.innerHTML='<div class="sp-info"><div class="sp-title">'+escHtml(s.title)+'</div><div class="sp-artist">'+escHtml(s.artist)+'</div></div><div style="width:28px;height:28px;border-radius:50%;background:rgba(255,92,147,.14);color:var(--green);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" fill="currentColor" style="width:13px;height:13px;margin-left:1px"><path d="M8 5v14l11-7z"/></svg></div>';
     row.addEventListener('click',function(){
       closeSearch();
       var realRow=songRows[s.file];

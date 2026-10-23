@@ -7115,8 +7115,11 @@ html body #uxToast.success { border-color: rgba(231,90,124,.4); }
 /* Onglet Musique : pochette dans le lecteur + repli/dépli animé de la liste */
 .mu-hero-cover.has-img { width: 56px; height: 56px; padding: 0; overflow: hidden; background: none; }
 .mu-hero-cover.has-img img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: inherit; }
-#Love.mu-anim { overflow: hidden; transition: height .35s cubic-bezier(.4,0,.2,1); }
-#Love.mu-collapsing .sp-song.hidden-row.revealed { opacity: 0; transition: opacity .25s ease; }
+#Love.mu-anim { overflow: hidden; transition: height .5s cubic-bezier(.32,.72,0,1); }
+#yamMusiqueTab { transition: padding-bottom .5s cubic-bezier(.32,.72,0,1); }
+@keyframes muRowIn { from { opacity: 0; } to { opacity: 1; } }
+#Love .sp-song.hidden-row.revealed { animation: muRowIn .45s ease both; }
+#Love.mu-collapsing .sp-song.hidden-row.revealed { animation: none; opacity: 0; transition: opacity .3s ease; }
 @media (prefers-reduced-motion: reduce) {
   #Love.mu-anim { transition: none; }
   .sp-song.hidden-row.revealed { animation: none; }
