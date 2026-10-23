@@ -204,6 +204,17 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
       body: JSON.stringify({ type:'__pref', sender_role: me, author: me, couple_id: u.couple_id, active:false, message: off ? 'off' : 'on' })
     }).catch(function(){});
   };
+  // Au démarrage : republier le réglage s'il a changé depuis la dernière publication (réglage posé avant cette fonction, ou autre appareil)
+  function publishPrefIfNeeded(){
+    try{
+      var off = localStorage.getItem('yam_pranks_off') === '1' ? 'off' : 'on';
+      if(localStorage.getItem('yam_pranks_pub') === off) return;
+      localStorage.setItem('yam_pranks_pub', off);
+      window.yamPrankPrefPublish(off === 'off');
+    }catch(e){}
+  }
+  document.addEventListener('yam:session_ready', function(){ setTimeout(publishPrefIfNeeded, 2000); });
+  if(getProfile()) setTimeout(publishPrefIfNeeded, 4000);
   function partnerRefuses(){
     var u = yamGetUser(), me = getProfile();
     if(!u || !u.couple_id || !me) return Promise.resolve(false);

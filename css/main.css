@@ -2037,12 +2037,12 @@ body.prank-shake { animation:prankShake 0.4s ease infinite; }
 #prankIntrusBanner.show { display:block; }
 body.prank-flip { overflow-x:hidden; }
 /* Tout le contenu se retourne à 180° sauf le bandeau de contrôle et les overlays */
-body.prank-flip > *:not(#prankFlipBanner):not(#prankGotcha):not(#prankLock):not(#prankOverlay) {
+body.prank-flip > *:not(#prankFlipBanner):not(#prankGotcha):not(#prankLock):not(#prankOverlay):not(#prankRemain) {
   transform: rotate(180deg) !important;
   transform-origin: center center;
   transition: transform 0.5s cubic-bezier(.4,0,.2,1);
 }
-body:not(.prank-flip) > *:not(#prankFlipBanner):not(#prankGotcha):not(#prankLock):not(#prankOverlay) {
+body:not(.prank-flip) > *:not(#prankFlipBanner):not(#prankGotcha):not(#prankLock):not(#prankOverlay):not(#prankRemain) {
   transition: transform 0.5s cubic-bezier(.4,0,.2,1);
 }
 #prankFlipBanner { position:fixed; top:0; left:0; right:0; z-index:10200; background:linear-gradient(135deg,#7c3aed,#4f46e5); padding:14px 16px 16px; padding-top:calc(var(--safe-top) + 14px); display:none; text-align:center; box-shadow:0 4px 20px rgba(124,58,237,0.5); user-select:none; -webkit-user-select:none; touch-action:none; }
@@ -7156,5 +7156,5 @@ html body #uxToast.show.error { border-color: rgba(255,68,68,.75); box-shadow: 0
 html body #yamNotif.show { border-color: rgba(231,90,124,.75); box-shadow: 0 6px 22px rgba(231,90,124,.38), 0 0 0 3px rgba(231,90,124,.16); }
 
 /* Compteur « Bêtise 2 sur 3 » pendant une série de bêtises reçues */
-#prankRemain { position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 100050; padding: 7px 16px; border-radius: 999px; font-size: 13px; font-weight: 700; white-space: nowrap; background: var(--s1); color: var(--text); border: 1px solid rgba(231,90,124,.75); box-shadow: 0 4px 16px rgba(231,90,124,.3); opacity: 0; pointer-events: none; transition: opacity .25s; }
+#prankRemain { position: fixed; left: 50%; bottom: calc(6px + env(safe-area-inset-bottom, 0px) * .4); transform: translateX(-50%); z-index: 100050; padding: 4px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; background: var(--s1); color: var(--text); border: 1px solid rgba(231,90,124,.75); box-shadow: 0 4px 16px rgba(231,90,124,.3); opacity: 0; pointer-events: none; transition: opacity .25s; }
 #prankRemain.show { opacity: 1; }

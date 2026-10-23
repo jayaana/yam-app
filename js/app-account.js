@@ -1436,6 +1436,7 @@ body.settings-open{overflow:hidden!important;}\
       var _tg = document.getElementById('stgPranksToggle');
       if (_tg) _tg.classList.toggle('on', !_nowOff);
       _pRow.setAttribute('aria-checked', _nowOff ? 'false' : 'true');
+      try { localStorage.setItem('yam_pranks_pub', _nowOff ? 'off' : 'on'); } catch(e) {}
       if (window.yamPrankPrefPublish) window.yamPrankPrefPublish(_nowOff);
       if (window.showToast) window.showToast(_nowOff ? 'Bêtises refusées 🙅' : 'Bêtises acceptées 😈', '', 1800);
       return;
