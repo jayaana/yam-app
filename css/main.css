@@ -5505,8 +5505,8 @@ body.anniv-mode .counter-block-top {
   flex-shrink: 0; margin-right: 2px; color: var(--sub);
 }
 .sp-heart:hover { opacity: 0.8; transform: scale(1.2); }
-.sp-song.playing .sp-heart { opacity: 0.45; }
-.sp-song.playing .sp-heart:hover { opacity: 0.9; }
+.sp-song.playing .sp-heart { opacity: 0.9; }
+.sp-song.playing .sp-heart:hover { opacity: 1; }
 .sp-heart.heart-girl { opacity: 1 !important; color: var(--accent); }
 .sp-heart.heart-boy  { opacity: 1 !important; color: #5b9cf6; }
 
