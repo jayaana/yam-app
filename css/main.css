@@ -7163,3 +7163,5 @@ html body #yamNotif.show { border-color: rgba(231,90,124,.75); box-shadow: 0 6px
 html:has(#yamJeuxTab.active) { overflow-y: hidden; }
 /* Jeux : la page ne défile plus, c'est le contenu (.jx-scroll) qui défile si l'écran est trop petit ; marge basse = hauteur d'en-tête (le panneau dépasse sous la barre nav) */
 #yamJeuxTab .jx-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; padding-bottom: calc(var(--yam-hdr-h, 66px) + 24px); }
+/* Les blocs de Jeux ne doivent pas se comprimer quand l'un d'eux se déplie : c'est le défilement qui absorbe la hauteur en plus */
+#yamJeuxTab .jx-scroll > * { flex-shrink: 0; }
