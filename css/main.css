@@ -7160,7 +7160,6 @@ html body #yamNotif.show { border-color: rgba(231,90,124,.75); box-shadow: 0 6px
 #prankRemain.show { opacity: 1; }
 
 /* Onglet Jeux : la page tient exactement dans l'écran (pas de défilement de la page, l'en-tête ne remonte plus) */
-html.jx-lock { overflow-y: hidden; }
 html.jx-lock body { padding-bottom: 0; }
 html.jx-lock #yamJeuxTab.active { height: calc(100dvh - var(--nav-height) - var(--yam-hdr-h, 66px)); }
 
