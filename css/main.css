@@ -2145,9 +2145,9 @@ body:not(.prank-flip) > *:not(#prankFlipBanner):not(#prankGotcha):not(#prankLock
 /* 📱 FAUSSE NOTIF */
 #prankNotifOverlay { position:fixed; inset:0; z-index:10600; background:rgba(0,0,0,0); pointer-events:none; transition:background 0.35s ease; touch-action:none; }
 #prankNotifOverlay.active { background:rgba(0,0,0,0.78); pointer-events:all; }
-#prankNotif { position:fixed; top:-160px; left:12px; right:12px; z-index:10700; background:rgba(22,22,30,0.98); border:1.5px solid rgba(167,139,250,0.55); border-radius:20px; padding:15px 16px; display:flex; align-items:flex-start; gap:12px; backdrop-filter:blur(30px); -webkit-backdrop-filter:blur(30px); box-shadow:0 12px 50px rgba(0,0,0,0.8),0 0 0 1px rgba(167,139,250,0.12); transition:top 0.5s cubic-bezier(.34,1.56,.64,1); max-width:420px; margin:0 auto; cursor:pointer; user-select:none; -webkit-user-select:none; }
-#prankNotif.show { top:14px; }
-#prankNotif.show::after { content:''; position:absolute; inset:-2px; border-radius:22px; box-shadow:0 0 0 2px rgba(167,139,250,0.85); animation:prankNotifGlow 2s ease-in-out 0.5s infinite; pointer-events:none; }
+#prankNotif { position:fixed; top:calc(-160px - env(safe-area-inset-top,0px)); left:12px; right:12px; z-index:10700; background:rgba(22,22,30,0.98); border:1.5px solid rgba(240,102,136,0.55); border-radius:20px; padding:15px 16px; display:flex; align-items:flex-start; gap:12px; backdrop-filter:blur(30px); -webkit-backdrop-filter:blur(30px); box-shadow:0 12px 50px rgba(0,0,0,0.8),0 0 0 1px rgba(167,139,250,0.12); transition:top 0.5s cubic-bezier(.34,1.56,.64,1); max-width:420px; margin:0 auto; cursor:pointer; user-select:none; -webkit-user-select:none; }
+#prankNotif.show { top:calc(14px + env(safe-area-inset-top,0px)); }
+#prankNotif.show::after { content:''; position:absolute; inset:-2px; border-radius:22px; box-shadow:0 0 0 2px rgba(240,102,136,0.85); animation:prankNotifGlow 2s ease-in-out 0.5s infinite; pointer-events:none; }
 @keyframes prankNotifGlow { 0%,100%{opacity:0.3} 50%{opacity:1} }
 .pn-avatar { width:46px; height:46px; border-radius:13px; background:linear-gradient(135deg,#a78bfa,#60a5fa); display:flex; align-items:center; justify-content:center; font-size:23px; flex-shrink:0; box-shadow:0 3px 12px rgba(167,139,250,0.4); }
 .pn-content { flex:1; min-width:0; }

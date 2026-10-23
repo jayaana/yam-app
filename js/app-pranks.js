@@ -166,6 +166,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     if(!coupleId){ showPrankToast('❌ Couple introuvable'); return; }
     var btn = document.getElementById('prankCancelAllBtn');
     if(btn) btn.textContent = '⏳ Annulation…';
+    window._prankCancelAt = Date.now(); // pour ne pas afficher « tombé dans le piège » pour une annulation
     // PATCH active=false au lieu de DELETE — permet à la victime de détecter l'annulation en cours
     yamFetchOk(SB_URL+'/rest/v1/'+PRANK_TABLE+'?couple_id=eq.'+coupleId+'&sender_role=eq.'+profile+'&active=eq.true', {
       method: 'PATCH',
@@ -236,7 +237,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     var partnerPseudo = s && s.user ? s.user.partner_pseudo : null;
     if(!partnerPseudo){ showPrankToast('🔒 Lie-toi à un couple d\'abord !'); return; }
     var victim = profile === 'boy' ? 'girl' : 'boy';
-    var body = { type: type, sender_role: profile, couple_id: coupleId, active: true };
+    var body = { type: type, sender_role: profile, author: profile, couple_id: coupleId, active: true };
     yamFetchOk(SB_URL+'/rest/v1/'+PRANK_TABLE, {
       method:'POST', headers: sb2Headers({'Prefer':'return=minimal'}),
       body: JSON.stringify(body)
@@ -276,11 +277,11 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     var victim   = profile === 'boy' ? 'girl' : 'boy';
     var msg      = document.getElementById('prankMsgText').value.trim();
     var lockWord = (_selectedType === 'lock') ? (document.getElementById('prankLockWord').value.trim().toLowerCase()) : null;
-    if(!msg){ document.getElementById('prankMsgText').focus(); return; }
-    if(_selectedType === 'lock' && !lockWord){ document.getElementById('prankLockWord').focus(); return; }
+    if(!msg){ showPrankToast('✏️ Écris d\'abord ton message.'); document.getElementById('prankMsgText').focus(); return; }
+    if(_selectedType === 'lock' && !lockWord){ showPrankToast('🔐 Choisis un mot secret.'); document.getElementById('prankLockWord').focus(); return; }
     var s = yamGetUser ? {user: yamGetUser()} : null;
     var coupleId = s && s.user ? s.user.couple_id : null;
-    var body = { type: _selectedType, sender_role: profile, couple_id: coupleId, active: true };
+    var body = { type: _selectedType, sender_role: profile, author: profile, message: msg, couple_id: coupleId, active: true };
     if(lockWord) body.lock_word = lockWord;
     // On insère directement sans effacer les bêtises précédentes — la file d'attente s'en charge
     yamFetchOk(SB_URL+'/rest/v1/'+PRANK_TABLE, {
@@ -312,6 +313,17 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     .then(function(r){ return r.json(); })
     .then(function(rows){
       if(!rows || !rows.length) return;
+      // Bêtises refusées dans les Réglages : on les désactive, l'envoyeur est prévenu (message '__refused__')
+      var _refuse = false;
+      try{ _refuse = localStorage.getItem('yam_pranks_off') === '1'; }catch(e){}
+      if(_refuse){
+        fetch(SB_URL+'/rest/v1/'+PRANK_TABLE+'?couple_id=eq.'+coupleId+'&active=eq.true'+prankFilter, {
+          method:'PATCH',
+          headers: sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
+          body: JSON.stringify({ active: false, message: '__refused__' })
+        }).catch(function(){});
+        return;
+      }
       rows.forEach(function(row){
         // N'ajouter que si pas déjà dans la queue ni déjà active
         var alreadyQueued = _prankQueue.some(function(q){ return q.id === row.id; });
@@ -325,6 +337,9 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   function dequeueNextPrank(){
     // Si une bêtise tourne déjà, on attend
     if(_activePrank) return;
+    // La suivante attend que l'écran « T'as été eu(e) » soit fermé
+    var _g = document.getElementById('prankGotcha');
+    if(_g && _g.classList.contains('show')) return;
     if(!_prankQueue.length) return;
     var next = _prankQueue.shift();
     _activePrank = next;
@@ -334,6 +349,18 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   /* ── Déclenchement bêtise ── */
   function triggerPrank(p){
     if(!p) return;
+    // Menu / fenêtre de message de l'envoyeur ouverts : les fermer avant la bêtise reçue
+    ['prankMenu','prankMsgModal'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el && el.classList.contains('show')){
+        el.classList.remove('show');
+        var sy = parseInt(document.body.dataset.scrollY || '0');
+        document.body.style.position = ''; document.body.style.top = '';
+        document.body.style.left = ''; document.body.style.right = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, sy);
+      }
+    });
     // Bloquer scroll et interactions du fond pendant la bêtise
     // (réappliqué même si une bêtise précédente était active)
     var scrollY = window.scrollY || parseInt(document.body.dataset.prankScrollY || '0');
@@ -917,8 +944,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     showGotcha(_activePrank);
     _activePrank = null;
     _prankUnlockScroll();
-    // Déclencher la suivante en attente après le gotcha
-    setTimeout(function(){ dequeueNextPrank(); }, 2000);
+    // La suivante en attente démarre à la fermeture du gotcha (closeGotcha)
   }
 
   /* ── Écran gotcha ── */
@@ -931,6 +957,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     document.getElementById('prankGotcha').classList.remove('show');
     // Ne pas délocker si une nouvelle bêtise est déjà en cours
     if(!_activePrank) _prankUnlockScroll();
+    setTimeout(function(){ dequeueNextPrank(); }, 600);
   };
 
   /* ════ BÊTISE 1 : TREMBLEMENT ════ */
@@ -968,9 +995,10 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   function onShakeTap(e){
     // touchstart : on bloque le click fantôme qui suit (~300ms après)
     e.preventDefault();
-    if(_shakeLock) return;
+    // Chaque touche compte ; on retient seulement l'instant pour ignorer le click fantôme qui suit
     _shakeLock = true;
-    setTimeout(function(){ _shakeLock = false; }, 400);
+    clearTimeout(_shakeTimer);
+    _shakeTimer = setTimeout(function(){ _shakeLock = false; }, 450);
     doShakeTap();
   }
   function onShakeClick(){
@@ -1249,7 +1277,18 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
         schema: 'public',
         table: 'pranks',
         filter: 'couple_id=eq.' + coupleId
-      }, function() {
+      }, function(payload) {
+        var _r = payload && payload.new;
+        // Côté envoyeur : la bêtise vient de se terminer (piège réussi) ou a été refusée
+        if (_r && _r.sender_role === gender) {
+          if (_r.active === false && Date.now() - (window._prankCancelAt || 0) > 8000) {
+            var vName = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName(gender === 'boy' ? 'girl' : 'boy') : 'Ton partenaire';
+            if (window.showToast) window.showToast(_r.message === '__refused__'
+              ? '🙅 ' + vName + ' a désactivé les bêtises.'
+              : '😈 ' + vName + ' est tombé(e) dans le piège !', '', 3200);
+          }
+          return;
+        }
         if (_activePrank) {
           // Vérifier si la bêtise active a été annulée
           fetch(SB_URL+'/rest/v1/'+PRANK_TABLE+'?id=eq.'+_activePrank.id+'&select=active', {

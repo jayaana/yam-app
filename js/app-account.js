@@ -737,6 +737,7 @@ body.settings-open{overflow:hidden!important;}\
 ';
   document.head.appendChild(settingsCSS);
 
+  function _pranksOff(){ try{ return localStorage.getItem('yam_pranks_off') === '1'; }catch(e){ return false; } }
   var CHV = '<svg class="stg-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg>';
   var BCK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
   var ARR = '<svg class="stg-accordion-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>';
@@ -826,6 +827,11 @@ body.settings-open{overflow:hidden!important;}\
           '<div class="stg-row-icon" style="background:rgba(240,102,136,.12);">🔔</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Notifications</div><div class="stg-row-sub">Gérer les alertes</div></div>' +
           '<div class="stg-row-right">' + CHV + '</div>' +
+        '</div>' +
+        '<div class="stg-row no-chevron" id="stgPranksRow" role="switch" tabindex="0" aria-checked="' + (_pranksOff() ? 'false' : 'true') + '">' +
+          '<div class="stg-row-icon" style="background:rgba(240,102,136,.12);">😈</div>' +
+          '<div class="stg-row-body"><div class="stg-row-title">Accepter les bêtises</div><div class="stg-row-sub">Ton partenaire est prévenu si tu les refuses</div></div>' +
+          '<div class="stg-row-right"><span class="stg-row-toggle' + (_pranksOff() ? '' : ' on') + '" id="stgPranksToggle"></span></div>' +
         '</div>' +
         '<div class="stg-row no-chevron" id="stgClearCacheBtn">' +
           '<div class="stg-row-icon" style="background:rgba(124,106,247,.12);">🗑️</div>' +
@@ -1420,6 +1426,18 @@ body.settings-open{overflow:hidden!important;}\
     // Déconnexion
     if (t.id === 'stgLogoutBtn' || (t.closest && t.closest('#stgLogoutBtn'))) {
       window.askLogout && window.askLogout(); return;
+    }
+
+    // Accepter les bêtises (interrupteur, mémorisé sur cet appareil)
+    var _pRow = t.closest && t.closest('#stgPranksRow');
+    if (_pRow) {
+      var _nowOff = !_pranksOff();
+      try { localStorage.setItem('yam_pranks_off', _nowOff ? '1' : '0'); } catch(e) {}
+      var _tg = document.getElementById('stgPranksToggle');
+      if (_tg) _tg.classList.toggle('on', !_nowOff);
+      _pRow.setAttribute('aria-checked', _nowOff ? 'false' : 'true');
+      if (window.showToast) window.showToast(_nowOff ? 'Bêtises refusées 🙅' : 'Bêtises acceptées 😈', '', 1800);
+      return;
     }
 
     // Vider cache
