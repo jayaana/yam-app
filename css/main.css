@@ -7158,6 +7158,3 @@ html body #yamNotif.show { border-color: rgba(231,90,124,.75); box-shadow: 0 6px
 /* Compteur « Bêtise 2 sur 3 » pendant une série de bêtises reçues */
 #prankRemain { position: fixed; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 100050; padding: 4px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; background: var(--s1); color: var(--text); border: 1px solid rgba(231,90,124,.75); box-shadow: 0 4px 16px rgba(231,90,124,.3); opacity: 0; pointer-events: none; transition: opacity .25s; }
 #prankRemain.show { opacity: 1; }
-
-/* Onglet Jeux : défilement interne uniquement, la page ne défile pas (évite l'en-tête rogné au 1er clic) */
-html.jx-lock { overflow-y: hidden; }
