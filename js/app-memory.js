@@ -283,6 +283,8 @@ function _memOpenGameImpl() {
 
 // Quitter définitivement — même comportement qu'Ocho/Skyjo
 function _memCloseGameImpl() {
+  var _bgView = document.getElementById('memoryView');
+  if (_bgView) _bgView.classList.remove('mem-bg-arcade');
   // Mode ALL en cours (pas encore terminé) → AFK, exactement comme les autres modes :
   // stopAll() coupe le heartbeat (_presenceActive=false) PUIS deletePresence() vide la
   // ligne en base. Au retour, enterLobby() vérifie presenceEmpty :

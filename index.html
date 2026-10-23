@@ -2850,6 +2850,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 .jx-stat-lbl{font-size:10px;color:var(--muted);}
 .jx-chips{display:flex;gap:6px;padding:7px 12px 8px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
 .jx-chips::-webkit-scrollbar{display:none;}
+.jx-chips{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 30px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 30px),transparent);}
 .jx-chip{display:flex;align-items:center;gap:5px;background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:4px 9px 4px 6px;flex-shrink:0;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:border-color .15s,background .15s;}
 .jx-chip:active{background:var(--s3);}
 .jx-chip.jx-chip-on{background:var(--accent-s);border-color:rgba(231,90,124,.4);}

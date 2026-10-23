@@ -355,7 +355,7 @@
         if (elSB) elSB.textContent = Math.round(wBoy);
 
         var elTot = _el('jxTotal');
-        if (elTot) elTot.textContent = total + ' parties ce mois';
+        if (elTot) elTot.textContent = total + (total > 1 ? ' parties' : ' partie') + ' ce mois';
 
         var pct = wTotal > 0 ? Math.round((wGirl / wTotal) * 100) : 50;
         var pf = _el('jxProgFill'); if (pf) pf.style.width = pct + '%';
@@ -503,7 +503,7 @@
         if (!chip.querySelector('.jx-chip-live-badge')) {
           var cb = document.createElement('span');
           cb.className = 'jx-chip-live-badge';
-          cb.textContent = 'En jeu';
+          cb.textContent = 'En attente';
           chip.appendChild(cb);
         }
       }
@@ -561,27 +561,31 @@
       var partnerRole = u.role === 'girl' ? 'boy' : 'girl';
       var coupleId    = u.couple_id;
 
-      var found = false;
+      var best = null; /* salle la plus récente (présence de moins d'1 min) */
       var pending = LOBBY_TABLES.length;
+      function _done() {
+        pending--;
+        if (pending !== 0) return;
+        if (best) _activate(best.entry); else _deactivate();
+      }
 
       LOBBY_TABLES.forEach(function (entry) {
         fetch(
           SB_URL + '/rest/v1/' + entry.presence +
           '?couple_id=eq.' + coupleId +
           '&role=eq.' + partnerRole +
-          '&select=role&limit=1',
+          '&select=role,last_seen&limit=1',
           { headers: sb2Headers() }
         )
         .then(function (r) { return r.json(); })
         .then(function (rows) {
           if (Array.isArray(rows) && rows.length > 0) {
-            found = true;
-            _activate(entry);
+            var t = new Date(rows[0].last_seen).getTime();
+            if (t && Date.now() - t < 60000 && (!best || t > best.t)) best = { entry: entry, t: t };
           }
-          pending--;
-          if (pending === 0 && !found) _deactivate();
+          _done();
         })
-        .catch(function () { pending--; });
+        .catch(_done);
       });
     }
 
