@@ -57,7 +57,7 @@ var songsLove = [
   {title:"Here With Me",         artist:"d4vd",                 file:"d4vd - Here With Me.mp3",              yt:"https://youtu.be/Ip6cw8gfHHI"},
   {title:"Love Me Not",          artist:"Ravyn Lenae",          file:"Ravyn Lenae - Love Me Not.mp3",        yt:"https://youtu.be/NB7WuqWzDhw"},
   {title:"On s'attache",         artist:"Christophe Maé",       file:"Christophe Maé - On sattache.mp3",     yt:"https://youtu.be/NeRLnsPNSg0"},
-  {title:"Melo Decale",          artist:"Tiakola",              file:"Tiakola_Melo Decale.mp3",              yt:"",isNew:true}
+  {title:"Melo Decale",          artist:"Tiakola",              file:"Tiakola_Melo Decale.mp3",              yt:"https://youtu.be/XMBDdTHTIEo",isNew:true}
 ];
 songsLove.forEach(function(x){ x.plays = 0; });
 
@@ -393,7 +393,13 @@ function renderTop50(){
 
     heartBtn.addEventListener('click', function(e){ e.stopPropagation(); toggleFavorite(song.file, heartBtn); });
     applyHeartState(song.file, heartBtn);
-    ytb.addEventListener('click', function(e){ e.stopPropagation(); var u=song.yt; if(u&&(u.startsWith('https://')||u.startsWith('http://')))window.open(u,'_blank','noopener,noreferrer'); });
+    ytb.addEventListener('click', function(e){
+      e.stopPropagation();
+      var u=song.yt; if(!(u&&(u.startsWith('https://')||u.startsWith('http://')))) return;
+      var go=function(){ window.open(u,'_blank','noopener,noreferrer'); };
+      if(window.yamConfirm) yamConfirm('Ouvrir la vidéo YouTube de « '+song.title+' » ?',{ok:'Ouvrir',cancel:'Annuler'}).then(function(y){ if(y) go(); });
+      else go();
+    });
 
     function toggle(e){
       if(e) e.stopPropagation();
