@@ -807,7 +807,7 @@ window.fitTop50Later = function(){ requestAnimationFrame(function(){ fitTop50();
       $('muHeroTitle').textContent = _currentSong.title;
       $('muHeroArtist').textContent = _currentSong.artist;
       var rk = $('muHeroRank'), ri = _playlist.indexOf(_currentSong);
-      if(rk) rk.innerHTML = ri >= 0 ? '<b>#' + (ri+1) + '</b><span>/ ' + _playlist.length + '</span>' : '';
+      if(rk) rk.innerHTML = ri >= 0 ? '<b>' + (ri+1) + '</b><span>/ ' + _playlist.length + '</span>' : '';
       var cv = $('muHeroCover'), cu = _coverUrls[_currentSong.file];
       if(cv){
         if(cu){
@@ -994,14 +994,14 @@ window.fitTop50Later = function(){ requestAnimationFrame(function(){ fitTop50();
     var btn=document.querySelector('.sg-modal-save'); btn.textContent='⏳'; btn.disabled=true;
     var _sg2 = yamGetUser ? {user: yamGetUser()} : null;
     var _sg2Id=_sg2&&_sg2.user?_sg2.user.couple_id:null;
-    if(!_sg2Id){ btn.textContent='Proposer 💚'; btn.disabled=false; return; }
+    if(!_sg2Id){ btn.textContent='Proposer'; btn.disabled=false; return; }
     var payload={couple_id:_sg2Id,title:title,artist:artist,suggested_by_role:getProfile()||null};
     if(note) payload.note=note;
     var url=SB_URL+'/rest/v1/suggestion_songs';
     fetch(url,{ method:'POST', headers:sb2Headers({'Prefer':'return=representation'}), body:JSON.stringify(payload) })
     .then(function(r){ return r.text().then(function(txt){ return {ok:r.ok,status:r.status,body:txt}; }); })
     .then(function(res){
-      btn.textContent='Proposer 💚'; btn.disabled=false;
+      btn.textContent='Proposer'; btn.disabled=false;
       if(res.ok){ window.closeSgModal(); renderSuggestions(); }
       else {
         if(res.body&&res.body.indexOf('gender')!==-1){
@@ -1013,7 +1013,7 @@ window.fitTop50Later = function(){ requestAnimationFrame(function(){ fitTop50();
           if(errMsg){ errMsg.textContent='❌ Erreur : '+res.status+' — '+res.body.substring(0,120); errMsg.style.display='block'; }
         }
       }
-    }).catch(function(err){ btn.textContent='Proposer 💚'; btn.disabled=false; var errMsg=document.getElementById('sgErrMsg'); if(errMsg){ errMsg.textContent='❌ '+err.message; errMsg.style.display='block'; } });
+    }).catch(function(err){ btn.textContent='Proposer'; btn.disabled=false; var errMsg=document.getElementById('sgErrMsg'); if(errMsg){ errMsg.textContent='❌ '+err.message; errMsg.style.display='block'; } });
   };
   ['sgTitleInput','sgArtistInput','sgNoteInput'].forEach(function(id){
     var el=document.getElementById(id);

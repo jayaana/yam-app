@@ -2735,9 +2735,9 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       </div>
     </div>
     <div class="mu-hero" id="muHero">
-      <div class="mu-hero-main"><div class="mu-hero-rank" id="muHeroRank" title="Position dans le classement"></div><div class="mu-hero-cover" id="muHeroCover">🎵</div><div class="mu-hero-info"><div class="mu-hero-title" id="muHeroTitle">—</div><div class="mu-hero-artist" id="muHeroArtist">—</div></div></div>
+      <div class="mu-hero-main"><div class="mu-hero-cover" id="muHeroCover">🎵</div><div class="mu-hero-info"><div class="mu-hero-title" id="muHeroTitle">—</div><div class="mu-hero-artist" id="muHeroArtist">—</div></div></div>
       <div class="mu-hero-seek"><span id="muHeroCur">0:00</span><div class="mu-hero-bar" id="muHeroBar"><i id="muHeroFill"></i></div><span id="muHeroDur">0:00</span></div>
-      <div class="mu-hero-ctl">
+      <div class="mu-hero-ctl"><div class="mu-hero-rank" id="muHeroRank" title="Position dans le classement"></div>
         <button type="button" class="mu-hero-btn" id="muHeroPrev" aria-label="Précédent"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg></button>
         <button type="button" class="mu-hero-btn pp" id="muHeroPlay" aria-label="Lecture / pause"><svg id="muHeroIconPlay" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><svg id="muHeroIconPause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg></button>
         <button type="button" class="mu-hero-btn" id="muHeroNext" aria-label="Suivant"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
@@ -5366,7 +5366,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     <div class="sg-field-label">Note (optionnel)</div>
     <input type="text" class="sg-input" id="sgNoteInput" placeholder="ex: trop bonne pour toi 😏" maxlength="100">
     <div id="sgErrMsg" style="display:none;font-size:11px;color:#e05555;margin-bottom:8px;padding:8px 10px;background:rgba(220,50,50,0.07);border-radius:6px;border:1px solid rgba(220,50,50,0.2);word-break:break-all;"></div>
-    <button id="sgSaveBtn" class="sg-modal-save">Proposer 💚</button>
+    <button id="sgSaveBtn" class="sg-modal-save">Proposer</button>
     <button id="sgManageOpenBtn" class="sg-manage-open-btn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       Modifier les suggestions
