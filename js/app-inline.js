@@ -132,11 +132,18 @@ if ('serviceWorker' in navigator) {
   if (!window.visualViewport) return;
   var nav = document.querySelector('.bottom-nav');
   if (!nav) return;
-  function fix() {
-    var drift = window.innerHeight
+  function drift() {
+    return Math.max(0, window.innerHeight
               - window.visualViewport.height
-              - window.visualViewport.offsetTop;
-    nav.style.bottom = Math.max(0, drift) + 'px';
+              - window.visualViewport.offsetTop);
+  }
+  // Un écart passager (changement d'onglet vers une page sans défilement) ne doit pas faire
+  // bouger la barre : on n'applique que si l'écart persiste ~120 ms (clavier, vrai décalage)
+  var _t = null;
+  function fix() {
+    if (_t) clearTimeout(_t);
+    if (drift() === 0) { nav.style.bottom = '0px'; return; }
+    _t = setTimeout(function(){ nav.style.bottom = drift() + 'px'; }, 120);
   }
   window.visualViewport.addEventListener('resize', fix);
   window.visualViewport.addEventListener('scroll', fix);
