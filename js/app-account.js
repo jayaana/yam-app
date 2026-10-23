@@ -3279,6 +3279,8 @@ window.addEventListener('load', function(){
     if(pp) pp.classList.remove('open');
     var picker = document.getElementById('moodPicker');
     if(!picker) return;
+    // Le grand en-tête a un transform/opacité quand la page défile : un picker « fixed » dedans devenait décalé et presque transparent
+    if(picker.parentElement !== document.body) document.body.appendChild(picker);
     _pickerStep = 1;
     _pickerTempEmoji = null;
     _renderPickerStep1();

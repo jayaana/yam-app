@@ -7108,3 +7108,6 @@ html:not(.light) #uxToast.soon { border-color: rgba(255,255,255,.25); }
 /* Tous les messages (toasts) de l'appli : pastille arrondie (la règle « initial » du design-system les rendait carrés) */
 html body #uxToast { border-radius: 999px; padding: 10px 22px; box-shadow: 0 4px 16px rgba(0,0,0,.18); }
 html body #uxToast.success { border-color: rgba(231,90,124,.4); }
+
+/* Accueil : espace en bas = hauteur réelle de la barre nav (64 px + zone sûre d'au moins 32 px) pour ne rien rogner */
+#yamHomeTab.active { padding-bottom: calc(max(env(safe-area-inset-bottom, 0px), 32px) + 8px); }

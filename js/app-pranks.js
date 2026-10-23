@@ -121,6 +121,8 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   };
   window.closePrankMenu = function(){
     var menu = document.getElementById('prankMenu');
+    // Menu pas ouvert (appelé par closeAllViews à chaque changement d'onglet) : rien à fermer ni à « restaurer »
+    if(!menu || !menu.classList.contains('show')) return;
     var DUR = 300;
     menu.style.transition = 'transform '+DUR+'ms cubic-bezier(.4,0,.2,1)';
     menu.style.transform  = 'translateX(100%)';
@@ -135,6 +137,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
       document.body.style.left = '';
       document.body.style.right = '';
       document.body.style.overflow = '';
+      document.body.dataset.scrollY = '0';
       window.scrollTo(0, scrollY);
     }, DUR);
   };
