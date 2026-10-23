@@ -528,8 +528,8 @@ function closeAllViews(){
 
   // ── 3. Pranks ──
   if(typeof abortActivePrank==='function') abortActivePrank();
+  if(typeof closePrankMsg==='function') closePrankMsg();   // d'abord la fenêtre de message (elle rouvre le menu), puis on ferme le menu
   if(typeof closePrankMenu==='function') closePrankMenu();
-  if(typeof closePrankMsg==='function') closePrankMsg();
 
   // ── 4. Modales Nous — via leurs fonctions dédiées (gèrent _unblockBackgroundScroll) ──
   var nousCloseFns = [

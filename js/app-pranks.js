@@ -250,7 +250,10 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   }
 
   window.closePrankMsg = function(){
-    document.getElementById('prankMsgModal').classList.remove('show');
+    var _pm = document.getElementById('prankMsgModal');
+    // Fenêtre de message pas ouverte (appelé par closeAllViews à chaque changement d'onglet) : ne rien rouvrir
+    if(!_pm || !_pm.classList.contains('show')) return;
+    _pm.classList.remove('show');
     // Rouvrir le menu avec scroll bloqué
     var scrollY = window.scrollY;
     document.body.style.position = 'fixed';
