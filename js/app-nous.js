@@ -248,6 +248,7 @@ function _nidPct(){
 
 function _nidRefreshBar(){
   var bar=document.getElementById('nousNestBar'); if(!bar) return;
+  if(!_NID_DATA){ bar.style.display='none'; return; }  // n°62 : pas de « 0 % » avant le chargement
   // Ne pas réafficher si déjà complété définitivement
   if(_NID_DATA && _NID_DATA.completed) { bar.style.display='none'; return; }
   var pct=_nidPct();
@@ -311,9 +312,9 @@ function _nidMilestones(){
       setTimeout(function(){
         if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('nest_milestone');
         var msgs={
-          25: '✨ 20% — Mémo débloqué !',
-          50: '✨ 40% — Petits mots débloqués !',
-          75: '✨ 60% — Souvenirs débloqués !',
+          25: '✨ 25% — Mémo débloqué !',
+          50: '✨ 50% — Petits mots débloqués !',
+          75: '✨ 75% — Souvenirs débloqués !',
           100: '✨ Votre espace est complet ❤️'
         };
         _nidShowToast(msgs[m] || 'Palier atteint !');
@@ -749,6 +750,12 @@ function _nousLoadProfil() {
   var _cacheLoadedAt = 0;    // timestamp du dernier fetch complet
   var CACHE_TTL      = 60 * 1000; // 1 min — recharge depuis Supabase si plus vieux
 
+  // n°54 : mes propres marques (pas de NEW pour l'auteur) et éléments déjà ouverts ; gardés sur cet appareil
+  function _lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)||'{}')||{}; }catch(e){ return {}; } }
+  function _lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  var _ownMarks = _lsGet('yam_nb_own');
+  var _seenMarks = _lsGet('yam_nb_seen');
+
   function _getCoupleId(){ var u=(typeof yamGetUser==='function')?yamGetUser():null; return u?u.couple_id:null; }
 
   // ── Charge tous les badges du couple depuis Supabase ──
@@ -782,10 +789,11 @@ function _nousLoadProfil() {
   window.yamMarkNew = function(section){
     var cid = _getCoupleId(); if(!cid) return;
     var now = new Date().toISOString();
-    // Mise à jour optimiste du cache local immédiatement
-    _badgeCache[section] = Date.now();
-    // Upsert dans Supabase (merge-duplicates sur la PK couple_id+section)
-    fetch(SB_URL+'/rest/v1/new_badges', {
+    // n°54 : l'auteur ne voit pas son propre NEW
+    _ownMarks[section] = new Date(now).getTime(); _lsSet('yam_nb_own', _ownMarks);
+    _badgeCache[section] = _ownMarks[section];
+    // Upsert dans Supabase (n°57 : on_conflict explicite pour éviter l'erreur 409)
+    fetch(SB_URL+'/rest/v1/new_badges?on_conflict=couple_id,section', {
       method: 'POST',
       headers: sb2Headers({'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),
       body: JSON.stringify({ couple_id: cid, section: section, marked_at: now })
@@ -795,7 +803,27 @@ function _nousLoadProfil() {
   // ── Vérifie si une section est "new" (dans les 5h) — lecture depuis le cache ──
   window.yamIsNew = function(section){
     var ts = _badgeCache[section];
-    return !!(ts && (Date.now() - ts) < NEW_DURATION_MS);
+    if(!ts || (Date.now() - ts) >= NEW_DURATION_MS) return false;
+    if(ts <= (_ownMarks[section]||0)) return false;   // posé par moi
+    if(ts <= (_seenMarks[section]||0)) return false;  // déjà ouvert
+    return true;
+  };
+
+  // n°54 : élément ouvert → NEW retiré chez moi
+  window.yamMarkSeen = function(section){
+    var ts = _badgeCache[section]; if(!ts) return;
+    _seenMarks[section] = ts; _lsSet('yam_nb_seen', _seenMarks);
+    _applyBadges();
+  };
+
+  // n°54 : élément supprimé → NEW retiré pour les deux
+  window.yamClearBadge = function(section){
+    var cid = _getCoupleId(); if(!cid) return;
+    delete _badgeCache[section];
+    _applyBadges();
+    fetch(SB_URL+'/rest/v1/new_badges?couple_id=eq.'+encodeURIComponent(cid)+'&section=eq.'+encodeURIComponent(section), {
+      method: 'DELETE', headers: sb2Headers()
+    }).catch(function(){});
   };
 
   // ── Affiche/cache un badge NEW sur un élément DOM ──
@@ -818,6 +846,11 @@ function _nousLoadProfil() {
     }
   };
 
+  // Le NEW du titre d'une section = au moins un élément de la section est encore NEW pour moi
+  function _anyNew(prefix){
+    return Object.keys(_badgeCache).some(function(k){ return k.indexOf(prefix)===0 && window.yamIsNew(k); });
+  }
+
   // ── Applique l'état des badges sur le DOM (lecture depuis cache) ──
   function _applyBadges(){
     // Mémo note — card entière
@@ -828,15 +861,19 @@ function _nousLoadProfil() {
     if(memoTodoCard) window.yamShowNewBadge(memoTodoCard, window.yamIsNew('memo_todo'));
     // Souvenirs — badge à gauche de "Tout voir" (comme livres)
     var souvenirNew = document.getElementById('souvenirNewBadge');
-    if(souvenirNew) souvenirNew.style.display = window.yamIsNew('souvenir') ? '' : 'none';
+    if(souvenirNew) souvenirNew.style.display = _anyNew('souvenir_') ? '' : 'none';
     // Souvenirs — badge sur chaque card individuelle (géré dans _buildSouvenirCard)
     // Livres — badge inline HTML existant
     var livresNew = document.getElementById('livresNewBadge');
-    if(livresNew) livresNew.style.display = window.yamIsNew('livre') ? '' : 'none';
+    if(livresNew) livresNew.style.display = _anyNew('livre_') ? '' : 'none';
     // Petits mots — badge inline HTML existant
     var pmNew = document.getElementById('postitNewBadge');
     if(pmNew) pmNew.style.display = window.yamIsNew('petit_mot') ? '' : 'none';
     // Pochettes Elle/Lui — badge sur la card complète (album-card lui-card-wrap)
+    // Cartes souvenir / livre : badge individuel mis à jour tout de suite (ouverture, suppression)
+    document.querySelectorAll('[data-nb-key]').forEach(function(el){
+      window.yamShowNewBadge(el, window.yamIsNew(el.dataset.nbKey));
+    });
     ['animal','fleurs','personnage','saison','repas'].forEach(function(slot){
       ['elle','lui'].forEach(function(who){
         // Cibler la card parente (.album-card) via le data-slot
@@ -871,7 +908,7 @@ function _nousLoadProfil() {
       var row = p && p.new;
       if(!row || !row.section){ return; }
       var ts = new Date(row.marked_at).getTime();
-      var mine = _badgeCache[row.section] && Math.abs(_badgeCache[row.section] - ts) < 4000;
+      var mine = ts <= (_ownMarks[row.section]||0);
       _badgeCache[row.section] = ts;
       _applyBadges();
       if(!mine && typeof window.nousSignalNew === 'function') window.nousSignalNew();
@@ -879,6 +916,9 @@ function _nousLoadProfil() {
   }
 
 })();
+
+// n°59 : jour LOCAL (AAAA-MM-JJ), pas UTC
+window.yamLocalDay = window.yamLocalDay || function(){ var d=new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); };
 
 // ── Badge nav Nous (icône de l'onglet) ──
 function _nousLoadBadge() {
@@ -996,6 +1036,25 @@ window.nousSignalNew = function() {
   var _luiBanners  = {};
   var _luiDescs    = {};
 
+  // ── Valeurs par défaut des pochettes (lues dans le HTML au premier appel) ──
+  function _slotDef(section, slot, kind){
+    var el=document.getElementById(section+'-'+(kind==='banner'?'banner':'desc')+'-'+slot);
+    if(!el) return '';
+    if(el.dataset.def===undefined) el.dataset.def=el.textContent;
+    return el.dataset.def;
+  }
+  function _slotResetText(section, slot){
+    var bEl=document.getElementById(section+'-banner-'+slot);
+    var dEl=document.getElementById(section+'-desc-'+slot);
+    var lbl=document.querySelector('#'+section+'-empty-'+slot+' .lui-img-empty-lbl');
+    var b=_slotDef(section,slot,'banner'); var d=_slotDef(section,slot,'desc');
+    if(bEl) bEl.textContent=b;
+    if(dEl) dEl.textContent=d;
+    if(lbl) lbl.textContent=b;
+  }
+
+  ['elle','lui'].forEach(function(sec){ SLOTS.forEach(function(sl){ _slotDef(sec,sl,'banner'); _slotDef(sec,sl,'desc'); }); });
+
   // ── État modale d'édition ──
   var _editSection = null;
   var _editSlot    = null;
@@ -1090,10 +1149,20 @@ window.nousSignalNew = function() {
     var banners   = section==='elle' ? _elleBanners : _luiBanners;
     var descs     = section==='elle' ? _elleDescs   : _luiDescs;
 
+    SLOTS.forEach(function(sl){ _slotDef(section,sl,'banner'); _slotDef(section,sl,'desc'); });
     // Banners (titres)
     fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+coupleId+'&category=eq.'+catBanner+'&select=slot,description',{headers:sb2Headers()})
-    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(r){ return r.ok?r.json():null; })
     .then(function(rows){
+      if(!rows) return;
+      // pochette supprimée par l'autre : retour à la valeur par défaut
+      SLOTS.forEach(function(sl){
+        if(!rows.some(function(x){return x.slot===sl;}) && banners[sl]!==undefined){
+          delete banners[sl];
+          var bEl=document.getElementById(section+'-banner-'+sl); if(bEl) bEl.textContent=_slotDef(section,sl,'banner');
+          var lb=document.querySelector('#'+section+'-empty-'+sl+' .lui-img-empty-lbl'); if(lb) lb.textContent=_slotDef(section,sl,'banner');
+        }
+      });
       rows.forEach(function(row){
         banners[row.slot]=row.description;
         var el=document.getElementById(section+'-banner-'+row.slot);
@@ -1105,8 +1174,15 @@ window.nousSignalNew = function() {
 
     // Descriptions
     fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+coupleId+'&category=eq.'+catDesc+'&select=slot,description',{headers:sb2Headers()})
-    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(r){ return r.ok?r.json():null; })
     .then(function(rows){
+      if(!rows) return;
+      SLOTS.forEach(function(sl){
+        if(!rows.some(function(x){return x.slot===sl;}) && descs[sl]!==undefined){
+          delete descs[sl];
+          var dEl=document.getElementById(section+'-desc-'+sl); if(dEl) dEl.textContent=_slotDef(section,sl,'desc');
+        }
+      });
       rows.forEach(function(row){
         descs[row.slot]=row.description;
         var el=document.getElementById(section+'-desc-'+row.slot);
@@ -1219,8 +1295,10 @@ window.nousSignalNew = function() {
     // Pré-remplir depuis mémoire
     var banners=section==='elle'?_elleBanners:_luiBanners;
     var descs=section==='elle'?_elleDescs:_luiDescs;
-    document.getElementById('slotEditBannerInput').value=banners[slot]||'';
-    document.getElementById('slotEditDescInput').value=descs[slot]||'';
+    var _bIn=document.getElementById('slotEditBannerInput'), _dIn=document.getElementById('slotEditDescInput');
+    _bIn.value=banners[slot]||''; _dIn.value=descs[slot]||'';
+    _bIn.placeholder=_slotDef(section,slot,'banner')||'ex: Son animal préféré...';
+    _dIn.placeholder=_slotDef(section,slot,'desc')||'Décris en quelques mots...';
 
     // Titre : titre de la section (MOI/TOI ou personnalisé), pas le titre du slot
     var sectionTitleEl=document.getElementById(section==='elle'?'elleSectionTitle':'luiSectionTitle');
@@ -1251,7 +1329,7 @@ window.nousSignalNew = function() {
     }
     // Afficher le bouton supprimer photo uniquement si une photo existe
     var _delBtn=document.getElementById('slotEditDelBtn');
-    if(_delBtn) _delBtn.style.display='flex';
+    if(_delBtn) _delBtn.style.display=hasPhoto?'flex':'none';
     modal.classList.add('open');
   };
 
@@ -1267,6 +1345,7 @@ window.nousSignalNew = function() {
   window.slotOpenView = function(section, slot){
     var imgEl   = document.getElementById(section+'-img-'+slot);
     if(!imgEl || imgEl.style.display==='none' || !imgEl.src || imgEl.src===window.location.href) return;
+    if(typeof window.yamMarkSeen==='function') window.yamMarkSeen(section+'_slot_'+slot);
     var banner  = document.getElementById(section+'-banner-'+slot);
     var descEl  = document.getElementById(section+'-desc-'+slot);
     var modal   = document.getElementById('slotViewModal'); if(!modal) return;
@@ -1289,10 +1368,17 @@ window.nousSignalNew = function() {
 
   // ── Visualisation souvenir (lecture seule) ──
   window.souvenirOpenView = function(s){
-    if(!s || !s.photo_url) return;
+    if(!s) return;
+    if(typeof window.yamMarkSeen==='function'){ window.yamMarkSeen('souvenir_'+s.id); window.yamMarkSeen('souvenir'); }
     var modal = document.getElementById('slotViewModal'); if(!modal) return;
-    var _svi=document.getElementById('slotViewImg'); if(_svi){_svi.src=s.photo_url;_svi.style.display='block';}
-    var _sve=document.getElementById('slotViewEmoji'); if(_sve) _sve.style.display='none';
+    var _svi=document.getElementById('slotViewImg'); var _sve=document.getElementById('slotViewEmoji');
+    if(s.photo_url){
+      if(_svi){_svi.src=s.photo_url;_svi.style.display='block';}
+      if(_sve) _sve.style.display='none';
+    } else {
+      if(_svi){_svi.removeAttribute('src');_svi.style.display='none';}
+      if(_sve){ _sve.textContent='📷'; _sve.style.display='flex'; }
+    }
     document.getElementById('slotViewTitle').textContent = s.title || '';
     // Meta : date + lieu
     var metaEl = document.getElementById('slotViewMeta');
@@ -1314,6 +1400,7 @@ window.nousSignalNew = function() {
   // ── Visualisation livre (lecture seule) ──
   window.livreOpenView = function(book){
     if(!book) return;
+    if(typeof window.yamMarkSeen==='function'){ window.yamMarkSeen('livre_'+book.id); window.yamMarkSeen('livre'); }
     var modal = document.getElementById('slotViewModal'); if(!modal) return;
     var imgEl = document.getElementById('slotViewImg');
     var emojiEl = document.getElementById('slotViewEmoji');
@@ -1323,7 +1410,7 @@ window.nousSignalNew = function() {
       if(emojiEl) emojiEl.style.display='none';
     } else {
       if(imgEl){ imgEl.src=''; imgEl.style.display='none'; }
-      if(emojiEl) emojiEl.style.display='flex';
+      if(emojiEl){ emojiEl.textContent='📚'; emojiEl.style.display='flex'; }
     }
     document.getElementById('slotViewTitle').textContent = book.title||'';
     var metaEl = document.getElementById('slotViewMeta');
@@ -1485,6 +1572,7 @@ window.nousSignalNew = function() {
     var banners=s==='elle'?_elleBanners:_luiBanners;
     var descs=s==='elle'?_elleDescs:_luiDescs;
 
+    if(typeof window.yamClearBadge==='function') window.yamClearBadge(s+'_slot_'+sl);
     // Supprimer toutes les lignes photo_descs liées à ce slot (img + banner + desc)
     var cats=[s+'_img', s==='elle'?'elle_banner':'lui_banner', s];
     cats.forEach(function(cat){
@@ -1505,9 +1593,7 @@ window.nousSignalNew = function() {
     if(img){ img.src=''; img.style.display='none'; img.classList.remove('loaded'); }
     if(emptyEl) emptyEl.style.display='';
     if(btnEl) btnEl.classList.add('empty');
-    if(bannerEl) bannerEl.textContent='';
-    if(descEl) descEl.textContent='';
-    if(lbl) lbl.textContent='';
+    _slotResetText(s, sl);
 
     if(typeof showToast==='function') showToast('Pochette supprimée ✓','success',2000);
     window.slotCloseEdit();
@@ -1630,8 +1716,8 @@ function _startReasonAuto(){
   };
 
   function _injectAnnivPostitIfNeeded(){
-    var START = new Date(2024,9,29); var now = new Date();
-    if(now.getDate()!==29) return;
+    var START = window.startDate ? new Date(window.startDate) : new Date(2024,9,29); var now = new Date();
+    if(now.getDate()!==START.getDate()) return;
     var months=(now.getFullYear()-START.getFullYear())*12+(now.getMonth()-START.getMonth());
     if(months<1) return;
     var msg = getAnnivPostitText(months);
@@ -1669,6 +1755,7 @@ function _startReasonAuto(){
 
   function _dismissTop(dirX){
     var top=document.getElementById('postitStack').lastElementChild; if(!top||top._dismissing||top.className==='postit-empty') return;
+    if(typeof window.yamMarkSeen==='function') window.yamMarkSeen('petit_mot');
     top._dismissing=true; var angle=dirX>0?18:-18; var tx=dirX>0?'115%':'-115%';
     top.style.transition='transform 0.32s cubic-bezier(.4,0,.6,1), opacity 0.26s';
     top.style.transform='translateX('+tx+') rotate('+angle+'deg)'; top.style.opacity='0'; top.style.pointerEvents='none';
@@ -2326,7 +2413,7 @@ document.addEventListener('yam:session_ready',function(){
     var modDate=note.updated_at||note.created_at;
     var d=new Date(modDate);
     var dateEl=document.getElementById('memoNoteDate');
-    var isUpd=note.updated_at&&note.updated_at!==note.created_at;
+    var isUpd=note.updated_at&&note.created_at&&(new Date(note.updated_at)-new Date(note.created_at))>2000;
     if(dateEl) dateEl.textContent=(isUpd?'Modifié ':'Créé ')+d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+(isUpd&&note.updated_by?' par '+note.updated_by:'');
   };
   window._memoTodosApply = function(items) {
@@ -2360,7 +2447,7 @@ document.addEventListener('yam:session_ready',function(){
       var modDate = note.updated_at||note.created_at;
       var d = new Date(modDate);
       var dateEl = document.getElementById('memoNoteDate');
-      var isUpd = note.updated_at&&note.updated_at!==note.created_at;
+      var isUpd = note.updated_at&&note.created_at&&(new Date(note.updated_at)-new Date(note.created_at))>2000;
       if(dateEl) dateEl.textContent = (isUpd?'Modifié ':'Créé ')+d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+(isUpd&&note.updated_by?' par '+note.updated_by:'');
     }).catch(function(){});
   }
@@ -2390,6 +2477,7 @@ document.addEventListener('yam:session_ready',function(){
   // ════════════════════════════════════════════════
   window.openMemoNoteView = function(){
     var modal = document.getElementById('memoNoteViewModal'); if(!modal) return;
+    if(typeof window.yamMarkSeen==='function') window.yamMarkSeen('memo_note');
     var su = _getSession(); var coupleId = su?su.couple_id:null; if(!coupleId) return;
     _saveScrollPosition();
     _blockBackgroundScroll();
@@ -2407,7 +2495,7 @@ document.addEventListener('yam:session_ready',function(){
       if(txtEl)   txtEl.textContent   = note.text||'';
       if(dateEl&&(note.updated_at||note.created_at)){
         var d=new Date(note.updated_at||note.created_at);
-        var isUpd=note.updated_at&&note.updated_at!==note.created_at;
+        var isUpd=note.updated_at&&note.created_at&&(new Date(note.updated_at)-new Date(note.created_at))>2000;
         dateEl.textContent=(isUpd?'Modifié ':'Créé ')+d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+(isUpd&&note.updated_by?' par '+note.updated_by:'');
       }
     }).catch(function(){ if(txtEl) txtEl.textContent='Erreur de chargement.'; });
@@ -2430,6 +2518,7 @@ document.addEventListener('yam:session_ready',function(){
   // ════════════════════════════════════════════════
   window.openMemoTodoView = function(){
     var modal = document.getElementById('memoTodoViewModal'); if(!modal) return;
+    if(typeof window.yamMarkSeen==='function') window.yamMarkSeen('memo_todo');
     _saveScrollPosition();
     _blockBackgroundScroll();
     modal.classList.add('open');
@@ -2519,7 +2608,7 @@ document.addEventListener('yam:session_ready',function(){
       var dateEl = document.getElementById('memoPopupDate');
       if(dateEl&&note){
         var d=new Date(note.updated_at||note.created_at);
-        var isUpd=note.updated_at&&note.updated_at!==note.created_at;
+        var isUpd=note.updated_at&&note.created_at&&(new Date(note.updated_at)-new Date(note.created_at))>2000;
         dateEl.textContent=(isUpd?'Modifié ':'Créé ')+d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+(isUpd&&note.updated_by?' par '+note.updated_by:'');
       } else if(dateEl){ dateEl.textContent=''; }
     }).catch(function(){});
@@ -2530,8 +2619,10 @@ document.addEventListener('yam:session_ready',function(){
     var txt = (document.getElementById('memoPopupTextarea').value||'').trim();
     var ttl = (document.getElementById('memoPopupTitleInput').value||'').trim()||'Note';
     var btn = document.getElementById('memoPopupSaveBtn'); if(btn){ btn.textContent='...'; btn.disabled=true; }
-    var done = function(){ 
+    if(txt.length>2000){ if(btn){ btn.textContent='Modifier'; btn.disabled=false; } if(typeof showToast==='function') showToast('Note trop longue (2000 caractères max)','error',3000); return; }
+    var done = function(ok){ 
       if(btn){ btn.textContent='Modifier'; btn.disabled=false; } 
+      if(ok===false){ if(typeof showToast==='function') showToast('Note non enregistrée — réessaie','error',3000); return; }
       renderMemoCouple(); 
       // Badge NEW pour les deux
       if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh('memo_note');
@@ -2540,11 +2631,12 @@ document.addEventListener('yam:session_ready',function(){
       // NOUVEAU : Toast de confirmation
       if(typeof showToast === 'function') showToast('Note sauvegardée ✓', 'success', 2000);
     };
+    if(!txt){ if(btn){ btn.textContent='Modifier'; btn.disabled=false; } if(typeof showToast==='function') showToast('La note est vide','info',2500); return; }
     if(_currentNoteId){
-      fetch(SB_URL+'/rest/v1/memo_notes?id=eq.'+_currentNoteId+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({text:txt,title:ttl,updated_at:new Date().toISOString(),updated_by:(typeof yamGetPseudo==='function'?yamGetPseudo():null)})}).then(done).catch(done);
+      fetch(SB_URL+'/rest/v1/memo_notes?id=eq.'+_currentNoteId+'&couple_id=eq.'+coupleId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({text:txt,title:ttl,updated_at:new Date().toISOString(),updated_by:(typeof yamGetPseudo==='function'?yamGetPseudo():null)})}).then(function(r){ done(r.ok); }).catch(function(){ done(false); });
     } else {
-      if(!txt) return done();
-      fetch(SB_URL+'/rest/v1/memo_notes',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,text:txt,title:ttl})}).then(function(){ _loadMemoNoteForEdit(); done(); }).catch(done);
+      if(!txt){ if(btn){ btn.textContent='Modifier'; btn.disabled=false; } if(typeof showToast==='function') showToast('La note est vide','info',2500); return; }
+      fetch(SB_URL+'/rest/v1/memo_notes',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify({couple_id:coupleId,text:txt,title:ttl})}).then(function(r){ if(r.ok) _loadMemoNoteForEdit(); done(r.ok); }).catch(function(){ done(false); });
     }
   };
 
@@ -2727,6 +2819,7 @@ document.addEventListener('yam:session_ready',function(){
 
   function _buildSouvenirCard(s,annivYears){
     var card=document.createElement('div'); card.className='souvenir-card'+(annivYears?' souvenir-card--anniv':'');
+    if(s.id) card.dataset.nbKey='souvenir_'+s.id;
     var photoUrl=s.photo_url||'';
     var dateStr=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'';
     var photoStyle=photoUrl?'background-image:url('+escHtml(photoUrl)+');':'';
@@ -2743,12 +2836,10 @@ document.addEventListener('yam:session_ready',function(){
       +'</div>'
       +'</div>';
     // Clic sur la photo → vue en grand
-    if(photoUrl){
-      card.querySelector('.souvenir-photo').addEventListener('click', function(e){
-        e.stopPropagation();
-        if(typeof window.souvenirOpenView==='function') window.souvenirOpenView(s);
-      });
-    }
+    card.addEventListener('click', function(e){
+      e.stopPropagation();
+      if(typeof window.souvenirOpenView==='function') window.souvenirOpenView(s);
+    });
     // Badge NEW — posé sur la card racine (position:relative, sans overflow:hidden)
     // .souvenir-photo a overflow:hidden pour rogner la photo → badge invisible si posé dessus
     if(s.id && typeof window.yamIsNew==='function' && window.yamIsNew('souvenir_'+s.id)){
@@ -2965,6 +3056,10 @@ document.addEventListener('yam:session_ready',function(){
     var modal=document.getElementById('souvenirModal'); if(!modal) return;
     var coupleId=_getCoupleId(); if(!coupleId) return;
     var id=modal.dataset.souvenirId;
+    if(!document.getElementById('souvenirInputTitle').value.trim() && !modal.dataset.photoUrl){
+      if(typeof showToast==='function') showToast('Ajoute un titre ou une photo','error',2500);
+      return;
+    }
     var data={
       couple_id:coupleId,
       title:document.getElementById('souvenirInputTitle').value.trim()||'Souvenir',
@@ -2982,7 +3077,6 @@ document.addEventListener('yam:session_ready',function(){
         if(saveBtn){ saveBtn.textContent='Sauvegarder'; saveBtn.disabled=false; }
         if(typeof window.yamMarkNew==='function') window.yamMarkNew('souvenir');
         if(typeof window.yamMarkNewAndRefresh==='function') window.yamMarkNewAndRefresh('souvenir_'+id);
-        if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('souvenir_new');
         window.closeSouvenirModal(); window.nousLoadSouvenirs();
         setTimeout(function(){ window._souvenirSaving=false; }, 3000);
         if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('activitesSection');
@@ -3021,6 +3115,7 @@ document.addEventListener('yam:session_ready',function(){
   window.souvenirDeleteGo=function(){
     var modal=document.getElementById('souvenirModal'); if(!modal) return;
     var id=modal.dataset.souvenirId; if(!id) return;
+    if(typeof window.yamClearBadge==='function') window.yamClearBadge('souvenir_'+id);
     fetch(SB_URL+'/rest/v1/memories?id=eq.'+id,{method:'DELETE',headers:sb2Headers()})
     .then(function(){ window.closeSouvenirModal(); window.nousLoadSouvenirs(); if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('souvenirsSection'); }).catch(function(){});
   };
@@ -3032,7 +3127,7 @@ document.addEventListener('yam:session_ready',function(){
 
 
 // ════════════════════════════════════════════════════════════════════
-// 13. ACTIVITÉS — v2 : 2 cartes max en page · overlay liste · étoile · tri
+// 13. ACTIVITÉS — v2 : 1 carte max en page · overlay liste · étoile · tri
 // ════════════════════════════════════════════════════════════════════
 (function(){
 
@@ -3140,7 +3235,7 @@ document.addEventListener('yam:session_ready',function(){
   };
   window._renderActivitesHomePublic = function() { _renderActivitesHome(); };
 
-  // ── Rendu page principale : 2 cartes max, idée du jour, bouton créer ──
+  // ── Rendu page principale : 1 carte max, idée du jour, bouton créer ──
   function _renderActivitesHome(){
     var container=document.getElementById('activitesContainer'); if(!container) return;
     container.innerHTML='';
@@ -3279,7 +3374,7 @@ document.addEventListener('yam:session_ready',function(){
           (act.description?'<div class="activite-gestion-meta">'+escHtml(act.description.substring(0,55))+(act.description.length>55?'…':'')+'</div>':'')+
           (total?'<div class="activite-gestion-progress"><div class="activite-gestion-bar"><div class="activite-gestion-fill" style="width:'+pct+'%"></div></div><span style="font-size:10px;color:var(--muted);flex-shrink:0;">'+doneCount+'/'+total+'</span></div>':'')+
         '</div>'+
-        '<button class="activite-star-btn'+(isStarred?' active':'')+'" aria-label="Favori" data-id="'+escHtml(String(act.id))+'">'+
+        '<button class="activite-star-btn'+(isStarred?' active':'')+'" aria-label="Affichée en premier" title="Affichée en premier" data-id="'+escHtml(String(act.id))+'">'+
           (isStarred?starFilled:starEmpty)+
         '</button>';
 
@@ -3308,6 +3403,7 @@ document.addEventListener('yam:session_ready',function(){
         }).catch(function(){ a.is_fav=!newFav; _renderActiviteGestionList(); });
         btn.classList.toggle('active',newFav);
         btn.innerHTML=newFav?starFilled:starEmpty;
+        if(typeof showToast==='function') showToast(newFav?'⭐ Affichée en premier':'Plus affichée en premier','info',2200);
         _renderActivitesHome(); // rafraîchit le tri en page principale
       });
 
@@ -3449,7 +3545,7 @@ document.addEventListener('yam:session_ready',function(){
   var _IA_SUGG_MAX_PER_DAY = 3;      // max 3 suggestions par jour
 
   function _iaSuggGetCount(){
-    var today = new Date().toISOString().slice(0,10);
+    var today = window.yamLocalDay();
     try {
       var data = JSON.parse(localStorage.getItem('yam_iasugg_count') || 'null');
       if(data && data.date === today) return data.count;
@@ -3458,7 +3554,7 @@ document.addEventListener('yam:session_ready',function(){
   }
 
   function _iaSuggIncrCount(){
-    var today = new Date().toISOString().slice(0,10);
+    var today = window.yamLocalDay();
     var count = _iaSuggGetCount() + 1;
     try { localStorage.setItem('yam_iasugg_count', JSON.stringify({date: today, count: count})); } catch(e){}
   }
@@ -3522,9 +3618,9 @@ document.addEventListener('yam:session_ready',function(){
       if(card) card.style.display = 'flex';
       textEl.innerHTML = '<strong>'+escHtml(parsed.emoji||'✨')+' '+escHtml(parsed.title||'')+'</strong><br><span style="font-weight:400;">'+escHtml(parsed.description||'')+'</span>';
       if(parsed.steps && parsed.steps.length){
-        textEl.innerHTML += '<ul style="margin:8px 0 0 0;padding-left:16px;font-size:12px;color:var(--muted);line-height:1.6;">';
-        parsed.steps.forEach(function(s){ textEl.innerHTML += '<li>'+escHtml(s)+'</li>'; });
-        textEl.innerHTML += '</ul>';
+        var _ul = '<ul style="margin:8px 0 0 0;padding-left:18px;font-size:12px;color:var(--muted);line-height:1.6;text-align:left;list-style:disc outside;">';
+        parsed.steps.forEach(function(s){ _ul += '<li>'+escHtml(s)+'</li>'; });
+        textEl.innerHTML += _ul + '</ul>';
       }
       if(metaEl) metaEl.textContent = 'Suggestion IA · '+saison.charAt(0).toUpperCase()+saison.slice(1);
       _iaSuggIncrCount(); // comptabiliser l'appel réussi
@@ -4048,7 +4144,7 @@ document.addEventListener('yam:session_ready',function(){
   function _loadIdeaCache(coupleId){
     try{
       var d = JSON.parse(localStorage.getItem(_livreIdeaKey(coupleId))||'null');
-      var today = new Date().toISOString().slice(0,10);
+      var today = window.yamLocalDay();
       if(d && d.date===today && Array.isArray(d.ideas) && d.ideas.length) return d;
     }catch(e){}
     return null;
@@ -4057,7 +4153,7 @@ document.addEventListener('yam:session_ready',function(){
   function _saveIdeaCache(coupleId, ideas, pos){
     try{
       localStorage.setItem(_livreIdeaKey(coupleId), JSON.stringify({
-        date: new Date().toISOString().slice(0,10),
+        date: window.yamLocalDay(),
         ideas: ideas,
         pos: pos||0
       }));
@@ -4101,10 +4197,11 @@ document.addEventListener('yam:session_ready',function(){
     var card = document.createElement('div');
     card.className = 'album-card lui-card-wrap';
     card.style.position = 'relative';
+    if(book.id) card.dataset.nbKey = 'livre_'+book.id;
     var photoUrl = book.has_image ? (SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/books/'+book.couple_id+'/'+book.id+'.jpg?t='+Math.floor(Date.now()/60000)) : '';
     // Badge NEW
     var isNew = window.yamIsNew ? window.yamIsNew('livre_'+book.id) : false;
-    var newBadge = isNew ? '<span style="position:absolute;top:4px;right:4px;background:#e75a7c;color:#fff;font-size:8px;font-weight:800;letter-spacing:0.5px;padding:2px 5px;border-radius:6px;text-transform:uppercase;z-index:10;pointer-events:none;">NEW</span>' : '';
+    var newBadge = isNew ? '<span class="yam-new-badge" style="position:absolute;top:4px;right:4px;background:#e75a7c;color:#fff;font-size:8px;font-weight:800;letter-spacing:0.5px;padding:2px 5px;border-radius:6px;text-transform:uppercase;z-index:10;pointer-events:none;">NEW</span>' : '';
     card.innerHTML =
       '<div class="album-image" style="position:relative;">'+newBadge+
         (photoUrl ?
@@ -4385,6 +4482,7 @@ document.addEventListener('yam:session_ready',function(){
   window.livresDeleteGo=function(){
     if(!_livreEditingId) return;
     var coupleId = _getCoupleId(); if(!coupleId) return;
+    if(typeof window.yamClearBadge==='function') window.yamClearBadge('livre_'+_livreEditingId);
     fetch(SB_URL+'/rest/v1/books?id=eq.'+_livreEditingId+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()})
     .then(function(){ window.livresCloseEdit(); window.livresLoad(); if(typeof window._nousSignalNewContent==='function') window._nousSignalNewContent('Books'); }).catch(function(){});
   };
@@ -4435,7 +4533,7 @@ document.addEventListener('yam:session_ready',function(){
     })
     .catch(function(){
       var fallbacks = [{title:'Le Petit Prince',author:'Antoine de Saint-Exupéry',desc:'Un conte poétique intemporel'},{title:'L\'Alchimiste',author:'Paulo Coelho',desc:'Suivre ses rêves jusqu\'au bout du monde'},{title:'Les Fourmis',author:'Bernard Werber',desc:'La colonie humaine vue différemment'},{title:'Orgueil et Préjugés',author:'Jane Austen',desc:'Le roman d\'amour classique par excellence'},{title:'Dune',author:'Frank Herbert',desc:'L\'épopée de science-fiction ultime'}];
-      _saveIdeaCache(coupleId, fallbacks, 1);
+      // n°51 : le repli hors-ligne n'est jamais gardé (nouvel appel IA possible)
       _ideaCache = fallbacks[0];
       var titleEl3 = document.getElementById('livreIdeaTitle');
       if(titleEl3) titleEl3.textContent = '📖 ' + fallbacks[0].title;
@@ -4567,6 +4665,7 @@ function _gearSVG(){
 // 16. EXPOSITION GLOBALE pour yamSwitchTab
 // ════════════════════════════════════════════════════════════════════
 window.nousLoad = function(){
+  var _nb = document.getElementById('navNousBadge'); if(_nb) _nb.style.display = 'none';
   var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
   if (!u || !u.couple_id) {
     // Session pas encore prête — setProfile() va relancer nousLoad via son hook
@@ -4974,7 +5073,7 @@ window.nousLoad = function(){
     var profile3 = _getProfile();
     var _loadUid = (typeof yamGetUser === 'function' && yamGetUser()) ? yamGetUser().id : null;
     var actUrl = SB_URL + '/rest/v1/flame_activities?couple_id=eq.' + cid +
-      '&activity_date=gte.' + new Date().toISOString().split('T')[0] +
+      '&activity_date=gte.' + window.yamLocalDay() +
       (_loadUid ? '&user_id=eq.' + _loadUid : '') +
       '&select=activity_type';
     fetch(actUrl, { headers: sb2Headers() })
@@ -5094,7 +5193,7 @@ window.nousLoad = function(){
     // GET d'abord : vérifie si l'activité existe déjà aujourd'hui pour ce user
     var _faUser = (typeof yamGetUser === 'function' && yamGetUser()) ? yamGetUser() : null;
     var _faUid  = _faUser ? _faUser.id : null;
-    var _faDate = new Date().toISOString().split('T')[0];
+    var _faDate = window.yamLocalDay();
     var _faCheckUrl = SB_URL + '/rest/v1/flame_activities?couple_id=eq.' + cid
       + '&activity_type=eq.' + activityType
       + '&activity_date=eq.' + _faDate
