@@ -371,6 +371,10 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
       document.documentElement.appendChild(el); }
     var _g = document.getElementById('prankGotcha');
     var _inPrank = document.body.classList.contains('prank-active') || (_g && _g.classList.contains('show'));
+    // Sur l'écran « T'as été eu(e) » la barre nav reste visible en fond : la pastille se place au-dessus d'elle
+    var _onGotcha = !!(_g && _g.classList.contains('show'));
+    var _nav = document.querySelector('.bottom-nav');
+    el.style.bottom = (_onGotcha && _nav && _nav.offsetHeight) ? (_nav.offsetHeight + 12) + 'px' : '';
     if(_batchTotal > 1 && _batchIdx > 0 && _inPrank){ el.textContent = '😈 Bêtise ' + _batchIdx + ' sur ' + _batchTotal; el.classList.add('show'); }
     else el.classList.remove('show');
   }
@@ -1033,7 +1037,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     }).catch(function(){});
     showGotcha(_activePrank);
     _activePrank = null;
-    // Pas de déblocage ici : la barre nav et l'en-tête restent masqués derrière l'écran « T'as été eu(e) » ; closeGotcha débloque
+    _prankUnlockScroll();
     // La suivante en attente démarre à la fermeture du gotcha (closeGotcha)
   }
 
