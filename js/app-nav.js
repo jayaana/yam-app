@@ -91,21 +91,15 @@
 
     // Jeux : le tableau de bord s'injecte après coup (jxLoadDashboard), ce qui peut décaler
     // la page de façon aléatoire au 1er affichage → on re-cale à 0 tant que rien n'a bougé volontairement
-    if(tab === 'jeux'){
-      // Re-calage immédiat (événement scroll = avant l'affichage, donc invisible), pendant 1,5 s
-      // ou jusqu'au 1er geste volontaire de l'utilisateur
-      var _jxStop = function(){
-        window.removeEventListener('scroll', _jxFix);
-        ['touchstart','wheel','keydown','mousedown'].forEach(function(ev){ window.removeEventListener(ev, _jxStop); });
-      };
-      var _jxFix = function(){
-        if(_currentTab !== 'jeux' || document.body.classList.contains('subview-active')){ _jxStop(); return; }
-        if(window.scrollY > 0) window.scrollTo(0, 0);
-      };
-      window.addEventListener('scroll', _jxFix, { passive: true });
-      ['touchstart','wheel','keydown','mousedown'].forEach(function(ev){ window.addEventListener(ev, _jxStop, { passive: true }); });
-      setTimeout(_jxStop, 1500);
-      _jxFix();
+    // Jeux a son propre défilement interne : la page (window) ne doit jamais défiler dessus,
+    // sinon (iOS, accueil encore scrollable au démarrage) l'en-tête remonte et disparaît.
+    document.documentElement.classList.toggle('jx-lock', tab === 'jeux');
+    if(!window._jxLockBound){
+      window._jxLockBound = true;
+      // Même un décalage programmatique ou iOS est annulé avant l'affichage (sauf sous-vue ouverte)
+      window.addEventListener('scroll', function(){
+        if(window.scrollY > 0 && document.documentElement.classList.contains('jx-lock') && !document.body.classList.contains('subview-active')) window.scrollTo(0, 0);
+      }, { passive: true });
     }
 
     // Particules : actives seulement sur musique/nous, et si musique en cours
