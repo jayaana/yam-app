@@ -223,7 +223,7 @@
       '<div class="cw-back">' +
         '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>' +
       '</div>' +
-      '<h2>\uD83D\uDCFA Regarder ensemble</h2>' +
+      '<h2><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;"><rect x="3" y="4" width="18" height="12" rx="2.5"/><polygon points="10.5 7.5 14.5 10 10.5 12.5" fill="currentColor"/><line x1="8" y1="20" x2="16" y2="20"/><line x1="12" y1="16" x2="12" y2="20"/></svg>Regarder ensemble</h2>' +
       '<button id="cwHdrThemeBtn" class="dm-topbar-theme" title="Changer le th\u00e8me">' +
         '<svg class="gvh-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>' +
         '<svg class="gvh-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>' +
@@ -235,8 +235,8 @@
       '<div id="cwLobbyNewLink">' +
         '<div class="cw-link-box">' +
         '<div class="cw-tabs">' +
-          '<div class="cw-tab active" id="cwTabLink">\uD83D\uDD17 Coller un lien</div>' +
-          '<div class="cw-tab" id="cwTabSearch">\uD83D\uDD0D Rechercher</div>' +
+          '<div class="cw-tab active" id="cwTabLink"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;pointer-events:none;"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>Coller un lien</div>' +
+          '<div class="cw-tab" id="cwTabSearch"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;pointer-events:none;"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>Rechercher</div>' +
         '</div>' +
         '<div id="cwPanelLink">' +
           '<input id="cwUrlIn" class="cw-urlinput" type="url" placeholder="https://youtube.com/watch?v=..." autocomplete="off" />' +
@@ -254,7 +254,7 @@
           '<div class="cw-search-results" id="cwSearchResults"></div>' +
         '</div>' +
         '</div>' +
-        '<button class="cw-btn" id="cwGoBtn" disabled>Lancer ce lien \uD83C\uDFAC</button>' +
+        '<button class="cw-btn" id="cwGoBtn" disabled>Lancer ce lien</button>' +
       '</div>' +
       // Séparateur
       '<div style="display:flex;align-items:center;gap:10px;">' +
@@ -282,7 +282,7 @@
             '</button>' +
           '</div>' +
         '</div>' +
-        '<button class="cw-btn-pl" id="cwGoPlBtn" disabled>Lancer la playlist \u25b6</button>' +
+        '<button class="cw-btn-pl" id="cwGoPlBtn" disabled>Lancer la playlist</button>' +
       '</div>' +
       '<div style="font-size:12px;color:var(--muted);text-align:center;line-height:1.6;">Tu seras l\u2019h\u00f4te et tu contr\u00f4les la lecture.</div>' +
     '</div>' +
@@ -297,7 +297,7 @@
       '<div class="cw-join-title">t\u2019invite \u00e0 regarder</div>' +
       '<div class="cw-join-thumb"><img id="cwJoinThumb" src="" alt="" /></div>' +
       '<div class="cw-join-sub" id="cwJoinSub"></div>' +
-      '<button class="cw-btn">Rejoindre \uD83C\uDF7F</button>' +
+      '<button class="cw-btn">Rejoindre</button>' +
       '<button class="cw-btn-ghost" style="margin-top:4px;">Pas maintenant</button>' +
     '</div>' +
     '<div id="cwScPlayer" class="cw-sc">' +
@@ -1440,7 +1440,7 @@
       var clickable=(_isHost||_coControl)&&!isCurrent;
       if(clickable)cls+=' cw-pl-clickable';
       var statusCls=isCurrent?'now':isPast?'done':isNext?'next':'';
-      var statusLbl=isCurrent?'\u25b6 En cours':isPast?'\u2713 Vue':isNext?'\u25b6 Suivante':'\u2014 En attente';
+      var statusLbl=isCurrent?'En cours':isPast?'Vue':isNext?'Suivante':'En attente';
       // Bouton suppr uniquement sur les futures (non passées, non en cours)
       var rmHtml=(_isHost&&!isCurrent&&!isPast)
         ?'<button class="cw-pl-rm" data-pl-idx="'+i+'">' +
