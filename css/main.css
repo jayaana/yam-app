@@ -7094,10 +7094,16 @@ body:not(.light) #loveBox .lb-tip { background: rgba(28,20,24,.94); color: #ffe3
 @keyframes hsSpark { from { transform: rotate(var(--a)) translateY(-10px) scale(1); opacity: 1; } to { transform: rotate(var(--a)) translateY(calc(-1 * var(--d))) scale(.2); opacity: 0; } }
 
 /* Spam de cœurs — thème sombre : cœur « perle » blanc (comme le reste du thème), onde et étincelles blanches */
-html:not(.light) #homeSpamHeartEmoji .hs-s1 { stop-color: #ffffff; }
-html:not(.light) #homeSpamHeartEmoji .hs-s2 { stop-color: #eee9e5; }
-html:not(.light) #homeSpamHeartEmoji .hs-s3 { stop-color: #b9b2ad; }
-html:not(.light) .home-spam-heart-emoji { filter: drop-shadow(0 4px 12px rgba(255,255,255,.35)) !important; }
-html:not(.light) .hs-ring { border-color: rgba(255,255,255,.6); }
-html:not(.light) .hs-spark { background: radial-gradient(circle at 35% 35%, #fff, #e9e4e0 65%, #bdb6b1); }
+html:not(.light) #homeSpamHeartEmoji .hs-s1 { stop-color: #d9b4c1; }
+html:not(.light) #homeSpamHeartEmoji .hs-s2 { stop-color: #b98c9c; }
+html:not(.light) #homeSpamHeartEmoji .hs-s3 { stop-color: #8a6372; }
+html:not(.light) #homeSpamHeartEmoji ellipse { opacity: .28; }
+html.light .home-spam-heart-emoji { filter: drop-shadow(0 6px 12px rgba(207,64,104,.45)) !important; }
+html:not(.light) .home-spam-heart-emoji { filter: drop-shadow(0 3px 10px rgba(217,150,175,.18)) !important; }
+html:not(.light) .hs-ring { border-color: rgba(217,170,190,.5); }
+html:not(.light) .hs-spark { background: radial-gradient(circle at 35% 35%, #ecd3dc, #c9a0b0 65%, #9a7684); }
 html:not(.light) #uxToast.soon { border-color: rgba(255,255,255,.25); }
+
+/* Tous les messages (toasts) de l'appli : pastille arrondie (la règle « initial » du design-system les rendait carrés) */
+html body #uxToast { border-radius: 999px; padding: 10px 22px; box-shadow: 0 4px 16px rgba(0,0,0,.18); }
+html body #uxToast.success { border-color: rgba(231,90,124,.4); }
