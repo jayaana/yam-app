@@ -7156,5 +7156,5 @@ html body #uxToast.show.error { border-color: rgba(255,68,68,.75); box-shadow: 0
 html body #yamNotif.show { border-color: rgba(231,90,124,.75); box-shadow: 0 6px 22px rgba(231,90,124,.38), 0 0 0 3px rgba(231,90,124,.16); }
 
 /* Compteur « Bêtise 2 sur 3 » pendant une série de bêtises reçues */
-#prankRemain { position: fixed; left: 50%; bottom: calc(6px + env(safe-area-inset-bottom, 0px) * .4); transform: translateX(-50%); z-index: 100050; padding: 4px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; background: var(--s1); color: var(--text); border: 1px solid rgba(231,90,124,.75); box-shadow: 0 4px 16px rgba(231,90,124,.3); opacity: 0; pointer-events: none; transition: opacity .25s; }
+#prankRemain { position: fixed; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 100050; padding: 4px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; background: var(--s1); color: var(--text); border: 1px solid rgba(231,90,124,.75); box-shadow: 0 4px 16px rgba(231,90,124,.3); opacity: 0; pointer-events: none; transition: opacity .25s; }
 #prankRemain.show { opacity: 1; }

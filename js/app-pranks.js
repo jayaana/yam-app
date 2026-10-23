@@ -346,7 +346,9 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   function _batchPill(){
     var el = document.getElementById('prankRemain');
     if(!el){ el = document.createElement('div'); el.id = 'prankRemain'; el.setAttribute('role','status'); document.body.appendChild(el); }
-    if(_batchTotal > 1 && _batchIdx > 0){ el.textContent = '😈 Bêtise ' + _batchIdx + ' sur ' + _batchTotal; el.classList.add('show'); }
+    var _g = document.getElementById('prankGotcha');
+    var _inPrank = document.body.classList.contains('prank-active') || (_g && _g.classList.contains('show'));
+    if(_batchTotal > 1 && _batchIdx > 0 && _inPrank){ el.textContent = '😈 Bêtise ' + _batchIdx + ' sur ' + _batchTotal; el.classList.add('show'); }
     else el.classList.remove('show');
   }
   var _prankLead = 800; // délai avant déclenchement (plus long quand la victime est prévenue en direct)
@@ -404,7 +406,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     if(!_prankQueue.length){ _batchTotal = 0; _batchIdx = 0; _batchPill(); return; }
     var next = _prankQueue.shift();
     _activePrank = next;
-    _batchIdx++; _batchPill();
+    _batchIdx++;
     var _d = _prankLead; _prankLead = 800;
     setTimeout(function(){ triggerPrank(_activePrank); }, _d);
   }
@@ -434,6 +436,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     document.body.style.overflow = 'hidden';
     document.body.dataset.prankScrollY = scrollY;
     document.body.classList.add('prank-active');
+    _batchPill();
     switch(p.type){
       case 'shake':    startShake(p); break;
       case 'curtain':  startCurtain(p); break;
@@ -1016,11 +1019,13 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     var authorName = (typeof v2GetDisplayName==="function"?v2GetDisplayName(p.author):(p.author==="boy"?"Lui":"Elle"));
     document.getElementById('gotchaMsg').textContent = p.message || '😈';
     document.getElementById('prankGotcha').classList.add('show');
+    _batchPill();
   }
   window.closeGotcha = function(){
     document.getElementById('prankGotcha').classList.remove('show');
     // Ne pas délocker si une nouvelle bêtise est déjà en cours
     if(!_activePrank) _prankUnlockScroll();
+    _batchPill();
     setTimeout(function(){ dequeueNextPrank(); }, 600);
   };
 
