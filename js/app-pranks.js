@@ -195,7 +195,36 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   // Bêtises qui n'ont pas besoin de message personnalisé
   var NO_MSG_PRANKS = ['eyes', 'target', 'fog', 'memory', 'colors', 'shake', 'curtain', 'intrus', 'flip', 'splash'];
 
+  // Réglage « Accepter les bêtises » du partenaire : ligne type '__pref' (message 'off'/'on') dans pranks
+  window.yamPrankPrefPublish = function(off){
+    var u = yamGetUser(), me = getProfile();
+    if(!u || !u.couple_id || !me) return;
+    fetch(SB_URL+'/rest/v1/'+PRANK_TABLE, {
+      method:'POST', headers: sb2Headers({'Content-Type':'application/json','Prefer':'return=minimal'}),
+      body: JSON.stringify({ type:'__pref', sender_role: me, author: me, couple_id: u.couple_id, active:false, message: off ? 'off' : 'on' })
+    }).catch(function(){});
+  };
+  function partnerRefuses(){
+    var u = yamGetUser(), me = getProfile();
+    if(!u || !u.couple_id || !me) return Promise.resolve(false);
+    return fetch(SB_URL+'/rest/v1/'+PRANK_TABLE+'?couple_id=eq.'+u.couple_id+'&type=eq.__pref&sender_role=neq.'+me+'&order=created_at.desc&limit=1&select=message', { headers: sb2Headers() })
+      .then(function(r){ return r.ok ? r.json() : []; })
+      .then(function(rows){ return !!(rows && rows.length && rows[0].message === 'off'); })
+      .catch(function(){ return false; });
+  }
+  function notDelivered(){
+    var me = getProfile();
+    var vName = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName(me === 'boy' ? 'girl' : 'boy') : 'Ton partenaire';
+    if(window.showToast) window.showToast('🙅 Non livrée : ' + vName + ' a désactivé les bêtises', '', 3400);
+  }
+
   window.prankSelectType = function(type){
+    partnerRefuses().then(function(off){
+      if(off){ notDelivered(); return; } // le menu reste ouvert : rien n'est parti
+      _prankSelectTypeGo(type);
+    });
+  };
+  function _prankSelectTypeGo(type){
     _selectedType = type;
     // Fermer le menu
     document.getElementById('prankMenu').classList.remove('show');
@@ -227,7 +256,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
       lockWrap.style.display = 'none';
     }
     document.getElementById('prankMsgModal').classList.add('show');
-  };
+  }
 
   function sendPrankDirect(type){
     var profile = getProfile();
@@ -283,6 +312,9 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     var coupleId = s && s.user ? s.user.couple_id : null;
     var body = { type: _selectedType, sender_role: profile, author: profile, message: msg, couple_id: coupleId, active: true };
     if(lockWord) body.lock_word = lockWord;
+    partnerRefuses().then(function(off){ if(off){ notDelivered(); return; } _prankPost(body); });
+  };
+  function _prankPost(body){
     // On insère directement sans effacer les bêtises précédentes — la file d'attente s'en charge
     yamFetchOk(SB_URL+'/rest/v1/'+PRANK_TABLE, {
       method:'POST', headers: sb2Headers({'Prefer':'return=minimal'}),
@@ -295,10 +327,17 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
       document.body.appendChild(fb);
       setTimeout(function(){ fb.remove(); }, 1200);
     }).catch(function(e){ showPrankToast('❌ Bêtise non envoyée : ' + e.message + '. Réessaie.'); });
-  };
+  }
 
   /* ── File d'attente des bêtises ── */
   var _prankQueue = [];
+  var _batchTotal = 0, _batchIdx = 0; // « Bêtise 2 sur 3 »
+  function _batchPill(){
+    var el = document.getElementById('prankRemain');
+    if(!el){ el = document.createElement('div'); el.id = 'prankRemain'; el.setAttribute('role','status'); document.body.appendChild(el); }
+    if(_batchTotal > 1 && _batchIdx > 0){ el.textContent = '😈 Bêtise ' + _batchIdx + ' sur ' + _batchTotal; el.classList.add('show'); }
+    else el.classList.remove('show');
+  }
   var _prankLead = 800; // délai avant déclenchement (plus long quand la victime est prévenue en direct)
 
   /* ── Vérification au login de la victime ── */
@@ -325,14 +364,15 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
         }).catch(function(){});
         return;
       }
+      var _added = 0;
       rows.forEach(function(row){
         // N'ajouter que si pas déjà dans la queue ni déjà active
         var alreadyQueued = _prankQueue.some(function(q){ return q.id === row.id; });
         var isActive = _activePrank && _activePrank.id === row.id;
-        if(!alreadyQueued && !isActive) _prankQueue.push(row);
+        if(!alreadyQueued && !isActive){ _prankQueue.push(row); _added++; _batchTotal++; }
       });
       // Victime connectée (arrivée en direct) : on la prévient quelques secondes avant, avec le total en attente
-      if(fromRT && window.yamNotif){
+      if(_added > 0 && window.yamNotif){
         var _n = _prankQueue.length + (_activePrank ? 1 : 0);
         if(_n > 0){
           var _who = (yamGetUser() || {}).partner_pseudo || 'Ton/ta partenaire';
@@ -350,9 +390,10 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     // La suivante attend que l'écran « T'as été eu(e) » soit fermé
     var _g = document.getElementById('prankGotcha');
     if(_g && _g.classList.contains('show')) return;
-    if(!_prankQueue.length) return;
+    if(!_prankQueue.length){ _batchTotal = 0; _batchIdx = 0; _batchPill(); return; }
     var next = _prankQueue.shift();
     _activePrank = next;
+    _batchIdx++; _batchPill();
     var _d = _prankLead; _prankLead = 800;
     setTimeout(function(){ triggerPrank(_activePrank); }, _d);
   }
@@ -906,6 +947,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     if(!_activePrank) return;
     _activePrank = null;
     _prankQueue  = [];
+    _batchTotal = 0; _batchIdx = 0; _batchPill();
 
     document.body.classList.remove('prank-shake');
     document.body.classList.remove('prank-flip');
