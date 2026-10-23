@@ -302,7 +302,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
       body: JSON.stringify(body)
     }).then(function(){
       var fb = document.createElement('div');
-      refreshPendingCount().then(function(n){ if(n > 1) fb.textContent = '😈 Bêtise envoyée ! (' + n + ' en attente)'; });
+      refreshPendingCount();
       fb.className = 'clown-pop'; fb.textContent = '😈 Bêtise envoyée !';
       fb.style.fontSize = '18px'; fb.style.fontWeight = '700'; fb.style.color = '#e8507a';
       document.body.appendChild(fb);
@@ -353,7 +353,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     }).then(function(){
       document.getElementById('prankMsgModal').classList.remove('show');
       var fb = document.createElement('div');
-      refreshPendingCount().then(function(n){ if(n > 1) fb.textContent = '😈 Bêtise envoyée ! (' + n + ' en attente)'; });
+      refreshPendingCount();
       fb.className = 'clown-pop'; fb.textContent = '😈 Bêtise envoyée !';
       fb.style.fontSize = '18px'; fb.style.fontWeight = '700'; fb.style.color = '#e8507a';
       document.body.appendChild(fb);
@@ -1033,7 +1033,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     }).catch(function(){});
     showGotcha(_activePrank);
     _activePrank = null;
-    _prankUnlockScroll();
+    // Pas de déblocage ici : la barre nav et l'en-tête restent masqués derrière l'écran « T'as été eu(e) » ; closeGotcha débloque
     // La suivante en attente démarre à la fermeture du gotcha (closeGotcha)
   }
 
