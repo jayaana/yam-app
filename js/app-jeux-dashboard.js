@@ -9,13 +9,12 @@
   'use strict';
 
   /* ── Constantes ── */
-  var _GAME_EMOJI = { memory:'🤖', memory_classic:'🃏', memory_echo:'🔊', memory_archi:'🏗️', memory_all:'⚡', pendu:'🔤', puzzle:'🧩', snake:'🐍', ocho:'🎴', skyjo:'🃏' };
+  var _GAME_ICON = { memory:'memory', memory_classic:'classic', memory_echo:'echo', memory_archi:'archi', memory_all:'bolt', pendu:'pendu', puzzle:'puzzle', snake:'snake', ocho:'ocho', skyjo:'skyjo' };
   var _GAME_LABEL = {
     ocho:'Ocho', skyjo:'Skyjo',
-    memory:'Memory', memory_classic:'Classic+', memory_echo:'Écho', memory_archi:'Architecte', memory_all:'ALL ⚡',
+    memory:'Memory', memory_classic:'Classic+', memory_echo:'Écho', memory_archi:'Architecte', memory_all:'ALL',
     pendu:'Pendu', puzzle:'Puzzle', snake:'Snake'
   };
-  var _MEDALS     = ['🥇','🥈','🥉'];
 
   /* ── Supabase Storage (même constantes que app-account.js) ── */
   var _SB_URL    = 'https://jstiwtbgkbedtldqjdhp.supabase.co';
@@ -192,7 +191,7 @@
     if (!sc) return;
 
     if (!gameRows.length) {
-      sc.innerHTML = '<div style="height:29px;display:flex;align-items:center;font-size:11px;color:var(--muted);">Aucune partie encore 🎮</div>';
+      sc.innerHTML = '<div style="height:29px;display:flex;align-items:center;font-size:11px;color:var(--muted);">Aucune partie encore</div>';
       return;
     }
 
@@ -219,7 +218,14 @@
 
       var rank = document.createElement('div');
       rank.className = 'jx-lb-rank';
-      rank.textContent = _MEDALS[i] || (i + 1);
+      if (i < 3) {
+        var medal = document.createElement('span');
+        medal.className = 'yi-medal m' + (i + 1);
+        medal.textContent = String(i + 1);
+        rank.appendChild(medal);
+      } else {
+        rank.textContent = String(i + 1);
+      }
       row.appendChild(rank);
 
       /* Avatar via probe async — zéro onerror inline */
@@ -248,7 +254,7 @@
       // Badge mode pour les sous-modes Memory
       if (game === 'memory_all') {
         var badge = document.createElement('div');
-        badge.textContent = '⚡ ALL';
+        badge.textContent = 'ALL';
         badge.style.cssText = 'font-size:9px;font-weight:700;background:linear-gradient(135deg,#f97316,#eab308);color:#fff;border-radius:6px;padding:2px 5px;margin-left:4px;white-space:nowrap;';
         row.appendChild(badge);
       }
@@ -297,12 +303,24 @@
       : leftScore + '–<span class="jx-w">' + rightScore + '</span>';
   }
 
+  /* Icône SVG (yamIcon) suivie d'un texte posé en textContent */
+  function _setIconText(el, icon, text) {
+    el.textContent = '';
+    if (typeof yamIcon === 'function') {
+      var ic = document.createElement('span');
+      ic.className = 'yi-inl';
+      ic.innerHTML = yamIcon(icon);
+      el.appendChild(ic);
+    }
+    el.appendChild(document.createTextNode(text));
+  }
+
   /* ── Chargement principal ── */
   function jxLoadDashboard() {
     var u = typeof yamGetUser === 'function' ? yamGetUser() : null;
     if (!u || !u.couple_id) {
       var ldr = _el('jxLeader');
-      if (ldr) ldr.textContent = 'Lie-toi à un partenaire 💑';
+      if (ldr) ldr.textContent = 'Lie-toi à un partenaire';
       return;
     }
 
@@ -332,7 +350,7 @@
         var r = _scoreCache;
 
         if (!r.length) {
-          var ldr = _el('jxLeader'); if (ldr) ldr.textContent = 'Aucune partie encore 🎮';
+          var ldr = _el('jxLeader'); if (ldr) ldr.textContent = 'Aucune partie encore';
           var sa  = _el('jxScoreA'); if (sa)  sa.textContent  = '0';
           var sb2 = _el('jxScoreB'); if (sb2) sb2.textContent = '0';
           var pf0 = _el('jxProgFill'); if (pf0) pf0.style.width = '50%';
@@ -363,11 +381,11 @@
         var ldr = _el('jxLeader');
         var avA = _el('jxAvA'), avB = _el('jxAvB');
         if (wGirl > wBoy) {
-          if (ldr) ldr.textContent = _girlName + ' mène 🔥';
+          if (ldr) ldr.textContent = _girlName + ' mène';
           if (avA) avA.classList.add('jx-leading');
           if (avB) avB.classList.remove('jx-leading');
         } else if (wBoy > wGirl) {
-          if (ldr) ldr.textContent = _boyName + ' mène 🔥';
+          if (ldr) ldr.textContent = _boyName + ' mène';
           if (avB) avB.classList.add('jx-leading');
           if (avA) avA.classList.remove('jx-leading');
         } else {
@@ -386,7 +404,7 @@
         });
         var fav = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; })[0] || '—';
         var favEl = _el('jxFav');
-        if (favEl) favEl.textContent = (_GAME_EMOJI[fav] || '🎮') + ' ' + (fav.charAt(0).toUpperCase() + fav.slice(1));
+        if (favEl) _setIconText(favEl, _GAME_ICON[fav] || 'dice', fav.charAt(0).toUpperCase() + fav.slice(1));
 
         var times = r.filter(function (x) { return x.game_id === fav && x.time_seconds > 0; }).map(function (x) { return x.time_seconds; });
         var avgEl = _el('jxAvg');
@@ -420,7 +438,7 @@
         }
         var streakName = lastR === 'girl' ? _girlName : _boyName;
         var stEl = _el('jxStreak'), stLbl = _el('jxStreakLbl');
-        if (stEl)  stEl.textContent  = '🔥 ' + streak + ' de suite';
+        if (stEl)  _setIconText(stEl, 'flame', streak + ' de suite');
         if (stLbl) stLbl.textContent = 'Série ' + streakName;
 
         var favLbl = _el('jxAvgLbl');

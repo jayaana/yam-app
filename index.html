@@ -1109,6 +1109,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><linearGradient id="ygA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9db8"/><stop offset="1" stop-color="#e84a73"/></linearGradient><linearGradient id="ygB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffc2ac"/><stop offset="1" stop-color="#ff7a68"/></linearGradient><linearGradient id="ygC" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe08a"/><stop offset="1" stop-color="#f0a22c"/></linearGradient><linearGradient id="ygB2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a6dcff"/><stop offset="1" stop-color="#3f9be0"/></linearGradient><linearGradient id="ygT" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#96ebe3"/><stop offset="1" stop-color="#25aeb5"/></linearGradient><linearGradient id="ygO" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffc2ac"/><stop offset="1" stop-color="#ff7a68"/></linearGradient><linearGradient id="ygR" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff6a5e"/><stop offset="1" stop-color="#d91f26"/></linearGradient><linearGradient id="ygG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b4ec9f"/><stop offset="1" stop-color="#46b455"/></linearGradient><linearGradient id="ygS" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e3e7eb"/><stop offset="1" stop-color="#8d97a3"/></linearGradient><linearGradient id="ygW" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#ffe6e0"/></linearGradient><linearGradient id="ygM" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c8f2dc"/><stop offset="1" stop-color="#6fcfa6"/></linearGradient></defs></svg>
 
 <!-- ═══════════════════════════════════════════
      ÉCRAN DE MAINTENANCE — Verrou d'accès
@@ -2797,6 +2798,28 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 
 <style>
 /* ── Onglet Jeux ── */
+/* ── Icônes SVG (yamIcon, js/app-jeux-icons.js) : remplacent les emojis ── */
+:root{--yi-ol:#14121a;--yi-ca:#f4789a;--yi-t1:#3a3236;--yi-t2:#2b2528;--yi-tb:rgba(255,255,255,.14);}
+[data-theme="warm"],html.light,body.light{--yi-ol:#2f3542;--yi-ca:#f0668a;--yi-t1:#fff;--yi-t2:#f4efee;--yi-tb:rgba(120,100,105,.22);}
+svg.yi{display:block;width:100%;height:100%;fill:none;stroke:var(--yi-ol);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;overflow:visible;}
+.yi .ya{fill:url(#ygA);}.yi .yb{fill:url(#ygB);}.yi .yc{fill:url(#ygC);}.yi .yw{fill:url(#ygW);}.yi .ym{fill:url(#ygM);}.yi .yo{fill:url(#ygO);}.yi .yh{fill:url(#ygA);}
+.yi .yd{fill:var(--yi-ol);stroke:none;}.yi .yl{fill:none;stroke:#fff;stroke-opacity:.6;stroke-width:1.6;}
+.yk-tv .yb{fill:url(#ygR);}.yk-tv .ya{fill:#e02424;}.yk-tv .ym{fill:url(#ygW);}
+.yk-book .ya,.yk-book .yb{fill:url(#ygR);}
+.yk-wheel .yb{fill:url(#ygO);}.yk-wheel .ya{fill:url(#ygB2);}
+.yk-ocho .yb{fill:url(#ygO);}.yk-ocho .ya{fill:url(#ygR);}
+.yk-skyjo .ya{fill:url(#ygT);}.yk-skyjo .yb{fill:url(#ygB2);}.yk-skyjo .yc{fill:url(#ygC);}.yk-skyjo path.ya{fill:url(#ygA);}
+.yk-memory .ya{fill:url(#ygB2);}.yk-memory .yh{fill:#fff;}
+.yk-pendu .yc{fill:url(#ygA);}
+.yk-snake{--yi-ca:#52bf62;}.yk-snake .ya{fill:url(#ygG);}
+.yk-echo .ya{fill:url(#ygS);}
+.yk-echo path:nth-child(n+2){stroke:#fff;filter:drop-shadow(0 0 1px var(--yi-ol)) drop-shadow(0 0 1px var(--yi-ol));}
+.yk-archi rect:nth-of-type(1){fill:url(#ygA);}.yk-archi rect:nth-of-type(2){fill:url(#ygB2);}.yk-archi rect:nth-of-type(3){fill:url(#ygC);}.yk-archi rect:nth-of-type(4){fill:url(#ygT);}.yk-archi rect:nth-of-type(5){fill:url(#ygO);}.yk-archi rect:nth-of-type(6){fill:url(#ygG);}
+.yk-dice .ya{fill:url(#ygO);}
+.yi-tile{background:linear-gradient(160deg,var(--yi-t1),var(--yi-t2));box-shadow:inset 0 0 0 1px var(--yi-tb);box-sizing:border-box;}
+.yi-inl{display:inline-block;width:1.25em;height:1.25em;vertical-align:-0.25em;margin-right:.3em;}
+.yi-medal{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;font-size:10px;font-weight:700;color:#fff;}
+.yi-medal.m1{background:#d9a441;}.yi-medal.m2{background:#a9a9b3;}.yi-medal.m3{background:#c0845a;}
 .jx-scroll{flex:1;display:flex;flex-direction:column;padding:0 16px;padding-top:calc(var(--safe-top,0px) + 0px);padding-bottom:4px;overflow:hidden;min-height:0;}
 #yamJeuxTab.active{display:flex;flex-direction:column;}
 .jx-cat-label{padding:8px 0 0;}
@@ -2809,7 +2832,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 .jx-row{display:flex;align-items:center;padding:10px 14px;gap:12px;cursor:pointer;transition:background .12s;-webkit-tap-highlight-color:transparent;}
 .jx-row:not(:last-child){border-bottom:1px solid var(--border);}
 .jx-row:active{background:var(--s2);}
-.jx-row-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.jx-row-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:4px;background:linear-gradient(160deg,var(--yi-t1),var(--yi-t2));box-shadow:inset 0 0 0 1px var(--yi-tb);box-sizing:border-box;}
 .jx-row-body{flex:1;min-width:0;}
 .jx-row-name{font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:5px;}
 .jx-row-name.dim{color:var(--muted);}
@@ -2866,7 +2889,9 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 .jx-chip{display:flex;align-items:center;gap:5px;background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:4px 9px 4px 6px;flex-shrink:0;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:border-color .15s,background .15s;}
 .jx-chip:active{background:var(--s3);}
 .jx-chip.jx-chip-on{background:var(--accent-s);border-color:rgba(231,90,124,.4);}
-.jx-chip-ic{font-size:13px;}
+.jx-chip-ic{width:17px;height:17px;display:inline-flex;flex-shrink:0;}
+.gv-game-card-icon{width:40px;height:40px;padding:5px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,var(--yi-t1),var(--yi-t2));box-shadow:inset 0 0 0 1px var(--yi-tb);box-sizing:border-box;}
+.mem-mode-card-icon{width:36px;height:36px;padding:4px;border-radius:11px;background:linear-gradient(160deg,var(--yi-t1),var(--yi-t2));box-shadow:inset 0 0 0 1px var(--yi-tb);box-sizing:border-box;margin:0 auto 6px;}
 .jx-chip-nm{font-size:11px;font-weight:700;color:var(--text);}
 .jx-chip-sc{font-size:11px;color:var(--muted);}
 .jx-chip-sc .jx-w{color:var(--accent);font-weight:700;}
@@ -2893,7 +2918,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     </div>
     <div class="jx-group">
       <div class="jx-row">
-        <div class="jx-row-icon" style="background:rgba(240,102,136,.12);">😈</div>
+        <div class="jx-row-icon" data-yi="prank"></div>
         <div class="jx-row-body">
           <div class="jx-row-name">Faire une bêtise</div>
           <div class="jx-row-sub">Surprends ton partenaire avec une farce</div>
@@ -2901,7 +2926,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
         <svg class="jx-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg>
       </div>
       <div id="jxQuizRow" class="jx-row">
-        <div class="jx-row-icon" style="background:rgba(231,90,124,.12);">💖</div>
+        <div class="jx-row-icon" data-yi="quiz"></div>
         <div class="jx-row-body">
           <div class="jx-row-name">Quiz couple</div>
           <div class="jx-row-sub">Tu me connais bien ?</div>
@@ -2957,12 +2982,12 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       </div>
       <div class="jx-sep"></div>
       <div class="jx-chips" id="jxChips">
-        <div class="jx-chip" data-game="ocho"  ><span class="jx-chip-ic">🎴</span><span class="jx-chip-nm">Ocho</span><span class="jx-chip-sc" id="jxCOcho">—</span></div>
-        <div class="jx-chip" data-game="skyjo" ><span class="jx-chip-ic">🃏</span><span class="jx-chip-nm">Skyjo</span><span class="jx-chip-sc" id="jxCSkyjo">—</span></div>
-        <div class="jx-chip" data-game="memory"><span class="jx-chip-ic">🤖</span><span class="jx-chip-nm">Memory</span><span class="jx-chip-sc" id="jxCMemory">—</span></div>
-        <div class="jx-chip" data-game="pendu" ><span class="jx-chip-ic">🔤</span><span class="jx-chip-nm">Pendu</span><span class="jx-chip-sc" id="jxCPendu">—</span></div>
-        <div class="jx-chip" data-game="puzzle"><span class="jx-chip-ic">🧩</span><span class="jx-chip-nm">Puzzle</span><span class="jx-chip-sc" id="jxCPuzzle">—</span></div>
-        <div class="jx-chip" data-game="snake" ><span class="jx-chip-ic">🐍</span><span class="jx-chip-nm">Snake</span><span class="jx-chip-sc" id="jxCSnake">—</span></div>
+        <div class="jx-chip" data-game="ocho"  ><span class="jx-chip-ic" data-yi="ocho"></span><span class="jx-chip-nm">Ocho</span><span class="jx-chip-sc" id="jxCOcho">—</span></div>
+        <div class="jx-chip" data-game="skyjo" ><span class="jx-chip-ic" data-yi="skyjo"></span><span class="jx-chip-nm">Skyjo</span><span class="jx-chip-sc" id="jxCSkyjo">—</span></div>
+        <div class="jx-chip" data-game="memory"><span class="jx-chip-ic" data-yi="memory"></span><span class="jx-chip-nm">Memory</span><span class="jx-chip-sc" id="jxCMemory">—</span></div>
+        <div class="jx-chip" data-game="pendu" ><span class="jx-chip-ic" data-yi="pendu"></span><span class="jx-chip-nm">Pendu</span><span class="jx-chip-sc" id="jxCPendu">—</span></div>
+        <div class="jx-chip" data-game="puzzle"><span class="jx-chip-ic" data-yi="puzzle"></span><span class="jx-chip-nm">Puzzle</span><span class="jx-chip-sc" id="jxCPuzzle">—</span></div>
+        <div class="jx-chip" data-game="snake" ><span class="jx-chip-ic" data-yi="snake"></span><span class="jx-chip-nm">Snake</span><span class="jx-chip-sc" id="jxCSnake">—</span></div>
       </div>
       <div id="jxLbSection" style="display:none;">
       <div class="jx-sep"></div>
@@ -2980,7 +3005,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     </div>
     <div class="jx-group">
       <div class="jx-row">
-        <div class="jx-row-icon" style="background:rgba(185,153,112,.12);">📺</div>
+        <div class="jx-row-icon" data-yi="tv"></div>
         <div class="jx-row-body">
           <div class="jx-row-name">Regarder ensemble</div>
           <div class="jx-row-sub">Synchronisez YouTube en temps réel</div>
@@ -2989,7 +3014,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
         <svg class="jx-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg>
       </div>
       <div id="jxBooksRow" class="jx-row">
-        <div class="jx-row-icon" style="background:rgba(124,106,247,.12);">📖</div>
+        <div class="jx-row-icon" data-yi="book"></div>
         <div class="jx-row-body">
           <div class="jx-row-name">Lire ensemble</div>
           <div class="jx-row-sub">Classiques gratuits + lecture synchronisée</div>
@@ -2998,7 +3023,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
         <svg class="jx-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg>
       </div>
       <button class="jx-wheel-btn jx-row">
-        <div class="jx-row-icon" style="background:var(--accent-s);">🎡</div>
+        <div class="jx-row-icon" data-yi="wheel"></div>
         <div class="jx-row-body">
           <div class="jx-row-name" style="color:var(--accent);">Lancer la roue des activités</div>
           <div class="jx-row-sub">Laissez le hasard décider !</div>
@@ -3314,28 +3339,28 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
         <svg id="gvThemeIconSun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
       </button>
     </div>
-    <div class="gv-title">Mini-jeux 🎮</div>
+    <div class="gv-title">Mini-jeux</div>
     <div class="gv-sub">Tous les jeux disponibles</div>
   </div>
   <div class="gv-game-list">
     <div id="ochoCard" class="gv-game-card" style="position:relative;overflow:hidden;">
-      <div class="gv-game-card-icon">🎴</div>
+      <div class="gv-game-card-icon" data-yi="ocho"></div>
       <div class="gv-game-card-info">
-        <div class="gv-game-card-name">Ocho <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#fff;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:4px;padding:2px 6px;vertical-align:middle;">PREMIUM</span></div>
+        <div class="gv-game-card-name">Ocho</div>
         <div class="gv-game-card-desc">Le UNO version YAM — 6 manches</div>
       </div>
       <div class="gv-game-card-arrow">›</div>
     </div>
     <div class="gv-game-card" id="skyjoCard" style="position:relative;overflow:hidden;">
-      <div class="gv-game-card-icon">🃏</div>
+      <div class="gv-game-card-icon" data-yi="skyjo"></div>
       <div class="gv-game-card-info">
-        <div class="gv-game-card-name">Skyjo <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:#fff;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:4px;padding:2px 6px;vertical-align:middle;">PREMIUM</span></div>
+        <div class="gv-game-card-name">Skyjo</div>
         <div class="gv-game-card-desc">Le jeu de cartes en temps réel</div>
       </div>
       <div class="gv-game-card-arrow">›</div>
     </div>
     <div id="gvMemoryCard" class="gv-game-card">
-      <div class="gv-game-card-icon">🤖</div>
+      <div class="gv-game-card-icon" data-yi="memory"></div>
       <div class="gv-game-card-info">
         <div class="gv-game-card-name">Memory <span class="jx-badge">BETA</span></div>
         <div class="gv-game-card-desc">Retrouve les paires</div>
@@ -3343,7 +3368,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       <div class="gv-game-card-arrow">›</div>
     </div>
     <div id="gvPenduCard" class="gv-game-card">
-      <div class="gv-game-card-icon">🔤</div>
+      <div class="gv-game-card-icon" data-yi="pendu"></div>
       <div class="gv-game-card-info">
         <div class="gv-game-card-name">Pendu</div>
         <div class="gv-game-card-desc">Devine le mot lettre par lettre</div>
@@ -3351,7 +3376,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       <div class="gv-game-card-arrow">›</div>
     </div>
     <div id="gvPuzzleCard" class="gv-game-card">
-      <div class="gv-game-card-icon">🧩</div>
+      <div class="gv-game-card-icon" data-yi="puzzle"></div>
       <div class="gv-game-card-info">
         <div class="gv-game-card-name">Puzzle</div>
         <div class="gv-game-card-desc">Reconstitue l'image en un minimum de coups</div>
@@ -3359,7 +3384,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       <div class="gv-game-card-arrow">›</div>
     </div>
     <div id="gvSnakeCard" class="gv-game-card">
-      <div class="gv-game-card-icon">🐍</div>
+      <div class="gv-game-card-icon" data-yi="snake"></div>
       <div class="gv-game-card-info">
         <div class="gv-game-card-name">Snake</div>
         <div class="gv-game-card-desc">Mange les cœurs, évite les murs — bats le score de l'autre</div>
@@ -3426,40 +3451,40 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
       </div>
 
       <!-- Cartes de modes — catégorie DUEL -->
-      <div class="mem-mode-category-label mem-mode-category-label--duel">⚔️ DUEL</div>
+      <div class="mem-mode-category-label mem-mode-category-label--duel">DUEL</div>
       <div class="mem-mode-cards">
         <div class="mem-mode-card" id="memModeCardClassic" data-mode="classic">
-          <div class="mem-mode-card-icon">🎴</div>
+          <div class="mem-mode-card-icon" data-yi="classic"></div>
           <div class="mem-mode-card-title">Classique+</div>
           <div class="mem-mode-card-desc">3 manches progressives · cartes spéciales</div>
         </div>
         <div class="mem-mode-card" id="memModeCardEcho" data-mode="echo">
-          <div class="mem-mode-card-icon">🔊</div>
+          <div class="mem-mode-card-icon" data-yi="echo"></div>
           <div class="mem-mode-card-title">Écho</div>
           <div class="mem-mode-card-desc">Reproduis la séquence · Simon Says en duel</div>
         </div>
         <div class="mem-mode-card" id="memModeCardArchi" data-mode="archi">
-          <div class="mem-mode-card-icon">🏗️</div>
+          <div class="mem-mode-card-icon" data-yi="archi"></div>
           <div class="mem-mode-card-title">Architecte</div>
           <div class="mem-mode-card-desc">Mémorise et reconstruit · tour en temps réel</div>
         </div>
         <div class="mem-mode-card mem-mode-card--all" id="memModeCardAll" data-mode="all">
-          <div class="mem-mode-card-icon">⚡</div>
+          <div class="mem-mode-card-icon" data-yi="bolt"></div>
           <div class="mem-mode-card-title">ALL</div>
           <div class="mem-mode-card-desc">Les 3 modes · 1 manche chacun</div>
         </div>
       </div>
 
       <!-- Cartes de modes — catégorie COOP -->
-      <div class="mem-mode-category-label mem-mode-category-label--coop">🤝 COOP</div>
+      <div class="mem-mode-category-label mem-mode-category-label--coop">COOP</div>
       <div class="mem-mode-cards">
         <div class="mem-mode-card mem-mode-card--coop" id="memModeCardHanabi" data-mode="hanabi">
-          <div class="mem-mode-card-icon">🎆</div>
+          <div class="mem-mode-card-icon" data-yi="hanabi"></div>
           <div class="mem-mode-card-title">Hanabi</div>
           <div class="mem-mode-card-desc">Coopératif · feu d'artifice ensemble</div>
         </div>
         <div class="mem-mode-card mem-mode-card--coop mem-mode-card--mind" id="memModeCardMind" data-mode="mind">
-          <div class="mem-mode-card-icon">🧠</div>
+          <div class="mem-mode-card-icon" data-yi="mind"></div>
           <div class="mem-mode-card-title">The Mind</div>
           <div class="mem-mode-card-desc">Sans parler · jouez dans l'ordre</div>
         </div>
@@ -5509,6 +5534,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 <script src="js/app-messages.js"></script>
 <script src="js/app-events.js"></script>
 <script src="js/app-nav.js"></script>
+<script src="js/app-jeux-icons.js"></script>
 <script src="js/app-jeux-dashboard.js"></script>
 <script src="js/app-home.js"></script>
 <script src="js/app-diary.js"></script>
