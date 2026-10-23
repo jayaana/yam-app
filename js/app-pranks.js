@@ -1038,6 +1038,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     showGotcha(_activePrank);
     _activePrank = null;
     _prankUnlockScroll();
+    _batchPill(); // après le déblocage : la barre nav est de nouveau affichée, sa hauteur est mesurable
     // La suivante en attente démarre à la fermeture du gotcha (closeGotcha)
   }
 
