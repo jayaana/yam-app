@@ -98,6 +98,7 @@
     var _mh = document.getElementById('yamMainHeader');
     if(_mh && _mh.offsetHeight) document.documentElement.style.setProperty('--yam-hdr-h', _mh.offsetHeight + 'px');
     document.documentElement.classList.toggle('jx-lock', tab === 'jeux');
+    setTimeout(function(){ if(window._yamFixJeuxShift) window._yamFixJeuxShift(); }, 50);
     if(window._yamDiagInit) window._yamDiagInit(tab);
 
     // Particules : actives seulement sur musique/nous, et si musique en cours
@@ -1854,3 +1855,27 @@ setTimeout(function(){
       setTimeout(function(){ window._yamDiagSnap('tab+1500'); }, 1500);
     };
 if(document.body) window._yamDiagInit(); else document.addEventListener('DOMContentLoaded', function(){ window._yamDiagInit(); });
+
+// Jeux : iOS PWA décale la fenêtre de ~59 px quand sa hauteur visible change (848→793) et window.scrollTo n'y peut rien.
+// On compense visuellement : en-tête et panneau Jeux redescendent de l'écart mesuré.
+(function(){
+  function fix(){
+    var h = document.getElementById('yamMainHeader'), p = document.getElementById('yamJeuxTab');
+    if(!h || !p) return;
+    h.style.top = ''; p.style.top = '';
+    if(window._currentTab !== 'jeux' || document.body.classList.contains('subview-active')) return;
+    if(window.scrollY > 0) window.scrollTo(0, 0);
+    var top = h.getBoundingClientRect().top;
+    if(top < -0.5){
+      var t = Math.round(-top) + 'px';
+      h.style.top = t; p.style.top = t;
+    }
+  }
+  window.addEventListener('scroll', fix, { passive: true });
+  window.addEventListener('resize', fix);
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', fix);
+    window.visualViewport.addEventListener('scroll', fix);
+  }
+  window._yamFixJeuxShift = fix;
+})();
