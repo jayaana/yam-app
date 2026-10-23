@@ -100,7 +100,7 @@
     document.documentElement.classList.toggle('jx-lock', tab === 'jeux');
     document.documentElement.classList.toggle('home-fit', tab === 'home');
     setTimeout(function(){ if(window._yamFixJeuxShift) window._yamFixJeuxShift(); }, 50);
-    if(window._yamDiagInit) window._yamDiagInit(tab);
+
 
     // Particules : actives seulement sur musique/nous, et si musique en cours
     var musicPlaying = window.currentAudio && !window.currentAudio.paused;
@@ -1832,30 +1832,7 @@ setTimeout(function(){
   document.body.classList.remove('nous-active');
 })();
 
-    // DIAGNOSTIC TEMPORAIRE (bug scroll au démarrage) : mesures affichées à l'écran, à retirer
-    window._yamDiagInit = function(tab){
-      var box = document.getElementById('yamDiagBox');
-      if(!box){
-        box = document.createElement('pre');
-        box.id = 'yamDiagBox';
-        box.style.cssText = 'position:fixed;left:4px;right:4px;top:90px;z-index:99999;margin:0;padding:6px;font:10px/1.25 monospace;background:rgba(0,0,0,.82);color:#7CFC00;border-radius:6px;white-space:pre-wrap;max-height:40vh;overflow:auto;';
-        document.body.appendChild(box);
-        window._yamDiagLog = [];
-        window._yamDiagSnap = function(l){
-          var d = document.documentElement, vv = window.visualViewport, p = document.getElementById('yamJeuxTab'), h = document.getElementById('yamHomeTab');
-          window._yamDiagLog.push(l + ' y=' + Math.round(window.scrollY) + ' dSH=' + d.scrollHeight + ' dST=' + d.scrollTop + ' bST=' + document.body.scrollTop + ' iH=' + innerHeight + ' vv=' + (vv ? Math.round(vv.offsetTop) + '/' + Math.round(vv.pageTop) + '/' + Math.round(vv.height) : '-') + ' hdr=' + Math.round(document.getElementById('yamMainHeader').getBoundingClientRect().top) + ' home=' + (h ? h.clientHeight + '/' + h.scrollHeight + '/' + h.scrollTop : '-') + ' jeux=' + (p ? p.clientHeight + '/' + p.scrollHeight + '/' + p.scrollTop : '-') + ' nav=' + (function(){var n=document.querySelector('.bottom-nav');if(!n)return '-';var r=n.getBoundingClientRect();return Math.round(r.top)+'-'+Math.round(r.bottom)+'/b'+n.style.bottom;})() + ' scr=' + screen.height + ' oh=' + outerHeight + ' ch=' + d.clientHeight + ' t=' + Math.round(performance.now()));
-          if(window._yamDiagLog.length > 14) window._yamDiagLog.shift();
-          box.textContent = window._yamDiagLog.join('\n');
-        };
-        window.addEventListener('scroll', function(){ window._yamDiagSnap('SCROLL'); }, { passive: true });
-        box.addEventListener('click', function(){ box.style.display = 'none'; });
-        [300, 1000, 2000, 4000, 6000].forEach(function(t){ setTimeout(function(){ window._yamDiagSnap('boot+' + t); }, t); });
-      }
-      window._yamDiagSnap(tab ? 'tab=' + tab : 'BOOT');
-      setTimeout(function(){ window._yamDiagSnap('tab+400'); }, 400);
-      setTimeout(function(){ window._yamDiagSnap('tab+1500'); }, 1500);
-    };
-if(document.body) window._yamDiagInit(); else document.addEventListener('DOMContentLoaded', function(){ window._yamDiagInit(); });
+    
 
 // Jeux : iOS PWA décale la fenêtre de ~59 px quand sa hauteur visible change (848→793) et window.scrollTo n'y peut rien.
 // On remet la page à 0 immédiatement (scroll instantané).
