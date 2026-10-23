@@ -5785,7 +5785,7 @@ body.light .profile-popup-dot.boy  { background:#3b7dd8; box-shadow:0 0 5px rgba
 /* ── Picker humeur ── */
 #moodPicker {
   position: fixed;
-  top: calc(var(--safe-top) + 14px); right: 64px;
+  top: calc(var(--safe-top) + 56px); right: 16px; max-height: calc(100dvh - var(--safe-top) - 130px); overflow-y: auto;
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -7159,10 +7159,6 @@ html body #yamNotif.show { border-color: rgba(231,90,124,.75); box-shadow: 0 6px
 #prankRemain { position: fixed; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 100050; padding: 4px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; background: var(--s1); color: var(--text); border: 1px solid rgba(231,90,124,.75); box-shadow: 0 4px 16px rgba(231,90,124,.3); opacity: 0; pointer-events: none; transition: opacity .25s; }
 #prankRemain.show { opacity: 1; }
 
-/* Onglet Jeux : la page tient exactement dans l'écran (pas de défilement de la page, l'en-tête ne remonte plus) */
-html.jx-lock body { padding-bottom: 0; }
-html.jx-lock #yamJeuxTab.active { height: calc(100dvh - var(--nav-height) - var(--yam-hdr-h, 66px)); }
-
-/* Accueil : le dégagement de la barre nav était compté deux fois (body + panneau) → la page défilait de ~34 px */
-html.home-fit body { padding-bottom: 0; }
-html.home-fit #yamHomeTab.active { padding-bottom: var(--nav-height); }
+/* Jeux et Accueil : la page tient exactement dans l'écran (le dégagement de la barre nav, déjà donné par le body, est annulé par une marge négative du panneau : aucun changement de classe ni de hauteur du body au changement d'onglet) */
+#yamJeuxTab.active { height: calc(100dvh - var(--nav-height) - var(--yam-hdr-h, 66px)); margin-bottom: calc(-1 * var(--nav-height)); }
+#yamHomeTab.active { padding-bottom: var(--nav-height); margin-bottom: calc(-1 * var(--nav-height)); }

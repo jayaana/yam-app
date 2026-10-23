@@ -97,10 +97,7 @@
     // la fait défiler quand sa hauteur visible change (barre d'état) et l'en-tête remonte
     var _mh = document.getElementById('yamMainHeader');
     if(_mh && _mh.offsetHeight) document.documentElement.style.setProperty('--yam-hdr-h', _mh.offsetHeight + 'px');
-    document.documentElement.classList.toggle('jx-lock', tab === 'jeux');
-    document.documentElement.classList.toggle('home-fit', tab === 'home');
     setTimeout(function(){ if(window._yamFixJeuxShift) window._yamFixJeuxShift(); }, 50);
-    if(window._yamNavDiag) window._yamNavDiag(tab);
 
 
     // Particules : actives seulement sur musique/nous, et si musique en cours
@@ -1853,33 +1850,4 @@ setTimeout(function(){
     window.visualViewport.addEventListener('scroll', fix);
   }
   window._yamFixJeuxShift = fix;
-})();
-
-// Accueil = onglet de démarrage : appliquer tout de suite l'ajustement de hauteur (sinon la page défile de ~34 px au lancement)
-if(!window._currentTab) document.documentElement.classList.add('home-fit');
-
-// DIAGNOSTIC TEMPORAIRE (barre parasite sur la barre nav au changement d'onglet) : à retirer
-(function(){
-  var box = null, lines = [], busy = false;
-  function put(s){ lines.push(s); if(lines.length > 12) lines.shift(); if(box) box.textContent = lines.join('\n'); }
-  function frame(tag, t0){
-    var nav = document.querySelector('.bottom-nav'); if(!nav) return;
-    var r = nav.getBoundingClientRect(), vv = window.visualViewport;
-    var el = document.elementFromPoint(window.innerWidth / 2, Math.max(0, window.innerHeight - 20));
-    var inNav = el && nav.contains(el);
-    var cs = getComputedStyle(nav);
-    var sig = Math.round(r.top) + '-' + Math.round(r.bottom) + ' b' + nav.style.bottom + ' tf' + cs.transform + ' iH' + innerHeight + ' vv' + (vv ? Math.round(vv.offsetTop) + '/' + Math.round(vv.height) : '-') + ' y' + Math.round(scrollY) + ' el=' + (inNav ? 'nav' : (el ? (el.id || el.className || el.tagName).toString().slice(0, 24) : 'null'));
-    if(!frame._last || frame._last !== sig){ frame._last = sig; put(tag + '+' + Math.round(performance.now() - t0) + ' ' + sig); }
-  }
-  window._yamNavDiag = function(tag){
-    if(!box){
-      box = document.createElement('pre');
-      box.style.cssText = 'position:fixed;left:4px;right:4px;top:80px;z-index:99999;margin:0;padding:6px;font:9px/1.2 monospace;background:rgba(0,0,0,.82);color:#7CFC00;border-radius:6px;white-space:pre-wrap;pointer-events:auto;';
-      box.addEventListener('click', function(){ box.style.display = 'none'; });
-      document.body.appendChild(box);
-    }
-    box.style.display = 'block';
-    if(busy) return; busy = true; var t0 = performance.now();
-    (function loop(){ frame(tag, t0); if(performance.now() - t0 < 800) requestAnimationFrame(loop); else busy = false; })();
-  };
 })();
