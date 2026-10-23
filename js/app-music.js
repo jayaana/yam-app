@@ -822,7 +822,7 @@ window.fitTop50Later = function(){ requestAnimationFrame(function(){ fitTop50();
       $('muHeroIconPlay').style.display = playing ? 'none' : '';
       $('muHeroIconPause').style.display = playing ? '' : 'none';
     }
-    if(!on && window.muUnstick) window.muUnstick();
+    if(window.muRestick) window.muRestick();
     if(on !== was){ was = on; window.fitTop50Later(); }
   }
   var _mu = window.mpUpdate;
@@ -848,7 +848,8 @@ window.fitTop50Later = function(){ requestAnimationFrame(function(){ fitTop50();
   function unstick(){ if(!stuck) return; stuck = false; hdr.classList.remove('mu-stuck'); sent.style.height = '0'; }
   function stickCheck(){
     raf = false;
-    if(!sec.classList.contains('mu-playing') || window._currentTab !== 'musique'){ unstick(); return; }
+    if(window._currentTab !== 'musique'){ unstick(); return; }
+    stickTop();
     var topPx = parseInt(getComputedStyle(hdr).top, 10); if(isNaN(topPx) || !stuck) topPx = parseInt(sec.style.getPropertyValue('--mu-top'), 10) || 44;
     var r = sent.getBoundingClientRect();
     if(!stuck && r.top < topPx - 8){
@@ -859,6 +860,11 @@ window.fitTop50Later = function(){ requestAnimationFrame(function(){ fitTop50();
   }
   window.addEventListener('scroll', function(){ if(!raf){ raf = true; requestAnimationFrame(stickCheck); } }, {passive:true, capture:true});
   window.muUnstick = unstick;
+  // l'en-tête change de hauteur quand le lecteur apparaît/disparaît : le repère garde la place exacte
+  window.muRestick = function(){
+    if(stuck){ sent.style.height = (hdr.offsetHeight + (parseFloat(getComputedStyle(hdr).marginTop) || 0)) + 'px'; }
+    else if(!raf){ raf = true; requestAnimationFrame(stickCheck); }
+  };
   $('muHeroPlay').addEventListener('click', function(){ if(window.mpToggle) mpToggle(); heroSync(); });
   var bar = $('muHeroBar'), drag = false;
   function seek(e){
