@@ -94,7 +94,7 @@ function _musicEnsureUrls(){
   if(_musicLoading) return _musicLoading;
   try {
     var saved = JSON.parse(localStorage.getItem(_MUSIC_KEY) || 'null');
-    if(saved && saved.urls && Date.now() - saved.t < _MUSIC_REUSE_MS){ _musicUrls = saved.urls; return Promise.resolve(); }
+    if(saved && saved.urls && Date.now() - saved.t < _MUSIC_REUSE_MS && songsLove.every(function(s){ return saved.urls[s.file]; })){ _musicUrls = saved.urls; return Promise.resolve(); }
   } catch(e) {}
   if(!yamGetAccessToken()) return Promise.resolve();
   var names = songsLove.map(function(s){ return _musicStorageName(s.file); });
