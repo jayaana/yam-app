@@ -156,7 +156,8 @@
       if(tab === 'nous'){
         navNous2.classList.remove('event-active');
       } else {
-        if(typeof isInVideoWindow === 'function' && isInVideoWindow()){
+        // même condition que applyState (app-nous.js) : sinon flash jaune d'un instant quand la bulle est désactivée
+        if(typeof isInVideoWindow === 'function' && isInVideoWindow() && window._storyBubbleEnabled){
           navNous2.classList.add('event-active');
         }
       }
