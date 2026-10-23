@@ -93,6 +93,11 @@
     // la page de façon aléatoire au 1er affichage → on re-cale à 0 tant que rien n'a bougé volontairement
     // Jeux a son propre défilement interne : la page (window) ne doit jamais défiler dessus,
     // sinon (iOS, accueil encore scrollable au démarrage) l'en-tête remonte et disparaît.
+    // Jeux : la page doit tenir exactement dans l'écran (en-tête + panneau + barre nav), sinon iOS
+    // la fait défiler quand sa hauteur visible change (barre d'état) et l'en-tête remonte
+    var _mh = document.getElementById('yamMainHeader');
+    if(_mh && _mh.offsetHeight) document.documentElement.style.setProperty('--yam-hdr-h', _mh.offsetHeight + 'px');
+    document.documentElement.classList.toggle('jx-lock', tab === 'jeux');
     if(window._yamDiagInit) window._yamDiagInit(tab);
 
     // Particules : actives seulement sur musique/nous, et si musique en cours
