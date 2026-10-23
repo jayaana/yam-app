@@ -1825,7 +1825,19 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     <div class="home-spam-block">
       <div class="home-spam-label">SPAM DE CŒURS</div>
       <div class="home-spam-heart-wrap" id="homeSpamHeart" role="button" tabindex="0" aria-label="Envoyer un cœur" title="Envoie de l'amour !">
-        <span class="home-spam-heart-emoji" id="homeSpamHeartEmoji">🩷</span>
+        <svg class="home-spam-heart-emoji" id="homeSpamHeartEmoji" viewBox="0 0 100 92" width="56" height="52" aria-hidden="true" focusable="false">
+          <defs>
+            <linearGradient id="ySpamGrad" x1="0.15" y1="0" x2="0.85" y2="1">
+              <stop offset="0" class="hs-s1" stop-color="#ffa3bf"/><stop offset="0.5" class="hs-s2" stop-color="#ee6a8c"/><stop offset="1" class="hs-s3" stop-color="#cf4068"/>
+            </linearGradient>
+            <radialGradient id="ySpamShine" cx="0.3" cy="0.22" r="0.5">
+              <stop offset="0" stop-color="#fff" stop-opacity="0.75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <path d="M50 88 C17 64 3 46 3 28 C3 13 14 3 28 3 C38 3 46 8 50 17 C54 8 62 3 72 3 C86 3 97 13 97 28 C97 46 83 64 50 88 Z" fill="url(#ySpamGrad)"/>
+          <path d="M50 88 C17 64 3 46 3 28 C3 13 14 3 28 3 C38 3 46 8 50 17 C54 8 62 3 72 3 C86 3 97 13 97 28 C97 46 83 64 50 88 Z" fill="url(#ySpamShine)"/>
+          <ellipse cx="27" cy="23" rx="9" ry="5.5" fill="#fff" opacity="0.55" transform="rotate(-35 27 23)"/>
+        </svg>
       </div>
       <div class="home-spam-count" id="homeSpamCount">0/10</div>
       <div class="home-spam-bar-wrap">
@@ -6288,9 +6300,9 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
   transition: transform 0.1s;
 }
 .home-spam-heart-emoji {
-  font-size: 50px; line-height: 1;
+  display: block; overflow: visible;
   pointer-events: none;
-  filter: drop-shadow(0 6px 14px rgba(231,90,124,0.55));
+  filter: drop-shadow(0 6px 12px rgba(207,64,104,0.45));
 }
 .home-spam-count {
   font-size: 11px; font-weight: 800; color: #e75a7c;

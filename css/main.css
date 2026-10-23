@@ -7077,7 +7077,27 @@ body:not(.light) #loveBox .lb-info { background: linear-gradient(135deg, #8a3a58
 body:not(.light) #loveBox .lb-tip { background: rgba(28,20,24,.94); color: #ffe3ee; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
 
 /* Accueil : cartes « bientôt » grisées, retour visible, focus clavier */
-#yamHomeTab .home-soon { opacity: .5; filter: grayscale(.7); cursor: default; }
+#yamHomeTab .home-soon { opacity: .5; filter: grayscale(.7); cursor: default; transition: transform .15s, opacity .15s; -webkit-tap-highlight-color: transparent; }
+#yamHomeTab .home-soon:active, #yamHomeTab .home-soon.soon-tap { transform: scale(.92); opacity: .75; }
+#uxToast.soon { border-radius: 999px; border: 1px solid rgba(231,90,124,.35); color: var(--text); font-weight: 600; padding: 9px 20px; box-shadow: 0 4px 16px rgba(0,0,0,.18); }
 #yamHomeTab [role="button"]:focus-visible { outline: 2px solid var(--pink, #e75a7c); outline-offset: 2px; }
 .home-rappel-later:active, .home-rappel-done:active { transform: scale(.94); opacity: .8; }
 #homeMoodElle[role="button"], #homeMoodLui[role="button"] { cursor: pointer; }
+
+/* Spam de cœurs : effets à l'appui */
+#homeSpamHeart { position: relative; overflow: visible; }
+#homeSpamHeart.hs-pop { animation: hsPop .46s cubic-bezier(.3,1.6,.5,1); }
+@keyframes hsPop { 0% { transform: scale(.8); } 45% { transform: scale(1.3) rotate(-5deg); } 72% { transform: scale(.95) rotate(2deg); } 100% { transform: scale(1); } }
+.hs-ring { position: absolute; inset: 6px; border-radius: 50%; border: 2px solid rgba(231,90,124,.55); pointer-events: none; animation: hsRing .6s ease-out forwards; }
+@keyframes hsRing { from { transform: scale(.6); opacity: .9; } to { transform: scale(1.9); opacity: 0; } }
+.hs-spark { position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; margin: -3.5px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff, #ff8fb0 60%, #e75a7c); pointer-events: none; animation: hsSpark .65s ease-out forwards; }
+@keyframes hsSpark { from { transform: rotate(var(--a)) translateY(-10px) scale(1); opacity: 1; } to { transform: rotate(var(--a)) translateY(calc(-1 * var(--d))) scale(.2); opacity: 0; } }
+
+/* Spam de cœurs — thème sombre : cœur « perle » blanc (comme le reste du thème), onde et étincelles blanches */
+html:not(.light) #homeSpamHeartEmoji .hs-s1 { stop-color: #ffffff; }
+html:not(.light) #homeSpamHeartEmoji .hs-s2 { stop-color: #eee9e5; }
+html:not(.light) #homeSpamHeartEmoji .hs-s3 { stop-color: #b9b2ad; }
+html:not(.light) .home-spam-heart-emoji { filter: drop-shadow(0 4px 12px rgba(255,255,255,.35)) !important; }
+html:not(.light) .hs-ring { border-color: rgba(255,255,255,.6); }
+html:not(.light) .hs-spark { background: radial-gradient(circle at 35% 35%, #fff, #e9e4e0 65%, #bdb6b1); }
+html:not(.light) #uxToast.soon { border-color: rgba(255,255,255,.25); }

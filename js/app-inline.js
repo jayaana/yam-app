@@ -332,8 +332,28 @@ document.addEventListener('DOMContentLoaded', function(){
   _on('homeMoodLuiEditBtn',  'click', function(e){ window.openMoodPicker && window.openMoodPicker(e); });
   _on('moodPickerOverlay',   'click', function(){ window.closeMoodPicker && window.closeMoodPicker(); });
   _on('homeSpamHeart', 'click', function(){ window.spawnHeart && window.spawnHeart(); });
+  // Spam de cœurs : rebond + onde + petites étincelles roses à chaque appui
+  _on('homeSpamHeart', 'click', function(){
+    var w = this;
+    w.classList.remove('hs-pop'); void w.offsetWidth; w.classList.add('hs-pop');
+    setTimeout(function(){ w.classList.remove('hs-pop'); }, 460);
+    var ring = document.createElement('span'); ring.className = 'hs-ring'; w.appendChild(ring);
+    setTimeout(function(){ ring.remove(); }, 600);
+    for(var i = 0; i < 7; i++){
+      var sp = document.createElement('span'); sp.className = 'hs-spark';
+      sp.style.setProperty('--a', (i * 360 / 7 + Math.random() * 25) + 'deg');
+      sp.style.setProperty('--d', (30 + Math.random() * 12) + 'px');
+      w.appendChild(sp);
+      (function(s){ setTimeout(function(){ s.remove(); }, 650); })(sp);
+    }
+    window.haptic && window.haptic('light');
+  });
   // Accueil : cartes « bientôt » (grisées) + cartes humeur au toucher / clavier
-  _onAll('#yamHomeTab .home-soon', 'click', function(){ window.showToast && window.showToast('Bientôt disponible 💫', 'info', 2000); });
+  _onAll('#yamHomeTab .home-soon', 'click', function(){
+    var el = this; el.classList.remove('soon-tap'); void el.offsetWidth; el.classList.add('soon-tap');
+    setTimeout(function(){ el.classList.remove('soon-tap'); }, 380);
+    window.showToast && window.showToast('Bientôt disponible 🚧', 'soon', 1800);
+  });
   ['homeMoodElle','homeMoodLui'].forEach(function(id){
     _on(id, 'click', function(e){
       if(!this.getAttribute('role')) return;                 // carte de l'autre : rien
