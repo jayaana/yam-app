@@ -370,16 +370,10 @@ window.v2DoForgotPassword = function(){
   _v2SetMsg(msgId, '⏳ Envoi en cours...', false);
   _authPost({ action: 'forgot_password', email: identifier })
     .then(function(data){
-      console.log('[forgot_password] réponse:', JSON.stringify(data));
-      if(data.ok === false && data.debug){
-        // Mode debug temporaire — affiche l'erreur Supabase réelle
-        _v2SetMsg(msgId, '❌ Erreur Supabase : ' + data.debug, true);
-      } else {
-        _v2SetMsg(msgId, '✅ Si ce compte existe, un email de reset a été envoyé', false);
-      }
+      // Message volontairement identique que le compte existe ou non (pas de détail technique)
+      _v2SetMsg(msgId, '✅ Si ce compte existe, un email de réinitialisation a été envoyé', false);
     })
-    .catch(function(err){
-      console.error('[forgot_password] erreur réseau:', err);
+    .catch(function(){
       _v2SetMsg(msgId, '❌ Erreur réseau — vérifie ta connexion', true);
     });
 };
@@ -513,6 +507,11 @@ document.addEventListener('DOMContentLoaded', function(){
 /* ════════════════════════════════════════════
    COUPLE CONFIG — Chargement depuis v2_couples
 ════════════════════════════════════════════ */
+// n°42 : une date de couple est un JOUR (AAAA-MM-JJ), lu en heure locale sur les deux comptes
+window.yamParseDay = function(s){
+  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || ''));
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(s);
+};
 window.YAM_COUPLE = {
   start_date: null,
   reasons: null,
@@ -555,11 +554,13 @@ function loadCoupleConfig(){
       }
     } else {
       // Toujours mettre à jour window.startDate (déclaré dans app-core.js)
-      window.startDate = new Date(window.YAM_COUPLE.start_date);
+      window.startDate = yamParseDay(window.YAM_COUPLE.start_date);
       if(typeof updateCounter === 'function') updateCounter();
+      var sdField = document.getElementById('acStartDate');
+      if(sdField && cfg.start_date) sdField.value = String(cfg.start_date).slice(0, 10);
       // Mettre à jour le texte "Depuis le..."
       if(sinceEl && cfg.start_date){
-        var d = new Date(cfg.start_date);
+        var d = yamParseDay(cfg.start_date);
         sinceEl.textContent = '\u{1F491} Depuis le ' + d.toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
       }
     }
@@ -634,6 +635,7 @@ body.settings-open{overflow:hidden!important;}\
 .stg-back svg{color:var(--text);}\
 .stg-title{font-size:17px;font-weight:700;color:var(--text);flex:1;}\
 .stg-scroll{padding:0 16px calc(env(safe-area-inset-bottom,0px) + 32px);}\
+.stg-header,.stg-scroll{max-width:640px;margin-left:auto;margin-right:auto;box-sizing:border-box;width:100%;}\
 .stg-profile-card{display:flex;align-items:center;gap:14px;padding:20px 0 16px;}\
 .stg-avatar-wrap{position:relative;flex-shrink:0;cursor:pointer;}\
 .stg-avatar{width:72px;height:72px;border-radius:50%;background:var(--s2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;}\
@@ -766,14 +768,6 @@ body.settings-open{overflow:hidden!important;}\
           '<div class="stg-pseudo-row">' +
             '<div class="stg-pseudo" id="acPseudo">—</div>' +
             
-          '</div>' +
-          '<div id="acEditPseudoRow" style="display:none;margin-top:6px;">' +
-            '<input type="text" id="acNewPseudoInput" maxlength="20" placeholder="Nouveau pseudo" style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:13px;outline:none;width:100%;box-sizing:border-box;font-family:inherit;margin-bottom:4px;" />' +
-            '<div style="display:flex;gap:4px;">' +
-              '<button style="background:var(--green);color:#fff;border:none;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;">✓</button>' +
-              '<button style="background:var(--s2);color:var(--muted);border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:12px;cursor:pointer;">✕</button>' +
-            '</div>' +
-            '<div id="acPseudoMsg" class="stg-field-msg" style="color:var(--green);"></div>' +
           '</div>' +
           '<div class="stg-role-badge" id="acRoleBadge">—</div>' +
           '<div class="stg-couple-inline" id="acCoupleInline">👩‍❤️‍👨 <span id="acCoupleInlineText">—</span></div>' +
@@ -1048,7 +1042,7 @@ body.settings-open{overflow:hidden!important;}\
         '<div class="stg-group">' +
           '<div class="stg-qr-wrap" style="padding:20px 16px;">' +
             '<div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:12px;">Scanne ce QR code avec Google Authenticator ou Authy</div>' +
-            '<div id="stg2FAQrImg" style="width:180px;height:180px;border-radius:12px;border:2px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;"></div>' +
+            '<div id="stg2FAQrImg" style="width:240px;height:240px;padding:20px;box-sizing:border-box;border-radius:12px;border:2px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;"></div>' +
             '<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">Ou entre manuellement le code secret :</div>' +
             '<div id="stg2FASecret" style="font-size:12px;font-weight:700;letter-spacing:2px;color:var(--text);background:var(--s2);padding:8px 14px;border-radius:8px;word-break:break-all;text-align:center;"></div>' +
           '</div>' +
@@ -1058,6 +1052,7 @@ body.settings-open{overflow:hidden!important;}\
           '</div>' +
           '<div style="padding:12px 16px 14px;">' +
             '<button class="stg-btn stg-btn-primary" id="stg2FAVerifyBtn">Confirmer et activer</button>' +
+            '<button class="stg-btn" id="stg2FACancelBtn" style="margin-top:8px;background:var(--s2);color:var(--muted);border:1px solid var(--border);">Annuler</button>' +
           '</div>' +
           '<div id="stg2FAEnrollMsg" class="stg-field-msg" style="text-align:center;color:var(--green);padding:0 16px 12px;"></div>' +
         '</div>' +
@@ -1422,17 +1417,6 @@ body.settings-open{overflow:hidden!important;}\
     if (t.id === 'acDeleteAvatarBtn' || (t.closest && t.closest('#acDeleteAvatarBtn'))) {
       window.acDeleteAvatar && window.acDeleteAvatar(); return;
     }
-    // Pseudo : éditer
-    // Bouton crayon supprimé
-    // Pseudo : sauvegarder
-    if (t.closest && t.closest('#acEditPseudoRow') && t.tagName === 'BUTTON' && t.textContent.trim() === '\u2713') {
-      window.acSavePseudo && window.acSavePseudo(); return;
-    }
-    // Pseudo : annuler
-    if (t.closest && t.closest('#acEditPseudoRow') && t.tagName === 'BUTTON' && t.textContent.trim() === '\u2715') {
-      window.acCancelEditPseudo && window.acCancelEditPseudo(); return;
-    }
-
     // Déconnexion
     if (t.id === 'stgLogoutBtn' || (t.closest && t.closest('#stgLogoutBtn'))) {
       window.askLogout && window.askLogout(); return;
@@ -1496,6 +1480,7 @@ body.settings-open{overflow:hidden!important;}\
     // 2FA : toggle btn
     if (t.id === 'stg2FAToggleBtn') { _2faStartEnroll(); return; }
     if (t.id === 'stg2FAVerifyBtn') { _2faVerify(); return; }
+    if (t.id === 'stg2FACancelBtn') { _2faCancelEnroll(); return; }
     if (t.id === 'stg2FADisableBtn') { _2faDisable(); return; }
 
     // Admin monitoring
@@ -1712,7 +1697,11 @@ body.settings-open{overflow:hidden!important;}\
       } else {
         _pendingRole = null;
         if(msg){ msg.textContent = '✅ Informations enregistrées !'; msg.style.color = 'var(--green)'; }
-        if(window.v2RefreshSession) window.v2RefreshSession().then(function(){ if(window.v2ApplyDynamicNames) v2ApplyDynamicNames(); });
+        if(window.v2RefreshSession) window.v2RefreshSession().then(function(fu){
+          if(window.v2ApplyDynamicNames) v2ApplyDynamicNames();
+          var card = document.getElementById('acPseudo');
+          if(card) card.textContent = (fu && fu.pseudo) || newPseudo;
+        });
         setTimeout(function(){ if(msg) msg.textContent = ''; }, 3000);
       }
     })
@@ -1911,6 +1900,20 @@ body.settings-open{overflow:hidden!important;}\
     });
   }
 
+  // n°46 : Annuler l'activation en cours (supprime le facteur non vérifié et referme le bloc)
+  function _2faCancelEnroll(){
+    var enrollSec = document.getElementById('stg2FAEnrollSection');
+    var enrollMsg = document.getElementById('stg2FAEnrollMsg');
+    var inp = document.getElementById('stg2FAVerifyInput');
+    var qr  = document.getElementById('stg2FAQrImg');
+    _mfaActiveClient = null; _mfaActiveFactorId = null;
+    if(enrollSec) enrollSec.style.display = 'none';
+    if(inp) inp.value = '';
+    if(qr) qr.innerHTML = '';
+    if(enrollMsg) enrollMsg.textContent = '';
+    _getSupabaseClientReady().then(function(sc){ if(sc) return _2faCleanUnverified(sc); }).catch(function(){});
+  }
+
   function _2faCheckStatus(){
     var dot   = document.getElementById('stg2FADot');
     var label = document.getElementById('stg2FALabel');
@@ -2043,7 +2046,7 @@ body.settings-open{overflow:hidden!important;}\
     var code     = verifyInput ? verifyInput.value.trim() : '';
 
     if(!factorId){ if(enrollMsg){ enrollMsg.textContent = '⚠️ Lance d\'abord l\'enrollment'; enrollMsg.style.color='#e05555'; } return; }
-    if(!code || code.length !== 6){ if(enrollMsg){ enrollMsg.textContent = '⚠️ Code à 6 chiffres requis'; enrollMsg.style.color='#e05555'; } return; }
+    if(!/^\d{6}$/.test(code)){ if(enrollMsg){ enrollMsg.textContent = '⚠️ Code à 6 chiffres requis'; enrollMsg.style.color='#e05555'; } return; }
     if(enrollMsg){ enrollMsg.textContent = '⏳ Vérification...'; enrollMsg.style.color='var(--muted)'; }
 
     var sc = _mfaActiveClient;
@@ -2071,7 +2074,7 @@ body.settings-open{overflow:hidden!important;}\
     var disableMsg   = document.getElementById('stg2FADisableMsg');
     var code = disableInput ? disableInput.value.trim() : '';
 
-    if(!code || code.length !== 6){ if(disableMsg){ disableMsg.textContent = '⚠️ Code à 6 chiffres requis'; disableMsg.style.color='#e05555'; } return; }
+    if(!/^\d{6}$/.test(code)){ if(disableMsg){ disableMsg.textContent = '⚠️ Code à 6 chiffres requis'; disableMsg.style.color='#e05555'; } return; }
     if(disableMsg){ disableMsg.textContent = '⏳ Désactivation...'; disableMsg.style.color='var(--muted)'; }
 
     _getSupabaseClientReady().then(function(sc){
@@ -2194,7 +2197,7 @@ function _populateAccountModal(u){
 
   var emojiEl = document.getElementById('acAvatarEmoji');
   if(emojiEl){ emojiEl.textContent = ''; emojiEl.style.cssText = 'width:100%;height:100%;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;'; emojiEl.innerHTML = u.role === 'girl' ? '<img src="assets/images/profil_girl.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;">' : '<img src="assets/images/profil_boy.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;">'; }
-  document.getElementById('acPseudo').textContent      = escHtml(u.pseudo || '—');
+  document.getElementById('acPseudo').textContent      = u.pseudo || '—';
 
   var badge = document.getElementById('acRoleBadge');
   if(u.role === 'girl'){
@@ -2208,9 +2211,7 @@ function _populateAccountModal(u){
   }
 
   var partnerPseudo = u.partner_pseudo || null;
-  document.getElementById('acPartnerName').textContent = partnerPseudo
-    ? escHtml(partnerPseudo)
-    : '(pas encore lié)';
+  document.getElementById('acPartnerName').textContent = partnerPseudo || '(pas encore lié)';
 
   // Sync couple inline sur la carte profil
   if(window._stgSyncCoupleInline) window._stgSyncCoupleInline();
@@ -2229,12 +2230,6 @@ function _populateAccountModal(u){
     var li = document.getElementById('acLinkCode'); if(li) li.value = '';
     var lm = document.getElementById('acLinkMsg');  if(lm) lm.textContent = '';
   }
-
-  // Reset pseudo edit
-  var editRow = document.getElementById('acEditPseudoRow');
-  if(editRow) editRow.style.display = 'none';
-  var pseudoMsg = document.getElementById('acPseudoMsg');
-  if(pseudoMsg) pseudoMsg.textContent = '';
 
   // Avatar photo : charger depuis storage si disponible
   _acLoadAvatarPhoto(u);
@@ -2261,7 +2256,10 @@ function _populateAccountModal(u){
     var soloNote2 = document.getElementById('acStartDateSoloNote');
     if(soloNote2) soloNote2.style.display = 'none';
     var dateVal = (window.YAM_COUPLE && window.YAM_COUPLE.start_date) || '2024-10-29T00:00:00';
-    if(startDateField) startDateField.value = dateVal.split('T')[0];
+    if(startDateField){
+      startDateField.value = dateVal.split('T')[0];
+      var t0 = new Date(); startDateField.max = t0.getFullYear() + '-' + String(t0.getMonth() + 1).padStart(2, '0') + '-' + String(t0.getDate()).padStart(2, '0');
+    }
   }
 
   ['acOldPwd','acNewPwd','acConfirmPwd'].forEach(function(id){
@@ -2323,6 +2321,9 @@ window.acSaveStartDate = function(){
 
   msg.textContent = '⏳ Enregistrement...'; msg.style.color = 'var(--muted)';
   var isoDate = val + 'T00:00:00';
+  if(yamParseDay(val) > new Date()){
+    msg.textContent = '⚠️ La date ne peut pas être dans le futur'; msg.style.color = '#e05555'; return;
+  }
 
   // Utiliser fetch direct avec service key n'est pas possible côté client.
   // On passe par l'Edge Function pour le PATCH avec privilèges.
@@ -2333,10 +2334,10 @@ window.acSaveStartDate = function(){
     }
     msg.textContent = '✅ Date mise à jour !'; msg.style.color = 'var(--green)';
     window.YAM_COUPLE.start_date = isoDate;
-    window.startDate = new Date(isoDate);
+    window.startDate = yamParseDay(isoDate);
     var sinceEl = document.querySelector('.counter-since');
     if(sinceEl){
-      var d = new Date(isoDate);
+      var d = yamParseDay(isoDate);
       sinceEl.textContent = '💑 Depuis le ' + d.toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
     }
     // Forcer la mise à jour du compteur
@@ -2470,82 +2471,6 @@ window.acDoUnlink = function(){
     }
   })
   .catch(function(){ msg.textContent = '❌ Erreur réseau'; });
-};
-
-/* ── Modifier le pseudo ── */
-window.acToggleEditPseudo = function(){
-  var row = document.getElementById('acEditPseudoRow');
-  var inp = document.getElementById('acNewPseudoInput');
-  var u = yamGetUser ? yamGetUser() : null;
-  if(!row) return;
-  if(row.style.display === 'none'){
-    row.style.display = 'flex';
-    if(inp){ inp.value = u ? (u.pseudo || '') : ''; inp.focus(); }
-  } else {
-    row.style.display = 'none';
-  }
-};
-window.acCancelEditPseudo = function(){
-  var row = document.getElementById('acEditPseudoRow');
-  if(row) row.style.display = 'none';
-  var msg = document.getElementById('acPseudoMsg');
-  if(msg) msg.textContent = '';
-};
-window.acSavePseudo = function(){
-  var inp = document.getElementById('acNewPseudoInput');
-  var msg = document.getElementById('acPseudoMsg');
-  var newPseudo = (inp ? inp.value : '').trim();
-  if(!newPseudo || newPseudo.length < 2){
-    msg.textContent = '⚠️ Pseudo trop court (2 min)'; msg.style.color = '#e05555'; return;
-  }
-  if(newPseudo.length > 20){
-    msg.textContent = '⚠️ Pseudo trop long (20 max)'; msg.style.color = '#e05555'; return;
-  }
-  var u = yamGetUser ? yamGetUser() : null;
-  if(!u){ msg.textContent = '⚠️ Non connecté'; msg.style.color = '#e05555'; return; }
-  msg.textContent = '⏳ Modification...'; msg.style.color = 'var(--muted)';
-  v3Auth('update_pseudo', { user_id: u.id, new_pseudo: newPseudo })
-  .then(function(data){
-    if(data && data.error){
-      // Remplacer les emojis profil dans le message d'erreur
-      var errTxt = data.error || 'Erreur';
-      var _imgSt = "width:14px;height:14px;border-radius:50%;vertical-align:middle;margin:0 2px;";
-      var _gI = '<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iI2U4NDA2YSIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4=" style="' + _imgSt + '">';
-      var _bI = '<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iIzBmNGRiMCIvPjxwYXRoIGQ9Ik01MCA2MCBDNDggNTgsMzIgNDgsMzIgMzcgQzMyIDI5LDM5IDI1LDQ0IDI4IEM0NyAzMCw1MCAzNCw1MCAzNCBDNTAgMzQsNTMgMzAsNTYgMjggQzYxIDI1LDY4IDI5LDY4IDM3IEM2OCA0OCw1MiA1OCw1MCA2MFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiLz48L3N2Zz4=" style="' + _imgSt + '">';
-      errTxt = errTxt.replace('Rose', _gI + ' Rose').replace('Bleu', _bI + ' Bleu');
-      msg.innerHTML = '\u274C ' + errTxt; msg.style.color = '#e05555';
-    } else {
-      msg.textContent = '✅ Pseudo mis à jour !'; msg.style.color = 'var(--green)';
-      
-      // CORRECTION : Recharger la session pour propager le changement
-      if(window.v2RefreshSession){
-        v2RefreshSession().then(function(freshUser){
-          if(freshUser){
-            // Mettre à jour l'affichage
-            var pseudoEl = document.getElementById('acPseudo');
-            if(pseudoEl) pseudoEl.textContent = escHtml(freshUser.pseudo);
-            var row = document.getElementById('acEditPseudoRow');
-            setTimeout(function(){
-              msg.textContent = '';
-              if(row) row.style.display = 'none';
-            }, 2000);
-          }
-        });
-      } else {
-        // Fallback
-        var s = v2LoadSession();
-        if(s && s.user){ s.user.pseudo = newPseudo; localStorage.setItem('yam_session_v3', JSON.stringify(s)); }
-        var pseudoEl = document.getElementById('acPseudo');
-        if(pseudoEl) pseudoEl.textContent = escHtml(newPseudo);
-        var row = document.getElementById('acEditPseudoRow');
-        setTimeout(function(){
-          msg.textContent = '';
-          if(row) row.style.display = 'none';
-        }, 2000);
-      }
-    }
-  })
-  .catch(function(){ msg.textContent = '❌ Erreur réseau'; msg.style.color = '#e05555'; });
 };
 
 /* ── Avatar photo de profil ── */
@@ -2834,7 +2759,7 @@ window.addEventListener('load', function(){
     var modal = document.getElementById('settingsView');
     if(modal && modal.classList.contains('active')){
       var el = document.getElementById('acPartnerName');
-      if(el) el.textContent = escHtml(pseudoAfter);
+      if(el) el.textContent = pseudoAfter;
     }
   }
 
@@ -3832,3 +3757,35 @@ window.yamSplashOpen = function(){
     }, 100);
   }
 };
+
+
+/* ════════════════════════════════════════════
+   n°45 — Photo du partenaire mise à jour en direct
+   Le stockage n'a pas de temps réel : on compare l'empreinte (ETag) du fichier
+   toutes les 20 s quand l'appli est visible, et au retour sur l'appli.
+════════════════════════════════════════════ */
+(function(){
+  var _etag = null, _pid = null, _busy = false;
+  function check(){
+    if(_busy || document.hidden) return;
+    var u = (typeof yamGetUser === 'function') ? yamGetUser() : null;
+    if(!u || !u.couple_id || !u.partner_pseudo) return;
+    _busy = true;
+    var getId = _pid ? Promise.resolve(_pid) :
+      fetch(SB_URL + '/rest/v1/profiles?couple_id=eq.' + u.couple_id + '&id=neq.' + u.id + '&select=id&limit=1', { headers: sb2Headers() })
+        .then(function(r){ return r.ok ? r.json() : []; })
+        .then(function(rows){ return (rows && rows[0]) ? (_pid = rows[0].id) : null; });
+    getId.then(function(pid){
+      if(!pid) return;
+      return fetch(SB_URL + '/storage/v1/object/public/images/avatars/' + pid + '.jpg', { method: 'HEAD', cache: 'no-store' })
+        .then(function(r){
+          var tag = r.ok ? (r.headers.get('etag') || r.headers.get('last-modified') || 'ok') : 'none';
+          if(_etag !== null && tag !== _etag && window._acLoadPartnerAvatar) window._acLoadPartnerAvatar();
+          _etag = tag;
+        });
+    }).catch(function(){}).then(function(){ _busy = false; });
+  }
+  setInterval(check, 20000);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) check(); });
+  document.addEventListener('yam:session_ready', function(){ setTimeout(check, 3000); });
+})();

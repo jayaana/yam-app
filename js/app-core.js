@@ -661,7 +661,7 @@ function updateCounter() {
   // Tout est OK — affichage normal
   if (numsEl)  numsEl.style.display  = '';
   if (labelEl) labelEl.textContent = 'Nombre de jours ensemble';
-  var d = Math.floor((new Date() - window.startDate) / 1000);
+  var d = Math.max(0, Math.floor((new Date() - window.startDate) / 1000));
   var el;
   if ((el = document.getElementById('cnt-days')))  el.textContent = Math.floor(d / 86400);
   if ((el = document.getElementById('cnt-hours'))) el.textContent = String(Math.floor((d % 86400) / 3600)).padStart(2, '0');
