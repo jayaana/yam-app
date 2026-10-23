@@ -3717,13 +3717,15 @@ document.addEventListener('yam:session_ready',function(){
     sorted.forEach(function(item, idx) {
       var tab = document.createElement('div');
       tab.className = 'histoire-bandeau-tab' + (idx === _histoireSelectedIndex ? ' active' : '');
-      if(item.id){
-        tab.dataset.nbKey = 'histoire_'+item.id;
-        if(window.yamIsNew && window.yamIsNew('histoire_'+item.id) && window.yamShowNewBadge) window.yamShowNewBadge(tab, true);
-      }
       tab.innerHTML =
         '<div class="histoire-bandeau-num">CHAP. ' + (idx + 1) + '</div>' +
         '<div class="histoire-bandeau-titre">' + escHtml(item.title || 'À écrire...') + '</div>';
+      // le badge est posé APRÈS le innerHTML (sinon il est effacé à chaque rechargement du bandeau)
+      if(item.id){
+        tab.dataset.nbKey = 'histoire_'+item.id;
+        tab.style.position = 'relative';
+        if(window.yamIsNew && window.yamIsNew('histoire_'+item.id) && window.yamShowNewBadge) window.yamShowNewBadge(tab, true);
+      }
       (function(i, it){
         tab.addEventListener('click', function(){
           if(it.id && window.yamMarkSeen) window.yamMarkSeen('histoire_'+it.id);
