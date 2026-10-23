@@ -1857,19 +1857,15 @@ setTimeout(function(){
 if(document.body) window._yamDiagInit(); else document.addEventListener('DOMContentLoaded', function(){ window._yamDiagInit(); });
 
 // Jeux : iOS PWA décale la fenêtre de ~59 px quand sa hauteur visible change (848→793) et window.scrollTo n'y peut rien.
-// On compense visuellement : en-tête et panneau Jeux redescendent de l'écart mesuré.
+// On remet la page à 0 immédiatement (scroll instantané).
 (function(){
   function fix(){
     var h = document.getElementById('yamMainHeader'), p = document.getElementById('yamJeuxTab');
     if(!h || !p) return;
     h.style.top = ''; p.style.top = '';
     if(window._currentTab !== 'jeux' || document.body.classList.contains('subview-active')) return;
-    if(window.scrollY > 0) window.scrollTo(0, 0);
-    var top = h.getBoundingClientRect().top;
-    if(top < -0.5){
-      var t = Math.round(-top) + 'px';
-      h.style.top = t; p.style.top = t;
-    }
+    // 'instant' : html a scroll-behavior:smooth, un scrollTo(0,0) simple serait animé donc visible
+    if(window.scrollY > 0) window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }
   window.addEventListener('scroll', fix, { passive: true });
   window.addEventListener('resize', fix);
