@@ -7149,3 +7149,10 @@ html body #uxToast.success { border-color: rgba(231,90,124,.4); }
 body:not(.light) .mu-fab-reduce { background: linear-gradient(135deg, #8a5a3c, #6b4430 70%, #5a3a2a); color: #ffc08a; border-color: rgba(255,170,100,.65); box-shadow: 0 6px 16px rgba(0,0,0,.55); }
 body:not(.light) .mu-fab-reduce.playing { background: linear-gradient(135deg, #5b2c41, #44262f 70%, #3a2429); color: #ff9cc0; border-color: rgba(240,102,136,.7); }
 @media (prefers-reduced-motion: reduce) { .mu-fab-reduce { transition: none; } }
+
+/* Toasts plus visibles (même taille) : liseré et halo rose + petit rebond ; thème clair/sombre conservés */
+html body #uxToast.show { border-color: rgba(231,90,124,.75); box-shadow: 0 6px 22px rgba(231,90,124,.38), 0 0 0 3px rgba(231,90,124,.16); animation: uxToastPop .42s cubic-bezier(.34,1.56,.64,1); }
+html body #uxToast.show.error { border-color: rgba(255,68,68,.75); box-shadow: 0 6px 22px rgba(255,68,68,.35), 0 0 0 3px rgba(255,68,68,.15); }
+html body #yamNotif.show { border-color: rgba(231,90,124,.75); box-shadow: 0 6px 22px rgba(231,90,124,.38), 0 0 0 3px rgba(231,90,124,.16); }
+@keyframes uxToastPop { 0% { transform: translateX(-50%) translateY(18px) scale(.9); } 100% { transform: translateX(-50%) translateY(0) scale(1); } }
+@media (prefers-reduced-motion: reduce) { html body #uxToast.show { animation: none; } }

@@ -299,9 +299,10 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
 
   /* ── File d'attente des bêtises ── */
   var _prankQueue = [];
+  var _prankLead = 800; // délai avant déclenchement (plus long quand la victime est prévenue en direct)
 
   /* ── Vérification au login de la victime ── */
-  window.checkActivePrank = function(profile){
+  window.checkActivePrank = function(profile, fromRT){
     var s = yamGetUser ? {user: yamGetUser()} : null;
     var coupleId = s && s.user ? s.user.couple_id : null;
     if(!coupleId) return;
@@ -330,6 +331,15 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
         var isActive = _activePrank && _activePrank.id === row.id;
         if(!alreadyQueued && !isActive) _prankQueue.push(row);
       });
+      // Victime connectée (arrivée en direct) : on la prévient quelques secondes avant, avec le total en attente
+      if(fromRT && window.yamNotif){
+        var _n = _prankQueue.length + (_activePrank ? 1 : 0);
+        if(_n > 0){
+          var _who = (yamGetUser() || {}).partner_pseudo || 'Ton/ta partenaire';
+          window.yamNotif('😈', _who, _n > 1 ? 'te prépare ' + _n + ' bêtises…' : 'te prépare une bêtise…', null);
+          _prankLead = 3500;
+        }
+      }
       dequeueNextPrank();
     }).catch(function(){});
   };
@@ -343,7 +353,8 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     if(!_prankQueue.length) return;
     var next = _prankQueue.shift();
     _activePrank = next;
-    setTimeout(function(){ triggerPrank(_activePrank); }, 800);
+    var _d = _prankLead; _prankLead = 800;
+    setTimeout(function(){ triggerPrank(_activePrank); }, _d);
   }
 
   /* ── Déclenchement bêtise ── */
@@ -1269,7 +1280,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
         // Vérifier si la bêtise nous est destinée
         var row = payload.new;
         if (row && row.sender_role !== gender && row.active) {
-          window.checkActivePrank(gender);
+          window.checkActivePrank(gender, true);
         }
       })
       .on('postgres_changes', {
@@ -1284,7 +1295,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
           if (_r.active === false && Date.now() - (window._prankCancelAt || 0) > 8000) {
             var vName = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName(gender === 'boy' ? 'girl' : 'boy') : 'Ton partenaire';
             if (window.showToast) window.showToast(_r.message === '__refused__'
-              ? '🙅 ' + vName + ' a désactivé les bêtises.'
+              ? '🙅 Non livrée : ' + vName + ' a désactivé les bêtises'
               : '😈 ' + vName + ' est tombé(e) dans le piège !', '', 3200);
           }
           return;

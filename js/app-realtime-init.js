@@ -87,8 +87,7 @@ window.yamRTWatch = function (key, tables, onChange, pollMs) {
       { table: 'dm_messages', event: 'INSERT' },
       { table: 'moods', event: 'INSERT' },
       { table: 'moods', event: 'UPDATE' },
-      { table: 'petits_mots', event: 'INSERT' },
-      { table: 'pranks', event: 'INSERT' }
+      { table: 'petits_mots', event: 'INSERT' }
     ], function (p) {
       if (!p || !p.new || !p.table) return;
       var r = p.new, t = p.table;
@@ -102,9 +101,6 @@ window.yamRTWatch = function (key, tables, onChange, pollMs) {
       } else if (t === 'petits_mots') {
         if (!fromOther(r.author)) return;
         window.yamNotif('💌', other(), 't’a laissé un petit mot', 'navNous');
-      } else if (t === 'pranks') {
-        if (!fromOther(r.sender_role)) return;
-        window.yamNotif('😈', other(), 'te prépare une bêtise…', null);
       }
     }, 0);
   }
