@@ -3712,11 +3712,16 @@ document.addEventListener('yam:session_ready',function(){
     sorted.forEach(function(item, idx) {
       var tab = document.createElement('div');
       tab.className = 'histoire-bandeau-tab' + (idx === _histoireSelectedIndex ? ' active' : '');
+      if(item.id){
+        tab.dataset.nbKey = 'histoire_'+item.id;
+        if(window.yamIsNew && window.yamIsNew('histoire_'+item.id) && window.yamShowNewBadge) window.yamShowNewBadge(tab, true);
+      }
       tab.innerHTML =
         '<div class="histoire-bandeau-num">CHAP. ' + (idx + 1) + '</div>' +
         '<div class="histoire-bandeau-titre">' + escHtml(item.title || 'À écrire...') + '</div>';
       (function(i, it){
         tab.addEventListener('click', function(){
+          if(it.id && window.yamMarkSeen) window.yamMarkSeen('histoire_'+it.id);
           _histoireSelectedIndex = i;
           _rIdx = i; // syncer le lecteur avec la sélection
           _renderBulle(it);
@@ -3879,6 +3884,7 @@ document.addEventListener('yam:session_ready',function(){
   function _histoireRenderModal(sorted, idx) {
     var item = sorted[idx]; if(!item) return;
     var modal = document.getElementById('histoireChapterModal'); if(!modal) return;
+    if(item.id && window.yamMarkSeen) window.yamMarkSeen('histoire_'+item.id);
 
     // Meta
     var metaStr = '';
@@ -4090,10 +4096,11 @@ document.addEventListener('yam:session_ready',function(){
     if(btn){ btn.textContent='...'; btn.disabled=true; }
     var done = function(){ if(btn){btn.textContent='Sauvegarder';btn.disabled=false;} window.histoireCloseItemModal(); window.histoireLoad(); };
     if(_histoireEditingId){
-      fetch(SB_URL+'/rest/v1/histoire?id=eq.'+_histoireEditingId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(function(){ if(window.yamMarkNew) window.yamMarkNew('histoire'); done(); }).catch(done);
+      fetch(SB_URL+'/rest/v1/histoire?id=eq.'+_histoireEditingId,{method:'PATCH',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)}).then(function(){ if(window.yamMarkNew){ window.yamMarkNew('histoire_'+_histoireEditingId); window.yamMarkNew('histoire'); } done(); }).catch(done);
     } else {
-      fetch(SB_URL+'/rest/v1/histoire',{method:'POST',headers:sb2Headers({'Prefer':'return=minimal','Content-Type':'application/json'}),body:JSON.stringify(data)})
-      .then(function(){ if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('histoire_new'); if(window.yamMarkNew) window.yamMarkNew('histoire'); done(); }).catch(done);
+      fetch(SB_URL+'/rest/v1/histoire',{method:'POST',headers:sb2Headers({'Prefer':'return=representation','Content-Type':'application/json'}),body:JSON.stringify(data)})
+      .then(function(r){ return r.ok ? r.json() : []; })
+      .then(function(rows){ if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('histoire_new'); if(window.yamMarkNew){ if(rows && rows[0]) window.yamMarkNew('histoire_'+rows[0].id); window.yamMarkNew('histoire'); } done(); }).catch(done);
     }
   };
 
@@ -4104,6 +4111,7 @@ document.addEventListener('yam:session_ready',function(){
   window.histoireDeleteItemGo=function(){
     if(!_histoireEditingId) return;
     var coupleId = _getCoupleId();
+    if(window.yamClearBadge) window.yamClearBadge('histoire_'+_histoireEditingId);
     fetch(SB_URL+'/rest/v1/histoire?id=eq.'+_histoireEditingId+'&couple_id=eq.'+coupleId,{method:'DELETE',headers:sb2Headers()})
     .then(function(){ if(window.yamMarkNew) window.yamMarkNew('histoire'); window.histoireCloseItemModal(); window.histoireLoad(); }).catch(function(){});
   };
@@ -4139,6 +4147,8 @@ document.addEventListener('yam:session_ready',function(){
   // ── Idée du jour : 5 idées générées 1x/jour, navigation →
   var _ideaCache = null; // { date, ideas: [...], pos }
 
+  var _ideaRetry = false;
+  var _fbMem = null; // repli hors-ligne en mémoire (jamais écrit sur l'appareil)
   function _livreIdeaKey(coupleId){ return 'yam_livre_ideas_'+coupleId; }
 
   function _loadIdeaCache(coupleId){
@@ -4511,18 +4521,33 @@ document.addEventListener('yam:session_ready',function(){
       return;
     }
 
+    // Repli hors-ligne déjà affiché : on le parcourt sans relancer l'IA (jusqu'au prochain rechargement)
+    if(_fbMem){
+      var fpos = _fbMem.pos % _fbMem.ideas.length;
+      var fi = _fbMem.ideas[fpos]; _fbMem.pos = fpos+1; _ideaCache = fi;
+      var fTitle = document.getElementById('livreIdeaTitle'); if(fTitle) fTitle.textContent = '📖 ' + fi.title;
+      if(textEl) textEl.textContent = fi.author + ' — ' + fi.desc;
+      if(metaEl) metaEl.textContent = 'Idées hors-ligne · '+(fpos+1)+'/'+_fbMem.ideas.length;
+      return;
+    }
+
     // Générer les 5 idées
     if(btn){ btn.disabled=true; btn.innerHTML='Chargement...'; }
     if(textEl) textEl.textContent = 'Génération de 5 idées de lecture... 📚';
 
-    var prompt = 'Tu es un passionné de littérature. Propose EXACTEMENT 5 livres à lire en couple, variés et captivants.\n\nRÉPARTITION OBLIGATOIRE des genres :\n- 2 livres sur 5 : romance, amour, émotion, histoire touchante (priorité)\n- 1 livre sur 5 : thriller ou suspense\n- 1 livre sur 5 : fantasy ou science-fiction\n- 1 livre sur 5 : développement personnel ou feel-good\n\nRÈGLES :\n- Titres en français (version traduite si livre étranger)\n- Pas de bestsellers ultra-connus comme Le Petit Prince ou L\'Alchimiste\n- Propose des livres variés, pas toujours les mêmes classiques\n- La description doit être riche, détaillée et donner vraiment envie de lire le livre : raconte l\'ambiance, les émotions, pourquoi ce livre est marquant\n\nFORMAT : réponds UNIQUEMENT en JSON strict sans texte autour :\n[{"title":"Titre","author":"Auteur","desc":"Description riche et détaillée"},...]';
+    var prompt = 'Tu es un passionné de littérature. Propose EXACTEMENT 5 livres à lire en couple, variés et captivants.\n\nRÉPARTITION OBLIGATOIRE des genres :\n- 2 livres sur 5 : romance, amour, émotion, histoire touchante (priorité)\n- 1 livre sur 5 : thriller ou suspense\n- 1 livre sur 5 : fantasy ou science-fiction\n- 1 livre sur 5 : développement personnel ou feel-good\n\nRÈGLES :\n- Titres en français (version traduite si livre étranger)\n- Pas de bestsellers ultra-connus comme Le Petit Prince ou L\'Alchimiste\n- Propose des livres variés, pas toujours les mêmes classiques\n- La description fait 1 à 2 phrases courtes (30 mots maximum) et donne envie de lire le livre\n\nFORMAT : réponds UNIQUEMENT en JSON strict sans texte autour :\n[{"title":"Titre","author":"Auteur","desc":"Description courte"},...]';
 
     fetch(GROQ_EDGE,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON_KEY,'Authorization':'Bearer '+(yamGetAccessToken?yamGetAccessToken():'')},body:JSON.stringify({prompt:prompt})})
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(data.error) throw new Error(data.error);
       var raw = (data.text||'').replace(/```json|```/g,'').trim();
-      var ideas = JSON.parse(raw);
+      var ideas;
+      try{ ideas = JSON.parse(raw); }
+      catch(pe){
+        // réponse coupée : on garde les idées complètes
+        ideas = (raw.match(/\{[^{}]*\}/g)||[]).map(function(o){ try{ return JSON.parse(o); }catch(e){ return null; } }).filter(function(o){ return o && o.title; });
+      }
       if(!Array.isArray(ideas)||!ideas.length) throw new Error('Format invalide');
       _saveIdeaCache(coupleId, ideas, 1);
       _ideaCache = ideas[0];
@@ -4530,10 +4555,15 @@ document.addEventListener('yam:session_ready',function(){
       if(titleEl2) titleEl2.textContent = '📖 ' + (ideas[0].title||'');
       if(textEl) textEl.textContent = (ideas[0].author||'') + (ideas[0].desc ? ' — ' + ideas[0].desc : '');
       if(metaEl) metaEl.textContent = 'Idée 1/5 · Générée maintenant';
+      _ideaRetry = false;
     })
     .catch(function(){
+      // le service d'IA renvoie parfois une réponse vide ou coupée : un deuxième essai avant le repli
+      if(!_ideaRetry){ _ideaRetry = true; setTimeout(function(){ window.livresIdeeDuJour(); }, 300); return; }
+      _ideaRetry = false;
       var fallbacks = [{title:'Le Petit Prince',author:'Antoine de Saint-Exupéry',desc:'Un conte poétique intemporel'},{title:'L\'Alchimiste',author:'Paulo Coelho',desc:'Suivre ses rêves jusqu\'au bout du monde'},{title:'Les Fourmis',author:'Bernard Werber',desc:'La colonie humaine vue différemment'},{title:'Orgueil et Préjugés',author:'Jane Austen',desc:'Le roman d\'amour classique par excellence'},{title:'Dune',author:'Frank Herbert',desc:'L\'épopée de science-fiction ultime'}];
-      // n°51 : le repli hors-ligne n'est jamais gardé (nouvel appel IA possible)
+      // n°51 : le repli hors-ligne n'est jamais écrit sur l'appareil (gardé en mémoire jusqu'au rechargement)
+      _fbMem = { ideas: fallbacks, pos: 1 };
       _ideaCache = fallbacks[0];
       var titleEl3 = document.getElementById('livreIdeaTitle');
       if(titleEl3) titleEl3.textContent = '📖 ' + fallbacks[0].title;
@@ -4547,7 +4577,7 @@ document.addEventListener('yam:session_ready',function(){
   window.livresAddFromIdea = function(){
     if(!_ideaCache) return;
     var coupleId = _getCoupleId(); if(!coupleId) return;
-    var data = {couple_id:coupleId, title:_ideaCache.title||'Livre', description:(_ideaCache.author||'')+(_ideaCache.desc?' — '+_ideaCache.desc:''), has_image:false, position:_livresAllRows.length};
+    var data = {couple_id:coupleId, title:_ideaCache.title||'Livre', description:(_ideaCache.author||'')+(_ideaCache.desc?' — '+_ideaCache.desc:''), has_image:false, position:0};
     fetch(SB_URL+'/rest/v1/books',{method:'POST',headers:sb2Headers({'Prefer':'return=representation','Content-Type':'application/json'}),body:JSON.stringify(data)})
     .then(function(r){
       if(!r.ok) return r.json().then(function(e){ throw new Error(e.message||e.hint||r.status); });
