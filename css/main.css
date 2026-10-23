@@ -6964,3 +6964,77 @@ body #loveBox::after, body.light #loveBox::after { display: none; }
 .cl-ear { transform-box: fill-box; transform-origin: 50% 90%; }
 .cl-ear.cl-wig { animation: clWig .5s ease; }
 @keyframes clWig { 25% { transform: rotate(-14deg); } 60% { transform: rotate(10deg); } }
+
+/* ── Lecteur intégré (n°32) : l'en-tête devient le lecteur, pastille ailleurs ── */
+.mu-hero { display: none; }
+#loveSection.mu-playing .mu-hero { display: block; }
+#loveSection.mu-playing .mu-card-desc, #loveSection.mu-playing .mu-card-count { display: none; }
+#loveSection.mu-playing .mu-card-bottom-row { margin-top: 0; }
+#loveSection.mu-playing .mu-card-label { display: none; }
+#loveSection.mu-playing .mu-card-header { padding-top: 10px; padding-bottom: 8px; background: linear-gradient(135deg, #ff9cc0, #ff5c93 70%, #ff4f8a); border-color: rgba(255,255,255,.35); }
+#loveSection.mu-playing .mu-card-header::before { background: radial-gradient(circle at 90% -10%, rgba(255,255,255,.28), transparent 55%); }
+#loveSection.mu-playing .mu-card-title { color: #fff; font-size: 15px; opacity: .95; }
+#loveSection.mu-playing .mu-mode-btn { background: rgba(255,255,255,.25); border-color: transparent; color: #fff; }
+#loveSection.mu-playing .mu-play-btn { display: none; }
+.mu-hero-main { display: flex; align-items: center; gap: 12px; margin: 2px 0 2px; }
+.mu-hero-cover { width: 44px; height: 44px; border-radius: 13px; background: rgba(255,255,255,.28); display: flex; align-items: center; justify-content: center; font-size: 22px; flex: none; box-shadow: 0 6px 16px rgba(120,20,60,.25); }
+.mu-hero-info { flex: 1; min-width: 0; color: #fff; }
+.mu-hero-title { font-size: 17px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mu-hero-artist { font-size: 12px; opacity: .92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mu-hero-seek { display: flex; align-items: center; gap: 8px; font-size: 10px; color: #fff; }
+.mu-hero-bar { flex: 1; height: 20px; display: flex; align-items: center; cursor: pointer; position: relative; touch-action: none; }
+.mu-hero-bar::before { content: ''; position: absolute; left: 0; right: 0; height: 5px; border-radius: 3px; background: rgba(255,255,255,.35); }
+.mu-hero-bar i { display: block; position: relative; height: 5px; width: 0; border-radius: 3px; background: #fff; }
+.mu-hero-ctl { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 2px; }
+.mu-hero-btn { width: 44px; height: 40px; border-radius: 50%; border: 0; background: transparent; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.mu-hero-btn svg { width: 22px; height: 22px; }
+.mu-hero-btn.pp { width: 48px; height: 44px; border-radius: 22px; background: #fff; color: #ff5c93; box-shadow: 0 5px 14px rgba(120,20,60,.3); }
+.mu-hero-btn.pp svg { width: 24px; height: 24px; }
+/* pastille minimaliste (autres onglets) ; un tap sur le titre la déplie en lecteur complet */
+#miniPlayer.mp-pill { left: auto; right: 12px; width: auto; max-width: calc(100% - 24px); }
+#miniPlayer.mp-pill .mp-inner { margin: 0; padding: 5px 6px 5px 14px; min-height: 44px; border-radius: 22px; border: 0; gap: 6px; background: linear-gradient(135deg, #ff7aa6, #ff5c93); box-shadow: 0 8px 20px rgba(255,92,147,.45); }
+#miniPlayer.mp-pill .mp-artist, #miniPlayer.mp-pill .mp-progress-wrap, #miniPlayer.mp-pill #mpModeBtn, #miniPlayer.mp-pill #mpPrevBtn, #miniPlayer.mp-pill #mpNextBtn { display: none; }
+#miniPlayer.mp-pill .mp-title { color: #fff; font-size: 13px; font-weight: 700; max-width: 150px; }
+#miniPlayer.mp-pill .mp-btn { color: #fff; height: 38px; min-width: 38px; padding: 0; }
+#miniPlayer.mp-pill .mp-btn-play { background: #fff; color: #ff5c93; width: 38px; }
+#miniPlayer.mp-pill .mp-btn-stop:hover { color: #fff !important; background: rgba(255,255,255,.2) !important; }
+#miniPlayer .mp-info { cursor: pointer; }
+
+/* Onglet Musique : pas de marge de défilement réservée tant que la liste n'est pas dépliée (n°32) */
+#yamMusiqueTab:not(.mu-expanded) { padding-bottom: 0 !important; }
+
+/* équaliseur animé de la pastille + bouton replier (n°32) */
+.mp-eq, .mp-btn-collapse { display: none; }
+#miniPlayer.mp-pill .mp-eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 16px; flex: none; }
+.mp-eq i { display: block; width: 3px; height: 4px; border-radius: 2px; background: #fff; animation: mpEq .8s infinite ease-in-out; }
+.mp-eq i:nth-child(2) { animation-delay: .2s; }
+.mp-eq i:nth-child(3) { animation-delay: .4s; }
+@keyframes mpEq { 0%,100% { height: 4px; } 50% { height: 16px; } }
+#miniPlayer.mp-paused .mp-eq i { animation-play-state: paused; height: 4px; }
+#miniPlayer.mp-pill { animation: mpPillGlow 2.4s ease-in-out infinite; }
+#miniPlayer.mp-pill.mp-paused { animation: none; }
+@keyframes mpPillGlow { 50% { filter: drop-shadow(0 0 8px rgba(255,92,147,.65)); } }
+#miniPlayer.mp-open .mp-btn-collapse { display: flex; }
+
+/* lecteur de la carte du haut : collé sous l'en-tête pendant le défilement (position fixe posée par le JS, n°32) */
+#loveSection.mu-playing .mu-card-header { box-shadow: 0 6px 18px rgba(255,92,147,.35); }
+#loveSection .mu-card-header.mu-stuck { position: fixed; top: var(--mu-top, calc(env(safe-area-inset-top, 0px) + 44px)); left: 16px; right: 16px; margin: 0; z-index: 30; border-radius: 0; box-shadow: 0 8px 14px -6px rgba(255,92,147,.45); }
+.mu-hero-btn.stop { width: 38px; height: 38px; margin-left: 4px; background: rgba(255,255,255,.25); }
+.mu-hero-btn.stop svg { width: 16px; height: 16px; }
+/* carte du haut + liste : un seul bloc (n°32) */
+#loveSection .mu-card-header { margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+#loveSection .mu-card-tracks { margin-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; border-top: 1px solid rgba(231,90,124,.12); }
+/* animations d'ouverture / repli du lecteur flottant */
+#miniPlayer.mp-open .mp-inner { transform-origin: 100% 100%; animation: mpUnfold .26s ease-out; }
+@keyframes mpUnfold { from { transform: scale(.6,.5); opacity: .3; } to { transform: none; opacity: 1; } }
+#miniPlayer.mp-folding .mp-inner { transform-origin: 100% 100%; animation: mpFold .2s ease-in forwards; }
+@keyframes mpFold { to { transform: scale(.55,.4); opacity: .15; } }
+#miniPlayer.mp-popin .mp-inner { animation: mpPop .32s cubic-bezier(.3,1.6,.5,1); }
+@keyframes mpPop { from { transform: scale(.6); opacity: .3; } to { transform: none; opacity: 1; } }
+/* Onglet Musique : ne garde pas de transform après l'animation d'entrée, sinon « position: fixed » du lecteur de la carte du haut devient relative à l'onglet (n°32) */
+#yamMusiqueTab.yam-tab-panel.active { animation-fill-mode: backwards; }
+
+/* « # TITRE / ÉCOUTES » fait partie du bloc du haut (n°32) */
+#loveSection .mu-card-header > .mu-col-header { margin: 4px -16px -12px; padding: 7px 16px 6px; background: rgba(255,255,255,.55); border-top: 1px solid rgba(231,90,124,.12); }
+#loveSection.mu-playing .mu-card-header > .mu-col-header { background: rgba(255,255,255,.2); border-top-color: rgba(255,255,255,.25); color: #fff; }
+#loveSection.mu-playing .mu-card-header > .mu-col-header > * { color: #fff; }

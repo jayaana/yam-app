@@ -106,18 +106,18 @@
       }
     }
 
-    // MiniPlayer : visible seulement sur onglet musique
+    // MiniPlayer : pastille sur tous les onglets sauf Musique (le lecteur est alors dans la carte du haut)
     var mp2 = document.getElementById('miniPlayer');
     if(mp2){
       if(tab === 'musique'){
-        mp2.classList.remove('tab-hidden');
-        mp2.classList.remove('game-hidden');
-        if(window.mpUpdate) window.mpUpdate();
-        // padding géré par mpShow via mp-active
-      } else {
         mp2.classList.add('tab-hidden');
         mp2.classList.remove('visible');
         document.body.classList.remove('mp-active');
+        if(window.mpUpdate) window.mpUpdate();
+        if(window.fitTop50Later) window.fitTop50Later();
+      } else {
+        mp2.classList.remove('tab-hidden');
+        if(window.mpUpdate) window.mpUpdate();
       }
     }
 

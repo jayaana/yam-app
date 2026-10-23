@@ -457,12 +457,14 @@ function updateTop50(){
 
 document.getElementById('top50Expand').addEventListener('click', function(){
   top50Expanded = !top50Expanded;
+  var tabEl = document.getElementById('yamMusiqueTab'); if(tabEl) tabEl.classList.toggle('mu-expanded', top50Expanded);
   var rows = document.querySelectorAll('#Love .sp-song.hidden-row');
   if(top50Expanded){ rows.forEach(function(r,i){ setTimeout(function(){ r.classList.add('revealed'); }, i*35); }); }
   else { rows.forEach(function(r){ r.classList.remove('revealed'); }); }
   var remaining = songsLove.length - TOP_VISIBLE;
   this.querySelector('span:first-child').textContent = top50Expanded ? 'Réduire' : 'Voir tout ('+remaining+' titres)';
   this.classList.toggle('open', top50Expanded);
+  if(!top50Expanded) setTimeout(function(){ if(window.fitTop50) fitTop50(); }, 40);
 });
 
 // ── PLAY MODE ──
@@ -580,13 +582,23 @@ var particleActive = false;
   function mpShow(){
     if(isGameActive()){ mp.classList.add('game-hidden'); mp.classList.remove('visible'); document.body.classList.remove('mp-active'); return; }
     mp.classList.remove('game-hidden');
-    if(window._currentTab && window._currentTab !== 'musique'){
+    if(window._currentTab === 'musique'){
       mp.classList.add('tab-hidden'); mp.classList.remove('visible'); document.body.classList.remove('mp-active'); return;
     }
     mp.classList.remove('tab-hidden'); mp.classList.add('visible'); document.body.classList.add('mp-active');
+    mp.classList.toggle('mp-pill', !mp.classList.contains('mp-open'));
+    mpPlace();
   }
+  // se pose juste au-dessus de la vraie barre de navigation (hauteur mesurée, zone sûre comprise)
+  function mpPlace(){
+    var nav = document.querySelector('.bottom-nav');
+    if(!nav) return;
+    var t = nav.getBoundingClientRect().top;
+    if(t > 0) mp.style.bottom = Math.round(window.innerHeight - t + 12) + 'px';
+  }
+  window.addEventListener('resize', function(){ if(mp.classList.contains('visible')) mpPlace(); });
   function mpHide(){
-    mp.classList.remove('visible','tab-hidden'); document.body.classList.remove('mp-active');
+    mp.classList.remove('visible','tab-hidden','mp-open'); document.body.classList.remove('mp-active');
   }
 
   window.mpUpdate = function(){
@@ -692,14 +704,7 @@ var particleActive = false;
   };
 
   window.mpCheckGameState = function(){
-    if(_currentSong && !_gAudio.paused){
-      if(isGameActive()){ mp.classList.add('game-hidden'); mp.classList.remove('visible'); }
-      else {
-        mp.classList.remove('game-hidden');
-        if(window._currentTab && window._currentTab !== 'musique'){ mp.classList.add('tab-hidden'); mp.classList.remove('visible'); }
-        else { mp.classList.remove('tab-hidden'); mp.classList.add('visible'); }
-      }
-    }
+    if(_currentSong && !_gAudio.paused){ mpShow(); }
   };
 
   window._mpPollIv = setInterval(function(){
@@ -715,6 +720,132 @@ var particleActive = false;
   var patchClose = ['closeGames','closeMemoryGame','closePenduGame','closePuzzleGame','closeSnakeGame','closeSkyjoGame','closeQuiz'];
   patchOpen.forEach(function(fn){ var orig=window[fn]; if(orig) window[fn]=function(){ orig.apply(this,arguments); if(window.mpCheckGameState) mpCheckGameState(); }; });
   patchClose.forEach(function(fn){ var orig=window[fn]; if(orig) window[fn]=function(){ orig.apply(this,arguments); setTimeout(function(){ if(window.mpCheckGameState) mpCheckGameState(); if(window.mpUpdate) mpUpdate(); },300); }; });
+})();
+
+
+// ════════════════════════════════════════════════════════════
+// LECTEUR INTÉGRÉ À LA CARTE DU HAUT (n°32)
+// ════════════════════════════════════════════════════════════
+function fitTop50(){
+  if(top50Expanded) return;
+  var tab = document.getElementById('yamMusiqueTab');
+  if(!tab || window._currentTab !== 'musique') return;
+  var rows = document.querySelectorAll('#Love .sp-song');
+  var wrap = document.querySelector('.mu-lovebox-wrap'), nav = document.querySelector('.bottom-nav');
+  if(!rows.length || !wrap || !nav) return;
+  var limit = nav.getBoundingClientRect().top - 10;
+  function apply(n){ for(var i=0;i<rows.length;i++) rows[i].classList.toggle('hidden-row', i >= n); }
+  var best = 3, max = Math.min(rows.length, 14);
+  for(var n=3; n<=max; n++){ apply(n); if(wrap.getBoundingClientRect().bottom <= limit) best = n; else break; }
+  apply(best);
+  TOP_VISIBLE = best;
+  var eb = document.getElementById('top50Expand');
+  if(eb){
+    eb.style.display = rows.length <= best ? 'none' : 'flex';
+    eb.querySelector('span:first-child').textContent = 'Voir tout ('+(rows.length-best)+' titres)';
+  }
+}
+window.fitTop50 = fitTop50;
+window.addEventListener('resize', function(){ fitTop50(); });
+window.fitTop50Later = function(){ requestAnimationFrame(function(){ fitTop50(); }); setTimeout(fitTop50, 150); setTimeout(fitTop50, 600); };
+
+(function(){
+  var sec = document.getElementById('loveSection');
+  if(!sec) return;
+  var $ = function(id){ return document.getElementById(id); };
+  function fmt(s){ if(isNaN(s)||!isFinite(s)) return '0:00'; var m=Math.floor(s/60), r=Math.floor(s%60); return m+':'+(r<10?'0':'')+r; }
+  var was = false;
+  function stickTop(){
+    var h = document.getElementById('yamStickyHeader') || document.getElementById('yamMainHeader');
+    if(h){ var b = h.getBoundingClientRect().bottom; if(b > 0) sec.style.setProperty('--mu-top', Math.round(b) + 'px'); }
+  }
+  window.addEventListener('resize', stickTop);
+  function heroSync(){
+    var on = !!_currentSong;
+    stickTop();
+    sec.classList.toggle('mu-playing', on);
+    if(on){
+      $('muHeroTitle').textContent = _currentSong.title;
+      $('muHeroArtist').textContent = _currentSong.artist;
+      var playing = !_gAudio.paused;
+      $('muHeroIconPlay').style.display = playing ? 'none' : '';
+      $('muHeroIconPause').style.display = playing ? '' : 'none';
+    }
+    if(!on && window.muUnstick) window.muUnstick();
+    if(on !== was){ was = on; window.fitTop50Later(); }
+  }
+  var _mu = window.mpUpdate;
+  window.mpUpdate = function(){ if(_mu) _mu.apply(this, arguments); heroSync(); };
+  var _mpp = window.mpUpdateProgress;
+  window.mpUpdateProgress = function(){
+    if(_mpp) _mpp.apply(this, arguments);
+    if(!_currentSong) return;
+    var cur = _gAudio.currentTime || 0, dur = _gAudio.duration;
+    $('muHeroFill').style.width = ((dur && isFinite(dur)) ? cur/dur*100 : 0) + '%';
+    $('muHeroCur').textContent = fmt(cur);
+    $('muHeroDur').textContent = (dur && isFinite(dur)) ? fmt(dur) : '0:00';
+  };
+  $('muHeroPrev').addEventListener('click', function(){ if(window.mpPrev) mpPrev(); });
+  $('muHeroNext').addEventListener('click', function(){ if(window.mpNext) mpNext(); });
+  $('muHeroStop').addEventListener('click', function(){ if(window.mpStop) mpStop(); heroSync(); });
+  // la carte reste à l'écran pendant le défilement (le body est un conteneur de défilement : sticky ne marche pas)
+  var hdr = sec.querySelector('.mu-card-header'), sent = document.createElement('div');
+  sent.id = 'muSentinel'; sent.style.cssText = 'height:0;margin:0;padding:0;pointer-events:none';
+  sec.insertBefore(sent, hdr);
+  var colH = sec.querySelector('.mu-col-header'); if(colH) hdr.appendChild(colH);
+  var stuck = false, raf = false;
+  function unstick(){ if(!stuck) return; stuck = false; hdr.classList.remove('mu-stuck'); sent.style.height = '0'; }
+  function stickCheck(){
+    raf = false;
+    if(!sec.classList.contains('mu-playing') || window._currentTab !== 'musique'){ unstick(); return; }
+    var topPx = parseInt(getComputedStyle(hdr).top, 10); if(isNaN(topPx) || !stuck) topPx = parseInt(sec.style.getPropertyValue('--mu-top'), 10) || 44;
+    var r = sent.getBoundingClientRect();
+    if(!stuck && r.top < topPx - 8){
+      var cs = getComputedStyle(hdr), mt = parseFloat(cs.marginTop) || 0;
+      sent.style.height = (hdr.offsetHeight + mt) + 'px';
+      hdr.classList.add('mu-stuck'); stuck = true;
+    } else if(stuck && r.top >= topPx - 8){ unstick(); }
+  }
+  window.addEventListener('scroll', function(){ if(!raf){ raf = true; requestAnimationFrame(stickCheck); } }, {passive:true, capture:true});
+  window.muUnstick = unstick;
+  $('muHeroPlay').addEventListener('click', function(){ if(window.mpToggle) mpToggle(); heroSync(); });
+  var bar = $('muHeroBar'), drag = false;
+  function seek(e){
+    if(!_gAudio.duration || !isFinite(_gAudio.duration)) return;
+    var r = bar.getBoundingClientRect(), x = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+    _gAudio.currentTime = Math.max(0, Math.min(1, x / r.width)) * _gAudio.duration;
+    window.mpUpdateProgress();
+  }
+  bar.addEventListener('pointerdown', function(e){ drag = true; seek(e); });
+  window.addEventListener('pointermove', function(e){ if(drag) seek(e); });
+  window.addEventListener('pointerup', function(){ drag = false; });
+  _gAudio.addEventListener('pause', heroSync);
+  _gAudio.addEventListener('play', heroSync);
+  // pastille : un tap sur le titre la déplie en lecteur complet ; ▾ ou ~10 s sans y toucher la replie
+  var mp = $('miniPlayer'), info = mp && mp.querySelector('.mp-info'), foldT = null;
+  function fold(){
+    clearTimeout(foldT); foldT = null;
+    if(!mp.classList.contains('mp-open') || mp.classList.contains('mp-folding')) return;
+    mp.classList.add('mp-folding');
+    setTimeout(function(){
+      mp.classList.remove('mp-folding','mp-open'); mp.classList.add('mp-pill','mp-popin');
+      setTimeout(function(){ mp.classList.remove('mp-popin'); }, 340);
+    }, 200);
+  }
+  function armFold(){ clearTimeout(foldT); foldT = setTimeout(fold, 10000); }
+  function openFull(){ mp.classList.add('mp-open'); mp.classList.remove('mp-pill'); armFold(); }
+  function syncEq(){ mp.classList.toggle('mp-paused', _gAudio.paused); }
+  if(mp){
+    if(info) info.addEventListener('click', function(e){
+      if(e.target.closest && e.target.closest('#mpSeek')) return;
+      if(mp.classList.contains('mp-open')) fold(); else openFull();
+    });
+    var cb = $('mpCollapseBtn'); if(cb) cb.addEventListener('click', fold);
+    // toute action dans le lecteur déplié repousse le repli automatique
+    mp.addEventListener('pointerdown', function(){ if(mp.classList.contains('mp-open')) armFold(); });
+    _gAudio.addEventListener('play', syncEq); _gAudio.addEventListener('pause', syncEq);
+    syncEq();
+  }
 })();
 
 
