@@ -7163,3 +7163,7 @@ html body #yamNotif.show { border-color: rgba(231,90,124,.75); box-shadow: 0 6px
 html.jx-lock { overflow-y: hidden; }
 html.jx-lock body { padding-bottom: 0; }
 html.jx-lock #yamJeuxTab.active { height: calc(100dvh - var(--nav-height) - var(--yam-hdr-h, 66px)); }
+
+/* Accueil : le dégagement de la barre nav était compté deux fois (body + panneau) → la page défilait de ~34 px */
+html.home-fit body { padding-bottom: 0; }
+html.home-fit #yamHomeTab.active { padding-bottom: var(--nav-height); }

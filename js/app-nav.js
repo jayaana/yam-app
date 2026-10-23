@@ -98,6 +98,7 @@
     var _mh = document.getElementById('yamMainHeader');
     if(_mh && _mh.offsetHeight) document.documentElement.style.setProperty('--yam-hdr-h', _mh.offsetHeight + 'px');
     document.documentElement.classList.toggle('jx-lock', tab === 'jeux');
+    document.documentElement.classList.toggle('home-fit', tab === 'home');
     setTimeout(function(){ if(window._yamFixJeuxShift) window._yamFixJeuxShift(); }, 50);
     if(window._yamDiagInit) window._yamDiagInit(tab);
 
@@ -1875,3 +1876,6 @@ if(document.body) window._yamDiagInit(); else document.addEventListener('DOMCont
   }
   window._yamFixJeuxShift = fix;
 })();
+
+// Accueil = onglet de démarrage : appliquer tout de suite l'ajustement de hauteur (sinon la page défile de ~34 px au lancement)
+if(!window._currentTab) document.documentElement.classList.add('home-fit');
