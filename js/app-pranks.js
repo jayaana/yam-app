@@ -99,6 +99,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     if(el) el.textContent = victim;
     var menu = document.getElementById('prankMenu');
     menu.classList.add('show');
+    refreshPendingCount();
     // Bloquer le scroll body (iOS compatible)
     var scrollY = window.scrollY;
     document.body.style.position = 'fixed';
@@ -157,6 +158,24 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     }, { passive: true });
   })();
 
+  /* ── Nombre de bêtises envoyées et pas encore résolues (côté envoyeur) ── */
+  function refreshPendingCount(){
+    var btn = document.getElementById('prankCancelAllBtn');
+    var u = yamGetUser(), me = getProfile();
+    if(!btn || !u || !u.couple_id || !me) return Promise.resolve(0);
+    return fetch(SB_URL+'/rest/v1/'+PRANK_TABLE+'?couple_id=eq.'+u.couple_id+'&sender_role=eq.'+me+'&active=eq.true&type=neq.__pref&select=id', { headers: sb2Headers(), cache: 'no-store' })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(rows){
+        if(!rows) return 0;
+        btn.dataset.count = rows.length;
+        btn.textContent = rows.length
+          ? '🗑️ Annuler mes bêtises en attente (' + rows.length + ')'
+          : '🗑️ Aucune bêtise en attente';
+        return rows.length;
+      }).catch(function(){ return 0; });
+  }
+  window._yamPrankPendingCount = refreshPendingCount;
+
   /* ── Annuler toutes les bêtises en attente ── */
   window.prankCancelAll = function(){
     var profile = getProfile();
@@ -175,7 +194,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     }).then(function(){
       if(btn) btn.textContent = '✅ Bêtises annulées !';
       setTimeout(function(){
-        if(btn) btn.textContent = '🗑️ Annuler toutes mes bêtises en attente';
+        if(btn) refreshPendingCount();
         document.getElementById('prankMenu').classList.remove('show');
         var scrollY = parseInt(document.body.dataset.scrollY || '0');
         document.body.style.position = '';
@@ -186,7 +205,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
         window.scrollTo(0, scrollY);
       }, 1200);
     }).catch(function(e){
-      if(btn) btn.textContent = '🗑️ Annuler toutes mes bêtises en attente';
+      if(btn) refreshPendingCount();
       showPrankToast('❌ Annulation impossible : ' + e.message + '. Réessaie.');
     });
   };
@@ -283,6 +302,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
       body: JSON.stringify(body)
     }).then(function(){
       var fb = document.createElement('div');
+      refreshPendingCount().then(function(n){ if(n > 1) fb.textContent = '😈 Bêtise envoyée ! (' + n + ' en attente)'; });
       fb.className = 'clown-pop'; fb.textContent = '😈 Bêtise envoyée !';
       fb.style.fontSize = '18px'; fb.style.fontWeight = '700'; fb.style.color = '#e8507a';
       document.body.appendChild(fb);
@@ -333,6 +353,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
     }).then(function(){
       document.getElementById('prankMsgModal').classList.remove('show');
       var fb = document.createElement('div');
+      refreshPendingCount().then(function(n){ if(n > 1) fb.textContent = '😈 Bêtise envoyée ! (' + n + ' en attente)'; });
       fb.className = 'clown-pop'; fb.textContent = '😈 Bêtise envoyée !';
       fb.style.fontSize = '18px'; fb.style.fontWeight = '700'; fb.style.color = '#e8507a';
       document.body.appendChild(fb);
@@ -345,7 +366,9 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
   var _batchTotal = 0, _batchIdx = 0; // « Bêtise 2 sur 3 »
   function _batchPill(){
     var el = document.getElementById('prankRemain');
-    if(!el){ el = document.createElement('div'); el.id = 'prankRemain'; el.setAttribute('role','status'); document.body.appendChild(el); }
+    if(!el){ el = document.createElement('div'); el.id = 'prankRemain'; el.setAttribute('role','status');
+      // Enfant de <html> et non de <body> : le tremblement / retournement / body fixé déplaçaient la pastille
+      document.documentElement.appendChild(el); }
     var _g = document.getElementById('prankGotcha');
     var _inPrank = document.body.classList.contains('prank-active') || (_g && _g.classList.contains('show'));
     if(_batchTotal > 1 && _batchIdx > 0 && _inPrank){ el.textContent = '😈 Bêtise ' + _batchIdx + ' sur ' + _batchTotal; el.classList.add('show'); }
@@ -1350,6 +1373,7 @@ document.getElementById('betisesBtn').addEventListener('click', function() {
         var _r = payload && payload.new;
         // Côté envoyeur : la bêtise vient de se terminer (piège réussi) ou a été refusée
         if (_r && _r.sender_role === gender) {
+          refreshPendingCount();
           if (_r.active === false && Date.now() - (window._prankCancelAt || 0) > 8000) {
             var vName = (typeof v2GetDisplayName === 'function') ? v2GetDisplayName(gender === 'boy' ? 'girl' : 'boy') : 'Ton partenaire';
             if (window.showToast) window.showToast(_r.message === '__refused__'
