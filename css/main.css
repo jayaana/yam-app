@@ -7164,6 +7164,6 @@ html:has(#yamJeuxTab.active) { overflow-y: hidden; }
 /* Jeux : la page ne défile plus, c'est le contenu (.jx-scroll) qui défile si l'écran est trop petit ; marge basse = hauteur d'en-tête (le panneau dépasse sous la barre nav) */
 #yamJeuxTab .jx-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
 /* cale de fin (élément flex, pas un padding : Safari ignore parfois le padding bas d'un conteneur flex défilant) : le panneau dépasse sous la barre nav de la hauteur de l'en-tête */
-#yamJeuxTab .jx-scroll::after { content: ''; display: block; flex: 0 0 auto; height: calc(var(--yam-hdr-h, 66px) + 24px); }
+#yamJeuxTab .jx-scroll::after { content: ''; display: block; flex: 0 0 auto; height: calc(var(--yam-hdr-h, 66px) + 56px); }
 /* Les blocs de Jeux ne doivent pas se comprimer quand l'un d'eux se déplie : c'est le défilement qui absorbe la hauteur en plus */
 #yamJeuxTab .jx-scroll > * { flex-shrink: 0; }

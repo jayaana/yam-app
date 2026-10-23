@@ -1851,33 +1851,3 @@ setTimeout(function(){
   }
   window._yamFixJeuxShift = fix;
 })();
-
-// DIAGNOSTIC TEMPORAIRE (Jeux non scrollable une fois un bloc déplié) : à retirer
-(function(){
-  var box = null, n = 0;
-  function show(s){
-    if(!box){
-      box = document.createElement('pre');
-      box.style.cssText = 'position:fixed;left:4px;right:4px;top:70px;z-index:99999;margin:0;padding:6px;font:9px/1.25 monospace;background:rgba(0,0,0,.85);color:#7CFC00;border-radius:6px;white-space:pre-wrap;pointer-events:none;';
-      document.body.appendChild(box);
-    }
-    box.textContent = s;
-  }
-  function info(tag, e){
-    var s = document.querySelector('#yamJeuxTab .jx-scroll');
-    if(!s || window._currentTab !== 'jeux'){ if(box) box.textContent = ''; return; }
-    var cs = getComputedStyle(s), t = e && e.touches && e.touches[0];
-    var el = t ? document.elementFromPoint(t.clientX, t.clientY) : null;
-    var anc = el, sc = '';
-    while(anc && anc !== document.body){ var o = getComputedStyle(anc).overflowY; if(o === 'auto' || o === 'scroll' || o === 'hidden') sc += (anc.id || anc.className || anc.tagName).toString().slice(0, 14) + ':' + o + ':' + anc.clientHeight + '/' + anc.scrollHeight + '/' + Math.round(anc.scrollTop) + ' > '; anc = anc.parentElement; }
-    setTimeout(function(){
-      show(tag + ' #' + (++n) + ' prevented=' + (e ? e.defaultPrevented : '-') + ' cancelable=' + (e ? e.cancelable : '-') +
-        '\njx-scroll ov=' + cs.overflowY + ' ch=' + s.clientHeight + ' sh=' + s.scrollHeight + ' st=' + Math.round(s.scrollTop) +
-        '\nlocked=' + window._yamScrollLocked + ' body=' + document.body.className + ' html.ov=' + getComputedStyle(document.documentElement).overflowY + ' y=' + Math.round(scrollY) +
-        '\nchaine: ' + sc);
-    }, 0);
-  }
-  document.addEventListener('touchstart', function(e){ info('START', e); }, { passive: true, capture: true });
-  document.addEventListener('touchmove', function(e){ info('MOVE', e); }, { passive: true, capture: true });
-  document.addEventListener('touchend', function(e){ info('END', e); }, { passive: true, capture: true });
-})();
