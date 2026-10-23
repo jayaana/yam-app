@@ -710,7 +710,7 @@ function snakeSelectGender(g){
   document.getElementById('snakeGameArea').style.display='block';
   snakeBestScore=0;
   document.getElementById('snakeBest').textContent='0';
-  document.getElementById('snakeOverlayTitle').textContent='Snake 🐍';
+  document.getElementById('snakeOverlayTitle').textContent='Snake';
   document.getElementById('snakeOverlaySub').textContent='Mange les 💕 sans te mordre la queue';
   document.getElementById('snakeOverlay').style.display='flex';
   snakeCvs=document.getElementById('snakeCanvas');
@@ -897,7 +897,7 @@ function snakeDraw(){
 function snakeGameOver(){
   clearInterval(snakeInterval); snakeRunning=false;
   if(snakeCurScore>snakeBestScore){ snakeBestScore=snakeCurScore; document.getElementById('snakeBest').textContent=snakeBestScore; }
-  document.getElementById('snakeOverlayTitle').textContent='Game Over 💀';
+  document.getElementById('snakeOverlayTitle').textContent='Game Over';
   document.getElementById('snakeOverlaySub').textContent='Score : '+snakeCurScore+' pts';
   document.getElementById('snakeOverlay').style.display='flex';
   if(snakePlayer&&snakeCurScore>0){

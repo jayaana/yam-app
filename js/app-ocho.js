@@ -407,7 +407,7 @@
       '<button id="ochoBackBtn" style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:6px 14px;color:#ffffff;font-size:13px;font-weight:700;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;backdrop-filter:blur(8px);">'+
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Retour</button>'+
       '<div style="font-family:Bricolage Grotesque,system-ui,sans-serif;font-size:15px;font-weight:900;color:#ffffff;text-shadow:0 1px 6px rgba(0,0,0,0.4);display:flex;flex-direction:column;align-items:center;gap:1px;">'+
-        '<span style="font-size:16px;">Ocho \uD83C\uDCCF</span>'+
+        '<span style="font-size:16px;">Ocho</span>'+
         '<span id="ochoTableRound" style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:0.06em;text-transform:uppercase;">Manche 1/6</span>'+
       '</div>'+
       '<button id="ochoAbandonBtn" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:20px;padding:7px 16px;font-size:13px;font-weight:800;font-family:Bricolage Grotesque,system-ui,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.35);">Abandon</button>'+
