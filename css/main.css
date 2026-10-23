@@ -7038,3 +7038,40 @@ body #loveBox::after, body.light #loveBox::after { display: none; }
 #loveSection .mu-card-header > .mu-col-header { margin: 4px -16px -12px; padding: 7px 16px 6px; background: rgba(255,255,255,.55); border-top: 1px solid rgba(231,90,124,.12); }
 #loveSection.mu-playing .mu-card-header > .mu-col-header { background: rgba(255,255,255,.2); border-top-color: rgba(255,255,255,.25); color: #fff; }
 #loveSection.mu-playing .mu-card-header > .mu-col-header > * { color: #fff; }
+
+/* ── Retouche Musique (n°32b) : retrait des bords + thème sombre ── */
+/* design-system.css (#loveSection > *) mettait le retrait gauche/droite à 0 : tout débordait sur les côtés */
+#loveSection > .mu-card-header { padding-left: 16px; padding-right: 16px; }
+#loveSection .mu-card-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#loveSection .mu-card-top-row > * { min-width: 0; }
+.mu-hero-seek > span { flex: none; min-width: 26px; }
+.mu-hero-seek > span:last-child { text-align: right; }
+/* thème sombre : rose adouci, pas de rose vif */
+body:not(.light) #loveSection.mu-playing .mu-card-header { background: linear-gradient(135deg, #5b2c41, #44262f 70%, #3a2429); border-color: rgba(255,255,255,.10); box-shadow: 0 6px 18px rgba(0,0,0,.4); }
+body:not(.light) #loveSection.mu-playing .mu-card-header::before { background: radial-gradient(circle at 90% -10%, rgba(231,90,124,.22), transparent 55%); }
+body:not(.light) #loveSection.mu-playing .mu-card-header.mu-stuck { box-shadow: 0 8px 14px -6px rgba(0,0,0,.5); }
+body:not(.light) .mu-hero-cover { background: rgba(255,255,255,.12); box-shadow: 0 6px 16px rgba(0,0,0,.35); }
+body:not(.light) .mu-hero-btn.pp { background: #e75a7c; color: #fff; box-shadow: 0 5px 14px rgba(0,0,0,.4); }
+body:not(.light) .mu-hero-btn.stop { background: rgba(255,255,255,.12); }
+body:not(.light) #loveSection.mu-playing .mu-mode-btn { background: rgba(255,255,255,.12); }
+body:not(.light) #loveSection .mu-card-header > .mu-col-header { background: rgba(255,255,255,.04); border-top-color: rgba(255,255,255,.08); }
+body:not(.light) #loveSection.mu-playing .mu-card-header > .mu-col-header { background: rgba(0,0,0,.18); border-top-color: rgba(255,255,255,.10); }
+body:not(.light) #loveSection .mu-card-tracks { border-top-color: rgba(255,255,255,.08); }
+body:not(.light) #miniPlayer.mp-pill .mp-inner { background: linear-gradient(135deg, #7a3452, #5b2c41); box-shadow: 0 8px 20px rgba(0,0,0,.5); }
+body:not(.light) #miniPlayer.mp-pill .mp-btn-play { background: #e75a7c; color: #fff; }
+body:not(.light) #miniPlayer.mp-pill { animation-name: none; }
+body:not(.light) #loveBox { background: radial-gradient(circle at 50% 115%, #5e3346 0, #402a36 45%, #2e2429 100%); border-color: rgba(255,255,255,.10); box-shadow: 0 10px 30px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.08); }
+body:not(.light) #loveBox::before { background: radial-gradient(ellipse at 50% 0, rgba(231,90,124,.18), transparent 60%); }
+body:not(.light) #loveBox .cl-rays { opacity: .12; }
+body:not(.light) #loveBox .cl-glow { opacity: .18; }
+
+/* bouton « i » du câlin : pastille ronde colorée, texte droit (zone de toucher gardée à 44 px) */
+#loveBox .lb-info { top: 8px; right: 8px; width: 26px; height: 26px; padding: 0; border-radius: 50%; background: linear-gradient(135deg, #ff7aa6, #ff4f8a); color: #fff; font: 800 14px/26px 'Bricolage Grotesque', sans-serif; font-style: normal; text-align: center; opacity: 1; box-shadow: 0 3px 8px rgba(214,51,107,.4), inset 0 1px 0 rgba(255,255,255,.4); border: 1.5px solid rgba(255,255,255,.75); -webkit-tap-highlight-color: transparent; transition: transform .12s; }
+#loveBox .lb-info::before { content: ''; position: absolute; inset: -9px; border-radius: 50%; }
+#loveBox .lb-info:active { transform: scale(.9); }
+body:not(.light) #loveBox .lb-info { background: linear-gradient(135deg, #8a3a58, #5b2c41); border-color: rgba(255,255,255,.35); box-shadow: 0 3px 8px rgba(0,0,0,.45); }
+
+/* texte d'info du câlin : bulle lisible sur le fond rose (clair et sombre) */
+#loveBox .lb-tip { left: 50%; right: auto; transform: translateX(-50%); width: max-content; max-width: calc(100% - 24px); box-sizing: border-box; padding: 7px 12px; border-radius: 14px; background: rgba(255,255,255,.94); color: #5a2243; font: 600 12px/1.35 'Bricolage Grotesque', sans-serif; text-align: center; box-shadow: 0 4px 14px rgba(120,20,60,.25); }
+#loveBox .lb-tip.on { opacity: 1; }
+body:not(.light) #loveBox .lb-tip { background: rgba(28,20,24,.94); color: #ffe3ee; box-shadow: 0 4px 14px rgba(0,0,0,.5); }

@@ -733,10 +733,10 @@ function fitTop50(){
   var rows = document.querySelectorAll('#Love .sp-song');
   var wrap = document.querySelector('.mu-lovebox-wrap'), nav = document.querySelector('.bottom-nav');
   if(!rows.length || !wrap || !nav) return;
-  var limit = nav.getBoundingClientRect().top - 10;
+  var limit = nav.getBoundingClientRect().top - 24;
   function apply(n){ for(var i=0;i<rows.length;i++) rows[i].classList.toggle('hidden-row', i >= n); }
-  var best = 3, max = Math.min(rows.length, 14);
-  for(var n=3; n<=max; n++){ apply(n); if(wrap.getBoundingClientRect().bottom <= limit) best = n; else break; }
+  var best = 2, max = Math.min(rows.length, 14);
+  for(var n=2; n<=max; n++){ apply(n); if(wrap.getBoundingClientRect().bottom <= limit) best = n; else break; }
   apply(best);
   TOP_VISIBLE = best;
   var eb = document.getElementById('top50Expand');
@@ -747,6 +747,7 @@ function fitTop50(){
 }
 window.fitTop50 = fitTop50;
 window.addEventListener('resize', function(){ fitTop50(); });
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ fitTop50(); });
 window.fitTop50Later = function(){ requestAnimationFrame(function(){ fitTop50(); }); setTimeout(fitTop50, 150); setTimeout(fitTop50, 600); };
 
 (function(){
