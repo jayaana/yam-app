@@ -837,7 +837,7 @@ function _nousLoadProfil() {
         badge.textContent = 'NEW';
         badge.style.cssText = 'position:absolute;top:4px;right:4px;background:#e75a7c;color:#fff;font-size:8px;font-weight:800;letter-spacing:0.5px;padding:2px 5px;border-radius:6px;text-transform:uppercase;z-index:10;pointer-events:none;line-height:1.4;';
         var ps = window.getComputedStyle(el).position;
-        if(ps === 'static') el.style.position = 'relative';
+        if(ps === 'static' || ps === '') el.style.position = 'relative';
         el.appendChild(badge);
       }
       badge.style.display = '';
@@ -2919,7 +2919,7 @@ document.addEventListener('yam:session_ready',function(){
         (isFav?heartFilled:heartEmpty)+
         '</button>';
       if(s.id){
-        row.dataset.nbKey='souvenir_'+s.id;
+        row.dataset.nbKey='souvenir_'+s.id; row.style.position='relative';
         if(window.yamIsNew && window.yamIsNew('souvenir_'+s.id) && window.yamShowNewBadge) window.yamShowNewBadge(row, true);
       }
       row.querySelector('.souvenir-fav-btn').addEventListener('click',function(){
@@ -4274,7 +4274,7 @@ document.addEventListener('yam:session_ready',function(){
     }
     _livresAllRows.forEach(function(book){
       var row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;';
+      row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;position:relative;';
       var photoUrl = book.has_image ? (SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/books/'+book.couple_id+'/'+book.id+'.jpg?t='+Math.floor(Date.now()/60000)) : '';
       var isNew = window.yamIsNew ? window.yamIsNew('livre_'+book.id) : false;
       row.innerHTML =
