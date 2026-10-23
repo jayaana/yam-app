@@ -511,6 +511,38 @@ document.getElementById('top50Expand').addEventListener('click', function(){
   this.classList.toggle('open', top50Expanded);
 });
 
+// ── Bouton flottant « Réduire » : visible liste dépliée tant que le vrai bouton Réduire n'est pas à l'écran ──
+(function(){
+  var fab = document.createElement('button');
+  fab.type = 'button'; fab.className = 'mu-fab-reduce'; fab.id = 'muFabReduce';
+  fab.setAttribute('aria-label', 'Réduire la liste'); fab.title = 'Réduire la liste';
+  fab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="5.5 15 12 8.5 18.5 15"/></svg>';
+  document.body.appendChild(fab);
+  var raf = false;
+  function update(){
+    raf = false;
+    var eb = document.getElementById('top50Expand'), nav = document.querySelector('.bottom-nav');
+    var show = false;
+    if(top50Expanded && window._currentTab === 'musique' && eb && eb.offsetParent !== null){
+      var limit = nav ? nav.getBoundingClientRect().top : window.innerHeight;
+      show = eb.getBoundingClientRect().top >= limit - 8;
+      fab.style.bottom = Math.round(window.innerHeight - limit + 14) + 'px';
+    }
+    fab.classList.toggle('show', show);
+    var sec = document.getElementById('loveSection'); fab.classList.toggle('playing', !!(sec && sec.classList.contains('mu-playing')));
+  }
+  function later(){ if(!raf){ raf = true; requestAnimationFrame(update); } }
+  window.muFabRefresh = later;
+  window.addEventListener('scroll', later, {passive:true, capture:true});
+  window.addEventListener('resize', later);
+  document.addEventListener('click', function(){ setTimeout(later, 60); setTimeout(later, 600); }, true);
+  fab.addEventListener('click', function(){
+    var eb = document.getElementById('top50Expand'); if(eb) eb.click();
+    fab.classList.remove('show');
+    window.scrollTo({ top: 0, behavior: window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  });
+})();
+
 // ── PLAY MODE ──
 var playMode = 'repeatAll';
 var _modeList = ['repeatAll','order','shuffle','repeatOne'];
@@ -831,6 +863,7 @@ window.fitTop50Later = function(){ requestAnimationFrame(function(){ fitTop50();
       $('muHeroIconPause').style.display = playing ? '' : 'none';
     }
     if(window.muRestick) window.muRestick();
+    if(window.muFabRefresh) window.muFabRefresh();
     if(on !== was){ was = on; window.fitTop50Later(); }
   }
   var _mu = window.mpUpdate;

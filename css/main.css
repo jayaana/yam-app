@@ -7141,3 +7141,11 @@ html body #uxToast.success { border-color: rgba(231,90,124,.4); }
 #miniPlayer.mp-pill .mp-btn-collapse { background: rgba(255,255,255,.28); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.7); }
 #miniPlayer .mp-btn-collapse, #miniPlayer.mp-pill .mp-btn-collapse { width: 38px; min-width: 38px; height: 26px; padding: 0; border-radius: 13px; }
 .sp-song:not(.playing) .sp-btn-yt, .sp-song:not(.playing):hover .sp-btn-yt { opacity: 0 !important; pointer-events: none !important; }
+/* bouton flottant « Réduire la liste » (liste Musique dépliée) */
+.mu-fab-reduce { position: fixed; right: 16px; bottom: calc(var(--nav-height, 64px) + 16px); z-index: 40; width: 46px; height: 46px; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #f4f4f8, #e5e5ea 70%, #d8d8de); color: #e75a7c; border: 2px solid rgba(231,90,124,.45); box-shadow: 0 6px 16px rgba(60,60,67,.25); cursor: pointer; opacity: 0; transform: translateY(10px) scale(.9); pointer-events: none; transition: opacity .25s ease, transform .25s ease; -webkit-tap-highlight-color: transparent; }
+.mu-fab-reduce svg { width: 26px; height: 26px; }
+.mu-fab-reduce.show { opacity: 1; transform: none; pointer-events: auto; }
+.mu-fab-reduce.playing { background: linear-gradient(135deg, #ff9cc0, #ff5c93 70%, #ff4f8a); color: #fff; border-color: rgba(255,255,255,.6); box-shadow: 0 6px 16px rgba(255,92,147,.45); }
+body:not(.light) .mu-fab-reduce { background: linear-gradient(135deg, #8a5a3c, #6b4430 70%, #5a3a2a); color: #ffc08a; border-color: rgba(255,170,100,.65); box-shadow: 0 6px 16px rgba(0,0,0,.55); }
+body:not(.light) .mu-fab-reduce.playing { background: linear-gradient(135deg, #5b2c41, #44262f 70%, #3a2429); color: #ff9cc0; border-color: rgba(240,102,136,.7); }
+@media (prefers-reduced-motion: reduce) { .mu-fab-reduce { transition: none; } }
