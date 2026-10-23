@@ -806,6 +806,8 @@ window.fitTop50Later = function(){ requestAnimationFrame(function(){ fitTop50();
     if(on){
       $('muHeroTitle').textContent = _currentSong.title;
       $('muHeroArtist').textContent = _currentSong.artist;
+      var rk = $('muHeroRank'), ri = _playlist.indexOf(_currentSong);
+      if(rk) rk.innerHTML = ri >= 0 ? '<b>#' + (ri+1) + '</b><span>/ ' + _playlist.length + '</span>' : '';
       var cv = $('muHeroCover'), cu = _coverUrls[_currentSong.file];
       if(cv){
         if(cu){
