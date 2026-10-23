@@ -56,7 +56,8 @@ var songsLove = [
   {title:"I Follow Rivers",      artist:"Lykke Li",             file:"Lykke Li - I Follow Rivers.mp3",       yt:"https://youtu.be/K3JGxj2rvAs",             isNew:true},
   {title:"Here With Me",         artist:"d4vd",                 file:"d4vd - Here With Me.mp3",              yt:"https://youtu.be/Ip6cw8gfHHI",             isNew:true},
   {title:"Love Me Not",          artist:"Ravyn Lenae",          file:"Ravyn Lenae - Love Me Not.mp3",        yt:"https://youtu.be/NB7WuqWzDhw",             isNew:true},
-  {title:"On s'attache",         artist:"Christophe Maé",       file:"Christophe Maé - On sattache.mp3",     yt:"https://youtu.be/NeRLnsPNSg0",             isNew:true}
+  {title:"On s'attache",         artist:"Christophe Maé",       file:"Christophe Maé - On sattache.mp3",     yt:"https://youtu.be/NeRLnsPNSg0",             isNew:true},
+  {title:"Melo Decale",          artist:"Tiakola",              file:"Tiakola_Melo Decale.mp3",              yt:""}
 ];
 songsLove.forEach(function(x){ x.plays = 0; });
 
