@@ -482,6 +482,8 @@
       _checkPushReminders(_eventsCache);
       _updateEventsBadge(_eventsCache);
       _syncStoryBubble();
+      var m = document.getElementById('eventsModal');   // liste ouverte : la rafraîchir (ajout/suppression de l'autre)
+      if (m && m.style.display !== 'none' && !_editingId) _renderList();
     }).catch(function() {});
   }
 

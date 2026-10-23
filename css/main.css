@@ -7075,3 +7075,9 @@ body:not(.light) #loveBox .lb-info { background: linear-gradient(135deg, #8a3a58
 #loveBox .lb-tip { left: 50%; right: auto; transform: translateX(-50%); width: max-content; max-width: calc(100% - 24px); box-sizing: border-box; padding: 7px 12px; border-radius: 14px; background: rgba(255,255,255,.94); color: #5a2243; font: 600 12px/1.35 'Bricolage Grotesque', sans-serif; text-align: center; box-shadow: 0 4px 14px rgba(120,20,60,.25); }
 #loveBox .lb-tip.on { opacity: 1; }
 body:not(.light) #loveBox .lb-tip { background: rgba(28,20,24,.94); color: #ffe3ee; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
+
+/* Accueil : cartes « bientôt » grisées, retour visible, focus clavier */
+#yamHomeTab .home-soon { opacity: .5; filter: grayscale(.7); cursor: default; }
+#yamHomeTab [role="button"]:focus-visible { outline: 2px solid var(--pink, #e75a7c); outline-offset: 2px; }
+.home-rappel-later:active, .home-rappel-done:active { transform: scale(.94); opacity: .8; }
+#homeMoodElle[role="button"], #homeMoodLui[role="button"] { cursor: pointer; }

@@ -98,6 +98,10 @@
       }
     }
     if(!text||text.length<4) return;
+    var isFb=/\u200B$/.test(text);
+    text=text.replace(/\u200B/g,'');
+    var lbl=document.getElementById('homeMsgLabel');
+    if(lbl){ lbl.textContent='✨ MESSAGE DU YAM'+(isFb?' · 💤':''); lbl.title=isFb?'Phrase de secours (l\'IA n\'a pas répondu)':''; }
     if(_lastIdx===idx&&el.textContent===text) return;
     _lastIdx=idx;
     el.style.opacity='0';
@@ -240,23 +244,24 @@
     })
     .catch(function(){
       _generating = false;
+      var P = (pName||'ton/ta partenaire');
       var fb = [
         'T\'as bien dormi ? 😊',
-        'Envoie un message a ' + (pName||'ton/ta partenaire') + ' ce matin !',
-        'Definis ton humeur du jour dans l\'app 😌',
-        'Je pense que ' + (pName||'ton/ta partenaire') + ' pense a toi ce matin.',
-        'Belle journee en perspective ! 🌞',
-        'Comment se passe ta journee ? 😊',
-        'Ca te dirait une partie de jeu avec ' + (pName||'ton/ta partenaire') + ' ? 🎲',
-        'Un petit mot doux dans l\'app, ca fait du bien 😌',
-        'J\'ai une idee... envoie une betise a ' + (pName||'ton/ta partenaire') + ' 😈',
-        'Je pense a toi et a ' + (pName||'ton/ta partenaire') + ' cet apres-midi.',
-        'Comment s\'est passee ta journee ? 🌃',
-        'On ecoute une musique tous les 3 ce soir ? 🎶',
-        'Appelle ' + (pName||'ton/ta partenaire') + ' ou envoie-lui un vocal ! 📞',
+        'Envoie un message à ' + P + ' ce matin !',
+        'Définis ton humeur du jour dans l\'app 😌',
+        'Je pense que ' + P + ' pense à toi ce matin.',
+        'Belle journée en perspective ! 🌞',
+        'Comment se passe ta journée ? 😊',
+        'Ça te dirait une partie de jeu avec ' + P + ' ? 🎲',
+        'Un petit mot doux dans l\'app, ça fait du bien 😌',
+        'J\'ai une idée... envoie une bêtise à ' + P + ' 😈',
+        'Je pense à toi et à ' + P + ' cet après-midi.',
+        'Comment s\'est passée ta journée ? 🌃',
+        'On écoute une musique tous les 3 ce soir ? 🎶',
+        'Appelle ' + P + ' ou envoie-lui un vocal ! 📞',
         'Ouvre les Souvenirs et ajoute une photo du jour 📸',
-        'Ecris une petite note avant de dormir 😴'
-      ];
+        'Écris une petite note avant de dormir 😴'
+      ].map(function(t){ return t + '\u200B'; }); // marqueur invisible : phrase de secours (pas écrite par l'IA)
       _saveSB(cid, role, fb);
       var uid2 = _userId(); if(uid2) _saveLocal(uid2, fb);
       onDone(fb);
@@ -301,6 +306,22 @@
 
   function _cid(){ var u=yamGetUser(); return u?u.couple_id:null; }
   function _uid2(){ return Math.random().toString(36).slice(2,9)+Date.now().toString(36); }
+  function _norm(t){ return String(t||'').toLowerCase().replace(/[^a-z0-9\u00e0-\u00ff]+/g,' ').trim(); }
+  // Doublons : même texte (sans emoji/ponctuation) -> on garde le premier ; un « fait » l'emporte
+  function _dedupe(arr){
+    var seen={}, out=[];
+    arr.forEach(function(r){
+      var k=_norm(r&&r.text); if(!k){ out.push(r); return; }
+      if(seen[k]===undefined){ seen[k]=out.length; out.push(r); }
+      else if(r.done&&!out[seen[k]].done){ out[seen[k]].done=true; }
+    });
+    return out;
+  }
+  function _addUnique(t){
+    var k=_norm(t);
+    if(_data.some(function(r){ return _norm(r.text)===k; })) return;
+    _data.push({id:_uid2(),text:t,done:false});
+  }
   function _hash(arr){ return arr.map(function(r){return r.id+':'+(r.done?'1':'0')+':'+r.text;}).join('|'); }
 
   function _load(cb){
@@ -308,7 +329,7 @@
     fetch(SB_URL+'/rest/v1/photo_descs?couple_id=eq.'+cid+'&category=eq.'+CAT+'&slot=eq.'+SLOT+'&select=id,description&limit=1',{headers:sb2Headers()})
     .then(function(r){return r.ok?r.json():[];})
     .then(function(rows){
-      if(rows&&rows[0]){ _rowId=rows[0].id||null; try{var p=JSON.parse(rows[0].description||'');if(Array.isArray(p)){cb(p);return;}}catch(e){} }
+      if(rows&&rows[0]){ _rowId=rows[0].id||null; try{var p=JSON.parse(rows[0].description||'');if(Array.isArray(p)){cb(_dedupe(p));return;}}catch(e){} }
       cb([]);
     }).catch(function(){cb([]);});
   }
@@ -352,7 +373,7 @@
     sorted.forEach(function(item){
       var row=document.createElement('div'); row.className='rsh-item'+(item.done?' rsh-done':'');
       var chk=document.createElement('div'); chk.className='rsh-check'+(item.done?' on':''); chk.textContent=item.done?'✓':'';
-      chk.onclick=function(){ _data.forEach(function(r){if(r.id===item.id)r.done=!r.done;}); _save(); var a=_active(); if(_idx>=a.length)_idx=Math.max(0,a.length-1); _card(); _sheet(); };
+      chk.onclick=function(){ _data.forEach(function(r){if(r.id===item.id){ r.done=!r.done; r.doneAt=r.done?_todayStr():null; }}); _save(); var a=_active(); if(_idx>=a.length)_idx=Math.max(0,a.length-1); _card(); _sheet(); };
       var txt=document.createElement('div'); txt.className='rsh-item-txt'; txt.textContent=item.text; txt.contentEditable='true'; txt.spellcheck=false;
       txt.onblur=function(){ var v=txt.textContent.trim(); if(!v){txt.textContent=item.text;return;} _data.forEach(function(r){if(r.id===item.id)r.text=v;}); _save(); _card(); };
       txt.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();txt.blur();}};
@@ -367,7 +388,7 @@
   window.homeRappelDone=function(){
     var act=_active(); if(!act.length)return;
     var item=act[_idx];
-    _data.forEach(function(r){if(r.id===item.id)r.done=true;});
+    _data.forEach(function(r){if(r.id===item.id){ r.done=true; r.doneAt=_todayStr(); }});
     _save();
     if(typeof showToast==='function') showToast('Bravo ! 💕','success');
     if(typeof window.yamFlameActivity==='function') window.yamFlameActivity('rappel_done');
@@ -388,6 +409,7 @@
   window.rappelAdd=function(){
     var inp=document.getElementById('rshInput'); if(!inp) return;
     var v=inp.value.trim(); if(!v) return;
+    if(_data.some(function(r){ return !r.done&&_norm(r.text)===_norm(v); })){ inp.value=''; return; }
     _data.push({id:_uid2(),text:v,done:false});
     _save(); inp.value=''; _card(); _sheet();
   };
@@ -406,7 +428,9 @@
     var lastGen = null;
     try{ lastGen = localStorage.getItem('yam_rgen_'+(_cid()||'')); }catch(e){}
     // On vide seulement si une génération a eu lieu un AUTRE jour que aujourd'hui
-    if(lastGen && lastGen !== _todayStr()){
+    // ... ET seulement si rien n'a été coché aujourd'hui (sinon on vidait les rappels cochés le jour même)
+    var doneToday = _data.some(function(r){ return r.doneAt === _todayStr(); });
+    if(lastGen && lastGen !== _todayStr() && !doneToday){
       _data = [];
       _save();
     }
@@ -483,14 +507,14 @@
       }
       if(!col.length) col=['Faites-vous un bisou 😘','Appelez-vous ce soir 📞','Partagez une chanson 🎵'];
       _markGenToday();
-      col.forEach(function(t){ _data.push({id:_uid2(),text:t,done:false}); });
+      col.forEach(_addUnique);
       _save(); _card(); _sheet();
     })
     .catch(function(){
       if(loader) loader.style.display='none';
       var fb=['Faites-vous un bisou 😘','Appelez-vous ce soir 📞','Partagez une chanson 🎵'];
       _markGenToday();
-      fb.forEach(function(t){ _data.push({id:_uid2(),text:t,done:false}); });
+      fb.forEach(_addUnique);
       _save(); _card(); _sheet();
     });
   }
@@ -552,6 +576,12 @@
       if(profile==='girl'){ var n=document.getElementById('homeMoodElleName');if(n)n.textContent=selfName; var m=document.getElementById('homeMoodLuiName');if(m)m.textContent=partName; }
       else if(profile==='boy'){ var n=document.getElementById('homeMoodLuiName');if(n)n.textContent=selfName; var m=document.getElementById('homeMoodElleName');if(m)m.textContent=partName; }
     }
+    ['homeMoodElle','homeMoodLui'].forEach(function(id){
+      var c=document.getElementById(id); if(!c) return;
+      var mine=(id==='homeMoodElle')?(profile==='girl'):(profile==='boy');
+      if(mine){ c.setAttribute('role','button'); c.setAttribute('tabindex','0'); c.setAttribute('aria-label','Modifier mon humeur'); }
+      else { c.removeAttribute('role'); c.removeAttribute('tabindex'); c.removeAttribute('aria-label'); }
+    });
     var elleEditBtn=document.getElementById('homeMoodElleEditBtn'), luiEditBtn=document.getElementById('homeMoodLuiEditBtn');
     if(elleEditBtn) elleEditBtn.style.display=(profile==='girl')?'':'none';
     if(luiEditBtn)  luiEditBtn.style.display=(profile==='boy')?'':'none';

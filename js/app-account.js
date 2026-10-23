@@ -2931,7 +2931,11 @@ window.addEventListener('load', function(){
           }
         }
       });
-      if(!selfFound)  updateMoodBadge('self',  null);
+      if(!selfFound){
+        window._myMood = null;
+        window._myMoodMessage = '';
+        updateMoodBadge('self', null);
+      }
       if(!otherFound){
         updateMoodBadge('other', null);
         _lastOtherMood = null;

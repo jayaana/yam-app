@@ -227,6 +227,8 @@
       if(luiState)   luiState.textContent   = selfOnline  ? 'En ligne' : '—';
       if(elleState)  elleState.textContent  = otherOnline ? 'En ligne' : '—';
     }
+    // cartes humeur de l'Accueil : mise à jour tout de suite (sinon attente du prochain tour, 8 à 15 s)
+    if(window._homeSyncMood) window._homeSyncMood();
   }
 
   // Sync mood periodically

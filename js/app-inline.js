@@ -332,6 +332,22 @@ document.addEventListener('DOMContentLoaded', function(){
   _on('homeMoodLuiEditBtn',  'click', function(e){ window.openMoodPicker && window.openMoodPicker(e); });
   _on('moodPickerOverlay',   'click', function(){ window.closeMoodPicker && window.closeMoodPicker(); });
   _on('homeSpamHeart', 'click', function(){ window.spawnHeart && window.spawnHeart(); });
+  // Accueil : cartes « bientôt » (grisées) + cartes humeur au toucher / clavier
+  _onAll('#yamHomeTab .home-soon', 'click', function(){ window.showToast && window.showToast('Bientôt disponible 💫', 'info', 2000); });
+  ['homeMoodElle','homeMoodLui'].forEach(function(id){
+    _on(id, 'click', function(e){
+      if(!this.getAttribute('role')) return;                 // carte de l'autre : rien
+      if(e.target.closest && e.target.closest('button')) return; // « Éditer » gère déjà son clic
+      window.openMoodPicker && window.openMoodPicker(e);
+    });
+  });
+  // Touche Entrée / Espace sur les éléments role="button" de l'Accueil
+  document.addEventListener('keydown', function(e){
+    if(e.key !== 'Enter' && e.key !== ' ') return;
+    var t = e.target;
+    if(!t || !t.getAttribute || t.getAttribute('role') !== 'button' || !t.closest || !t.closest('#yamHomeTab')) return;
+    e.preventDefault(); t.click();
+  });
 
   // ── Navigation tabs ──
   _on('navHome',     'click', function(){ window.yamSwitchTab && window.yamSwitchTab('home'); });
