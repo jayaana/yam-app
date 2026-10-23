@@ -2918,6 +2918,10 @@ document.addEventListener('yam:session_ready',function(){
         +'<button class="souvenir-fav-btn'+(isFav?' active':'')+'" aria-label="Favori" data-id="'+escHtml(String(s.id))+'">'+
         (isFav?heartFilled:heartEmpty)+
         '</button>';
+      if(s.id){
+        row.dataset.nbKey='souvenir_'+s.id;
+        if(window.yamIsNew && window.yamIsNew('souvenir_'+s.id) && window.yamShowNewBadge) window.yamShowNewBadge(row, true);
+      }
       row.querySelector('.souvenir-fav-btn').addEventListener('click',function(){
         var id=this.dataset.id;
         var souv=_souvenirAllRows.filter(function(x){ return String(x.id)===String(id); })[0];
@@ -2962,6 +2966,7 @@ document.addEventListener('yam:session_ready',function(){
       photoPreview.innerHTML=souvenir&&souvenir.photo_url?'':'<div style="font-size:24px;color:var(--muted);">&#128247;</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">Ajouter une photo</div>';
     }
     modal.dataset.souvenirId=souvenir?souvenir.id:'';
+    if(souvenir && souvenir.id && typeof window.yamMarkSeen==='function'){ window.yamMarkSeen('souvenir_'+souvenir.id); window.yamMarkSeen('souvenir'); }
     modal.dataset.photoUrl=souvenir&&souvenir.photo_url?souvenir.photo_url:'';
     modal.classList.add('open');
   };
@@ -4275,13 +4280,14 @@ document.addEventListener('yam:session_ready',function(){
       row.innerHTML =
         '<div style="width:48px;height:64px;background:var(--s2);border-radius:8px;flex-shrink:0;overflow:hidden;position:relative;">'+
           (photoUrl ? '<img src="'+escHtml(photoUrl)+'" style="width:100%;height:100%;object-fit:cover;" loading="lazy">' : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;">📚</div>')+
-          (isNew ? '<span style="position:absolute;top:2px;right:2px;background:#e75a7c;color:#fff;font-size:7px;font-weight:800;padding:1px 4px;border-radius:4px;">NEW</span>' : '')+
+          (isNew ? '<span class="yam-new-badge" style="position:absolute;top:2px;right:2px;background:#e75a7c;color:#fff;font-size:7px;font-weight:800;padding:1px 4px;border-radius:4px;">NEW</span>' : '')+
         '</div>'+
         '<div style="flex:1;min-width:0;">'+
           '<div style="font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(book.title||'Sans titre')+'</div>'+
           (book.description ? '<div style="font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(book.description)+'</div>' : '')+
         '</div>'+
         '<div style="font-size:18px;color:var(--muted);flex-shrink:0;padding-right:4px;">›</div>';
+      row.dataset.nbKey = 'livre_'+book.id;
       (function(b){ row.addEventListener('click', function(){ _livreFromGestion=true; window.livresOpenEdit(b); }); })(book);
       list.appendChild(row);
     });
@@ -4305,6 +4311,7 @@ document.addEventListener('yam:session_ready',function(){
 
   // ── Ouvrir modale d'édition ──
   window.livresOpenEdit = function(book){
+    if(book && book.id && typeof window.yamMarkSeen==='function'){ window.yamMarkSeen('livre_'+book.id); window.yamMarkSeen('livre'); }
     _saveScrollPosition();
     _forceScrollLock();
     _livreEditingId = book.id;
