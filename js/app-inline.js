@@ -584,6 +584,7 @@ document.addEventListener('DOMContentLoaded', function(){
   // ── Recherche ──
   _on('searchOverlay', 'click', function(e){ if(e.target === document.getElementById('searchOverlay')) window.closeSearch && window.closeSearch(); });
   _on('searchInput',   'input', function(){ window.filterSongs && window.filterSongs(this.value); });
+  _on('top50SearchBtn','click', function(){ window.openSearch && window.openSearch(); });
   _on('searchCloseBtn','click', function(){ window.closeSearch && window.closeSearch(); });
 
   // ── DM Messages ──

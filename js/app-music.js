@@ -335,7 +335,7 @@ var prevRanks = (function(){
   try { return JSON.parse(localStorage.getItem('sp_prev_ranks') || '{}'); } catch(e){ return {}; }
 })();
 
-var TOP_VISIBLE = 4, top50Expanded = false;
+var TOP_VISIBLE = 3, top50Expanded = false;
 
 // Init favoritesCache ici pour être disponible dès renderTop50
 var favoritesCache = {};
@@ -517,7 +517,7 @@ window._top50Iv = setInterval(updateTop50PlayBtn, 500);
       var changed = false, map = {};
       rows.forEach(function(r){ map[r.song_file] = r.plays || 0; });
       songsLove.forEach(function(s){ var remote = map[s.file]||0; if(remote>s.plays){ s.plays=remote; changed=true; } });
-      if(changed) updateTop50();
+      if(changed){ updateTop50(); songsLove.forEach(function(s){ var r=songRows[s.file]; if(r){ var pe=r.div.querySelector('.sp-plays'); if(pe) pe.textContent=fmtPlays(s.plays); } }); }
     }).catch(function(){});
   }
 
@@ -590,7 +590,7 @@ var particleActive = false;
   }
 
   window.mpUpdate = function(){
-    if(!_currentSong){ mpUpdateIcons(); var navMus=document.getElementById('navMusique'); if(navMus)navMus.classList.remove('music-playing'); return; }
+    if(!_currentSong){ mpUpdateIcons(); mpHide(); var navMus=document.getElementById('navMusique'); if(navMus)navMus.classList.remove('music-playing'); return; }
     mpTitle.textContent  = _currentSong.title;
     mpArtist.textContent = _currentSong.artist;
     mpUpdateIcons();
@@ -680,6 +680,7 @@ var particleActive = false;
   };
 
   window.mpPrev = function(){
+    if(_currentSong && _gAudio.currentTime > 3){ _gAudio.currentTime = 0; if(window.mpUpdateProgress) mpUpdateProgress(); return; }
     var prev = _getPrevSong();
     if(prev) _playSong(prev);
   };
@@ -1168,7 +1169,9 @@ function closeSearch(){
 function filterSongs(q){
   var res=document.getElementById('searchResults'); if(!res) return;
   res.innerHTML=''; if(!q.trim()) return;
-  var f=allSongs.filter(function(s){ return s.title.toLowerCase().includes(q.toLowerCase())||s.artist.toLowerCase().includes(q.toLowerCase()); });
+  var _n=function(t){ return String(t).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(); };
+  var nq=_n(q.trim());
+  var f=allSongs.filter(function(s){ return _n(s.title).includes(nq)||_n(s.artist).includes(nq); });
   if(!f.length){ res.innerHTML='<p style="color:var(--muted);text-align:center;padding:20px;font-size:13px">Aucun résultat</p>'; return; }
   f.forEach(function(s){
     var row=document.createElement('div');

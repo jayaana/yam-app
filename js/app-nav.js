@@ -288,74 +288,7 @@ function animP(){if(window._animPStopped)return;ctx.clearRect(0,0,canvas.width,c
 // Ne pas démarrer animP ici — Perf v3 gère le RAF
 // animP(); // désactivé
 
-// ── LOVE BOX ──
-var loveWords=["Je t'aime Anaelle 💘","Mon cœur ❤️","Mon amour 💕","Mon ange ☀️","Ma madame ✨","Ma chérie 💓","Mon petit bonheur 🥰","Love you biloute 🤡💖","Ma vieille dame préférée 👵💕","Mon équilibre 🌙","Ma meilleure amie 💞","Mon monde 🌍","T'es tout ce qu'il me faut 💎"];
-
-var _loveDeck = [], _loveDeckPos = 0;
-function _buildLoveDeck(excludeFirst) {
-  var deck = [];
-  for (var k = 0; k < loveWords.length; k++) deck.push(k);
-  for (var j = deck.length - 1; j > 0; j--) {
-    var r = Math.floor(Math.random() * (j + 1));
-    var tmp = deck[j]; deck[j] = deck[r]; deck[r] = tmp;
-  }
-  if (excludeFirst !== undefined && deck[0] === excludeFirst && deck.length > 1) {
-    var swap = 1 + Math.floor(Math.random() * (deck.length - 1));
-    var t = deck[0]; deck[0] = deck[swap]; deck[swap] = t;
-  }
-  return deck;
-}
-_loveDeck = _buildLoveDeck();
-_loveDeckPos = 0;
-
-var loveBoxTimeout=null, loveBoxBusy=false;
-document.getElementById('loveBox').addEventListener('click',function(e){
-  if (_loveDeckPos >= _loveDeck.length) {
-    var lastShown = _loveDeck[_loveDeck.length - 1];
-    _loveDeck = _buildLoveDeck(lastShown);
-    _loveDeckPos = 0;
-  }
-  var i = _loveDeck[_loveDeckPos++];
-  var textEl=document.getElementById('loveBoxText');
-  if(!textEl) return;
-  if(loveBoxTimeout){ clearTimeout(loveBoxTimeout); loveBoxTimeout=null; }
-  textEl.style.transition='none';
-  textEl.style.opacity='0';
-  void textEl.offsetHeight;
-  textEl.style.transition='opacity 0.2s';
-  loveBoxTimeout=setTimeout(function(){
-    textEl.textContent=loveWords[i];
-    document.querySelector('.lb-icon').style.display='none';
-    textEl.style.opacity='1';
-    loveBoxTimeout=null;
-  },150);
-  // Cœurs qui jaillissent depuis le bouton
-  var rect=e.currentTarget.getBoundingClientRect();
-  var cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
-  var hearts=['💗','💖','💕','🩷','✨'];
-  for(var k=0;k<6;k++){
-    (function(k){
-      setTimeout(function(){
-        var h=document.createElement('div');
-        h.className='lb-burst-heart';
-        h.textContent=hearts[Math.floor(Math.random()*hearts.length)];
-        var angle=(Math.random()*260-130)*Math.PI/180;
-        var dist=60+Math.random()*60;
-        h.style.cssText='position:fixed;left:'+cx+'px;top:'+cy+'px;font-size:'+(14+Math.random()*16)+'px;pointer-events:none;z-index:3000;transition:none;';
-        document.body.appendChild(h);
-        requestAnimationFrame(function(){
-          h.style.transition='transform 0.7s cubic-bezier(.2,1,.3,1),opacity 0.7s ease';
-          h.style.transform='translate('+Math.round(Math.cos(angle)*dist)+'px,'+Math.round(Math.sin(angle)*dist-40)+'px) scale(1.2)';
-          h.style.opacity='0';
-          setTimeout(function(){h.remove();},750);
-        });
-      },k*60);
-    })(k);
-  }
-});
-
-
-
+// LOVE BOX : voir js/app-calin.js (n°31)
 
 var isQuizOpen=false;
 
@@ -1637,45 +1570,7 @@ setTimeout(function(){
     el.style.webkitOverflowScrolling = 'touch';
   });
 
-  /* ══════════════════════════════════════════════════════
-     7. MEDIA SESSION API
-  ══════════════════════════════════════════════════════ */
-  (function(){
-    if(!('mediaSession' in navigator)) return;
-    var _linked = false;
-    document.addEventListener('play', function(e){
-      if(e.target.tagName==='AUDIO') _linked = false;
-    }, true);
-    var _origMU2 = window.mpUpdate;
-    window.mpUpdate = function(){
-      if(_origMU2) _origMU2.apply(this, arguments);
-      if(_linked||!window.currentAudio||window.currentAudio.paused) return;
-      _linked = true;
-      try{
-        var tEl = window.currentRow&&window.currentRow.querySelector('.sp-title,.song-title');
-        var aEl = window.currentRow&&window.currentRow.querySelector('.sp-artist,.song-artist');
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title:  tEl ? tEl.textContent : 'Playlist Jayana',
-          artist: aEl ? aEl.textContent : 'Jayana',
-          album:  'Playlist Jayana 💖'
-        });
-        navigator.mediaSession.setActionHandler('play',          function(){ if(window.currentAudio) window.currentAudio.play(); });
-        navigator.mediaSession.setActionHandler('pause',         function(){ if(window.currentAudio) window.currentAudio.pause(); });
-        navigator.mediaSession.setActionHandler('nexttrack',     function(){
-          var rows=Array.from(document.querySelectorAll('#Love .sp-song'));
-          var cur=document.querySelector('#Love .sp-song.playing');
-          var nxt=rows[rows.indexOf(cur)+1]||rows[0];
-          if(nxt){var b=nxt.querySelector('.sp-btn-play');if(b)b.click();}
-        });
-        navigator.mediaSession.setActionHandler('previoustrack', function(){
-          var rows=Array.from(document.querySelectorAll('#Love .sp-song'));
-          var cur=document.querySelector('#Love .sp-song.playing');
-          var prv=rows[rows.indexOf(cur)-1];
-          if(prv){var b=prv.querySelector('.sp-btn-play');if(b)b.click();}
-        });
-      }catch(e){}
-    };
-  })();
+  /* 7. Media Session : gérée uniquement dans app-music.js (n°25) */
 
   /* ══════════════════════════════════════════════════════
      8. CSS GLOBAL

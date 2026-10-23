@@ -6935,3 +6935,32 @@ html:not(.light) .nid-peek::after {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+/* ── Câlin à tapoter (n°31) : têtes de peluches ── */
+body #loveBox, body.light #loveBox { min-height: 0; height: 116px; padding: 0; background: radial-gradient(circle at 50% 115%, #ffe6ef 0, #ffc1d6 40%, #ff97bb 100%); border: 1px solid rgba(255,255,255,.35); box-shadow: 0 10px 30px rgba(247,120,166,.3), inset 0 1px 0 rgba(255,255,255,.5); }
+body #loveBox::before, body.light #loveBox::before { background: radial-gradient(ellipse at 50% 0, rgba(255,255,255,.45), transparent 60%); }
+body #loveBox::after, body.light #loveBox::after { display: none; }
+#loveBox:hover { transform: none; }
+#loveBox .cl-pet { width: 112px; height: 105px; overflow: visible; position: relative; z-index: 3; }
+#loveBox .cl-ring { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4; }
+#loveBox .cl-ring rect { transition: stroke-dasharray .25s; }
+#loveBox .cl-rays { position: absolute; left: 50%; top: 50%; width: 340px; height: 340px; margin: -170px 0 0 -170px; z-index: 0; opacity: .35; pointer-events: none; background: repeating-conic-gradient(from 0deg, rgba(255,255,255,.55) 0 8deg, transparent 8deg 24deg); -webkit-mask: radial-gradient(circle, #000 0, transparent 62%); mask: radial-gradient(circle, #000 0, transparent 62%); animation: clSpin 40s linear infinite; }
+@keyframes clSpin { to { transform: rotate(360deg); } }
+#loveBox .cl-glow { position: absolute; width: 140px; height: 140px; border-radius: 50%; background: #fff; filter: blur(24px); opacity: .5; z-index: 1; transition: .3s; pointer-events: none; }
+#loveBox .cl-bub { position: absolute; bottom: -20px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.9), rgba(255,255,255,.15)); z-index: 1; pointer-events: none; animation: clUp linear infinite; }
+@keyframes clUp { to { transform: translateY(-130px) translateX(14px); opacity: 0; } }
+#loveBox .lb-info { position: absolute; top: 4px; right: 4px; width: 44px; height: 44px; background: none; border: 0; color: #7a3a5a; font-size: 14px; font-style: italic; cursor: pointer; z-index: 6; opacity: .6; }
+#loveBox .lb-tip { position: absolute; bottom: 8px; left: 0; right: 0; font-size: 12px; color: #6b2d50; opacity: 0; transition: .3s; z-index: 6; pointer-events: none; }
+#loveBox .lb-tip.on { opacity: .9; }
+#loveBox.anim-paused * { animation-play-state: paused !important; }
+.cl-p { position: fixed; pointer-events: none; z-index: 3000; will-change: transform, opacity; }
+.cl-note { color: #fff; text-shadow: 0 1px 4px #b03a78; }
+.cl-blink { animation: clBl 4.2s infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes clBl { 0%,92%,100% { transform: scaleY(1); } 95% { transform: scaleY(.08); } }
+.cl-breathe { animation: clBr 3.2s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes clBr { 50% { transform: scale(1.025,.975); } }
+.cl-bob { animation: clBob .8s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes clBob { 0%,100% { transform: rotate(-5deg) translateY(0); } 50% { transform: rotate(5deg) translateY(-4px); } }
+.cl-ear { transform-box: fill-box; transform-origin: 50% 90%; }
+.cl-ear.cl-wig { animation: clWig .5s ease; }
+@keyframes clWig { 25% { transform: rotate(-14deg); } 60% { transform: rotate(10deg); } }

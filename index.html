@@ -2698,6 +2698,9 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     <div class="mu-card-top-row">
       <div class="mu-card-title">Top 50 : Love 💕</div>
       <div class="mu-card-btns">
+        <button class="mu-mode-btn" id="top50SearchBtn" title="Rechercher un titre" aria-label="Rechercher">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+        </button>
         <button class="mu-mode-btn" id="top50ModeBtn" title="Mode lecture">
           <svg id="modeIconOrder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><polyline points="16 9 20 6 16 3"/></svg>
           <svg id="modeIconShuffle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
@@ -2760,9 +2763,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 
 <!-- loveBox -->
 <div style="padding:8px 0 0;" class="fade-in mu-lovebox-wrap">
-  <div id="loveBox">
-    <span class="lb-text" id="loveBoxText">Tapote-moi 🤫</span>
-  </div>
+  <div id="loveBox"></div>
 </div>
 
 </div><!-- /yamMusiqueTab -->
@@ -5483,6 +5484,7 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
 <script src="js/app-jeux-dashboard.js"></script>
 <script src="js/app-home.js"></script>
 <script src="js/app-diary.js"></script>
+<script src="js/app-calin.js"></script>
 <script src="js/app-inline.js"></script>
 
 <!-- ═══════════════════════════════════════════
