@@ -89,6 +89,18 @@
       if((tab === 'home' || tab === 'nous') && window._applyStoryState) window._applyStoryState();
     }, 200);
 
+    // Jeux : le tableau de bord s'injecte après coup (jxLoadDashboard), ce qui peut décaler
+    // la page de façon aléatoire au 1er affichage → on re-cale à 0 tant que rien n'a bougé volontairement
+    if(tab === 'jeux'){
+      [350, 700, 1200].forEach(function(d){
+        setTimeout(function(){
+          if(_currentTab === 'jeux' && window.scrollY > 0 && !document.body.classList.contains('subview-active')){
+            window.scrollTo(0, 0);
+          }
+        }, d);
+      });
+    }
+
     // Particules : actives seulement sur musique/nous, et si musique en cours
     var musicPlaying = window.currentAudio && !window.currentAudio.paused;
     var allowFx = (tab === 'musique' || tab === 'nous');
