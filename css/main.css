@@ -7134,11 +7134,10 @@ html body #uxToast.success { border-color: rgba(231,90,124,.4); }
 /* bouton YT visible sur le morceau en cours ; ailleurs non cliquable tant qu'invisible (pas de zone fantôme au toucher) */
 .sp-song.playing .sp-btn-yt { opacity: 1; width: 22px; height: 22px; margin: 0 4px; background: #e53935; color: #fff; font-size: 8px; }
 .sp-song:not(.playing) .sp-btn-yt { pointer-events: none; }
-@media (hover: hover) { .sp-song:not(.playing):hover .sp-btn-yt { pointer-events: auto; } }
 .sp-song .sp-actions { align-items: center; }
 .sp-song .sp-btn-yt { width: 22px; height: 22px; margin: 0 4px; font-size: 8px; }
-@media (hover: hover) { .sp-song:not(.playing):hover .sp-btn-yt { opacity: 1; background: #e53935; color: #fff; } }
 /* mini-lecteur déplié : bouton Replier toujours entouré (halo du survol gardé en permanence) */
 #miniPlayer .mp-btn-collapse { border-radius: 999px; background: rgba(231,90,124,.14); box-shadow: inset 0 0 0 1.5px rgba(231,90,124,.45); }
 #miniPlayer.mp-pill .mp-btn-collapse { background: rgba(255,255,255,.28); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.7); }
 #miniPlayer .mp-btn-collapse, #miniPlayer.mp-pill .mp-btn-collapse { width: 38px; min-width: 38px; height: 26px; padding: 0; border-radius: 13px; }
+.sp-song:not(.playing) .sp-btn-yt, .sp-song:not(.playing):hover .sp-btn-yt { opacity: 0 !important; pointer-events: none !important; }
