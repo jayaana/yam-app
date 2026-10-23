@@ -93,29 +93,7 @@
     // la page de façon aléatoire au 1er affichage → on re-cale à 0 tant que rien n'a bougé volontairement
     // Jeux a son propre défilement interne : la page (window) ne doit jamais défiler dessus,
     // sinon (iOS, accueil encore scrollable au démarrage) l'en-tête remonte et disparaît.
-    // DIAGNOSTIC TEMPORAIRE (bug scroll au démarrage) : mesures affichées à l'écran, à retirer
-    (function(){
-      var box = document.getElementById('yamDiagBox');
-      if(!box){
-        box = document.createElement('pre');
-        box.id = 'yamDiagBox';
-        box.style.cssText = 'position:fixed;left:4px;right:4px;top:90px;z-index:99999;margin:0;padding:6px;font:10px/1.25 monospace;background:rgba(0,0,0,.82);color:#7CFC00;border-radius:6px;white-space:pre-wrap;max-height:40vh;overflow:auto;';
-        document.body.appendChild(box);
-        window._yamDiagLog = [];
-        window._yamDiagSnap = function(l){
-          var d = document.documentElement, vv = window.visualViewport, p = document.getElementById('yamJeuxTab'), h = document.getElementById('yamHomeTab');
-          window._yamDiagLog.push(l + ' y=' + Math.round(window.scrollY) + ' dSH=' + d.scrollHeight + ' dST=' + d.scrollTop + ' bST=' + document.body.scrollTop + ' iH=' + innerHeight + ' vv=' + (vv ? Math.round(vv.offsetTop) + '/' + Math.round(vv.pageTop) + '/' + Math.round(vv.height) : '-') + ' hdr=' + Math.round(document.getElementById('yamMainHeader').getBoundingClientRect().top) + ' home=' + (h ? h.clientHeight + '/' + h.scrollHeight + '/' + h.scrollTop : '-') + ' jeux=' + (p ? p.clientHeight + '/' + p.scrollHeight + '/' + p.scrollTop : '-') + ' t=' + Math.round(performance.now()));
-          if(window._yamDiagLog.length > 14) window._yamDiagLog.shift();
-          box.textContent = window._yamDiagLog.join('\n');
-        };
-        window.addEventListener('scroll', function(){ window._yamDiagSnap('SCROLL'); }, { passive: true });
-        box.addEventListener('click', function(){ box.style.display = 'none'; });
-        [0, 600, 1500, 3000].forEach(function(t){ setTimeout(function(){ window._yamDiagSnap('boot+' + t); }, t); });
-      }
-      window._yamDiagSnap('tab=' + tab);
-      setTimeout(function(){ window._yamDiagSnap('tab+400'); }, 400);
-      setTimeout(function(){ window._yamDiagSnap('tab+1500'); }, 1500);
-    })();
+    if(window._yamDiagInit) window._yamDiagInit(tab);
 
     // Particules : actives seulement sur musique/nous, et si musique en cours
     var musicPlaying = window.currentAudio && !window.currentAudio.paused;
@@ -1846,3 +1824,28 @@ setTimeout(function(){
 
   document.body.classList.remove('nous-active');
 })();
+
+    // DIAGNOSTIC TEMPORAIRE (bug scroll au démarrage) : mesures affichées à l'écran, à retirer
+    window._yamDiagInit = function(tab){
+      var box = document.getElementById('yamDiagBox');
+      if(!box){
+        box = document.createElement('pre');
+        box.id = 'yamDiagBox';
+        box.style.cssText = 'position:fixed;left:4px;right:4px;top:90px;z-index:99999;margin:0;padding:6px;font:10px/1.25 monospace;background:rgba(0,0,0,.82);color:#7CFC00;border-radius:6px;white-space:pre-wrap;max-height:40vh;overflow:auto;';
+        document.body.appendChild(box);
+        window._yamDiagLog = [];
+        window._yamDiagSnap = function(l){
+          var d = document.documentElement, vv = window.visualViewport, p = document.getElementById('yamJeuxTab'), h = document.getElementById('yamHomeTab');
+          window._yamDiagLog.push(l + ' y=' + Math.round(window.scrollY) + ' dSH=' + d.scrollHeight + ' dST=' + d.scrollTop + ' bST=' + document.body.scrollTop + ' iH=' + innerHeight + ' vv=' + (vv ? Math.round(vv.offsetTop) + '/' + Math.round(vv.pageTop) + '/' + Math.round(vv.height) : '-') + ' hdr=' + Math.round(document.getElementById('yamMainHeader').getBoundingClientRect().top) + ' home=' + (h ? h.clientHeight + '/' + h.scrollHeight + '/' + h.scrollTop : '-') + ' jeux=' + (p ? p.clientHeight + '/' + p.scrollHeight + '/' + p.scrollTop : '-') + ' t=' + Math.round(performance.now()));
+          if(window._yamDiagLog.length > 14) window._yamDiagLog.shift();
+          box.textContent = window._yamDiagLog.join('\n');
+        };
+        window.addEventListener('scroll', function(){ window._yamDiagSnap('SCROLL'); }, { passive: true });
+        box.addEventListener('click', function(){ box.style.display = 'none'; });
+        [300, 1000, 2000, 4000, 6000].forEach(function(t){ setTimeout(function(){ window._yamDiagSnap('boot+' + t); }, t); });
+      }
+      window._yamDiagSnap(tab ? 'tab=' + tab : 'BOOT');
+      setTimeout(function(){ window._yamDiagSnap('tab+400'); }, 400);
+      setTimeout(function(){ window._yamDiagSnap('tab+1500'); }, 1500);
+    };
+if(document.body) window._yamDiagInit(); else document.addEventListener('DOMContentLoaded', function(){ window._yamDiagInit(); });
