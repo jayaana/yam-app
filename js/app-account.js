@@ -1185,8 +1185,8 @@ body.settings-open{overflow:hidden!important;}\
       '<div class="stg-group">' +
         '<div style="padding:14px 16px;">' +
           '<div class="stg-theme-pills">' +
-            '<div class="stg-theme-pill" id="stgThemeDark">🌙 Sombre</div>' +
-            '<div class="stg-theme-pill" id="stgThemeLight">☀️ Clair</div>' +
+            '<div class="stg-theme-pill" id="stgThemeDark">' + yamSIcon('moon') + 'Sombre</div>' +
+            '<div class="stg-theme-pill" id="stgThemeLight">' + yamSIcon('sun') + 'Clair</div>' +
           '</div>' +
         '</div>' +
       '</div>' +
@@ -1336,47 +1336,47 @@ body.settings-open{overflow:hidden!important;}\
   '<div id="stgBugOverlay" class="stg-bug-overlay">' +
     '<div class="stg-bug-sheet">' +
       '<div class="stg-bug-handle"></div>' +
-      '<div class="stg-bug-title">🐛 Signaler un bug</div>' +
+      '<div class="stg-bug-title">' + yamSIcon('bug') + 'Signaler un bug</div>' +
       '<div style="font-size:12px;color:var(--muted);padding:0 20px 12px;">Sélectionne la catégorie qui correspond le mieux au bug rencontré</div>' +
 
       '<div class="stg-bug-cats">' +
         '<div class="stg-bug-cat" data-cat="ui">' +
-          '<div class="stg-bug-cat-icon" style="background:rgba(124,106,247,.12);">🎨</div>' +
+          '<div class="stg-bug-cat-icon">' + yamSIcon('palette') + '</div>' +
           '<div class="stg-bug-cat-label">Affichage / Interface</div>' +
           '<div class="stg-bug-cat-check"></div>' +
         '</div>' +
         '<div class="stg-bug-cat" data-cat="messages">' +
-          '<div class="stg-bug-cat-icon" style="background:rgba(60,180,255,.12);">💬</div>' +
+          '<div class="stg-bug-cat-icon">' + yamSIcon('chat') + '</div>' +
           '<div class="stg-bug-cat-label">Messages / Chat</div>' +
           '<div class="stg-bug-cat-check"></div>' +
         '</div>' +
         '<div class="stg-bug-cat" data-cat="jeux">' +
-          '<div class="stg-bug-cat-icon" style="background:rgba(110,148,132,.12);">🎮</div>' +
+          '<div class="stg-bug-cat-icon">' + yamSIcon('pad') + '</div>' +
           '<div class="stg-bug-cat-label">Jeux</div>' +
           '<div class="stg-bug-cat-check"></div>' +
         '</div>' +
         '<div class="stg-bug-cat" data-cat="musique">' +
-          '<div class="stg-bug-cat-icon" style="background:rgba(231,90,124,.12);">🎵</div>' +
+          '<div class="stg-bug-cat-icon">' + yamSIcon('music') + '</div>' +
           '<div class="stg-bug-cat-label">Musique</div>' +
           '<div class="stg-bug-cat-check"></div>' +
         '</div>' +
         '<div class="stg-bug-cat" data-cat="nous">' +
-          '<div class="stg-bug-cat-icon" style="background:rgba(255,160,50,.12);">❤️</div>' +
+          '<div class="stg-bug-cat-icon">' + yamSIcon('couple') + '</div>' +
           '<div class="stg-bug-cat-label">Section Nous</div>' +
           '<div class="stg-bug-cat-check"></div>' +
         '</div>' +
         '<div class="stg-bug-cat" data-cat="notifs">' +
-          '<div class="stg-bug-cat-icon" style="background:rgba(240,102,136,.12);">🔔</div>' +
+          '<div class="stg-bug-cat-icon">' + yamSIcon('bell') + '</div>' +
           '<div class="stg-bug-cat-label">Notifications</div>' +
           '<div class="stg-bug-cat-check"></div>' +
         '</div>' +
         '<div class="stg-bug-cat" data-cat="auth">' +
-          '<div class="stg-bug-cat-icon" style="background:rgba(34,197,94,.12);">🔐</div>' +
+          '<div class="stg-bug-cat-icon">' + yamSIcon('lock') + '</div>' +
           '<div class="stg-bug-cat-label">Connexion / Compte</div>' +
           '<div class="stg-bug-cat-check"></div>' +
         '</div>' +
         '<div class="stg-bug-cat" data-cat="autre">' +
-          '<div class="stg-bug-cat-icon" style="background:rgba(185,153,112,.12);">🔧</div>' +
+          '<div class="stg-bug-cat-icon">' + yamSIcon('wrench') + '</div>' +
           '<div class="stg-bug-cat-label">Autre</div>' +
           '<div class="stg-bug-cat-check"></div>' +
         '</div>' +
@@ -1810,7 +1810,7 @@ body.settings-open{overflow:hidden!important;}\
     var btn      = document.getElementById('stgBugSendBtn');
 
     if(!selected){
-      if(msg){ msg.textContent = '⚠️ Sélectionne une catégorie'; msg.style.color = '#e05555'; }
+      if(msg){ msg.textContent = 'Sélectionne une catégorie'; msg.style.color = '#e05555'; }
       return;
     }
 
@@ -1826,7 +1826,7 @@ body.settings-open{overflow:hidden!important;}\
                'Version : ' + version + '\n' +
                'Description : ' + (descText || '(non renseignée)');
 
-    if(msg){ msg.textContent = '⏳ Envoi...'; msg.style.color = 'var(--muted)'; }
+    if(msg){ msg.textContent = 'Envoi en cours...'; msg.style.color = 'var(--muted)'; }
     if(btn) btn.disabled = true;
 
     // Log en base d'abord ; « Merci » seulement si l'envoi a réussi (mailto en secours si échec)
@@ -1836,13 +1836,13 @@ body.settings-open{overflow:hidden!important;}\
       headers: sb2Headers({ 'Prefer': 'return=minimal' }),
       body: JSON.stringify({ message: '[BUG SIGNALÉ] ' + catLabel, context: descText, couple_id: u ? u.couple_id : null })
     }).then(function(){
-      if(msg){ msg.textContent = '✅ Merci pour ton signalement !'; msg.style.color = 'var(--green)'; }
+      if(msg){ msg.textContent = 'Merci pour ton signalement !'; msg.style.color = 'var(--green)'; }
       if(btn) btn.disabled = false;
       setTimeout(_closeBugModal, 2000);
     }).catch(function(e){
       if(msg){
         msg.style.color = 'var(--red, #e53935)';
-        msg.innerHTML = '❌ Envoi impossible : ' + escHtml(e.message) + '. <a href="#" id="bugRetryLnk">Réessayer</a> · <a href="#" id="bugMailLnk">Envoyer par e-mail</a>';
+        msg.innerHTML = 'Envoi impossible : ' + escHtml(e.message) + '. <a href="#" id="bugRetryLnk">Réessayer</a> · <a href="#" id="bugMailLnk">Envoyer par e-mail</a>';
         var r1 = document.getElementById('bugRetryLnk'), r2 = document.getElementById('bugMailLnk');
         if(r1) r1.addEventListener('click', function(ev){ ev.preventDefault(); _sendBugReport(); });
         if(r2) r2.addEventListener('click', function(ev){ ev.preventDefault(); window.location.href = mailto; });
