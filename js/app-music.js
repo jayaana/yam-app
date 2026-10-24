@@ -973,7 +973,7 @@ window.fitTop50Later = function(){ requestAnimationFrame(function(){ fitTop50();
       saveEdge(false);
     }
     var _openFull = openFull;
-    openFull = function(){ if(mp.classList.contains('mp-edge')) undock(); _openFull(); };
+    openFull = function(fromDrag){ if(mp.classList.contains('mp-edge')) undock(); if(fromDrag !== true) mp.classList.remove('mp-dragopen'); _openFull(); };
     // un glissement ne doit pas compter comme un toucher sur le titre (qui déplierait le lecteur)
     mp.addEventListener('click', function(e){ if(moved){ e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
     mp.addEventListener('pointerdown', function(e){
@@ -1019,7 +1019,7 @@ window.fitTop50Later = function(){ requestAnimationFrame(function(){ fitTop50();
       }
       if(dir === 'l'){
         inner.style.minWidth = '';
-        if(dx < -40){ moved = true; mp.classList.add('mp-dragopen'); openFull(); setTimeout(function(){ mp.classList.remove('mp-dragopen'); }, 340); return; }
+        if(dx < -40){ moved = true; mp.classList.add('mp-dragopen'); openFull(true); return; }
         moved = true; inner.style.transition = 'min-width .18s ease-out';
         setTimeout(function(){ inner.style.transition = ''; }, 200);
         return;
