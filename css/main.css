@@ -7048,11 +7048,11 @@ body #loveBox::after, body.light #loveBox::after { display: none; }
 .mu-hero-seek > span { flex: none; min-width: 26px; }
 .mu-hero-seek > span:last-child { text-align: right; }
 /* thème sombre : rose adouci, pas de rose vif */
-body:not(.light) #loveSection.mu-playing .mu-card-header { background: linear-gradient(135deg, #5b2c41, #44262f 70%, #3a2429); border-color: rgba(255,255,255,.10); box-shadow: 0 6px 18px rgba(0,0,0,.4); }
-body:not(.light) #loveSection.mu-playing .mu-card-header::before { background: radial-gradient(circle at 90% -10%, rgba(231,90,124,.22), transparent 55%); }
+body:not(.light) #loveSection.mu-playing .mu-card-header { background: linear-gradient(135deg, #6e4030, #4b2f25 70%, #3a2620); border-color: rgba(255,255,255,.10); box-shadow: 0 6px 18px rgba(0,0,0,.4); }
+body:not(.light) #loveSection.mu-playing .mu-card-header::before { background: radial-gradient(circle at 90% -10%, rgba(212,137,110,.26), transparent 55%); }
 body:not(.light) #loveSection.mu-playing .mu-card-header.mu-stuck { box-shadow: 0 8px 14px -6px rgba(0,0,0,.5); }
 body:not(.light) .mu-hero-cover { background: rgba(255,255,255,.12); box-shadow: 0 6px 16px rgba(0,0,0,.35); }
-body:not(.light) .mu-hero-btn.pp { background: #e75a7c; color: #fff; box-shadow: 0 5px 14px rgba(0,0,0,.4); }
+body:not(.light) .mu-hero-btn.pp { background: #cf7d5e; color: #fff; box-shadow: 0 5px 14px rgba(0,0,0,.4); }
 body:not(.light) .mu-hero-btn.stop { background: rgba(255,255,255,.12); }
 body:not(.light) #loveSection.mu-playing .mu-mode-btn { background: rgba(255,255,255,.12); }
 body:not(.light) #loveSection .mu-card-header > .mu-col-header { background: rgba(255,255,255,.04); border-top-color: rgba(255,255,255,.08); }
@@ -7061,8 +7061,8 @@ body:not(.light) #loveSection .mu-card-tracks { border-top-color: rgba(255,255,2
 body:not(.light) #miniPlayer.mp-pill .mp-inner { background: linear-gradient(135deg, #7a3452, #5b2c41); box-shadow: 0 8px 20px rgba(0,0,0,.5); }
 body:not(.light) #miniPlayer.mp-pill .mp-btn-play { background: #e75a7c; color: #fff; }
 body:not(.light) #miniPlayer.mp-pill { animation-name: none; }
-body:not(.light) #loveBox { background: radial-gradient(circle at 50% 115%, #5e3346 0, #402a36 45%, #2e2429 100%); border-color: rgba(255,255,255,.10); box-shadow: 0 10px 30px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.08); }
-body:not(.light) #loveBox::before { background: radial-gradient(ellipse at 50% 0, rgba(231,90,124,.18), transparent 60%); }
+body:not(.light) #loveBox { background: radial-gradient(circle at 50% 115%, #6e4030 0, #4b2f25 45%, #2e2420 100%); border-color: rgba(255,255,255,.10); box-shadow: 0 10px 30px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.08); }
+body:not(.light) #loveBox::before { background: radial-gradient(ellipse at 50% 0, rgba(212,137,110,.2), transparent 60%); }
 body:not(.light) #loveBox .cl-rays { opacity: .12; }
 body:not(.light) #loveBox .cl-glow { opacity: .18; }
 
@@ -7070,12 +7070,12 @@ body:not(.light) #loveBox .cl-glow { opacity: .18; }
 #loveBox .lb-info { top: 8px; right: 8px; width: 26px; height: 26px; padding: 0; border-radius: 50%; background: linear-gradient(135deg, #ff7aa6, #ff4f8a); color: #fff; font: 800 14px/26px 'Bricolage Grotesque', sans-serif; font-style: normal; text-align: center; opacity: 1; box-shadow: 0 3px 8px rgba(214,51,107,.4), inset 0 1px 0 rgba(255,255,255,.4); border: 1.5px solid rgba(255,255,255,.75); -webkit-tap-highlight-color: transparent; transition: transform .12s; }
 #loveBox .lb-info::before { content: ''; position: absolute; inset: -9px; border-radius: 50%; }
 #loveBox .lb-info:active { transform: scale(.9); }
-body:not(.light) #loveBox .lb-info { background: linear-gradient(135deg, #8a3a58, #5b2c41); border-color: rgba(255,255,255,.35); box-shadow: 0 3px 8px rgba(0,0,0,.45); }
+body:not(.light) #loveBox .lb-info { background: linear-gradient(135deg, #b0694a, #6e4030); border-color: rgba(255,255,255,.35); box-shadow: 0 3px 8px rgba(0,0,0,.45); }
 
 /* texte d'info du câlin : bulle lisible sur le fond rose (clair et sombre) */
 #loveBox .lb-tip { left: 50%; right: auto; transform: translateX(-50%); width: max-content; max-width: calc(100% - 24px); box-sizing: border-box; padding: 7px 12px; border-radius: 14px; background: rgba(255,255,255,.94); color: #5a2243; font: 600 12px/1.35 'Bricolage Grotesque', sans-serif; text-align: center; box-shadow: 0 4px 14px rgba(120,20,60,.25); }
 #loveBox .lb-tip.on { opacity: 1; }
-body:not(.light) #loveBox .lb-tip { background: rgba(28,20,24,.94); color: #ffe3ee; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
+body:not(.light) #loveBox .lb-tip { background: rgba(30,22,18,.94); color: #ffe9dc; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
 
 /* Accueil : cartes « bientôt » grisées, retour visible, focus clavier */
 #yamHomeTab .home-soon { opacity: .5; filter: grayscale(.7); cursor: default; transition: transform .15s, opacity .15s; -webkit-tap-highlight-color: transparent; }
@@ -7147,7 +7147,7 @@ html body #uxToast.success { border-color: rgba(231,90,124,.4); }
 .mu-fab-reduce.show { opacity: 1; transform: none; pointer-events: auto; }
 .mu-fab-reduce.playing { background: linear-gradient(135deg, #ff9cc0, #ff5c93 70%, #ff4f8a); color: #fff; border-color: rgba(255,255,255,.6); box-shadow: 0 6px 16px rgba(255,92,147,.45); }
 body:not(.light) .mu-fab-reduce { background: linear-gradient(135deg, #8a5a3c, #6b4430 70%, #5a3a2a); color: #ffc08a; border-color: rgba(255,170,100,.65); box-shadow: 0 6px 16px rgba(0,0,0,.55); }
-body:not(.light) .mu-fab-reduce.playing { background: linear-gradient(135deg, #5b2c41, #44262f 70%, #3a2429); color: #ff9cc0; border-color: rgba(240,102,136,.7); }
+body:not(.light) .mu-fab-reduce.playing { background: linear-gradient(135deg, #6e4030, #4b2f25 70%, #3a2620); color: #eabda8; border-color: rgba(212,137,110,.7); }
 @media (prefers-reduced-motion: reduce) { .mu-fab-reduce { transition: none; } }
 
 /* Toasts plus visibles (même taille) : liseré et halo rose, sans animation ; thème clair/sombre conservés */
@@ -7167,3 +7167,28 @@ html:has(#yamJeuxTab.active) { overflow-y: hidden; }
 #yamJeuxTab .jx-scroll::after { content: ''; display: block; flex: 0 0 auto; height: calc(var(--yam-hdr-h, 66px) + 56px); }
 /* Les blocs de Jeux ne doivent pas se comprimer quand l'un d'eux se déplie : c'est le défilement qui absorbe la hauteur en plus */
 #yamJeuxTab .jx-scroll > * { flex-shrink: 0; }
+
+/* mini-lecteur : état 3, languette accrochée au bord droit (glisser la pastille vers la droite) */
+.mp-edge-ico { display: none; }
+#miniPlayer.mp-pill .mp-info { touch-action: pan-y; }
+#miniPlayer.mp-edge { left: auto; right: 0; width: auto; max-width: none; animation: none; touch-action: none; }
+#miniPlayer.mp-edge .mp-inner { position: relative; margin: 0; width: 24px; height: 56px; min-height: 0; padding: 0; gap: 3px; flex-direction: column; justify-content: center; border-radius: 16px 0 0 16px; box-shadow: -4px 4px 14px rgba(255,92,147,.45); animation: mpEdgeIn .22s ease-out; }
+#miniPlayer.mp-edge .mp-inner::before { content: ''; position: absolute; top: 0; bottom: 0; left: -20px; right: 0; }
+#miniPlayer.mp-edge .mp-info, #miniPlayer.mp-edge .mp-controls { display: none; }
+#miniPlayer.mp-edge .mp-edge-ico { display: block; width: 14px; height: 14px; color: #fff; }
+#miniPlayer.mp-edge .mp-edge-ico svg { width: 100%; height: 100%; display: block; }
+#miniPlayer.mp-edge .mp-eq { height: 14px; }
+@keyframes mpEdgeIn { from { transform: translateX(100%); } to { transform: none; } }
+/* mini-lecteur : thème sombre en tons orange/terracotta (comme --green sombre) */
+body:not(.light) #miniPlayer.mp-pill .mp-inner { background: linear-gradient(135deg, #e3a283, #d4896e); box-shadow: 0 8px 20px rgba(212,137,110,.4); }
+body:not(.light) #miniPlayer.mp-edge .mp-inner { box-shadow: -4px 4px 14px rgba(212,137,110,.4); }
+/* boutons du mini-lecteur : suivent le thème (clair rose, sombre orange) */
+#miniPlayer.mp-open .mp-btn-play { background: #e75a7c; color: #fff; }
+#miniPlayer.mp-pill .mp-btn-play { background: #fff; color: #ff5c93; }
+body:not(.light) #miniPlayer.mp-open .mp-btn-play { background: #cf7d5e; color: #fff; }
+body:not(.light) #miniPlayer.mp-pill .mp-btn-play { background: #fff; color: #b4623f; }
+body:not(.light) #miniPlayer.mp-open .mp-btn-collapse { background: rgba(212,137,110,.16); box-shadow: inset 0 0 0 1.5px rgba(212,137,110,.55); color: #eabda8; }
+/* thème sombre : musique en cours en tons orange (listes Musique) */
+body:not(.light) .song.playing { background: rgba(212,137,110,.12); border-color: rgba(212,137,110,.30); }
+body:not(.light) .sp-song.playing { background: rgba(212,137,110,.12); border-color: rgba(212,137,110,.28); }
+body:not(.light) .mu-mode-btn.active { border-color: rgba(212,137,110,.5); }

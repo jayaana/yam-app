@@ -669,9 +669,11 @@ var particleActive = false;
   function mpPlace(){
     var nav = document.querySelector('.bottom-nav');
     if(!nav) return;
+    if(mp.classList.contains('mp-edge') && window.mpEdgePlace){ window.mpEdgePlace(); return; }
     var t = nav.getBoundingClientRect().top;
     if(t > 0) mp.style.bottom = Math.round(window.innerHeight - t + 12) + 'px';
   }
+  window.mpPlace = mpPlace;
   window.addEventListener('resize', function(){ if(mp.classList.contains('visible')) mpPlace(); });
   function mpHide(){
     mp.classList.remove('visible','tab-hidden','mp-open'); document.body.classList.remove('mp-active');
@@ -943,6 +945,78 @@ window.fitTop50Later = function(){ requestAnimationFrame(function(){ fitTop50();
     mp.addEventListener('pointerdown', function(){ if(mp.classList.contains('mp-open')) armFold(); });
     _gAudio.addEventListener('play', syncEq); _gAudio.addEventListener('pause', syncEq);
     syncEq();
+    // ── Languette sur le bord droit (état 3) : on glisse la pastille vers la droite pour la ranger ──
+    var inner = mp.querySelector('.mp-inner'), K_ON = 'yam_mp_edge', K_B = 'yam_mp_edge_b';
+    var edgeB = null, g = null, moved = false;
+    try { var sb = parseInt(localStorage.getItem(K_B), 10); if(sb > 0) edgeB = sb; } catch(e){}
+    function edgeLimits(){
+      var nav = document.querySelector('.bottom-nav'), t = nav ? nav.getBoundingClientRect().top : window.innerHeight;
+      var min = Math.round(window.innerHeight - t + 12);
+      return { min: min, max: Math.max(min, window.innerHeight - 170) };
+    }
+    window.mpEdgePlace = function(){
+      var l = edgeLimits(), b = edgeB == null ? l.min : edgeB;
+      mp.style.bottom = Math.max(l.min, Math.min(l.max, b)) + 'px';
+    };
+    function saveEdge(on){
+      try { localStorage.setItem(K_ON, on ? '1' : ''); if(edgeB != null) localStorage.setItem(K_B, String(edgeB)); } catch(e){}
+    }
+    function dock(){
+      if(mp.classList.contains('mp-open')) return;
+      mp.classList.add('mp-pill','mp-edge'); inner.style.transform = ''; inner.style.transition = '';
+      mpEdgePlace(); saveEdge(true);
+    }
+    function undock(){
+      mp.classList.remove('mp-edge'); inner.style.transform = ''; inner.style.transition = '';
+      if(window.mpPlace) window.mpPlace(); else mp.style.bottom = edgeLimits().min + 'px';
+      saveEdge(false);
+    }
+    var _openFull = openFull;
+    openFull = function(){ if(mp.classList.contains('mp-edge')) undock(); _openFull(); };
+    // un glissement ne doit pas compter comme un toucher sur le titre (qui déplierait le lecteur)
+    mp.addEventListener('click', function(e){ if(moved){ e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
+    mp.addEventListener('pointerdown', function(e){
+      if(mp.classList.contains('mp-open')) return;
+      if(!mp.classList.contains('mp-edge') && e.target.closest && !e.target.closest('.mp-info, .mp-eq')) return;
+      g = { id: e.pointerId, x: e.clientX, y: e.clientY, b: parseFloat(mp.style.bottom) || edgeLimits().min, dir: '' };
+      moved = false;
+    });
+    mp.addEventListener('pointermove', function(e){
+      if(!g || e.pointerId !== g.id) return;
+      var dx = e.clientX - g.x, dy = e.clientY - g.y, edge = mp.classList.contains('mp-edge');
+      if(!g.dir){
+        if(Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        g.dir = (Math.abs(dx) >= Math.abs(dy)) ? 'h' : 'v';
+        if(g.dir === 'v' && !edge){ g = null; return; }
+        inner.style.transition = 'none';
+        try { mp.setPointerCapture(e.pointerId); } catch(er){}
+      }
+      moved = true;
+      if(g.dir === 'v'){
+        var l = edgeLimits(); edgeB = Math.max(l.min, Math.min(l.max, g.b - dy)); mp.style.bottom = edgeB + 'px';
+      } else if(!edge){
+        inner.style.transform = 'translateX(' + Math.max(0, dx) + 'px)';
+      }
+    });
+    function endDrag(e){
+      if(!g || e.pointerId !== g.id) return;
+      var dx = e.clientX - g.x, edge = mp.classList.contains('mp-edge'), dir = g.dir;
+      g = null;
+      try { mp.releasePointerCapture(e.pointerId); } catch(er){}
+      if(edge){
+        if(dir === 'v') saveEdge(true);
+        else if(dir === 'h' ? dx < -20 : e.type === 'pointerup') { moved = true; undock(); }
+        return;
+      }
+      if(dir === 'h' && dx > 40){
+        inner.style.transition = 'transform .16s ease-in'; inner.style.transform = 'translateX(110%)';
+        setTimeout(dock, 160);
+      } else { inner.style.transition = ''; inner.style.transform = ''; }
+    }
+    mp.addEventListener('pointerup', endDrag);
+    mp.addEventListener('pointercancel', endDrag);
+    window.addEventListener('resize', function(){ if(mp.classList.contains('mp-edge')) mpEdgePlace(); });
+    try { if(localStorage.getItem(K_ON) === '1'){ mp.classList.add('mp-edge'); } } catch(e){}
   }
 })();
 
