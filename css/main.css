@@ -7170,7 +7170,7 @@ html:has(#yamJeuxTab.active) { overflow-y: hidden; }
 
 /* mini-lecteur : état 3, languette accrochée au bord droit (glisser la pastille vers la droite) */
 .mp-edge-ico { display: none; }
-#miniPlayer.mp-pill .mp-info { touch-action: pan-y; }
+#miniPlayer.mp-pill { touch-action: none; }
 #miniPlayer.mp-edge { left: auto; right: 0; width: auto; max-width: none; animation: none; touch-action: none; }
 #miniPlayer.mp-edge .mp-inner { position: relative; margin: 0; width: 24px; height: 56px; min-height: 0; padding: 0; gap: 3px; flex-direction: column; justify-content: center; border-radius: 16px 0 0 16px; box-shadow: -4px 4px 14px rgba(255,92,147,.45); animation: mpEdgeIn .22s ease-out; }
 #miniPlayer.mp-edge .mp-inner::before { content: ''; position: absolute; top: 0; bottom: 0; left: -20px; right: 0; }
@@ -7192,3 +7192,7 @@ body:not(.light) #miniPlayer.mp-open .mp-btn-collapse { background: rgba(212,137
 body:not(.light) .song.playing { background: rgba(212,137,110,.12); border-color: rgba(212,137,110,.30); }
 body:not(.light) .sp-song.playing { background: rgba(212,137,110,.12); border-color: rgba(212,137,110,.28); }
 body:not(.light) .mu-mode-btn.active { border-color: rgba(212,137,110,.5); }
+#miniPlayer.mp-unedge .mp-inner { transform-origin: 100% 50%; animation: mpEdgeOut .3s cubic-bezier(.2,.9,.3,1.15); }
+@keyframes mpEdgeOut { from { transform: translateX(70%) scale(.35,.6); opacity: .3; } to { transform: none; opacity: 1; } }
+#miniPlayer.mp-open.mp-dragopen .mp-inner { animation: mpUnfoldDrag .26s ease-out; }
+@keyframes mpUnfoldDrag { from { transform: scale(.82,.88); opacity: .6; } to { transform: none; opacity: 1; } }

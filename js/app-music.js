@@ -968,6 +968,7 @@ window.fitTop50Later = function(){ requestAnimationFrame(function(){ fitTop50();
     }
     function undock(){
       mp.classList.remove('mp-edge'); inner.style.transform = ''; inner.style.transition = '';
+      mp.classList.add('mp-unedge'); setTimeout(function(){ mp.classList.remove('mp-unedge'); }, 340);
       if(window.mpPlace) window.mpPlace(); else mp.style.bottom = edgeLimits().min + 'px';
       saveEdge(false);
     }
@@ -977,7 +978,6 @@ window.fitTop50Later = function(){ requestAnimationFrame(function(){ fitTop50();
     mp.addEventListener('click', function(e){ if(moved){ e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
     mp.addEventListener('pointerdown', function(e){
       if(mp.classList.contains('mp-open')) return;
-      if(!mp.classList.contains('mp-edge') && e.target.closest && !e.target.closest('.mp-info, .mp-eq')) return;
       g = { id: e.pointerId, x: e.clientX, y: e.clientY, b: parseFloat(mp.style.bottom) || edgeLimits().min, dir: '' };
       moved = false;
     });
@@ -985,16 +985,25 @@ window.fitTop50Later = function(){ requestAnimationFrame(function(){ fitTop50();
       if(!g || e.pointerId !== g.id) return;
       var dx = e.clientX - g.x, dy = e.clientY - g.y, edge = mp.classList.contains('mp-edge');
       if(!g.dir){
-        if(Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-        g.dir = (Math.abs(dx) >= Math.abs(dy)) ? 'h' : 'v';
-        if(g.dir === 'v' && !edge){ g = null; return; }
+        if(edge){
+          if(Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+          g.dir = (Math.abs(dx) >= Math.abs(dy)) ? 'h' : 'v';
+        } else {
+          // pastille : seul compte le glissement vers la droite, même un peu en biais
+          if(Math.abs(dx) < 8) return;
+          g.dir = dx > 0 ? 'h' : 'l';
+        }
         inner.style.transition = 'none';
         try { mp.setPointerCapture(e.pointerId); } catch(er){}
       }
       moved = true;
       if(g.dir === 'v'){
         var l = edgeLimits(); edgeB = Math.max(l.min, Math.min(l.max, g.b - dy)); mp.style.bottom = edgeB + 'px';
-      } else if(!edge){
+      } else if(!edge && g.dir === 'l'){
+        // la pastille s'étire vers la gauche en suivant le doigt
+        if(!g.w) g.w = inner.getBoundingClientRect().width;
+        inner.style.minWidth = Math.min(window.innerWidth - 24, g.w + Math.max(0, -dx)) + 'px';
+      } else if(!edge && g.dir === 'h'){
         inner.style.transform = 'translateX(' + Math.max(0, dx) + 'px)';
       }
     });
@@ -1006,6 +1015,13 @@ window.fitTop50Later = function(){ requestAnimationFrame(function(){ fitTop50();
       if(edge){
         if(dir === 'v') saveEdge(true);
         else if(dir === 'h' ? dx < -20 : e.type === 'pointerup') { moved = true; undock(); }
+        return;
+      }
+      if(dir === 'l'){
+        inner.style.minWidth = '';
+        if(dx < -40){ moved = true; mp.classList.add('mp-dragopen'); openFull(); setTimeout(function(){ mp.classList.remove('mp-dragopen'); }, 340); return; }
+        moved = true; inner.style.transition = 'min-width .18s ease-out';
+        setTimeout(function(){ inner.style.transition = ''; }, 200);
         return;
       }
       if(dir === 'h' && dx > 40){
