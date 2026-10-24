@@ -6993,7 +6993,7 @@ body #loveBox::after, body.light #loveBox::after { display: none; }
 .mu-hero-btn.pp svg { width: 24px; height: 24px; }
 /* pastille minimaliste (autres onglets) ; un tap sur le titre la déplie en lecteur complet */
 #miniPlayer.mp-pill { left: auto; right: 12px; width: auto; max-width: calc(100% - 24px); }
-#miniPlayer.mp-pill .mp-inner { margin: 0; padding: 5px 6px 5px 14px; min-height: 44px; border-radius: 22px; border: 0; gap: 6px; background: linear-gradient(135deg, #ff7aa6, #ff5c93); box-shadow: 0 8px 20px rgba(255,92,147,.45); }
+#miniPlayer.mp-pill .mp-inner { margin: 0; padding: 5px 6px 5px 14px; min-height: 44px; border-radius: 22px; border: 0; gap: 6px; background: radial-gradient(circle at 90% -10%, rgba(255,255,255,.3), transparent 55%), linear-gradient(135deg, #ff9cc0, #ff5c93 70%, #ff4f8a); box-shadow: 0 8px 20px rgba(255,92,147,.45); }
 #miniPlayer.mp-pill .mp-artist, #miniPlayer.mp-pill .mp-progress-wrap, #miniPlayer.mp-pill #mpModeBtn, #miniPlayer.mp-pill #mpPrevBtn, #miniPlayer.mp-pill #mpNextBtn { display: none; }
 #miniPlayer.mp-pill .mp-title { color: #fff; font-size: 13px; font-weight: 700; max-width: 150px; }
 #miniPlayer.mp-pill .mp-btn { color: #fff; height: 38px; min-width: 38px; padding: 0; }
@@ -7180,7 +7180,7 @@ html:has(#yamJeuxTab.active) { overflow-y: hidden; }
 #miniPlayer.mp-edge .mp-eq { height: 14px; }
 @keyframes mpEdgeIn { from { transform: translateX(100%); } to { transform: none; } }
 /* mini-lecteur : thème sombre en tons orange/terracotta (comme --green sombre) */
-body:not(.light) #miniPlayer.mp-pill .mp-inner { background: linear-gradient(135deg, #b4583d, #9a4533); box-shadow: 0 8px 20px rgba(0,0,0,.4); }
+body:not(.light) #miniPlayer.mp-pill .mp-inner { background: radial-gradient(circle at 90% -10%, rgba(255,255,255,.16), transparent 55%), linear-gradient(135deg, #b4583d, #9a4533 70%, #853a2b); box-shadow: 0 8px 20px rgba(0,0,0,.4); }
 body:not(.light) #miniPlayer.mp-edge .mp-inner { box-shadow: -4px 4px 14px rgba(0,0,0,.4); }
 /* boutons du mini-lecteur : suivent le thème (clair rose, sombre orange) */
 #miniPlayer.mp-open .mp-btn-play { background: #e75a7c; color: #fff; }
