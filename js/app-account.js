@@ -759,9 +759,9 @@ body.settings-open{overflow:hidden!important;}\
         '<div class="stg-avatar-wrap">' +
           '<div class="stg-avatar" id="acAvatarWrap">' +
             '<img id="acAvatarImg" src="" style="display:none;" />' +
-            '<span id="acAvatarEmoji" style="font-size:34px;line-height:1;">👤</span>' +
+            '<span id="acAvatarEmoji">' + yamSIcon('user') + '</span>' +
           '</div>' +
-          '<div class="stg-avatar-cam">📷</div>' +
+          '<div class="stg-avatar-cam">' + yamSIcon('cam') + '</div>' +
           '<div class="stg-avatar-del" id="acDeleteAvatarBtn" title="Supprimer">✕</div>' +
         '</div>' +
         '<input type="file" id="acAvatarInput" accept="image/*" style="display:none;" />' +
@@ -771,7 +771,7 @@ body.settings-open{overflow:hidden!important;}\
             
           '</div>' +
           '<div class="stg-role-badge" id="acRoleBadge">—</div>' +
-          '<div class="stg-couple-inline" id="acCoupleInline">👩‍❤️‍👨 <span id="acCoupleInlineText">—</span></div>' +
+          '<div class="stg-couple-inline" id="acCoupleInline">' + yamSIcon('couple') + ' <span id="acCoupleInlineText">—</span></div>' +
         '</div>' +
       '</div>' +
 
@@ -779,17 +779,17 @@ body.settings-open{overflow:hidden!important;}\
       '<div class="stg-group-label">Mon compte</div>' +
       '<div class="stg-group">' +
         '<div class="stg-row" data-sub="stgSubMonCompte">' +
-          '<div class="stg-row-icon" style="background:rgba(124,106,247,.12);">👤</div>' +
+          '<div class="stg-row-icon">' + yamSIcon('user') + '</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Informations personnelles</div><div class="stg-row-sub">Email, pseudo, genre, date de naissance</div></div>' +
           '<div class="stg-row-right">' + CHV + '</div>' +
         '</div>' +
         '<div class="stg-row" data-sub="stgSubCouple">' +
-          '<div class="stg-row-icon" style="background:rgba(201,120,96,.12);">💑</div>' +
+          '<div class="stg-row-icon">' + yamSIcon('couple') + '</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Couple</div><div class="stg-row-sub">Code, partenaire, date anniversaire</div></div>' +
           '<div class="stg-row-right">' + CHV + '</div>' +
         '</div>' +
         '<div class="stg-row" data-sub="stgSubAbonnement">' +
-          '<div class="stg-row-icon" style="background:rgba(231,90,124,.12);">✨</div>' +
+          '<div class="stg-row-icon">' + yamSIcon('star') + '</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Abonnement</div><div class="stg-row-sub">Gérer ton offre YAM</div></div>' +
           '<div class="stg-row-right"><span class="stg-row-value">Gratuit</span>' + CHV + '</div>' +
         '</div>' +
@@ -799,7 +799,7 @@ body.settings-open{overflow:hidden!important;}\
       '<div class="stg-group-label">Sécurité</div>' +
       '<div class="stg-group">' +
         '<div class="stg-row" data-sub="stgSubSecurity">' +
-          '<div class="stg-row-icon" style="background:rgba(34,197,94,.12);">🔐</div>' +
+          '<div class="stg-row-icon">' + yamSIcon('lock') + '</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Double authentification</div><div class="stg-row-sub" id="stg2FAStatusLabel">Désactivée</div></div>' +
           '<div class="stg-row-right">' + CHV + '</div>' +
         '</div>' +
@@ -809,12 +809,12 @@ body.settings-open{overflow:hidden!important;}\
       '<div class="stg-group-label">Personnalisation</div>' +
       '<div class="stg-group">' +
         '<div class="stg-row" data-sub="stgSubPrefs">' +
-          '<div class="stg-row-icon" style="background:rgba(110,148,132,.12);">🎯</div>' +
+          '<div class="stg-row-icon">' + yamSIcon('target') + '</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Préférences</div><div class="stg-row-sub">Centres d\'intérêt, goûts, idées cadeaux</div></div>' +
           '<div class="stg-row-right">' + CHV + '</div>' +
         '</div>' +
         '<div class="stg-row" data-sub="stgSubAppearance">' +
-          '<div class="stg-row-icon" style="background:rgba(185,153,112,.12);">🎨</div>' +
+          '<div class="stg-row-icon">' + yamSIcon('palette') + '</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Apparence</div><div class="stg-row-sub">Thème sombre ou clair</div></div>' +
           '<div class="stg-row-right"><span id="stgThemeLabel" class="stg-row-value">Sombre</span>' + CHV + '</div>' +
         '</div>' +
@@ -824,22 +824,22 @@ body.settings-open{overflow:hidden!important;}\
       '<div class="stg-group-label">Application</div>' +
       '<div class="stg-group">' +
         '<div class="stg-row" data-sub="stgSubNotifs">' +
-          '<div class="stg-row-icon" style="background:rgba(240,102,136,.12);">🔔</div>' +
+          '<div class="stg-row-icon">' + yamSIcon('bell') + '</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Notifications</div><div class="stg-row-sub">Gérer les alertes</div></div>' +
           '<div class="stg-row-right">' + CHV + '</div>' +
         '</div>' +
         '<div class="stg-row no-chevron" id="stgPranksRow" role="switch" tabindex="0" aria-checked="' + (_pranksOff() ? 'false' : 'true') + '">' +
-          '<div class="stg-row-icon" style="background:rgba(240,102,136,.12);">😈</div>' +
+          '<div class="stg-row-icon">' + yamSIcon('prank') + '</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Accepter les bêtises</div><div class="stg-row-sub">Ton partenaire est prévenu si tu les refuses</div></div>' +
           '<div class="stg-row-right"><span class="stg-row-toggle' + (_pranksOff() ? '' : ' on') + '" id="stgPranksToggle"></span></div>' +
         '</div>' +
         '<div class="stg-row no-chevron" id="stgClearCacheBtn">' +
-          '<div class="stg-row-icon" style="background:rgba(124,106,247,.12);">🗑️</div>' +
+          '<div class="stg-row-icon">' + yamSIcon('trash') + '</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Vider le cache</div><div class="stg-row-sub">Libère l\'espace et force le rechargement</div></div>' +
           '<div class="stg-row-right" id="stgClearCacheStatus"></div>' +
         '</div>' +
         '<div class="stg-row no-chevron">' +
-          '<div class="stg-row-icon" style="background:rgba(60,180,255,.12);">🌐</div>' +
+          '<div class="stg-row-icon">' + yamSIcon('globe') + '</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Langue</div><div class="stg-row-sub">Seul le français est disponible</div></div>' +
           '<div class="stg-row-right"><span class="stg-row-value">Français</span></div>' +
         '</div>' +
@@ -849,11 +849,11 @@ body.settings-open{overflow:hidden!important;}\
       '<div class="stg-group-label">Aide</div>' +
       '<div class="stg-group">' +
         '<div class="stg-row no-chevron" id="stgContactSupportBtn">' +
-          '<div class="stg-row-icon" style="background:rgba(60,180,255,.12);">💬</div>' +
+          '<div class="stg-row-icon">' + yamSIcon('chat') + '</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Contacter le support</div><div class="stg-row-sub">support@yam-app.fr</div></div>' +
         '</div>' +
         '<div class="stg-row no-chevron" id="stgReportBugBtn">' +
-          '<div class="stg-row-icon" style="background:rgba(255,160,50,.12);">🐛</div>' +
+          '<div class="stg-row-icon">' + yamSIcon('bug') + '</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Signaler un bug</div><div class="stg-row-sub">Aide-nous à améliorer YAM</div></div>' +
         '</div>' +
       '</div>' +
@@ -862,17 +862,17 @@ body.settings-open{overflow:hidden!important;}\
       '<div class="stg-group-label">Confidentialité et mentions légales</div>' +
       '<div class="stg-group">' +
         '<div class="stg-row" data-sub="stgSubCGU">' +
-          '<div class="stg-row-icon" style="background:rgba(124,106,247,.12);">📋</div>' +
+          '<div class="stg-row-icon">' + yamSIcon('doc') + '</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Conditions Générales d\'Utilisation</div></div>' +
           '<div class="stg-row-right">' + CHV + '</div>' +
         '</div>' +
         '<div class="stg-row" data-sub="stgSubPrivacy">' +
-          '<div class="stg-row-icon" style="background:rgba(34,197,94,.12);">🔒</div>' +
+          '<div class="stg-row-icon">' + yamSIcon('shield') + '</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Politique de Confidentialité</div></div>' +
           '<div class="stg-row-right">' + CHV + '</div>' +
         '</div>' +
         '<div class="stg-row" data-sub="stgSubMentions">' +
-          '<div class="stg-row-icon" style="background:rgba(185,153,112,.12);">⚖️</div>' +
+          '<div class="stg-row-icon">' + yamSIcon('scales') + '</div>' +
           '<div class="stg-row-body"><div class="stg-row-title">Mentions légales</div></div>' +
           '<div class="stg-row-right">' + CHV + '</div>' +
         '</div>' +
@@ -880,18 +880,18 @@ body.settings-open{overflow:hidden!important;}\
 
       /* ── Déconnexion ── */
       '<div style="margin-top:28px;padding:0 0 8px;">' +
-        '<button class="stg-btn stg-btn-danger" id="stgLogoutBtn">🔓 Se déconnecter</button>' +
+        '<button class="stg-btn stg-btn-danger" id="stgLogoutBtn">' + yamSIcon('out') + 'Se déconnecter</button>' +
       '</div>' +
 
       /* ── Admin monitoring ── */
       ((typeof yamGetUser === 'function' && yamGetUser() && yamGetUser().is_admin === true) ?
         '<div style="margin-top:8px;padding:0 0 8px;">' +
-          '<button class="stg-btn" id="stgAdminErrorsBtn" style="background:rgba(100,100,100,.1);border:1.5px solid rgba(100,100,100,.3);color:var(--muted);font-size:11px;">🛠 Monitoring erreurs</button>' +
+          '<button class="stg-btn" id="stgAdminErrorsBtn" style="background:rgba(100,100,100,.1);border:1.5px solid rgba(100,100,100,.3);color:var(--muted);font-size:11px;">' + yamSIcon('tools') + 'Monitoring erreurs</button>' +
         '</div>' +
         '<div id="stgAdminErrorsPanel" style="display:none;margin-bottom:12px;"></div>'
       : '') +
 
-      '<div class="stg-version" id="stgVersionLabel">YAM — You And Me 💕</div>' +
+      '<div class="stg-version" id="stgVersionLabel">YAM — You And Me</div>' +
     '</div>' +
   '</div>';
 
@@ -935,7 +935,7 @@ body.settings-open{overflow:hidden!important;}\
       '<div class="stg-group-label" style="margin-top:28px;">Zone de danger</div>' +
       '<div class="stg-group">' +
         '<div class="stg-row no-chevron" id="acDeleteAccountBtn">' +
-          '<div class="stg-row-icon" style="background:rgba(224,85,85,.12);">🗑️</div>' +
+          '<div class="stg-row-icon">' + yamSIcon('trash') + '</div>' +
           '<div class="stg-row-body"><div class="stg-row-title danger">Supprimer mon compte</div><div class="stg-row-sub">Action irréversible — toutes tes données seront effacées</div></div>' +
         '</div>' +
       '</div>' +
@@ -2192,7 +2192,7 @@ window.openAccountModal = function(){
     caches.keys().then(function(keys) {
       var swCache = keys.find(function(k){ return k.startsWith('yam-'); }) || '';
       var el = document.getElementById('stgVersionLabel');
-      if(el && swCache) el.textContent = swCache + ' — You And Me 💕';
+      if(el && swCache) el.textContent = swCache + ' — You And Me';
     });
   }
   // Fermer le popup profil si ouvert
@@ -2298,7 +2298,7 @@ function _populateAccountModal(u){
       var adminWrap = document.createElement('div');
       adminWrap.style.cssText = 'margin-top:8px;padding:0 0 8px;';
       adminWrap.innerHTML =
-        '<button class="stg-btn" id="stgAdminErrorsBtn" style="background:rgba(100,100,100,.1);border:1.5px solid rgba(100,100,100,.3);color:var(--muted);font-size:11px;">🛠 Monitoring erreurs</button>' +
+        '<button class="stg-btn" id="stgAdminErrorsBtn" style="background:rgba(100,100,100,.1);border:1.5px solid rgba(100,100,100,.3);color:var(--muted);font-size:11px;">' + yamSIcon('tools') + 'Monitoring erreurs</button>' +
         '<div id="stgAdminErrorsPanel" style="display:none;margin-bottom:12px;"></div>';
       logoutBtn.parentElement.insertAdjacentElement('afterend', adminWrap);
     }
