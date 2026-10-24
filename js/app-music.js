@@ -929,11 +929,20 @@ window.fitTop50Later = function(){ requestAnimationFrame(function(){ fitTop50();
     mp.classList.add('mp-folding');
     setTimeout(function(){
       mp.classList.remove('mp-folding','mp-open'); mp.classList.add('mp-pill','mp-popin');
+      mp.classList.remove('mp-dragopen'); restartEq();
       setTimeout(function(){ mp.classList.remove('mp-popin'); }, 340);
     }, 200);
   }
   function armFold(){ clearTimeout(foldT); foldT = setTimeout(fold, 10000); }
   function openFull(){ mp.classList.add('mp-open'); mp.classList.remove('mp-pill'); armFold(); }
+  // relance l'égaliseur de la pastille (iOS peut le laisser figé après un dépliage) et le recale sur la lecture
+  function restartEq(){
+    mp.classList.toggle('mp-paused', _gAudio.paused);
+    var bars = mp.querySelectorAll('.mp-eq i');
+    for(var i = 0; i < bars.length; i++) bars[i].style.animation = 'none';
+    void mp.offsetWidth;
+    for(var j = 0; j < bars.length; j++) bars[j].style.animation = '';
+  }
   function syncEq(){ mp.classList.toggle('mp-paused', _gAudio.paused); }
   if(mp){
     if(info) info.addEventListener('click', function(e){
