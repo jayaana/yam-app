@@ -926,7 +926,7 @@ window.fitTop50Later = function(){ requestAnimationFrame(function(){ fitTop50();
   function fold(){
     clearTimeout(foldT); foldT = null;
     if(!mp.classList.contains('mp-open') || mp.classList.contains('mp-folding')) return;
-    mp.classList.add('mp-folding');
+    mp.classList.add('mp-folding'); mp.classList.remove('mp-dragopen');
     setTimeout(function(){
       mp.classList.remove('mp-folding','mp-open'); mp.classList.add('mp-pill','mp-popin');
       mp.classList.remove('mp-dragopen'); restartEq();
@@ -986,6 +986,7 @@ window.fitTop50Later = function(){ requestAnimationFrame(function(){ fitTop50();
     // un glissement ne doit pas compter comme un toucher sur le titre (qui déplierait le lecteur)
     mp.addEventListener('click', function(e){ if(moved){ e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
     mp.addEventListener('pointerdown', function(e){
+      moved = false;
       if(mp.classList.contains('mp-open')) return;
       g = { id: e.pointerId, x: e.clientX, y: e.clientY, b: parseFloat(mp.style.bottom) || edgeLimits().min, dir: '' };
       moved = false;
