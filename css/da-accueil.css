@@ -195,4 +195,4 @@ html[data-yam-tab="home"] #annivBanner .anniv-close-x { position: relative; back
 html[data-yam-tab="home"] #annivBanner .anniv-close-x::before { content: ""; position: absolute; inset: -8px; }
 
 /* Thème clair : le fond reste jaune, seul le texte passe en blanc, cerné d'un contour brun doré pour rester lisible (comme le « 0/10 » du spam) */
-html[data-theme="warm"][data-yam-tab="home"] #annivBanner.evt-type-anniversary .anniv-title, html[data-theme="warm"][data-yam-tab="home"] #annivBanner.evt-type-birthday .anniv-title { color: #fff; -webkit-text-stroke: 3px #9a5b00; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(120,60,0,.35); }
+html[data-theme="warm"][data-yam-tab="home"] #annivBanner.evt-type-anniversary .anniv-title, html[data-theme="warm"][data-yam-tab="home"] #annivBanner.evt-type-birthday .anniv-title { color: #fff; -webkit-text-stroke: 3px #000; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
