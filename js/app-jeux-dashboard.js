@@ -706,3 +706,35 @@
     }
   };
 }());
+
+
+/* Jeux : on tient la feuille (en haut de son contenu) et on la tire vers le bas pour voir le décor ; au relâchement elle revient avec un rebond. Le défilement normal reste intact. */
+(function () {
+  var MAX = 96, sh = null, y0 = null, pulling = false;
+  function setY(px, anim) {
+    sh.style.transition = anim ? 'transform .55s cubic-bezier(.2,1.45,.35,1)' : 'none';
+    sh.style.transform = px ? 'translateY(' + px + 'px)' : '';
+  }
+  document.addEventListener('touchstart', function (e) {
+    sh = document.querySelector('#yamJeuxTab .jx-scroll');
+    y0 = null; pulling = false;
+    if (!sh || !sh.contains(e.target) || document.documentElement.getAttribute('data-yam-tab') !== 'jeux') return;
+    y0 = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchmove', function (e) {
+    if (y0 === null) return;
+    var y = e.touches[0].clientY;
+    if (!pulling) {
+      if (y - y0 > 6 && sh.scrollTop <= 0) { pulling = true; y0 = y; } else return;
+    }
+    if (e.cancelable) e.preventDefault();
+    setY(MAX * (1 - Math.exp(-Math.max(y - y0, 0) / 130)), false);
+  }, { passive: false });
+  function end() {
+    if (y0 === null) return;
+    if (pulling) setY(0, true);
+    y0 = null; pulling = false;
+  }
+  document.addEventListener('touchend', end, { passive: true });
+  document.addEventListener('touchcancel', end, { passive: true });
+})();
