@@ -398,7 +398,6 @@
     _sheet();
     document.getElementById('rappelSheet').classList.add('open');
     document.getElementById('rappelOverlay').classList.add('open');
-    setTimeout(function(){var i=document.getElementById('rshInput');if(i)i.focus();},340);
   };
   window.closeRappelSheet=function(){
     var _ai=document.activeElement; if(_ai&&_ai.blur&&_ai.id==='rshInput') _ai.blur();
@@ -753,6 +752,7 @@
   ['scroll', 'resize', 'touchend', 'focusin', 'focusout'].forEach(function(t){ window.addEventListener(t, upd, true); });
   if (window.visualViewport) { visualViewport.addEventListener('resize', upd); visualViewport.addEventListener('scroll', upd); }
   /* journal des changements de hauteur visible + recalage de la page si l'écart d'iOS est détecté */
+  var tap = '';
   var logs = [], lastIh = innerHeight, t0 = Date.now();
   function note(why){
     logs.push(why + ':' + document.documentElement.getAttribute('data-yam-tab') + ' ih=' + innerHeight + ' sy=' + Math.round(window.pageYOffset) + ' @' + Math.round((Date.now() - t0) / 1000) + 's');
@@ -765,7 +765,8 @@
   window.addEventListener('resize', function(){ if (innerHeight !== lastIh) { lastIh = innerHeight; note('resize'); } });
   new MutationObserver(function(){ note('tab'); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-yam-tab'] });
   var baseUpd = upd;
-  upd = function(){ baseUpd(); box.textContent += NL + logs.join(NL); };
+  upd = function(){ baseUpd(); box.textContent += NL + tap + NL + logs.join(NL); };
+  document.addEventListener('touchstart', function(e){ var t = e.touches[0], el = document.elementFromPoint(t.clientX, t.clientY); tap = 'tap y=' + Math.round(t.clientY) + ' -> ' + (el ? (el.id || el.className || el.tagName) : '-'); upd(); }, { passive: true, capture: true });
   note('init');
   setInterval(upd, 700); upd();
 })();

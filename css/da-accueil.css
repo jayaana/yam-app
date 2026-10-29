@@ -234,3 +234,7 @@ html[data-yam-tab="home"] #yamMainHeader, html[data-yam-tab="home"] #yamHomeTab 
 /* Rappels du jour : titres non sélectionnables ni modifiables ; champ d'ajout en 16 px (sinon l'iPhone zoome l'écran au toucher) */
 #rappelSheet .rsh-item-txt { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; cursor: default; }
 #rappelSheet .rsh-input { font-size: 16px; }
+/* Fenêtre « Rappels du jour » : ancrée par le HAUT (hauteur fixe). Ancrée par le bas, iOS la dessine 59 px plus bas que ses zones de toucher après une actualisation ou un retour sur l'Accueil */
+#rappelSheet { top: calc(100dvh - 78dvh); bottom: auto; height: 78dvh; max-height: none; }
+#rappelSheet:not(.open) { transform: translateY(calc(100% + 120px)); }
+#rappelSheet::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 140px; background: var(--s1); pointer-events: none; }
