@@ -76,7 +76,9 @@ html #yamJeuxTab, html #yamJeuxTab.active, html body.light #yamJeuxTab { backgro
 /* Titres de section */
 .gj-title { font-family: var(--gu-font-display); font-size: 13px; letter-spacing: 2px; color: var(--gj-label-title); text-transform: uppercase; margin: 14px 18px 11px; line-height: 1.2; }
 .jx-dash + .gj-title { margin-top: 14px; margin-bottom: 5px; }
-.gj-title--tight { margin-top: 5px; margin-bottom: 0; }
+.gj-title--tight { margin-top: 13px; margin-bottom: 0; }
+/* espace réservé sous la feuille : réduit pour que descendre « Ensemble » ne déclenche pas de scroll */
+#yamJeuxTab .jx-scroll::after { height: calc(var(--yam-hdr-h, 66px) + 40px); }
 
 /* ── Carte VS ── */
 .jx-dash { position: relative; margin: 16px 16px 0; transform: rotate(-1.2deg); background: none; border: 0; overflow: visible; }
