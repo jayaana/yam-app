@@ -117,7 +117,7 @@ html[data-theme="dark"] .gh-halo { box-shadow: 0 0 34px 2px rgba(255,255,255,.22
 
 /* Rappel du jour */
 .home-rappel-row { margin: 18px 16px 0; }
-.home-rappel-card { position: relative; border-radius: 24px; background: var(--gu-rappel-bg); color: var(--gu-rappel-text); padding: 8px 12px 8px 16px; display: grid; grid-template-columns: 1fr auto auto; grid-template-areas: "text done later" "ctrl done later"; column-gap: 10px; align-items: center; }
+.home-rappel-card { position: relative; border-radius: 24px; background: var(--gu-rappel-bg); color: var(--gu-rappel-text); padding: 8px 12px 6px 16px; display: grid; grid-template-columns: 1fr auto auto; grid-template-areas: "text done later" "ctrl done later"; column-gap: 10px; align-items: center; }
 .home-rappel-topbar { grid-area: ctrl; display: flex; align-items: center; gap: 2px; margin-top: 2px; }
 .home-rappel-badge { position: absolute; left: 14px; top: -10px; display: inline-block; font-family: var(--gu-font-display); font-size: 12px; letter-spacing: .3px; background: linear-gradient(#ffe56a, #ffbf00); color: #2a1a00; border-radius: 7px; padding: 1px 7px; box-shadow: 0 2px 6px rgba(255,170,0,.55); }
 .home-rappel-badge-dot { display: none; }
@@ -127,7 +127,7 @@ html[data-theme="dark"] .gh-halo { box-shadow: 0 0 34px 2px rgba(255,255,255,.22
 .home-rappel-nav-btn, .home-rappel-add-btn { position: relative; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: rgba(255,255,255,.55); color: var(--gu-rappel-text); font: 700 18px/1 var(--gu-font-text); display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .home-rappel-nav-btn::before, .home-rappel-add-btn::before { content: ""; position: absolute; inset: -6px; }
 .home-rappel-add-btn { margin-left: 6px; }
-.home-rappel-text { grid-area: text; font-family: var(--gu-font-soft); font-weight: 500; font-size: 15px; line-height: 1.2; letter-spacing: .2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; color: var(--gu-rappel-text); min-width: 0; min-height: 38.4px; align-self: center; }
+.home-rappel-text { grid-area: text; font-family: var(--gu-font-soft); font-weight: 500; font-size: 15px; line-height: 1.2; letter-spacing: .2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; color: var(--gu-rappel-text); min-width: 0; min-height: 38.4px; margin-top: 6px; align-self: center; }
 .home-rappel-actions { display: contents; }
 .home-rappel-done, .home-rappel-later { position: relative; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; }
 .home-rappel-done { grid-area: done; background: var(--gu-ok); }
