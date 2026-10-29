@@ -182,4 +182,4 @@ html[data-yam-tab="home"] #annivBanner .anniv-title { font-family: var(--gu-font
 
 /* Pastille d'alerte du bouton Events : même style que le « NEW » de la Boutique */
 #yamHomeTab .evt-alert-badge { top: -8px !important; right: -14px !important; min-width: 0 !important; height: auto !important; padding: 1px 6px !important; border: 2px solid #fff !important; border-radius: 10px !important; background: #ff3b4e !important; font: 400 12px/1.2 var(--gu-font-display) !important; letter-spacing: .3px; }
-#yamHomeTab .evt-alert-badge[style*="f5a623"] { background: #f5a623 !important; color: #2a1a00 !important; }
+#yamHomeTab .evt-alert-badge[style*="f5a623"], #yamHomeTab .evt-alert-badge[style*="245, 166, 35"] { background: #f5a623 !important; color: #2a1a00 !important; }
