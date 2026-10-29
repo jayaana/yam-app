@@ -2026,9 +2026,10 @@
     // Classe générique conservée pour compat
     navJeux.classList.toggle('partner-in-lobby', anyActive);
     // Priorité : cowatch (rose) > jeux multi (doré) > livres (vert)
-    navJeux.classList.toggle('partner-in-lobby--pink',  cwActive);
-    navJeux.classList.toggle('partner-in-lobby--gold',  !cwActive && jxActive);
-    navJeux.classList.toggle('partner-in-lobby--green', !cwActive && !jxActive && bkActive);
+    // Une seule couleur (jaune, comme l'attente dans un jeu) pour toute activité du partenaire
+    navJeux.classList.toggle('partner-in-lobby--pink',  false);
+    navJeux.classList.toggle('partner-in-lobby--gold',  anyActive);
+    navJeux.classList.toggle('partner-in-lobby--green', false);
   };
 
   // Sync au changement d'onglet via yamSwitchTab

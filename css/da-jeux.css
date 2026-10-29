@@ -157,8 +157,10 @@ html[data-theme="dark"] .gj-tv-screen { fill: #0c2a45; }
 html[data-theme="dark"] .gj-tv-play { fill: #fff; stroke: #fff; }
 .gj-round .jx-row-name { font-family: var(--gu-font-display); font-size: 13px; line-height: 1.2; letter-spacing: .3px; color: var(--gj-ens-text); margin-top: -7px; }
 .jx-scroll .gj-round .jx-row-name { color: var(--gj-ens-text) !important; }
-/* « En live » / « En sync » : autocollant plein, posé sur le bas-droit de l'icône (ne touche plus le titre de section) */
-.gj-round #cwLivePill, .gj-round #bkLivePill { position: absolute; top: 36px; right: -8px; z-index: 3; margin: 0; padding: 2px 8px 2px 6px; gap: 4px; font: 800 12px/1.2 var(--gu-font-text); color: #0f3d27; background: var(--gu-ok); border: 2px solid #fff; border-radius: 12px; box-shadow: var(--gu-sticker-shadow); animation: none; white-space: nowrap; }
+/* « En live » / « En sync » : autocollant plein et clignotant, posé sur le coin haut droit de l'icône */
+.gj-round #cwLivePill, .gj-round #bkLivePill { position: absolute; top: -2px; right: -6px; z-index: 3; margin: 0; padding: 2px 8px 2px 6px; gap: 4px; font: 800 12px/1.2 var(--gu-font-text); color: #0f3d27; background: var(--gu-ok); border: 2px solid #fff; border-radius: 12px; box-shadow: var(--gu-sticker-shadow); animation: gjLive 1.1s ease-in-out infinite; white-space: nowrap; }
+@keyframes gjLive { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .45; transform: scale(.92); } }
+@media (prefers-reduced-motion: reduce) { .gj-round #cwLivePill, .gj-round #bkLivePill { animation: none; } }
 .gj-round #cwLivePill::before, .gj-round #bkLivePill::before { background: #0f3d27; }
 
 /* ── Meilleurs scores (affichés en fin de partie, plus sur cette page) ── */
