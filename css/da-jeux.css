@@ -63,6 +63,9 @@ html[data-yam-tab="jeux"] body, html[data-yam-tab="jeux"] body.light { backgroun
 html[data-yam-tab="jeux"] #yamMainHeader { background: transparent !important; border: 0; box-shadow: none; }
 
 
+/* Le panneau ne doit rien peindre derrière la feuille (bande noire dans les coins arrondis) */
+html #yamJeuxTab, html #yamJeuxTab.active, html body.light #yamJeuxTab { background: transparent !important; }
+
 /* ── Feuille = zone qui défile ── */
 #yamJeuxTab .jx-scroll { margin-top: 14px; padding: 18px 0 0; background: var(--gu-sheet); border-radius: var(--gu-r-sheet) var(--gu-r-sheet) 0 0; box-shadow: var(--gu-sheet-shadow); position: relative; z-index: 2; color: var(--gu-text); font-family: var(--gu-font-text); }
 #yamJeuxTab .jx-scroll > .jx-dash { margin: 0; }
@@ -93,6 +96,7 @@ html[data-theme="dark"] .jx-dash-card { box-shadow: var(--gj-card-shadow), inset
 .jx-dp-info { display: flex; flex-direction: column; }
 .jx-dp-score { font-family: var(--gu-font-display); font-size: 42px; line-height: 1; letter-spacing: .3px; color: var(--gj-her); }
 .jx-dp.r .jx-dp-score { color: var(--gj-him); }
+.jx-dp-score { text-shadow: -1.5px 0 0 #4a0f2e, 1.5px 0 0 #4a0f2e, 0 -1.5px 0 #4a0f2e, 0 1.5px 0 #4a0f2e, -1.5px -1.5px 0 #4a0f2e, 1.5px 1.5px 0 #4a0f2e, -1.5px 1.5px 0 #4a0f2e, 1.5px -1.5px 0 #4a0f2e; }
 .jx-dp-sub { font: 700 12px/1.2 var(--gu-font-text); color: var(--gj-sub); }
 .jx-vs-txt { font-family: var(--gu-font-display); font-size: 22px; letter-spacing: 1px; color: var(--gj-vs-text); text-shadow: -2px 0 0 var(--gj-vs-stroke), 2px 0 0 var(--gj-vs-stroke), 0 -2px 0 var(--gj-vs-stroke), 0 2px 0 var(--gj-vs-stroke), -2px -2px 0 var(--gj-vs-stroke), 2px 2px 0 var(--gj-vs-stroke), -2px 2px 0 var(--gj-vs-stroke), 2px -2px 0 var(--gj-vs-stroke); }
 .jx-prog-track { position: relative; height: 14px; border-radius: 9px; margin-top: 10px; overflow: hidden; background: var(--gj-vs-track); border: 3px solid var(--gj-vs-edge); box-sizing: content-box; background-clip: padding-box; }
