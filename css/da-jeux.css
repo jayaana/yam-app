@@ -134,7 +134,8 @@ html[data-theme="dark"] .gj-tile::before { -webkit-mask-image: linear-gradient(#
 .gj-beta { position: absolute !important; z-index: 2; top: -9px; left: 10px; transform: rotate(-4deg) skewX(-10deg); font: 800 12px/1.3 var(--gu-font-text); background: #ffcc00; color: #2a1a00; border: 1px solid #8a1f55; border-radius: 6px; padding: 1px 7px; }
 /* partenaire en attente dans ce jeu (JS : .jx-chip--waiting + .jx-chip-live-badge) */
 .gj-tile.jx-chip--waiting { border-color: #ffd21a !important; background: linear-gradient(var(--hi) 0%, var(--c) 40%, var(--lo) 100%) !important; }
-.gj-tile .jx-chip-live-badge { position: absolute; z-index: 3; top: 5px; left: 5px; font-size: 12px; }
+/* partenaire en attente : badge posé en bas de la tuile, au-dessus du bandeau de nom (il ne touche plus BETA ni la pastille de score) */
+.gj-tile .jx-chip-live-badge { position: absolute; z-index: 3; top: auto; bottom: 28px; left: 50%; right: auto; transform: translateX(-50%); font-size: 12px; padding: 2px 8px 2px 6px; white-space: nowrap; }
 
 /* ── Défis couple ── */
 .gj-duo { display: flex; gap: 10px; margin: 0 16px; }
@@ -156,7 +157,9 @@ html[data-theme="dark"] .gj-tv-screen { fill: #0c2a45; }
 html[data-theme="dark"] .gj-tv-play { fill: #fff; stroke: #fff; }
 .gj-round .jx-row-name { font-family: var(--gu-font-display); font-size: 13px; line-height: 1.2; letter-spacing: .3px; color: var(--gj-ens-text); margin-top: -7px; }
 .jx-scroll .gj-round .jx-row-name { color: var(--gj-ens-text) !important; }
-.gj-round #cwLivePill, .gj-round #bkLivePill { position: absolute; top: -4px; right: -4px; margin: 0; font-size: 12px; padding: 2px 6px; }
+/* « En live » / « En sync » : autocollant plein, posé sur le bas-droit de l'icône (ne touche plus le titre de section) */
+.gj-round #cwLivePill, .gj-round #bkLivePill { position: absolute; top: 36px; right: -8px; z-index: 3; margin: 0; padding: 2px 8px 2px 6px; gap: 4px; font: 800 12px/1.2 var(--gu-font-text); color: #0f3d27; background: var(--gu-ok); border: 2px solid #fff; border-radius: 12px; box-shadow: var(--gu-sticker-shadow); animation: none; white-space: nowrap; }
+.gj-round #cwLivePill::before, .gj-round #bkLivePill::before { background: #0f3d27; }
 
 /* ── Meilleurs scores (affichés en fin de partie, plus sur cette page) ── */
 #jxLbSection { display: none !important; }
