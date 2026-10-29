@@ -711,6 +711,26 @@
 /* Jeux : on tient la feuille (en haut de son contenu) et on la tire vers le bas pour voir le décor ; au relâchement elle revient avec un rebond. Le défilement normal reste intact. */
 (function () {
   var MAX = 96, sh = null, y0 = null, pulling = false;
+  /* Le bas du décor suit la feuille tirée à fond : le décor se révèle jusqu'à la mer et au sable */
+  function _safeTop() {
+    var p = document.createElement('div');
+    p.style.cssText = 'position:fixed;visibility:hidden;top:0;height:max(env(safe-area-inset-top,0px),var(--yam-sim-safe,0px));';
+    document.body.appendChild(p);
+    var h = p.getBoundingClientRect().height;
+    document.body.removeChild(p);
+    return h;
+  }
+  function placeDecor() {
+    var s = document.querySelector('#yamJeuxTab .jx-scroll'), d = document.getElementById('jxDecor');
+    if (!s || !d || document.documentElement.getAttribute('data-yam-tab') !== 'jeux') return;
+    var m = /matrix\(.*?,\s*([-\d.]+)\)$/.exec(getComputedStyle(s).transform || '');
+    var cur = m ? parseFloat(m[1]) : 0;
+    var top = d.getBoundingClientRect().top;   /* le panneau décale le « fixed » (44 px) : on compte depuis le vrai haut du décor */
+    d.style.setProperty('--jx-dbot', Math.round(s.getBoundingClientRect().top - cur + MAX - top) + 'px');
+    d.style.setProperty('--jx-clip', Math.max(0, Math.round(_safeTop() - top)) + 'px');
+  }
+  new MutationObserver(function () { setTimeout(placeDecor, 300); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-yam-tab'] });
+  window.addEventListener('resize', placeDecor);
   function setY(px, anim) {
     sh.style.transition = anim ? 'transform .55s cubic-bezier(.2,1.45,.35,1)' : 'none';
     sh.style.transform = px ? 'translateY(' + px + 'px)' : '';
@@ -720,6 +740,7 @@
     y0 = null; pulling = false;
     if (!sh || !sh.contains(e.target) || document.documentElement.getAttribute('data-yam-tab') !== 'jeux') return;
     y0 = e.touches[0].clientY;
+    placeDecor();
   }, { passive: true });
   document.addEventListener('touchmove', function (e) {
     if (y0 === null) return;

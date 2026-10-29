@@ -161,8 +161,8 @@ html[data-theme="dark"] .gj-tv-play { fill: #fff; stroke: #fff; }
 #jxLbSection { display: none !important; }
 
 /* ── Décor de plage derrière la feuille (copié de la maquette Nous, clair) ── */
-#jxDecor { position: fixed; left: 50%; margin-left: -196.5px; width: 393px; height: 216px; top: calc(max(env(safe-area-inset-top, 0px), var(--yam-sim-safe, 0px)) - 54px); z-index: 1; pointer-events: none; overflow: hidden; clip-path: inset(54px 0 0 0); }
-#jxDecor svg { display: block; }
+#jxDecor { position: fixed; left: 0; right: 0; top: 0; height: var(--jx-dbot, 214px); z-index: 1; pointer-events: none; overflow: hidden; clip-path: inset(var(--jx-clip, 0px) 0 0 0); }
+#jxDecor svg { position: absolute; left: 50%; bottom: 0; margin-left: -196.5px; width: 393px; height: 216px; }
 html[data-theme="dark"] #jxDecor { display: none; }   /* plage de nuit : plus tard */
 
 /* ── Feuille tirable : on la tient et on la tire vers le bas, elle revient avec un rebond ── */
