@@ -17,13 +17,19 @@
   window.yamSwitchTab = function(tab) {
     // Reclic sur Accueil alors qu'on y est déjà : aller-retour interne par Musique (sans affichage ni chargement)
     // pour que iOS recalcule sa zone visible, comme après un vrai changement d'onglet
-    if(tab === 'home' && _currentTab === 'home' && !window._yamBouncing){
+    if(tab === 'home' && (_currentTab === 'home' || document.documentElement.getAttribute('data-yam-tab') === 'home') && !window._yamBouncing){
       window._yamBouncing = true;
-      window.yamSwitchTab('musique');
-      // Musique doit être réellement affichée (au moins une image) avant de revenir : iOS ne recalcule sa zone visible qu'à ce prix
-      requestAnimationFrame(function(){ requestAnimationFrame(function(){
-        try { window.yamSwitchTab('home'); } finally { window._yamBouncing = false; }
-      }); });
+      // Deux aller-retours : le 1er ne suffit pas toujours sur iPhone (le 2e clic manuel réglait le problème)
+      var _bounce = function(n){
+        window.yamSwitchTab('musique');
+        // Musique doit être réellement affichée (au moins une image) avant de revenir : iOS ne recalcule sa zone visible qu'à ce prix
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){
+          try { window.yamSwitchTab('home'); } catch(e) { window._yamBouncing = false; return; }
+          if(n > 1) setTimeout(function(){ _bounce(n - 1); }, 150);
+          else window._yamBouncing = false;
+        }); });
+      };
+      _bounce(2);
       return;
     }
     var _skipLoad = !!(window._yamBouncing && tab === 'musique');
