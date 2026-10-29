@@ -177,7 +177,7 @@ html[data-theme="warm"] body #moodPickerOverlay.visible, html body.light #moodPi
 
 /* Bandeau d'événement : posé SUR le nuage (même rectangle) au lieu de pousser la page vers le bas.
    Haut du nuage = zone sûre + 48 px (mesuré). */
-html[data-yam-tab="home"] #annivBanner { position: absolute; z-index: 5; margin: 0; left: 50%; transform: translateX(-50%); width: min(356px, calc(100% - 24px)); height: 64px; box-sizing: border-box; padding: 0 14px; top: calc(max(env(safe-area-inset-top, 0px), var(--yam-sim-safe, 0px)) + 48px); border-radius: 22px; overflow: hidden; }
+html[data-yam-tab="home"] #annivBanner { position: absolute; z-index: 5; margin: 0; left: 50%; transform: translateX(-50%); width: min(356px, calc(100% - 24px)); height: 50px; box-sizing: border-box; padding: 0 14px; top: calc(max(env(safe-area-inset-top, 0px), var(--yam-sim-safe, 0px)) + 60px); border-radius: 22px; overflow: hidden; }
 html[data-yam-tab="home"] #annivBanner .anniv-title { font-family: var(--gu-font-display); font-size: 16px; line-height: 1.15; letter-spacing: .3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* Pastille d'alerte du bouton Events : même style que le « NEW » de la Boutique */
