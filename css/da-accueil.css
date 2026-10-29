@@ -183,3 +183,13 @@ html[data-yam-tab="home"] #annivBanner .anniv-title { font-family: var(--gu-font
 /* Pastille d'alerte du bouton Events : même style que le « NEW » de la Boutique */
 #yamHomeTab .evt-alert-badge { top: -8px !important; right: -14px !important; min-width: 0 !important; height: auto !important; padding: 1px 6px !important; border: 2px solid #fff !important; border-radius: 10px !important; background: #ff3b4e !important; font: 400 12px/1.2 var(--gu-font-display) !important; letter-spacing: .3px; }
 #yamHomeTab .evt-alert-badge[style*="f5a623"], #yamHomeTab .evt-alert-badge[style*="245, 166, 35"] { background: #f5a623 !important; color: #2a1a00 !important; }
+
+/* Bandeau d'événement en autocollant game UI : contour blanc 3 px, ombre plate, Lilita ; on garde ses effets (reflet qui passe, émoji qui rebondit) */
+html[data-yam-tab="home"] #annivBanner, html[data-yam-tab="home"] #annivBanner[class] { background: linear-gradient(var(--gu-action-top), var(--gu-action-bottom)); border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow); color: var(--gu-on-action); }
+html[data-yam-tab="home"] #annivBanner.evt-type-trip { background: linear-gradient(#7ee8b3, #3ccd88); }
+html[data-yam-tab="home"] #annivBanner.evt-type-other { background: var(--gu-card); color: var(--gu-text); }
+html[data-yam-tab="home"] #annivBanner::before { background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.55) 50%, transparent 70%); }
+html[data-yam-tab="home"] #annivBanner .anniv-title { background: none; -webkit-text-fill-color: currentColor; color: inherit; animation: none; }
+html[data-yam-tab="home"] #annivBanner .anniv-emoji { display: block; margin: 0; text-shadow: none; }
+html[data-yam-tab="home"] #annivBanner .anniv-close-x { position: relative; background: #fff; color: #2a1a00; width: 28px; height: 28px; }
+html[data-yam-tab="home"] #annivBanner .anniv-close-x::before { content: ""; position: absolute; inset: -8px; }
