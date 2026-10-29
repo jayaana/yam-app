@@ -138,6 +138,28 @@ html[data-theme="dark"] .gj-tile::before { -webkit-mask-image: linear-gradient(#
 .gj-tile.jx-chip--waiting { border-color: #ffd21a !important; background: linear-gradient(var(--hi) 0%, var(--c) 40%, var(--lo) 100%) !important; }
 /* partenaire en attente : badge posé en bas de la tuile, au-dessus du bandeau de nom (il ne touche plus BETA ni la pastille de score) */
 .gj-tile .jx-chip-live-badge { position: absolute; z-index: 3; top: auto; bottom: 28px; left: 50%; right: auto; transform: translateX(-50%); font-size: 12px; padding: 2px 8px 2px 6px; white-space: nowrap; }
+/* ── Partenaire en attente : la tuile « sort » (halo jaune qui bat, rayons DANS la carte, reflet, badge « Viens ! »), les autres s'estompent.
+   Le halo ne remonte pas (ombres décalées vers le bas) pour ne pas masquer le nom du jeu du dessus. BETA et pilule « En attente » masqués. ── */
+@property --gj-ang { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+#jxChips:has(.jx-chip--waiting) .gj-tile:not(.jx-chip--waiting) { opacity: .42; filter: saturate(.55); transform: scale(.97); transition: opacity .3s, filter .3s, transform .3s; }
+.gj-tile.jx-chip--waiting { z-index: 5; border-color: #fff !important; transform: translateY(-2px) scale(1.06);
+  box-shadow: 0 0 0 3px #ffd21a, 0 7px 14px 1px rgba(255,214,40,.85), 0 12px 34px 4px rgba(255,200,0,.55), 0 9px 0 rgba(150,30,80,.3);
+  animation: gjWaitHop 1s ease-in-out infinite, gjWaitGlow 1.1s ease-in-out infinite; }
+@keyframes gjWaitHop { 50% { transform: translateY(-5px) scale(1.06); } }
+@keyframes gjWaitGlow { 50% { box-shadow: 0 0 0 3px #fff3a0, 0 8px 20px 3px rgba(255,230,70,1), 0 14px 46px 8px rgba(255,200,0,.75), 0 9px 0 rgba(150,30,80,.3); } }
+html .gj-tile.jx-chip--waiting::before { border-radius: 6px;
+  background: repeating-conic-gradient(from var(--gj-ang) at 50% 38%, rgba(255,255,255,.4) 0 7deg, rgba(255,255,255,0) 7deg 30deg),
+              radial-gradient(circle at 50% 40%, rgba(255,255,255,.55) 0, rgba(255,255,255,0) 62%),
+              linear-gradient(105deg, transparent 35%, rgba(255,255,255,.6) 50%, transparent 65%);
+  background-size: 100% 100%, 100% 100%, 250% 100%; background-repeat: no-repeat;
+  -webkit-mask-image: none; mask-image: none; animation: gjWaitShine 2s linear infinite, gjWaitSpin 6s linear infinite; }
+@keyframes gjWaitShine { from { background-position: 0 0, 0 0, 130% 0; } to { background-position: 0 0, 0 0, -130% 0; } }
+@keyframes gjWaitSpin { to { --gj-ang: 360deg; } }
+.gj-tile.jx-chip--waiting::after { content: "Viens !"; position: absolute; z-index: 6; top: -7px; left: -10px; transform: rotate(-6deg); background: #ffd21a; color: #4a0f2e; border: 2px solid #fff; border-radius: 12px; padding: 1px 8px; font: 400 13px/1.3 var(--gu-font-display); white-space: nowrap; text-shadow: 0 1px 0 rgba(255,255,255,.6); box-shadow: 0 0 12px 3px rgba(255,230,70,.9), 0 3px 0 rgba(150,30,80,.35); }
+.gj-tile.jx-chip--waiting .gj-bar { background: linear-gradient(#ffe34d, #ffb800); }
+.gj-tile.jx-chip--waiting .gj-name { color: #4a0f2e; text-shadow: 0 1px 0 rgba(255,255,255,.6); }
+.gj-tile.jx-chip--waiting .gj-beta, .gj-tile.jx-chip--waiting .jx-chip-live-badge { display: none; }
+@media (prefers-reduced-motion: reduce) { .gj-tile.jx-chip--waiting, .gj-tile.jx-chip--waiting::before { animation: none; } }
 
 /* ── Défis couple ── */
 .gj-duo { display: flex; gap: 10px; margin: 0 16px; }
