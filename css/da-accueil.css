@@ -205,7 +205,7 @@ html[data-yam-tab="home"] #annivBanner::after { content: ""; position: absolute;
     radial-gradient(circle 2px at 172px 12px, #ff8a3d 96%, transparent), radial-gradient(circle 2.5px at 212px 34px, #ff4f7b 96%, transparent),
     radial-gradient(circle 2px at 252px 22px, #4b86ea 96%, transparent), radial-gradient(circle 2.5px at 292px 6px, #fff 96%, transparent),
     radial-gradient(circle 2px at 332px 36px, #3ccd88 96%, transparent);
-  background-size: 360px 50px; background-repeat: repeat-x; animation: ghConfetti 3.2s linear infinite; }
-@keyframes ghConfetti { from { background-position: 0 -50px; } to { background-position: 0 0; } }
+  background-size: 360px 50px; background-repeat: repeat; animation: ghConfetti 3.2s linear infinite; }
+@keyframes ghConfetti { from { background-position: 0 0; } to { background-position: 0 50px; } } /* un tour = exactement la hauteur d'une tuile : boucle sans coupure */
 html[data-yam-tab="home"] #annivBanner > * { position: relative; z-index: 1; }
 @media (prefers-reduced-motion: reduce) { html[data-yam-tab="home"] #annivBanner::after { animation: none; } }
