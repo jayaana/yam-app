@@ -21,7 +21,7 @@
 
 /* En-tête YAM + profil, identique sur toutes les pages
    (padding haut = zone sûre iPhone réelle + 10 px, jamais une valeur fixe) */
-.gu-header { box-sizing: content-box; display: flex; align-items: center; gap: 12px; height: 48px; padding: calc(max(env(safe-area-inset-top, 0px), var(--yam-sim-safe, 0px)) + 10px) 18px 0; flex: none; position: relative; z-index: 3; }
+.gu-header { box-sizing: content-box; display: flex; align-items: center; gap: 12px; height: 48px; padding: calc(max(env(safe-area-inset-top, 0px), var(--yam-sim-safe, 0px)) + 4px) 18px 0; flex: none; position: relative; z-index: 3; }
 .gu-header__logo { display: block; height: 48px; width: auto; } /* le logo de l'appli (image) remplace le mot YAM : pas de texte en plus */
 .gu-header__spacer { flex: 1; }
 .gu-profile { width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow); background: var(--gu-her); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--gu-font-display); font-size: 22px; overflow: hidden; padding: 0; cursor: pointer; }
