@@ -82,8 +82,21 @@
     var chip = el.closest ? el.closest('.jx-chip') : el;
     if (!chip || !chip.dataset || !chip.dataset.game) return;
     var card = _el(_TILE_CARD[chip.dataset.game]);
-    if (card) card.click();
+    if (card) { window._jxTileLaunch = true; card.click(); }
   }
+  /* Un jeu lancé depuis une tuile se superpose à l'onglet Jeux et, au « Retour », y revient (au lieu de la liste des jeux). Tous les jeux passent par _yamSlide. */
+  (function () {
+    var orig = window._yamSlide;
+    if (typeof orig !== 'function') return;
+    window._yamSlide = function (incoming, outgoing, dir) {
+      if (window._jxTileLaunch) {
+        if (dir === 'forward' && outgoing && outgoing.id === 'gamesView') outgoing = null;
+        else if (dir === 'backward' && incoming && incoming.id === 'gamesView') { incoming = null; window._jxTileLaunch = false; }
+        else if (dir === 'forward' && incoming && incoming.id === 'gamesView') window._jxTileLaunch = false;
+      }
+      return orig.call(this, incoming, outgoing, dir);
+    };
+  })();
   window.jxSelChip = jxSelChip;
 
   /* ── Drag-to-scroll + délégation click (FIX CSP : zéro onclick inline) ── */

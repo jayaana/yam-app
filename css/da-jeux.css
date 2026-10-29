@@ -97,7 +97,7 @@ html[data-theme="dark"] .jx-dash-card { box-shadow: var(--gj-card-shadow), inset
 .jx-dp-info { display: flex; flex-direction: column; }
 .jx-dp-score { font-family: var(--gu-font-display); font-size: 42px; line-height: 1; letter-spacing: .3px; color: var(--gj-her); }
 .jx-dp.r .jx-dp-score { color: var(--gj-him); }
-.jx-dp-score { text-shadow: -1.5px 0 0 #4a0f2e, 1.5px 0 0 #4a0f2e, 0 -1.5px 0 #4a0f2e, 0 1.5px 0 #4a0f2e, -1.5px -1.5px 0 #4a0f2e, 1.5px 1.5px 0 #4a0f2e, -1.5px 1.5px 0 #4a0f2e, 1.5px -1.5px 0 #4a0f2e; }
+.jx-dp-score { text-shadow: -1.2px 0 0 #4a0f2e, 1.2px 0 0 #4a0f2e, 0 -1.2px 0 #4a0f2e, 0 1.2px 0 #4a0f2e, -1px -1px 0 #4a0f2e, 1px 1px 0 #4a0f2e, -1px 1px 0 #4a0f2e, 1px -1px 0 #4a0f2e; }
 .jx-dp-sub { font: 700 12px/1.2 var(--gu-font-text); color: var(--gj-sub); }
 .jx-vs-txt { font-family: var(--gu-font-display); font-size: 22px; letter-spacing: 1px; color: var(--gj-vs-text); text-shadow: -2px 0 0 var(--gj-vs-stroke), 2px 0 0 var(--gj-vs-stroke), 0 -2px 0 var(--gj-vs-stroke), 0 2px 0 var(--gj-vs-stroke), -2px -2px 0 var(--gj-vs-stroke), 2px 2px 0 var(--gj-vs-stroke), -2px 2px 0 var(--gj-vs-stroke), 2px -2px 0 var(--gj-vs-stroke); }
 .jx-prog-track { position: relative; height: 14px; border-radius: 9px; margin-top: 10px; overflow: hidden; background: var(--gj-vs-track); border: 3px solid var(--gj-vs-edge); box-sizing: content-box; background-clip: padding-box; }
@@ -109,7 +109,7 @@ html[data-theme="dark"] .jx-dash-card { box-shadow: var(--gj-card-shadow), inset
 .jx-stat--wide { flex: 1.2 1 auto; }
 .jx-stat + .jx-stat { border-left: 2px dashed var(--gj-stat-edge); padding-left: 2px; }
 .jx-stat-lbl { order: 0; font: 700 12px/1.2 var(--gu-font-text); color: var(--gj-label); white-space: nowrap; }
-.jx-stat-val { order: 1; display: flex; align-items: center; justify-content: center; gap: 4px; font-family: var(--gu-font-display); font-size: 14px; line-height: 1.2; letter-spacing: 0; color: #fff; white-space: nowrap; text-shadow: -1.5px 0 0 var(--gj-stat-stroke), 1.5px 0 0 var(--gj-stat-stroke), 0 -1.5px 0 var(--gj-stat-stroke), 0 1.5px 0 var(--gj-stat-stroke), -1.5px -1.5px 0 var(--gj-stat-stroke), 1.5px 1.5px 0 var(--gj-stat-stroke), -1.5px 1.5px 0 var(--gj-stat-stroke), 1.5px -1.5px 0 var(--gj-stat-stroke); }
+.jx-stat-val { order: 1; display: flex; align-items: center; justify-content: center; gap: 4px; font-family: var(--gu-font-display); font-size: 14px; line-height: 1.2; letter-spacing: 0; color: #fff; white-space: nowrap; text-shadow: -1px 0 0 var(--gj-stat-stroke), 1px 0 0 var(--gj-stat-stroke), 0 -1px 0 var(--gj-stat-stroke), 0 1px 0 var(--gj-stat-stroke), -1px -1px 0 var(--gj-stat-stroke), 1px 1px 0 var(--gj-stat-stroke), -1px 1px 0 var(--gj-stat-stroke), 1px -1px 0 var(--gj-stat-stroke); }
 
 /* ── Tuiles (jeux, défis) ── */
 .gj-tile { position: relative; box-sizing: border-box; padding: 0; margin: 0; border: 2px solid var(--gj-edge); border-radius: 8px; background-clip: padding-box; background: linear-gradient(var(--hi) 0%, var(--c) 40%, var(--lo) 100%); box-shadow: inset 0 3px 0 rgba(255,255,255,.2), var(--gj-edge-shadow); cursor: pointer; -webkit-tap-highlight-color: transparent; font: inherit; color: #fff; display: flex; flex-direction: column; align-items: center; overflow: visible; }
@@ -125,7 +125,7 @@ html[data-theme="dark"] .jx-dash-card { box-shadow: var(--gj-card-shadow), inset
 @keyframes gjTw { 0%, 100% { opacity: 1; } 50% { opacity: .75; } }
 @media (prefers-reduced-motion: reduce) { .gj-conf { animation: none; } }
 .gj-bar { position: absolute !important; left: -.5px; right: -.5px; bottom: -.5px; height: 23px; display: flex; align-items: center; justify-content: center; background: var(--gj-bar-bg); border-radius: 0 0 6px 6px; }
-.gj-name, .gj-tile .jx-row-name { font-family: var(--gu-font-display); font-size: 15px; line-height: 1; letter-spacing: .3px; color: #fff; white-space: nowrap; text-shadow: -1.5px 0 0 #4a0f2e, 1.5px 0 0 #4a0f2e, 0 -1.5px 0 #4a0f2e, 0 1.5px 0 #4a0f2e, -1.5px -1.5px 0 #4a0f2e, 1.5px 1.5px 0 #4a0f2e, -1.5px 1.5px 0 #4a0f2e, 1.5px -1.5px 0 #4a0f2e; }
+.gj-name, .gj-tile .jx-row-name { font-family: var(--gu-font-display); font-size: 15px; line-height: 1; letter-spacing: .3px; color: #fff; white-space: nowrap; text-shadow: -1px 0 0 #4a0f2e, 1px 0 0 #4a0f2e, 0 -1px 0 #4a0f2e, 0 1px 0 #4a0f2e, -1px -1px 0 #4a0f2e, 1px 1px 0 #4a0f2e, -1px 1px 0 #4a0f2e, 1px -1px 0 #4a0f2e; }
 html[data-theme="dark"] .gj-tile::before { -webkit-mask-image: linear-gradient(#000 calc(100% - 23.5px), transparent calc(100% - 23.5px)); mask-image: linear-gradient(#000 calc(100% - 23.5px), transparent calc(100% - 23.5px)); }
 /* score « 9–4 » en pastille inclinée ; vide = masquée (plus de « — ») */
 .gj-pill { position: absolute !important; z-index: 2; top: 5px; right: 6px; transform: skewX(-10deg); padding: 1px 7px; background: rgba(1,3,12,.7); border-radius: 7px; color: #ffe34d; font: 800 12px/1.3 var(--gu-font-text); white-space: nowrap; }
@@ -142,7 +142,7 @@ html[data-theme="dark"] .gj-tile::before { -webkit-mask-image: linear-gradient(#
 .gj-tile--wide .gj-ic { width: 42px; height: 42px; margin: 0; flex: none; }
 .gj-tile--wide .jx-row-name { font-size: 15px; }
 .gj-tile--wide .jx-row-name em { font-style: normal; color: #ff4d6d; }
-.gj-tile--wide .jx-row-name, .gj-tile--wide .jx-row-name em { text-shadow: -1.5px 0 0 #01030c, 1.5px 0 0 #01030c, 0 -1.5px 0 #01030c, 0 1.5px 0 #01030c, -1.5px -1.5px 0 #01030c, 1.5px 1.5px 0 #01030c, -1.5px 1.5px 0 #01030c, 1.5px -1.5px 0 #01030c; }
+.gj-tile--wide .jx-row-name, .gj-tile--wide .jx-row-name em { text-shadow: -1px 0 0 #01030c, 1px 0 0 #01030c, 0 -1px 0 #01030c, 0 1px 0 #01030c, -1px -1px 0 #01030c, 1px 1px 0 #01030c, -1px 1px 0 #01030c, 1px -1px 0 #01030c; }
 .gj-clown { overflow: hidden; background: repeating-linear-gradient(90deg, #ffee66 0 14px, #ffb300 14px 28px); box-shadow: inset 0 3px 0 rgba(255,255,255,.5), inset 0 -7px 0 rgba(214,130,0,.35), 0 0 8px rgba(255,214,0,.35), var(--gj-edge-shadow); }
 .gj-tent { position: absolute !important; left: 0; right: 0; top: 0; height: 8px; pointer-events: none; filter: drop-shadow(0 1px 0 rgba(1,3,12,.55)); background: conic-gradient(from -45deg at 50% 100%, #e8372b 0 90deg, transparent 0) -24px 0/64px 8px repeat-x, conic-gradient(from -45deg at 50% 100%, #fff 0 90deg, transparent 0) -8px 0/64px 8px repeat-x, conic-gradient(from -45deg at 50% 100%, #2f7be0 0 90deg, transparent 0) 8px 0/64px 8px repeat-x, conic-gradient(from -45deg at 50% 100%, #2fbf71 0 90deg, transparent 0) 24px 0/64px 8px repeat-x; }
 
