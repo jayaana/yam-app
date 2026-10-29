@@ -8,9 +8,9 @@
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Fond de page + en-tête YAM (onglet Accueil seulement) ──────── */
-/* Fond de l'Accueil. Premier calque : prolongement du haut du dégradé vers le HAUT (zone sûre iOS, au-dessus de la page quand iOS décale la fenêtre), mêmes couleurs que le haut du dégradé de la page. */
-html[data-yam-tab="home"] { background: linear-gradient(90deg, #ffb7b1 0%, #ffc2bb 50%, #ffb7b1 100%) 0 -140px / 100% 140px no-repeat, var(--gu-bg-page) !important; background-repeat: no-repeat !important; background-color: #ffc2bb !important; }
-html[data-theme="dark"][data-yam-tab="home"] { background: linear-gradient(90deg, #160f12 0%, #191215 50%, #160f12 100%) 0 -140px / 100% 140px no-repeat, var(--gu-bg-page) !important; background-repeat: no-repeat !important; background-color: #191215 !important; }
+/* Fond de l'Accueil. La zone sûre iOS (au-dessus de la page quand iOS décale la fenêtre) n'est peinte QUE avec la couleur unie de html (mesuré sur iPhone) : on met donc cette même couleur en haut de la page, en fondu vers le dégradé sur 160 px, pour qu'aucune limite ne se voie. */
+html[data-yam-tab="home"] { background: linear-gradient(#ffc2bb, rgba(255,194,187,0)) 0 0 / 100% 160px no-repeat, var(--gu-bg-page) !important; background-repeat: no-repeat !important; background-color: #ffc2bb !important; }
+html[data-theme="dark"][data-yam-tab="home"] { background: linear-gradient(#191215, rgba(25,18,21,0)) 0 0 / 100% 160px no-repeat, var(--gu-bg-page) !important; background-repeat: no-repeat !important; background-color: #191215 !important; }
 html[data-yam-tab="home"] body, html[data-yam-tab="home"] body.light { background: transparent !important; background-image: none !important; }
 html[data-yam-tab="home"] #yamMainHeader { background: transparent !important; border: 0; box-shadow: none; }
 /* En-tête identique sur TOUS les onglets (référence = Accueil) : mêmes marges, mêmes tailles, mêmes coordonnées */
