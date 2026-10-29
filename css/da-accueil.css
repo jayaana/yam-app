@@ -31,15 +31,15 @@ html #yamHomeTab.active, html body.light #yamHomeTab.active { background: transp
 #yamHomeTab .fade-in { animation: none; }
 
 /* ── Nuage « temps ensemble » ───────────────────────────────────── */
-.gh-cloud { position: relative; width: 292px; max-width: calc(100% - 24px); height: 52px; margin: 0 auto 12px; flex: none; animation: ghCloudFloat 6s ease-in-out infinite; }
+.gh-cloud { position: relative; top: 6px; width: 292px; max-width: calc(100% - 24px); height: 52px; margin: 0 auto 12px; flex: none; animation: ghCloudFloat 6s ease-in-out infinite; }
 .gh-cloud > svg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; }
 .gh-cloud__inner { position: absolute; left: 18px; right: 18px; top: 20px; height: 25px; display: flex; align-items: center; justify-content: center; }
 .home-counter-nums { display: flex; align-items: center; justify-content: center; gap: 7px; }
-.home-counter-label { display: none; font-family: var(--gu-font-display); font-size: 16px; color: #4a0f2e; text-align: center; letter-spacing: .3px; }
+.home-counter-label { display: none; font-family: var(--gu-font-soft); font-weight: 500; font-size: 15px; color: #4a0f2e; text-align: center; letter-spacing: .3px; }
 .home-counter-nums[style*="none"] + .home-counter-label { display: block; }
 .home-c-unit { display: flex; align-items: baseline; gap: 3px; }
 .home-c-num { font-family: var(--gu-font-display); font-size: 18px; line-height: 1; color: #4a0f2e; letter-spacing: .3px; }
-.home-c-lbl { font: 600 11px var(--gu-font-text); color: #6e3a4c; }
+.home-c-lbl { font: 500 11px var(--gu-font-soft); color: #6e3a4c; }
 .home-c-sep { width: 2px; height: 16px; border-radius: 1px; background: rgba(74,15,46,.25); font-size: 0; }
 .gh-cloud__heart { width: 16px; height: 16px; flex: none; margin-right: 7px; }
 @keyframes ghCloudFloat { 0%,100% { transform: translate(0,0); } 25% { transform: translate(3px,-2px); } 50% { transform: translate(0,-3px); } 75% { transform: translate(-3px,-1px); } }
@@ -99,14 +99,14 @@ html[data-theme="dark"] .gh-halo { box-shadow: 0 0 34px 2px rgba(255,255,255,.22
 .home-mood-online.online { background: var(--gu-online); box-shadow: 0 0 0 3px rgba(60,205,136,.4); }
 .home-mood-nameblock { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .home-mood-name { font-family: var(--gu-font-display); font-size: 16px; line-height: 1; letter-spacing: .3px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.home-mood-status { font: 600 12px/14px var(--gu-font-text); color: #fff; margin-top: 2px; }
+.home-mood-status { font: 500 12px/14px var(--gu-font-soft); color: #fff; margin-top: 2px; }
 .home-mood-edit-btn { flex: none; position: relative; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: rgba(255,255,255,.9); color: #4a0f2e; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .home-mood-edit-btn::before { content: ""; position: absolute; inset: -8px; }
 .home-mood-bubble-wrap { margin: 0 8px 7px; }
 .home-mood-bubble { padding: 6px 10px; height: 38px; box-sizing: border-box; display: flex; align-items: center; border-radius: 12px; background: var(--gu-quote-bg); }
-.home-mood-quote { font: 600 13px/16px var(--gu-font-text); color: #fff; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.home-mood-quote { font: 500 13px/16px var(--gu-font-soft); color: #fff; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .home-mood-footer { margin-top: auto; height: 34px; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 6px 10px; background: var(--foot); }
-.home-mood-footer > .gh-mood__mood { display: flex; align-items: center; gap: 5px; min-width: 0; font: 700 12px var(--gu-font-text); color: #fff; }
+.home-mood-footer > .gh-mood__mood { display: flex; align-items: center; gap: 5px; min-width: 0; font: 600 12px var(--gu-font-soft); color: #fff; }
 .home-mood-emoji { font-size: 15px; line-height: 1; }
 .home-mood-emoji-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .home-mood-hearts { display: inline-flex; align-items: center; gap: 3px; height: 20px; box-sizing: border-box; padding: 1px 8px 1px 4px; border-radius: 14px; background: #fff; flex: none; }
@@ -115,14 +115,14 @@ html[data-theme="dark"] .gh-halo { box-shadow: 0 0 34px 2px rgba(255,255,255,.22
 #homeMoodElle[role="button"], #homeMoodLui[role="button"] { cursor: pointer; }
 
 /* Rappel du jour */
-.home-rappel-row { margin: 12px 16px 0; }
+.home-rappel-row { margin: 18px 16px 0; }
 .home-rappel-card { position: relative; border-radius: 24px; background: var(--gu-rappel-bg); color: var(--gu-rappel-text); padding: 8px 12px 8px 16px; display: grid; grid-template-columns: 1fr auto auto; grid-template-areas: "text done later" "ctrl done later"; column-gap: 10px; align-items: center; }
 .home-rappel-topbar { grid-area: ctrl; display: flex; align-items: center; gap: 2px; margin-top: 2px; }
 .home-rappel-badge { position: absolute; left: 14px; top: -10px; display: inline-block; font-family: var(--gu-font-display); font-size: 12px; letter-spacing: .3px; background: linear-gradient(#ffe56a, #ffbf00); color: #2a1a00; border-radius: 7px; padding: 1px 7px; box-shadow: 0 2px 6px rgba(255,170,0,.55); }
 .home-rappel-badge-dot { display: none; }
 .home-rappel-topbar .gh-spacer { display: none; }
 .home-rappel-nav { display: flex; align-items: center; gap: 0; }
-.home-rappel-counter { font: 700 12px var(--gu-font-text); min-width: 28px; text-align: center; color: var(--gu-rappel-text); }
+.home-rappel-counter { font: 600 12px var(--gu-font-soft); min-width: 28px; text-align: center; color: var(--gu-rappel-text); }
 .home-rappel-nav-btn, .home-rappel-add-btn { position: relative; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: rgba(255,255,255,.55); color: var(--gu-rappel-text); font: 700 18px/1 var(--gu-font-text); display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .home-rappel-nav-btn::before, .home-rappel-add-btn::before { content: ""; position: absolute; inset: -6px; }
 .home-rappel-add-btn { margin-left: 6px; }
