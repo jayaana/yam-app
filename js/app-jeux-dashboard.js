@@ -84,15 +84,23 @@
     var card = _el(_TILE_CARD[chip.dataset.game]);
     if (card) { window._jxTileLaunch = true; card.click(); }
   }
-  /* Un jeu lancé depuis une tuile se superpose à l'onglet Jeux et, au « Retour », y revient (au lieu de la liste des jeux). Tous les jeux passent par _yamSlide. */
+  /* Un jeu lancé depuis une tuile prend la place de l'onglet Jeux (comme l'ancienne liste des jeux) et, au « Retour », l'onglet revient (au lieu de la liste des jeux). Tous les jeux passent par _yamSlide. */
   (function () {
     var orig = window._yamSlide;
     if (typeof orig !== 'function') return;
     window._yamSlide = function (incoming, outgoing, dir) {
       if (window._jxTileLaunch) {
-        if (dir === 'forward' && outgoing && outgoing.id === 'gamesView') outgoing = null;
-        else if (dir === 'backward' && incoming && incoming.id === 'gamesView') { incoming = null; window._jxTileLaunch = false; }
-        else if (dir === 'forward' && incoming && incoming.id === 'gamesView') window._jxTileLaunch = false;
+        var tab = document.getElementById('yamJeuxTab');
+        if (dir === 'forward' && outgoing && outgoing.id === 'gamesView') {
+          outgoing = tab;
+          document.body.classList.add('subview-active');
+        } else if (dir === 'backward' && incoming && incoming.id === 'gamesView') {
+          incoming = tab;
+          window._jxTileLaunch = false;
+          document.body.classList.remove('subview-active');
+        } else if (dir === 'forward' && incoming && incoming.id === 'gamesView') {
+          window._jxTileLaunch = false;
+        }
       }
       return orig.call(this, incoming, outgoing, dir);
     };
