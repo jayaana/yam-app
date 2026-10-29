@@ -3055,7 +3055,7 @@ window.addEventListener('load', function(){
   var MOOD_CATEGORIES = [
     { label: '💖 Amour', emojis: ['😍','🥰','😊','🤗','😇','😏'] },
     { label: '⚡ Énergie', emojis: ['🔥','💪','🤩','🥳','😎','😂'] },
-    { label: '🌧 Calme & Doux', emojis: ['😴','😔','🥺','😤','👤','😶'] }
+    { label: '🌧 Calme', emojis: ['😴','😔','🥺','😤','👤','😶'] }
   ];
 
   var _pickerStep = 1;          // 1 = choix emoji  |  2 = message
@@ -3079,9 +3079,8 @@ window.addEventListener('load', function(){
     var colTxt  = document.createElement('div'); colTxt.className  = 'gh-mp__txt';
 
     var head = document.createElement('div'); head.className = 'gh-mp__head';
-    var headEmoji = document.createElement('span'); headEmoji.className = 'gh-mp__heademoji';
-    var headLabel = document.createElement('span'); headLabel.className = 'gh-mp__headlabel';
-    head.appendChild(headEmoji); head.appendChild(headLabel);
+    head.textContent = 'Mon petit mot';
+    var btnRow = document.createElement('div'); btnRow.className = 'gh-mp__btns';
 
     var textarea = document.createElement('textarea');
     textarea.id = 'moodMsgTextarea';
@@ -3094,9 +3093,8 @@ window.addEventListener('load', function(){
     save.type = 'button'; save.className = 'gh-mp__save'; save.textContent = 'Enregistrer';
 
     function refreshHead(){
-      headEmoji.textContent = chosen || '🙂';
-      headLabel.textContent = chosen ? (moodLabels[chosen] || '') : 'Choisis une humeur';
       save.disabled = !chosen;
+      picker.setAttribute('data-cat', String(catIdx));
     }
     function renderEmos(){
       colEmos.innerHTML = '';
@@ -3123,6 +3121,7 @@ window.addEventListener('load', function(){
       b.textContent = cat.label;
       b.onclick = function(){
         catIdx = i;
+        picker.setAttribute('data-cat', String(i));
         colCats.querySelectorAll('.gh-mp__cat').forEach(function(x, j){ x.classList.toggle('is-on', j === i); });
         renderEmos();
       };
@@ -3135,7 +3134,7 @@ window.addEventListener('load', function(){
 
     if(window._myMood){
       var del = document.createElement('button');
-      del.type = 'button'; del.className = 'gh-mp__del'; del.title = 'Effacer mon humeur'; del.setAttribute('aria-label', 'Effacer mon humeur'); del.textContent = '🗑';
+      del.type = 'button'; del.className = 'gh-mp__del'; del.title = 'Effacer mon humeur'; del.setAttribute('aria-label', 'Effacer mon humeur'); del.textContent = 'Supprimer';
       del.onclick = function(ev){
         ev.stopPropagation();
         var p = get();
@@ -3151,7 +3150,7 @@ window.addEventListener('load', function(){
         if(window.yamSyncMood) window.yamSyncMood();
         window.closeMoodPicker();
       };
-      head.appendChild(del);
+      btnRow.appendChild(del);
     }
 
     save.onclick = function(){
@@ -3168,7 +3167,8 @@ window.addEventListener('load', function(){
       window.closeMoodPicker();
     };
 
-    colTxt.appendChild(head); colTxt.appendChild(textarea); colTxt.appendChild(save);
+    btnRow.appendChild(save);
+    colTxt.appendChild(head); colTxt.appendChild(textarea); colTxt.appendChild(btnRow);
     picker.appendChild(colCats); picker.appendChild(colEmos); picker.appendChild(colTxt); picker.appendChild(closeX);
     renderEmos(); refreshHead();
     picker.onclick = function(ev){ ev.stopPropagation(); };
