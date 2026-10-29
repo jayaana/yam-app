@@ -226,3 +226,7 @@ html[data-yam-tab="home"] #annivBanner > * { position: relative; z-index: 1; }
 .gh-sheet--drag { z-index: 4; }
 /* Accueil : un glissement de doigt vertical hors de la feuille ne fait pas défiler la page (elle reste défilable, sans verrou) */
 html[data-yam-tab="home"] #yamMainHeader, html[data-yam-tab="home"] #yamHomeTab { touch-action: pan-x; }
+/* Fenêtre « Rappels du jour » : le glissement ne fait défiler que sa liste, jamais la page derrière */
+#rappelOverlay.open, #rappelSheet { touch-action: none; overscroll-behavior: contain; }
+#rappelSheet .rsh-list { touch-action: pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+#moodPicker { overscroll-behavior: contain; }
