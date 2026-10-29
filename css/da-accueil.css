@@ -12,7 +12,12 @@ html[data-yam-tab="home"] { background: var(--gu-bg-page) !important; background
 html[data-yam-tab="home"] body, html[data-yam-tab="home"] body.light { background: transparent !important; background-image: none !important; }
 html[data-yam-tab="home"] #yamMainHeader { background: transparent !important; border: 0; box-shadow: none; }
 /* En-tête identique sur TOUS les onglets (référence = Accueil) : mêmes marges, mêmes tailles, mêmes coordonnées */
-html #yamMainHeader { padding-left: 18px !important; padding-right: 18px !important; padding-top: calc(max(env(safe-area-inset-top, 0px), var(--yam-sim-safe, 0px)) + 4px) !important; padding-bottom: 0 !important; margin-bottom: -10px; }
+html #yamMainHeader { padding-left: 18px !important; padding-right: 18px !important; padding-top: calc(max(env(safe-area-inset-top, 0px), var(--yam-sim-safe, 0px)) + 2px) !important; padding-bottom: 0 !important; margin-bottom: -10px; }
+/* Messages (conversations) : même en-tête que les autres onglets — logo 48 x18, bouton 44, avatar 48 */
+body:not(.dm-chat-active) #dmTopbar { padding: calc(max(env(safe-area-inset-top, 0px), var(--yam-sim-safe, 0px)) + 2px) 18px 4px 18px !important; min-height: 0 !important; }
+body:not(.dm-chat-active) #dmTopbarLogo { height: 48px !important; }
+body:not(.dm-chat-active) #themeToggleDm2 { width: var(--gu-tap) !important; height: var(--gu-tap) !important; }
+body:not(.dm-chat-active) #dmConvProfileBtn { width: 48px !important; height: 48px !important; }
 html #themeToggleHome { width: var(--gu-tap) !important; height: var(--gu-tap) !important; }
 html #profileAvatar { width: 48px !important; height: 48px !important; }
 html[data-yam-tab="home"] #themeToggleHome { background: var(--gu-card); color: var(--gu-text); border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow); }
