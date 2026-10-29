@@ -727,9 +727,11 @@
   }, { passive: false });
 })();
 
-/* Fenêtre « Rappels du jour » : le clavier iOS décale la page ; on la remet en place à l'ouverture du clavier et à sa fermeture */
+/* Clavier iOS (rappels du jour, humeur) : il décale la page ; on la remet en place seulement APRÈS sa fermeture (jamais pendant la saisie, sinon le clavier se referme) */
 (function(){
   function reset(){ window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); }
-  document.addEventListener('focusin', function(e){ if (e.target && e.target.id === 'rshInput') [300, 700].forEach(function(ms){ setTimeout(reset, ms); }); });
-  document.addEventListener('focusout', function(e){ if (e.target && e.target.id === 'rshInput') [50, 350, 700].forEach(function(ms){ setTimeout(reset, ms); }); });
+  document.addEventListener('focusout', function(e){
+    var id = e.target && e.target.id;
+    if (id === 'rshInput' || id === 'moodMsgTextarea') [50, 350, 700].forEach(function(ms){ setTimeout(reset, ms); });
+  });
 })();
