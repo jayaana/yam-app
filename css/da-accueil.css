@@ -10,10 +10,13 @@
 /* ── Fond de page + en-tête YAM (onglet Accueil seulement) ──────── */
 html[data-yam-tab="home"] { background: var(--gu-bg-page) !important; background-attachment: fixed !important; }
 html[data-yam-tab="home"] body, html[data-yam-tab="home"] body.light { background: transparent !important; background-image: none !important; }
-html[data-yam-tab="home"] #yamMainHeader { background: transparent !important; border: 0; box-shadow: none; padding-left: 18px; padding-right: 18px; }
-html[data-yam-tab="home"] #yamMainHeader { padding-top: calc(max(env(safe-area-inset-top, 0px), var(--yam-sim-safe, 0px)) + 4px) !important; padding-bottom: 0 !important; margin-bottom: -10px; }
-html[data-yam-tab="home"] #themeToggleHome { width: var(--gu-tap) !important; height: var(--gu-tap) !important; background: var(--gu-card); color: var(--gu-text); border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow); }
-html[data-yam-tab="home"] #profileAvatar { width: 48px !important; height: 48px !important; border: var(--gu-sticker-width) solid var(--gu-sticker-border) !important; box-shadow: var(--gu-sticker-shadow) !important; background: var(--gu-her) !important; }
+html[data-yam-tab="home"] #yamMainHeader { background: transparent !important; border: 0; box-shadow: none; }
+/* En-tête identique sur TOUS les onglets (référence = Accueil) : mêmes marges, mêmes tailles, mêmes coordonnées */
+html #yamMainHeader { padding-left: 18px !important; padding-right: 18px !important; padding-top: calc(max(env(safe-area-inset-top, 0px), var(--yam-sim-safe, 0px)) + 4px) !important; padding-bottom: 0 !important; margin-bottom: -10px; }
+html #themeToggleHome { width: var(--gu-tap) !important; height: var(--gu-tap) !important; }
+html #profileAvatar { width: 48px !important; height: 48px !important; }
+html[data-yam-tab="home"] #themeToggleHome { background: var(--gu-card); color: var(--gu-text); border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow); }
+html[data-yam-tab="home"] #profileAvatar { border: var(--gu-sticker-width) solid var(--gu-sticker-border) !important; box-shadow: var(--gu-sticker-shadow) !important; background: var(--gu-her) !important; }
 
 /* ── Panneau Accueil : colonne qui remplit l'écran ──────────────── */
 html #yamHomeTab.active, html body.light #yamHomeTab.active { background: transparent !important; display: flex; flex-direction: column; min-height: calc(100dvh - var(--gh-hdr, 108px)); padding-bottom: 0; color: var(--gu-text); }
