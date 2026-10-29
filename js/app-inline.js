@@ -752,4 +752,15 @@ document.addEventListener('DOMContentLoaded', function(){
   _on('descEditCancelBtn', 'click', function(){ window.descEditClose && window.descEditClose(); });
   _on('descEditSaveBtn',   'click', function(){ window.descEditSave && window.descEditSave(); });
 
+  // ── Messages : l'avatar de l'en-tête reprend la couleur de bordure/fond de l'avatar de l'en-tête commun ──
+  document.addEventListener('yam:tab_switched', function(){
+    var pa = document.getElementById('profileAvatar'), b = document.getElementById('dmConvProfileBtn');
+    if(!pa || !b) return;
+    // l'avatar commun a une transition de 0.3 s sur ses couleurs : on lit la valeur finale
+    setTimeout(function(){
+      var s = getComputedStyle(pa);
+      b.style.borderColor = s.borderTopColor; b.style.backgroundColor = s.backgroundColor;
+    }, 400);
+  });
+
 });
