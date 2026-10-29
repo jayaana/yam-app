@@ -171,3 +171,7 @@ html[data-theme="dark"] { --gu-mp-neutral: rgba(255,255,255,.1); }
 .gh-mp__area::placeholder { color: var(--gu-text-2); }
 .gh-mp__save { flex: none; height: 34px; border: 0; border-radius: 17px; background: var(--gu-action); color: var(--gu-on-action); font: 400 15px var(--gu-font-display); letter-spacing: .3px; cursor: pointer; }
 .gh-mp__save:disabled { opacity: .45; cursor: default; }
+
+/* Fond assombri derrière la fenêtre d'humeur : plus marqué pour la détacher des cartes (rappel du jour compris) */
+html body #moodPickerOverlay.visible { background: rgba(0,0,0,.72); }
+html[data-theme="warm"] body #moodPickerOverlay.visible, html body.light #moodPickerOverlay.visible { background: rgba(40,5,25,.45); }
