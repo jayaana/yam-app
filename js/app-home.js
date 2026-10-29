@@ -735,6 +735,35 @@
   });
 })();
 
+/* Fenêtres « Rappels du jour » et humeur ouvertes : la page est figée (body en position fixe) pour que le clavier iOS ne puisse pas la faire défiler ; à la fermeture on la libère et on la remet en haut */
+(function(){
+  var locked = false, savedY = 0;
+  function lock(){
+    if (locked) return;
+    locked = true; savedY = window.pageYOffset || 0;
+    var b = document.body.style;
+    b.position = 'fixed'; b.top = (-savedY) + 'px'; b.left = '0'; b.right = '0'; b.width = '100%';
+  }
+  function unlock(){
+    if (!locked) return;
+    locked = false;
+    var b = document.body.style;
+    b.position = ''; b.top = ''; b.left = ''; b.right = ''; b.width = '';
+    [0, 100, 400].forEach(function(ms){ setTimeout(function(){ window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); }, ms); });
+  }
+  function sync(){
+    var a = document.getElementById('rappelSheet'), m = document.getElementById('moodPicker');
+    if ((a && a.classList.contains('open')) || (m && m.classList.contains('open'))) lock(); else unlock();
+  }
+  function watch(){
+    ['rappelSheet', 'moodPicker'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) new MutationObserver(sync).observe(el, { attributes: true, attributeFilter: ['class'] });
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watch); else watch();
+})();
+
 /* TEMP-DIAG (à retirer) : cadre vert de mesure iOS, pour les fenêtres Rappels / humeur */
 (function(){
   var box = document.createElement('div');
