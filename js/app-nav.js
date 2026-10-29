@@ -23,11 +23,11 @@
       var _bounce = function(n){
         window.yamSwitchTab('musique');
         // Musique doit être réellement affichée (au moins une image) avant de revenir : iOS ne recalcule sa zone visible qu'à ce prix
-        requestAnimationFrame(function(){
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){
           try { window.yamSwitchTab('home'); } catch(e) { window._yamBouncing = false; return; }
-          if(n > 1) setTimeout(function(){ _bounce(n - 1); }, 60);
+          if(n > 1) setTimeout(function(){ _bounce(n - 1); }, 150);
           else window._yamBouncing = false;
-        });
+        }); });
       };
       _bounce(2);
       return;
