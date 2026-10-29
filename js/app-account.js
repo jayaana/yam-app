@@ -3240,7 +3240,7 @@ window.addEventListener('load', function(){
     textarea.onblur  = function(){ this.style.borderColor = 'var(--border)'; };
     textarea.oninput = function(){
       var rem = document.getElementById('moodMsgCounter');
-      if(rem) rem.textContent = (120 - this.value.length) + ' car. restants';
+      if(rem) rem.textContent = (36 - this.value.length) + ' car. restants';
     };
     picker.appendChild(textarea);
 
@@ -3248,7 +3248,7 @@ window.addEventListener('load', function(){
     var counter = document.createElement('div');
     counter.id = 'moodMsgCounter';
     counter.style.cssText = 'font-size:9px;color:var(--muted);text-align:right;margin-top:3px;margin-bottom:8px;';
-    counter.textContent = '120 car. restants';
+    counter.textContent = '36 car. restants';
     picker.appendChild(counter);
 
     // Bouton Valider
