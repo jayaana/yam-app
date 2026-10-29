@@ -15,6 +15,18 @@
   var _currentTab = 'home';
 
   window.yamSwitchTab = function(tab) {
+    // Reclic sur Accueil alors qu'on y est déjà : aller-retour interne par Musique (sans affichage ni chargement)
+    // pour que iOS recalcule sa zone visible, comme après un vrai changement d'onglet
+    if(tab === 'home' && _currentTab === 'home' && !window._yamBouncing){
+      window._yamBouncing = true;
+      try {
+        window.yamSwitchTab('musique');
+        void document.body.offsetHeight;
+        window.yamSwitchTab('home');
+      } finally { window._yamBouncing = false; }
+      return;
+    }
+    var _skipLoad = !!(window._yamBouncing && tab === 'musique');
     // ── Onglet Messages → ouvre directement hiddenPage (le panel yamMessagesTab est vide)
     if(tab === 'messages'){
       if(window.openHiddenPage) window.openHiddenPage();
@@ -85,7 +97,7 @@
         musique:  [window.sgLoad],
         jeux:     [window.jxLoadDashboard]
       };
-      var toRun = fns[tab] || [];
+      var toRun = _skipLoad ? [] : (fns[tab] || []);
       toRun.forEach(function(fn){ if(typeof fn === 'function'){ try{ fn(); }catch(e){} } });
       // ✅ OPT v3.8 : réévaluer l'état story quand on revient sur home
       if((tab === 'home' || tab === 'nous') && window._applyStoryState) window._applyStoryState();
