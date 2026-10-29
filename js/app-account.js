@@ -3066,126 +3066,81 @@ window.addEventListener('load', function(){
     if(!picker) return;
     var profile = get();
     var moodLabels = (profile === 'boy') ? MOOD_LABELS_BOY : MOOD_LABELS;
-
     picker.innerHTML = '';
+    picker.classList.add('gh-mp');
 
-    // Header
-    var hdr = document.createElement('div');
-    hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;';
-    var lbl = document.createElement('div');
-    lbl.className = 'mood-picker-label';
-    lbl.style.marginBottom = '0';
-    lbl.textContent = 'Comment tu te sens ?';
-    var closeX = document.createElement('div');
-    closeX.className = 'mood-picker-close';
-    closeX.textContent = '✕';
-    closeX.onclick = function(){ window.closeMoodPicker(); };
-    hdr.appendChild(lbl); hdr.appendChild(closeX);
-    picker.appendChild(hdr);
+    // Une seule vue (phase 1 game UI) : catégories à gauche, émojis au milieu, mot + enregistrer à droite
+    var catIdx = 0;
+    var chosen = _pickerTempEmoji || window._myMood || null;
+    if(chosen){ MOOD_CATEGORIES.forEach(function(c, i){ if(c.emojis.indexOf(chosen) !== -1) catIdx = i; }); }
 
-    // Affichage humeur actuelle
-    if(window._myMood){
-      var currentRow = document.createElement('div');
-      currentRow.style.cssText = 'display:flex;align-items:center;gap:7px;background:var(--s2);border-radius:10px;padding:7px 10px;font-size:12px;color:var(--sub);';
-      var curLabel = document.createElement('span');
-      curLabel.textContent = 'Actuelle :';
-      curLabel.style.cssText = 'font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;';
-      var curEmoji = document.createElement('span');
-      curEmoji.style.fontSize = '18px';
-      curEmoji.textContent = window._myMood;
-      var curTxt = document.createElement('span');
-      curTxt.style.cssText = 'font-weight:600;color:var(--text);flex:1;';
-      curTxt.textContent = moodLabels[window._myMood] || '';
-      var curMsg = document.createElement('span');
-      curMsg.style.cssText = 'font-size:10px;color:var(--muted);font-style:italic;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-      if(window._myMoodMessage) curMsg.textContent = '"' + window._myMoodMessage + '"';
-      currentRow.appendChild(curLabel); currentRow.appendChild(curEmoji);
-      currentRow.appendChild(curTxt); currentRow.appendChild(curMsg);
-      picker.appendChild(currentRow);
+    var colCats = document.createElement('div'); colCats.className = 'gh-mp__cats';
+    var colEmos = document.createElement('div'); colEmos.className = 'gh-mp__emos';
+    var colTxt  = document.createElement('div'); colTxt.className  = 'gh-mp__txt';
+
+    var head = document.createElement('div'); head.className = 'gh-mp__head';
+    var headEmoji = document.createElement('span'); headEmoji.className = 'gh-mp__heademoji';
+    var headLabel = document.createElement('span'); headLabel.className = 'gh-mp__headlabel';
+    head.appendChild(headEmoji); head.appendChild(headLabel);
+
+    var textarea = document.createElement('textarea');
+    textarea.id = 'moodMsgTextarea';
+    textarea.className = 'gh-mp__area';
+    textarea.maxLength = 120;
+    textarea.placeholder = 'Un petit mot… 💕';
+    textarea.value = (chosen && chosen === window._myMood) ? (window._myMoodMessage || '') : '';
+
+    var save = document.createElement('button');
+    save.type = 'button'; save.className = 'gh-mp__save'; save.textContent = 'Enregistrer';
+
+    function refreshHead(){
+      headEmoji.textContent = chosen || '🙂';
+      headLabel.textContent = chosen ? (moodLabels[chosen] || '') : 'Choisis une humeur';
+      save.disabled = !chosen;
     }
-
-    // Catégories — accordéon replié par défaut, une seule ouverte à la fois
-    // Si humeur active, ouvrir la catégorie correspondante
-    var defaultOpenIdx = -1;
-    if(window._myMood){
-      MOOD_CATEGORIES.forEach(function(cat, idx){
-        if(cat.emojis.indexOf(window._myMood) !== -1) defaultOpenIdx = idx;
-      });
-    }
-
-    MOOD_CATEGORIES.forEach(function(cat, catIdx){
-      var isOpen = (catIdx === defaultOpenIdx);
-
-      var accordion = document.createElement('div');
-      accordion.style.cssText = 'border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-top:6px;';
-
-      var catHdr = document.createElement('div');
-      catHdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 11px;cursor:pointer;background:var(--s2);transition:background 0.15s;user-select:none;-webkit-user-select:none;';
-      var catLblSpan = document.createElement('span');
-      catLblSpan.style.cssText = 'font-size:11px;font-weight:700;color:var(--text);letter-spacing:0.3px;';
-      catLblSpan.textContent = cat.label;
-      var arrow = document.createElement('span');
-      arrow.className = 'mood-cat-arrow';
-      arrow.style.cssText = 'font-size:10px;color:var(--muted);transition:transform 0.2s;display:inline-block;flex-shrink:0;';
-      arrow.textContent = '▾';
-      if(!isOpen) arrow.style.transform = 'rotate(-90deg)';
-      catHdr.appendChild(catLblSpan); catHdr.appendChild(arrow);
-
-      var row = document.createElement('div');
-      row.className = 'mood-cat-row';
-      row.style.cssText = 'display:' + (isOpen ? 'grid' : 'none') + ';grid-template-columns:repeat(4,1fr);gap:6px;padding:10px;background:var(--s1);';
-
-      cat.emojis.forEach(function(emoji){
+    function renderEmos(){
+      colEmos.innerHTML = '';
+      MOOD_CATEGORIES[catIdx].emojis.forEach(function(emoji){
         if(emoji === '👤' || emoji === '😶') return;
-        var btn = document.createElement('div');
-        btn.className = 'mood-emoji-btn' + (window._myMood === emoji ? ' selected' : '');
-        btn.title = moodLabels[emoji] || emoji;
-        var inner = document.createElement('div');
-        inner.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none;';
-        var emojiSpan = document.createElement('span');
-        emojiSpan.textContent = emoji;
-        var lblSpan = document.createElement('span');
-        lblSpan.style.cssText = 'font-size:7px;color:var(--muted);font-weight:600;line-height:1;max-width:40px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;';
-        lblSpan.textContent = (moodLabels[emoji] || '').split(' ')[0];
-        inner.appendChild(emojiSpan); inner.appendChild(lblSpan);
-        btn.appendChild(inner);
-        btn.onclick = function(){
-          _pickerTempEmoji = emoji;
-          _pickerStep = 2;
-          _renderPickerStep2();
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'gh-mp__emo' + (chosen === emoji ? ' is-on' : '');
+        b.title = moodLabels[emoji] || emoji;
+        b.setAttribute('aria-label', moodLabels[emoji] || emoji);
+        b.textContent = emoji;
+        b.onclick = function(){
+          chosen = emoji; _pickerTempEmoji = emoji;
+          if(emoji !== window._myMood) textarea.value = ''; else textarea.value = window._myMoodMessage || '';
+          renderEmos(); refreshHead();
         };
-        row.appendChild(btn);
+        colEmos.appendChild(b);
       });
-
-      catHdr.onclick = function(){
-        var allRows = picker.querySelectorAll('.mood-cat-row');
-        var allArrows = picker.querySelectorAll('.mood-cat-arrow');
-        var isCurrentlyOpen = row.style.display !== 'none';
-        allRows.forEach(function(r){ r.style.display = 'none'; });
-        allArrows.forEach(function(a){ a.style.transform = 'rotate(-90deg)'; });
-        if(!isCurrentlyOpen){
-          row.style.display = 'grid';
-          arrow.style.transform = '';
-        }
+    }
+    MOOD_CATEGORIES.forEach(function(cat, i){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'gh-mp__cat' + (i === catIdx ? ' is-on' : '');
+      b.textContent = cat.label;
+      b.onclick = function(){
+        catIdx = i;
+        colCats.querySelectorAll('.gh-mp__cat').forEach(function(x, j){ x.classList.toggle('is-on', j === i); });
+        renderEmos();
       };
-
-      accordion.appendChild(catHdr);
-      accordion.appendChild(row);
-      picker.appendChild(accordion);
+      colCats.appendChild(b);
     });
 
+    var closeX = document.createElement('button');
+    closeX.type = 'button'; closeX.className = 'gh-mp__x'; closeX.setAttribute('aria-label', 'Fermer'); closeX.textContent = '✕';
+    closeX.onclick = function(){ window.closeMoodPicker(); };
 
-    // Bouton effacer (si humeur active)
     if(window._myMood){
-      var clearBtn = document.createElement('div');
-      clearBtn.className = 'mood-clear-btn';
-      clearBtn.textContent = '🗑 Effacer mon humeur';
-      clearBtn.style.display = 'flex';
-      clearBtn.onclick = function(ev){
+      var del = document.createElement('button');
+      del.type = 'button'; del.className = 'gh-mp__del'; del.title = 'Effacer mon humeur'; del.setAttribute('aria-label', 'Effacer mon humeur'); del.textContent = '🗑';
+      del.onclick = function(ev){
         ev.stopPropagation();
-        var profile = get();
-        if(!profile) return;
-        deleteMood(profile);
+        var p = get();
+        if(!p) return;
+        deleteMood(p);
         window._myMood = null;
         window._myMoodMessage = '';
         updateMoodBadge('self', null);
@@ -3196,10 +3151,37 @@ window.addEventListener('load', function(){
         if(window.yamSyncMood) window.yamSyncMood();
         window.closeMoodPicker();
       };
-      picker.appendChild(clearBtn);
+      head.appendChild(del);
     }
 
+    save.onclick = function(){
+      var p = get();
+      if(!p || !chosen) return;
+      var msg = textarea.value.trim().slice(0, 120);
+      window._myMood = chosen;
+      window._myMoodMessage = msg;
+      saveMood(p, chosen, msg);
+      updateMoodBadge('self', chosen);
+      var ppIcon = document.getElementById('ppMoodIcon');
+      if(ppIcon) ppIcon.textContent = chosen;
+      if(window.yamSyncMood) window.yamSyncMood();
+      window.closeMoodPicker();
+    };
+
+    colTxt.appendChild(head); colTxt.appendChild(textarea); colTxt.appendChild(save);
+    picker.appendChild(colCats); picker.appendChild(colEmos); picker.appendChild(colTxt); picker.appendChild(closeX);
+    renderEmos(); refreshHead();
     picker.onclick = function(ev){ ev.stopPropagation(); };
+  }
+
+  // Place la fenêtre pile sur la zone des deux cartes d'humeur de l'Accueil (même rectangle)
+  function _placeMoodPicker(picker){
+    var c1 = document.getElementById('homeMoodElle'), c2 = document.getElementById('homeMoodLui');
+    if(!c1 || !c2 || !c1.offsetParent){ picker.classList.remove('gh-mp'); return; }
+    var a = c1.getBoundingClientRect(), b = c2.getBoundingClientRect();
+    var left = Math.min(a.left, b.left), right = Math.max(a.right, b.right);
+    picker.style.top = Math.min(a.top, b.top) + 'px'; picker.style.left = left + 'px';
+    picker.style.right = 'auto'; picker.style.width = (right - left) + 'px'; picker.style.height = Math.max(a.height, b.height) + 'px';
   }
 
   function _renderPickerStep2(){
@@ -3305,6 +3287,7 @@ window.addEventListener('load', function(){
     _pickerTempEmoji = null;
     _renderPickerStep1();
     picker.classList.add('open');
+    _placeMoodPicker(picker);
     // Overlay sombre
     var overlay = document.getElementById('moodPickerOverlay');
     if(overlay) overlay.classList.add('visible');
@@ -3313,7 +3296,7 @@ window.addEventListener('load', function(){
 
   window.closeMoodPicker = function(){
     var picker = document.getElementById('moodPicker');
-    if(picker) picker.classList.remove('open');
+    if(picker){ picker.classList.remove('open'); picker.style.top = picker.style.left = picker.style.right = picker.style.width = picker.style.height = ''; }
     var overlay = document.getElementById('moodPickerOverlay');
     if(overlay) overlay.classList.remove('visible');
     document.removeEventListener('click', window._moodPickerOutsideClick);

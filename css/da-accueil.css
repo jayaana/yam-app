@@ -141,3 +141,24 @@ html .bottom-nav-inner #navHome { order: 1; } html .bottom-nav-inner #navMusique
 #moodPicker { max-height: calc(100dvh - var(--safe-top) - 56px - max(env(safe-area-inset-bottom, 0px), 32px) - 64px - 12px); }
 html body #uxToast { bottom: calc(max(env(safe-area-inset-bottom, 0px), 32px) + 64px + 14px); }
 html[data-yam-tab="home"] #annivBanner { margin-top: 10px; } /* compense le margin-bottom: -10px de l en-tête */
+
+/* ── Fenêtre d'humeur : pile sur la zone des deux cartes (361 x 138), 3 colonnes ──
+   gauche = catégories, milieu = émojis, droite = mot + enregistrer. Position/taille posées par _placeMoodPicker. */
+#moodPicker.gh-mp { box-sizing: border-box; min-width: 0; max-width: none; max-height: none; overflow: hidden; padding: 8px; border: 0; border-radius: 26px; background: var(--gu-card); color: var(--gu-text); box-shadow: var(--gu-sticker-shadow), 0 6px 24px rgba(0,0,0,.25); animation: none; gap: 8px; flex-direction: row; align-items: stretch; }
+.gh-mp__cats { flex: 0 0 84px; display: flex; flex-direction: column; gap: 4px; }
+.gh-mp__cat { flex: 1; border: 0; border-radius: 12px; padding: 0 6px; background: var(--gu-chip); color: var(--gu-text); font: 700 12px var(--gu-font-text); text-align: left; cursor: pointer; line-height: 14px; display: flex; align-items: center; overflow: hidden; }
+.gh-mp__cat.is-on { background: var(--gu-chip-on); color: var(--gu-chip-on-text); }
+.gh-mp__emos { flex: 0 0 92px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, 1fr); gap: 4px; }
+.gh-mp__emo { border: 0; border-radius: 14px; background: var(--gu-chip); font-size: 24px; line-height: 1; padding: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.gh-mp__emo.is-on { background: var(--gu-chip-on); box-shadow: inset 0 0 0 2px var(--gu-text); }
+.gh-mp__txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding-right: 0; }
+.gh-mp__head { display: flex; align-items: center; gap: 6px; height: 28px; padding-right: 30px; position: relative; }
+.gh-mp__heademoji { font-size: 22px; line-height: 1; flex: none; }
+.gh-mp__headlabel { flex: 1; min-width: 0; font: 700 12px var(--gu-font-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gh-mp__del { flex: none; position: relative; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: var(--gu-chip); font-size: 14px; cursor: pointer; }
+.gh-mp__x { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: var(--gu-chip); color: var(--gu-text); font: 700 13px var(--gu-font-text); cursor: pointer; }
+.gh-mp__del::before, .gh-mp__x::before { content: ""; position: absolute; inset: -8px; }
+.gh-mp__area { flex: 1; min-height: 0; width: 100%; box-sizing: border-box; resize: none; border: 0; border-radius: 12px; padding: 6px 8px; background: var(--gu-chip); color: var(--gu-text); font: 600 13px/16px var(--gu-font-text); outline: none; }
+.gh-mp__area::placeholder { color: var(--gu-text-2); }
+.gh-mp__save { flex: none; height: 34px; border: 0; border-radius: 17px; background: var(--gu-action); color: var(--gu-on-action); font: 400 15px var(--gu-font-display); letter-spacing: .3px; cursor: pointer; }
+.gh-mp__save:disabled { opacity: .45; cursor: default; }
