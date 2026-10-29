@@ -238,3 +238,5 @@ html[data-yam-tab="home"] #yamMainHeader, html[data-yam-tab="home"] #yamHomeTab 
 #rappelSheet { top: calc(100dvh - 78dvh); bottom: auto; height: 78dvh; max-height: none; }
 #rappelSheet:not(.open) { transform: translateY(calc(100% + 120px)); }
 #rappelSheet::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 140px; background: var(--s1); pointer-events: none; }
+/* Accueil : pas de petit en-tête flottant (il s'affichait à demi-transparent sur la zone sûre quand iOS décale la page : bande pâle) */
+html[data-yam-tab="home"] #yamStickyHeader { display: none !important; }
