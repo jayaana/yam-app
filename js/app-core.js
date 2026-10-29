@@ -942,18 +942,42 @@ window.yamPushNotify = async function(opts) {
     }, 'resolution=merge-duplicates,return=minimal');
   }
 
+  var _dbg = { n: 0, st: '-', age: '-', skew: '-', ivs: '-', err: '' };
+  function dbgShow() {
+    var el = document.getElementById('yamPresDbg');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'yamPresDbg';
+      el.style.cssText = 'position:fixed;left:4px;top:4px;z-index:99999;font:10px monospace;background:rgba(0,0,0,.75);color:#fff;padding:2px 5px;border-radius:4px;pointer-events:none';
+      document.body.appendChild(el);
+    }
+    _dbg.ivs = (_pollIv ? 'P' : '-') + (_heartbeatIv ? 'H' : '-') + (document.hidden ? 'h' : 'v');
+    el.textContent = 'v290 #' + _dbg.n + ' http ' + _dbg.st + ' age ' + _dbg.age + 's skew ' + _dbg.skew + 's ' + _dbg.ivs + ' dot ' + (document.getElementById('presenceDot') || { className: '?' }).className + ' ' + _dbg.err;
+  }
+  setInterval(dbgShow, 2000);
+
   function presencePoll() {
     var u = yamGetUser();
     if (!u || !u.couple_id) return;
     var other = u.role === 'girl' ? 'boy' : 'girl';
-    sb2Fetch(PRESENCE_TABLE, 'couple_id=eq.' + u.couple_id + '&role=eq.' + other + '&select=last_seen,is_playing')
+    _dbg.n++;
+    fetch(SB_URL + '/rest/v1/' + PRESENCE_TABLE + '?couple_id=eq.' + u.couple_id + '&role=eq.' + other + '&select=last_seen,is_playing', { headers: sb2Headers() })
+      .then(_sb2Handle401)
+      .then(function(r) {
+        _dbg.st = r.status;
+        var d = r.headers.get('date');
+        if (d) _dbg.skew = Math.round((Date.now() - new Date(d).getTime()) / 1000);
+        return r.json();
+      })
       .then(function(rows) {
-        if (!Array.isArray(rows) || !rows.length) { setDot(false); return; }
+        _dbg.err = '';
+        if (!Array.isArray(rows) || !rows.length) { _dbg.age = 'none'; setDot(false); return; }
         var row       = rows[0];
         var elapsed   = Date.now() - new Date(row.last_seen).getTime();
+        _dbg.age = Math.round(elapsed / 1000);
         var threshold = row.is_playing ? OFFLINE_PLAYING : OFFLINE_AFTER;
         setDot(elapsed < threshold);
-      }).catch(function() { setDot(false); });
+      }).catch(function(e) { _dbg.err = String(e && e.message || e).slice(0, 40); setDot(false); });
   }
 
   window.yamPartnerOnlineCheck = async function() {
