@@ -19,11 +19,11 @@
     // pour que iOS recalcule sa zone visible, comme après un vrai changement d'onglet
     if(tab === 'home' && _currentTab === 'home' && !window._yamBouncing){
       window._yamBouncing = true;
-      try {
-        window.yamSwitchTab('musique');
-        void document.body.offsetHeight;
-        window.yamSwitchTab('home');
-      } finally { window._yamBouncing = false; }
+      window.yamSwitchTab('musique');
+      // Musique doit être réellement affichée (au moins une image) avant de revenir : iOS ne recalcule sa zone visible qu'à ce prix
+      requestAnimationFrame(function(){ requestAnimationFrame(function(){
+        try { window.yamSwitchTab('home'); } finally { window._yamBouncing = false; }
+      }); });
       return;
     }
     var _skipLoad = !!(window._yamBouncing && tab === 'musique');
