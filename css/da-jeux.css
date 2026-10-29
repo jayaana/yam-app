@@ -118,7 +118,7 @@ html[data-theme="dark"] .jx-dash-card { box-shadow: var(--gj-card-shadow), inset
 .gj-tile:active { transform: scale(.97); }
 .gj-tile:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 .jx-chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 16px; padding: 0; overflow: visible; -webkit-mask-image: none; mask-image: none; }
-.jx-chips .gj-tile { height: 74px; }
+.jx-chips .gj-tile { height: 80px; }
 .gj-ic { display: block; width: 48px; height: 48px; margin-top: 3px; overflow: visible; filter: drop-shadow(0 1px 0 rgba(58,36,48,.4)); }
 .gj-ic svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .gj-conf { position: absolute !important; right: 0; top: 0; width: 175px; height: 52px; pointer-events: none; animation: gjTw 2.4s ease-in-out infinite; }
