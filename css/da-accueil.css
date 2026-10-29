@@ -154,7 +154,7 @@ html[data-yam-tab="home"] #annivBanner { margin-top: 10px; } /* compense le marg
 .gh-mp__txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding-right: 0; }
 .gh-mp__head { display: flex; align-items: center; gap: 6px; height: 28px; padding-right: 30px; position: relative; }
 .gh-mp__heademoji { font-size: 22px; line-height: 1; flex: none; }
-.gh-mp__headlabel { flex: 1; min-width: 0; font: 700 12px var(--gu-font-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gh-mp__headlabel { flex: 1; min-width: 0; font: 700 12px/13px var(--gu-font-text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .gh-mp__del { flex: none; position: relative; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: var(--gu-chip); font-size: 14px; cursor: pointer; }
 .gh-mp__x { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: var(--gu-chip); color: var(--gu-text); font: 700 13px var(--gu-font-text); cursor: pointer; }
 .gh-mp__del::before, .gh-mp__x::before { content: ""; position: absolute; inset: -8px; }
