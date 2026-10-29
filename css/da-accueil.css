@@ -221,6 +221,3 @@ html[data-yam-tab="home"] #annivBanner::after { content: ""; position: absolute;
 @keyframes ghConfetti { from { background-position: 0 0; } to { background-position: 0 50px; } } /* un tour = exactement la hauteur d'une tuile : boucle sans coupure */
 html[data-yam-tab="home"] #annivBanner > * { position: relative; z-index: 1; }
 @media (prefers-reduced-motion: reduce) { html[data-yam-tab="home"] #annivBanner::after { animation: none; } }
-/* Appli installée : l'Accueil tient dans l'écran, pas de défilement */
-html[data-yam-tab="home"] body { padding-bottom: 0 !important; }
-@media (display-mode: standalone) { html[data-yam-tab="home"], html[data-yam-tab="home"] body { overflow-y: hidden; } }
