@@ -659,3 +659,32 @@
   };
   window._ghSpamArc(0);
 })();
+
+/* Accueil : on tient la feuille et on la tire vers le haut (course limitée) ; au relâchement elle revient en place */
+(function(){
+  var MAX = 80, sheet = null, y0 = null, active = false;
+  function setY(px, anim){ sheet.style.transition = anim ? 'transform .38s cubic-bezier(.2,1.3,.4,1)' : 'none'; sheet.style.transform = px ? 'translateY(' + px + 'px)' : ''; }
+  function start(e){
+    sheet = document.querySelector('.gh-sheet');
+    if (!sheet || !sheet.contains(e.target) || document.documentElement.getAttribute('data-yam-tab') !== 'home') return;
+    if (e.target.closest('textarea, input, #moodPicker')) return;
+    y0 = e.clientY; active = true;
+  }
+  function move(e){
+    if (!active) return;
+    var dy = y0 - e.clientY;
+    if (dy <= 0) { setY(0, false); return; }
+    sheet.classList.add('gh-sheet--drag');
+    setY(-MAX * Math.tanh(dy / 160), false);
+  }
+  function end(){
+    if (!active) return;
+    active = false;
+    setY(0, true);
+    setTimeout(function(){ if (!active && sheet) sheet.classList.remove('gh-sheet--drag'); }, 400);
+  }
+  document.addEventListener('pointerdown', start);
+  document.addEventListener('pointermove', move);
+  document.addEventListener('pointerup', end);
+  document.addEventListener('pointercancel', end);
+})();

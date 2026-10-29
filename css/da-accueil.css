@@ -221,3 +221,6 @@ html[data-yam-tab="home"] #annivBanner::after { content: ""; position: absolute;
 @keyframes ghConfetti { from { background-position: 0 0; } to { background-position: 0 50px; } } /* un tour = exactement la hauteur d'une tuile : boucle sans coupure */
 html[data-yam-tab="home"] #annivBanner > * { position: relative; z-index: 1; }
 @media (prefers-reduced-motion: reduce) { html[data-yam-tab="home"] #annivBanner::after { animation: none; } }
+.gh-sheet { touch-action: pan-x; will-change: transform; }
+.gh-sheet::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 100px; background: var(--gu-sheet); pointer-events: none; }
+.gh-sheet--drag { z-index: 4; }
