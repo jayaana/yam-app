@@ -25,6 +25,7 @@
       });
       _currentTab = 'messages';
       window._currentTab = 'messages';
+      document.documentElement.setAttribute('data-yam-tab', 'messages');
       return;
     }
 
@@ -60,6 +61,7 @@
 
     _currentTab = tab;
     window._currentTab = tab;
+    document.documentElement.setAttribute('data-yam-tab', tab);
     if(tab === 'nous'){ var _nnb = document.getElementById('navNousBadge'); if(_nnb) _nnb.style.display = 'none'; }
 
     if(window.updateFloatingThemeBtn) window.updateFloatingThemeBtn();

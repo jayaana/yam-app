@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-yam-tab="home">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -97,6 +97,7 @@
 <link rel="stylesheet" href="css/design-system.css">
 <link rel="stylesheet" href="css/theme-tokens.css">
 <link rel="stylesheet" href="css/game-ui.css">
+<link rel="stylesheet" href="css/da-accueil.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
@@ -1665,230 +1666,127 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
   <!-- ── EVENTS dans le flux — bannière + overlay mensiversaire ── -->
   <div id="yamMensivOverlay" style="display:none;"></div>
 
-  <!-- ── 1. MASCOTTE + MESSAGE DU JOUR ── -->
-  <div class="home-mascot-row fade-in">
-    <div class="home-mascot-wrap">
-      <img id="homeMascotImg"
-        src="https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_start.gif"
-        alt="YAM" />
-    </div>
-    <div class="home-msg-bubble">
-      <div class="home-msg-label-row">
-        <div class="home-msg-label" id="homeMsgLabel">✨ MESSAGE DU YAM</div>
+  <!-- ── 1. NUAGE : temps ensemble ── -->
+  <div class="gh-cloud" role="timer" aria-label="Temps passé ensemble">
+    <svg viewBox="0 0 356 64" aria-hidden="true"><defs><linearGradient id="ghCldG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#fdf3f1"/></linearGradient><clipPath id="ghCldC"><path d="M30 54A14 14 0 0 1 30 26A45.9 45.9 0 0 1 94 30A51.1 51.1 0 0 1 178 26A45 45 0 0 1 250 29A55.9 55.9 0 0 1 324 26A14 14 0 0 1 324 54Z"/></clipPath></defs><g transform="translate(1 0)"><path d="M30 54A14 14 0 0 1 30 26A45.9 45.9 0 0 1 94 30A51.1 51.1 0 0 1 178 26A45 45 0 0 1 250 29A55.9 55.9 0 0 1 324 26A14 14 0 0 1 324 54Z" transform="translate(0 5)" fill="#f2b3c3" fill-opacity=".55" stroke="#f2b3c3" stroke-opacity=".55" stroke-width="11" stroke-linejoin="round"/><path d="M30 54A14 14 0 0 1 30 26A45.9 45.9 0 0 1 94 30A51.1 51.1 0 0 1 178 26A45 45 0 0 1 250 29A55.9 55.9 0 0 1 324 26A14 14 0 0 1 324 54Z" fill="#fff" stroke="#fff" stroke-width="11" stroke-linejoin="round"/><path d="M30 54A14 14 0 0 1 30 26A45.9 45.9 0 0 1 94 30A51.1 51.1 0 0 1 178 26A45 45 0 0 1 250 29A55.9 55.9 0 0 1 324 26A14 14 0 0 1 324 54Z" fill="url(#ghCldG)"/><g clip-path="url(#ghCldC)"><path d="M0 52Q178 49 356 52V70H0Z" fill="#f1dcd8" opacity=".8"/></g><g fill="none" stroke="#fff" stroke-linecap="round"><path d="M46 29Q51 22 62 21" stroke-width="2.8"/><path d="M113 20Q118 12 132 10" stroke-width="4"/><path d="M197 24Q202 16 216 15" stroke-width="2.8"/><path d="M270 29Q275 23 288 22" stroke-width="2.8"/></g></g></svg>
+    <div class="gh-cloud__inner">
+      <svg class="gh-cloud__heart" viewBox="0 0 24 24" aria-hidden="true"><path fill="#ff4f7b" stroke="#4a0f2e" stroke-width="2" stroke-linejoin="round" d="M12 21s-8-5.3-8-11a4.5 4.5 0 0 1 8-2.7A4.5 4.5 0 0 1 20 10c0 5.7-8 11-8 11z"/></svg>
+      <div class="home-counter-nums">
+        <div class="home-c-unit"><span class="home-c-num" id="cnt-days">427</span><span class="home-c-lbl">j</span></div>
+        <span class="home-c-sep"></span>
+        <div class="home-c-unit"><span class="home-c-num" id="cnt-hours">22</span><span class="home-c-lbl">h</span></div>
+        <span class="home-c-sep"></span>
+        <div class="home-c-unit"><span class="home-c-num" id="cnt-mins">17</span><span class="home-c-lbl">min</span></div>
+        <span class="home-c-sep"></span>
+        <div class="home-c-unit"><span class="home-c-num" id="cnt-secs">10</span><span class="home-c-lbl">s</span></div>
       </div>
+      <div class="home-counter-label">Nombre de jours ensemble</div>
+    </div>
+  </div>
+
+  <!-- ── 2. ZONE PATATE : message du YAM, mascotte, icônes, spam de cœurs ── -->
+  <div class="gh-zone">
+    <div class="gh-bubble home-msg-bubble">
+      <div class="home-msg-label-row"><div class="home-msg-label" id="homeMsgLabel">✨ MESSAGE DU YAM</div></div>
       <div class="home-msg-text" id="homeMsgText">
-        <span class="home-msg-loading" id="homeMsgLoading">
-          <span class="home-msg-dot"></span><span class="home-msg-dot"></span><span class="home-msg-dot"></span>
-        </span>
+        <span class="home-msg-loading" id="homeMsgLoading"><span class="home-msg-dot"></span><span class="home-msg-dot"></span><span class="home-msg-dot"></span></span>
         <span id="homeMsgInner" style="display:none;"></span>
       </div>
     </div>
-  </div>
+    <div class="gh-stage">
+      <div class="gh-halo">
+        <svg class="gh-arc" viewBox="0 0 216 216" aria-hidden="true"><defs><linearGradient id="ghArcG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3bd"/><stop offset="1" stop-color="#ffc83d"/></linearGradient><radialGradient id="ghDotG"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="#fff0a8"/><stop offset=".7" stop-color="#ffd24a" stop-opacity=".55"/><stop offset="1" stop-color="#ffc83d" stop-opacity="0"/></radialGradient></defs><circle id="ghArcGlow" cx="108" cy="108" r="106.5" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="10" stroke-linecap="round" transform="rotate(90 108 108)" style="filter:blur(4px)" stroke-dasharray="0 669"/><circle id="ghArc" cx="108" cy="108" r="106.5" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round" transform="rotate(90 108 108)" stroke-dasharray="0 669"/><circle id="ghArcDot" r="10" fill="url(#ghDotG)" style="display:none"/></svg>
+        <img id="homeMascotImg" class="gh-mascot" src="https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_start.gif" alt="YAM, la patate mascotte" />
+      </div>
 
-  <!-- ── 2. COMPTEUR + EVENTS/BOUTIQUE ── -->
-  <div class="home-counter-row fade-in">
-    <div class="home-counter-block">
-      <div class="home-counter-label">Nombre de jours ensemble</div>
-      <div class="home-counter-nums">
-        <div class="home-c-unit">
-          <span class="home-c-num" id="cnt-days">427</span>
-          <span class="home-c-lbl">J</span>
+      <button class="gh-side gh-side--l1 home-soon" type="button" aria-label="Boutique (bientôt disponible)"><img alt="" src="assets/images/game-ui/boutique.png"><span class="gu-badge-new">NEW</span></button>
+      <button class="gh-side gh-side--l2 home-soon" type="button" aria-label="Maison de la patate (bientôt disponible)"><img alt="" src="assets/images/game-ui/maison.png"></button>
+      <button class="gh-side gh-side--r1 home-soon" type="button" aria-label="Surprises : idées cadeaux, dates et capsules (bientôt disponible)"><img alt="" src="assets/images/game-ui/surprises.png"></button>
+      <button class="gh-side gh-side--r2 home-feat-btn" type="button" aria-label="Events"><img alt="" src="assets/images/game-ui/events.png"><span class="gh-sr">Events</span></button>
+
+      <div class="home-spam-block">
+        <div class="home-spam-label">SPAM DE CŒURS</div>
+        <div class="home-spam-heart-wrap" id="homeSpamHeart" role="button" tabindex="0" aria-label="Envoyer un cœur" title="Envoie de l'amour !">
+          <svg class="home-spam-heart-emoji" id="homeSpamHeartEmoji" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><defs><linearGradient id="ghHeartG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff7aa6"/><stop offset="1" stop-color="#e8346f"/></linearGradient></defs><path d="M12 21s-8-5.3-8-11a4.5 4.5 0 0 1 8-2.7A4.5 4.5 0 0 1 20 10c0 5.7-8 11-8 11z" fill="url(#ghHeartG)" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/><path d="M6.2 9.2c.1-1.7 1.3-2.8 2.8-2.8" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="1.5" stroke-linecap="round"/><ellipse cx="15.6" cy="8.1" rx="1.1" ry=".7" fill="#fff" fill-opacity=".55" transform="rotate(-25 15.6 8.1)"/></svg>
         </div>
-        <span class="home-c-sep">:</span>
-        <div class="home-c-unit">
-          <span class="home-c-num" id="cnt-hours">22</span>
-          <span class="home-c-lbl">H</span>
-        </div>
-        <span class="home-c-sep">:</span>
-        <div class="home-c-unit">
-          <span class="home-c-num" id="cnt-mins">17</span>
-          <span class="home-c-lbl">M</span>
-        </div>
-        <span class="home-c-sep">:</span>
-        <div class="home-c-unit">
-          <span class="home-c-num" id="cnt-secs">10</span>
-          <span class="home-c-lbl">S</span>
-        </div>
-      </div>
-    </div>
-    <div class="home-feature-btns">
-      <div class="home-feat-btn" role="button" tabindex="0" title="Bientôt disponible">
-        <span class="home-feat-icon">📅</span>
-        <span class="home-feat-lbl">Events</span>
-      </div>
-      <div class="home-feat-btn home-soon" role="button" tabindex="0" aria-disabled="true" title="Bientôt disponible" style="position:relative;">
-        <span class="home-feat-new">NEW</span>
-        <span class="home-feat-icon">🛍️</span>
-        <span class="home-feat-lbl">Boutique</span>
+        <div class="home-spam-count" id="homeSpamCount">0/10</div>
+        <div class="home-spam-bar-wrap"><div class="home-spam-bar" id="homeSpamBar" style="width:0%"></div></div>
       </div>
     </div>
   </div>
 
-  <!-- ── 3. MÉTÉO DU CŒUR ── -->
-  <div class="home-section-title fade-in">Météo du cœur</div>
-  <div class="home-mood-row fade-in">
+  <!-- ── 3. FEUILLE : humeurs, rappel du jour, journal ── -->
+  <div class="gh-sheet">
+    <div class="gh-moods">
 
-    <!-- Carte Elle — rose -->
-    <div class="home-mood-card mood-elle" id="homeMoodElle">
-      <div class="home-mood-topbar">
-        <div class="home-mood-avatar-wrap">
-          <img class="home-mood-avatar" id="homeMoodElleAvatar" src="assets/images/profil_girl.png" alt="" />
-          <span class="home-mood-online" id="homeMoodElleOnline"></span>
-        </div>
-        <div class="home-mood-nameblock">
-          <span class="home-mood-name elle-name" id="homeMoodElleName">Moi</span>
-          <span class="home-mood-status" id="homeMoodElleStatus">Hors ligne</span>
-        </div>
-        <button class="home-mood-edit-btn" id="homeMoodElleEditBtn" style="display:none;" title="Modifier mon humeur">Éditer</button>
-      </div>
-      <div class="home-mood-bubble-wrap">
-          <svg class="home-mood-tip" viewBox="0 0 18 10" xmlns="http://www.w3.org/2000/svg">
-            <polygon points="9,0 18,10 0,10" fill="rgba(255,210,225,0.75)" stroke="rgba(231,90,124,0.3)" stroke-width="1.5" stroke-linejoin="round"/>
-          </svg>
-          <div class="home-mood-bubble mood-bubble-elle">
-            <div class="home-mood-quote" id="homeMoodElleQuote">—</div>
+      <div class="gh-mood home-mood-card mood-elle" id="homeMoodElle">
+        <div class="home-mood-topbar">
+          <div class="home-mood-avatar-wrap">
+            <img class="home-mood-avatar" id="homeMoodElleAvatar" src="assets/images/profil_girl.png" alt="" />
+            <span class="home-mood-online" id="homeMoodElleOnline"></span>
           </div>
-        </div>
-      <!-- bandeau bas coloré rose -->
-      <div class="home-mood-footer mood-footer-elle">
-        <span class="home-mood-emoji" id="homeMoodElleEmoji"></span>
-        <span class="home-mood-emoji-label" id="homeMoodElleLabel">Humeur</span>
-        <span class="home-mood-sep"></span>
-        <div class="home-mood-hearts">
-          <span class="home-mood-heart-count" id="likeNumGirl">0</span>
-          <span class="home-mood-heart-icon">♥</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Carte Lui — bleu -->
-    <div class="home-mood-card mood-lui" id="homeMoodLui">
-      <div class="home-mood-topbar">
-        <div class="home-mood-avatar-wrap">
-          <img class="home-mood-avatar" id="homeMoodLuiAvatar" src="assets/images/profil_boy.png" alt="" />
-          <span class="home-mood-online" id="homeMoodLuiOnline"></span>
-        </div>
-        <div class="home-mood-nameblock">
-          <span class="home-mood-name lui-name" id="homeMoodLuiName">Toi</span>
-          <span class="home-mood-status" id="homeMoodLuiStatus">Hors ligne</span>
-        </div>
-        <button class="home-mood-edit-btn" id="homeMoodLuiEditBtn" style="display:none;" title="Modifier mon humeur">Éditer</button>
-      </div>
-      <div class="home-mood-bubble-wrap">
-          <svg class="home-mood-tip" viewBox="0 0 18 10" xmlns="http://www.w3.org/2000/svg">
-            <polygon points="9,0 18,10 0,10" fill="rgba(205,225,255,0.75)" stroke="rgba(91,156,246,0.3)" stroke-width="1.5" stroke-linejoin="round"/>
-          </svg>
-          <div class="home-mood-bubble mood-bubble-lui">
-            <div class="home-mood-quote" id="homeMoodLuiQuote">—</div>
+          <div class="home-mood-nameblock">
+            <span class="home-mood-name elle-name" id="homeMoodElleName">Moi</span>
+            <span class="home-mood-status" id="homeMoodElleStatus">Hors ligne</span>
           </div>
+          <button class="home-mood-edit-btn" id="homeMoodElleEditBtn" style="display:none;" title="Modifier mon humeur">Éditer</button>
         </div>
-      <!-- bandeau bas coloré bleu -->
-      <div class="home-mood-footer mood-footer-lui">
-        <span class="home-mood-emoji" id="homeMoodLuiEmoji"></span>
-        <span class="home-mood-emoji-label" id="homeMoodLuiLabel">Humeur</span>
-        <span class="home-mood-sep"></span>
-        <div class="home-mood-hearts">
-          <span class="home-mood-heart-count" id="likeNumBoy">0</span>
-          <span class="home-mood-heart-icon" style="color:#5b9cf6;">♥</span>
+        <div class="home-mood-bubble-wrap"><div class="home-mood-bubble mood-bubble-elle"><div class="home-mood-quote" id="homeMoodElleQuote">—</div></div></div>
+        <div class="home-mood-footer mood-footer-elle">
+          <span class="gh-mood__mood"><span class="home-mood-emoji" id="homeMoodElleEmoji"></span><span class="home-mood-emoji-label" id="homeMoodElleLabel">Humeur</span></span>
+          <div class="home-mood-hearts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-8-5.3-8-11a4.5 4.5 0 0 1 8-2.7A4.5 4.5 0 0 1 20 10c0 5.7-8 11-8 11z" fill="#ff3d6e" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="home-mood-heart-count" id="likeNumGirl">0</span></div>
         </div>
+      </div>
+
+      <div class="gh-mood home-mood-card mood-lui" id="homeMoodLui">
+        <div class="home-mood-topbar">
+          <div class="home-mood-avatar-wrap">
+            <img class="home-mood-avatar" id="homeMoodLuiAvatar" src="assets/images/profil_boy.png" alt="" />
+            <span class="home-mood-online" id="homeMoodLuiOnline"></span>
+          </div>
+          <div class="home-mood-nameblock">
+            <span class="home-mood-name lui-name" id="homeMoodLuiName">Toi</span>
+            <span class="home-mood-status" id="homeMoodLuiStatus">Hors ligne</span>
+          </div>
+          <button class="home-mood-edit-btn" id="homeMoodLuiEditBtn" style="display:none;" title="Modifier mon humeur">Éditer</button>
+        </div>
+        <div class="home-mood-bubble-wrap"><div class="home-mood-bubble mood-bubble-lui"><div class="home-mood-quote" id="homeMoodLuiQuote">—</div></div></div>
+        <div class="home-mood-footer mood-footer-lui">
+          <span class="gh-mood__mood"><span class="home-mood-emoji" id="homeMoodLuiEmoji"></span><span class="home-mood-emoji-label" id="homeMoodLuiLabel">Humeur</span></span>
+          <div class="home-mood-hearts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-8-5.3-8-11a4.5 4.5 0 0 1 8-2.7A4.5 4.5 0 0 1 20 10c0 5.7-8 11-8 11z" fill="#ff3d6e" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="home-mood-heart-count" id="likeNumBoy">0</span></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="home-rappel-row">
+      <div class="home-rappel-card" id="homeRappelCard">
+        <div class="home-rappel-topbar">
+          <div class="home-rappel-badge">RAPPEL DU JOUR</div>
+          <span class="gh-spacer"></span>
+          <div class="home-rappel-nav">
+            <button class="home-rappel-nav-btn" type="button" aria-label="Rappel précédent">‹</button>
+            <span class="home-rappel-counter" id="homeRappelCounter">…</span>
+            <button class="home-rappel-nav-btn" type="button" aria-label="Rappel suivant">›</button>
+          </div>
+          <button class="home-rappel-add-btn" type="button" title="Gérer les rappels" aria-label="Gérer les rappels">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+        <div class="home-rappel-text" id="homeRappelText">Chargement…</div>
+        <div class="home-rappel-actions">
+          <button class="home-rappel-done" type="button" aria-label="C'est fait"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#00331a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <button class="home-rappel-later" type="button" aria-label="Plus tard"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="#fff" stroke-width="2.5"/><path d="M12 7v5l3 2" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+        </div>
+        <div class="home-rappel-sep"></div>
       </div>
     </div>
 
-  </div>
-
-  <!-- ── 4. RAPPEL DU JOUR + SPAM CŒURS ── -->
-  <div class="home-section-title fade-in">Rappel du jour</div>
-  <div class="home-rappel-row fade-in">
-
-    <!-- Carte rappel -->
-    <div class="home-rappel-card" id="homeRappelCard">
-      <div class="home-rappel-topbar">
-        <div class="home-rappel-badge">
-          <span class="home-rappel-badge-dot">💝</span>
-          AUJOURD'HUI
-        </div>
-        <button class="home-rappel-add-btn" title="Gérer les rappels">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </button>
-      </div>
-      <div class="home-rappel-text" id="homeRappelText">Chargement…</div>
-      <div class="home-rappel-actions">
-        <button class="home-rappel-done">C'est fait ✓</button>
-        <button class="home-rappel-later">Plus tard</button>
-      </div>
-      <div class="home-rappel-sep"></div>
-      <div class="home-rappel-nav">
-        <button class="home-rappel-nav-btn">‹</button>
-        <span class="home-rappel-counter" id="homeRappelCounter">…</span>
-        <button class="home-rappel-nav-btn">›</button>
-      </div>
-    </div>
-
-    <!-- Spam coeurs — coeur libre qui pulse, pas de conteneur -->
-    <div class="home-spam-block">
-      <div class="home-spam-label">SPAM DE CŒURS</div>
-      <div class="home-spam-heart-wrap" id="homeSpamHeart" role="button" tabindex="0" aria-label="Envoyer un cœur" title="Envoie de l'amour !">
-        <svg class="home-spam-heart-emoji" id="homeSpamHeartEmoji" viewBox="0 0 100 92" width="56" height="52" aria-hidden="true" focusable="false">
-          <defs>
-            <linearGradient id="ySpamGrad" x1="0.15" y1="0" x2="0.85" y2="1">
-              <stop offset="0" class="hs-s1" stop-color="#ffa3bf"/><stop offset="0.5" class="hs-s2" stop-color="#ee6a8c"/><stop offset="1" class="hs-s3" stop-color="#cf4068"/>
-            </linearGradient>
-            <radialGradient id="ySpamShine" cx="0.3" cy="0.22" r="0.5">
-              <stop offset="0" stop-color="#fff" stop-opacity="0.75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
-            </radialGradient>
-          </defs>
-          <path d="M50 88 C17 64 3 46 3 28 C3 13 14 3 28 3 C38 3 46 8 50 17 C54 8 62 3 72 3 C86 3 97 13 97 28 C97 46 83 64 50 88 Z" fill="url(#ySpamGrad)"/>
-          <path d="M50 88 C17 64 3 46 3 28 C3 13 14 3 28 3 C38 3 46 8 50 17 C54 8 62 3 72 3 C86 3 97 13 97 28 C97 46 83 64 50 88 Z" fill="url(#ySpamShine)"/>
-          <ellipse cx="27" cy="23" rx="9" ry="5.5" fill="#fff" opacity="0.55" transform="rotate(-35 27 23)"/>
-        </svg>
-      </div>
-      <div class="home-spam-count" id="homeSpamCount">0/10</div>
-      <div class="home-spam-bar-wrap">
-        <div class="home-spam-bar" id="homeSpamBar" style="width:0%"></div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- ── 5. IDÉES & SURPRISES ── -->
-  <div class="home-section-titlebar fade-in">
-    <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:-0.1px;">Idées &amp; surprises</span>
-    <span class="home-beta-badge">BETA</span>
-  </div>
-  <div class="home-ideas-grid fade-in">
-    <div class="home-idea-card home-soon" role="button" tabindex="0" aria-disabled="true" title="Bientôt disponible">
-      <div class="home-idea-icon home-idea-icon-cadeau">🎁</div>
-      <div class="home-idea-footer">
-        <div class="home-idea-name">Idée cadeau</div>
-        <div class="home-idea-sub">Personnalisée</div>
-      </div>
-    </div>
-    <div class="home-idea-icon-wrap">
-      <div class="home-idea-card home-idea-card-clickable" id="homeDiaryCard" role="button" tabindex="0" title="Mon journal intime">
-        <div class="home-idea-icon home-idea-icon-diary">📔</div>
-        <div class="home-idea-footer">
-          <div class="home-idea-name">My Diary</div>
-          <div class="home-idea-sub">Mon journal</div>
-        </div>
-      </div>
+    <div class="gh-diary">
+      <button class="gu-chip" id="homeDiaryCard" type="button" title="Mon journal intime"><span aria-hidden="true">📔</span> Mon journal</button>
       <span id="homeDiaryNewBadge" class="home-diary-new">NEW</span>
     </div>
-    <div class="home-idea-card home-soon" role="button" tabindex="0" aria-disabled="true" title="Bientôt disponible">
-      <div class="home-idea-icon home-idea-icon-capsule">💝</div>
-      <div class="home-idea-footer">
-        <div class="home-idea-name">Capsule</div>
-        <div class="home-idea-sub">Dans 1 an</div>
-      </div>
-    </div>
-    <div class="home-idea-card home-soon" role="button" tabindex="0" aria-disabled="true" title="Bientôt disponible">
-      <div class="home-idea-icon home-idea-icon-date">🕯️</div>
-      <div class="home-idea-footer">
-        <div class="home-idea-name">Date night</div>
-        <div class="home-idea-sub">Ce week-end</div>
-      </div>
-    </div>
   </div>
-
 
 </div><!-- /yamHomeTab -->
 
@@ -5862,631 +5760,7 @@ html:not(.light) .jx-play-btn{background:linear-gradient(135deg,#eab08f 0%,#d489
 .activite-ia-add-btn { padding: 10px 16px; background: #e75a7c; color: #fff; font-size: 13px; font-weight: 700; font-family: 'Bricolage Grotesque',sans-serif; border: none; border-radius: 10px; cursor: pointer; }
 </style>
 
-<style>
-/* ══════════════════════════════════════════════
-   HOME TAB — v4
-══════════════════════════════════════════════ */
 
-/* ── 1. Mascotte + Message du jour ── */
-/* ══ HOME TAB — v3 ══ */
-
-/* ── 1. Mascotte + Message du jour ── */
-.home-mascot-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 17px 16px 0;
-}
-.home-mascot-wrap {
-  flex-shrink: 0;
-  width: 90px; height: 90px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(201,120,96,0.15), rgba(124,106,247,0.12));
-  border: 2px solid rgba(201,120,96,0.2);
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 8px 24px rgba(201,120,96,0.2);
-  animation: yamFloat 3s ease-in-out infinite;
-  overflow: hidden;
-}
-@keyframes yamFloat {
-  0%,100% { transform: translateY(0); }
-  50%      { transform: translateY(-6px); }
-}
-.home-mascot-wrap img {
-  width: 78px; height: 78px; object-fit: contain;
-}
-/* Bulle de dialogue — pointe vers la gauche */
-.home-msg-bubble {
-  flex: 1;
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: 18px 18px 18px 6px;
-  padding: 12px 14px;
-  box-shadow: var(--sh-sm);
-  position: relative;
-}
-.home-msg-bubble::before {
-  content: '';
-  position: absolute;
-  top: 50%; left: -9px;
-  transform: translateY(-50%);
-  width: 0; height: 0;
-  border-style: solid;
-  border-width: 8px 10px 8px 0;
-  border-color: transparent var(--border) transparent transparent;
-}
-.home-msg-bubble::after {
-  content: '';
-  position: absolute;
-  top: 50%; left: -7px;
-  transform: translateY(-50%);
-  width: 0; height: 0;
-  border-style: solid;
-  border-width: 7px 9px 7px 0;
-  border-color: transparent var(--s1) transparent transparent;
-}
-.home-msg-label-row {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 5px;
-}
-.home-msg-label {
-  font-size: 8px; font-weight: 800;
-  color: var(--green);
-  text-transform: uppercase; letter-spacing: 1.6px;
-}
-.home-msg-text {
-  font-size: 13px; color: var(--text);
-  line-height: 1.5; font-weight: 500;
-  min-height: 20px;
-}
-/* Points de chargement animés */
-.home-msg-loading {
-  display: inline-flex; gap: 4px; align-items: center; padding: 2px 0;
-}
-.home-msg-dot {
-  width: 5px; height: 5px; border-radius: 50%;
-  background: var(--green); opacity: 0.4;
-  animation: mascotDotPulse 1.2s ease-in-out infinite;
-}
-.home-msg-dot:nth-child(2) { animation-delay: 0.2s; }
-.home-msg-dot:nth-child(3) { animation-delay: 0.4s; }
-@keyframes mascotDotPulse {
-  0%, 80%, 100% { opacity: 0.25; transform: scale(0.85); }
-  40% { opacity: 1; transform: scale(1.1); }
-}
-
-/* ── 2. Compteur + Events/Boutique ── */
-.home-counter-row {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-  padding: 14px 16px 0;
-}
-.home-counter-block {
-  flex: 1;
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: 13px;
-  padding: 9px 12px 8px;
-  box-shadow: var(--sh-sm);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-width: 0;
-}
-.home-counter-label {
-  font-size: 8.5px; font-weight: 700;
-  color: var(--green);
-  text-transform: none; letter-spacing: 0.3px;
-  margin-bottom: 6px;
-  display: block;
-  opacity: 0.9;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.home-counter-nums {
-  display: flex; align-items: baseline; gap: 2px;
-}
-.home-c-unit {
-  display: flex; flex-direction: column; align-items: center;
-  min-width: 22px;
-}
-.home-c-num {
-  font-size: 17px; font-weight: 700;
-  color: var(--text);
-  font-variant-numeric: tabular-nums; line-height: 1;
-  letter-spacing: -0.5px;
-  opacity: 0.88;
-}
-.home-c-lbl {
-  font-size: 7px; color: var(--muted);
-  text-transform: uppercase; letter-spacing: 0.8px;
-  margin-top: 3px; font-weight: 600;
-}
-.home-c-sep {
-  font-size: 13px; font-weight: 400;
-  color: var(--green); opacity: 0.3;
-  line-height: 1; align-self: flex-start;
-  margin: 0 1px 10px;
-  flex-shrink: 0;
-}
-.home-feature-btns {
-  display: flex; flex-direction: row; gap: 6px;
-  flex-shrink: 0;
-  align-items: stretch;
-}
-.home-feat-btn {
-  width: 62px;
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: 13px;
-  padding: 8px 4px 7px;
-  display: flex; flex-direction: column;
-  justify-content: center;
-  align-items: center; gap: 4px;
-  cursor: default;
-  box-shadow: var(--sh-sm);
-  position: relative;
-}
-.home-feat-icon { font-size: 20px; line-height: 1; }
-.home-feat-lbl {
-  font-size: 9px; font-weight: 700;
-  color: var(--sub);
-}
-.home-feat-new {
-  position: absolute; top: -5px; right: -5px;
-  background: #e75a7c;
-  color: #fff; font-size: 7px; font-weight: 800;
-  letter-spacing: 0.4px; padding: 2px 5px;
-  border-radius: 5px; text-transform: uppercase;
-  box-shadow: 0 2px 5px rgba(231,90,124,0.4);
-}
-
-/* Badge nouveauté My Diary — coin haut-droit de la carte, aligné avec le bord supérieur */
-@keyframes diaryNewBlink { 0%,100%{opacity:1} 50%{opacity:0.35} }
-.home-diary-new {
-  position: absolute; top: 4px; right: -5px;
-  background: #e75a7c;
-  color: #fff; font-size: 7px; font-weight: 800;
-  letter-spacing: 0.4px; padding: 2px 5px;
-  border-radius: 5px; text-transform: uppercase;
-  box-shadow: 0 2px 5px rgba(231,90,124,0.4);
-  display: none;
-  z-index: 10;
-  animation: diaryNewBlink 1.2s ease-in-out infinite;
-}
-
-/* Wrapper carte diary — position:relative pour le badge NEW, sans overflow:hidden */
-.home-idea-icon-wrap {
-  position: relative;
-  display: inline-flex;
-  flex-shrink: 0;
-  scroll-snap-align: start;
-}
-/* La carte diary est dans le wrapper — pas besoin de scroll-snap propre */
-#homeDiaryCard {
-  scroll-snap-align: none;
-}
-
-/* ── 3. Météo du cœur ── */
-.home-section-title {
-  font-size: 13px; font-weight: 800;
-  color: var(--text);
-  padding: 13px 16px 6px;
-  letter-spacing: -0.1px;
-}
-.home-section-titlebar {
-  display: flex; align-items: center; gap: 7px;
-  padding: 13px 16px 6px;
-}
-.home-beta-badge {
-  background: #7c6af7; color: #fff;
-  font-size: 7px; font-weight: 800;
-  letter-spacing: 0.6px; padding: 2px 6px;
-  border-radius: 5px; text-transform: uppercase;
-}
-.home-mood-row {
-  display: flex; gap: 8px;
-  padding: 0 16px;
-}
-.home-mood-card {
-  flex: 1;
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: var(--sh-sm);
-  display: flex; flex-direction: column;
-  min-width: 0;
-}
-/* Topbar : avatar + nom + bouton edit */
-.home-mood-topbar {
-  display: flex; align-items: center; gap: 7px;
-  padding: 9px 10px 6px;
-}
-.home-mood-avatar-wrap {
-  position: relative; flex-shrink: 0;
-  width: 30px; height: 30px;
-}
-.home-mood-avatar {
-  width: 30px; height: 30px;
-  border-radius: 50%; object-fit: cover;
-  border: 1.5px solid var(--border);
-}
-.home-mood-online {
-  position: absolute; bottom: -1px; right: -1px;
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--muted);
-  border: 1.5px solid var(--s1);
-  transition: background 0.3s;
-}
-.home-mood-online.online { background: #3ecf8e; }
-.home-mood-nameblock {
-  flex: 1; min-width: 0;
-  display: flex; flex-direction: column; gap: 1px;
-}
-.home-mood-name {
-  font-size: 11px; font-weight: 700; color: var(--text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.home-mood-status { font-size: 9px; color: var(--muted); font-weight: 500; }
-.home-mood-status.online { color: #3ecf8e; font-weight: 600; }
-.home-mood-edit-btn {
-  flex-shrink: 0;
-  background: var(--s2); border: 1px solid var(--border);
-  border-radius: 7px; padding: 3px 8px;
-  font-size: 10px; font-weight: 600;
-  color: var(--sub); cursor: pointer;
-  font-family: 'Bricolage Grotesque', sans-serif;
-  transition: background 0.15s;
-}
-.home-mood-edit-btn:hover { background: var(--s3); }
-
-/* Bulle météo — vraie bulle de dialogue avec queue */
-.home-mood-bubble-wrap {
-  margin: 0 8px 6px 8px;
-  position: relative;
-}
-.home-mood-tip { display: none; }
-.home-mood-bubble {
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: 12px 12px 12px 4px;
-  min-height: 32px;
-  position: relative;
-}
-.mood-bubble-elle {
-  background: var(--mood-bubble-elle-bg, #fdf2f5);
-  border: 1px solid var(--mood-bubble-elle-border, rgba(220,170,185,0.3));
-}
-.mood-bubble-elle::before {
-  content: '';
-  position: absolute;
-  top: -9px; left: 13px;
-  border-bottom: 8px solid var(--mood-bubble-elle-border, rgba(220,170,185,0.3));
-  border-right: 8px solid transparent;
-  width: 0; height: 0;
-}
-.mood-bubble-elle::after {
-  content: '';
-  position: absolute;
-  top: -7px; left: 14px;
-  border-bottom: 7px solid var(--mood-bubble-elle-bg, #fdf2f5);
-  border-right: 7px solid transparent;
-  width: 0; height: 0;
-}
-.mood-bubble-lui {
-  background: var(--mood-bubble-lui-bg, #f0f5fd);
-  border: 1px solid var(--mood-bubble-lui-border, rgba(170,195,230,0.3));
-}
-.mood-bubble-lui::before {
-  content: '';
-  position: absolute;
-  top: -9px; left: 13px;
-  border-bottom: 8px solid var(--mood-bubble-lui-border, rgba(170,195,230,0.3));
-  border-right: 8px solid transparent;
-  width: 0; height: 0;
-}
-.mood-bubble-lui::after {
-  content: '';
-  position: absolute;
-  top: -7px; left: 14px;
-  border-bottom: 7px solid var(--mood-bubble-lui-bg, #f0f5fd);
-  border-right: 7px solid transparent;
-  width: 0; height: 0;
-}
-.home-mood-quote {
-  font-size: 10.5px; color: var(--text);
-  font-style: italic; line-height: 1.45;
-  word-break: break-word;
-}
-
-/* Bandeau coloré en bas — humeur + séparateur + cœurs */
-.home-mood-footer {
-  display: flex; align-items: center; gap: 5px;
-  padding: 6px 10px 7px;
-  margin-top: auto;
-}
-.mood-footer-elle {
-  background: var(--mood-footer-elle-bg, #fdf0f3);
-  border-top: 1px solid var(--mood-bubble-elle-border, rgba(220,170,185,0.25));
-}
-.mood-footer-lui {
-  background: var(--mood-footer-lui-bg, #eef3fb);
-  border-top: 1px solid var(--mood-bubble-lui-border, rgba(170,195,230,0.25));
-}
-.home-mood-emoji { font-size: 14px; line-height: 1; }
-.home-mood-emoji-label {
-  font-size: 10px; color: var(--sub);
-  font-weight: 600; flex: 1; min-width: 0;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-/* Séparateur vertical entre humeur et cœurs */
-.home-mood-sep {
-  width: 1px; height: 12px;
-  background: var(--border);
-  opacity: 0.6;
-  flex-shrink: 0;
-  margin: 0 1px;
-}
-.home-mood-hearts {
-  display: flex; align-items: center; gap: 3px;
-  flex-shrink: 0;
-}
-.home-mood-heart-count { font-size: 11px; font-weight: 700; color: #e75a7c; }
-.home-mood-heart-icon  { font-size: 11px; color: #e75a7c; }
-
-/* ── 4. Rappel du jour ── */
-.home-rappel-row {
-  display: flex; gap: 10px;
-  padding: 0 16px;
-  align-items: center;
-}
-/* Carte rappel — largeur fixe, laisse 90px pour le spam */
-.home-rappel-card {
-  flex: 1;
-  max-width: calc(100% - 98px);
-  background: linear-gradient(145deg, rgba(231,90,124,0.07), rgba(201,120,96,0.04));
-  border: 1px solid rgba(231,90,124,0.2);
-  border-radius: 14px;
-  padding: 8px 10px 5px;
-  display: flex; flex-direction: column; gap: 4px;
-}
-.home-rappel-badge {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 7px; font-weight: 800;
-  color: #e75a7c;
-  text-transform: uppercase; letter-spacing: 1.3px;
-}
-.home-rappel-badge-dot {
-  width: 14px; height: 14px;
-  background: rgba(231,90,124,0.15);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 8px; flex-shrink: 0;
-}
-.home-rappel-text {
-  font-size: 11px; font-weight: 600;
-  color: var(--text); line-height: 1.3;
-  word-break: break-word; overflow-wrap: break-word;
-  overflow: hidden;
-}
-.home-rappel-actions { display: flex; gap: 5px; }
-.home-rappel-done {
-  flex: 1; padding: 5px 6px;
-  background: #e75a7c; color: #fff;
-  font-size: 10px; font-weight: 700;
-  font-family: 'Bricolage Grotesque', sans-serif;
-  border: none; border-radius: 8px; cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s;
-}
-.home-rappel-done:active { transform: scale(0.97); opacity: 0.85; }
-.home-rappel-later {
-  flex: 1; padding: 5px 6px;
-  background: var(--s2); color: var(--sub);
-  font-size: 10px; font-weight: 600;
-  font-family: 'Bricolage Grotesque', sans-serif;
-  border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
-  transition: background 0.15s;
-}
-.home-rappel-later:hover { background: var(--s3); }
-.home-rappel-nav {
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-}
-.home-rappel-nav-btn {
-  width: 20px; height: 20px;
-  background: var(--s2); border: 1px solid var(--border);
-  border-radius: 50%; color: var(--sub);
-  font-size: 12px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'Bricolage Grotesque', sans-serif;
-  transition: background 0.15s;
-}
-.home-rappel-nav-btn:hover { background: var(--s3); }
-.home-rappel-counter { font-size: 10px; font-weight: 700; color: var(--muted); }
-
-/* ── SPAM DE CŒURS — emoji géant libre, qui pulse ── */
-.home-spam-block {
-  flex-shrink: 0;
-  width: 82px;
-  display: flex; flex-direction: column;
-  align-items: center; gap: 3px;
-  background: none; border: none; padding: 0;
-}
-.home-spam-label {
-  font-size: 7px; font-weight: 800;
-  color: var(--muted); text-transform: uppercase;
-  letter-spacing: 0.7px; text-align: center; line-height: 1.3;
-}
-.home-spam-heart-wrap {
-  width: 60px; height: 60px;
-  background: none; border: none; box-shadow: none;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent; user-select: none;
-  animation: heartPulse 2s ease-in-out infinite;
-}
-@keyframes heartPulse {
-  0%, 100% { transform: scale(1); }
-  20%       { transform: scale(1.14); }
-  40%       { transform: scale(0.97); }
-  60%       { transform: scale(1.06); }
-  80%       { transform: scale(1); }
-}
-.home-spam-heart-wrap:active {
-  animation: none;
-  transform: scale(0.8);
-  transition: transform 0.1s;
-}
-.home-spam-heart-emoji {
-  display: block; overflow: visible;
-  pointer-events: none;
-  filter: drop-shadow(0 6px 12px rgba(207,64,104,0.45));
-}
-.home-spam-count {
-  font-size: 11px; font-weight: 800; color: #e75a7c;
-}
-.home-spam-bar-wrap {
-  width: 100%; height: 3px;
-  background: var(--s2); border-radius: 2px; overflow: hidden;
-}
-.home-spam-bar {
-  height: 100%;
-  background: linear-gradient(90deg, #e75a7c, #c97860);
-  border-radius: 2px; transition: width 0.3s ease;
-}
-
-/* ── 5. Idées & Surprises — 3 cartes visibles + scroll droite ── */
-/* ── 5. Idées & Surprises — 3 cartes visibles + scroll droite ── */
-.home-ideas-grid {
-  display: flex;
-  flex-direction: row;
-  gap: 10px;
-  padding: 0;
-  margin-left: 16px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-.home-ideas-grid::-webkit-scrollbar { display: none; }
-
-.home-idea-card {
-  flex-shrink: 0;
-  width: 90px;
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: hidden;
-  display: flex; flex-direction: column;
-  cursor: default;
-  box-shadow: var(--sh-sm);
-  scroll-snap-align: start;
-}
-.home-idea-icon {
-  width: 90px;
-  height: 52px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 26px;
-  flex-shrink: 0;
-}
-.home-idea-footer {
-  padding: 4px 7px 6px;
-  background: var(--s1);
-  border-top: 1px solid var(--border);
-  display: flex; flex-direction: column;
-  align-items: flex-start; gap: 1px;
-}
-.home-idea-name {
-  font-size: 10px; font-weight: 700; color: var(--text);
-  line-height: 1.2;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  width: 100%;
-}
-.home-idea-sub {
-  font-size: 9px; color: var(--muted);
-}
-
-/* ── Supprime le tiret du supertitle header ── */
-.hdr-tag::before { display: none !important; }
-
-/* ── Refonte carte rappel du jour ── */
-.home-rappel-card {
-  flex: 1; max-width: calc(100% - 98px);
-  background: var(--rappel-card-bg, #fce4eb) !important;
-  border: 1px solid var(--rappel-card-border, rgba(220,170,185,0.35)) !important;
-  border-radius: 18px !important; padding: 8px 10px 6px !important;
-  display: flex; flex-direction: column; gap: 5px !important;
-}
-.home-rappel-topbar {
-  display: flex !important; align-items: center !important;
-  justify-content: space-between !important;
-  width: 100% !important; margin-bottom: 2px !important;
-}
-.home-rappel-add-btn {
-  width: 20px !important; height: 20px !important; flex-shrink: 0 !important;
-  border-radius: 7px !important;
-  background: var(--rappel-btn-bg, rgba(255,255,255,0.65)) !important;
-  border: 1.5px solid var(--rappel-btn-border, rgba(180,90,110,0.3)) !important;
-  color: var(--rappel-btn-color, #b85a78) !important;
-  display: flex !important; align-items: center !important; justify-content: center !important;
-  cursor: pointer !important; padding: 0 !important;
-  box-shadow: 0 1px 4px rgba(180,90,110,0.12) !important;
-  transition: background 0.15s, transform 0.12s !important;
-}
-.home-rappel-badge {
-  font-size: 8px !important; color: var(--rappel-badge-color, #c0607a) !important;
-  gap: 6px !important;
-}
-.home-rappel-badge-dot {
-  width: 22px !important; height: 22px !important;
-  background: var(--rappel-dot-bg, #fff) !important; border-radius: 7px !important;
-  box-shadow: 0 1px 4px rgba(180,100,120,0.12) !important;
-  font-size: 11px !important;
-}
-.home-rappel-text { font-size: 11.5px !important; font-weight: 700 !important; padding-left: 2px; line-height: 1.3 !important; word-break: break-word !important; overflow-wrap: break-word !important; overflow: hidden !important; }
-.home-rappel-actions { gap: 7px !important; align-items: center !important; justify-content: center !important; }
-.home-rappel-done {
-  flex: unset !important; padding: 5px 12px !important;
-  background: var(--green) !important; border-radius: 9px !important;
-  font-size: 10.5px !important; white-space: nowrap;
-}
-.home-rappel-later {
-  flex: unset !important; background: none !important;
-  border: 1px solid rgba(180,130,145,0.35) !important; border-radius: 9px !important;
-  font-size: 10.5px !important; padding: 4px 10px !important; color: var(--sub) !important;
-}
-.home-rappel-sep {
-  height: 1px !important; background: rgba(201,120,96,0.18) !important;
-  margin: 1px 4px !important;
-}
-.home-rappel-nav { gap: 5px !important; padding-top: 0 !important; }
-.home-rappel-nav-btn {
-  width: 18px !important; height: 18px !important;
-  background: var(--rappel-btn-bg, rgba(255,255,255,0.7)) !important;
-  border: 1px solid var(--rappel-btn-border, rgba(201,120,96,0.25)) !important;
-  color: var(--rappel-btn-color, var(--green)) !important; font-size: 11px !important;
-}
-.home-rappel-counter { color: var(--green) !important; font-size: 9px !important; }
-
-/* ── Spam de cœurs ── */
-.home-spam-label { color: var(--spam-label-color, #e75a7c) !important; }
-.home-spam-count { color: var(--spam-count-color, #e75a7c) !important; font-weight: 800; }
-.home-spam-bar { background: var(--spam-bar-gradient, linear-gradient(90deg,#e75a7c,#f0a0b8)) !important; }
-.home-spam-bar-wrap { background: var(--spam-bar-track, var(--s2)) !important; }
-.home-spam-heart-emoji { filter: var(--spam-heart-filter, none) !important; }
-
-/* ── Idées & Surprises — fonds des pochettes ── */
-.home-idea-icon-cadeau   { background: var(--idea-icon-cadeau, #fde8ee) !important; }
-.home-idea-icon-date     { background: var(--idea-icon-date,   #ddf0ee) !important; }
-.home-idea-icon-capsule  { background: var(--idea-icon-capsule,#fef0da) !important; }
-.home-idea-icon-playlist { background: var(--idea-icon-playlist,#ece8fd) !important; }
-.home-idea-icon-diary    { background: var(--idea-icon-diary,   #fce4eb) !important; }
-.home-idea-card-clickable { cursor: pointer !important; transition: transform 0.15s, box-shadow 0.15s !important; }
-.home-idea-card-clickable:active { transform: scale(0.96) !important; }
-</style>
 
 
 

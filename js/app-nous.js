@@ -2029,6 +2029,7 @@ function _updateSpamBar(daily){
   var barEl=document.getElementById('homeSpamBar');
   if(countEl) countEl.textContent=daily+'/'+nextM;
   if(barEl)   barEl.style.width=pct+'%';
+  if(window._ghSpamArc) window._ghSpamArc(pct);
 }
 window._updateSpamBar = _updateSpamBar;
 

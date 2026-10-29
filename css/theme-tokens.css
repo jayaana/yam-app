@@ -64,6 +64,18 @@ html[data-theme="warm"] {
   --gu-miniplayer-fold: #fff;
   --gu-deco: summer;               /* décor derrière la feuille (Nous) */
   --gu-theme-color: #ff8c9e;       /* meta theme-color */
+  --gu-card-her: #ff5f97;          /* carte humeur elle / lui (Accueil) */
+  --gu-card-her-foot: #d4306f;
+  --gu-card-him: #5a9cff;
+  --gu-card-him-foot: #2f6fd8;
+  --gu-quote-bg: rgba(40,5,25,.32);
+  --gu-rappel-bg: #ffc2d4;
+  --gu-rappel-text: #4a0f2e;
+  --gu-nav-active-text: #8a4b00;   /* 7:1 sur blanc (l'ancien #c77a00 faisait 3,4:1) */
+  --gu-nav-active-fill: #2a1a00;
+  --gu-halo-border: rgba(255,255,255,.55);
+  --gu-bubble-bg: linear-gradient(#fffafb, #ffe8ed);
+  --gu-bubble-tail: #ffe8ed;
 }
 
 /* ── Sombre ─────────────────────────────────────────────────── */
@@ -101,6 +113,18 @@ html[data-theme="dark"] {
   --gu-miniplayer-fold: #120c0e;
   --gu-deco: christmas;
   --gu-theme-color: #0b0809;
+  --gu-card-her: #c92c68;
+  --gu-card-her-foot: #98204f;
+  --gu-card-him: #2c63c9;
+  --gu-card-him-foot: #1f4aa0;
+  --gu-quote-bg: rgba(40,5,25,.32);
+  --gu-rappel-bg: #5b5057;
+  --gu-rappel-text: #fff;
+  --gu-nav-active-text: #ffd24a;
+  --gu-nav-active-fill: #1d1216;
+  --gu-halo-border: rgba(255,255,255,.4);
+  --gu-bubble-bg: linear-gradient(#fffafb, #ffe8ed);
+  --gu-bubble-tail: #ffe8ed;
 }
 
 /* Thème bleu (phase 7) : ajouter ici UN bloc html[data-theme="blue"]{…}

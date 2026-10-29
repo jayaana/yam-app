@@ -638,3 +638,24 @@
   window._homeSyncMood=homeSyncMood;
   window._homeSyncSpam=homeSyncSpam;
 })();
+
+
+// ═══════════════════════════════════════════════════════════════════
+// Accueil game UI : arc de progression du Spam de cœurs autour de la patate
+// (alimenté par _updateSpamBar dans app-nous.js ; pct = 0..100)
+// ═══════════════════════════════════════════════════════════════════
+(function(){
+  var C = 2 * Math.PI * 106.5;
+  window._ghSpamArc = function(pct){
+    var f = Math.max(0, Math.min(1, (pct || 0) / 100));
+    var arc = document.getElementById('ghArc'), glow = document.getElementById('ghArcGlow'), dot = document.getElementById('ghArcDot');
+    if(!arc || !glow || !dot) return;
+    var da = (f * C) + ' ' + C;
+    arc.setAttribute('stroke-dasharray', da); glow.setAttribute('stroke-dasharray', da);
+    var th = Math.PI / 2 + f * 2 * Math.PI;
+    dot.setAttribute('cx', 108 + 106.5 * Math.cos(th)); dot.setAttribute('cy', 108 + 106.5 * Math.sin(th));
+    var on = f > 0;
+    dot.style.display = on ? '' : 'none'; arc.style.display = glow.style.display = on ? '' : 'none';
+  };
+  window._ghSpamArc(0);
+})();
