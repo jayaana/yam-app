@@ -48,7 +48,7 @@ html #yamHomeTab.active, html body.light #yamHomeTab.active { background: transp
 .gh-stage { position: relative; width: 100%; height: 252px; margin-top: 10px; }
 .gh-halo { position: absolute; left: 50%; top: 0; transform: translateX(-50%); width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,.55), rgba(255,255,255,.08) 62%, transparent 72%); border: 3px solid var(--gu-halo-border); box-shadow: 0 0 34px 2px rgba(255,255,255,.32); display: flex; align-items: center; justify-content: center; }
 html[data-theme="dark"] .gh-halo { box-shadow: 0 0 34px 2px rgba(255,255,255,.22); }
-.gh-arc { position: absolute; left: -3px; top: -3px; width: 206px; height: 206px; pointer-events: none; overflow: visible; }
+.gh-arc { position: absolute; left: -3px; top: -3px; width: 200px; height: 200px; pointer-events: none; overflow: visible; }
 .gh-mascot { position: relative; display: block; width: 180px; height: 180px; object-fit: contain; }
 
 /* Autocollants latéraux */
@@ -134,3 +134,4 @@ html .bottom-nav .nav-item.nav-active > svg:first-of-type { box-sizing: content-
 
 /* Ordre de la maquette : Accueil, Musique, Jeux, Messages, Nous */
 html .bottom-nav-inner #navHome { order: 1; } html .bottom-nav-inner #navMusique { order: 2; } html .bottom-nav-inner #navJeux { order: 3; } html .bottom-nav-inner #navMessages { order: 4; } html .bottom-nav-inner #navNous { order: 5; }
+#ghArc, #ghArcGlow, #ghArcDot { transition: none !important; }
