@@ -33,7 +33,7 @@
 html[data-theme="warm"] {
   --gu-bg-page: radial-gradient(circle at 88% 42%, rgba(255,110,165,.32), transparent 38%),
                 radial-gradient(circle at 6% 78%, rgba(255,140,120,.26), transparent 36%),
-                radial-gradient(circle at 50% 14%, #fff3ee 0%, #ffd5cc 32%, #ffaaa5 66%, #ff8c9e 100%);
+                radial-gradient(circle at 50% 33%, #fff3ee 0%, #ffd5cc 32%, #ffaaa5 66%, #ff8c9e 100%);
   --gu-bg-messages: linear-gradient(#ffe8dd, #ffcbc3 55%, #ff8c9e);
   --gu-sheet: #ffeaf0;
   --gu-sheet-shadow: 0 -8px 22px rgba(150,30,80,.10);
