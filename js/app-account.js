@@ -3079,7 +3079,6 @@ window.addEventListener('load', function(){
     var colTxt  = document.createElement('div'); colTxt.className  = 'gh-mp__txt';
 
     var head = document.createElement('div'); head.className = 'gh-mp__head';
-    head.textContent = 'Mon petit mot';
     var btnRow = document.createElement('div'); btnRow.className = 'gh-mp__btns';
 
     var textarea = document.createElement('textarea');
