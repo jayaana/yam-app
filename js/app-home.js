@@ -749,7 +749,7 @@
     box.textContent = 'sy=' + Math.round(window.pageYOffset) + ' vvTop=' + Math.round(vv.offsetTop || 0) + ' vvH=' + Math.round(vv.height || 0) + NL +
       'ih=' + innerHeight + ' oh=' + outerHeight + ' sH=' + document.documentElement.scrollHeight + ' ch=' + document.documentElement.clientHeight + NL +
       'sheet=' + r('#rappelSheet') + ' x=' + r('#rappelSheet .rsh-close') + ' open=' + (sh && sh.classList.contains('open') ? 1 : 0) + ' tab=' + document.documentElement.getAttribute('data-yam-tab');
-  }
+  };
   ['scroll', 'resize', 'touchend', 'focusin', 'focusout'].forEach(function(t){ window.addEventListener(t, upd, true); });
   if (window.visualViewport) { visualViewport.addEventListener('resize', upd); visualViewport.addEventListener('scroll', upd); }
   /* journal des changements de hauteur visible + recalage de la page si l'écart d'iOS est détecté */
