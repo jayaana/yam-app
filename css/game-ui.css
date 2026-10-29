@@ -1,0 +1,74 @@
+/* ═══════════════════════════════════════════════════════════════
+   COMPOSANTS COMMUNS « GAME UI » (préfixe .gu-)
+   Écrits UNIQUEMENT sur les jetons de css/theme-tokens.css.
+   Chargé après design-system.css. N'affecte aucune page tant que
+   les classes .gu-* ne sont pas utilisées (phases 1 à 5).
+   ═══════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: 'Lilita One';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/LilitaOne-Regular.ttf') format('truetype');
+}
+
+.gu-display { font-family: var(--gu-font-display); letter-spacing: .3px; font-weight: 400; margin: 0; }
+
+/* Fond de page (dégradé du thème) */
+.gu-page { background: var(--gu-bg-page); color: var(--gu-text); font-family: var(--gu-font-text); }
+.gu-page--messages { background: var(--gu-bg-messages); }
+
+/* En-tête YAM + profil, identique sur toutes les pages
+   (padding haut 56 px = zone sûre iPhone, ne jamais le réduire) */
+.gu-header { box-sizing: content-box; display: flex; align-items: center; gap: 12px; height: 48px; padding: 56px 18px 0; flex: none; position: relative; z-index: 3; }
+.gu-header__logo { font-family: var(--gu-font-display); font-size: 36px; line-height: 1; letter-spacing: .3px; color: var(--gu-text-on-bg); text-shadow: var(--gu-header-text-shadow); }
+.gu-header__spacer { flex: 1; }
+.gu-profile { width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow); background: var(--gu-her); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--gu-font-display); font-size: 22px; overflow: hidden; padding: 0; cursor: pointer; }
+.gu-profile img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Feuille unique (coins 40 px ; trait droit sans ombre quand on défile) */
+.gu-sheet { position: relative; z-index: 2; display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; border-radius: var(--gu-r-sheet) var(--gu-r-sheet) 0 0; background: var(--gu-sheet); box-shadow: var(--gu-sheet-shadow); color: var(--gu-text); overflow: hidden; transition: border-radius .18s, box-shadow .18s; }
+.gu-sheet.is-scrolled { border-radius: 0; box-shadow: none; }
+
+/* Titre de section / carte / puces */
+.gu-section-title { font-family: var(--gu-font-display); font-size: 13px; letter-spacing: 2px; color: var(--gu-title); text-transform: uppercase; margin: 0; }
+.gu-card { background: var(--gu-card); border-radius: var(--gu-r-card); padding: 14px 16px; color: var(--gu-text); }
+.gu-card__title { font-family: var(--gu-font-display); font-size: 20px; letter-spacing: .3px; margin: 0 0 4px; }
+.gu-muted { color: var(--gu-text-2); }
+.gu-chip { display: inline-flex; align-items: center; min-height: var(--gu-tap); padding: 0 16px; border-radius: var(--gu-r-pill); background: var(--gu-chip); color: var(--gu-text); font-family: var(--gu-font-display); font-size: 15px; letter-spacing: .3px; border: 0; cursor: pointer; }
+.gu-chip.is-on { background: var(--gu-chip-on); color: var(--gu-chip-on-text); }
+
+/* Boutons PLATS (aucune bordure, ombre ni dégradé) */
+.gu-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: var(--gu-tap); padding: 0 18px; border: 0; border-radius: var(--gu-r-pill); font-family: var(--gu-font-display); font-size: 16px; letter-spacing: .3px; cursor: pointer; background: var(--gu-chip); color: var(--gu-text); -webkit-tap-highlight-color: transparent; }
+.gu-btn:active { transform: scale(.97); }
+.gu-btn--action { background: var(--gu-action); color: var(--gu-on-action); }
+.gu-btn--ok { background: var(--gu-ok); color: #fff; }
+.gu-btn--info { background: var(--gu-info); color: #fff; }
+.gu-btn--round { width: var(--gu-tap); padding: 0; border-radius: 50%; }
+
+/* Autocollant : le contour blanc 3 px est dans l'image (vraie dilatation,
+   pas de drop-shadow empilés). Le conteneur ne fait que le positionnement. */
+.gu-sticker { display: inline-block; line-height: 0; }
+.gu-sticker img, .gu-sticker svg { display: block; max-width: 100%; height: auto; }
+.gu-sticker-ring { border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow); }
+
+/* Pastille NEW */
+.gu-badge-new { background: #ffcc00; color: #2a1a00; font: 800 12px var(--gu-font-text); border-radius: 6px; padding: 2px 7px; letter-spacing: .3px; }
+
+/* Barre de progression */
+.gu-bar { position: relative; height: 8px; border-radius: 4px; background: var(--gu-bar-bg); overflow: hidden; }
+.gu-bar > i { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--gu-bar-fill); }
+
+/* Navigation du bas (bords droits, carré jaune sur l'onglet actif) */
+.gu-nav { position: relative; z-index: 4; display: flex; height: 84px; padding: 0 8px 22px; background: var(--gu-nav-bg); box-shadow: var(--gu-nav-edge); }
+.gu-nav__item { flex: 1; min-height: var(--gu-tap); display: flex; flex-direction: column; align-items: center; gap: 2px; padding-top: 8px; border: 0; background: none; font: 700 12px var(--gu-font-text); color: var(--gu-nav-text); cursor: pointer; }
+.gu-nav__item svg { width: 27px; height: 27px; fill: var(--gu-nav-icon); }
+.gu-nav__item.is-active .gu-nav__icon { width: 60px; height: 52px; margin-top: -6px; border-radius: 16px; background: linear-gradient(var(--gu-action-top), var(--gu-action-bottom)); border: 2px solid #fff; box-shadow: 0 3px 0 rgba(150,30,80,.25); display: flex; align-items: center; justify-content: center; }
+.gu-nav__item.is-active svg { fill: var(--gu-on-action); }
+
+/* Toasts */
+.gu-toast { position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%); z-index: 9999; max-width: 86vw; padding: 12px 18px; border-radius: var(--gu-r-pill); background: var(--gu-card); color: var(--gu-text); font: 700 14px var(--gu-font-text); border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow), 0 6px 18px rgba(0,0,0,.2); }
+
+/* Puce « en ligne » */
+.gu-online { width: 15px; height: 15px; border-radius: 50%; background: var(--gu-online); border: 2px solid #fff; }

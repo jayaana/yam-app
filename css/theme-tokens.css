@@ -1,0 +1,107 @@
+/* ═══════════════════════════════════════════════════════════════
+   THÈMES « GAME UI » — jetons de rôle (--gu-*)
+   Source unique : <html data-theme="warm|dark"> (posé par app-core.js).
+   warm = clair corail, dark = sombre. Un nouveau thème (ex. bleu) =
+   UN bloc html[data-theme="x"]{…} qui redéfinit les mêmes jetons.
+   Les anciennes variables (--bg, --green…) ne sont pas touchées.
+   Valeurs tirées des maquettes FINAL (rapports-test/TOKENS-DA.md).
+   Jamais de violet.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Jetons communs aux thèmes (indépendants du clair/sombre) */
+:root {
+  --gu-font-display: 'Lilita One', system-ui, sans-serif;
+  --gu-font-text: system-ui, -apple-system, sans-serif;
+  --gu-action: #ffd21a;            /* jaune : lecture, envoi, onglet actif */
+  --gu-action-top: #ffe34d;        /* dégradé du carré actif de la nav */
+  --gu-action-bottom: #ffb800;
+  --gu-on-action: #2a1a00;
+  --gu-ok: #3ccd88;                /* « C'est fait » */
+  --gu-info: #4b86ea;              /* « Plus tard » */
+  --gu-her: #ff7a8f;               /* avatar A (elle) */
+  --gu-him: #5a9cff;               /* avatar L (lui) : bleu = lui */
+  --gu-online: #3ccd88;
+  --gu-sticker-border: #fff;       /* autocollant : contour blanc */
+  --gu-sticker-width: 3px;
+  --gu-r-sheet: 40px;
+  --gu-r-card: 22px;
+  --gu-r-pill: 22px;
+  --gu-tap: 44px;                  /* zone tactile minimale */
+}
+
+/* ── Clair (corail) ─────────────────────────────────────────── */
+html[data-theme="warm"] {
+  --gu-bg-page: radial-gradient(circle at 88% 42%, rgba(255,110,165,.32), transparent 38%),
+                radial-gradient(circle at 6% 78%, rgba(255,140,120,.26), transparent 36%),
+                radial-gradient(circle at 50% 14%, #fff3ee 0%, #ffd5cc 32%, #ffaaa5 66%, #ff8c9e 100%);
+  --gu-bg-messages: linear-gradient(#ffe8dd, #ffcbc3 55%, #ff8c9e);
+  --gu-sheet: #ffeaf0;
+  --gu-sheet-shadow: 0 -8px 22px rgba(150,30,80,.10);
+  --gu-card: #fff;
+  --gu-text: #4a0f2e;
+  --gu-text-2: #6e3a4c;
+  --gu-text-on-bg: #fff;           /* YAM en en-tête */
+  --gu-title: #d4306f;             /* titres de section */
+  --gu-accent: #d4306f;
+  --gu-chip: #ffc9d8;
+  --gu-chip-on: #ffa5bf;
+  --gu-chip-on-text: #4a0f2e;
+  --gu-separator: #ffc9d8;
+  --gu-bubble-me: #d93a56;
+  --gu-bubble-me-text: #fff;
+  --gu-bubble-other: #fff;
+  --gu-bubble-other-text: #4a0f2e;
+  --gu-nav-bg: #fff;
+  --gu-nav-text: #b0566f;
+  --gu-nav-icon: #e58aa0;
+  --gu-nav-edge: 0 0 0 1px rgba(240,140,155,.75), 0 -3px 0 #ffc2c9, 0 -6px 18px rgba(214,80,112,.22);
+  --gu-header-text-shadow: 0 2px 4px rgba(150,30,80,.45);
+  --gu-sticker-shadow: 0 3px 0 rgba(150,30,80,.25);
+  --gu-bar-bg: #ffc9d8;
+  --gu-bar-fill: #ff9db5;
+  --gu-miniplayer: #ff8aa3;
+  --gu-miniplayer-text: #4a0f2e;
+  --gu-miniplayer-fold: #fff;
+  --gu-deco: summer;               /* décor derrière la feuille (Nous) */
+  --gu-theme-color: #ff8c9e;       /* meta theme-color */
+}
+
+/* ── Sombre ─────────────────────────────────────────────────── */
+html[data-theme="dark"] {
+  --gu-bg-page: radial-gradient(circle at 88% 42%, rgba(255,110,165,.08), transparent 38%),
+                radial-gradient(circle at 6% 78%, rgba(255,140,120,.07), transparent 36%),
+                radial-gradient(circle at 50% 33%, #2b2125 0%, #1d1619 32%, #130e10 66%, #0b0809 100%);
+  --gu-bg-messages: linear-gradient(#1c1518, #0b0809);
+  --gu-sheet: linear-gradient(#372b32 0%, #372b32 40%, #1f171b 100%);
+  --gu-sheet-shadow: 0 -8px 22px rgba(0,0,0,.45);
+  --gu-card: #4a3a42;
+  --gu-text: #fff;
+  --gu-text-2: #cfc4c8;
+  --gu-text-on-bg: #fff;
+  --gu-title: #fff;
+  --gu-accent: #ff9fae;
+  --gu-chip: #5e4048;
+  --gu-chip-on: #ffb3c6;
+  --gu-chip-on-text: #2a1018;
+  --gu-separator: #5e4048;
+  --gu-bubble-me: #d93a56;
+  --gu-bubble-me-text: #fff;
+  --gu-bubble-other: #3a2d34;
+  --gu-bubble-other-text: #fff;
+  --gu-nav-bg: #0c0809;
+  --gu-nav-text: #ffb9c8;
+  --gu-nav-icon: #ff9fae;
+  --gu-nav-edge: 0 0 0 1px rgba(255,150,170,.55), 0 -3px 0 #a8435f, 0 -6px 18px rgba(0,0,0,.5);
+  --gu-header-text-shadow: 0 2px 4px rgba(0,0,0,.5);
+  --gu-sticker-shadow: 0 3px 0 rgba(0,0,0,.45);
+  --gu-bar-bg: #2a1018;
+  --gu-bar-fill: #fff;
+  --gu-miniplayer: #bf4f66;
+  --gu-miniplayer-text: #fff;
+  --gu-miniplayer-fold: #120c0e;
+  --gu-deco: christmas;
+  --gu-theme-color: #0b0809;
+}
+
+/* Thème bleu (phase 7) : ajouter ici UN bloc html[data-theme="blue"]{…}
+   avec les mêmes jetons. Aucun violet. */
