@@ -196,3 +196,16 @@ html[data-yam-tab="home"] #annivBanner .anniv-close-x::before { content: ""; pos
 
 /* Thème clair : le fond reste jaune, seul le texte passe en blanc, cerné d'un contour brun doré pour rester lisible (comme le « 0/10 » du spam) */
 html[data-theme="warm"][data-yam-tab="home"] #annivBanner.evt-type-anniversary .anniv-title, html[data-theme="warm"][data-yam-tab="home"] #annivBanner.evt-type-birthday .anniv-title { color: #fff; -webkit-text-stroke: 3px #e43a50; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(150,20,50,.35); }
+
+/* Confettis légers qui tombent dans le bandeau (deux couches, petits points peu opaques, derrière le texte) */
+html[data-yam-tab="home"] #annivBanner::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: .75;
+  background-image:
+    radial-gradient(circle 2.5px at 12px 8px, #ff4f7b 96%, transparent), radial-gradient(circle 2px at 52px 30px, #4b86ea 96%, transparent),
+    radial-gradient(circle 2.5px at 92px 18px, #fff 96%, transparent), radial-gradient(circle 2px at 132px 40px, #3ccd88 96%, transparent),
+    radial-gradient(circle 2px at 172px 12px, #ff8a3d 96%, transparent), radial-gradient(circle 2.5px at 212px 34px, #ff4f7b 96%, transparent),
+    radial-gradient(circle 2px at 252px 22px, #4b86ea 96%, transparent), radial-gradient(circle 2.5px at 292px 6px, #fff 96%, transparent),
+    radial-gradient(circle 2px at 332px 36px, #3ccd88 96%, transparent);
+  background-size: 360px 50px; background-repeat: repeat-x; animation: ghConfetti 3.2s linear infinite; }
+@keyframes ghConfetti { from { background-position: 0 -50px; } to { background-position: 0 0; } }
+html[data-yam-tab="home"] #annivBanner > * { position: relative; z-index: 1; }
+@media (prefers-reduced-motion: reduce) { html[data-yam-tab="home"] #annivBanner::after { animation: none; } }
