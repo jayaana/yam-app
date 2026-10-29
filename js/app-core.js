@@ -992,6 +992,7 @@ window.yamPushNotify = async function(opts) {
       clearInterval(_heartbeatIv); _heartbeatIv = null;
       clearInterval(_pollIv);      _pollIv      = null;
     } else {
+      clearInterval(_heartbeatIv); clearInterval(_pollIv);
       presencePush();
       _heartbeatIv = setInterval(presencePush, HEARTBEAT_MS);
       if (!window._skyjoPresenceActive) {
@@ -999,6 +1000,19 @@ window.yamPushNotify = async function(opts) {
         _pollIv = setInterval(presencePoll, POLL_MS);
       }
     }
+  });
+
+  // Fermeture de l'app : signal « hors ligne » immédiat (last_seen dans le passé)
+  window.addEventListener('pagehide', function() {
+    var u = yamGetUser();
+    if (!u || !u.couple_id) return;
+    try {
+      fetch(SB_URL + '/rest/v1/' + PRESENCE_TABLE + '?on_conflict=user_id,couple_id', {
+        method: 'POST', keepalive: true,
+        headers: sb2Headers({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+        body: JSON.stringify({ user_id: u.id, couple_id: u.couple_id, role: u.role, last_seen: new Date(0).toISOString(), is_playing: false }),
+      }).catch(function() {});
+    } catch (e) {}
   });
 
   window._corePresenceSuspend = function() {
@@ -1065,8 +1079,10 @@ window.yamPushNotify = async function(opts) {
         .subscribe(function(status) {
           if (status === 'SUBSCRIBED') {
             yamLog('[RT] présence connectée'); console.log('[RT] ✅ Présence connectée', { channel: 'presence', status: 'SUBSCRIBED' });
-            clearInterval(_pollIv); _pollIv = null;
+            // Le poll reste actif : sans lui le point ne se met jamais à jour
+            // (pas d'événement quand quelqu'un se déconnecte, websocket coupé sur iOS)
             _stopFallback();
+            if (!_pollIv && !document.hidden && !window._skyjoPresenceActive) _pollIv = setInterval(presencePoll, POLL_MS);
             presencePoll();
           } else if (['CHANNEL_ERROR','TIMED_OUT','CLOSED'].includes(status)) {
             yamLog('[RT] présence ' + status + ' — fallback'); console.warn('[RT] Présence channel perdu — fallback poll 10s');
