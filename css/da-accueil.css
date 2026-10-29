@@ -229,4 +229,5 @@ html[data-yam-tab="home"] #yamMainHeader, html[data-yam-tab="home"] #yamHomeTab 
 /* Fenêtre « Rappels du jour » : le glissement ne fait défiler que sa liste, jamais la page derrière */
 #rappelOverlay.open, #rappelSheet { touch-action: none; overscroll-behavior: contain; }
 #rappelSheet .rsh-list { touch-action: pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
-#moodPicker { overscroll-behavior: contain; }
+#moodPicker, #moodPickerOverlay.visible { overscroll-behavior: contain; touch-action: none; }
+#moodPicker textarea { touch-action: pan-y; }

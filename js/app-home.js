@@ -707,3 +707,22 @@
     if (e.cancelable) e.preventDefault();
   }, { passive: false });
 })();
+
+/* Sélecteur d'humeur ouvert : le glissement ne fait pas défiler la page (seule la zone de texte peut défiler) */
+(function(){
+  var ty = 0;
+  document.addEventListener('touchstart', function(e){ ty = e.touches[0].clientY; }, { passive: true });
+  document.addEventListener('touchmove', function(e){
+    var t = e.target;
+    if (!t || !t.closest || !t.closest('#moodPicker, #moodPickerOverlay')) return;
+    var mp = document.getElementById('moodPicker');
+    if (!mp || !mp.classList.contains('open')) return;
+    var ta = t.closest('textarea');
+    if (ta && ta.scrollHeight > ta.clientHeight) {
+      var dy = e.touches[0].clientY - ty;
+      var atTop = ta.scrollTop <= 0, atBottom = ta.scrollTop + ta.clientHeight >= ta.scrollHeight - 1;
+      if (!((dy > 0 && atTop) || (dy < 0 && atBottom))) return;
+    }
+    if (e.cancelable) e.preventDefault();
+  }, { passive: false });
+})();
