@@ -47,8 +47,8 @@ html #yamHomeTab.active, html body.light #yamHomeTab.active { background: transp
 html[data-theme="dark"] .gh-bubble { filter: drop-shadow(0 3px 0 rgba(0,0,0,.45)) drop-shadow(0 6px 8px rgba(0,0,0,.35)); }
 .gh-bubble::after { content: ""; position: absolute; left: 50%; bottom: -12px; margin-left: -14px; width: 26px; height: 14px; background: var(--gu-bubble-tail); clip-path: polygon(0 0, 100% 0, 30% 100%); }
 .home-msg-label-row { display: none; }
-.home-msg-text { font-family: var(--gu-font-display); font-size: 15px; line-height: 1.25; letter-spacing: .2px; color: #4a0f2e; text-align: center; min-height: 19px; }
-.home-msg-loading { display: inline-flex; gap: 4px; align-items: center; height: 19px; }
+.home-msg-text { font-family: var(--gu-font-display); font-size: 15px; line-height: 1.25; letter-spacing: .2px; color: #4a0f2e; text-align: center; min-height: 38px; display: flex; align-items: center; justify-content: center; }
+.home-msg-loading { display: inline-flex; gap: 4px; align-items: center; height: 38px; }
 .home-msg-dot { width: 6px; height: 6px; border-radius: 50%; background: #d4306f; animation: ghDot 1s ease-in-out infinite; }
 .home-msg-dot:nth-child(2) { animation-delay: .2s; }
 .home-msg-dot:nth-child(3) { animation-delay: .4s; }
