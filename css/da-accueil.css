@@ -166,6 +166,7 @@ html[data-theme="dark"] { --gu-mp-neutral: rgba(255,255,255,.1); }
 .gh-mp__x { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: var(--gu-mp-neutral); color: var(--gu-text); font: 700 13px var(--gu-font-text); cursor: pointer; }
 .gh-mp__x::before { content: ""; position: absolute; inset: -8px; }
 .gh-mp__area { flex: 1; min-height: 0; width: 100%; box-sizing: border-box; resize: none; border: 0; border-radius: 12px; padding: 6px 8px; background: var(--gu-mp-neutral); color: var(--gu-text); font: 600 13px/16px var(--gu-font-text); outline: none; }
+.gh-mp__area:disabled { opacity: .6; }
 .gh-mp__area::placeholder { color: var(--gu-text-2); }
 .gh-mp__save { flex: none; height: 34px; border: 0; border-radius: 17px; background: var(--gu-action); color: var(--gu-on-action); font: 400 15px var(--gu-font-display); letter-spacing: .3px; cursor: pointer; }
 .gh-mp__save:disabled { opacity: .45; cursor: default; }

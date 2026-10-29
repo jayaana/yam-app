@@ -3093,6 +3093,8 @@ window.addEventListener('load', function(){
 
     function refreshHead(){
       save.disabled = !chosen;
+      textarea.disabled = !chosen;
+      textarea.placeholder = chosen ? 'Un petit mot… 💕' : 'Choisis d'abord une humeur';
       picker.setAttribute('data-cat', String(catIdx));
     }
     function renderEmos(){
@@ -3107,7 +3109,7 @@ window.addEventListener('load', function(){
         b.textContent = emoji;
         b.onclick = function(){
           chosen = emoji; _pickerTempEmoji = emoji;
-          if(emoji !== window._myMood) textarea.value = ''; else textarea.value = window._myMoodMessage || '';
+          if(!textarea.value && emoji === window._myMood) textarea.value = window._myMoodMessage || '';
           renderEmos(); refreshHead();
         };
         colEmos.appendChild(b);
