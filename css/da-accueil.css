@@ -136,3 +136,8 @@ html .bottom-nav .nav-item.nav-active > svg:first-of-type { box-sizing: content-
 /* Ordre de la maquette : Accueil, Musique, Jeux, Messages, Nous */
 html .bottom-nav-inner #navHome { order: 1; } html .bottom-nav-inner #navMusique { order: 2; } html .bottom-nav-inner #navJeux { order: 3; } html .bottom-nav-inner #navMessages { order: 4; } html .bottom-nav-inner #navNous { order: 5; }
 #ghArc, #ghArcGlow, #ghArcDot { transition: none !important; }
+
+/* Fenêtres ouvertes depuis l'Accueil : jamais sur la barre de nav (64 px + zone sûre bas ≥ 32 px) */
+#moodPicker { max-height: calc(100dvh - var(--safe-top) - 56px - max(env(safe-area-inset-bottom, 0px), 32px) - 64px - 12px); }
+html body #uxToast { bottom: calc(max(env(safe-area-inset-bottom, 0px), 32px) + 64px + 14px); }
+html[data-yam-tab="home"] #annivBanner { margin-top: 10px; } /* compense le margin-bottom: -10px de l en-tête */
