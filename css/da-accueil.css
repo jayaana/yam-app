@@ -8,7 +8,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Fond de page + en-tête YAM (onglet Accueil seulement) ──────── */
-html[data-yam-tab="home"] { background: var(--gu-bg-page) !important; background-attachment: fixed !important; background-color: #ffcdc4 !important; }
+html[data-yam-tab="home"] { background: var(--gu-bg-page) !important; background-repeat: no-repeat !important; background-color: #ffcdc4 !important; }
 html[data-theme="dark"][data-yam-tab="home"] { background-color: #1f181b !important; }
 html[data-yam-tab="home"] body, html[data-yam-tab="home"] body.light { background: transparent !important; background-image: none !important; }
 html[data-yam-tab="home"] #yamMainHeader { background: transparent !important; border: 0; box-shadow: none; }
