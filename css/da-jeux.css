@@ -30,7 +30,7 @@ html[data-theme="warm"] {
   --gj-lead-bg: #ffd640;
   --gj-lead-edge: #fff;
   --gj-label-title: #d4306f;
-  --gj-ens-text: #d4306f;
+  --gj-ens-text: #8a1f55;
 }
 html[data-theme="dark"] {
   --gj-edge: #1a1014;
@@ -70,8 +70,9 @@ html[data-yam-tab="jeux"] #yamMainHeader { background: transparent !important; b
 .gj-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Titres de section */
-.gj-title { font-family: var(--gu-font-display); font-size: 13px; letter-spacing: 2px; color: var(--gj-label-title); text-transform: uppercase; margin: 18px 18px 8px; line-height: 1.2; }
-.gj-title--tight { margin-top: 12px; margin-bottom: 2px; }
+.gj-title { font-family: var(--gu-font-display); font-size: 13px; letter-spacing: 2px; color: var(--gj-label-title); text-transform: uppercase; margin: 14px 18px 11px; line-height: 1.2; }
+.jx-dash + .gj-title { margin-top: 18px; margin-bottom: 5px; }
+.gj-title--tight { margin-top: 9px; margin-bottom: 0; }
 
 /* ── Carte VS ── */
 .jx-dash { position: relative; margin: 16px 16px 0; transform: rotate(-1.2deg); background: none; border: 0; overflow: visible; }
@@ -99,11 +100,11 @@ html[data-theme="dark"] .jx-dash-card { box-shadow: var(--gj-card-shadow), inset
 .jx-prog-meta { display: flex; margin-top: 6px; }
 .jx-prog-leader { display: inline-block; transform: rotate(-2deg); font-family: var(--gu-font-display); font-size: 13px; line-height: 1.3; color: #4a0f2e; background: var(--gj-lead-bg); border: 2px solid var(--gj-lead-edge); border-radius: 6px; padding: 0 8px; box-shadow: var(--gj-edge-shadow); }
 .jx-stats { display: flex; gap: 6px; margin-top: 8px; padding: 0; align-items: stretch; }
-.jx-stat { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 3px 2px 4px; background: var(--gj-stat-bg); border: 2px dashed var(--gj-stat-edge); border-radius: 10px; min-width: 0; }
-.jx-stat--wide { flex: 1.3; }
+.jx-stat { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 3px 2px 4px; background: var(--gj-stat-bg); border: 2px dashed var(--gj-stat-edge); border-radius: 10px; min-width: 0; }
+.jx-stat--wide { flex: 1.2 1 auto; }
 .jx-stat + .jx-stat { border-left: 2px dashed var(--gj-stat-edge); padding-left: 2px; }
 .jx-stat-lbl { order: 0; font: 700 12px/1.2 var(--gu-font-text); color: var(--gj-label); white-space: nowrap; }
-.jx-stat-val { order: 1; display: flex; align-items: center; justify-content: center; gap: 4px; font-family: var(--gu-font-display); font-size: 15px; line-height: 1.2; letter-spacing: .3px; color: #fff; white-space: nowrap; text-shadow: -1.5px 0 0 var(--gj-stat-stroke), 1.5px 0 0 var(--gj-stat-stroke), 0 -1.5px 0 var(--gj-stat-stroke), 0 1.5px 0 var(--gj-stat-stroke), -1.5px -1.5px 0 var(--gj-stat-stroke), 1.5px 1.5px 0 var(--gj-stat-stroke), -1.5px 1.5px 0 var(--gj-stat-stroke), 1.5px -1.5px 0 var(--gj-stat-stroke); }
+.jx-stat-val { order: 1; display: flex; align-items: center; justify-content: center; gap: 4px; font-family: var(--gu-font-display); font-size: 14px; line-height: 1.2; letter-spacing: 0; color: #fff; white-space: nowrap; text-shadow: -1.5px 0 0 var(--gj-stat-stroke), 1.5px 0 0 var(--gj-stat-stroke), 0 -1.5px 0 var(--gj-stat-stroke), 0 1.5px 0 var(--gj-stat-stroke), -1.5px -1.5px 0 var(--gj-stat-stroke), 1.5px 1.5px 0 var(--gj-stat-stroke), -1.5px 1.5px 0 var(--gj-stat-stroke), 1.5px -1.5px 0 var(--gj-stat-stroke); }
 
 /* ── Tuiles (jeux, défis) ── */
 .gj-tile { position: relative; box-sizing: border-box; padding: 0; margin: 0; border: 2px solid var(--gj-edge); border-radius: 8px; background-clip: padding-box; background: linear-gradient(var(--hi) 0%, var(--c) 40%, var(--lo) 100%); box-shadow: inset 0 3px 0 rgba(255,255,255,.2), var(--gj-edge-shadow); cursor: pointer; -webkit-tap-highlight-color: transparent; font: inherit; color: #fff; display: flex; flex-direction: column; align-items: center; overflow: visible; }
@@ -141,14 +142,15 @@ html[data-theme="dark"] .gj-tile::before { -webkit-mask-image: linear-gradient(#
 .gj-tent { position: absolute !important; left: 0; right: 0; top: 0; height: 8px; pointer-events: none; filter: drop-shadow(0 1px 0 rgba(1,3,12,.55)); background: conic-gradient(from -45deg at 50% 100%, #e8372b 0 90deg, transparent 0) -24px 0/64px 8px repeat-x, conic-gradient(from -45deg at 50% 100%, #fff 0 90deg, transparent 0) -8px 0/64px 8px repeat-x, conic-gradient(from -45deg at 50% 100%, #2f7be0 0 90deg, transparent 0) 8px 0/64px 8px repeat-x, conic-gradient(from -45deg at 50% 100%, #2fbf71 0 90deg, transparent 0) 24px 0/64px 8px repeat-x; }
 
 /* ── Ensemble : trois ronds ── */
-.gj-trio { display: flex; justify-content: space-around; margin: 0 16px; }
-.gj-round { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; width: auto; min-width: 72px; padding: 0; border: 0; background: none; box-shadow: none; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; text-align: center; }
+.gj-trio { display: grid; grid-template-columns: repeat(3, 1fr); justify-items: center; margin: 0 16px; }
+.jx-scroll .gj-round, .jx-scroll .jx-wheel-btn.gj-round { background: none !important; border: 0 !important; box-shadow: none !important; border-radius: 0 !important; width: auto !important; padding: 0 !important; position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; width: auto; min-width: 72px; padding: 0; border: 0; background: none; box-shadow: none; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; text-align: center; }
 .gj-round:active { transform: scale(.95); }
 .gj-round-ic { display: flex; align-items: center; justify-content: center; width: 72px; height: 64px; }
 .gj-round-ic svg { width: 64px; height: 64px; overflow: visible; filter: drop-shadow(0 1.5px 0 #3a2430); }
 html[data-theme="dark"] .gj-tv-screen { fill: #0c2a45; }
 html[data-theme="dark"] .gj-tv-play { fill: #fff; stroke: #fff; }
 .gj-round .jx-row-name { font-family: var(--gu-font-display); font-size: 13px; line-height: 1.2; letter-spacing: .3px; color: var(--gj-ens-text); margin-top: -7px; }
+.jx-scroll .gj-round .jx-row-name { color: var(--gj-ens-text) !important; }
 .gj-round #cwLivePill, .gj-round #bkLivePill { position: absolute; top: -4px; right: -4px; margin: 0; font-size: 12px; padding: 2px 6px; }
 
 /* ── Meilleurs scores (affichés en fin de partie, plus sur cette page) ── */
