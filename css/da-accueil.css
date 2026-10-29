@@ -35,7 +35,7 @@ html #yamHomeTab.active, html body.light #yamHomeTab.active { background: transp
 
 /* ── Zone patate ─────────────────────────────────────────────────── */
 .gh-zone { position: relative; z-index: 3; flex: none; display: flex; flex-direction: column; align-items: center; margin-top: 4px; }
-.gh-bubble { position: relative; width: 250px; max-width: calc(100% - 48px); background: var(--gu-bubble-bg); border-radius: 14px; padding: 7px 13px 8px; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.95), 0 3px 0 rgba(150,30,80,.34), 0 6px 8px rgba(150,30,80,.2); }
+.gh-bubble { position: relative; z-index: 6; width: 250px; max-width: calc(100% - 48px); background: var(--gu-bubble-bg); border-radius: 14px; padding: 7px 13px 8px; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.95), 0 3px 0 rgba(150,30,80,.34), 0 6px 8px rgba(150,30,80,.2); }
 .gh-bubble::after { content: ""; position: absolute; left: 50%; bottom: -12px; margin-left: -14px; width: 26px; height: 14px; background: var(--gu-bubble-tail); clip-path: polygon(0 0, 100% 0, 30% 100%); }
 .home-msg-label-row { display: none; }
 .home-msg-text { font-family: var(--gu-font-display); font-size: 15px; line-height: 1.25; letter-spacing: .2px; color: #4a0f2e; text-align: center; min-height: 19px; }
@@ -45,7 +45,7 @@ html #yamHomeTab.active, html body.light #yamHomeTab.active { background: transp
 .home-msg-dot:nth-child(3) { animation-delay: .4s; }
 @keyframes ghDot { 0%,100% { opacity: .3; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.1); } }
 
-.gh-stage { position: relative; width: 100%; height: 258px; margin-top: 0; }
+.gh-stage { position: relative; width: 100%; height: 264px; margin-top: 0; }
 .gh-halo { position: absolute; left: 50%; top: 0; transform: translateX(-50%); width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,.55), rgba(255,255,255,.08) 62%, transparent 72%); border: 3px solid var(--gu-halo-border); box-shadow: 0 0 34px 2px rgba(255,255,255,.32); display: flex; align-items: center; justify-content: center; }
 html[data-theme="dark"] .gh-halo { box-shadow: 0 0 34px 2px rgba(255,255,255,.22); }
 .gh-arc { position: absolute; left: -3px; top: -3px; width: 200px; height: 200px; pointer-events: none; overflow: visible; }
@@ -56,14 +56,14 @@ html[data-theme="dark"] .gh-halo { box-shadow: 0 0 34px 2px rgba(255,255,255,.22
 .gh-side img { position: absolute; left: 50%; top: 50%; width: 78px; height: 78px; margin: -30px 0 0 -39px; max-width: none; pointer-events: none; transition: transform .15s; }
 .gh-side:active img { transform: translateY(2px) scale(.96); }
 .gh-side:focus-visible { outline: 3px solid #fff; outline-offset: 2px; border-radius: 50%; }
-.gh-side--l1 { left: 22px; top: 12px; } .gh-side--l2 { left: 22px; top: 108px; }
-.gh-side--r1 { right: 22px; top: 12px; } .gh-side--r2 { right: 22px; top: 108px; }
+.gh-side--l1 { left: 22px; top: 28px; } .gh-side--l2 { left: 22px; top: 114px; }
+.gh-side--r1 { right: 22px; top: 28px; } .gh-side--r2 { right: 22px; top: 114px; }
 .gh-side .gu-badge-new { position: absolute; top: -8px; right: -14px; font-family: var(--gu-font-display); font-size: 12px; background: #ff3b4e; color: #fff; border: 2px solid #fff; border-radius: 10px; padding: 1px 6px; font-weight: 400; }
 #yamHomeTab .gh-side.home-soon { opacity: 1; filter: none; }
 .gh-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Spam de cœurs */
-.home-spam-block { position: absolute; left: 50%; top: 157px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.home-spam-block { position: absolute; left: 50%; top: 152px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; }
 #homeSpamHeart { position: relative; width: 70px; height: 70px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ff9db2, #e8457a); border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; -webkit-tap-highlight-color: transparent; }
 #homeSpamHeart svg { width: 38px; height: 38px; overflow: visible; animation: ghBeat 1.5s ease-in-out infinite; }
 @keyframes ghBeat { 0%,100% { transform: scale(1); } 14% { transform: scale(1.13); } 28% { transform: scale(1); } 42% { transform: scale(1.13); } 70% { transform: scale(1); } }
@@ -72,7 +72,7 @@ html[data-theme="dark"] .gh-halo { box-shadow: 0 0 34px 2px rgba(255,255,255,.22
 .home-spam-count { font-family: var(--gu-font-display); font-size: 15px; color: #fff; -webkit-text-stroke: 2.4px #8a1f55; paint-order: stroke; text-shadow: 0 1px 3px rgba(130,20,70,.35); letter-spacing: .3px; margin-top: 8px; }
 
 /* ── Feuille ────────────────────────────────────────────────────── */
-.gh-sheet { position: relative; z-index: 2; flex: 1 1 auto; margin-top: 4px; padding: 18px 0 calc(64px + max(env(safe-area-inset-bottom, 0px), 32px) + 16px); background: var(--gu-sheet); border-radius: var(--gu-r-sheet) var(--gu-r-sheet) 0 0; box-shadow: var(--gu-sheet-shadow); }
+.gh-sheet { position: relative; z-index: 2; flex: 1 1 auto; margin-top: 4px; padding: 16px 0 calc(64px + max(env(safe-area-inset-bottom, 0px), 32px) + 16px); background: var(--gu-sheet); border-radius: var(--gu-r-sheet) var(--gu-r-sheet) 0 0; box-shadow: var(--gu-sheet-shadow); }
 
 /* Cartes humeur */
 .gh-moods { display: flex; gap: 12px; padding: 0 16px; }
@@ -102,7 +102,7 @@ html[data-theme="dark"] .gh-halo { box-shadow: 0 0 34px 2px rgba(255,255,255,.22
 #homeMoodElle[role="button"], #homeMoodLui[role="button"] { cursor: pointer; }
 
 /* Rappel du jour */
-.home-rappel-row { margin: 18px 16px 0; }
+.home-rappel-row { margin: 16px 16px 0; }
 .home-rappel-card { position: relative; border-radius: 24px; background: var(--gu-rappel-bg); color: var(--gu-rappel-text); padding: 8px 12px 8px 16px; display: grid; grid-template-columns: 1fr auto auto; grid-template-areas: "text done later" "ctrl done later"; column-gap: 10px; align-items: center; }
 .home-rappel-topbar { grid-area: ctrl; display: flex; align-items: center; gap: 2px; margin-top: 2px; }
 .home-rappel-badge { position: absolute; left: 14px; top: -10px; display: inline-block; font-family: var(--gu-font-display); font-size: 12px; letter-spacing: .3px; background: linear-gradient(#ffe56a, #ffbf00); color: #2a1a00; border-radius: 7px; padding: 1px 7px; box-shadow: 0 2px 6px rgba(255,170,0,.55); }
