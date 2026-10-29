@@ -76,26 +76,13 @@
     _loadAvatarInto(_el('jxAvB'), _boyUserId,  'boy',  38);
   }
 
-  /* ── Sélection chip ── */
+  /* ── Tuile de jeu : ouvre le jeu (le classement s'affiche en fin de partie) ── */
+  var _TILE_CARD = { ocho: 'ochoCard', skyjo: 'skyjoCard', memory: 'gvMemoryCard', pendu: 'gvPenduCard', puzzle: 'gvPuzzleCard', snake: 'gvSnakeCard' };
   function jxSelChip(el) {
     var chip = el.closest ? el.closest('.jx-chip') : el;
     if (!chip || !chip.dataset || !chip.dataset.game) return;
-    var game = chip.dataset.game;
-    var section = document.getElementById('jxLbSection');
-
-    // Re-clic sur le même jeu → toggle (cache si visible)
-    if (game === _currentGame && section && section.style.display !== 'none') {
-      section.style.display = 'none';
-      document.querySelectorAll('.jx-chip').forEach(function (c) { c.classList.remove('jx-chip-on'); });
-      _currentGame = null;
-      return;
-    }
-
-    document.querySelectorAll('.jx-chip').forEach(function (c) { c.classList.remove('jx-chip-on'); });
-    chip.classList.add('jx-chip-on');
-    _currentGame = game;
-    if (section) section.style.display = 'block';
-    if (_scoreCache) _renderLb(_currentGame, _scoreCache);
+    var card = _el(_TILE_CARD[chip.dataset.game]);
+    if (card) card.click();
   }
   window.jxSelChip = jxSelChip;
 
@@ -278,7 +265,7 @@
         ? memoryIds.indexOf(r.game_id) !== -1
         : r.game_id === game;
     });
-    if (!gameRows.length) { el.textContent = '—'; return; }
+    if (!gameRows.length) { el.textContent = ''; return; }
 
     var g, b;
     if (_MULTI_GAMES.indexOf(game) !== -1 || game === 'memory') {
@@ -292,7 +279,7 @@
       b = gameRows.filter(function (r) { return r.player_role === 'boy';  }).length;
     }
 
-    if (!g && !b) { el.textContent = '—'; return; }
+    if (!g && !b) { el.textContent = ''; return; }
 
     // Toujours girl à gauche, boy à droite — cohérent avec le header VS
     var leftScore  = g;
@@ -373,7 +360,7 @@
         if (elSB) elSB.textContent = Math.round(wBoy);
 
         var elTot = _el('jxTotal');
-        if (elTot) elTot.textContent = total + (total > 1 ? ' parties' : ' partie') + ' ce mois';
+        if (elTot) elTot.textContent = total + (total > 1 ? ' parties' : ' partie');
 
         var pct = wTotal > 0 ? Math.round((wGirl / wTotal) * 100) : 50;
         var pf = _el('jxProgFill'); if (pf) pf.style.width = pct + '%';

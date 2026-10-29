@@ -98,6 +98,7 @@
 <link rel="stylesheet" href="css/theme-tokens.css">
 <link rel="stylesheet" href="css/game-ui.css">
 <link rel="stylesheet" href="css/da-accueil.css">
+<link rel="stylesheet" href="css/da-jeux.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
@@ -2720,30 +2721,6 @@ svg.yi{display:block;width:100%;height:100%;fill:none;stroke:var(--yi-ol);stroke
 .yi-medal.m1{background:#d9a441;}.yi-medal.m2{background:#a9a9b3;}.yi-medal.m3{background:#c0845a;}
 .jx-scroll{flex:1;display:flex;flex-direction:column;padding:0 16px;padding-top:14px;padding-bottom:4px;overflow:hidden;min-height:0;}
 #yamJeuxTab.active{display:flex;flex-direction:column;}
-.jx-cat-label{padding:8px 0 0;}
-.jx-cat-label:first-child{padding-top:0px;}
-.jx-cat-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;}
-.jx-cat-more{font-size:11px;font-weight:700;color:var(--jx-ac);cursor:pointer;-webkit-tap-highlight-color:transparent;}
-.jx-play-btn{position:relative;overflow:hidden;display:inline-flex;align-items:center;gap:7px;background:linear-gradient(135deg,#ff86a6 0%,#e75a7c 55%,#d4426b 100%);color:#fff;font-size:15px;font-weight:700;padding:6px 16px 6px 7px;border-radius:50px;cursor:pointer;-webkit-tap-highlight-color:transparent;letter-spacing:0.02em;text-shadow:0 1px 1px rgba(120,20,50,0.25);box-shadow:0 4px 12px rgba(231,90,124,0.38),inset 0 1px 0 rgba(255,255,255,0.4);transition:transform 0.15s,box-shadow 0.15s;}
-.jx-play-btn:active{transform:scale(0.95);box-shadow:0 2px 6px rgba(231,90,124,0.3),inset 0 1px 0 rgba(255,255,255,0.3);}
-.jx-play-ic{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.26);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.35);flex-shrink:0;}
-.jx-play-ic svg{width:10px;height:10px;margin-left:1px;fill:currentColor;}
-html:not(.light) .jx-play-btn{background:linear-gradient(135deg,#eab08f 0%,#d4896e 55%,#b9704f 100%);text-shadow:0 1px 1px rgba(90,40,20,0.35);box-shadow:0 0 0 1px rgba(255,255,255,0.1),0 4px 16px rgba(212,137,110,0.4),inset 0 1px 0 rgba(255,255,255,0.28);}
-#jxGamesMore.jx-play-btn--lobby .jx-play-ic{background:rgba(0,0,0,0.12);box-shadow:none;}
-/* Reflet lumineux qui balaie le bouton Jouer, lentement, avec une pause entre deux passages */
-.jx-play-btn::after{content:"";position:absolute;top:0;bottom:0;left:0;width:55%;background:linear-gradient(105deg,transparent 0%,rgba(255,255,255,0.18) 35%,rgba(255,255,255,0.55) 50%,rgba(255,255,255,0.18) 65%,transparent 100%);transform:translateX(-130%);pointer-events:none;animation:jxPlayShine 5s ease-in-out infinite;}
-@keyframes jxPlayShine{0%{transform:translateX(-130%);}45%{transform:translateX(230%);}100%{transform:translateX(230%);}}
-@media (prefers-reduced-motion:reduce){.jx-play-btn::after{animation:none;display:none;}}
-.jx-group{background:var(--s1);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
-.jx-row{display:flex;align-items:center;padding:10px 14px;gap:12px;cursor:pointer;transition:background .12s;-webkit-tap-highlight-color:transparent;}
-.jx-row:not(:last-child){border-bottom:1px solid var(--border);}
-.jx-row:active{background:var(--s2);}
-.jx-row-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:4px;background:linear-gradient(160deg,var(--yi-t1),var(--yi-t2));box-shadow:inset 0 0 0 1px var(--yi-tb);box-sizing:border-box;}
-.jx-row-body{flex:1;min-width:0;}
-.jx-row-name{font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:5px;}
-.jx-row-name.dim{color:var(--muted);}
-.jx-row-sub{font-size:11px;color:var(--muted);margin-top:1px;}
-.jx-row-chevron{width:7px;height:12px;stroke:var(--muted);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
 .jx-badge{font-size:8px;font-weight:700;letter-spacing:.5px;color:var(--beta-color);background:var(--beta-bg);border-radius:4px;padding:2px 6px;margin-left:6px;vertical-align:middle;text-transform:uppercase;}
 #cwLivePill{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:#22c55e;background:rgba(34,197,94,.12);border:1.5px solid rgba(34,197,94,.35);border-radius:20px;padding:3px 5px;margin-right:6px;white-space:nowrap;animation:cwLivePulse 1.6s ease-in-out infinite;}
 #cwLivePill::before{content:"";width:4px;height:4px;border-radius:50%;background:#22c55e;flex-shrink:0;animation:cwLiveDot 1.6s ease-in-out infinite;}
@@ -2758,184 +2735,71 @@ html:not(.light) .jx-play-btn{background:linear-gradient(135deg,#eab08f 0%,#d489
 #navJeux.partner-in-lobby--pink svg,#navJeux.partner-in-lobby--pink span:not([id]){color:#f472b6!important;fill:#f472b6!important;}
 #navJeux.partner-in-lobby--green{animation:yamNavPulse 1.4s ease-in-out infinite;}
 #navJeux.partner-in-lobby--green svg,#navJeux.partner-in-lobby--green span:not([id]){color:#22c55e!important;fill:#22c55e!important;}
-.jx-row.disabled{opacity:.45;pointer-events:none;}
-.jx-wheel-btn.jx-row{background:none;border:none;width:100%;text-align:left;font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;}
-.jx-wheel-pill{display:inline-flex;align-items:center;gap:5px;background:var(--accent-s);color:var(--accent);border-radius:20px;padding:4px 12px;font-size:13px;font-weight:700;}
-/* ── Dashboard ── */
-.jx-dash{background:var(--s1);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
-.jx-dash-vs{display:flex;align-items:center;padding:11px 14px 8px;}
-.jx-dp{flex:1;display:flex;align-items:center;gap:9px;}
-.jx-dp.r{flex-direction:row-reverse;}
-.jx-dp-av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;background:var(--jx-ac-s);position:relative;}
-.jx-dp-av img{width:100%;height:100%;border-radius:50%;object-fit:cover;}
-.jx-dp-av.jx-leading{box-shadow:0 0 0 2px var(--jx-ac);}
-.jx-dp-info{display:flex;flex-direction:column;}
-.jx-dp.r .jx-dp-info{align-items:flex-end;}
-.jx-dp-name{font-size:11px;color:var(--muted);}
-.jx-dp-score{font-size:26px;font-weight:700;color:var(--text);line-height:1.05;}
-.jx-dp-sub{font-size:10px;color:var(--muted);}
-.jx-vs-mid{display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 10px;flex-shrink:0;}
-.jx-vs-dot{width:3px;height:3px;border-radius:50%;background:var(--border);}
-.jx-vs-txt{font-size:10px;color:var(--jx-ac);font-weight:700;letter-spacing:.5px;}
-.jx-prog-wrap{padding:0 14px 8px;}
-.jx-prog-track{height:3px;border-radius:2px;background:var(--border);overflow:hidden;position:relative;}
-.jx-prog-fill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--jx-ac-hi),var(--jx-ac));border-radius:2px;transition:width .6s cubic-bezier(.4,0,.2,1);}
-.jx-prog-meta{display:flex;justify-content:space-between;margin-top:4px;}
-.jx-prog-leader{font-size:10px;color:var(--jx-ac);font-weight:700;}
-.jx-prog-total{font-size:10px;color:var(--muted);}
-.jx-sep{height:1px;background:var(--border);margin:0 14px;}
-.jx-stats{display:flex;padding:8px 14px;}
-.jx-stat{flex:1;display:flex;flex-direction:column;gap:1px;}
-.jx-stat+.jx-stat{border-left:1px solid var(--border);padding-left:10px;}
-.jx-stat-val{font-size:11px;font-weight:700;color:var(--text);}
-.jx-stat-lbl{font-size:10px;color:var(--muted);}
-.jx-chips{display:flex;gap:6px;padding:7px 12px 8px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
-.jx-chips::-webkit-scrollbar{display:none;}
-.jx-chips{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 30px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 30px),transparent);}
-.jx-chip{display:flex;align-items:center;gap:5px;background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:4px 9px 4px 6px;flex-shrink:0;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:border-color .15s,background .15s;}
-.jx-chip:active{background:var(--s3);}
-.jx-chip.jx-chip-on{background:var(--jx-ac-s);border-color:var(--jx-ac-b);}
-.jx-chip-ic{width:17px;height:17px;display:inline-flex;flex-shrink:0;}
 .gv-game-card-icon{width:40px;height:40px;padding:5px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,var(--yi-t1),var(--yi-t2));box-shadow:inset 0 0 0 1px var(--yi-tb);box-sizing:border-box;}
 .mem-mode-card-icon{width:36px;height:36px;padding:4px;border-radius:11px;background:linear-gradient(160deg,var(--yi-t1),var(--yi-t2));box-shadow:inset 0 0 0 1px var(--yi-tb);box-sizing:border-box;margin:0 auto 6px;}
-.jx-chip-nm{font-size:11px;font-weight:700;color:var(--text);}
-.jx-chip-sc{font-size:11px;color:var(--muted);}
-.jx-chip-sc .jx-w{color:var(--jx-ac);font-weight:700;}
-.jx-lb-hdr{display:flex;justify-content:space-between;align-items:center;padding:7px 14px 5px;}
-.jx-lb-title{font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--muted);text-transform:uppercase;}
-.jx-lb-game{font-size:10px;font-weight:700;color:var(--jx-ac);}
-.jx-lb-scroll{height:58px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 14px 8px;}
-.jx-lb-scroll::-webkit-scrollbar{display:none;}
-.jx-lb-row{height:29px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);}
-.jx-lb-row:last-child{border-bottom:none;}
-.jx-lb-rank{width:18px;text-align:center;font-size:13px;flex-shrink:0;}
-.jx-lb-av{width:26px;height:26px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--s3);}
-.jx-lb-av img{width:26px;height:26px;border-radius:50%;object-fit:cover;}
-.jx-lb-name{flex:1;font-size:12px;font-weight:600;color:var(--text);}
-.jx-lb-detail{font-size:10px;color:var(--muted);}
-.jx-lb-pts{font-size:12px;font-weight:700;color:var(--jx-ac);min-width:42px;text-align:right;}
 </style>
 
   <div class="jx-scroll">
 
-    <!-- ── Défis couple ── -->
-    <div class="jx-cat-label">
-      <div class="section-label" style="margin-bottom:0;">Défis couple</div>
-    </div>
-    <div class="jx-group">
-      <div class="jx-row">
-        <div class="jx-row-icon" data-yi="prank"></div>
-        <div class="jx-row-body">
-          <div class="jx-row-name">Faire une bêtise</div>
-          <div class="jx-row-sub">Surprends ton partenaire avec une farce</div>
-        </div>
-        <svg class="jx-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg>
-      </div>
-      <div id="jxQuizRow" class="jx-row">
-        <div class="jx-row-icon" data-yi="quiz"></div>
-        <div class="jx-row-body">
-          <div class="jx-row-name">Quiz couple</div>
-          <div class="jx-row-sub">Tu me connais bien ?</div>
-        </div>
-        <svg class="jx-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg>
-      </div>
-    </div>
-
-    <!-- ── Mini-jeux — Dashboard ── -->
-    <div class="jx-cat-label">
-      <div class="jx-cat-top">
-        <div class="section-label" style="margin-bottom:0;flex:1;">Mini-jeux</div>
-        <div id="jxGamesMore" class="jx-play-btn"><span class="jx-play-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="5,3 19,12 5,21"/></svg></span>Jouer</div>
-      </div>
-    </div>
-
+    <!-- ── Carte VS (tableau de bord) ── -->
     <div class="jx-dash" id="jxDash">
-      <div class="jx-dash-vs">
-        <div class="jx-dp">
-          <div class="jx-dp-av" id="jxAvA"></div>
-          <div class="jx-dp-info">
-            <span class="jx-dp-name" id="jxNameA">—</span>
-            <span class="jx-dp-score" id="jxScoreA">—</span>
-            <span class="jx-dp-sub">victoires</span>
+      <span class="gj-tape gj-tape--l" aria-hidden="true"></span><span class="gj-tape gj-tape--r" aria-hidden="true"></span>
+      <div class="jx-dash-card">
+        <div class="jx-dash-vs">
+          <div class="jx-dp">
+            <div class="jx-dp-av" id="jxAvA"></div>
+            <div class="jx-dp-info">
+              <span class="jx-dp-name gj-sr" id="jxNameA">—</span>
+              <span class="jx-dp-score" id="jxScoreA">—</span>
+              <span class="jx-dp-sub">victoires</span>
+            </div>
           </div>
-        </div>
-        <div class="jx-vs-mid">
-          <div class="jx-vs-dot"></div>
           <span class="jx-vs-txt">VS</span>
-          <div class="jx-vs-dot"></div>
-        </div>
-        <div class="jx-dp r">
-          <div class="jx-dp-av" id="jxAvB"></div>
-          <div class="jx-dp-info">
-            <span class="jx-dp-name" id="jxNameB">—</span>
-            <span class="jx-dp-score" id="jxScoreB">—</span>
-            <span class="jx-dp-sub">victoires</span>
+          <div class="jx-dp r">
+            <div class="jx-dp-av" id="jxAvB"></div>
+            <div class="jx-dp-info">
+              <span class="jx-dp-name gj-sr" id="jxNameB">—</span>
+              <span class="jx-dp-score" id="jxScoreB">—</span>
+              <span class="jx-dp-sub">victoires</span>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="jx-prog-wrap">
         <div class="jx-prog-track"><div class="jx-prog-fill" id="jxProgFill" style="width:50%;"></div></div>
-        <div class="jx-prog-meta">
-          <span class="jx-prog-leader" id="jxLeader">Chargement…</span>
-          <span class="jx-prog-total" id="jxTotal"></span>
+        <div class="jx-prog-meta"><span class="jx-prog-leader" id="jxLeader">Chargement…</span></div>
+        <div class="jx-stats">
+          <div class="jx-stat"><span class="jx-stat-lbl">Jeu favori</span><span class="jx-stat-val" id="jxFav">—</span></div>
+          <div class="jx-stat jx-stat--wide"><span class="jx-stat-lbl" id="jxStreakLbl">Série</span><span class="jx-stat-val" id="jxStreak">—</span></div>
+          <div class="jx-stat"><span class="jx-stat-lbl">Ce mois</span><span class="jx-stat-val" id="jxTotal">—</span></div>
         </div>
-      </div>
-      <div class="jx-sep"></div>
-      <div class="jx-stats">
-        <div class="jx-stat"><span class="jx-stat-val" id="jxFav">—</span><span class="jx-stat-lbl">Jeu favori</span></div>
-        <div class="jx-stat"><span class="jx-stat-val" id="jxStreak">—</span><span class="jx-stat-lbl" id="jxStreakLbl">Série</span></div>
-        <div class="jx-stat"><span class="jx-stat-val" id="jxAvg">—</span><span class="jx-stat-lbl">Durée moy.</span></div>
-      </div>
-      <div class="jx-sep"></div>
-      <div class="jx-chips" id="jxChips">
-        <div class="jx-chip" data-game="ocho"  ><span class="jx-chip-ic" data-yi="ocho"></span><span class="jx-chip-nm">Ocho</span><span class="jx-chip-sc" id="jxCOcho">—</span></div>
-        <div class="jx-chip" data-game="skyjo" ><span class="jx-chip-ic" data-yi="skyjo"></span><span class="jx-chip-nm">Skyjo</span><span class="jx-chip-sc" id="jxCSkyjo">—</span></div>
-        <div class="jx-chip" data-game="memory"><span class="jx-chip-ic" data-yi="memory"></span><span class="jx-chip-nm">Memory</span><span class="jx-chip-sc" id="jxCMemory">—</span></div>
-        <div class="jx-chip" data-game="pendu" ><span class="jx-chip-ic" data-yi="pendu"></span><span class="jx-chip-nm">Pendu</span><span class="jx-chip-sc" id="jxCPendu">—</span></div>
-        <div class="jx-chip" data-game="puzzle"><span class="jx-chip-ic" data-yi="puzzle"></span><span class="jx-chip-nm">Puzzle</span><span class="jx-chip-sc" id="jxCPuzzle">—</span></div>
-        <div class="jx-chip" data-game="snake" ><span class="jx-chip-ic" data-yi="snake"></span><span class="jx-chip-nm">Snake</span><span class="jx-chip-sc" id="jxCSnake">—</span></div>
-      </div>
-      <div id="jxLbSection" style="display:none;">
-      <div class="jx-sep"></div>
-      <div class="jx-lb-hdr">
-        <span class="jx-lb-title">Meilleurs scores</span>
-        <span class="jx-lb-game" id="jxLbGame">Ocho</span>
-      </div>
-      <div class="jx-lb-scroll" id="jxLbScroll"></div>
+        <span id="jxAvg" hidden></span>
       </div>
     </div>
 
-    <!-- ── Divers ── -->
-    <div class="jx-cat-label" style="padding-top: 15px !important;">
-      <div class="section-label" style="margin-bottom:0;">Divers</div>
+    <!-- ── Mini-jeux : une tuile = un jeu (ouvre le jeu) ── -->
+    <div class="gj-title">Mini-jeux</div>
+    <div class="jx-chips" id="jxChips">
+      <button type="button" class="jx-chip gj-tile" data-game="ocho"   style="--c:#d95c54;--hi:#dd6a62;--lo:#98403c"><span class="gj-ic" data-yi="ocho"></span><span class="gj-pill" id="jxCOcho"></span><span class="gj-bar"><span class="gj-name">Ocho</span></span></button>
+      <button type="button" class="jx-chip gj-tile" data-game="skyjo"  style="--c:#4570d1;--hi:#557cd5;--lo:#304e94"><span class="gj-ic" data-yi="skyjo"></span><span class="gj-pill" id="jxCSkyjo"></span><span class="gj-bar"><span class="gj-name">Skyjo</span></span></button>
+      <button type="button" class="jx-chip gj-tile" data-game="memory" style="--c:#35a4bb;--hi:#46acc1;--lo:#247484"><span class="gj-beta">BETA</span><span class="gj-ic" data-yi="memory"></span><span class="gj-pill" id="jxCMemory"></span><span class="gj-bar"><span class="gj-name">Memory</span></span></button>
+      <button type="button" class="jx-chip gj-tile" data-game="pendu"  style="--c:#2c9489;--hi:#3d9d93;--lo:#1e6860"><span class="gj-ic" data-yi="pendu"></span><span class="gj-pill" id="jxCPendu"></span><span class="gj-bar"><span class="gj-name">Pendu</span></span></button>
+      <button type="button" class="jx-chip gj-tile" data-game="puzzle" style="--c:#529e59;--hi:#60a667;--lo:#38703c"><span class="gj-ic" data-yi="puzzle"></span><span class="gj-pill" id="jxCPuzzle"></span><span class="gj-bar"><span class="gj-name">Puzzle</span></span></button>
+      <button type="button" class="jx-chip gj-tile" data-game="snake"  style="--c:#f2c53d;--hi:#f6d462;--lo:#ec9c22"><span class="gj-ic" data-yi="snake"></span><span class="gj-pill" id="jxCSnake"></span><span class="gj-bar"><span class="gj-name">Snake</span></span></button>
     </div>
-    <div class="jx-group">
-      <div class="jx-row">
-        <div class="jx-row-icon" data-yi="tv"></div>
-        <div class="jx-row-body">
-          <div class="jx-row-name">Regarder ensemble</div>
-          <div class="jx-row-sub">Synchronisez YouTube en temps réel</div>
-        </div>
-        <span id="cwLivePill" style="display:none;">En live</span>
-        <svg class="jx-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg>
-      </div>
-      <div id="jxBooksRow" class="jx-row">
-        <div class="jx-row-icon" data-yi="book"></div>
-        <div class="jx-row-body">
-          <div class="jx-row-name">Lire ensemble</div>
-          <div class="jx-row-sub">Classiques gratuits + lecture synchronisée</div>
-        </div>
-        <span id="bkLivePill" style="display:none;">En sync</span>
-        <svg class="jx-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg>
-      </div>
-      <button class="jx-wheel-btn jx-row">
-        <div class="jx-row-icon" data-yi="wheel"></div>
-        <div class="jx-row-body">
-          <div class="jx-row-name">Lancer la roue des activités</div>
-          <div class="jx-row-sub">Laissez le hasard décider !</div>
-        </div>
-        <svg class="jx-row-chevron" viewBox="0 0 8 14"><polyline points="1 1 7 7 1 13"/></svg>
-      </button>
+    <div id="jxLbSection" style="display:none;"><div class="jx-lb-hdr"><span class="jx-lb-title">Meilleurs scores</span><span class="jx-lb-game" id="jxLbGame">Ocho</span></div><div class="jx-lb-scroll" id="jxLbScroll"></div></div>
+
+    <!-- ── Défis couple ── -->
+    <div class="gj-title">Défis couple</div>
+    <div class="gj-duo">
+      <button type="button" class="jx-row gj-tile gj-tile--wide gj-clown" style="--c:#ffd21f;--hi:#ffe34d;--lo:#ffb800"><span class="gj-tent" aria-hidden="true"></span><span class="gj-ic" data-yi="prank"></span><span class="jx-row-name">Faire une <em>bêtise</em></span></button>
+      <button type="button" id="jxQuizRow" class="jx-row gj-tile gj-tile--wide" style="--c:#e0343c;--hi:#e84e55;--lo:#9c1f2a"><span class="gj-ic" data-yi="quiz"></span><span class="jx-row-name">Quiz couple</span></button>
+    </div>
+
+    <!-- ── Ensemble ── -->
+    <div class="gj-title gj-title--tight">Ensemble</div>
+    <div class="gj-trio">
+      <button type="button" class="jx-row gj-round" aria-label="Regarder ensemble"><span class="gj-round-ic" data-yi="tv"></span><span id="cwLivePill" style="display:none;">En live</span><span class="jx-row-name">Regarder</span></button>
+      <button type="button" id="jxBooksRow" class="jx-row gj-round" aria-label="Lire ensemble"><span class="gj-round-ic" data-yi="book"></span><span id="bkLivePill" style="display:none;">En sync</span><span class="jx-row-name">Lire</span></button>
+      <button type="button" class="jx-wheel-btn jx-row gj-round" aria-label="Lancer la roue des activités"><span class="gj-round-ic" data-yi="wheel"></span><span class="jx-row-name">La roue</span></button>
     </div>
   </div><!-- /jx-scroll -->
 
