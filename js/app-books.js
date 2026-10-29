@@ -1906,6 +1906,9 @@
   document.addEventListener('DOMContentLoaded', function () {
     _bkBuildView();
     _bkActivateJeuxRow();
+    // Écoute des sessions de lecture dès le lancement : avant, elle ne démarrait
+    // qu'à l'ouverture de « Lire » → la partenaire ne voyait ni pastille ni pulsation
+    _bkInit();
   });
 
   // Ré-activer la ligne si l'onglet est switché (lazy init)
