@@ -32,6 +32,22 @@
       _bounce(2);
       return;
     }
+    // Première arrivée sur Jeux depuis le démarrage (session fraîche) : même parade que le reclic sur Accueil
+    // (2 aller-retours internes par Musique, 2 images + 150 ms) sinon iOS décale la fenêtre de ~59 px et l'en-tête passe sous la zone sûre
+    if(tab === 'jeux' && !window._yamJeuxBounced && !window._yamBouncing){
+      window._yamJeuxBounced = true;
+      window._yamBouncing = true;
+      var _bounceJ = function(n){
+        window.yamSwitchTab('musique');
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){
+          try { window.yamSwitchTab('jeux'); } catch(e) { window._yamBouncing = false; return; }
+          if(n > 1) setTimeout(function(){ _bounceJ(n - 1); }, 150);
+          else window._yamBouncing = false;
+        }); });
+      };
+      _bounceJ(2);
+      return;
+    }
     var _skipLoad = !!(window._yamBouncing && tab === 'musique');
     // ── Onglet Messages → ouvre directement hiddenPage (le panel yamMessagesTab est vide)
     if(tab === 'messages'){

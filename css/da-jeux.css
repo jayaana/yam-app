@@ -67,7 +67,8 @@ html[data-yam-tab="jeux"] #yamMainHeader { background: transparent !important; b
 html #yamJeuxTab, html #yamJeuxTab.active, html body.light #yamJeuxTab { background: transparent !important; }
 
 /* ── Feuille = zone qui défile ── */
-#yamJeuxTab .jx-scroll { margin-top: 14px; padding: 18px 0 0; background: var(--gu-sheet); border-radius: var(--gu-r-sheet) var(--gu-r-sheet) 0 0; box-shadow: var(--gu-sheet-shadow); position: relative; z-index: 2; color: var(--gu-text); font-family: var(--gu-font-text); }
+/* décalée visuellement de 14 px SANS changer la hauteur du document (marge = document plus haut = iOS décale la fenêtre) */
+#yamJeuxTab .jx-scroll { margin-top: 0; top: 14px; padding: 18px 0 0; background: var(--gu-sheet); border-radius: var(--gu-r-sheet) var(--gu-r-sheet) 0 0; box-shadow: var(--gu-sheet-shadow); position: relative; z-index: 2; color: var(--gu-text); font-family: var(--gu-font-text); }
 #yamJeuxTab .jx-scroll > .jx-dash { margin: 16px 16px 0; }
 
 .gj-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
