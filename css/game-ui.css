@@ -72,3 +72,22 @@
 
 /* Puce « en ligne » */
 .gu-online { width: 15px; height: 15px; border-radius: 50%; background: var(--gu-online); border: 2px solid #fff; }
+
+/* ═══ Messages de l'appli habillés « game UI » (toasts, confirmations, notification) ═══
+   Mêmes éléments et mêmes classes qu'avant (#uxToast, .yam-cf-*, #yamNotif) : seule l'apparence change. */
+html body #uxToast { background: var(--gu-card) !important; color: var(--gu-text) !important; border: var(--gu-sticker-width) solid var(--gu-sticker-border) !important; border-radius: 22px !important; box-shadow: var(--gu-sticker-shadow), 0 6px 16px rgba(0,0,0,.18) !important; padding: 10px 20px !important; font: 400 15px/1.25 var(--gu-font-display) !important; letter-spacing: .3px; }
+html body #uxToast.success { background: var(--gu-ok) !important; color: #0a2e1d !important; }
+html body #uxToast.error { background: #e05555 !important; color: #fff !important; }
+html body #uxToast.soon { background: linear-gradient(var(--gu-action-top), var(--gu-action-bottom)) !important; color: var(--gu-on-action) !important; }
+
+.yam-cf-ov { background: rgba(0,0,0,.55); }
+.yam-cf-box { background: var(--gu-card); color: var(--gu-text); border: var(--gu-sticker-width) solid var(--gu-sticker-border); border-radius: 26px; box-shadow: var(--gu-sticker-shadow), 0 10px 30px rgba(0,0,0,.3); }
+.yam-cf-msg { font: 400 18px/1.3 var(--gu-font-display); letter-spacing: .3px; }
+.yam-cf-btn { border-radius: var(--gu-r-pill); min-height: 48px; padding: 0 16px; font: 400 17px var(--gu-font-display); letter-spacing: .3px; }
+.yam-cf-danger { background: #e05555; color: #fff; }
+.yam-cf-ok { background: var(--gu-action); color: var(--gu-on-action); }
+.yam-cf-cancel { background: var(--gu-chip); color: var(--gu-text); }
+
+#yamNotif { background: var(--gu-card); color: var(--gu-text); border: var(--gu-sticker-width) solid var(--gu-sticker-border); border-radius: 22px; box-shadow: var(--gu-sticker-shadow), 0 6px 16px rgba(0,0,0,.18); }
+#yamNotif .yn-t { font: 400 16px/1.2 var(--gu-font-display); letter-spacing: .3px; }
+#yamNotif .yn-m { font: 600 13px/1.3 var(--gu-font-text); opacity: 1; color: var(--gu-text-2); }
