@@ -782,26 +782,3 @@
   document.addEventListener('touchend', end, { passive: true });
   document.addEventListener('touchcancel', end, { passive: true });
 })();
-
-// DIAGNOSTIC TEMPORAIRE (v298) : mesures réelles de la page Jeux, à retirer après réglage
-(function () {
-  function show() {
-    var sc = document.querySelector('#yamJeuxTab .jx-scroll'), tab = document.getElementById('yamJeuxTab');
-    var el = document.getElementById('yamJxDbg');
-    if (!sc || !tab || window._currentTab !== 'jeux') { if (el) el.style.display = 'none'; return; }
-    if (!el) {
-      el = document.createElement('div'); el.id = 'yamJxDbg';
-      el.style.cssText = 'position:fixed;left:4px;top:4px;z-index:99999;font:10px monospace;background:rgba(0,0,0,.75);color:#fff;padding:2px 5px;border-radius:4px;pointer-events:none;max-width:95vw';
-      document.body.appendChild(el);
-    }
-    el.style.display = 'block';
-    var names = document.querySelectorAll('.gj-trio .jx-row-name'), nb = 0;
-    for (var i = 0; i < names.length; i++) nb = Math.max(nb, names[i].getBoundingClientRect().bottom);
-    var nav = document.querySelector('.nav-item'), navTop = nav ? nav.parentElement.getBoundingClientRect().top : 0;
-    var p = document.createElement('div'); p.style.cssText = 'position:fixed;visibility:hidden;top:0;height:env(safe-area-inset-top,0px)'; document.body.appendChild(p);
-    var st = p.getBoundingClientRect().height; p.remove();
-    el.textContent = 'v298 H' + innerHeight + ' W' + innerWidth + ' safeT' + Math.round(st) + ' scTop' + Math.round(sc.getBoundingClientRect().top) +
-      ' labels' + Math.round(nb) + ' nav' + Math.round(navTop) + ' gap' + Math.round(navTop - nb) + ' scroll' + sc.scrollHeight + '/' + sc.clientHeight + ' y' + Math.round(sc.scrollTop);
-  }
-  setInterval(show, 1000);
-})();
