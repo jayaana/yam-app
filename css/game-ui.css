@@ -12,6 +12,13 @@
   font-display: swap;
   src: url('../fonts/LilitaOne-Regular.ttf') format('truetype');
 }
+@font-face {
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('../fonts/Fredoka.ttf') format('truetype');
+}
 
 .gu-display { font-family: var(--gu-font-display); letter-spacing: .3px; font-weight: 400; margin: 0; }
 

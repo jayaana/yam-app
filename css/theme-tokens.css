@@ -11,6 +11,7 @@
 /* Jetons communs aux thèmes (indépendants du clair/sombre) */
 :root {
   --gu-font-display: 'Lilita One', system-ui, sans-serif;
+  --gu-font-soft: 'Fredoka', 'Lilita One', system-ui, sans-serif;
   --gu-font-text: system-ui, -apple-system, sans-serif;
   --gu-action: #ffd21a;            /* jaune : lecture, envoi, onglet actif */
   --gu-action-top: #ffe34d;        /* dégradé du carré actif de la nav */
