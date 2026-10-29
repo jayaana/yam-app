@@ -193,3 +193,7 @@ html[data-yam-tab="home"] #annivBanner .anniv-title { background: none; -webkit-
 html[data-yam-tab="home"] #annivBanner .anniv-emoji { display: block; margin: 0; text-shadow: none; }
 html[data-yam-tab="home"] #annivBanner .anniv-close-x { position: relative; background: #fff; color: #2a1a00; width: 28px; height: 28px; }
 html[data-yam-tab="home"] #annivBanner .anniv-close-x::before { content: ""; position: absolute; inset: -8px; }
+
+/* Thème clair : bandeau rose soutenu + texte blanc (contraste 5:1) ; le jaune à texte sombre reste pour le sombre */
+html[data-theme="warm"][data-yam-tab="home"] #annivBanner.evt-type-anniversary, html[data-theme="warm"][data-yam-tab="home"] #annivBanner.evt-type-birthday { background: linear-gradient(#ec4f86, #d4306f); color: #fff; }
+html[data-theme="warm"][data-yam-tab="home"] #annivBanner.evt-type-anniversary .anniv-title, html[data-theme="warm"][data-yam-tab="home"] #annivBanner.evt-type-birthday .anniv-title { color: #fff; text-shadow: 0 1px 2px rgba(110,15,55,.45); }
