@@ -3135,7 +3135,7 @@ window.addEventListener('load', function(){
 
     if(window._myMood){
       var del = document.createElement('button');
-      del.type = 'button'; del.className = 'gh-mp__del'; del.title = 'Effacer mon humeur'; del.setAttribute('aria-label', 'Effacer mon humeur'); del.textContent = 'Supprimer';
+      del.type = 'button'; del.className = 'gh-mp__del'; del.title = 'Effacer mon humeur'; del.setAttribute('aria-label', 'Effacer mon humeur'); del.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6.5 7l.8 12.2a1.5 1.5 0 0 0 1.5 1.3h6.4a1.5 1.5 0 0 0 1.5-1.3L17.5 7"/><path d="M10 11v6M14 11v6"/></svg>';
       del.onclick = function(ev){
         ev.stopPropagation();
         var p = get();
