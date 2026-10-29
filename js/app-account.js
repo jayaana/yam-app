@@ -3084,7 +3084,7 @@ window.addEventListener('load', function(){
     var textarea = document.createElement('textarea');
     textarea.id = 'moodMsgTextarea';
     textarea.className = 'gh-mp__area';
-    textarea.maxLength = 120;
+    textarea.maxLength = 36;
     textarea.placeholder = 'Un petit mot… 💕';
     textarea.value = (chosen && chosen === window._myMood) ? (window._myMoodMessage || '') : '';
 
@@ -3232,7 +3232,7 @@ window.addEventListener('load', function(){
     // Textarea message
     var textarea = document.createElement('textarea');
     textarea.id = 'moodMsgTextarea';
-    textarea.maxLength = 120;
+    textarea.maxLength = 36;
     textarea.placeholder = 'Un petit mot pour lui/elle… 💕';
     textarea.value = (emoji === window._myMood) ? (window._myMoodMessage || '') : '';
     textarea.style.cssText = 'width:100%;box-sizing:border-box;background:var(--s2);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;font-family:inherit;padding:9px 11px;resize:none;height:68px;outline:none;transition:border-color 0.18s;line-height:1.4;';

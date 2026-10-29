@@ -231,3 +231,6 @@ html[data-yam-tab="home"] #yamMainHeader, html[data-yam-tab="home"] #yamHomeTab 
 #rappelSheet .rsh-list { touch-action: pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 #moodPicker, #moodPickerOverlay.visible { overscroll-behavior: contain; touch-action: none; }
 #moodPicker textarea { touch-action: pan-y; }
+/* Rappels du jour : titres non sélectionnables ni modifiables ; champ d'ajout en 16 px (sinon l'iPhone zoome l'écran au toucher) */
+#rappelSheet .rsh-item-txt { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; cursor: default; }
+#rappelSheet .rsh-input { font-size: 16px; }

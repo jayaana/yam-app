@@ -374,9 +374,7 @@
       var row=document.createElement('div'); row.className='rsh-item'+(item.done?' rsh-done':'');
       var chk=document.createElement('div'); chk.className='rsh-check'+(item.done?' on':''); chk.textContent=item.done?'✓':'';
       chk.onclick=function(){ _data.forEach(function(r){if(r.id===item.id){ r.done=!r.done; r.doneAt=r.done?_todayStr():null; }}); _save(); var a=_active(); if(_idx>=a.length)_idx=Math.max(0,a.length-1); _card(); _sheet(); };
-      var txt=document.createElement('div'); txt.className='rsh-item-txt'; txt.textContent=item.text; txt.contentEditable='true'; txt.spellcheck=false;
-      txt.onblur=function(){ var v=txt.textContent.trim(); if(!v){txt.textContent=item.text;return;} _data.forEach(function(r){if(r.id===item.id)r.text=v;}); _save(); _card(); };
-      txt.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();txt.blur();}};
+      var txt=document.createElement('div'); txt.className='rsh-item-txt'; txt.textContent=item.text;
       var del=document.createElement('button'); del.className='rsh-del'; del.innerHTML='&times;'; del.title='Supprimer';
       del.onclick=function(){ _data=_data.filter(function(r){return r.id!==item.id;}); _save(); var a=_active(); if(_idx>=a.length)_idx=Math.max(0,a.length-1); _card(); _sheet(); };
       row.appendChild(chk); row.appendChild(txt); row.appendChild(del); list.appendChild(row);
@@ -403,6 +401,8 @@
     setTimeout(function(){var i=document.getElementById('rshInput');if(i)i.focus();},340);
   };
   window.closeRappelSheet=function(){
+    var _ai=document.activeElement; if(_ai&&_ai.blur&&_ai.id==='rshInput') _ai.blur();
+    [50,350,700].forEach(function(ms){ setTimeout(function(){ window.scrollTo({top:0,left:0,behavior:'instant'}); },ms); });
     document.getElementById('rappelSheet').classList.remove('open');
     document.getElementById('rappelOverlay').classList.remove('open');
   };
@@ -725,4 +725,11 @@
     }
     if (e.cancelable) e.preventDefault();
   }, { passive: false });
+})();
+
+/* Fenêtre « Rappels du jour » : le clavier iOS décale la page ; on la remet en place à l'ouverture du clavier et à sa fermeture */
+(function(){
+  function reset(){ window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); }
+  document.addEventListener('focusin', function(e){ if (e.target && e.target.id === 'rshInput') [300, 700].forEach(function(ms){ setTimeout(reset, ms); }); });
+  document.addEventListener('focusout', function(e){ if (e.target && e.target.id === 'rshInput') [50, 350, 700].forEach(function(ms){ setTimeout(reset, ms); }); });
 })();
