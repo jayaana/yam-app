@@ -224,3 +224,5 @@ html[data-yam-tab="home"] #annivBanner > * { position: relative; z-index: 1; }
 .gh-sheet { touch-action: pan-x; will-change: transform; }
 .gh-sheet::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 100px; background: var(--gu-sheet); pointer-events: none; }
 .gh-sheet--drag { z-index: 4; }
+/* Accueil : un glissement de doigt vertical hors de la feuille ne fait pas défiler la page (elle reste défilable, sans verrou) */
+html[data-yam-tab="home"] #yamMainHeader, html[data-yam-tab="home"] #yamHomeTab { touch-action: pan-x; }
