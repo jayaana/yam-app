@@ -273,8 +273,10 @@
 
   var _bannerTypes = ['evt-type-anniversary','evt-type-birthday','evt-type-trip','evt-type-other'];
 
+  var _bannerClosedDay = '';   // bandeau fermé par l'utilisateur : ne revient pas avant demain
   function _showEventBanner(text, type) {
     if (!_isHomeVisible()) return;
+    if (_bannerClosedDay === new Date().toDateString()) return;
     _injectOverlayStyles();
     var cfg = _eventTypeConfig[type] || _eventTypeConfig.other;
     document.body.classList.add('anniv-mode');
@@ -292,7 +294,7 @@
     var emoji = document.createElement('span'); emoji.className = 'anniv-emoji'; emoji.textContent = cfg.icon;
     var title = document.createElement('div'); title.className = 'anniv-title'; title.textContent = text;
     var x = document.createElement('button'); x.className = 'anniv-close-x'; x.textContent = '✕';
-    x.addEventListener('click', function() { _hideAnnivBanner(); });
+    x.addEventListener('click', function() { _bannerClosedDay = new Date().toDateString(); _hideAnnivBanner(); });
 
     banner.appendChild(emoji); banner.appendChild(title); banner.appendChild(x);
     banner.classList.add('visible');
@@ -509,7 +511,7 @@
     if (document.getElementById('eventsModalStyle')) return;
     var s = document.createElement('style'); s.id = 'eventsModalStyle';
     s.textContent = [
-      '#eventsModal{position:fixed;inset:0;z-index:9100;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}',
+      '#eventsModal{position:fixed;inset:0;z-index:9100;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center}',
       '#eventsSheet{background:var(--s1);border-radius:24px 24px 0 0;width:100%;max-width:600px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;padding-bottom:env(safe-area-inset-bottom,0px)}',
       '.evt-hdr{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0}',
       '.evt-hdr-title{font-size:17px;font-weight:700;color:var(--text)}',
@@ -597,8 +599,7 @@
   window.openEventsModal = function() {
     _injectModal();
     document.getElementById('eventsModal').style.display = 'flex';
-    _renderList();
-    _loadEvents();
+    _renderList();   // _renderList recharge déjà la liste et met à jour le cache (pas de 2e requête : saccade + bandeau relancé)
   };
   window.closeEventsModal = _closeModal;
 

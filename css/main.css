@@ -4274,7 +4274,7 @@ body.light .pendu-theme {
   flex-direction: column; transition: background 0.3s, bottom 0.25s ease;
   overscroll-behavior-x: none; touch-action: pan-y;
 }
-#hiddenPage.active { display: flex; animation: slideUp 0.3s ease; }
+#hiddenPage.active { display: flex; }
 
 /* CHAT : descend à bottom:0 pour que le clavier couvre la nav nativement.
    body.dm-chat-active est posé par app-messages.js quand on entre en chat,
