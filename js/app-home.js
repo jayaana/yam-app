@@ -688,3 +688,22 @@
   document.addEventListener('pointerup', end);
   document.addEventListener('pointercancel', end);
 })();
+
+/* Fenêtre « Rappels du jour » ouverte : le glissement ne fait défiler que sa liste, jamais la page (garde-fou JS, indépendant de l'onglet affiché avant) */
+(function(){
+  var ty = 0;
+  document.addEventListener('touchstart', function(e){ ty = e.touches[0].clientY; }, { passive: true });
+  document.addEventListener('touchmove', function(e){
+    var t = e.target;
+    if (!t || !t.closest || !t.closest('#rappelSheet, #rappelOverlay')) return;
+    var sh = document.getElementById('rappelSheet');
+    if (!sh || !sh.classList.contains('open')) return;
+    var list = t.closest('.rsh-list');
+    if (list && list.scrollHeight > list.clientHeight) {
+      var dy = e.touches[0].clientY - ty;
+      var atTop = list.scrollTop <= 0, atBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 1;
+      if (!((dy > 0 && atTop) || (dy < 0 && atBottom))) return;
+    }
+    if (e.cancelable) e.preventDefault();
+  }, { passive: false });
+})();
