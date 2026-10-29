@@ -3094,7 +3094,7 @@ window.addEventListener('load', function(){
     function refreshHead(){
       save.disabled = !chosen;
       textarea.disabled = !chosen;
-      textarea.placeholder = chosen ? 'Un petit mot… 💕' : 'Choisis d'abord une humeur';
+      textarea.placeholder = chosen ? 'Un petit mot… 💕' : "Choisis d'abord une humeur";
       picker.setAttribute('data-cat', String(catIdx));
     }
     function renderEmos(){
