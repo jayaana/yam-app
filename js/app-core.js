@@ -930,16 +930,30 @@ window.yamPushNotify = async function(opts) {
     return playing;
   }
 
+  // Écart entre l'horloge de l'appareil et celle du serveur (ms) : l'horloge d'un
+  // appareil peut avoir plusieurs dizaines de secondes d'écart, ce qui faussait
+  // « en ligne / hors ligne ». Tout est ramené à l'heure du serveur.
+  var _skewMs = 0;
+  function noteServerDate(r) {
+    var d = r && r.headers && r.headers.get('date');
+    if (d) { var t = new Date(d).getTime(); if (t) _skewMs = Date.now() - t; }
+  }
+  function serverNow() { return Date.now() - _skewMs; }
+
   function presencePush() {
     var u = yamGetUser();
     if (!u || !u.couple_id) return;
-    sb2Upsert(PRESENCE_TABLE, {
-      user_id:    u.id,
-      couple_id:  u.couple_id,
-      role:       u.role,
-      last_seen:  new Date().toISOString(),
-      is_playing: isAudioPlaying(),
-    }, 'resolution=merge-duplicates,return=minimal');
+    fetch(SB_URL + '/rest/v1/' + PRESENCE_TABLE + '?on_conflict=user_id,couple_id', {
+      method: 'POST',
+      headers: sb2Headers({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+      body: JSON.stringify({
+        user_id:    u.id,
+        couple_id:  u.couple_id,
+        role:       u.role,
+        last_seen:  new Date(serverNow()).toISOString(),
+        is_playing: isAudioPlaying(),
+      }),
+    }).then(_sb2Handle401).then(noteServerDate).catch(function() {});
   }
 
   var _dbg = { n: 0, st: '-', age: '-', skew: '-', ivs: '-', err: '' };
@@ -952,7 +966,7 @@ window.yamPushNotify = async function(opts) {
       document.body.appendChild(el);
     }
     _dbg.ivs = (_pollIv ? 'P' : '-') + (_heartbeatIv ? 'H' : '-') + (document.hidden ? 'h' : 'v');
-    el.textContent = 'v290 #' + _dbg.n + ' http ' + _dbg.st + ' age ' + _dbg.age + 's skew ' + _dbg.skew + 's ' + _dbg.ivs + ' dot ' + (document.getElementById('presenceDot') || { className: '?' }).className + ' ' + _dbg.err;
+    el.textContent = 'v291 #' + _dbg.n + ' http ' + _dbg.st + ' age ' + _dbg.age + 's skew ' + _dbg.skew + 's ' + _dbg.ivs + ' dot ' + (document.getElementById('presenceDot') || { className: '?' }).className + ' ' + _dbg.err;
   }
   setInterval(dbgShow, 2000);
 
@@ -966,14 +980,15 @@ window.yamPushNotify = async function(opts) {
       .then(function(r) {
         _dbg.st = r.status;
         var d = r.headers.get('date');
-        if (d) _dbg.skew = Math.round((Date.now() - new Date(d).getTime()) / 1000);
+        noteServerDate(r);
+        _dbg.skew = Math.round(_skewMs / 1000);
         return r.json();
       })
       .then(function(rows) {
         _dbg.err = '';
         if (!Array.isArray(rows) || !rows.length) { _dbg.age = 'none'; setDot(false); return; }
         var row       = rows[0];
-        var elapsed   = Date.now() - new Date(row.last_seen).getTime();
+        var elapsed   = serverNow() - new Date(row.last_seen).getTime();
         _dbg.age = Math.round(elapsed / 1000);
         var threshold = row.is_playing ? OFFLINE_PLAYING : OFFLINE_AFTER;
         setDot(elapsed < threshold);
@@ -987,7 +1002,7 @@ window.yamPushNotify = async function(opts) {
       var other = u.role === 'girl' ? 'boy' : 'girl';
       var rows  = await sb2Fetch(PRESENCE_TABLE, 'couple_id=eq.' + u.couple_id + '&role=eq.' + other + '&select=last_seen');
       if (!Array.isArray(rows) || !rows.length) return false;
-      return Date.now() - new Date(rows[0].last_seen).getTime() < 45000;
+      return serverNow() - new Date(rows[0].last_seen).getTime() < 45000;
     } catch (e) { return false; }
   };
 
@@ -1005,7 +1020,8 @@ window.yamPushNotify = async function(opts) {
 
   function start() {
     if (_heartbeatIv) return;
-    presencePush();
+    presencePoll();                     // mesure d'abord l'écart d'horloge
+    setTimeout(presencePush, 800);
     _heartbeatIv = setInterval(presencePush, HEARTBEAT_MS);
     presencePoll();
     _pollIv = setInterval(presencePoll, POLL_MS);
