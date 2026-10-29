@@ -725,9 +725,11 @@
     if (!s || !d || document.documentElement.getAttribute('data-yam-tab') !== 'jeux') return;
     var m = /matrix\(.*?,\s*([-\d.]+)\)$/.exec(getComputedStyle(s).transform || '');
     var cur = m ? parseFloat(m[1]) : 0;
-    var top = d.getBoundingClientRect().top;   /* le panneau décale le « fixed » (44 px) : on compte depuis le vrai haut du décor */
-    d.style.setProperty('--jx-dbot', Math.round(s.getBoundingClientRect().top - cur + MAX - top) + 'px');
-    d.style.setProperty('--jx-clip', Math.max(0, Math.round(_safeTop() - top)) + 'px');
+    d.style.top = '0px';
+    var off = d.getBoundingClientRect().top;   /* le panneau décale le « fixed » (44 px) : on remonte le décor au vrai haut de l'écran */
+    d.style.top = (-off) + 'px';
+    d.style.setProperty('--jx-dbot', Math.round(s.getBoundingClientRect().top - cur + MAX) + 'px');
+    d.style.setProperty('--jx-clip', Math.round(_safeTop()) + 'px');
   }
   new MutationObserver(function () { setTimeout(placeDecor, 300); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-yam-tab'] });
   window.addEventListener('resize', placeDecor);
