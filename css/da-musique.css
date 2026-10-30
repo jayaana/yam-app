@@ -1,0 +1,33 @@
+/* Musique — game UI : fond de page aligné sur Accueil / Jeux / Messages (jetons --gu-*) */
+html[data-yam-tab="musique"] { background: linear-gradient(#ffc2bb, rgba(255,194,187,0)) 0 0 / 100% 160px no-repeat, linear-gradient(#ffeaf0, #ffeaf0) !important; background-repeat: no-repeat !important; background-color: #ffc2bb !important; }
+html[data-theme="dark"][data-yam-tab="musique"] { background: linear-gradient(#191215, rgba(25,18,21,0)) 0 0 / 100% 160px no-repeat, linear-gradient(#303030 0%, #303030 40%, #1c1c1c 100%) !important; background-repeat: no-repeat !important; background-color: #191215 !important; }
+html[data-yam-tab="musique"] body #yamMusiqueTab.yam-tab-panel { background: transparent !important; }
+html[data-yam-tab="musique"] body, html[data-yam-tab="musique"] body.light { background: transparent !important; background-image: none !important; }
+
+/* Polices comme l'Accueil (Fredoka pour le texte, Lilita One pour les titres) ; texte noir/blanc, jamais marron */
+#yamMusiqueTab { --text: #111; --muted: #555; font-family: var(--gu-font-soft); }
+html[data-theme="dark"] #yamMusiqueTab { --text: #fff; --muted: rgba(255,255,255,.72); }
+#yamMusiqueTab .mu-card-title, #yamMusiqueTab .mu-hero-title { font-family: var(--gu-font-display); font-weight: 400; letter-spacing: .3px; }
+#yamMusiqueTab .mu-card-label, #yamMusiqueTab .mu-sugg-title { font-family: var(--gu-font-display); font-weight: 400; }
+#yamMusiqueTab .sp-title { font-family: var(--gu-font-soft); font-weight: 500; }
+/* Bloc playlist au repos : rose doux (en lecture il reste le rose vif) */
+html:not([data-theme="dark"]) #loveSection:not(.mu-playing) .mu-card-header { background: var(--gu-chip); border-color: rgba(255,255,255,.6); }
+
+/* Sombre : gris neutres (aucun rose, ça virait au violet) + jaune de la game UI comme accent */
+html[data-theme="dark"] #yamMusiqueTab { --green: #ffd21a; --s1: #343434; --s3: #3d3d3d; --border: rgba(255,255,255,.10); }
+html[data-theme="dark"] body #loveSection:not(.mu-playing) .mu-card-header { background: #3d3d3d; }
+html[data-theme="dark"] body #loveSection.mu-playing .mu-card-header { background: linear-gradient(135deg, #4a4a4a, #333 70%, #2a2a2a); border-color: rgba(255,255,255,.14); box-shadow: 0 6px 18px rgba(0,0,0,.45); }
+html[data-theme="dark"] body #loveSection.mu-playing .mu-card-header > .mu-col-header { background: rgba(0,0,0,.22); }
+html[data-theme="dark"] body:not(.light) #loveBox { background: radial-gradient(circle at 50% 115%, #444 0, #333 48%, #222 100%); }
+html[data-theme="dark"] body:not(.light) .mu-hero-btn.pp, html[data-theme="dark"] body:not(.light) #miniPlayer.mp-pill .mp-btn-play { background: #ffd21a; color: #2a1a00; }
+html[data-theme="dark"] body:not(.light) .mu-fab-reduce.playing, html[data-theme="dark"] body:not(.light) #muFabReduce { background: linear-gradient(135deg, #4a4a4a, #2a2a2a); }
+html[data-theme="dark"] body:not(.light) #miniPlayer.mp-pill .mp-inner { background: linear-gradient(135deg, #4a4a4a, #2a2a2a 80%); }
+html[data-theme="dark"] body:not(.light) #loveBox .lb-info { background: #4a4a4a; border-color: rgba(255,255,255,.35); }
+html[data-theme="dark"] body:not(.light) .lb-tip { color: #fff; border-color: rgba(255,255,255,.4); }
+html[data-theme="dark"] body:not(.light) .mu-mode-btn { border-color: rgba(255,255,255,.3); }
+html[data-theme="dark"] body .sp-song.playing { background: rgba(255,210,26,.08); border-color: rgba(255,210,26,.22); }
+html[data-theme="dark"] #yamMusiqueTab .mu-sugg-add-btn { color: #ffd21a; background: rgba(255,210,26,.10); border-color: rgba(255,210,26,.30); }
+/* Titres de morceaux moins gras */
+#yamMusiqueTab .mu-hero-title { font-family: var(--gu-font-soft); font-weight: 500; font-size: 16px; letter-spacing: 0; }
+#miniPlayer.mp-pill .mp-title { font-family: var(--gu-font-soft); font-weight: 500; }
+#yamMusiqueTab .top50-expand { font-family: var(--gu-font-soft); font-weight: 500; }
