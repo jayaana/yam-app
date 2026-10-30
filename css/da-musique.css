@@ -66,3 +66,5 @@ html[data-theme="dark"] #miniPlayer { --green: #ffd21a; }
 /* Icône Musique de la barre du bas quand un titre joue : note rose + aura rose (même rose que la pilule du mini-lecteur), plus de jaune */
 html .bottom-nav #navMusique.music-playing .nav-music-solo { fill: #ff5a7e; color: #ff5a7e; filter: drop-shadow(0 0 5px rgba(255,90,126,.85)); }
 html .bottom-nav #navMusique.music-playing, html .bottom-nav #navMusique.music-playing .nav-label { color: #ff5a7e; }
+/* Boutons d'en-tête (thème Accueil + Messages, retour Messages) sans l'ombre « autocollant » */
+html[data-yam-tab="home"] #themeToggleHome, html body #hiddenPage #themeToggleDm2, html body #hiddenPage #dmTopbarBack { box-shadow: none !important; }

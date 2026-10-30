@@ -121,7 +121,7 @@ function note(){
   p.style.left=(r.left+r.width/2+(Math.random()<.5?-55:55))+'px'; p.style.top=(r.top+40)+'px'; p.style.fontSize=(16+Math.random()*10)+'px'; document.body.appendChild(p);
   p.animate([{transform:'translate(0,0) scale(.7)',opacity:1},{transform:'translate('+(Math.random()*40-20)+'px,-70px) scale(1.2) rotate('+(Math.random()*40-20)+'deg)',opacity:0}],{duration:1600,easing:'ease-out'}).onfinish=function(){ p.remove(); };
 }
-function startListen(){ if(listening) return; listening=true; draw(false,sec); noteIv=setInterval(function(){ if(vis()) note(); },700); }
+function startListen(){ if(listening) return; listening=true; draw(false,sec); /* notes volantes retirées (surchauffe du téléphone) */ }
 function stopListen(){ if(!listening) return; listening=false; clearInterval(noteIv); noteIv=null; }
 draw(false,false); sz(); window.addEventListener('resize',sz);
 info.addEventListener('click',function(e){
