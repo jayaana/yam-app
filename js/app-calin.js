@@ -146,7 +146,7 @@ box.addEventListener('click',function(){
 });
 /* mode écoute : vérifié chaque seconde, seulement si le bouton est visible */
 setInterval(function(){
-  if(!vis()){ if(listening) stopListen(); return; }
+  if(!vis()){ if(listening){ stopListen(); draw(false,sec); } return; }
   if(!playing()){ if(listening){ stopListen(); draw(false,sec); } return; }
   if(!listening && Date.now()-last>=15000) startListen();
 },1000);
