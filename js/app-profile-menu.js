@@ -3,7 +3,7 @@
    touché, y ajoute la silhouette + une copie de la photo, et fait glisser le bouton thème voisin sous la photo
    (il disparaît), puis le ramène à la fermeture. Styles : css/da-parametres.css (bloc « Menu du profil silhouette »). */
 (function(){
-  var W = 142, CR = 17;
+  var W = 152, CR = 17;
   /* Silhouette d'un seul tracé : tête ronde (rayon R, = la photo + 1 px) en haut à droite, corps qui en descend, raccord creux (rayon 14) tangent au cercle */
   function buildPath(R, H){
     var r = 14, Cx = W - R, d = Math.sqrt(R*R + 2*R*r), Fx = Cx - d, Fy = R - r, k = r / (R + r);
