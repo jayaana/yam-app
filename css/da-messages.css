@@ -217,8 +217,9 @@ html body #hiddenPage .dm-audio-dur { white-space: nowrap; }
 html body #hiddenPage .dm-audio-play { position: relative; width: 28px; height: 28px; }
 html body #hiddenPage .dm-audio-play::before { content: ""; position: absolute; inset: -8px; }
 html body #hiddenPage .dm-audio-play svg { width: 10px; height: 10px; }
-html body #hiddenPage .dm-audio-bubble { padding: 4px 12px 2px 5px; gap: 8px; min-width: 210px; }
-html body #hiddenPage .dm-audio-waveform { height: 24px; }
+/* Épaisseur de la bulle vocale conservée (56 px, comme la maquette) : seul le bouton lecture est réduit */
+html body #hiddenPage .dm-audio-bubble { padding: 14px 14px 14px 12px; gap: 10px; min-width: 236px; }
+html body #hiddenPage .dm-audio-waveform { height: 28px; }
 
 /* ── Heure des messages : plus dans les bulles ; on glisse vers la gauche pour la voir (style Instagram) ── */
 html body #hiddenPage .dm-bubble-meta, html body #hiddenPage .dm-photo-time { display: none; }
@@ -231,6 +232,6 @@ html body #hiddenPage .dm-messages.dm-swiping .dm-photo-wrap,
 html body #hiddenPage .dm-messages.dm-swiping .dm-video-wrap { transition: none; }
 html body #hiddenPage .dm-msg-wrap[data-time]::after, html body #hiddenPage .dm-photo-wrap[data-time]::after, html body #hiddenPage .dm-video-wrap[data-time]::after {
   content: attr(data-time); position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 10px;
-  font: 600 12px/1 var(--gu-font-text); color: var(--dm-ink); opacity: var(--dm-swipe-o); white-space: nowrap; pointer-events: none;
+  font: 500 10px/1 var(--gu-font-text); color: var(--dm-ink); opacity: calc(var(--dm-swipe-o) * .8); white-space: nowrap; pointer-events: none;
 }
 html body #hiddenPage .dm-video-wrap { position: relative; }
