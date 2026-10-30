@@ -182,7 +182,7 @@ html body #hiddenPage .dm-send-btn svg { width: 22px; height: 22px; }
    Même autocollant que game-ui.css ; on retire le halo rose de main.css
    et on garde le toast du bas au-dessus de la barre de saisie. */
 html body #yamNotif.show { border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow), 0 6px 16px rgba(0,0,0,.18); }
-html body #yamNotif { background: var(--gu-card); top: calc(var(--dm-safe, max(env(safe-area-inset-top, 0px), var(--yam-sim-safe, 0px))) + 8px); }
+html body #yamNotif { top: calc(var(--dm-safe, max(env(safe-area-inset-top, 0px), var(--yam-sim-safe, 0px))) + 8px); }
 html body.dm-chat-active #uxToast { bottom: 150px; }
 
 /* Vocal : durée à droite de l'onde, bulle basse (maquette) */
@@ -198,3 +198,7 @@ html body #hiddenPage .dm-bubble:has(.dm-audio-bubble) { padding: 0; }
 /* Messages est un calque posé SUR l'onglet en cours (l'Accueil reste dessous). On masque les panneaux d'onglet quand le chat est ouvert :
    après le clavier iOS la fenêtre se décale et laissait voir les nuages de l'Accueil. visibility garde la mise en page et le défilement. */
 body:has(#hiddenPage.active) .yam-tab-panel { visibility: hidden; }
+
+/* Plus aucun violet dans la messagerie (restes de l'ancien style de main.css) */
+html body #dmLoadMoreBtn, html body.light #dmLoadMoreBtn { background: var(--gu-card); color: var(--gu-accent); }
+html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-edit-input { background: var(--gu-chip); border-color: var(--gu-accent); color: var(--gu-text); }

@@ -1268,7 +1268,9 @@
         }
         // Marquer comme lu si le chat est visible
         var chatScreen = document.getElementById('dmChatScreen');
+        var _hpOpen = document.getElementById('hiddenPage');
         if(chatScreen && chatScreen.style.display !== 'none' &&
+           _hpOpen && _hpOpen.classList.contains('active') && // messagerie réellement ouverte (après Retour, dmChatScreen reste affiché)
            msg.sender_role !== identity && !msg.seen){
           markSeen(msg.id);
         }
@@ -1320,7 +1322,8 @@
     // On ne vérifie plus hiddenPage.classList.contains('active') car ce flag
     // peut ne pas encore être posé au moment où renderAll() s'exécute (timing race).
     var chatScreen = document.getElementById('dmChatScreen');
-    if(chatScreen && chatScreen.style.display !== 'none'){
+    var _hpOpen2 = document.getElementById('hiddenPage');
+    if(chatScreen && chatScreen.style.display !== 'none' && _hpOpen2 && _hpOpen2.classList.contains('active')){
       var toMark = cache.filter(function(m){ return m.sender_role !== identity && !m.seen; });
       toMark.forEach(function(m){ markSeen(m.id); });
       // Si des messages ont été marqués lus, re-poller le badge immédiatement

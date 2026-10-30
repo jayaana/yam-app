@@ -77,6 +77,11 @@ html[data-theme="warm"] {
   --gu-halo-border: rgba(255,255,255,.55);
   --gu-bubble-bg: linear-gradient(#fffafb, #ffe8ed);
   --gu-bubble-tail: #ffe8ed;
+  --gu-pill-bg: #fff;              /* pastilles/toasts en clair : fond blanc + contour rose (se détache des nuages) */
+  --gu-pill-text: #4a0f2e;
+  --gu-pill-text-2: #6e3a4c;
+  --gu-pill-border: var(--gu-card-her);  /* rose de la fiche d'humeur (#ff5f97) */
+  --gu-pill-app: #d4306f;
 }
 
 /* ── Sombre ─────────────────────────────────────────────────── */
@@ -126,6 +131,11 @@ html[data-theme="dark"] {
   --gu-halo-border: rgba(255,255,255,.4);
   --gu-bubble-bg: linear-gradient(#fffafb, #ffe8ed);
   --gu-bubble-tail: #ffe8ed;
+  --gu-pill-bg: #3a2d34;           /* sombre : gris chaud neutre (comme les bulles), contour blanc */
+  --gu-pill-text: #fff;
+  --gu-pill-text-2: rgba(255,255,255,.82);
+  --gu-pill-border: #fff;
+  --gu-pill-app: #ffe3ea;
 }
 
 /* Thème bleu (phase 7) : ajouter ici UN bloc html[data-theme="blue"]{…}

@@ -84,7 +84,7 @@
    Mêmes éléments et mêmes classes qu'avant (#uxToast, .yam-cf-*, #yamNotif) : seule l'apparence change. */
 html body #uxToast { background: var(--gu-card) !important; color: var(--gu-text) !important; border: var(--gu-sticker-width) solid var(--gu-sticker-border) !important; border-radius: 22px !important; box-shadow: var(--gu-sticker-shadow), 0 6px 16px rgba(0,0,0,.18) !important; padding: 10px 20px !important; font: 400 15px/1.25 var(--gu-font-display) !important; letter-spacing: .3px; }
 html body #uxToast.success { background: var(--gu-ok) !important; color: #0a2e1d !important; }
-html body #uxToast.error { background: #e05555 !important; color: #fff !important; }
+html body #uxToast.error { background: #c93c3c !important; color: #fff !important; }
 html body #uxToast.soon { background: linear-gradient(var(--gu-action-top), var(--gu-action-bottom)) !important; color: var(--gu-on-action) !important; }
 
 .yam-cf-ov { background: rgba(0,0,0,.55); }
@@ -107,3 +107,15 @@ html body .pn-app { color: var(--gu-accent, #d4306f); font: 400 12px var(--gu-fo
 html body .pn-time { color: var(--gu-text-2); font-size: 12px; }
 html body .pn-title { color: var(--gu-text); font: 400 17px/1.2 var(--gu-font-display); letter-spacing: .3px; }
 html body .pn-body { color: var(--gu-text-2); font: 600 13px/1.4 var(--gu-font-text); }
+
+/* ═══ Pastilles et toasts : clair = fond blanc + contour rose de la fiche d'humeur ; sombre = rose + contour blanc (lisibles sur les nuages de l'Accueil) ═══
+   Message reçu / humeur / bêtise (#yamNotif, #prankNotif) et toast neutre (#uxToast sans .success/.error/.soon). */
+html body #yamNotif, html body #prankNotif, html body #uxToast:not(.success):not(.error):not(.soon) {
+  background: var(--gu-pill-bg) !important; color: var(--gu-pill-text) !important;
+  border: var(--gu-sticker-width) solid var(--gu-pill-border) !important;
+  box-shadow: var(--gu-sticker-shadow), 0 8px 20px rgba(0,0,0,.30) !important;
+}
+html body #yamNotif .yn-t, html body .pn-title { color: var(--gu-pill-text); }
+html body #yamNotif .yn-m, html body .pn-body { color: var(--gu-pill-text-2); }
+html body .pn-app { color: var(--gu-pill-app); }
+html body .pn-time { color: var(--gu-pill-text-2); }
