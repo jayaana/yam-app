@@ -395,9 +395,8 @@ function openHiddenPage(){
   _dmUpdateHeaderAvatars();
   // ✅ FIX — re-propager les vraies photos à l'ouverture (les bulles vont être générées)
   setTimeout(function(){ if(window._acLoadPartnerAvatar) window._acLoadPartnerAvatar(); }, 400);
-  // Afficher conv directement — aucun écran intermédiaire
-  if(window._dmRawShowConv) window._dmRawShowConv();
-  else if(window.dmShowConv) window.dmShowConv();
+  // Arrivée directe dans la conversation — plus d'écran liste intermédiaire
+  if(window._dmRawShowChat) window._dmRawShowChat();
 }
 // ✅ FIX — instaloveAuthSelect & instaloveAuthClose supprimés (modal obsolète)
 window.instaloveAuthSelect = function(p){
@@ -681,8 +680,8 @@ function goTo(id){resetZoom();closeAllViews();document.getElementById('libraryPo
       if(!hp2 || !hp2.classList.contains('active'))
         if(window._dmRawOpen) window._dmRawOpen();
       if(s === 'conv'){
-        // Conv = afficher la liste directement
-        if(window._dmRawShowConv) window._dmRawShowConv('backward');
+        // Ancien état 'conv' (liste supprimée) → chat
+        if(window._dmRawShowChat) window._dmRawShowChat('backward');
       } else if(s === 'chat'){
         // Chat = afficher directement le chat (conv est déjà en dessous)
         if(window._dmRawShowChat) window._dmRawShowChat('backward');
@@ -703,6 +702,9 @@ function goTo(id){resetZoom();closeAllViews();document.getElementById('libraryPo
       if(hp && hp.classList.contains('active')){
         if(window._dmRawClose) window._dmRawClose();
         else hp.classList.remove('active');
+        // Plus de liste intermédiaire : on retombe sur l'Accueil (nav + onglet cohérents)
+        document.body.classList.remove('dm-chat-active');
+        if(window.yamSwitchTab) window.yamSwitchTab('home');
       }
       return;
     }
@@ -757,7 +759,7 @@ function goTo(id){resetZoom();closeAllViews();document.getElementById('libraryPo
       if(!_busy){
         var top = _stack[_stack.length - 1];
         if(!top || top.type !== 'dm'){
-          push({ type:'dm', screen:'conv' }); // 'conv' = état final visible (liste messages)
+          push({ type:'dm', screen:'chat' }); // arrivée directe dans le chat
         }
       }
     };
@@ -1087,11 +1089,8 @@ setTimeout(function(){
     _animating = true;
     setTimeout(function(){ _animating = false; }, 450);
 
-    // Chat → conv : _dmRawShowConv gère sa propre animation, pas de slide-out avant
-    if(sc === 'chat'){
-      if(window._dmRawShowConv) window._dmRawShowConv('backward');
-      else if(window.dmShowConv) window.dmShowConv('backward');
-    }
+    // Chat → fermeture de la messagerie (la liste de conversations n'existe plus)
+    if(sc === 'chat' && window.dmHandleBack) window.dmHandleBack();
   }, { passive: true });
 
   /* ── Bloquer Alt+→ Chrome (avancer) quand une vue est ouverte ── */

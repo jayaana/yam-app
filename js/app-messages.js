@@ -234,15 +234,17 @@
         _btn.className = 'gv-back'; _btn.id = 'dmTopbarBack';
         _btn.onclick = dmHandleBack;
         _btn.style.flexShrink = '0';
-        _btn.dataset.dest = 'home';
+        _btn.dataset.dest = 'close';
         _btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg><span id="dmBackLabel">Retour</span>';
         _topbar.insertBefore(_btn, _center);
       }
     } else {
       var _b = document.getElementById('dmTopbarBack');
-      _b.dataset.dest = 'home'; _b.style.display = 'flex';
+      _b.dataset.dest = 'close'; _b.style.display = 'flex';
     }
       var lbl2 = $('dmBackLabel'); if(lbl2) lbl2.textContent = 'Retour';
+      var _cavC = document.getElementById('dmConvAvatarEmoji');
+      if(_cavC && window.yamAvatarSrc){ var _pC = getProfile(); if(_pC) _cavC.src = window.yamAvatarSrc(_pC); }
       var lockBadge = document.getElementById('lockUnreadBadge');
       var lockBtn   = document.getElementById('lockNavBtn');
       if(lockBadge) lockBadge.classList.remove('visible');
@@ -261,7 +263,11 @@
     var btn  = $('dmTopbarBack');
     var dest = btn ? (btn.dataset.dest || 'close') : 'close';
     if(dest === 'close'){
-      if(window.closeHiddenPage) window.closeHiddenPage();
+      // Quitter la messagerie → Accueil (yamSwitchTab ferme hiddenPage via closeAllViews)
+      document.body.classList.remove('dm-chat-active');
+      if(window._dmReleaseStream) window._dmReleaseStream();
+      if(window.yamSwitchTab) window.yamSwitchTab('home');
+      else if(window.closeHiddenPage) window.closeHiddenPage();
     } else {
       // Retour chat → conv directement, sans history.go(-1)
       showConvScreen('backward');
@@ -3085,8 +3091,7 @@
     if(navigator.serviceWorker && navigator.serviceWorker.controller){
       if(window.yamClearAppBadge) window.yamClearAppBadge();
     }
-    // Toujours afficher conv directement — plus d'écran intermédiaire/logo
-    showConvScreen();
+    // Plus d'écran liste : l'ouverture du chat est faite par openHiddenPage (app-nav.js)
     // Re-poller le badge après que les markSeen soient partis en base
     setTimeout(function(){
       if(typeof window._checkUnread === 'function') window._checkUnread();

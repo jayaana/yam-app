@@ -224,9 +224,9 @@ if ('serviceWorker' in navigator) {
     var status = document.getElementById('dmStatus');
     if (!status) return;
     if (isOtherOnline()) {
-      status.textContent = '• En ligne'; status.style.color = '#22c55e';
+      status.textContent = 'En ligne'; status.dataset.on = '1'; status.style.color = '';
     } else {
-      status.textContent = '• Hors ligne'; status.style.color = 'var(--muted)';
+      status.textContent = 'Hors ligne'; status.dataset.on = '0'; status.style.color = '';
     }
   }
 

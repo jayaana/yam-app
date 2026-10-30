@@ -1,0 +1,181 @@
+/* ═══════════════════════════════════════════════════════════════
+   MESSAGES « GAME UI » (phase 4) — chat « Nous »
+   Reconstruit depuis messages-game-ui-FINAL-CLAIR / SOMBRE.
+   Uniquement des jetons --gu-* (css/theme-tokens.css). Chargé après
+   da-jeux.css. Les identifiants et classes lus par le JS (dm-*) sont
+   conservés ; l'ancien style (violet compris) est surchargé ici.
+   Jamais de violet.
+   ═══════════════════════════════════════════════════════════════ */
+
+#hiddenPage {
+  --dm-safe: max(env(safe-area-inset-top, 0px), var(--yam-sim-safe, 0px));
+  --dm-line: rgba(74,15,46,.22);
+  --dm-ink: #4a0f2e;            /* heures, « Vu », jour : sur le dégradé */
+  --dm-ctl: #4a0f2e;            /* icônes de la barre de saisie */
+  --dm-hdr: calc(var(--dm-safe) + 2px + 48px + 8px + 2px);
+}
+html[data-theme="dark"] #hiddenPage {
+  --dm-line: rgba(255,255,255,.16);
+  --dm-ink: #cfc4c8;
+  --dm-ctl: #fff;
+}
+
+/* ── Fond : IDENTIQUE à l'Accueil (même règle que da-accueil.css, onglet « messages »).
+   La zone sûre iOS n'est peinte que par le background-color de html : même fondu de 160 px. */
+html[data-yam-tab="messages"] { background: linear-gradient(#ffc2bb, rgba(255,194,187,0)) 0 0 / 100% 160px no-repeat, var(--gu-bg-page) !important; background-repeat: no-repeat !important; background-color: #ffc2bb !important; }
+html[data-theme="dark"][data-yam-tab="messages"] { background: linear-gradient(#191215, rgba(25,18,21,0)) 0 0 / 100% 160px no-repeat, var(--gu-bg-page) !important; background-repeat: no-repeat !important; background-color: #191215 !important; }
+html[data-yam-tab="messages"] body, html[data-yam-tab="messages"] body.light { background: transparent !important; background-image: none !important; }
+/* Fond OPAQUE (sinon l'onglet précédent se voit à travers) : mêmes couleurs et dégradés que l'Accueil */
+html body #hiddenPage { background: linear-gradient(#ffc2bb, rgba(255,194,187,0)) 0 0 / 100% 160px no-repeat, var(--gu-bg-page) !important; background-color: #ffc2bb !important; background-repeat: no-repeat !important; }
+html[data-theme="dark"] body #hiddenPage { background: linear-gradient(#191215, rgba(25,18,21,0)) 0 0 / 100% 160px no-repeat, var(--gu-bg-page) !important; background-color: #191215 !important; background-repeat: no-repeat !important; }
+html body #hiddenPage .dm-chat-screen { background: transparent; }
+
+/* ── En-tête : identique aux autres onglets (logo, bouton thème, avatar) ─ */
+html body #hiddenPage #dmTopbar {
+  height: auto !important; min-height: 0 !important;
+  padding: calc(var(--dm-safe) + 2px) 18px 8px 18px !important;
+  background: transparent !important; box-shadow: none;
+  border-bottom: 2px solid var(--dm-line) !important;
+  gap: 8px !important; position: relative;
+}
+html body #hiddenPage #dmTopbarCenter { flex: 1; }
+/* Pas de logo dans l'en-tête de Messages (demande de l'utilisateur) */
+html body #hiddenPage #dmTopbarLogo { display: none !important; }
+/* Retour : pastille 44 px (le chat est l'écran d'arrivée, il faut pouvoir en sortir) */
+html body #hiddenPage #dmTopbarBack {
+  width: var(--gu-tap); height: var(--gu-tap); box-sizing: border-box; padding: 0; margin: 0 !important;
+  justify-content: center; align-items: center; border-radius: 50%;
+  background: var(--gu-card); color: var(--gu-text);
+  border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow);
+}
+html body #hiddenPage #dmTopbarBack:hover { transform: none; background: var(--gu-card); }
+html body #hiddenPage #dmTopbarBack svg { width: 20px; height: 20px; }
+html body #hiddenPage #dmBackLabel { display: none; }
+/* « En ligne » au centre de l'en-tête (plus de double en-tête avatars + nom) */
+html body #hiddenPage #dmChatCenterBlock {
+  position: absolute; left: 50%; top: calc(var(--dm-safe) + 2px); height: 48px;
+  transform: translateX(-50%); gap: 0 !important; pointer-events: none;
+}
+html body #hiddenPage #dmChatCenterBlock > div:first-child,
+html body #hiddenPage #dmChatCenterBlock span:first-child { display: none !important; }
+html body #hiddenPage #dmStatus {
+  display: flex; align-items: center; gap: 6px;
+  font: 700 14px/1 var(--gu-font-text) !important; color: var(--gu-text) !important;
+}
+html body #hiddenPage #dmStatus::before {
+  content: ""; width: 10px; height: 10px; border-radius: 50%; box-sizing: content-box;
+  background: #9a8a90; border: 2px solid #fff;
+}
+html body #hiddenPage #dmStatus[data-on="1"]::before { background: var(--gu-online); }
+html body #hiddenPage #themeToggleDm2 {
+  width: var(--gu-tap) !important; height: var(--gu-tap) !important; border-radius: 50%;
+  /* identique au bouton de l'Accueil (#themeToggleHome : style en ligne + ombre autocollant) */
+  background: var(--s2); color: var(--sub) !important;
+  border: 1px solid var(--border); box-shadow: var(--gu-sticker-shadow);
+}
+html body #hiddenPage #themeToggleDm2 svg { width: 16px; height: 16px; }
+html body.dm-chat-active #hiddenPage #dmConvProfileBtn {
+  display: flex !important; width: 48px !important; height: 48px !important; box-sizing: border-box;
+  border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow);
+  background: var(--gu-her);
+}
+
+/* ── Zone des messages ──────────────────────────────────────────── */
+/* Les messages commencent SOUS l'en-tête (ils ne défilent plus derrière lui) */
+html body #hiddenPage .dm-messages { margin-top: var(--dm-hdr); padding: 14px 14px 10px; background: transparent; }
+html body #hiddenPage .dm-day-label {
+  align-self: center; display: block; padding: 0 8px; margin: 0 0 12px; border-radius: 7px;
+  background: var(--gu-card); color: var(--gu-text);
+  font: 400 11px/1.5 var(--gu-font-display); letter-spacing: 2px; text-transform: uppercase;
+}
+html body #hiddenPage .dm-msg-wrap { margin-bottom: 3px; }
+
+/* Bulles */
+html body #hiddenPage .dm-bubble {
+  max-width: 76%; padding: 9px 14px; border-radius: 22px;
+  font: 500 15px/1.4 var(--gu-font-text); text-shadow: none; box-shadow: none;
+}
+html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-bubble {
+  background: var(--gu-bubble-other); color: var(--gu-bubble-other-text); border-radius: 22px 22px 22px 6px;
+}
+html body #hiddenPage .dm-msg-wrap:not(.mine).first-in-group .dm-bubble { border-radius: 6px 22px 22px 22px; }
+html body #hiddenPage .dm-msg-wrap.mine .dm-bubble {
+  background: var(--gu-bubble-me); color: var(--gu-bubble-me-text); border-radius: 22px 22px 6px 22px;
+}
+html body #hiddenPage .dm-msg-wrap.mine.first-in-group .dm-bubble { border-radius: 22px 6px 22px 22px; }
+html body #hiddenPage .dm-bubble-meta { font: 600 11px/1.2 var(--gu-font-text); margin-top: 4px; opacity: 1; }
+html body #hiddenPage .dm-msg-wrap.mine .dm-bubble-meta { color: rgba(255,255,255,.92); }
+html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-bubble-meta { color: var(--gu-text-2); }
+html body #hiddenPage .dm-seen-label { font: 600 11px/1.2 var(--gu-font-text); color: var(--dm-ink); }
+html body #hiddenPage .dm-reply-preview { background: rgba(0,0,0,.14); border-left-color: rgba(255,255,255,.6); }
+html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-reply-preview { background: var(--gu-chip); border-left-color: var(--gu-accent); }
+
+/* Réaction : pastille blanche cerclée à l'intérieur du coin de la bulle */
+html body #hiddenPage .dm-react {
+  background: var(--gu-card); border: 0; padding: 3px 7px 3px 5px; border-radius: 20px;
+  box-shadow: 0 0 0 3px var(--gu-chip);
+}
+
+/* Vocal : lecture blanche + onde blanche (bulle « moi »), rouge sur bulle de l'autre */
+html body #hiddenPage .dm-audio-play { width: var(--gu-tap); height: var(--gu-tap); background: #fff; color: var(--gu-bubble-me); }
+html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-audio-play { background: var(--gu-bubble-me); color: #fff; }
+html body #hiddenPage .dm-audio-waveform .dm-wv-bar { background: rgba(255,255,255,.55); }
+html body #hiddenPage .dm-audio-waveform .dm-wv-bar.played { background: #fff; }
+html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-audio-waveform .dm-wv-bar { background: var(--gu-separator); }
+html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-audio-waveform .dm-wv-bar.played { background: var(--gu-bubble-me); }
+html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-audio-waveform .dm-wv-thumb { background: var(--gu-bubble-me); }
+html body #hiddenPage .dm-audio-dur { font: 700 12px/1 var(--gu-font-text); color: rgba(255,255,255,.92); font-variant-numeric: tabular-nums; }
+html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-audio-dur { color: var(--gu-text-2); }
+
+/* Indicateur de frappe : 3 points dans une bulle de l'autre */
+html body #hiddenPage .dm-typing-bubble { background: var(--gu-bubble-other); border-radius: 22px 22px 22px 6px; padding: 14px 16px; }
+html body #hiddenPage .dm-typing-dot { background: var(--gu-text-2); }
+
+/* Réponse en cours */
+html body #hiddenPage #dmReplyBar { background: var(--gu-card); color: var(--gu-text); border: 0; margin: 0 12px; border-radius: 18px 18px 0 0; font: 600 13px var(--gu-font-text); }
+html body #hiddenPage #dmReplyBar .reply-bar-close { width: var(--gu-tap); height: var(--gu-tap); background: transparent; color: var(--gu-text); font-size: 16px; }
+
+/* ── Barre de saisie : pilule plate + envoi rond rouge ───────────── */
+html body #hiddenPage .dm-input-bar {
+  background: transparent; border-top: 0; display: flex; align-items: center; gap: 6px;
+  padding-left: 12px; padding-right: 12px; padding-top: 8px;
+}
+html body #hiddenPage .dm-input-wrap {
+  flex: 1; min-width: 0; height: 52px; box-sizing: border-box; padding: 0 4px; gap: 0;
+  background: var(--gu-bubble-other); border: 0; border-radius: 26px; box-shadow: none;
+}
+html body #hiddenPage .dm-input-wrap:focus-within { border: 0; box-shadow: 0 0 0 3px var(--gu-chip-on); }
+html body #hiddenPage .dm-photo-btn,
+html body #hiddenPage .dm-mic-btn {
+  width: var(--gu-tap); height: var(--gu-tap); background: transparent; color: var(--dm-ctl); flex: none;
+}
+html body #hiddenPage .dm-input-wrap .dm-photo-btn { color: var(--gu-text); }
+html body #hiddenPage .dm-mic-btn { color: var(--gu-text); }
+html body #hiddenPage .dm-mic-btn.recording { background: var(--gu-bubble-me); color: #fff; }
+html body #hiddenPage .dm-input {
+  font: 500 16px/1.35 var(--gu-font-text) !important; color: var(--gu-text); caret-color: var(--gu-bubble-me); padding: 0 4px;
+}
+html body #hiddenPage .dm-input::placeholder { color: var(--gu-text-2); }
+html body #hiddenPage .dm-send-btn {
+  width: 52px; height: 52px; flex: none; background: var(--gu-bubble-me); color: #fff; opacity: .5;
+  box-shadow: var(--gu-sticker-shadow);
+}
+html body #hiddenPage .dm-send-btn.ready { opacity: 1; }
+html body #hiddenPage .dm-send-btn svg { width: 22px; height: 22px; }
+
+/* ── Pastilles du haut (message reçu, humeur, bêtise) et toast du bas ─
+   Même autocollant que game-ui.css ; on retire le halo rose de main.css
+   et on garde le toast du bas au-dessus de la barre de saisie. */
+html body #yamNotif.show { border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow), 0 6px 16px rgba(0,0,0,.18); }
+html body #yamNotif { background: var(--gu-card); top: calc(var(--dm-safe, max(env(safe-area-inset-top, 0px), var(--yam-sim-safe, 0px))) + 8px); }
+html body.dm-chat-active #uxToast { bottom: 150px; }
+
+/* Vocal : durée à droite de l'onde, bulle basse (maquette) */
+html body #hiddenPage .dm-audio-bubble { padding: 6px 14px 6px 6px; min-width: 236px; }
+html body #hiddenPage .dm-audio-right { flex-direction: row; align-items: center; gap: 8px; }
+html body #hiddenPage .dm-audio-right .dm-audio-waveform { flex: 1; min-width: 0; }
+html body #hiddenPage .dm-audio-dur { align-self: center; flex: none; }
+html body #hiddenPage .dm-audio-waveform { overflow: hidden; gap: 1px; }
+html body #hiddenPage .dm-audio-waveform .dm-wv-bar { width: 2px; }
+html body #hiddenPage .dm-audio-bubble { padding: 2px 12px 2px 6px; max-width: 280px; }
+html body #hiddenPage .dm-bubble:has(.dm-audio-bubble) { padding: 0; }
