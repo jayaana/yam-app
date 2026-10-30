@@ -393,7 +393,51 @@
     return !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
   }
 
+  /* Heure d'un message (hh:mm) — affichée au glissement latéral, style Instagram */
+  function _dmHM(iso){
+    var d = new Date(iso);
+    return ('0'+d.getHours()).slice(-2) + ':' + ('0'+d.getMinutes()).slice(-2);
+  }
+
+  /* Glisser vers la GAUCHE sur la zone des messages : tous les messages se décalent et révèlent leur heure à droite ;
+     au relâchement ils reviennent. Variables CSS --dm-swipe (px) et --dm-swipe-o (0..1) sur #dmMessages. */
+  var _dmSwipeInit = false;
+  function _dmInitSwipeTime(){
+    if(_dmSwipeInit) return;
+    var box = $('dmMessages');
+    if(!box) return;
+    _dmSwipeInit = true;
+    var MAX = 56, sx = 0, sy = 0, mode = 0; // mode : 0 en attente, 1 horizontal, 2 vertical/ignoré
+    function setSwipe(px){
+      box.style.setProperty('--dm-swipe', px + 'px');
+      box.style.setProperty('--dm-swipe-o', String(Math.min(1, px / 30)));
+    }
+    box.addEventListener('touchstart', function(e){
+      if(e.touches.length !== 1){ mode = 2; return; }
+      var t = e.target;
+      mode = (t && t.closest && t.closest('.dm-audio-waveform')) ? 2 : 0; // pas pendant le déplacement dans un vocal
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    }, { passive: true });
+    box.addEventListener('touchmove', function(e){
+      if(mode === 2) return;
+      var dx = e.touches[0].clientX - sx, dy = e.touches[0].clientY - sy;
+      if(mode === 0){
+        if(Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        mode = (Math.abs(dx) > Math.abs(dy) * 1.2 && dx < 0) ? 1 : 2;
+        if(mode === 1) box.classList.add('dm-swiping');
+      }
+      if(mode === 1) setSwipe(Math.max(0, Math.min(MAX, -dx * 0.6)));
+    }, { passive: true });
+    function endSwipe(){
+      if(mode === 1){ box.classList.remove('dm-swiping'); setSwipe(0); }
+      mode = 0;
+    }
+    box.addEventListener('touchend', endSwipe, { passive: true });
+    box.addEventListener('touchcancel', endSwipe, { passive: true });
+  }
+
   function attachListeners(){
+    _dmInitSwipeTime();
     var input    = $('dmInput');
     var sendBtn  = $('dmSendBtn');
     var cameraBtn = $('dmCameraBtn');
@@ -1770,6 +1814,7 @@
       var photoWrap = document.createElement('div');
       photoWrap.className = 'dm-photo-wrap' + (mine ? ' mine' : '');
       photoWrap.dataset.id = msg.id;
+      photoWrap.dataset.time = _dmHM(msg.created_at);
 
       var inner = document.createElement('div');
       inner.className = 'dm-photo-inner' + (String(msg.id).indexOf('tmp_') === 0 ? ' sending' : '');
@@ -1900,6 +1945,7 @@
       var videoWrap = document.createElement('div');
       videoWrap.className = 'dm-video-wrap' + (mine ? ' mine' : '');
       videoWrap.dataset.id = msg.id;
+      videoWrap.dataset.time = _dmHM(msg.created_at);
 
       var vInner = document.createElement('div');
       vInner.className = 'dm-video-inner' + (String(msg.id).indexOf('tmp_') === 0 ? ' sending' : '');
@@ -1998,7 +2044,9 @@
     var wrap = document.createElement('div');
     wrap.className = 'dm-msg-wrap' + (mine ? ' mine' : '');
     if(!sameNext) wrap.classList.add('last-in-group');
+    if(!samePrev) wrap.classList.add('first-in-group');
     wrap.dataset.id = msg.id;
+    wrap.dataset.time = _dmHM(msg.created_at);
 
     // Avatar
     if(!mine){
@@ -2008,7 +2056,7 @@
       (function(){ if(window.yamSetAvatar) window.yamSetAvatar(av, msg.sender_role); else av.textContent = msg.sender_role === 'girl' ? 'E' : 'L'; })();
       av.style.fontSize = '16px';
       av.style.background = 'none';
-      av.style.visibility = samePrev ? 'hidden' : 'visible';
+      av.style.visibility = sameNext ? 'hidden' : 'visible'; // style Instagram : avatar sur la dernière bulle du groupe
       wrap.appendChild(av);
     }
 

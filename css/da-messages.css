@@ -107,17 +107,20 @@ html body #hiddenPage .dm-msg-wrap { margin-bottom: 3px; }
 
 /* Bulles */
 html body #hiddenPage .dm-bubble {
-  max-width: 76%; padding: 9px 14px; border-radius: 22px;
+  max-width: 76%; padding: 9px 14px; border-radius: 18px;
   font: 500 15px/1.4 var(--gu-font-text); text-shadow: none; box-shadow: none;
 }
-html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-bubble {
-  background: var(--gu-bubble-other); color: var(--gu-bubble-other-text); border-radius: 22px 22px 22px 6px;
-}
-html body #hiddenPage .dm-msg-wrap:not(.mine).first-in-group .dm-bubble { border-radius: 6px 22px 22px 22px; }
-html body #hiddenPage .dm-msg-wrap.mine .dm-bubble {
-  background: var(--gu-bubble-me); color: var(--gu-bubble-me-text); border-radius: 22px 22px 6px 22px;
-}
-html body #hiddenPage .dm-msg-wrap.mine.first-in-group .dm-bubble { border-radius: 22px 6px 22px 22px; }
+/* Style Instagram : toutes les bulles arrondies, SANS pointe. Dans un groupe de messages du même expéditeur,
+   seuls les coins qui se touchent (côté expéditeur) sont resserrés à 5 px. Classes posées par le JS :
+   first-in-group (1er du groupe), last-in-group (dernier), les deux = message seul (tout arrondi). */
+html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-bubble { background: var(--gu-bubble-other); color: var(--gu-bubble-other-text); border-radius: 5px 18px 18px 5px; }
+html body #hiddenPage .dm-msg-wrap:not(.mine).first-in-group .dm-bubble { border-radius: 18px 18px 18px 5px; }
+html body #hiddenPage .dm-msg-wrap:not(.mine).last-in-group .dm-bubble { border-radius: 5px 18px 18px 18px; }
+html body #hiddenPage .dm-msg-wrap:not(.mine).first-in-group.last-in-group .dm-bubble { border-radius: 18px; }
+html body #hiddenPage .dm-msg-wrap.mine .dm-bubble { background: var(--gu-bubble-me); color: var(--gu-bubble-me-text); border-radius: 18px 5px 5px 18px; }
+html body #hiddenPage .dm-msg-wrap.mine.first-in-group .dm-bubble { border-radius: 18px 18px 5px 18px; }
+html body #hiddenPage .dm-msg-wrap.mine.last-in-group .dm-bubble { border-radius: 18px 5px 18px 18px; }
+html body #hiddenPage .dm-msg-wrap.mine.first-in-group.last-in-group .dm-bubble { border-radius: 18px; }
 html body #hiddenPage .dm-bubble-meta { font: 600 11px/1.2 var(--gu-font-text); margin-top: 4px; opacity: 1; }
 html body #hiddenPage .dm-msg-wrap.mine .dm-bubble-meta { color: rgba(255,255,255,.92); }
 html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-bubble-meta { color: var(--gu-text-2); }
@@ -202,3 +205,32 @@ body:has(#hiddenPage.active) .yam-tab-panel { visibility: hidden; }
 /* Plus aucun violet dans la messagerie (restes de l'ancien style de main.css) */
 html body #dmLoadMoreBtn, html body.light #dmLoadMoreBtn { background: var(--gu-card); color: var(--gu-accent); }
 html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-edit-input { background: var(--gu-chip); border-color: var(--gu-accent); color: var(--gu-text); }
+
+/* Bulle vocale : l'heure (dm-bubble-meta) était collée au bord et dépassait à droite (padding de la bulle à 0).
+   On remet un retrait à l'heure et on cadre le contenu. */
+html body #hiddenPage .dm-bubble:has(.dm-audio-bubble) { overflow: hidden; }
+html body #hiddenPage .dm-bubble:has(.dm-audio-bubble) .dm-bubble-meta { padding: 0 14px 6px; margin-top: -2px; }
+html body #hiddenPage .dm-audio-bubble { box-sizing: border-box; width: 100%; max-width: 100%; }
+html body #hiddenPage .dm-audio-dur { white-space: nowrap; }
+
+/* Bouton lecture plus petit (28 px visibles) ; la zone tactile reste de 44 px grâce au ::before */
+html body #hiddenPage .dm-audio-play { position: relative; width: 28px; height: 28px; }
+html body #hiddenPage .dm-audio-play::before { content: ""; position: absolute; inset: -8px; }
+html body #hiddenPage .dm-audio-play svg { width: 10px; height: 10px; }
+html body #hiddenPage .dm-audio-bubble { padding: 4px 12px 2px 5px; gap: 8px; min-width: 210px; }
+html body #hiddenPage .dm-audio-waveform { height: 24px; }
+
+/* ── Heure des messages : plus dans les bulles ; on glisse vers la gauche pour la voir (style Instagram) ── */
+html body #hiddenPage .dm-bubble-meta, html body #hiddenPage .dm-photo-time { display: none; }
+html body #hiddenPage .dm-messages { --dm-swipe: 0px; --dm-swipe-o: 0; overflow-x: hidden; }
+html body #hiddenPage .dm-msg-wrap, html body #hiddenPage .dm-photo-wrap, html body #hiddenPage .dm-video-wrap {
+  transform: translateX(calc(var(--dm-swipe) * -1)); transition: transform .22s ease;
+}
+html body #hiddenPage .dm-messages.dm-swiping .dm-msg-wrap,
+html body #hiddenPage .dm-messages.dm-swiping .dm-photo-wrap,
+html body #hiddenPage .dm-messages.dm-swiping .dm-video-wrap { transition: none; }
+html body #hiddenPage .dm-msg-wrap[data-time]::after, html body #hiddenPage .dm-photo-wrap[data-time]::after, html body #hiddenPage .dm-video-wrap[data-time]::after {
+  content: attr(data-time); position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 10px;
+  font: 600 12px/1 var(--gu-font-text); color: var(--dm-ink); opacity: var(--dm-swipe-o); white-space: nowrap; pointer-events: none;
+}
+html body #hiddenPage .dm-video-wrap { position: relative; }
