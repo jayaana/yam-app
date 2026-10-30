@@ -2186,6 +2186,7 @@ window.openAccountModal = function(){
   if(!view) return;
   view.classList.add('active');
   document.body.classList.add('settings-open');
+  document.documentElement.setAttribute('data-yam-settings', '1');   // couleur de la zone sûre (sans :has, absent d'iOS < 15.4)
 
   // Afficher la version du cache SW
   if('caches' in window) {
@@ -2312,6 +2313,7 @@ window.closeAccountModal = function(){
   document.querySelectorAll('.stg-subpage.active').forEach(function(sp){ sp.classList.remove('active'); });
   view.classList.remove('active');
   document.body.classList.remove('settings-open');
+  document.documentElement.removeAttribute('data-yam-settings');
   // Scroll reset
   view.scrollTop = 0;
 };
