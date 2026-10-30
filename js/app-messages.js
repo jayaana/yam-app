@@ -1652,7 +1652,7 @@
     var oldRow = wrap.querySelector('.dm-react-row');
     if(oldRow) oldRow.remove();
     wrap.classList.remove('has-reaction');
-    var _b0 = wrap.querySelector('.dm-bubble'); if(_b0) _b0.style.webkitMaskImage = _b0.style.maskImage = '';
+    var _b0 = wrap.querySelector('.dm-bubble, .dm-photo-inner, .dm-video-inner'); if(_b0) _b0.style.webkitMaskImage = _b0.style.maskImage = '';
 
     var rg = (msg.reactions || {})['girl'] || null;
     var rb = (msg.reactions || {})['boy'] || null;
@@ -1699,10 +1699,17 @@
 
   // Style Instagram : la bulle est découpée (vraiment transparente) autour de la pastille de réaction
   function cutBubbleForReactions(wrap){
-    var bub = wrap.querySelector('.dm-bubble');
+    var bub = wrap.querySelector('.dm-bubble, .dm-photo-inner, .dm-video-inner');   // texte/vocal, photo, vidéo
     var row = wrap.querySelector('.dm-react-row');
     if(!bub) return;
     if(!row){ bub.style.webkitMaskImage = bub.style.maskImage = ''; return; }
+    // Photo / vidéo : la rangée est dans le .dm-photo-wrap, pas alignée sur l'image -> on la cale sur le bas de l'image
+    if(bub.classList.contains('dm-photo-inner') || bub.classList.contains('dm-video-inner')){
+      var rw = row.offsetWidth;
+      row.style.bottom = 'auto'; row.style.top = (bub.offsetTop + bub.offsetHeight - 6) + 'px';
+      if(wrap.classList.contains('mine')){ row.style.right = 'auto'; row.style.left = (bub.offsetLeft + bub.offsetWidth - rw) + 'px'; }
+      else { row.style.left = bub.offsetLeft + 'px'; }
+    }
     var b = bub.getBoundingClientRect(), r = row.getBoundingClientRect();
     if(!b.width || !r.width) return;
     if(!bub._dmCutRO && window.ResizeObserver){ bub._dmCutRO = new ResizeObserver(function(){ cutBubbleForReactions(wrap); }); bub._dmCutRO.observe(bub); }

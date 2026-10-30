@@ -156,9 +156,16 @@
     if (container.id === 'hiddenPage') {
       var bar = container.querySelector('.dm-input-bar');
       if (bar) {
-        bar.style.transition    = 'padding-bottom 0.25s ease';
-        // Ajuste pour ne pas remonter trop haut - garde un padding minimal
+        // Sans animation : le curseur iOS restait dessiné à l'ancienne place (sous la barre, au-dessus du clavier)
+        // quand la barre glissait pendant l'ouverture du clavier (1re ouverture d'une session fraîche).
+        bar.style.transition    = 'none';
         bar.style.paddingBottom = kbH + 'px';
+        var _inp = document.activeElement;
+        [60, 300].forEach(function (d) {
+          setTimeout(function () {
+            try { if (_inp && _inp === document.activeElement && _inp.setSelectionRange) { var e = _inp.selectionEnd; _inp.setSelectionRange(e, e); } } catch (er) {}
+          }, d);
+        });
         var msgs = document.getElementById('dmMessages');
         if (msgs) {
           setTimeout(function () { msgs.scrollTop = msgs.scrollHeight; }, 80);
@@ -186,7 +193,7 @@
     if (container.id === 'hiddenPage') {
       var bar = container.querySelector('.dm-input-bar');
       if (bar) {
-        bar.style.transition    = 'padding-bottom 0.25s ease';
+        bar.style.transition    = 'none';
         bar.style.paddingBottom = NAV_HEIGHT + 'px';
       }
       return;

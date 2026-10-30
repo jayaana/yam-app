@@ -131,7 +131,7 @@ html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-reply-preview { background: #f
 /* Réaction (style Instagram) : la pastille chevauche le bas de la bulle, son contour a la couleur du fond
    du chat : il « découpe » la bulle et sépare le message de sa réaction.
    La découpe est faite dans la bulle par un masque posé en JS (app-messages.js, cutBubbleForReactions). */
-html body #hiddenPage .dm-react-row { bottom: -16px; }
+html body #hiddenPage .dm-react-row { bottom: -12px; }
 html body #hiddenPage .dm-react {
   background: #fff; border: 0; padding: 3px 7px 3px 5px; border-radius: 20px; box-shadow: none;
 }
@@ -251,7 +251,7 @@ html body #hiddenPage .dm-video-wrap { position: relative; }
 html[data-yam-tab="messages"] #miniPlayer { display: none !important; }
 
 /* Réaction : la pastille déborde de 16 px sous la bulle, la marge du message en tient compte (22 px) */
-html body #hiddenPage .dm-msg-wrap.has-reaction { margin-bottom: 22px !important; }
+html body #hiddenPage .dm-msg-wrap.has-reaction { margin-bottom: 18px !important; }
 
 /* Thème sombre : citation du message auquel on répond, à l'intérieur de la bulle (même famille que la bulle) */
 html[data-theme="dark"] body #hiddenPage .dm-reply-preview { background: rgba(255,255,255,.22); border-left-color: rgba(255,255,255,.75); color: #fff; }
@@ -259,3 +259,11 @@ html[data-theme="dark"] body #hiddenPage .dm-msg-wrap:not(.mine) .dm-reply-previ
 
 /* Texte à 14 px (comme Instagram) : citation de réponse un cran en dessous */
 html body #hiddenPage .dm-reply-preview { font-size: 11px; }
+
+/* Photo / vidéo avec réaction : même découpe et même marge que les bulles de texte */
+html body #hiddenPage .dm-photo-wrap.has-reaction, html body #hiddenPage .dm-video-wrap.has-reaction { margin-bottom: 18px !important; }
+
+/* Réactions plus petites (style Instagram) : avatar 14 px, emoji 12 px */
+html body #hiddenPage .dm-react { padding: 2px 6px 2px 3px; gap: 3px; border-radius: 16px; }
+html body #hiddenPage .dm-react img { width: 14px !important; height: 14px !important; min-width: 14px !important; max-width: 14px !important; }
+html body #hiddenPage .dm-react span { font-size: 12px !important; }
