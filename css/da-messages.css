@@ -243,3 +243,6 @@ html body #hiddenPage .dm-video-wrap { position: relative; }
 /* Chat : pas de mini-lecteur musique (ses gestes plier/déplier gênent le retour par glissement et l'heure des messages).
    La musique continue de jouer ; le mini-lecteur revient en quittant Messages. */
 html[data-yam-tab="messages"] #miniPlayer { display: none !important; }
+
+/* Réaction : la pastille déborde de 16 px sous la bulle, la marge du message en tient compte (22 px) */
+html body #hiddenPage .dm-msg-wrap.has-reaction { margin-bottom: 22px !important; }
