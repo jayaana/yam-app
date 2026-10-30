@@ -126,7 +126,7 @@ html body #hiddenPage .dm-msg-wrap.mine .dm-bubble-meta { color: rgba(255,255,25
 html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-bubble-meta { color: var(--gu-text-2); }
 html body #hiddenPage .dm-seen-label { font: 600 10.5px/1.2 var(--gu-font-text); color: var(--dm-ink); }
 html body #hiddenPage .dm-reply-preview { background: rgba(255,255,255,.22); border-left-color: rgba(255,255,255,.75); color: #fff; opacity: 1; }
-html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-reply-preview { background: var(--gu-chip); border-left-color: var(--gu-accent); }
+html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-reply-preview { background: #ffe3ea; border-left-color: var(--gu-accent); color: #1a1a1a; opacity: 1; font-weight: 500; }
 
 /* Réaction (style Instagram) : la pastille chevauche le bas de la bulle, son contour a la couleur du fond
    du chat : il « découpe » la bulle et sépare le message de sa réaction.
@@ -258,4 +258,4 @@ html[data-theme="dark"] body #hiddenPage .dm-reply-preview { background: rgba(25
 html[data-theme="dark"] body #hiddenPage .dm-msg-wrap:not(.mine) .dm-reply-preview { background: rgba(255,255,255,.10); border-left-color: var(--gu-bubble-me); color: rgba(255,255,255,.88); }
 
 /* Texte à 14 px (comme Instagram) : citation de réponse un cran en dessous */
-html body #hiddenPage .dm-reply-preview { font-size: 10.5px; }
+html body #hiddenPage .dm-reply-preview { font-size: 11px; }

@@ -3343,6 +3343,19 @@ window.addEventListener('load', function(){
     var pp = document.getElementById('profilePopup');
     if(!pp) return;
     var isOpening = !pp.classList.contains('open');
+    var inChat = isOpening && document.getElementById('hiddenPage') && document.getElementById('hiddenPage').classList.contains('active');
+    if(inChat){
+      // Messages : le clavier iOS encore ouvert décalait le menu hors écran (zone sûre). On referme le clavier,
+      // on sort le menu de l'en-tête (transformé) et on le place sous l'avatar, deux fois (le clavier se replie en ~300 ms).
+      var ae = document.activeElement;
+      if(ae && ae.blur && /^(INPUT|TEXTAREA)$/.test(ae.tagName)) ae.blur();
+      if(pp.parentElement !== document.body) document.body.appendChild(pp);
+      var placePP = function(){
+        var b = document.getElementById('dmConvProfileBtn'), r = b && b.getBoundingClientRect();
+        pp.style.top = ((r && r.bottom ? r.bottom : 52) + 6) + 'px';
+      };
+      placePP(); setTimeout(placePP, 350);
+    } else if(isOpening){ pp.style.top = ''; }
     pp.classList.toggle('open');
     // Rafraichir le contenu a chaque ouverture (pseudo a jour, boutons corrects)
     if(isOpening) apply(get());
