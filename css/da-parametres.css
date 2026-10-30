@@ -63,13 +63,13 @@ html body #settingsView .stg-btn-danger { background: var(--pa-danger); color: #
 html[data-theme="dark"] body #settingsView .stg-btn-danger { color: #2a0a0a; }
 html body #settingsView .stg-btn-danger .ys { stroke: currentColor; --st-ac: currentColor; }
 /* Zone sûre : MÊME principe que les onglets (da-accueil.css / da-jeux.css) : dégradé 160 px + couleur de fond sur <html>,
-   marque data-yam-settings posée par openAccountModal. Les Paramètres restent transparents en haut pour la laisser voir. */
+   marque data-yam-settings posée par openAccountModal. Les Paramètres gardent leur fond OPAQUE (sinon l'Accueil apparaît derrière). */
 html[data-yam-settings][data-yam-tab][data-theme], html[data-yam-settings][data-theme] {
   background: linear-gradient(rgb(var(--pa-top)), rgba(var(--pa-top),0)) 0 0 / 100% 160px no-repeat, linear-gradient(var(--pa-page), var(--pa-page)) !important;
   background-repeat: no-repeat !important; background-color: rgb(var(--pa-top)) !important;   /* comme les onglets : la COULEUR de fond est celle de la zone sûre */
 }
 html[data-yam-settings] body, html[data-yam-settings] body.light { background: transparent !important; background-image: none !important; }
-html body #settingsView { background: transparent; }
+
 
 /* En-tête des Paramètres : reste SOUS la zone sûre au défilement (la cale de la zone sûre colle en haut, l'en-tête s'arrête dessous) */
 html body .stg-safe-top { position: sticky; top: 0; z-index: 11; background: linear-gradient(rgba(var(--pa-top),1), rgba(var(--pa-top),0)) 0 0 / 100% 160px no-repeat, var(--pa-page); }
