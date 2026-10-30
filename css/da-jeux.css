@@ -204,7 +204,10 @@ html[data-theme="dark"] .gj-tv-play { fill: #fff; stroke: #fff; }
 /* ── Décor de plage derrière la feuille (copié de la maquette Nous, clair) ── */
 #jxDecor { display: none; position: fixed; left: 0; right: 0; top: 0; height: var(--jx-dbot, 214px); z-index: 1; pointer-events: none; overflow: hidden; clip-path: inset(var(--jx-clip, 0px) 0 0 0); }
 #jxDecor svg { position: absolute; left: 50%; bottom: 0; margin-left: -196.5px; width: 393px; height: 216px; }
-html[data-yam-tab="jeux"][data-theme="warm"] #jxDecor { display: block; }   /* clair seulement ; plage de nuit : plus tard */
+html[data-yam-tab="jeux"][data-theme="warm"] #jxDecor, html[data-yam-tab="jeux"][data-theme="dark"] #jxDecor { display: block; }
+#jxDecor .jx-nuit { display: none; }
+html[data-theme="dark"] #jxDecor .jx-jour { display: none; }
+html[data-theme="dark"] #jxDecor .jx-nuit { display: block; }   /* plage de nuit : thème sombre */
 
 /* ── Feuille tirable : on la tient et on la tire vers le bas, elle revient avec un rebond ── */
 #yamJeuxTab .jx-scroll { will-change: transform; }
