@@ -3,13 +3,13 @@
    touché, y ajoute la silhouette + une copie de la photo, et fait glisser le bouton thème voisin sous la photo
    (il disparaît), puis le ramène à la fermeture. Styles : css/da-parametres.css (bloc « Menu du profil silhouette »). */
 (function(){
-  var W = 176;
+  var W = 132, CR = 16;
   /* Silhouette d'un seul tracé : tête ronde (rayon R, = la photo + 1 px) en haut à droite, corps qui en descend, raccord creux (rayon 14) tangent au cercle */
   function buildPath(R, H){
     var r = 14, Cx = W - R, d = Math.sqrt(R*R + 2*R*r), Fx = Cx - d, Fy = R - r, k = r / (R + r);
-    var Tx = (Fx + (Cx - Fx) * k).toFixed(2), Ty = (Fy + (R - Fy) * k).toFixed(2);
-    return 'M' + Cx + ' 0 A' + R + ' ' + R + ' 0 0 1 ' + W + ' ' + R + ' L' + W + ' ' + (H-22) + ' A22 22 0 0 1 ' + (W-22) + ' ' + H +
-      ' L22 ' + H + ' A22 22 0 0 1 0 ' + (H-22) + ' L0 ' + (R+22) + ' A22 22 0 0 1 22 ' + R + ' L' + Fx.toFixed(2) + ' ' + R +
+    var Tx = (Fx + (Cx - Fx) * k).toFixed(2), Ty = (Fy + (R - Fy) * k).toFixed(2), c = CR;
+    return 'M' + Cx + ' 0 A' + R + ' ' + R + ' 0 0 1 ' + W + ' ' + R + ' L' + W + ' ' + (H-c) + ' A' + c + ' ' + c + ' 0 0 1 ' + (W-c) + ' ' + H +
+      ' L' + c + ' ' + H + ' A' + c + ' ' + c + ' 0 0 1 0 ' + (H-c) + ' L0 ' + (R+c) + ' A' + c + ' ' + c + ' 0 0 1 ' + c + ' ' + R + ' L' + Fx.toFixed(2) + ' ' + R +
       ' A' + r + ' ' + r + ' 0 0 0 ' + Tx + ' ' + Ty + ' A' + R + ' ' + R + ' 0 0 1 ' + Cx + ' 0 Z';
   }
   var THEME_IDS = ['themeToggleHome','themeToggleDm1','themeToggleDm2','themeToggleGames','themeTogglePranks'];
@@ -59,7 +59,7 @@
     var av = pickAvatar();
     prepare(pp);
     var r = av ? av.getBoundingClientRect() : { left: window.innerWidth - 63, top: 48, width: 44, height: 44 };
-    var cx = r.left + r.width/2, cy = r.top + r.height/2, R = r.width/2 + 1, pt = R + 34, H = pt + 110;
+    var cx = r.left + r.width/2, cy = r.top + r.height/2, R = r.width/2 + 1, pt = R + 28, H = pt + 78;
     pp.style.setProperty('--pm-r', R + 'px'); pp.style.setProperty('--pm-pt', pt + 'px'); pp.style.setProperty('--pm-h', H + 'px');
     pp.style.setProperty('--pm-top', (cy - R) + 'px');
     pp.style.setProperty('--pm-right', (window.innerWidth - cx - R) + 'px');
