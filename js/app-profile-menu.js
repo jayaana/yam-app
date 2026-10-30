@@ -14,7 +14,7 @@
   }
   var THEME_IDS = ['themeToggleHome','themeToggleDm1','themeToggleDm2','themeToggleGames','themeTogglePranks'];
   var AVATAR_IDS = ['dmConvProfileBtn','yamStickyAvatarSelf','profileAvatar'];
-  var st = { on:false, timer:0, theme:null };
+  var st = { on:false, timer:0, theme:null, openedAt:0 };
 
   function visible(el){
     if(!el) return false;
@@ -79,7 +79,7 @@
       th.style.pointerEvents = 'none';
       requestAnimationFrame(function(){ th.style.transform = 'translateX(' + dx + 'px)'; th.style.opacity = '0'; });
     }
-    st.on = true;
+    st.on = true; st.openedAt = Date.now();
     pp.classList.add('yam-pm-on');
     requestAnimationFrame(function(){ requestAnimationFrame(function(){
       pp.classList.add('yam-pm-show');
@@ -108,6 +108,20 @@
       if(isOpen && !st.on) open(pp);
       else if(!isOpen && st.on) close(pp);
     }).observe(pp, { attributes:true, attributeFilter:['class'] });
+    /* Le menu ne doit jamais rester ouvert quand l'écran change (glissement pour quitter Messages, changement d'onglet, retour…) :
+       il est ancré à l'avatar de l'écran où on l'a ouvert. On le ferme aussi dès qu'on touche en dehors (un glissement n'envoie pas de « click »). */
+    function dismiss(){ if(st.on && Date.now() - st.openedAt > 350) pp.classList.remove('open'); }
+    new MutationObserver(dismiss).observe(document.documentElement, { attributes:true, attributeFilter:['data-yam-tab'] });
+    var hp = document.getElementById('hiddenPage');
+    if(hp) new MutationObserver(dismiss).observe(hp, { attributes:true, attributeFilter:['class'] });
+    window.addEventListener('popstate', dismiss);
+    document.addEventListener('touchstart', function(e){
+      if(!st.on) return;
+      var tg = e.target;
+      if(pp.contains(tg)) return;
+      for(var i = 0; i < AVATAR_IDS.length; i++){ var av = document.getElementById(AVATAR_IDS[i]); if(av && av.contains(tg)) return; }
+      pp.classList.remove('open');
+    }, { passive:true, capture:true });
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
