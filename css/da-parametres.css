@@ -5,12 +5,12 @@ html { --pa-ic: #111; --pa-page: #fff9f8; --pa-top: 255,194,187; --pa-danger: #c
 html[data-theme="dark"] { --pa-ic: #fff; --pa-page: #1a1614; --pa-top: 25,18,21; --pa-danger: #ff8a8a; }
 
 html body #settingsView, html body .stg-subpage {
-  background: linear-gradient(rgba(var(--pa-top),1), rgba(var(--pa-top),0)) 0 0 / 100% 120px no-repeat, var(--pa-page);
+  background: linear-gradient(rgba(var(--pa-top),1), rgba(var(--pa-top),0)) 0 0 / 100% 160px no-repeat, var(--pa-page);
   --bg: var(--pa-page);
 }
 html[data-theme="warm"] #settingsView, html[data-theme="warm"] .stg-subpage { --s2: #fdf0ee; }
 html body .stg-header {
-  background: linear-gradient(rgba(var(--pa-top),1), rgba(var(--pa-top),0)) 0 calc(-1 * env(safe-area-inset-top, 0px)) / 100% 120px no-repeat, var(--pa-page);
+  background: linear-gradient(rgba(var(--pa-top),1), rgba(var(--pa-top),0)) 0 calc(-1 * env(safe-area-inset-top, 0px)) / 100% 160px no-repeat, var(--pa-page);
   border-bottom: 0;
 }
 html body .stg-title { font: 600 20px/1.2 'Fredoka', system-ui, sans-serif; }
@@ -62,11 +62,17 @@ html { --pa-ic-w: 2.3; }
 html body #settingsView .stg-btn-danger { background: var(--pa-danger); color: #fff; border: 0; }
 html[data-theme="dark"] body #settingsView .stg-btn-danger { color: #2a0a0a; }
 html body #settingsView .stg-btn-danger .ys { stroke: currentColor; --st-ac: currentColor; }
-/* Zone sûre (haut de l'écran iPhone) : même teinte que les onglets, plus de blanc quand les Paramètres sont ouverts */
-html[data-theme][data-yam-settings], html[data-theme][data-yam-settings][data-yam-tab] { background: rgb(var(--pa-top)) !important; background-color: rgb(var(--pa-top)) !important; }
+/* Zone sûre : MÊME principe que les onglets (da-accueil.css / da-jeux.css) : dégradé 160 px + couleur de fond sur <html>,
+   marque data-yam-settings posée par openAccountModal. Les Paramètres restent transparents en haut pour la laisser voir. */
+html[data-yam-settings][data-yam-tab][data-theme], html[data-yam-settings][data-theme] {
+  background: linear-gradient(rgb(var(--pa-top)), rgba(var(--pa-top),0)) 0 0 / 100% 160px no-repeat, linear-gradient(var(--pa-page), var(--pa-page)) !important;
+  background-repeat: no-repeat !important; background-color: rgb(var(--pa-top)) !important;   /* comme les onglets : la COULEUR de fond est celle de la zone sûre */
+}
+html[data-yam-settings] body, html[data-yam-settings] body.light { background: transparent !important; background-image: none !important; }
+html body #settingsView { background: transparent; }
 
 /* En-tête des Paramètres : reste SOUS la zone sûre au défilement (la cale de la zone sûre colle en haut, l'en-tête s'arrête dessous) */
-html body .stg-safe-top { position: sticky; top: 0; z-index: 11; background: linear-gradient(rgba(var(--pa-top),1), rgba(var(--pa-top),0)) 0 0 / 100% 120px no-repeat, var(--pa-page); }
+html body .stg-safe-top { position: sticky; top: 0; z-index: 11; background: linear-gradient(rgba(var(--pa-top),1), rgba(var(--pa-top),0)) 0 0 / 100% 160px no-repeat, var(--pa-page); }
 html body .stg-header { top: env(safe-area-inset-top, 0px); }
 /* Menu du profil dans Messages : il est DANS le <header> que main.css cache sous le chat (visibility:hidden hérité) */
 body:has(#hiddenPage.active) #profilePopup.open { visibility: visible !important; pointer-events: auto !important; }
