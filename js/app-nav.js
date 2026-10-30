@@ -1107,6 +1107,26 @@ window._yamSettingsSwipeBack = function(){
   return true;
 };
 
+/* ── 12a. Glissement vers la droite pendant que les Paramètres sont ouverts : ferme la sous-page, puis les Paramètres.
+   Indépendant du chat / des jeux dessous (qui restent ouverts). ── */
+(function(){
+  var _x = 0, _y = 0, _on = false, _last = 0;
+  document.addEventListener('touchstart', function(e){
+    _on = document.body.classList.contains('settings-open') && e.touches.length === 1;
+    if(_on){ _x = e.touches[0].clientX; _y = e.touches[0].clientY; }
+  }, { passive: true, capture: true });
+  document.addEventListener('touchend', function(e){
+    if(!_on) return; _on = false;
+    if(!document.body.classList.contains('settings-open')) return;
+    var t = e.changedTouches[0], dx = t.clientX - _x, dy = t.clientY - _y;
+    if(dx < 55 || Math.abs(dy) > dx * 0.7) return;
+    var ae = document.activeElement;
+    if(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return;
+    if(Date.now() - _last < 450) return; _last = Date.now();
+    if(window._yamSettingsSwipeBack) window._yamSettingsSwipeBack();
+  }, { passive: true, capture: true });
+})();
+
 /* ── 12b. SWIPE retour dans hiddenPage (swipe droit uniquement) ── */
 /* Swipe GAUCHE (avancer) désactivé volontairement — causait des bugs.
    Swipe DROIT → history.go(-1) → popstate sentinelle → retour propre.      */
@@ -1161,7 +1181,7 @@ setTimeout(function(){
     if(Math.abs(dx) < 55) return;
     if(Math.abs(dy) > Math.abs(dx) * 0.7) return;
 
-    if(window._yamSettingsSwipeBack()){ haptic('light'); return; }
+    if(document.body.classList.contains('settings-open')) return;   // géré par le glissement des Paramètres (12a)
 
     var sc = dmScreen();
     // Conv : toujours bloqué
@@ -1231,7 +1251,7 @@ setTimeout(function(){
     if(Math.abs(dx) < 55) return;
     if(Math.abs(dy) > Math.abs(dx) * 0.7) return;
 
-    if(window._yamSettingsSwipeBack()){ haptic('light'); return; }
+    if(document.body.classList.contains('settings-open')) return;   // géré par le glissement des Paramètres (12a)
 
     _gThrottle = true;
     setTimeout(function(){ _gThrottle = false; }, 500);

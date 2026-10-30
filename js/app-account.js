@@ -2198,9 +2198,10 @@ window.openAccountModal = function(){
       if(el && swCache) el.textContent = swCache + ' — You And Me';
     });
   }
-  // Fermer le popup profil si ouvert
+  // Fermer le popup profil et le picker d'humeur (avec son voile sombre) si ouverts
   var pp = document.getElementById('profilePopup');
   if(pp) pp.classList.remove('open');
+  if(window.closeMoodPicker) window.closeMoodPicker();
 
   // Rafraîchir la session pour avoir les données les plus récentes
   if(window.v2RefreshSession){
