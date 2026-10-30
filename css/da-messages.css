@@ -179,3 +179,7 @@ html body #hiddenPage .dm-audio-waveform { overflow: hidden; gap: 1px; }
 html body #hiddenPage .dm-audio-waveform .dm-wv-bar { width: 2px; }
 html body #hiddenPage .dm-audio-bubble { padding: 2px 12px 2px 6px; max-width: 280px; }
 html body #hiddenPage .dm-bubble:has(.dm-audio-bubble) { padding: 0; }
+
+/* Messages est un calque posé SUR l'onglet en cours (l'Accueil reste dessous). On masque les panneaux d'onglet quand le chat est ouvert :
+   après le clavier iOS la fenêtre se décale et laissait voir les nuages de l'Accueil. visibility garde la mise en page et le défilement. */
+body:has(#hiddenPage.active) .yam-tab-panel { visibility: hidden; }
