@@ -14,19 +14,36 @@
   };
   var _currentTab = 'home';
 
+  // Voile « page fantôme » pendant les aller-retours internes (parade iOS fenêtre fraîche) : plein écran, fond du thème
+  // (dégradé de la zone sûre en haut), posé AU-DESSUS de l'onglet de passage pour qu'on ne voie ni Musique ni le clignotement.
+  // Il ne change rien à la mise en page (position:fixed) : les changements d'onglet dessous se font comme avant.
+  function _yamBounceCover(on){
+    var c = document.getElementById('yamBounceCover');
+    if(!on){ if(c) setTimeout(function(){ var c2 = document.getElementById('yamBounceCover'); if(c2 && !window._yamBouncing) c2.remove(); }, 120); return; }
+    if(c) return;
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    c = document.createElement('div');
+    c.id = 'yamBounceCover';
+    c.setAttribute('aria-hidden', 'true');
+    c.style.cssText = 'position:fixed;left:0;top:0;right:0;bottom:0;z-index:99990;pointer-events:auto;' +
+      (dark ? 'background:linear-gradient(#191215 0,#372b32 230px,#372b32 40%,#1f171b);background-color:#1f171b;'
+            : 'background:linear-gradient(#ffc2bb 0,#ffeaf0 230px,#ffeaf0);background-color:#ffeaf0;');
+    document.body.appendChild(c);
+  }
+
   window.yamSwitchTab = function(tab) {
     // Reclic sur Accueil alors qu'on y est déjà : aller-retour interne par Musique (sans affichage ni chargement)
     // pour que iOS recalcule sa zone visible, comme après un vrai changement d'onglet
     if(tab === 'home' && (_currentTab === 'home' || document.documentElement.getAttribute('data-yam-tab') === 'home') && !window._yamBouncing){
-      window._yamBouncing = true;
+      window._yamBouncing = true; _yamBounceCover(true);
       // Deux aller-retours : le 1er ne suffit pas toujours sur iPhone (le 2e clic manuel réglait le problème)
       var _bounce = function(n){
         window.yamSwitchTab('musique');
         // Musique doit être réellement affichée (au moins une image) avant de revenir : iOS ne recalcule sa zone visible qu'à ce prix
         requestAnimationFrame(function(){ requestAnimationFrame(function(){
-          try { window.yamSwitchTab('home'); } catch(e) { window._yamBouncing = false; return; }
+          try { window.yamSwitchTab('home'); } catch(e) { window._yamBouncing = false; _yamBounceCover(false); return; }
           if(n > 1) setTimeout(function(){ _bounce(n - 1); }, 150);
-          else window._yamBouncing = false;
+          else { window._yamBouncing = false; _yamBounceCover(false); }
         }); });
       };
       _bounce(2);
@@ -36,13 +53,13 @@
     // (2 aller-retours internes par Musique, 2 images + 150 ms) sinon iOS décale la fenêtre de ~59 px et l'en-tête passe sous la zone sûre
     if(tab === 'jeux' && !window._yamJeuxBounced && !window._yamBouncing){
       window._yamJeuxBounced = true;
-      window._yamBouncing = true;
+      window._yamBouncing = true; _yamBounceCover(true);
       var _bounceJ = function(n){
         window.yamSwitchTab('musique');
         requestAnimationFrame(function(){ requestAnimationFrame(function(){
-          try { window.yamSwitchTab('jeux'); } catch(e) { window._yamBouncing = false; return; }
+          try { window.yamSwitchTab('jeux'); } catch(e) { window._yamBouncing = false; _yamBounceCover(false); return; }
           if(n > 1) setTimeout(function(){ _bounceJ(n - 1); }, 150);
-          else window._yamBouncing = false;
+          else { window._yamBouncing = false; _yamBounceCover(false); }
         }); });
       };
       _bounceJ(2);
@@ -53,13 +70,13 @@
     // dès la 2e ouverture du clavier.
     if(tab === 'messages' && !window._yamMsgBounced && !window._yamBouncing){
       window._yamMsgBounced = true;
-      window._yamBouncing = true;
+      window._yamBouncing = true; _yamBounceCover(true);
       var _bounceM = function(n){
         window.yamSwitchTab('musique');
         requestAnimationFrame(function(){ requestAnimationFrame(function(){
-          try { window.yamSwitchTab('messages'); } catch(e) { window._yamBouncing = false; return; }
+          try { window.yamSwitchTab('messages'); } catch(e) { window._yamBouncing = false; _yamBounceCover(false); return; }
           if(n > 1) setTimeout(function(){ _bounceM(n - 1); }, 150);
-          else window._yamBouncing = false;
+          else { window._yamBouncing = false; _yamBounceCover(false); }
         }); });
       };
       _bounceM(2);
