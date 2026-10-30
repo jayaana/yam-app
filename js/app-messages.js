@@ -1676,16 +1676,27 @@
       return chip;
     }
 
-    if(rg && rb && rg === rb){
+    if(rg && rb){
+      // Style Instagram : à deux, UNE seule pastille fusionnée, sans avatars (emoji seulement ; « 2 » si c'est le même)
       var chip = document.createElement('div');
-      chip.className = 'dm-react';
-      chip.appendChild(_makeReactAvatar('girl'));
-      chip.appendChild(_makeReactAvatar('boy'));
-      var em = document.createElement('span');
-      em.style.cssText = 'font-size:15px;line-height:1;';
-      em.textContent = rg;
-      chip.appendChild(em);
-      chip.addEventListener('click', function(){ setReaction(msg, wrap, null); });
+      chip.className = 'dm-react dm-react-merged';
+      function addEm(emoji, who){
+        var em = document.createElement('span');
+        em.style.cssText = 'font-size:15px;line-height:1;';
+        em.textContent = emoji;
+        if(identity === who) em.addEventListener('click', function(ev){ ev.stopPropagation(); setReaction(msg, wrap, null); });
+        chip.appendChild(em);
+      }
+      if(rg === rb){
+        addEm(rg, identity);
+        var cnt = document.createElement('span');
+        cnt.className = 'dm-react-count';
+        cnt.textContent = '2';
+        chip.appendChild(cnt);
+        chip.addEventListener('click', function(){ setReaction(msg, wrap, null); });
+      } else {
+        addEm(rg, 'girl'); addEm(rb, 'boy');
+      }
       row.appendChild(chip);
     } else {
       if(rg) row.appendChild(makeChip('girl', rg, identity === 'girl'));

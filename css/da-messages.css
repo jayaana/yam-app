@@ -267,3 +267,5 @@ html body #hiddenPage .dm-photo-wrap.has-reaction, html body #hiddenPage .dm-vid
 html body #hiddenPage .dm-react { padding: 2px 6px 2px 3px; gap: 3px; border-radius: 16px; }
 html body #hiddenPage .dm-react img { width: 14px !important; height: 14px !important; min-width: 14px !important; max-width: 14px !important; }
 html body #hiddenPage .dm-react span { font-size: 12px !important; }
+html body #hiddenPage .dm-react-merged { gap: 4px; padding: 2px 7px; }
+html body #hiddenPage .dm-react-count { font: 600 11px/1 var(--gu-font-text) !important; color: var(--gu-text-2); }
