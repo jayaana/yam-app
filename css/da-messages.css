@@ -10,11 +10,15 @@
 #hiddenPage {
   --dm-safe: max(env(safe-area-inset-top, 0px), var(--yam-sim-safe, 0px));
   --dm-line: rgba(74,15,46,.22);
-  --dm-ink: #4a0f2e;            /* heures, « Vu », jour : sur le dégradé */
-  --dm-ctl: #4a0f2e;            /* icônes de la barre de saisie */
+  --gu-text: #1a1a1a;           /* textes du chat en noir (plus de brun-prune), thème clair */
+  --gu-text-2: #5b5b60;
+  --dm-ink: #3a3a3e;            /* heures, « Vu », jour : sur le dégradé */
+  --dm-ctl: #1a1a1a;            /* icônes de la barre de saisie */
   --dm-hdr: calc(var(--dm-safe) + 2px + 48px + 8px + 2px);
 }
 html[data-theme="dark"] #hiddenPage {
+  --gu-text: #fff;
+  --gu-text-2: #cfc4c8;
   --dm-line: rgba(255,255,255,.16);
   --dm-ink: #cfc4c8;
   --dm-ctl: #fff;
@@ -121,7 +125,7 @@ html body #hiddenPage .dm-bubble-meta { font: 600 10.5px/1.2 var(--gu-font-text)
 html body #hiddenPage .dm-msg-wrap.mine .dm-bubble-meta { color: rgba(255,255,255,.92); }
 html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-bubble-meta { color: var(--gu-text-2); }
 html body #hiddenPage .dm-seen-label { font: 600 10.5px/1.2 var(--gu-font-text); color: var(--dm-ink); }
-html body #hiddenPage .dm-reply-preview { background: rgba(0,0,0,.14); border-left-color: rgba(255,255,255,.6); }
+html body #hiddenPage .dm-reply-preview { background: rgba(255,255,255,.22); border-left-color: rgba(255,255,255,.75); color: #fff; opacity: 1; }
 html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-reply-preview { background: var(--gu-chip); border-left-color: var(--gu-accent); }
 
 /* Réaction (style Instagram) : la pastille chevauche le bas de la bulle, son contour a la couleur du fond
@@ -208,7 +212,9 @@ body:has(#hiddenPage.active) .yam-tab-panel { visibility: hidden; }
 
 /* Plus aucun violet dans la messagerie (restes de l'ancien style de main.css) */
 html body #dmLoadMoreBtn, html body.light #dmLoadMoreBtn { background: var(--gu-card); color: var(--gu-accent); }
-html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-edit-input { background: var(--gu-chip); border-color: var(--gu-accent); color: var(--gu-text); }
+html body #hiddenPage .dm-edit-input { font-family: var(--gu-font-text); font-weight: 500; }
+html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-edit-input { background: #fff; border-color: var(--gu-accent); color: var(--gu-text); }
+html[data-theme="dark"] body #hiddenPage .dm-msg-wrap:not(.mine) .dm-edit-input { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.4); }
 
 /* Bulle vocale : l'heure (dm-bubble-meta) était collée au bord et dépassait à droite (padding de la bulle à 0).
    On remet un retrait à l'heure et on cadre le contenu. */
@@ -248,7 +254,7 @@ html[data-yam-tab="messages"] #miniPlayer { display: none !important; }
 html body #hiddenPage .dm-msg-wrap.has-reaction { margin-bottom: 22px !important; }
 
 /* Thème sombre : citation du message auquel on répond, à l'intérieur de la bulle (même famille que la bulle) */
-html[data-theme="dark"] body #hiddenPage .dm-reply-preview { background: rgba(0,0,0,.22); border-left-color: rgba(255,255,255,.7); color: rgba(255,255,255,.88); }
+html[data-theme="dark"] body #hiddenPage .dm-reply-preview { background: rgba(255,255,255,.22); border-left-color: rgba(255,255,255,.75); color: #fff; }
 html[data-theme="dark"] body #hiddenPage .dm-msg-wrap:not(.mine) .dm-reply-preview { background: rgba(255,255,255,.10); border-left-color: var(--gu-bubble-me); color: rgba(255,255,255,.88); }
 
 /* Texte à 14 px (comme Instagram) : citation de réponse un cran en dessous */
