@@ -25,9 +25,24 @@ html[data-theme="dark"] #hiddenPage {
 html[data-yam-tab="messages"] { background: linear-gradient(#ffc2bb, rgba(255,194,187,0)) 0 0 / 100% 160px no-repeat, var(--gu-bg-page) !important; background-repeat: no-repeat !important; background-color: #ffc2bb !important; }
 html[data-theme="dark"][data-yam-tab="messages"] { background: linear-gradient(#191215, rgba(25,18,21,0)) 0 0 / 100% 160px no-repeat, var(--gu-bg-page) !important; background-repeat: no-repeat !important; background-color: #191215 !important; }
 html[data-yam-tab="messages"] body, html[data-yam-tab="messages"] body.light { background: transparent !important; background-image: none !important; }
-/* Fond OPAQUE (sinon l'onglet précédent se voit à travers) : mêmes couleurs et dégradés que l'Accueil */
-html body #hiddenPage { background: linear-gradient(#ffc2bb, rgba(255,194,187,0)) 0 0 / 100% 160px no-repeat, var(--gu-bg-page) !important; background-color: #ffc2bb !important; background-repeat: no-repeat !important; }
-html[data-theme="dark"] body #hiddenPage { background: linear-gradient(#191215, rgba(25,18,21,0)) 0 0 / 100% 160px no-repeat, var(--gu-bg-page) !important; background-color: #191215 !important; background-repeat: no-repeat !important; }
+/* Fond OPAQUE (sinon l'onglet précédent se voit à travers). Le HAUT reprend le fond des autres pages (zone sûre iOS
+   peinte par html : #ffc2bb clair / #191215 sombre), puis il s'éclaircit vers la couleur de la feuille de la page Jeux
+   (--gu-sheet : #ffeaf0 clair, #372b32 > #1f171b sombre) pour la partie basse. */
+html body #hiddenPage {
+  background: linear-gradient(#ffc2bb 0, #ffeaf0 230px, #ffeaf0) !important;
+  background-color: #ffeaf0 !important; background-repeat: no-repeat !important;
+}
+html[data-theme="dark"] body #hiddenPage {
+  background: linear-gradient(#191215 0, #372b32 230px, #372b32 40%, #1f171b) !important;
+  background-color: #1f171b !important; background-repeat: no-repeat !important;
+}
+/* Sur la feuille claire, bulles et pilule blanches : léger contour pour qu'elles se détachent */
+html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-bubble,
+html body #hiddenPage .dm-input-wrap,
+html body #hiddenPage .dm-day-label { box-shadow: 0 0 0 1px rgba(212,48,111,.16); }
+html[data-theme="dark"] body #hiddenPage .dm-msg-wrap:not(.mine) .dm-bubble,
+html[data-theme="dark"] body #hiddenPage .dm-input-wrap,
+html[data-theme="dark"] body #hiddenPage .dm-day-label { box-shadow: 0 0 0 1px rgba(255,255,255,.10); }
 html body #hiddenPage .dm-chat-screen { background: transparent; }
 
 /* ── En-tête : identique aux autres onglets (logo, bouton thème, avatar) ─ */
