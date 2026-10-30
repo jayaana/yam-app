@@ -1714,6 +1714,8 @@
     var row = wrap.querySelector('.dm-react-row');
     if(!bub) return;
     if(!row){ bub.style.webkitMaskImage = bub.style.maskImage = ''; return; }
+    if(!bub._dmCutRO && window.ResizeObserver){ bub._dmCutRO = new ResizeObserver(function(){ cutBubbleForReactions(wrap); }); bub._dmCutRO.observe(bub); }
+    var _img = bub.querySelector('img'); if(_img && !_img._dmCutLoad){ _img._dmCutLoad = true; _img.addEventListener('load', function(){ cutBubbleForReactions(wrap); }); }
     // Photo / vidéo : la rangée est dans le .dm-photo-wrap, pas alignée sur l'image -> on la cale sur le bas de l'image
     if(bub.classList.contains('dm-photo-inner') || bub.classList.contains('dm-video-inner')){
       var rw = row.offsetWidth;
@@ -1723,7 +1725,6 @@
     }
     var b = bub.getBoundingClientRect(), r = row.getBoundingClientRect();
     if(!b.width || !r.width) return;
-    if(!bub._dmCutRO && window.ResizeObserver){ bub._dmCutRO = new ResizeObserver(function(){ cutBubbleForReactions(wrap); }); bub._dmCutRO.observe(bub); }
     var pad = 3, x = r.left - b.left - pad, y = r.top - b.top - pad, w = r.width + pad * 2, h = r.height + pad * 2;
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + b.width + '" height="' + b.height + '">' +
       '<rect width="100%" height="100%" fill="#fff"/><rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h +
