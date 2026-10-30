@@ -84,3 +84,9 @@ html[data-theme="dark"] body .stg-row-toggle { background: #5a4a50; }
 html body .stg-row-toggle.on { background: var(--gu-card-her, #ff5f97); }
 html[data-theme="dark"] body .stg-row-toggle.on { background: var(--gu-her, #ff7a8f); }
 html body .stg-2fa-dot.on { background: var(--gu-ok, #3ccd88); box-shadow: none; }
+
+/* iOS : ouvrir les Paramètres ne doit PAS changer la hauteur du document (sinon, après actualisation ou changement d'onglet,
+   iOS décale la fenêtre de ~59 px et la zone sûre devient blanche). On garde donc l'en-tête dans le flux (invisible, caché
+   de toute façon par l'écran des Paramètres) et on ne modifie pas le débordement du body. */
+html body.settings-open #yamMainHeader { display: block !important; visibility: hidden; }
+html body.settings-open { overflow: revert !important; overflow-x: hidden !important; }
