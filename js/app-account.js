@@ -2696,7 +2696,7 @@ window.acDeleteAvatarGo = function(){
     var btn = document.createElement('div');
     btn.id = 'ppBtnAccount';
     btn.className = 'profile-popup-btn';
-    btn.innerHTML = '<span style="margin-right:6px;">⚙️</span> Paramètres';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></svg> Paramètres';
     btn.onclick = function(){ openAccountModal(); };
     var logoutBtn = document.getElementById('ppBtnLogout');
     if(logoutBtn) pp.insertBefore(btn, logoutBtn);
@@ -3351,11 +3351,13 @@ window.addEventListener('load', function(){
     var wrap         = document.getElementById('profileAvatarWrap');
     var avatarDirect = document.getElementById('profileAvatar');
     var stickyAvatar = document.getElementById('yamStickyAvatarSelf');
+    var dmAvatar     = document.getElementById('dmConvProfileBtn');
     var pp           = document.getElementById('profilePopup');
     var picker       = document.getElementById('moodPicker');
     var clickedInside = (wrap && wrap.contains(e.target))
       || (avatarDirect && avatarDirect.contains(e.target))
-      || (stickyAvatar && stickyAvatar.contains(e.target));
+      || (stickyAvatar && stickyAvatar.contains(e.target))
+      || (dmAvatar && dmAvatar.contains(e.target));
     if(pp && pp.classList.contains('open') && !clickedInside && !pp.contains(e.target))
       pp.classList.remove('open');
     if(picker && picker.classList.contains('open') && !picker.contains(e.target) && !clickedInside)

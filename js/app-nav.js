@@ -443,7 +443,15 @@ function _dmUpdateHeaderAvatars(){
   new MutationObserver(function(){ _dmUpdateHeaderAvatars(); })
     .observe(mainDot, {attributes:true, attributeFilter:['class']});
 })();
-function closeHiddenPage(){document.getElementById('hiddenPage').classList.remove('active');}
+function closeHiddenPage(){
+  document.getElementById('hiddenPage').classList.remove('active');
+  // Le wrapper de app-messages.js est écrasé par cette déclaration : on nettoie ici, sinon le chat
+  // fermé par un autre chemin (ex. retour des Paramètres) laisse dm-chat-active et cache la barre du bas
+  document.body.classList.remove('dm-chat-active');
+  if(window._dmReleaseStream) window._dmReleaseStream();
+  var fb = document.getElementById('floatingThemeBtn');
+  if(fb){ fb.style.opacity = ''; fb.style.pointerEvents = ''; }
+}
 lockInput.addEventListener('keydown',function(e){if(e.key==='Enter')checkCode();});
 document.addEventListener('click',function(e){
   if(lockPopup.style.display==='block'&&!lockPopup.contains(e.target)&&!document.getElementById('lockNavBtn').contains(e.target))lockPopup.style.display='none';
@@ -719,6 +727,17 @@ function goTo(id){resetZoom();closeAllViews();document.getElementById('libraryPo
     _busy = true;
     // Repousser la sentinelle immédiatement — bloque tout retour navigateur
     history.pushState({ jy:'sentinel' }, '');
+
+    // Paramètres ouverts : le retour téléphone / glissement ferme d'abord la sous-page, puis les Paramètres
+    // (avant : il fermait le chat ou le jeu caché dessous, et les Paramètres restaient affichés)
+    if(document.body.classList.contains('settings-open')){
+      var _sub = document.querySelector('.stg-subpage.active');
+      var _subBack = _sub && _sub.querySelector('.stg-back');
+      if(_subBack) _subBack.click();
+      else if(window.closeAccountModal) window.closeAccountModal();
+      setTimeout(function(){ _busy = false; }, 400);
+      return;
+    }
 
     // Si on est sur conv → ignorer complètement le swipe natif du bord
     // (conv n'a pas de retour — seul le bouton × ferme la vue)

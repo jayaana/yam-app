@@ -1,0 +1,52 @@
+/* Phase 6 — Paramètres + menu du profil : page sobre (structure d'origine), fond très clair avec un léger
+   dégradé de la couleur de la zone sûre (comme l'Accueil), icônes monochromes (noir en clair, blanc en sombre).
+   Chargé APRÈS main.css et les styles injectés par app-account.js (mêmes sélecteurs, ordre de déclaration). */
+html { --pa-ic: #111; --pa-page: #fff9f8; --pa-top: 255,194,187; --pa-danger: #c0392b; --pa-ic-w: 2.8; }
+html[data-theme="dark"] { --pa-ic: #fff; --pa-page: #1a1614; --pa-top: 25,18,21; --pa-danger: #ff8a8a; }
+
+html body #settingsView, html body .stg-subpage {
+  background: linear-gradient(rgba(var(--pa-top),1), rgba(var(--pa-top),0)) 0 0 / 100% 120px no-repeat, var(--pa-page);
+  --bg: var(--pa-page);
+}
+html[data-theme="warm"] #settingsView, html[data-theme="warm"] .stg-subpage { --s2: #fdf0ee; }
+html body .stg-header {
+  background: linear-gradient(rgba(var(--pa-top),1), rgba(var(--pa-top),0)) 0 calc(-1 * env(safe-area-inset-top, 0px)) / 100% 120px no-repeat, var(--pa-page);
+  border-bottom: 0;
+}
+html body .stg-title { font: 600 20px/1.2 'Fredoka', system-ui, sans-serif; }
+html body .stg-back { width: 44px; height: 44px; background: var(--s1); }
+html body .stg-back svg { stroke-width: 2.5; }
+html body .stg-row { min-height: 56px; padding-top: 6px; padding-bottom: 6px; }
+html body .stg-row-title.danger { color: var(--pa-danger); }
+
+/* Icônes des lignes : sobres, monochromes, trait épais */
+html body #settingsView .stg-row-icon, html body .stg-subpage .stg-row-icon {
+  width: 36px; height: 36px; border-radius: 10px; box-shadow: none !important; background: var(--s2) !important;
+}
+html body #settingsView svg.ys, html body .stg-subpage svg.ys, html body .stg-bug-sheet svg.ys {
+  stroke: var(--pa-ic); stroke-width: var(--pa-ic-w); --st-ac: var(--pa-ic); --st-ac2: var(--pa-ic);
+}
+html body svg.ys .f, html body svg.ys .g { fill: none; fill-opacity: 1; }
+html body svg.ys .d { fill: var(--pa-ic); }
+html body svg.ys .h, html body svg.ys .w { display: none; }
+html body .stg-btn-danger .ys { --st-ac: var(--pa-danger); stroke: var(--pa-danger); }
+html body .stg-bug-sheet .stg-bug-cat-icon { background: var(--s2); box-shadow: none; }
+
+/* Menu du profil (avatar) : même sobriété, lignes de 44 px minimum */
+#profilePopup {
+  top: calc(env(safe-area-inset-top, 0px) + 64px); min-width: 210px; padding: 6px; gap: 2px; border-radius: 18px;
+  background: var(--s1); border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(60,10,30,.18);
+}
+html[data-theme="dark"] #profilePopup { box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+#profilePopup .profile-popup-label { font: 600 18px 'Fredoka', system-ui, sans-serif !important; padding: 8px 12px 6px !important; color: var(--text) !important; border-bottom: 1px solid var(--border) !important; text-transform: none; letter-spacing: 0; }
+#profilePopup .profile-popup-btn {
+  min-height: 48px; padding: 0 12px; gap: 12px; border: 0; border-radius: 12px; background: transparent;
+  font: 600 16px 'Fredoka', system-ui, sans-serif; color: var(--text);
+}
+#profilePopup .profile-popup-btn:active { background: var(--s2); }
+#profilePopup .profile-popup-btn svg { width: 22px; height: 22px; flex: none; stroke: var(--pa-ic); stroke-width: 2.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+#profilePopup #ppMoodIcon { width: 22px; text-align: center; font-size: 20px; }
+#profilePopup #ppBtnLogout { margin-top: 2px !important; color: var(--pa-danger) !important; border: 0 !important; }
+#profilePopup #ppBtnLogout svg { stroke: var(--pa-danger); }
+html body .stg-avatar-del { background: var(--pa-danger); font-size: 11px; width: 20px; height: 20px; }
+html[data-theme="dark"] body .stg-avatar-del { color: #1a1614; }

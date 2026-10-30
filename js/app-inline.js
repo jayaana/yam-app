@@ -632,7 +632,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // ── DM Messages ──
   _on('dmHomeConv',            'click', function(){ window.dmOpenMessaging && window.dmOpenMessaging(); });
-  _on('dmConvProfileBtn',      'click', function(){ if(window.openAccountModal) window.openAccountModal(); else if(window.toggleProfilePopup) window.toggleProfilePopup(); });
+  _on('dmConvProfileBtn',      'click', function(){ if(window.toggleProfilePopup) window.toggleProfilePopup(); else if(window.openAccountModal) window.openAccountModal(); });
   _on('dmIdentityScreen',      'click', function(e){ window.dmCloseIdentityIfOutside && window.dmCloseIdentityIfOutside(e); });
   _on('dmIdBtnGirl',           'click', function(){ window.dmSetIdentity && window.dmSetIdentity('girl'); });
   _on('dmIdBtnBoy',            'click', function(){ window.dmSetIdentity && window.dmSetIdentity('boy'); });
