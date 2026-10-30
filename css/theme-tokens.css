@@ -48,7 +48,7 @@ html[data-theme="warm"] {
   --gu-chip-on: #ffa5bf;
   --gu-chip-on-text: #4a0f2e;
   --gu-separator: #ffc9d8;
-  --gu-bubble-me: #d93a56;
+  --gu-bubble-me: #e6416a;
   --gu-bubble-me-text: #fff;
   --gu-bubble-other: #fff;
   --gu-bubble-other-text: #4a0f2e;
@@ -102,9 +102,9 @@ html[data-theme="dark"] {
   --gu-chip-on: #ffb3c6;
   --gu-chip-on-text: #2a1018;
   --gu-separator: #5e4048;
-  --gu-bubble-me: #d93a56;
+  --gu-bubble-me: #e6416a;
   --gu-bubble-me-text: #fff;
-  --gu-bubble-other: #3a2d34;
+  --gu-bubble-other: #5a4650;
   --gu-bubble-other-text: #fff;
   --gu-nav-bg: #0c0809;
   --gu-nav-text: #fff;             /* ESSAI sobre : blanc (avant : rose #ffb9c8) */

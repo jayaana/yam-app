@@ -37,10 +37,8 @@ html[data-theme="dark"] body #hiddenPage {
   background-color: #1f171b !important; background-repeat: no-repeat !important;
 }
 /* Sur la feuille claire, bulles et pilule blanches : léger contour pour qu'elles se détachent */
-html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-bubble,
 html body #hiddenPage .dm-input-wrap,
 html body #hiddenPage .dm-day-label { box-shadow: 0 0 0 1px rgba(212,48,111,.16); }
-html[data-theme="dark"] body #hiddenPage .dm-msg-wrap:not(.mine) .dm-bubble,
 html[data-theme="dark"] body #hiddenPage .dm-input-wrap,
 html[data-theme="dark"] body #hiddenPage .dm-day-label { box-shadow: 0 0 0 1px rgba(255,255,255,.10); }
 html body #hiddenPage .dm-chat-screen { background: transparent; }
@@ -126,11 +124,14 @@ html body #hiddenPage .dm-seen-label { font: 600 11px/1.2 var(--gu-font-text); c
 html body #hiddenPage .dm-reply-preview { background: rgba(0,0,0,.14); border-left-color: rgba(255,255,255,.6); }
 html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-reply-preview { background: var(--gu-chip); border-left-color: var(--gu-accent); }
 
-/* Réaction : pastille blanche cerclée à l'intérieur du coin de la bulle */
+/* Réaction (style Instagram) : la pastille chevauche le bas de la bulle, son contour a la couleur du fond
+   du chat : il « découpe » la bulle et sépare le message de sa réaction.
+   La découpe est faite dans la bulle par un masque posé en JS (app-messages.js, cutBubbleForReactions). */
+html body #hiddenPage .dm-react-row { bottom: -16px; }
 html body #hiddenPage .dm-react {
-  background: var(--gu-card); border: 0; padding: 3px 7px 3px 5px; border-radius: 20px;
-  box-shadow: 0 0 0 3px var(--gu-chip);
+  background: #fff; border: 0; padding: 3px 7px 3px 5px; border-radius: 20px; box-shadow: none;
 }
+html[data-theme="dark"] body #hiddenPage .dm-react { background: var(--gu-bubble-other); }
 
 /* Vocal : lecture blanche + onde blanche (bulle « moi »), rouge sur bulle de l'autre */
 html body #hiddenPage .dm-audio-play { width: var(--gu-tap); height: var(--gu-tap); background: #fff; color: var(--gu-bubble-me); }
@@ -142,6 +143,11 @@ html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-audio-waveform .dm-wv-bar.play
 html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-audio-waveform .dm-wv-thumb { background: var(--gu-bubble-me); }
 html body #hiddenPage .dm-audio-dur { font: 700 12px/1 var(--gu-font-text); color: rgba(255,255,255,.92); font-variant-numeric: tabular-nums; }
 html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-audio-dur { color: var(--gu-text-2); }
+/* Thème sombre : onde et durée du vocal reçu en blanc (lisibles sur la bulle sombre) */
+html[data-theme="dark"] body #hiddenPage .dm-msg-wrap:not(.mine) .dm-audio-waveform .dm-wv-bar { background: rgba(255,255,255,.4); }
+html[data-theme="dark"] body #hiddenPage .dm-msg-wrap:not(.mine) .dm-audio-waveform .dm-wv-bar.played,
+html[data-theme="dark"] body #hiddenPage .dm-msg-wrap:not(.mine) .dm-audio-waveform .dm-wv-thumb { background: #fff; }
+html[data-theme="dark"] body #hiddenPage .dm-msg-wrap:not(.mine) .dm-audio-dur { color: #fff; }
 
 /* Indicateur de frappe : 3 points dans une bulle de l'autre */
 html body #hiddenPage .dm-typing-bubble { background: var(--gu-bubble-other); border-radius: 22px 22px 22px 6px; padding: 14px 16px; }
@@ -233,3 +239,7 @@ html body #hiddenPage .dm-msg-wrap[data-time]::after, html body #hiddenPage .dm-
   font: 500 10px/1 var(--gu-font-text); color: var(--dm-ink); opacity: calc(var(--dm-swipe-o) * .8); white-space: nowrap; pointer-events: none;
 }
 html body #hiddenPage .dm-video-wrap { position: relative; }
+
+/* Chat : pas de mini-lecteur musique (ses gestes plier/déplier gênent le retour par glissement et l'heure des messages).
+   La musique continue de jouer ; le mini-lecteur revient en quittant Messages. */
+html[data-yam-tab="messages"] #miniPlayer { display: none !important; }
