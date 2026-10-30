@@ -1,6 +1,6 @@
 /* Musique — game UI : fond de page aligné sur Accueil / Jeux / Messages (jetons --gu-*) */
 html[data-yam-tab="musique"] { background: linear-gradient(#ffc2bb, rgba(255,194,187,0)) 0 0 / 100% 160px no-repeat, linear-gradient(#ffeaf0, #ffeaf0) !important; background-repeat: no-repeat !important; background-color: #ffc2bb !important; }
-html[data-theme="dark"][data-yam-tab="musique"] { background: linear-gradient(#191215, rgba(25,18,21,0)) 0 0 / 100% 160px no-repeat, linear-gradient(#303030 0%, #303030 40%, #1c1c1c 100%) !important; background-repeat: no-repeat !important; background-color: #191215 !important; }
+html[data-theme="dark"][data-yam-tab="musique"] { background: linear-gradient(#191215, rgba(25,18,21,0)) 0 0 / 100% 160px no-repeat, linear-gradient(#1b1b1b 0%, #141414 40%, #0a0a0a 100%) !important; background-repeat: no-repeat !important; background-color: #191215 !important; }
 html[data-yam-tab="musique"] body #yamMusiqueTab.yam-tab-panel { background: transparent !important; }
 html[data-yam-tab="musique"] body, html[data-yam-tab="musique"] body.light { background: transparent !important; background-image: none !important; }
 
@@ -14,14 +14,14 @@ html[data-theme="dark"] #yamMusiqueTab { --text: #fff; --muted: rgba(255,255,255
 html:not([data-theme="dark"]) #loveSection:not(.mu-playing) .mu-card-header { background: var(--gu-chip); border-color: rgba(255,255,255,.6); }
 
 /* Sombre : gris neutres (aucun rose, ça virait au violet) + jaune de la game UI comme accent */
-html[data-theme="dark"] #yamMusiqueTab { --green: #ffd21a; --s1: #343434; --s3: #3d3d3d; --border: rgba(255,255,255,.10); }
-html[data-theme="dark"] body #loveSection:not(.mu-playing) .mu-card-header { background: #3d3d3d; }
-html[data-theme="dark"] body #loveSection.mu-playing .mu-card-header { background: linear-gradient(135deg, #4a4a4a, #333 70%, #2a2a2a); border-color: rgba(255,255,255,.14); box-shadow: 0 6px 18px rgba(0,0,0,.45); }
+html[data-theme="dark"] #yamMusiqueTab { --green: #ffd21a; --s1: #222; --s3: #2c2c2c; --border: rgba(255,255,255,.10); }
+html[data-theme="dark"] body #loveSection:not(.mu-playing) .mu-card-header { background: #2c2c2c; }
+html[data-theme="dark"] body #loveSection.mu-playing .mu-card-header { background: linear-gradient(135deg, #3a3a3a, #262626 70%, #1c1c1c); border-color: rgba(255,255,255,.14); box-shadow: 0 6px 18px rgba(0,0,0,.45); }
 html[data-theme="dark"] body #loveSection.mu-playing .mu-card-header > .mu-col-header { background: rgba(0,0,0,.22); }
-html[data-theme="dark"] body:not(.light) #loveBox { background: radial-gradient(circle at 50% 115%, #444 0, #333 48%, #222 100%); }
+html[data-theme="dark"] body:not(.light) #loveBox { background: radial-gradient(circle at 50% 115%, #333 0, #242424 48%, #151515 100%); }
 html[data-theme="dark"] body:not(.light) .mu-hero-btn.pp, html[data-theme="dark"] body:not(.light) #miniPlayer.mp-pill .mp-btn-play { background: #ffd21a; color: #2a1a00; }
-html[data-theme="dark"] body:not(.light) .mu-fab-reduce.playing, html[data-theme="dark"] body:not(.light) #muFabReduce { background: linear-gradient(135deg, #4a4a4a, #2a2a2a); }
-html[data-theme="dark"] body:not(.light) #miniPlayer.mp-pill .mp-inner { background: linear-gradient(135deg, #4a4a4a, #2a2a2a 80%); }
+html[data-theme="dark"] body:not(.light) .mu-fab-reduce.playing, html[data-theme="dark"] body:not(.light) #muFabReduce { background: linear-gradient(135deg, #3a3a3a, #1c1c1c); }
+html[data-theme="dark"] body:not(.light) #miniPlayer.mp-pill .mp-inner { background: linear-gradient(135deg, #3a3a3a, #1c1c1c 80%); }
 html[data-theme="dark"] body:not(.light) #loveBox .lb-info { background: #4a4a4a; border-color: rgba(255,255,255,.35); }
 html[data-theme="dark"] body:not(.light) .lb-tip { color: #fff; border-color: rgba(255,255,255,.4); }
 html[data-theme="dark"] body:not(.light) .mu-mode-btn { border-color: rgba(255,255,255,.3); }
@@ -31,3 +31,25 @@ html[data-theme="dark"] #yamMusiqueTab .mu-sugg-add-btn { color: #ffd21a; backgr
 #yamMusiqueTab .mu-hero-title { font-family: var(--gu-font-soft); font-weight: 500; font-size: 16px; letter-spacing: 0; }
 #miniPlayer.mp-pill .mp-title { font-family: var(--gu-font-soft); font-weight: 500; }
 #yamMusiqueTab .top50-expand { font-family: var(--gu-font-soft); font-weight: 500; }
+/* Plus de lueur rose en haut du bloc playlist au repos */
+#loveSection:not(.mu-playing) .mu-card-header::before { display: none; }
+/* Bouton « Suggérer » dans la DA : pastille jaune de la game UI (les deux thèmes) */
+#yamMusiqueTab .mu-sugg-add-btn, html[data-theme="dark"] #yamMusiqueTab .mu-sugg-add-btn { font-family: var(--gu-font-display); font-weight: 400; font-size: 13px; letter-spacing: .3px; color: var(--gu-on-action); background: var(--gu-action); border: 2px solid #fff; border-radius: 22px; padding: 0 16px; min-height: 44px; box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+#yamMusiqueTab .mu-sugg-add-btn:active { background: var(--gu-action-bottom); transform: translateY(1px); }
+/* Cartes sans effet de relief (ombre multicouche + reflet du haut) : à plat, comme la game UI */
+#yamMusiqueTab { --section-shadow: 0 3px 0 rgba(120,30,60,.10); --section-highlight: linear-gradient(transparent, transparent); }
+html[data-theme="dark"] #yamMusiqueTab { --section-shadow: 0 3px 0 rgba(0,0,0,.55); }
+#yamMusiqueTab .mu-sugg-bubble::before, #yamMusiqueTab .mu-card-tracks::before { display: none; }
+html body.light #yamMusiqueTab .mu-sugg-bubble, html body #yamMusiqueTab .mu-sugg-bubble, html body #yamMusiqueTab .mu-card-tracks { box-shadow: var(--section-shadow); }
+html body #yamMusiqueTab #loveBox, html body.light #yamMusiqueTab #loveBox, html body:not(.light) #yamMusiqueTab #loveBox { box-shadow: var(--section-shadow); }
+#yamMusiqueTab #loveBox::before { display: none; }
+/* Mini-lecteur (pilule) : contour blanc « autocollant » + ombre plate, comme les éléments de la game UI */
+html body #miniPlayer.mp-pill .mp-inner, html body:not(.light) #miniPlayer.mp-pill .mp-inner { border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow); }
+/* Mini-lecteur : état étendu avec le même contour, boutons ≥ 44 px, plus de brun/rose en sombre */
+html body #miniPlayer.mp-open .mp-inner, html body:not(.light) #miniPlayer.mp-open .mp-inner { border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow); }
+html body #miniPlayer.mp-pill .mp-btn-play, html body #miniPlayer.mp-pill .mp-btn-stop { width: 44px; height: 44px; }
+html body #miniPlayer.mp-pill .mp-inner { padding: 3px 4px 3px 14px; }
+html[data-theme="dark"] body:not(.light) #miniPlayer.mp-open .mp-btn-play { background: #ffd21a; color: #2a1a00; }
+html[data-theme="dark"] body:not(.light) #miniPlayer.mp-open .mp-btn-collapse { background: rgba(255,210,26,.12); box-shadow: inset 0 0 0 1.5px rgba(255,210,26,.5); color: #ffd21a; }
+html[data-theme="dark"] #miniPlayer.mp-pill { animation-name: mpPillGlowDark; }
+@keyframes mpPillGlowDark { 50% { filter: drop-shadow(0 0 8px rgba(255,210,26,.45)); } }
