@@ -104,7 +104,7 @@ html body #hiddenPage .dm-msg-wrap { margin-bottom: 3px; }
 /* Bulles */
 html body #hiddenPage .dm-bubble {
   max-width: 76%; padding: 9px 14px; border-radius: 18px;
-  font: 500 15px/1.4 var(--gu-font-text); text-shadow: none; box-shadow: none;
+  font: 500 14px/1.4 var(--gu-font-text); text-shadow: none; box-shadow: none;
 }
 /* Style Instagram : toutes les bulles arrondies, SANS pointe. Dans un groupe de messages du même expéditeur,
    seuls les coins qui se touchent (côté expéditeur) sont resserrés à 5 px. Classes posées par le JS :
@@ -117,10 +117,10 @@ html body #hiddenPage .dm-msg-wrap.mine .dm-bubble { background: var(--gu-bubble
 html body #hiddenPage .dm-msg-wrap.mine.first-in-group .dm-bubble { border-radius: 18px 18px 5px 18px; }
 html body #hiddenPage .dm-msg-wrap.mine.last-in-group .dm-bubble { border-radius: 18px 5px 18px 18px; }
 html body #hiddenPage .dm-msg-wrap.mine.first-in-group.last-in-group .dm-bubble { border-radius: 18px; }
-html body #hiddenPage .dm-bubble-meta { font: 600 11px/1.2 var(--gu-font-text); margin-top: 4px; opacity: 1; }
+html body #hiddenPage .dm-bubble-meta { font: 600 10.5px/1.2 var(--gu-font-text); margin-top: 4px; opacity: 1; }
 html body #hiddenPage .dm-msg-wrap.mine .dm-bubble-meta { color: rgba(255,255,255,.92); }
 html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-bubble-meta { color: var(--gu-text-2); }
-html body #hiddenPage .dm-seen-label { font: 600 11px/1.2 var(--gu-font-text); color: var(--dm-ink); }
+html body #hiddenPage .dm-seen-label { font: 600 10.5px/1.2 var(--gu-font-text); color: var(--dm-ink); }
 html body #hiddenPage .dm-reply-preview { background: rgba(0,0,0,.14); border-left-color: rgba(255,255,255,.6); }
 html body #hiddenPage .dm-msg-wrap:not(.mine) .dm-reply-preview { background: var(--gu-chip); border-left-color: var(--gu-accent); }
 
@@ -246,3 +246,10 @@ html[data-yam-tab="messages"] #miniPlayer { display: none !important; }
 
 /* Réaction : la pastille déborde de 16 px sous la bulle, la marge du message en tient compte (22 px) */
 html body #hiddenPage .dm-msg-wrap.has-reaction { margin-bottom: 22px !important; }
+
+/* Thème sombre : citation du message auquel on répond, à l'intérieur de la bulle (même famille que la bulle) */
+html[data-theme="dark"] body #hiddenPage .dm-reply-preview { background: rgba(0,0,0,.22); border-left-color: rgba(255,255,255,.7); color: rgba(255,255,255,.88); }
+html[data-theme="dark"] body #hiddenPage .dm-msg-wrap:not(.mine) .dm-reply-preview { background: rgba(255,255,255,.10); border-left-color: var(--gu-bubble-me); color: rgba(255,255,255,.88); }
+
+/* Texte à 14 px (comme Instagram) : citation de réponse un cran en dessous */
+html body #hiddenPage .dm-reply-preview { font-size: 10.5px; }

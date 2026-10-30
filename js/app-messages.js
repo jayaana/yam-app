@@ -1705,13 +1705,15 @@
     if(!row){ bub.style.webkitMaskImage = bub.style.maskImage = ''; return; }
     var b = bub.getBoundingClientRect(), r = row.getBoundingClientRect();
     if(!b.width || !r.width) return;
+    if(!bub._dmCutRO && window.ResizeObserver){ bub._dmCutRO = new ResizeObserver(function(){ cutBubbleForReactions(wrap); }); bub._dmCutRO.observe(bub); }
     var pad = 3, x = r.left - b.left - pad, y = r.top - b.top - pad, w = r.width + pad * 2, h = r.height + pad * 2;
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + b.width + '" height="' + b.height + '">' +
       '<rect width="100%" height="100%" fill="#fff"/><rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h +
       '" rx="' + (h / 2) + '" fill="#000"/></svg>';
     var url = 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
     bub.style.webkitMaskImage = bub.style.maskImage = url;
-    bub.style.webkitMaskSize = bub.style.maskSize = '100% 100%';
+    bub.style.webkitMaskSize = bub.style.maskSize = b.width + 'px ' + b.height + 'px';
+    bub.style.webkitMaskPosition = bub.style.maskPosition = '0 0';
     bub.style.webkitMaskRepeat = bub.style.maskRepeat = 'no-repeat';
     bub.style.maskMode = 'luminance';
   }
