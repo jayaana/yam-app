@@ -43,6 +43,9 @@
     var bg = kind === 'jeux'
       ? (dark ? 'background:linear-gradient(#191215 0,#191215 80px,#2a1c22 100%);background-color:#2a1c22;'
               : 'background:linear-gradient(#ffc2bb 0,#ffc2bb 80px,#ffb6ad 100%);background-color:#ffb6ad;')
+      : kind === 'musique'
+      ? (dark ? 'background:linear-gradient(#191215 0,#191215 80px,#1b1b1b 310px,#141414 40%,#0a0a0a);background-color:#0a0a0a;'
+              : 'background:linear-gradient(#ffc2bb 0,#ffc2bb 80px,#ffeaf0 310px,#ffeaf0);background-color:#ffeaf0;')
       : (dark ? 'background:linear-gradient(#191215 0,#191215 80px,#372b32 310px,#372b32 40%,#1f171b);background-color:#1f171b;'
               : 'background:linear-gradient(#ffc2bb 0,#ffc2bb 80px,#ffeaf0 310px,#ffeaf0);background-color:#ffeaf0;');
     c.style.cssText = 'position:fixed;left:0;right:0;top:-80px;bottom:-80px;z-index:99990;pointer-events:auto;' + bg;
@@ -100,7 +103,25 @@
       _bounceM(2);
       return;
     }
-    var _skipLoad = !!(window._yamBouncing && tab === 'musique');
+    // Première arrivée sur Musique depuis le démarrage (session fraîche) : même parade, en passant par Accueil (aller-retour interne
+    // masqué par le voile). Inutile si Jeux ou Messages l'ont déjà faite : iOS a alors déjà recalculé sa fenêtre.
+    if(tab === 'musique' && !window._yamMusBounced && !window._yamBouncing){
+      window._yamMusBounced = true;
+      if(!window._yamJeuxBounced && !window._yamMsgBounced){
+        window._yamBouncing = true; window._yamBounceVia = 'home'; _yamBounceCover(true, 'musique');
+        var _bounceMu = function(n){
+          window.yamSwitchTab('home');
+          requestAnimationFrame(function(){ requestAnimationFrame(function(){
+            try { window.yamSwitchTab('musique'); } catch(e) { window._yamBouncing = false; window._yamBounceVia = null; _yamBounceCover(false); return; }
+            if(n > 1) setTimeout(function(){ _bounceMu(n - 1); }, 150);
+            else { window._yamBouncing = false; window._yamBounceVia = null; _yamBounceCover(false); }
+          }); });
+        };
+        _bounceMu(2);
+        return;
+      }
+    }
+    var _skipLoad = !!(window._yamBouncing && (window._yamBounceVia ? tab === window._yamBounceVia : tab === 'musique'));
     // ── Onglet Messages → ouvre directement hiddenPage (le panel yamMessagesTab est vide)
     if(tab === 'messages'){
       if(window.openHiddenPage) window.openHiddenPage();

@@ -63,3 +63,6 @@ html body #miniPlayer.mp-open .mp-inner { background: #fff0f4; }
 html[data-theme="dark"] body:not(.light) #miniPlayer.mp-open .mp-inner { background: #1c1c1c; }
 html[data-theme="dark"] #miniPlayer { --green: #ffd21a; }
 #yamMusiqueTab .mu-col-num, #yamMusiqueTab .mu-col-plays, #yamMusiqueTab .sg-title, #yamMusiqueTab .sp-btn-yt { font-family: var(--gu-font-soft); font-weight: 500; }
+/* Icône Musique de la barre du bas quand un titre joue : note rose + aura rose (même rose que la pilule du mini-lecteur), plus de jaune */
+html .bottom-nav #navMusique.music-playing .nav-music-solo { fill: #ff5a7e; color: #ff5a7e; filter: drop-shadow(0 0 5px rgba(255,90,126,.85)); }
+html .bottom-nav #navMusique.music-playing, html .bottom-nav #navMusique.music-playing .nav-label { color: #ff5a7e; }
