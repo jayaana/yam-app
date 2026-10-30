@@ -107,9 +107,9 @@ html[data-theme="dark"] {
   --gu-bubble-other: #3a2d34;
   --gu-bubble-other-text: #fff;
   --gu-nav-bg: #0c0809;
-  --gu-nav-text: #ffb9c8;
-  --gu-nav-icon: #ff9fae;
-  --gu-nav-edge: 0 0 0 1px rgba(255,150,170,.55), 0 -3px 0 #a8435f, 0 -6px 18px rgba(0,0,0,.5);
+  --gu-nav-text: #fff;             /* ESSAI sobre : blanc (avant : rose #ffb9c8) */
+  --gu-nav-icon: #fff;             /* (avant : rose #ff9fae) */
+  --gu-nav-edge: 0 0 0 1px rgba(255,255,255,.35), 0 -3px 0 rgba(255,255,255,.55), 0 -6px 18px rgba(0,0,0,.5);   /* ESSAI sobre : filet blanc (avant : rose #a8435f) */
   --gu-header-text-shadow: 0 2px 4px rgba(0,0,0,.5);
   --gu-sticker-shadow: 0 3px 0 rgba(0,0,0,.45);
   --gu-bar-bg: #2a1018;
