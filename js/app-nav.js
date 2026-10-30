@@ -18,16 +18,30 @@
   // (dégradé de la zone sûre en haut), posé AU-DESSUS de l'onglet de passage pour qu'on ne voie ni Musique ni le clignotement.
   // Il ne change rien à la mise en page (position:fixed) : les changements d'onglet dessous se font comme avant.
   function _yamBounceCover(on){
-    var c = document.getElementById('yamBounceCover');
-    if(!on){ if(c) setTimeout(function(){ var c2 = document.getElementById('yamBounceCover'); if(c2 && !window._yamBouncing) c2.remove(); }, 120); return; }
+    var c = document.getElementById('yamBounceCover'), h = document.documentElement;
+    if(!on){
+      if(window._yamBouncing) return;
+      // retrait à la prochaine image (le dernier changement d'onglet est déjà posé dessous)
+      requestAnimationFrame(function(){
+        if(window._yamBouncing) return;
+        var c2 = document.getElementById('yamBounceCover'); if(c2) c2.remove();
+        h.style.removeProperty('background-color');
+        if(window._yamCoverPrevBg) h.style.setProperty('background-color', window._yamCoverPrevBg);
+        window._yamCoverPrevBg = null;
+      });
+      return;
+    }
     if(c) return;
-    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    var dark = h.getAttribute('data-theme') === 'dark';
+    // Zone sûre iOS : seule la couleur de fond de <html> la peint (un élément fixe ne la couvre pas) -> on la force le temps du voile
+    window._yamCoverPrevBg = h.style.getPropertyValue('background-color') || null;
+    h.style.setProperty('background-color', dark ? '#191215' : '#ffc2bb', 'important');
     c = document.createElement('div');
     c.id = 'yamBounceCover';
     c.setAttribute('aria-hidden', 'true');
-    c.style.cssText = 'position:fixed;left:0;top:0;right:0;bottom:0;z-index:99990;pointer-events:auto;' +
-      (dark ? 'background:linear-gradient(#191215 0,#372b32 230px,#372b32 40%,#1f171b);background-color:#1f171b;'
-            : 'background:linear-gradient(#ffc2bb 0,#ffeaf0 230px,#ffeaf0);background-color:#ffeaf0;');
+    c.style.cssText = 'position:fixed;left:0;right:0;top:-80px;bottom:-80px;z-index:99990;pointer-events:auto;' +
+      (dark ? 'background:linear-gradient(#191215 0,#191215 80px,#372b32 310px,#372b32 40%,#1f171b);background-color:#1f171b;'
+            : 'background:linear-gradient(#ffc2bb 0,#ffc2bb 80px,#ffeaf0 310px,#ffeaf0);background-color:#ffeaf0;');
     document.body.appendChild(c);
   }
 
@@ -53,13 +67,13 @@
     // (2 aller-retours internes par Musique, 2 images + 150 ms) sinon iOS décale la fenêtre de ~59 px et l'en-tête passe sous la zone sûre
     if(tab === 'jeux' && !window._yamJeuxBounced && !window._yamBouncing){
       window._yamJeuxBounced = true;
-      window._yamBouncing = true; _yamBounceCover(true);
+      window._yamBouncing = true;
       var _bounceJ = function(n){
         window.yamSwitchTab('musique');
         requestAnimationFrame(function(){ requestAnimationFrame(function(){
-          try { window.yamSwitchTab('jeux'); } catch(e) { window._yamBouncing = false; _yamBounceCover(false); return; }
+          try { window.yamSwitchTab('jeux'); } catch(e) { window._yamBouncing = false; return; }
           if(n > 1) setTimeout(function(){ _bounceJ(n - 1); }, 150);
-          else { window._yamBouncing = false; _yamBounceCover(false); }
+          else { window._yamBouncing = false; }
         }); });
       };
       _bounceJ(2);
