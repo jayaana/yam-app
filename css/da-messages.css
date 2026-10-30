@@ -100,8 +100,8 @@ html body.dm-chat-active #hiddenPage #dmConvProfileBtn {
 html body #hiddenPage .dm-messages { margin-top: var(--dm-hdr); padding: 14px 14px 10px; background: transparent; }
 html body #hiddenPage .dm-day-label {
   align-self: center; display: block; padding: 0 8px; margin: 0 0 12px; border-radius: 7px;
-  background: var(--gu-card); color: var(--gu-text);
-  font: 400 11px/1.5 var(--gu-font-display); letter-spacing: 2px; text-transform: uppercase;
+  background: var(--gu-card); color: var(--gu-text-2);
+  font: 500 12px/1.5 var(--gu-font-text); letter-spacing: 0; text-transform: none;
 }
 html body #hiddenPage .dm-msg-wrap { margin-bottom: 3px; }
 
