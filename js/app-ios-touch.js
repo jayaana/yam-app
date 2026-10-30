@@ -160,17 +160,10 @@
         // quand la barre glissait pendant l'ouverture du clavier (1re ouverture d'une session fraîche).
         bar.style.transition    = 'none';
         bar.style.paddingBottom = kbH + 'px';
-        window._yamLastKbH = kbH;
         var _inp = document.activeElement;
-        // Le curseur iOS reste parfois dessiné à l'ancienne place après le déplacement de la barre :
-        // on le force à se redessiner (re-sélection) une fois la barre en place.
-        [80, 400].forEach(function (d) {
+        [60, 300].forEach(function (d) {
           setTimeout(function () {
-            try {
-              if (!_inp || _inp !== document.activeElement || !_inp.setSelectionRange) return;
-              var st = _inp.selectionStart, en = _inp.selectionEnd;
-              _inp.setSelectionRange(st, en);
-            } catch (er) {}
+            try { if (_inp && _inp === document.activeElement && _inp.setSelectionRange) { var e = _inp.selectionEnd; _inp.setSelectionRange(e, e); } } catch (er) {}
           }, d);
         });
         var msgs = document.getElementById('dmMessages');
@@ -222,12 +215,6 @@
     if (_kbBlurTimer)  { clearTimeout(_kbBlurTimer);  _kbBlurTimer  = null; }
     var container = findModalContainer(e.target);
     if (!container) return;
-    // Réouverture du clavier dans le chat : la barre monte TOUT DE SUITE (hauteur mémorisée), avant que le clavier
-    // ne finisse de s'ouvrir, sinon iOS dessine le curseur à l'ancienne place (sous la barre).
-    if (container.id === 'hiddenPage' && window._yamLastKbH > 80) {
-      var _bar0 = container.querySelector('.dm-input-bar');
-      if (_bar0) { _bar0.style.transition = 'none'; _bar0.style.paddingBottom = window._yamLastKbH + 'px'; }
-    }
     if (_kbFocusTimer) { clearTimeout(_kbFocusTimer); _kbFocusTimer = null; }
 
     _kbFocusTimer = setTimeout(function () {
@@ -236,11 +223,7 @@
       if (kbH < 80) {
         setTimeout(function () {
           var kbH2 = _getKbHeight();
-          if (kbH2 < 80) {
-            // Pas de clavier finalement : on annule la montée anticipée de la barre
-            if (container.id === 'hiddenPage') { var _b1 = container.querySelector('.dm-input-bar'); if (_b1) _b1.style.paddingBottom = NAV_HEIGHT + 'px'; }
-            return;
-          }
+          if (kbH2 < 80) return;
           _kbActive = true;
           _onKeyboardOpen(container, kbH2);
         }, 200);

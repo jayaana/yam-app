@@ -48,6 +48,23 @@
       _bounceJ(2);
       return;
     }
+    // Première arrivée sur Messages depuis le démarrage (session fraîche) : même parade que pour Jeux (2 aller-retours internes
+    // par Musique, 2 images + 150 ms) sinon iOS garde sa fenêtre « fraîche » décalée et le curseur du clavier est mal placé
+    // dès la 2e ouverture du clavier.
+    if(tab === 'messages' && !window._yamMsgBounced && !window._yamBouncing){
+      window._yamMsgBounced = true;
+      window._yamBouncing = true;
+      var _bounceM = function(n){
+        window.yamSwitchTab('musique');
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){
+          try { window.yamSwitchTab('messages'); } catch(e) { window._yamBouncing = false; return; }
+          if(n > 1) setTimeout(function(){ _bounceM(n - 1); }, 150);
+          else window._yamBouncing = false;
+        }); });
+      };
+      _bounceM(2);
+      return;
+    }
     var _skipLoad = !!(window._yamBouncing && tab === 'musique');
     // ── Onglet Messages → ouvre directement hiddenPage (le panel yamMessagesTab est vide)
     if(tab === 'messages'){
