@@ -64,12 +64,17 @@ html[data-theme="dark"] body:not(.light) #miniPlayer.mp-open .mp-inner { backgro
 html[data-theme="dark"] #miniPlayer { --green: #ffd21a; }
 #yamMusiqueTab .mu-col-num, #yamMusiqueTab .mu-col-plays, #yamMusiqueTab .sg-title, #yamMusiqueTab .sp-btn-yt { font-family: var(--gu-font-soft); font-weight: 500; }
 /* Icône Musique de la barre du bas quand un titre joue : note rose + aura rose (même rose que la pilule du mini-lecteur), plus de jaune */
-html .bottom-nav #navMusique.music-playing .nav-music-solo { fill: #ff5a7e; color: #ff5a7e; filter: drop-shadow(0 0 5px rgba(255,90,126,.85)); }
-html .bottom-nav #navMusique.music-playing, html .bottom-nav #navMusique.music-playing .nav-label { color: #ff5a7e; }
+html .bottom-nav #navMusique.music-playing:not(.nav-active) .nav-music-solo { fill: #ff5a7e; color: #ff5a7e; filter: drop-shadow(0 0 5px rgba(255,90,126,.85)); }
+html .bottom-nav #navMusique.music-playing:not(.nav-active), html .bottom-nav #navMusique.music-playing:not(.nav-active) .nav-label { color: #ff5a7e; }
 /* Boutons d'en-tête (thème Accueil + Messages, retour Messages) sans l'ombre « autocollant » */
 html[data-yam-tab="home"] #themeToggleHome, html body #hiddenPage #themeToggleDm2, html body #hiddenPage #dmTopbarBack { box-shadow: none !important; }
 /* Mode « les deux écoutent » (barre du bas) : note rose + note bleue qui dansent (le style générique des icônes de la barre les écrasait) */
-html .bottom-nav #navMusique.music-sync .nav-music-sync-icon svg { width: 18px; height: 20px; }
-html .bottom-nav #navMusique.music-sync .nav-note-girl { fill: #ff5a7e; color: #ff5a7e; filter: drop-shadow(0 0 5px rgba(255,90,126,.85)); }
-html .bottom-nav #navMusique.music-sync .nav-note-boy { fill: #5a9cff; color: #5a9cff; filter: drop-shadow(0 0 5px rgba(90,156,255,.85)); }
-html .bottom-nav #navMusique.music-sync .nav-music-label { background: linear-gradient(90deg, #ff5a7e 50%, #5a9cff 50%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+html .bottom-nav #navMusique.music-sync:not(.nav-active) .nav-music-sync-icon svg { width: 18px; height: 20px; }
+html .bottom-nav #navMusique.music-sync:not(.nav-active) .nav-note-girl { fill: #ff5a7e; color: #ff5a7e; filter: drop-shadow(0 0 5px rgba(255,90,126,.85)); }
+html .bottom-nav #navMusique.music-sync:not(.nav-active) .nav-note-boy { fill: #5a9cff; color: #5a9cff; filter: drop-shadow(0 0 5px rgba(90,156,255,.85)); }
+html .bottom-nav #navMusique.music-sync:not(.nav-active) .nav-music-label { background: linear-gradient(90deg, #ff5a7e 50%, #5a9cff 50%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+/* Sur l'onglet Musique lui-même : pas d'icône qui danse, c'est l'icône classique de sélection (carré jaune) */
+html[data-yam-tab="musique"] .bottom-nav #navMusique.music-sync .nav-music-sync-icon { display: none; }
+html[data-yam-tab="musique"] .bottom-nav #navMusique.music-sync .nav-music-solo { display: block !important; animation: none !important; }
+html[data-yam-tab="musique"] .bottom-nav #navMusique.nav-active .nav-music-solo { animation: none; filter: none; }
+html[data-yam-tab="musique"] .bottom-nav #navMusique.music-sync .nav-music-label { background: none; -webkit-text-fill-color: currentColor; }
