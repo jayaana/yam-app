@@ -334,7 +334,11 @@ document.addEventListener('DOMContentLoaded', function(){
   _on('ppBtnGirl',   'click', function(){ window.setProfile && window.setProfile('girl'); });
   _on('ppBtnBoy',    'click', function(){ window.setProfile && window.setProfile('boy'); });
   _on('ppBtnMood',   'click', function(e){ window.openMoodPicker && window.openMoodPicker(e); });
-  _on('ppBtnLogout', 'click', function(){ window.askLogout && window.askLogout(); });
+  _on('ppBtnLogout', 'click', function(){
+    /* Le menu se ferme AVANT la confirmation : sinon il restait affiché et le 1er toucher sur « Me déconnecter » ne faisait que le fermer (iOS annule le clic quand le DOM bouge sous le doigt) */
+    var pp = document.getElementById('profilePopup'); if(pp) pp.classList.remove('open');
+    window.askLogout && window.askLogout();
+  });
   _on('homeMoodElleEditBtn', 'click', function(e){ window.openMoodPicker && window.openMoodPicker(e); });
   _on('homeMoodLuiEditBtn',  'click', function(e){ window.openMoodPicker && window.openMoodPicker(e); });
   _on('moodPickerOverlay',   'click', function(){ window.closeMoodPicker && window.closeMoodPicker(); });

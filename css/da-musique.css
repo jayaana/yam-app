@@ -68,3 +68,8 @@ html .bottom-nav #navMusique.music-playing .nav-music-solo { fill: #ff5a7e; colo
 html .bottom-nav #navMusique.music-playing, html .bottom-nav #navMusique.music-playing .nav-label { color: #ff5a7e; }
 /* Boutons d'en-tête (thème Accueil + Messages, retour Messages) sans l'ombre « autocollant » */
 html[data-yam-tab="home"] #themeToggleHome, html body #hiddenPage #themeToggleDm2, html body #hiddenPage #dmTopbarBack { box-shadow: none !important; }
+/* Mode « les deux écoutent » (barre du bas) : note rose + note bleue qui dansent (le style générique des icônes de la barre les écrasait) */
+html .bottom-nav #navMusique.music-sync .nav-music-sync-icon svg { width: 18px; height: 20px; }
+html .bottom-nav #navMusique.music-sync .nav-note-girl { fill: #ff5a7e; color: #ff5a7e; filter: drop-shadow(0 0 5px rgba(255,90,126,.85)); }
+html .bottom-nav #navMusique.music-sync .nav-note-boy { fill: #5a9cff; color: #5a9cff; filter: drop-shadow(0 0 5px rgba(90,156,255,.85)); }
+html .bottom-nav #navMusique.music-sync .nav-music-label { background: linear-gradient(90deg, #ff5a7e 50%, #5a9cff 50%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
