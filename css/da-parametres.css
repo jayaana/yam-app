@@ -91,8 +91,8 @@ html body.settings-open #yamMainHeader { display: block !important; visibility: 
 html body.settings-open { overflow: revert !important; overflow-x: hidden !important; }
 
 /* ── Menu du profil silhouette (30 oct) : photo + menu = UNE forme ; bouton thème « aspiré » (js/app-profile-menu.js) ── */
-html { --pm-card: #fff; --pm-row: #f6f1f2; --pm-tx: #2e2226; --pm-dg: #d32f3f; --pm-sh: rgba(80,20,40,.3); }
-html[data-theme="dark"] { --pm-card: #33292d; --pm-row: #43393e; --pm-tx: #f4eced; --pm-dg: #ff5a5f; --pm-sh: rgba(0,0,0,.7); }
+html { --pm-card: #fff; --pm-row: #f2f2f3; --pm-tx: #111; --pm-dg: #d32f2f; --pm-sh: rgba(80,20,40,.3); }
+html[data-theme="dark"] { --pm-card: #2c2c2e; --pm-row: #3d3d40; --pm-tx: #f2f2f3; --pm-dg: #ff5a5f; --pm-sh: rgba(0,0,0,.7); }
 html body #profilePopup {
   position: fixed; top: var(--pm-top, 60px) !important; right: var(--pm-right, 14px) !important; left: auto !important;
   width: 152px !important; height: var(--pm-h, 133px) !important; min-width: 0 !important; box-sizing: border-box;
@@ -120,3 +120,12 @@ html body #profilePopup.yam-pm-show .profile-popup-btn { opacity: 1; transition:
 html body #profilePopup .profile-popup-btn svg { width: 17px; height: 17px; stroke: currentColor !important; stroke-width: 2.4; }
 html body #profilePopup #ppBtnLogout { color: var(--pm-dg) !important; }
 html body #profilePopup #ppBtnLogout svg { stroke: var(--pm-dg) !important; }
+
+/* ── Fenêtre de confirmation (yamConfirm : déconnexion, suppressions…) : sobre, texte plus léger, même rouge partout (#d32f2f) ── */
+html body .yam-cf-box { border-width: 2px; border-radius: 22px; padding: 16px 14px 12px; background: var(--pm-card); color: var(--pm-tx); }
+html body .yam-cf-msg { color: var(--pm-tx); font: 500 16px/1.35 'Fredoka', system-ui, sans-serif; letter-spacing: 0; margin: 4px 6px 14px; }
+html body .yam-cf-btn { font: 500 15px 'Fredoka', system-ui, sans-serif; letter-spacing: 0; min-height: 44px; border-radius: 14px; margin-top: 8px;
+  outline: none; box-shadow: none; -webkit-tap-highlight-color: transparent; }
+html body .yam-cf-btn:focus, html body .yam-cf-btn:focus-visible { outline: none; box-shadow: none; }
+html body .yam-cf-danger { background: #d32f2f; color: #fff; }
+html body .yam-cf-cancel { background: var(--pm-row); color: var(--pm-tx); }

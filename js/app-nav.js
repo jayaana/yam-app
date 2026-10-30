@@ -1096,6 +1096,17 @@ document.querySelectorAll('.album-image').forEach(function(el){
   }, { passive:true });
 })();
 
+/* Glissement « retour » pendant que les Paramètres sont ouverts : il ferme d'abord la sous-page puis les Paramètres
+   (comme le retour du téléphone), sans toucher au chat / au jeu caché dessous. Renvoie true si c'est pris en charge. */
+window._yamSettingsSwipeBack = function(){
+  if(!document.body.classList.contains('settings-open')) return false;
+  var sub = document.querySelector('.stg-subpage.active');
+  var back = sub && sub.querySelector('.stg-back');
+  if(back) back.click();
+  else if(window.closeAccountModal) window.closeAccountModal();
+  return true;
+};
+
 /* ── 12b. SWIPE retour dans hiddenPage (swipe droit uniquement) ── */
 /* Swipe GAUCHE (avancer) désactivé volontairement — causait des bugs.
    Swipe DROIT → history.go(-1) → popstate sentinelle → retour propre.      */
@@ -1149,6 +1160,8 @@ setTimeout(function(){
     if(dx <= 0) return;
     if(Math.abs(dx) < 55) return;
     if(Math.abs(dy) > Math.abs(dx) * 0.7) return;
+
+    if(window._yamSettingsSwipeBack()){ haptic('light'); return; }
 
     var sc = dmScreen();
     // Conv : toujours bloqué
@@ -1217,6 +1230,8 @@ setTimeout(function(){
     if(dx <= 0) return;
     if(Math.abs(dx) < 55) return;
     if(Math.abs(dy) > Math.abs(dx) * 0.7) return;
+
+    if(window._yamSettingsSwipeBack()){ haptic('light'); return; }
 
     _gThrottle = true;
     setTimeout(function(){ _gThrottle = false; }, 500);
