@@ -17,7 +17,7 @@
   // Voile « page fantôme » pendant les aller-retours internes (parade iOS fenêtre fraîche) : plein écran, fond du thème
   // (dégradé de la zone sûre en haut), posé AU-DESSUS de l'onglet de passage pour qu'on ne voie ni Musique ni le clignotement.
   // Il ne change rien à la mise en page (position:fixed) : les changements d'onglet dessous se font comme avant.
-  function _yamBounceCover(on){
+  function _yamBounceCover(on, kind){
     var c = document.getElementById('yamBounceCover'), h = document.documentElement;
     if(!on){
       if(window._yamBouncing) return;
@@ -39,9 +39,13 @@
     c = document.createElement('div');
     c.id = 'yamBounceCover';
     c.setAttribute('aria-hidden', 'true');
-    c.style.cssText = 'position:fixed;left:0;right:0;top:-80px;bottom:-80px;z-index:99990;pointer-events:auto;' +
-      (dark ? 'background:linear-gradient(#191215 0,#191215 80px,#372b32 310px,#372b32 40%,#1f171b);background-color:#1f171b;'
-            : 'background:linear-gradient(#ffc2bb 0,#ffc2bb 80px,#ffeaf0 310px,#ffeaf0);background-color:#ffeaf0;');
+    // Jeux : fond saumon du ciel de la plage (le décor #jxDecor et la feuille arrivent dessous, pas de page rose pâle entre les deux)
+    var bg = kind === 'jeux'
+      ? (dark ? 'background:linear-gradient(#191215 0,#191215 80px,#2a1c22 100%);background-color:#2a1c22;'
+              : 'background:linear-gradient(#ffc2bb 0,#ffc2bb 80px,#ffb6ad 100%);background-color:#ffb6ad;')
+      : (dark ? 'background:linear-gradient(#191215 0,#191215 80px,#372b32 310px,#372b32 40%,#1f171b);background-color:#1f171b;'
+              : 'background:linear-gradient(#ffc2bb 0,#ffc2bb 80px,#ffeaf0 310px,#ffeaf0);background-color:#ffeaf0;');
+    c.style.cssText = 'position:fixed;left:0;right:0;top:-80px;bottom:-80px;z-index:99990;pointer-events:auto;' + bg;
     document.body.appendChild(c);
   }
 
@@ -67,13 +71,13 @@
     // (2 aller-retours internes par Musique, 2 images + 150 ms) sinon iOS décale la fenêtre de ~59 px et l'en-tête passe sous la zone sûre
     if(tab === 'jeux' && !window._yamJeuxBounced && !window._yamBouncing){
       window._yamJeuxBounced = true;
-      window._yamBouncing = true;
+      window._yamBouncing = true; _yamBounceCover(true, 'jeux');
       var _bounceJ = function(n){
         window.yamSwitchTab('musique');
         requestAnimationFrame(function(){ requestAnimationFrame(function(){
-          try { window.yamSwitchTab('jeux'); } catch(e) { window._yamBouncing = false; return; }
+          try { window.yamSwitchTab('jeux'); } catch(e) { window._yamBouncing = false; _yamBounceCover(false); return; }
           if(n > 1) setTimeout(function(){ _bounceJ(n - 1); }, 150);
-          else { window._yamBouncing = false; }
+          else { window._yamBouncing = false; _yamBounceCover(false); }
         }); });
       };
       _bounceJ(2);
