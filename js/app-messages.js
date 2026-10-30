@@ -245,6 +245,9 @@
       var lbl2 = $('dmBackLabel'); if(lbl2) lbl2.textContent = 'Retour';
       var _cavC = document.getElementById('dmConvAvatarEmoji');
       if(_cavC && window.yamAvatarSrc){ var _pC = getProfile(); if(_pC) _cavC.src = window.yamAvatarSrc(_pC); }
+      // Même contour que l'avatar de l'en-tête des autres onglets (copié depuis #profileAvatar)
+      var _pa = document.getElementById('profileAvatar'), _pb = document.getElementById('dmConvProfileBtn');
+      if(_pa && _pb){ var _cs = getComputedStyle(_pa); _pb.style.borderWidth = _cs.borderTopWidth; _pb.style.borderStyle = _cs.borderTopStyle; _pb.style.borderColor = _cs.borderTopColor; _pb.style.background = _cs.backgroundColor; _pb.style.boxShadow = _cs.boxShadow; }
       var lockBadge = document.getElementById('lockUnreadBadge');
       var lockBtn   = document.getElementById('lockNavBtn');
       if(lockBadge) lockBadge.classList.remove('visible');

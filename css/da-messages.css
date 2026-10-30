@@ -91,8 +91,6 @@ html body #hiddenPage #themeToggleDm2 {
 html body #hiddenPage #themeToggleDm2 svg { width: 16px; height: 16px; }
 html body.dm-chat-active #hiddenPage #dmConvProfileBtn {
   display: flex !important; width: 48px !important; height: 48px !important; box-sizing: border-box;
-  border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow);
-  background: var(--gu-her);
 }
 
 /* ── Zone des messages ──────────────────────────────────────────── */

@@ -25,7 +25,7 @@ body:not(.dm-chat-active) #themeToggleDm2 svg { width: 16px; height: 16px; }
 html #themeToggleHome { width: var(--gu-tap) !important; height: var(--gu-tap) !important; }
 html #profileAvatar { width: 48px !important; height: 48px !important; }
 html[data-yam-tab="home"] #themeToggleHome { background: var(--gu-card); color: var(--gu-text); border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow); }
-html[data-yam-tab="home"] #profileAvatar { border: var(--gu-sticker-width) solid var(--gu-sticker-border) !important; box-shadow: var(--gu-sticker-shadow) !important; background: var(--gu-her) !important; }
+/* Avatar de l'en-tête : même contour que sur les autres onglets (plus de style propre à l'Accueil) */
 
 /* ── Panneau Accueil : colonne qui remplit l'écran ──────────────── */
 html #yamHomeTab.active, html body.light #yamHomeTab.active { background: transparent !important; display: flex; flex-direction: column; min-height: calc(100dvh - var(--gh-hdr, 108px)); padding-bottom: 0; color: var(--gu-text); }
