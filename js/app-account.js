@@ -2696,7 +2696,7 @@ window.acDeleteAvatarGo = function(){
     var btn = document.createElement('div');
     btn.id = 'ppBtnAccount';
     btn.className = 'profile-popup-btn';
-    btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></svg> Paramètres';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 10.4 L21.9 10.8 L21.9 13.2 L19.4 13.6 L18.4 16.1 L19.9 18.2 L18.2 19.9 L16.1 18.4 L13.6 19.4 L13.2 21.9 L10.8 21.9 L10.4 19.4 L7.9 18.4 L5.8 19.9 L4.1 18.2 L5.6 16.1 L4.6 13.6 L2.1 13.2 L2.1 10.8 L4.6 10.4 L5.6 7.9 L4.1 5.8 L5.8 4.1 L7.9 5.6 L10.4 4.6 L10.8 2.1 L13.2 2.1 L13.6 4.6 L16.1 5.6 L18.2 4.1 L19.9 5.8 L18.4 7.9Z"/><circle cx="12" cy="12" r="3"/></svg> Paramètres';
     btn.onclick = function(){ openAccountModal(); };
     var logoutBtn = document.getElementById('ppBtnLogout');
     if(logoutBtn) pp.insertBefore(btn, logoutBtn);

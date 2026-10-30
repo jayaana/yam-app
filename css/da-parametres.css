@@ -50,3 +50,17 @@ html[data-theme="dark"] #profilePopup { box-shadow: 0 8px 24px rgba(0,0,0,.5); }
 #profilePopup #ppBtnLogout svg { stroke: var(--pa-danger); }
 html body .stg-avatar-del { background: var(--pa-danger); font-size: 11px; width: 20px; height: 20px; }
 html[data-theme="dark"] body .stg-avatar-del { color: #1a1614; }
+
+/* ── Retouches du 30 oct (retours iPhone) ── */
+html { --pa-ic-w: 2.3; }
+/* Mini-menu du profil : seulement Paramètres + Déconnexion (pseudo et humeur = Accueil), petit, au-dessus du chat */
+#profilePopup { z-index: 2500; min-width: 0; width: max-content; padding: 4px; gap: 0; border-radius: 14px; }
+#profilePopup .profile-popup-label, #profilePopup .profile-popup-sep, #profilePopup #ppBtnMood { display: none !important; }
+#profilePopup .profile-popup-btn { min-height: 44px; padding: 0 12px 0 8px; gap: 8px; font-size: 15px; white-space: nowrap; }
+#profilePopup .profile-popup-btn svg { width: 20px; height: 20px; }
+/* Bouton Se déconnecter des Paramètres : rouge plein */
+html body #settingsView .stg-btn-danger { background: var(--pa-danger); color: #fff; border: 0; }
+html[data-theme="dark"] body #settingsView .stg-btn-danger { color: #2a0a0a; }
+html body #settingsView .stg-btn-danger .ys { stroke: currentColor; --st-ac: currentColor; }
+/* Zone sûre (haut de l'écran iPhone) : même teinte que les onglets, plus de blanc quand les Paramètres sont ouverts */
+html[data-theme]:has(body.settings-open) { background: rgb(var(--pa-top)) !important; }
