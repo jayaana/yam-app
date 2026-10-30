@@ -64,3 +64,17 @@ html[data-theme="dark"] body #settingsView .stg-btn-danger { color: #2a0a0a; }
 html body #settingsView .stg-btn-danger .ys { stroke: currentColor; --st-ac: currentColor; }
 /* Zone sûre (haut de l'écran iPhone) : même teinte que les onglets, plus de blanc quand les Paramètres sont ouverts */
 html[data-theme]:has(body.settings-open) { background: rgb(var(--pa-top)) !important; }
+
+/* En-tête des Paramètres : reste SOUS la zone sûre au défilement (la cale de la zone sûre colle en haut, l'en-tête s'arrête dessous) */
+html body .stg-safe-top { position: sticky; top: 0; z-index: 11; background: rgb(var(--pa-top)); }
+html body .stg-header { top: env(safe-area-inset-top, 0px); }
+/* Menu du profil dans Messages : il est DANS le <header> que main.css cache sous le chat (visibility:hidden hérité) */
+body:has(#hiddenPage.active) #profilePopup.open { visibility: visible !important; pointer-events: auto !important; }
+body:has(#hiddenPage.active) #profilePopup.open * { visibility: visible !important; pointer-events: auto !important; }
+
+/* Interrupteurs (ex. Accepter les bêtises) aux couleurs du thème : rose corail, plus orange/vert d'origine */
+html body .stg-row-toggle { background: #d9cdd1; }
+html[data-theme="dark"] body .stg-row-toggle { background: #5a4a50; }
+html body .stg-row-toggle.on { background: var(--gu-card-her, #ff5f97); }
+html[data-theme="dark"] body .stg-row-toggle.on { background: var(--gu-her, #ff7a8f); }
+html body .stg-2fa-dot.on { background: var(--gu-ok, #3ccd88); box-shadow: none; }
