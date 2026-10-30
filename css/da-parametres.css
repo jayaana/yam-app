@@ -59,8 +59,7 @@ html { --pa-ic-w: 2.3; }
 #profilePopup .profile-popup-btn { min-height: 44px; padding: 0 12px 0 8px; gap: 8px; font-size: 15px; white-space: nowrap; }
 #profilePopup .profile-popup-btn svg { width: 20px; height: 20px; }
 /* Bouton Se déconnecter des Paramètres : rouge plein */
-html body #settingsView .stg-btn-danger { background: var(--pa-danger); color: #fff; border: 0; }
-html[data-theme="dark"] body #settingsView .stg-btn-danger { color: #2a0a0a; }
+html body #settingsView .stg-btn-danger, html[data-theme="dark"] body #settingsView .stg-btn-danger { background: #d32f2f; color: #fff; border: 0; }   /* même rouge dans les deux thèmes */
 html body #settingsView .stg-btn-danger .ys { stroke: currentColor; --st-ac: currentColor; }
 /* Zone sûre : MÊME principe que les onglets (da-accueil.css / da-jeux.css) : dégradé 160 px + couleur de fond sur <html>,
    marque data-yam-settings posée par openAccountModal. Les Paramètres gardent leur fond OPAQUE (sinon l'Accueil apparaît derrière). */

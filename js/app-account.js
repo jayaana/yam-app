@@ -1578,7 +1578,7 @@ body.settings-open{overflow:hidden!important;}\
   ────────────────────────────────────────── */
   window.stgOpenSub = function(id){
     var el = document.getElementById(id);
-    if(el) el.classList.add('active');
+    if(el){ el.classList.add('active'); el.scrollTop = 0; }
     if(id === 'stgSubAppearance') _stgSyncTheme();
     if(id === 'stgSubPrefs') _stgLoadPrefs();
     if(id === 'stgSubSecurity') { _stgLoadEmail(); _2faCheckStatus(); }
@@ -2187,6 +2187,8 @@ window.openAccountModal = function(){
   view.classList.add('active');
   document.body.classList.add('settings-open');
   document.documentElement.setAttribute('data-yam-settings', '1');   // couleur de la zone sûre (sans :has, absent d'iOS < 15.4)
+  view.scrollTop = 0;   // toujours repartir d'en haut (la position était gardée entre deux ouvertures)
+  document.querySelectorAll('.stg-subpage').forEach(function(sp){ sp.scrollTop = 0; });
 
   // Afficher la version du cache SW
   if('caches' in window) {
