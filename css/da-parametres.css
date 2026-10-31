@@ -154,3 +154,11 @@ html body #stgSubAppearance .stg-back {
 .dc-card.lock { opacity: .7; cursor: default; }
 .dc-card.lock .dc-prev { display: grid; place-items: center; background: repeating-linear-gradient(45deg, var(--border), var(--border) 8px, transparent 8px, transparent 16px); }
 .dc-card.lock .dc-prev b { background: var(--s2); color: var(--sub); font-size: 12px; padding: 5px 12px; border-radius: 12px; border: 2px solid var(--border); }
+/* Thème : Clair / Sombre / Auto sur une seule ligne */
+.stg-theme-pills { gap: 6px; }
+.stg-theme-pill { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 10px 4px; white-space: nowrap; }
+.stg-theme-pill svg { width: 16px; height: 16px; flex: none; }
+/* Thème : Clair / Sombre / Auto sur une seule ligne */
+.stg-theme-pills { gap: 6px; }
+.stg-theme-pill { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 10px 4px; white-space: nowrap; }
+.stg-theme-pill svg { width: 16px; height: 16px; flex: none; }

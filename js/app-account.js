@@ -1185,12 +1185,13 @@ body.settings-open{overflow:hidden!important;}\
       '<div class="stg-group">' +
         '<div style="padding:14px 16px;">' +
           '<div class="stg-theme-pills">' +
-            '<div class="stg-theme-pill" id="stgThemeDark">' + yamSIcon('moon') + 'Sombre</div>' +
             '<div class="stg-theme-pill" id="stgThemeLight">' + yamSIcon('sun') + 'Clair</div>' +
+            '<div class="stg-theme-pill" id="stgThemeDark">' + yamSIcon('moon') + 'Sombre</div>' +
+            '<div class="stg-theme-pill" id="stgThemeAuto"><svg class="ys" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="10"/><path class="d" d="M16 6a10 10 0 0 0 0 20z"/></svg>Auto</div>' +
           '</div>' +
         '</div>' +
       '</div>' +
-      '<div style="font-size:11px;color:var(--muted);padding:6px 4px;">Le thème s\'applique immédiatement à toute l\'application.</div>' +
+      '<div style="font-size:11px;color:var(--muted);padding:6px 4px;">Auto suit le réglage de ton téléphone. Le thème s\'applique immédiatement à toute l\'application.</div>' +
       '<div class="stg-group-label" style="margin-top:20px;">Décor de fond</div>' +
       '<div id="stgDecorGrid" class="dc-grid"></div>' +
       '<div style="font-size:11px;color:var(--muted);padding:6px 4px;">Le décor apparaît derrière l\'onglet Jeux. L\'aperçu suit ton thème : jour en clair, nuit en sombre.</div>' +
@@ -1564,6 +1565,7 @@ body.settings-open{overflow:hidden!important;}\
     // Thème pills
     if (t.id === 'stgThemeDark')  { window.stgSetTheme && window.stgSetTheme('dark');  return; }
     if (t.id === 'stgThemeLight') { window.stgSetTheme && window.stgSetTheme('light'); return; }
+    if (t.id === 'stgThemeAuto')  { window.stgSetTheme && window.stgSetTheme('auto');  return; }
 
     // Prefs tags
     var tag = t.closest && t.closest('.stg-tag[data-pref]');
@@ -2130,17 +2132,17 @@ body.settings-open{overflow:hidden!important;}\
     var isLight = document.body.classList.contains('light') || document.documentElement.classList.contains('light');
     var d = document.getElementById('stgThemeDark');
     var l = document.getElementById('stgThemeLight');
-    if(d) d.classList.toggle('active', !isLight);
-    if(l) l.classList.toggle('active', isLight);
+    var mode = ''; try{ mode = localStorage.getItem('jayana_theme'); }catch(e){}
+    var a = document.getElementById('stgThemeAuto');
+    if(d) d.classList.toggle('active', mode !== 'auto' && !isLight);
+    if(l) l.classList.toggle('active', mode !== 'auto' && isLight);
+    if(a) a.classList.toggle('active', mode === 'auto');
     var lbl = document.getElementById('stgThemeLabel');
-    if(lbl) lbl.textContent = isLight ? 'Clair' : 'Sombre';
+    if(lbl) lbl.textContent = mode === 'auto' ? 'Auto' : (isLight ? 'Clair' : 'Sombre');
   }
 
   window.stgSetTheme = function(theme){
-    if(typeof applyThemeToggle === 'function'){
-      var isLight = document.body.classList.contains('light') || document.documentElement.classList.contains('light');
-      if((theme === 'light' && !isLight) || (theme === 'dark' && isLight)){ applyThemeToggle(); }
-    }
+    if(typeof window.yamSetThemeMode === 'function') window.yamSetThemeMode(theme);
     setTimeout(_stgSyncTheme, 100);
   };
 

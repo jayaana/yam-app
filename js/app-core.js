@@ -716,7 +716,7 @@ function applyThemeToggle() {
 
 (function() {
   var saved   = localStorage.getItem('jayana_theme');
-  var goLight = saved !== 'dark';
+  var goLight = saved === 'auto' ? !(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) : saved !== 'dark';
   if (goLight) {
     document.body.classList.add('light');
     document.documentElement.classList.add('light');
@@ -743,6 +743,17 @@ function applyThemeToggle() {
 })();
 
 window.applyThemeToggle = applyThemeToggle;
+/* Mode du thème : 'light' (défaut) | 'dark' | 'auto' (suit le réglage du téléphone) ; mémorisé dans jayana_theme */
+window.yamSetThemeMode = function(mode) {
+  var wantLight = mode === 'auto' ? !(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) : mode !== 'dark';
+  if (wantLight !== document.body.classList.contains('light')) applyThemeToggle();
+  localStorage.setItem('jayana_theme', mode);
+};
+if (window.matchMedia) {
+  var _mqDark = matchMedia('(prefers-color-scheme: dark)');
+  var _mqOn = function() { if (localStorage.getItem('jayana_theme') === 'auto') window.yamSetThemeMode('auto'); };
+  _mqDark.addEventListener ? _mqDark.addEventListener('change', _mqOn) : _mqDark.addListener(_mqOn);
+}
 document.getElementById('themeToggle')     && document.getElementById('themeToggle').addEventListener('click', applyThemeToggle);
 document.getElementById('floatingThemeBtn') && document.getElementById('floatingThemeBtn').addEventListener('click', applyThemeToggle);
 

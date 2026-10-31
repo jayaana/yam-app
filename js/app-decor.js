@@ -19,7 +19,7 @@
 
   function byId(id) { for (var i = 0; i < DECORS.length; i++) if (DECORS[i].id === id) return DECORS[i]; return null; }
   function stored() {
-    try { var v = localStorage.getItem(KEY); var d = byId(v); return d && !d.soon ? v : 'ete'; } catch (e) { return 'ete'; }
+    try { var v = localStorage.getItem(KEY); var d = byId(v); return d && !d.soon ? v : 'noel'; } catch (e) { return 'noel'; }
   }
   function isDark() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
 
