@@ -135,9 +135,9 @@ html body #moodPickerOverlay { z-index: 10010; }
 html body #moodPicker { z-index: 10011; }
 html body #profilePopup { z-index: 10020; }
 
-/* Apparence : titres noir/blanc, bouton retour comme celui de Messages, grille « Décor de fond » (js/app-decor.js) */
+/* Apparence : titres noir/blanc ; bouton retour (toutes les sous-pages) à contour clair comme Messages, sans ombre ; grille « Décor de fond » (js/app-decor.js) */
 html body #stgSubAppearance .stg-title, html body #stgSubAppearance .stg-group-label { color: var(--pa-ic); }
-html body #stgSubAppearance .stg-back {
+html body .stg-back {
   border-radius: 50%; background: var(--gu-card); color: var(--pa-ic);
   border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: none;
 }
