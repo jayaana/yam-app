@@ -134,3 +134,23 @@ html body .yam-cf-cancel { background: var(--pm-row); color: var(--pm-tx); }
 html body #moodPickerOverlay { z-index: 10010; }
 html body #moodPicker { z-index: 10011; }
 html body #profilePopup { z-index: 10020; }
+
+/* Apparence : titres noir/blanc, bouton retour comme celui de Messages, grille « Décor de fond » (js/app-decor.js) */
+html body #stgSubAppearance .stg-title, html body #stgSubAppearance .stg-group-label { color: var(--pa-ic); }
+html body #stgSubAppearance .stg-back {
+  border-radius: 50%; background: var(--gu-card); color: var(--pa-ic);
+  border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow);
+}
+.dc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.dc-card { position: relative; border-radius: 18px; background: var(--s2); border: 2px solid var(--border); overflow: hidden; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.dc-card.on { border-color: var(--accent); }
+.dc-prev { height: 104px; overflow: hidden; position: relative; }
+.dc-prev svg { position: absolute; left: 50%; bottom: 0; width: 393px; height: 216px; margin-left: -196px; transform-origin: 50% 100%; transform: scale(.52); }
+.dc-bar { padding: 8px 10px 10px; }
+.dc-nm { font-weight: 900; font-size: 15px; color: var(--pa-ic); }
+.dc-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.dc-ck { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; display: none; place-items: center; font-weight: 900; border: 2px solid #fff; }
+.dc-card.on .dc-ck { display: grid; }
+.dc-card.lock { opacity: .7; cursor: default; }
+.dc-card.lock .dc-prev { display: grid; place-items: center; background: repeating-linear-gradient(45deg, var(--border), var(--border) 8px, transparent 8px, transparent 16px); }
+.dc-card.lock .dc-prev b { background: var(--s2); color: var(--sub); font-size: 12px; padding: 5px 12px; border-radius: 12px; border: 2px solid var(--border); }

@@ -214,3 +214,24 @@ html[data-theme="dark"] #jxDecor .jx-nuit { display: block; }   /* plage de nuit
 #jxGrab { position: relative; height: 0; overflow: visible; z-index: 5; }
 #jxGrab i { position: absolute; left: 50%; top: -10px; margin-left: -22px; width: 44px; height: 5px; border-radius: 3px; background: rgba(74,15,46,.28); }
 html[data-theme="dark"] #jxGrab i { background: rgba(255,255,255,.3); }
+
+/* Décors de saison (js/app-decor.js) : « ete » = SVG d'index.html, les autres sont injectés (.jx-noel = décor à fichiers) */
+html:not([data-decor="noel"]) #jxDecor .jx-noel { display: none !important; }
+html[data-decor="noel"] #jxDecor svg:not(.jx-noel) { display: none !important; }
+html[data-decor="noel"][data-theme="warm"] #jxDecor .jx-noel.jx-jour { display: block; }
+html[data-decor="noel"][data-theme="dark"] #jxDecor .jx-noel.jx-nuit { display: block; }
+.jx-noel .sn { animation: jxn-fall 9s linear infinite; }
+.jx-noel .s1 { animation-duration: 12s; }
+.jx-noel .s2 { animation-duration: 7s; }
+@keyframes jxn-fall { 0% { transform: translate(0, -10px); } 50% { transform: translate(10px, 70px); } 100% { transform: translate(-4px, 160px); opacity: 0; } }
+.jx-noel .tw { animation: jxn-tw 2.4s ease-in-out infinite; }
+.jx-noel .t1 { animation-delay: -.6s; } .jx-noel .t2 { animation-delay: -1.2s; } .jx-noel .t3 { animation-delay: -1.8s; }
+@keyframes jxn-tw { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+.jx-noel .smoke circle { animation: jxn-sm 4s ease-out infinite; }
+.jx-noel .smoke circle:nth-child(2) { animation-delay: -1.3s; } .jx-noel .smoke circle:nth-child(3) { animation-delay: -2.6s; }
+@keyframes jxn-sm { 0% { transform: translate(0, 12px); opacity: 0; } 30% { opacity: .7; } 100% { transform: translate(8px, -14px); opacity: 0; } }
+.jx-noel .tws { animation: jxn-tws 2.6s ease-in-out infinite; } @keyframes jxn-tws { 50% { opacity: .72; } }
+.jx-noel .glowwin { animation: jxn-gw 3s ease-in-out infinite; } @keyframes jxn-gw { 50% { opacity: .78; } }
+.jx-noel .aur { animation: jxn-au 9s ease-in-out infinite; } .jx-noel .a2 { animation-delay: -4s; }
+@keyframes jxn-au { 50% { transform: translateY(5px); opacity: .7; } }
+@media (prefers-reduced-motion: reduce) { .jx-noel *, .jx-noel { animation: none !important; } }

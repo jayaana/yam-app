@@ -1191,6 +1191,9 @@ body.settings-open{overflow:hidden!important;}\
         '</div>' +
       '</div>' +
       '<div style="font-size:11px;color:var(--muted);padding:6px 4px;">Le thème s\'applique immédiatement à toute l\'application.</div>' +
+      '<div class="stg-group-label" style="margin-top:20px;">Décor de fond</div>' +
+      '<div id="stgDecorGrid" class="dc-grid"></div>' +
+      '<div style="font-size:11px;color:var(--muted);padding:6px 4px;">Le décor apparaît derrière l\'onglet Jeux. L\'aperçu suit ton thème : jour en clair, nuit en sombre.</div>' +
     '</div>' +
   '</div>';
 
@@ -1579,7 +1582,7 @@ body.settings-open{overflow:hidden!important;}\
   window.stgOpenSub = function(id){
     var el = document.getElementById(id);
     if(el){ el.classList.add('active'); el.scrollTop = 0; }
-    if(id === 'stgSubAppearance') _stgSyncTheme();
+    if(id === 'stgSubAppearance'){ _stgSyncTheme(); window.yamDecorRender && window.yamDecorRender(); }
     if(id === 'stgSubPrefs') _stgLoadPrefs();
     if(id === 'stgSubSecurity') { _stgLoadEmail(); _2faCheckStatus(); }
     if(id === 'stgSubMonCompte') { _stgLoadEmail(); _loadMonCompte(); }
