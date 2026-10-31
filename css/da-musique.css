@@ -1,6 +1,6 @@
 /* Musique — game UI : fond de page aligné sur Accueil / Jeux / Messages (jetons --gu-*) */
 html[data-yam-tab="musique"] { background: linear-gradient(#ffc2bb, rgba(255,194,187,0)) 0 0 / 100% 160px no-repeat, linear-gradient(#ffeaf0, #ffeaf0) !important; background-repeat: no-repeat !important; background-color: #ffc2bb !important; }
-html[data-theme="dark"][data-yam-tab="musique"] { background: linear-gradient(#191215 var(--yam-safe-px, 0px), rgba(25,18,21,0)) 0 0 / 100% 160px no-repeat, linear-gradient(#1b1b1b 0%, #141414 40%, #0a0a0a 100%) !important; background-repeat: no-repeat !important; background-color: #191215 !important; }
+html[data-theme="dark"][data-yam-tab="musique"] { background: linear-gradient(#191215 calc(var(--yam-safe-px, 0px) + 60px), rgba(25,18,21,0)) 0 0 / 100% 160px no-repeat, linear-gradient(#1b1b1b 0%, #141414 40%, #0a0a0a 100%) !important; background-repeat: no-repeat !important; background-color: #191215 !important; }
 html[data-yam-tab="musique"] body #yamMusiqueTab.yam-tab-panel { background: transparent !important; }
 html[data-yam-tab="musique"] body, html[data-yam-tab="musique"] body.light { background: transparent !important; background-image: none !important; }
 

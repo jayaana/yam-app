@@ -27,7 +27,7 @@ html[data-theme="dark"] #hiddenPage {
 /* ── Fond : IDENTIQUE à l'Accueil (même règle que da-accueil.css, onglet « messages »).
    La zone sûre iOS n'est peinte que par le background-color de html : même fondu de 160 px. */
 html[data-yam-tab="messages"] { background: linear-gradient(#ffc2bb, rgba(255,194,187,0)) 0 0 / 100% 160px no-repeat, var(--gu-bg-page) !important; background-repeat: no-repeat !important; background-color: #ffc2bb !important; }
-html[data-theme="dark"][data-yam-tab="messages"] { background: linear-gradient(#191215 var(--yam-safe-px, 0px), rgba(25,18,21,0)) 0 0 / 100% 160px no-repeat, var(--gu-bg-page) !important; background-repeat: no-repeat !important; background-color: #191215 !important; }
+html[data-theme="dark"][data-yam-tab="messages"] { background: linear-gradient(#191215 calc(var(--yam-safe-px, 0px) + 60px), rgba(25,18,21,0)) 0 0 / 100% 160px no-repeat, var(--gu-bg-page) !important; background-repeat: no-repeat !important; background-color: #191215 !important; }
 html[data-yam-tab="messages"] body, html[data-yam-tab="messages"] body.light { background: transparent !important; background-image: none !important; }
 /* Fond OPAQUE (sinon l'onglet précédent se voit à travers). Le HAUT reprend le fond des autres pages (zone sûre iOS
    peinte par html : #ffc2bb clair / #191215 sombre), puis il s'éclaircit vers la couleur de la feuille de la page Jeux

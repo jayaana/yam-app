@@ -58,7 +58,7 @@ html[data-theme="dark"] {
 
 /* ── Fond de page + en-tête (comme l'Accueil : zone sûre peinte par html) ── */
 html[data-yam-tab="jeux"] { background: linear-gradient(#ffc2bb, rgba(255,194,187,0)) 0 0 / 100% 160px no-repeat, var(--gu-bg-page) !important; background-repeat: no-repeat !important; background-color: #ffc2bb !important; }
-html[data-theme="dark"][data-yam-tab="jeux"] { background: linear-gradient(#191215 var(--yam-safe-px, 0px), rgba(25,18,21,0)) 0 0 / 100% 160px no-repeat, var(--gu-bg-page) !important; background-repeat: no-repeat !important; background-color: #191215 !important; }
+html[data-theme="dark"][data-yam-tab="jeux"] { background: linear-gradient(#191215 calc(var(--yam-safe-px, 0px) + 60px), rgba(25,18,21,0)) 0 0 / 100% 160px no-repeat, var(--gu-bg-page) !important; background-repeat: no-repeat !important; background-color: #191215 !important; }
 html[data-yam-tab="jeux"] body, html[data-yam-tab="jeux"] body.light { background: transparent !important; background-image: none !important; }
 html[data-yam-tab="jeux"] #yamMainHeader { background: transparent !important; border: 0; box-shadow: none; }
 

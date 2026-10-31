@@ -139,7 +139,7 @@ html body #profilePopup { z-index: 10020; }
 html body #stgSubAppearance .stg-title, html body #stgSubAppearance .stg-group-label { color: var(--pa-ic); }
 html body #stgSubAppearance .stg-back {
   border-radius: 50%; background: var(--gu-card); color: var(--pa-ic);
-  border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow);
+  border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: none;
 }
 .dc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .dc-card { position: relative; border-radius: 18px; background: var(--s2); border: 2px solid var(--border); overflow: hidden; cursor: pointer; -webkit-tap-highlight-color: transparent; }
