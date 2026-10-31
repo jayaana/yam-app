@@ -140,3 +140,6 @@ html[data-theme="dark"] {
 
 /* Thème bleu (phase 7) : ajouter ici UN bloc html[data-theme="blue"]{…}
    avec les mêmes jetons. Aucun violet. */
+
+/* Hauteur de la zone sûre iOS : le dégradé sombre du haut reste plein jusque-là (pas de marche de couleur à la limite) */
+html { --yam-safe-px: max(env(safe-area-inset-top, 0px), var(--yam-sim-safe, 0px)); }
