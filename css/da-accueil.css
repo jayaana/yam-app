@@ -241,3 +241,6 @@ html[data-yam-tab="home"] #yamMainHeader, html[data-yam-tab="home"] #yamHomeTab 
 #rappelSheet::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 140px; background: var(--s1); pointer-events: none; }
 /* Accueil : pas de petit en-tête flottant (il s'affichait à demi-transparent sur la zone sûre quand iOS décale la page : bande pâle) */
 html[data-yam-tab="home"] #yamStickyHeader { display: none !important; }
+
+/* Thème sombre : plus de halo rose pulsant en haut à droite des en-têtes (déjà absent en clair) : sa limite basse formait une ligne sous la zone sûre */
+html body header::before { display: none !important; }
