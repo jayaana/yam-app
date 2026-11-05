@@ -54,13 +54,18 @@
     return c;
   }
 
+  /* La copie de la Maison reçoit des identifiants à elle (sinon doublons avec l'Accueil = contours parasites) */
+  function uniq(t) {
+    return t.replace(/id="([^"]+)"/g, 'id="$1-mz"').replace(/url\(#([^)]+)\)/g, 'url(#$1-mz)').replace(/href="#([^"]+)"/g, 'href="#$1-mz"');
+  }
+
   /* Pose le SVG dans un conteneur (une seule fois) puis règle les classes */
   function mount(host, playing, force) {
     if (!host) return;
     var s = host.firstElementChild;
     if (!s || String(s.tagName).toLowerCase() !== 'svg') {
       if (!svgText) return;
-      host.innerHTML = svgText;
+      host.innerHTML = host.id === 'mzStage' ? uniq(svgText) : svgText;
       s = host.firstElementChild;
       if (s && window.IntersectionObserver) {
         new IntersectionObserver(function (es) {
@@ -135,8 +140,8 @@
   }
   function renderPage() {
     var g = document.getElementById('mzTenues'), c = document.getElementById('mzCasques');
-    if (g) g.innerHTML = cards(TENUES, tenue(), 'tenue', 46);
-    if (c) c.innerHTML = cards(CASQUES, casque(), 'casque', 64);
+    if (g) g.innerHTML = cards(TENUES, tenue(), 'tenue', 34);
+    if (c) c.innerHTML = cards(CASQUES, casque(), 'casque', 44);
   }
   function buildPage() {
     if (document.getElementById('mzPage')) return;
@@ -164,6 +169,7 @@
   function closeMaison() {
     var p = document.getElementById('mzPage');
     if (p) p.classList.remove('active');
+    ['mzStage', 'mzTenues', 'mzCasques'].forEach(function (i) { var e = document.getElementById(i); if (e) e.innerHTML = ''; });
   }
 
   document.addEventListener('click', function (e) {

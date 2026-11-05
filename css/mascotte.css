@@ -225,20 +225,20 @@
 .mz-top{display:flex;align-items:center;gap:12px;padding:4px 16px 8px}
 .mz-back{width:36px;height:36px;border-radius:50%;border:1px solid rgba(0,0,0,.12);background:rgba(255,255,255,.7);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;color:inherit}
 .mz-title{font-size:20px;font-weight:700}
-.mz-stage{width:220px;height:220px;margin:6px auto 0;flex-shrink:0}
+.mz-stage{width:150px;height:150px;margin:0 auto;flex-shrink:0}
 .mz-stage svg.m{width:100%;height:100%}
-.mz-body{padding:8px 16px 60px}
-.mz-label{font-size:13px;font-weight:700;margin:14px 4px 8px;opacity:.75}
-.mz-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.mz-card{border:2px solid rgba(0,0,0,.1);border-radius:16px;padding:14px 6px;text-align:center;font-size:14px;font-weight:600;background:rgba(255,255,255,.75);cursor:pointer;color:#3a2a2a;-webkit-tap-highlight-color:transparent}
+.mz-body{padding:0 16px 24px}
+.mz-label{font-size:13px;font-weight:700;margin:10px 4px 6px;opacity:.75}
+.mz-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mz-card{border:2px solid rgba(0,0,0,.1);border-radius:14px;padding:8px 4px;text-align:center;font-size:13px;font-weight:600;background:rgba(255,255,255,.75);cursor:pointer;color:#3a2a2a;-webkit-tap-highlight-color:transparent}
 .mz-card.on{border-color:#ff6b6b;background:#ffe3e0}
-.mz-icos{display:flex;align-items:center;justify-content:center;gap:4px;height:68px;margin-bottom:6px}
-.mz-ico{display:block;overflow:visible;flex:0 0 auto}
+.mz-icos{display:flex;align-items:center;justify-content:center;gap:2px;height:40px;margin-bottom:4px}
+.mz-ico{display:block;overflow:hidden;flex:0 0 auto}
 .mz-nm{display:block}
 .mz-grid.c2{grid-template-columns:repeat(2,1fr)}
 html[data-theme="dark"] .mz-page{background:#1c1416;color:#f5e9e7}
 html[data-theme="dark"] .mz-card{background:rgba(255,255,255,.08);color:#f5e9e7;border-color:rgba(255,255,255,.15)}
 html[data-theme="dark"] .mz-card.on{border-color:#ff8a80;background:rgba(255,107,107,.25)}
 html[data-theme="dark"] .mz-back{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2)}
-.mz-none{display:block;width:34px;height:34px;border-radius:50%;border:2px dashed currentColor;opacity:.35;position:relative}
+.mz-none{display:block;width:26px;height:26px;border-radius:50%;border:2px dashed currentColor;opacity:.35;position:relative}
 .mz-none::after{content:'';position:absolute;left:50%;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:currentColor;transform:rotate(45deg)}
