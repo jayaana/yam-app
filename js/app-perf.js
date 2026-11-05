@@ -77,6 +77,7 @@
     document.addEventListener('DOMContentLoaded', function () {
       var h = document.getElementById('homeMascot'); if (!h) return;
       var TEN = 'rouge'; try { TEN = localStorage.getItem('yam_mascotte_tenue') || 'rouge'; } catch (e) {} if (!/^(rouge|jaune|vert|nu)$/.test(TEN)) TEN = 'rouge';
+      window.yamPhotoTenue = TEN;   /* lu par app-mascotte.js : si la tenue du serveur diffère au démarrage (autre compte), la page se recharge une fois */
       var DIR = 'assets/mascotte/img/' + TEN + '/';
       fetch(DIR + 'manifest.json').then(function (r) { return r.json(); }).then(function (M) {
         var k = 180 / M.size, w = document.createElement('div'); w.id = 'yamPhoto';
