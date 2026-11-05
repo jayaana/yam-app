@@ -217,8 +217,8 @@
     var c = t.closest('#mzPage .mz-card');
     if (!c) return;
     try {
-      if (c.getAttribute('data-tenue')) localStorage.setItem(KEY_TENUE, c.getAttribute('data-tenue'));
-      if (c.getAttribute('data-casque')) { localStorage.setItem(KEY_CASQUE, c.getAttribute('data-casque')); showCasque = true; }
+      if (c.getAttribute('data-tenue')) { shared.tenue = c.getAttribute('data-tenue'); localStorage.setItem(KEY_TENUE, shared.tenue); }
+      if (c.getAttribute('data-casque')) { shared.casque = c.getAttribute('data-casque'); localStorage.setItem(KEY_CASQUE, shared.casque); showCasque = true; }
     } catch (x) {}
     push();
     renderPage();
