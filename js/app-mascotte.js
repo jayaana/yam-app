@@ -210,6 +210,12 @@
     ['mzStage', 'mzTenues', 'mzCasques'].forEach(function (i) { var e = document.getElementById(i); if (e) e.innerHTML = ''; });
   }
 
+  // La page Maison se ferme des qu'on quitte l'Accueil (Parametres, autre onglet) : jamais de page ou de couleur de zone sure qui reste
+  new MutationObserver(function () {
+    var h = document.documentElement;
+    if (h.hasAttribute('data-yam-maison') && (h.hasAttribute('data-yam-settings') || (h.getAttribute('data-yam-tab') || 'home') !== 'home')) closeMaison();
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-yam-settings', 'data-yam-tab'] });
+
   document.addEventListener('click', function (e) {
     var t = e.target;
     if (!t || !t.closest) return;
