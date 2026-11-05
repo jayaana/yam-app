@@ -246,3 +246,10 @@ html[data-yam-tab="home"] #yamStickyHeader { display: none !important; }
 
 /* Thème sombre : plus de halo rose pulsant en haut à droite des en-têtes (déjà absent en clair) : sa limite basse formait une ligne sous la zone sûre */
 html body header::before { display: none !important; }
+
+/* DIAG-TRAIT (temporaire) */
+#dtStrip { display: none; }
+html.dt-v1 #dtStrip, html.dt-v3 #dtStrip { display: block; position: fixed; top: 0; left: 0; right: 0; height: max(env(safe-area-inset-top), 59px); background: #ffc2bb; pointer-events: none; z-index: 25; }
+html.dt-v1 #particleCanvas, html.dt-v1 #prankNotifOverlay, html.dt-v1 #prankNotif,
+html.dt-v4 #particleCanvas, html.dt-v4 #prankNotifOverlay, html.dt-v4 #prankNotif,
+html.dt-v2 #prankNotif { display: none !important; }

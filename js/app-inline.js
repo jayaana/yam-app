@@ -769,82 +769,23 @@ document.addEventListener('DOMContentLoaded', function(){
 
 });
 
-/* DIAG-TRAIT (temporaire) : releve des elements fixes du haut + boutons A B C D */
+/* DIAG-TRAIT (temporaire) : boutons 1 2 3 4 0, chaque bouton recharge l'appli */
 (function(){
   var NL = String.fromCharCode(10);
   function go(){
+    var cur = ''; try { cur = localStorage.getItem('dtVar') || '0'; } catch (e) {}
     var box = document.createElement('div');
-    box.id = 'diagTraitBox';
     box.style.cssText = 'position:fixed;left:6px;right:6px;bottom:90px;z-index:2147483647;background:#fff;color:#000;font:11px/1.25 monospace;padding:6px;border:2px solid #c00;border-radius:8px;max-height:46vh;overflow:auto';
-    var out = document.createElement('div'); out.style.whiteSpace = 'pre-wrap';
     var bar = document.createElement('div'); bar.style.cssText = 'display:flex;gap:6px;margin-bottom:6px';
-    box.appendChild(bar); box.appendChild(out);
-    document.body.appendChild(box);
-    var strip = null, hidden = [], idx = -1;
-    function name(el){ return (el.id ? '#' + el.id : el.tagName.toLowerCase()) + (typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\s+/).join('.') : ''); }
-    function cands(){
-      var r = [], all = document.body.querySelectorAll('*');
-      for(var i = 0; i < all.length; i++){
-        var e = all[i];
-        if(e === box || box.contains(e) || e === strip) continue;
-        var c = getComputedStyle(e);
-        if(c.position !== 'fixed' && c.position !== 'sticky') continue;
-        var b = e.getBoundingClientRect();
-        if(b.top > 4 || b.width < innerWidth * 0.8) continue;
-        r.push(e);
-      }
-      return r;
-    }
-    function info(e){
-      var c = getComputedStyle(e), b = e.getBoundingClientRect();
-      return name(e) + ' ' + c.position + ' disp=' + c.display + ' vis=' + c.visibility + ' op=' + c.opacity + ' bg=' + c.backgroundColor + ' z=' + c.zIndex + ' h=' + Math.round(b.height) + ' top=' + Math.round(b.top) + ' pe=' + c.pointerEvents + ' tr=' + c.transform;
-    }
-    function reset(){
-      if(strip && strip.parentNode) strip.parentNode.removeChild(strip);
-      strip = null;
-      hidden.forEach(function(h){ h[0].style.display = h[1]; });
-      hidden = [];
-    }
-    function hide(e){ hidden.push([e, e.style.display]); e.style.display = 'none'; }
-    function mk(css){
-      strip = document.createElement('div');
-      strip.setAttribute('aria-hidden', 'true');
-      strip.style.cssText = css;
-      document.body.insertBefore(strip, document.body.firstChild);
-    }
-    function render(titre){
-      var l = cands(), t = titre + NL + 'safe=' + getComputedStyle(document.documentElement).getPropertyValue('--yam-safe-px') + ' iH=' + innerHeight + ' oH=' + outerHeight + NL + 'CANDIDATS (' + l.length + ') :' + NL;
-      l.forEach(function(e, i){ t += (i + 1) + ') ' + info(e) + NL; });
-      out.textContent = t;
-    }
-    function btn(lbl, fn){
-      var b = document.createElement('button');
-      b.textContent = lbl;
-      b.style.cssText = 'flex:1;font:bold 16px sans-serif;padding:8px 0;border:1px solid #c00;border-radius:6px;background:#fee';
-      b.addEventListener('click', fn);
+    var out = document.createElement('div'); out.style.whiteSpace = 'pre-wrap';
+    out.textContent = 'DIAG v413 variante actuelle : ' + cur + NL + '1 = bande + 3 caches' + NL + '2 = notif blanche cachee' + NL + '3 = bande seule' + NL + '4 = 3 caches sans bande' + NL + '0 = rien' + NL + 'Toucher = recharge, puis FERMER/ROUVRIR l appli' + NL + 'strip=' + (document.getElementById('dtStrip') ? 'oui' : 'non') + ' html.class=' + document.documentElement.className;
+    ['1','2','3','4','0'].forEach(function(n){
+      var b = document.createElement('button'); b.textContent = n;
+      b.style.cssText = 'flex:1;font:bold 16px sans-serif;padding:8px 0;border:1px solid #c00;border-radius:6px;background:' + (n === cur ? '#fcc' : '#fee');
+      b.addEventListener('click', function(){ try { if (n === '0') localStorage.removeItem('dtVar'); else localStorage.setItem('dtVar', n); } catch (e) {} location.reload(); });
       bar.appendChild(b);
-    }
-    btn('A', function(){ reset(); idx = -1; mk('position:fixed;inset:0 0 auto 0;height:max(env(safe-area-inset-top),59px);background:#ffc2bb;pointer-events:none;z-index:25'); render('A : bande kleis z25'); });
-    btn('B', function(){ reset(); idx = -1; mk('position:fixed;inset:0 0 auto 0;height:11px;background:#ffc2bb;-webkit-background-clip:text;background-clip:text;pointer-events:none'); render('B : bande ojapp 11px clip:text'); });
-    btn('C', function(){
-      reset();
-      var l = cands();
-      if(!l.length){ render('C : aucun candidat'); return; }
-      idx = (idx + 1) % (l.length + 1);
-      if(idx === l.length){ render('C : rien de cache'); return; }
-      hide(l[idx]);
-      var n = name(l[idx]);
-      render('C : cache ' + (idx + 1) + '/' + l.length + ' ' + n);
     });
-    btn('D', function(){
-      reset(); idx = -1;
-      var l = cands();
-      mk('position:fixed;inset:0 0 auto 0;height:max(env(safe-area-inset-top),59px);background:#ffc2bb;pointer-events:none;z-index:25');
-      l.forEach(hide);
-      render('D : bande A + ' + l.length + ' candidats caches');
-    });
-    btn('0', function(){ reset(); idx = -1; render('0 : tout remis'); });
-    render('DIAG v412 : toucher A B C D (0 = reset)');
+    box.appendChild(bar); box.appendChild(out); document.body.appendChild(box);
   }
   setTimeout(go, 2500);
 })();
