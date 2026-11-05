@@ -82,6 +82,7 @@
     if (!homeVisible()) return;
     armed = false;
     feteUntil = Date.now() + FETE_MS;
+    var sv = document.getElementById('homeMascot'); sv = sv && sv.firstElementChild; if (sv && sv.classList) sv.classList.remove('joie', 'joieY');   /* la fête prend la place d'un saut en cours */
     sync();
     var btn = document.getElementById('homeMascot'), n = 0;
     clearInterval(feteTimer);
@@ -117,7 +118,7 @@
     var ms = (typeof _heartMilestones !== 'undefined') ? _heartMilestones : [], palier = false;
     for (var i = 0; i < ms.length; i++) if (daily - 1 < ms[i] && daily >= ms[i]) palier = true;
     paintRing();
-    if (nv >= 100 && (armed || palier)) fete(); else sync();
+    if (nv >= 85 && (armed || palier)) fete(); else sync();   /* la fête se lance dès la zone dorée (≥ 85 %) */
   };
 
   var rtDone = false;
@@ -212,6 +213,7 @@
   /* Joie au clic sur le cœur : saut + chewing-gum + yeux souriants (pose repos seulement) */
   function joie() {
     var h = document.getElementById('homeMascot'), svg = h && h.firstElementChild;
+    if (Date.now() < feteUntil) return;   /* pendant la fête : pas de saut, on laisse voir l'animation */
     if (!svg || !(svg.classList.contains('repos') || svg.classList.contains('content'))) return;   /* saut en repos ou content, pas en triste/musique */
     svg.classList.remove('joie');
     void svg.getBoundingClientRect();
