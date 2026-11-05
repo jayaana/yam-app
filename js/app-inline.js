@@ -773,27 +773,40 @@ document.addEventListener('DOMContentLoaded', function(){
 (function(){
   function go(){
     var box = document.createElement('div');
+    box.id = 'diagTrait';
     box.style.cssText = 'position:fixed;left:6px;right:6px;bottom:90px;z-index:2147483647;background:#fff;color:#000;font:11px/1.25 monospace;padding:6px;border:2px solid #c00;border-radius:8px;white-space:pre-wrap;max-height:42vh;overflow:auto';
     document.body.appendChild(box);
-    var H = document.documentElement, B = document.body;
+    var H = document.documentElement, B = document.body, NL = String.fromCharCode(10);
+    var hid = [];
+    function hideAll(){ Array.prototype.forEach.call(B.children, function(e){ if(e !== box){ hid.push([e, e.style.visibility]); e.style.visibility = 'hidden'; } }); }
+    function restore(){ hid.forEach(function(a){ a[0].style.visibility = a[1]; }); hid = []; }
     var cands = [
       ['aucun', function(){}],
-      ['A: html tout uni #ffc2bb', function(){ H.style.setProperty('background','#ffc2bb','important'); }],
-      ['B: html radial seul (sans dégradé haut)', function(){ H.style.setProperty('background','var(--gu-bg-page)','important'); H.style.setProperty('background-color','#ffc2bb','important'); }],
-      ['C: html dégradé haut seul jusqu a 119px', function(){ H.style.setProperty('background','linear-gradient(#ffc2bb 119px, rgba(255,194,187,0)) 0 0 / 100% 160px no-repeat','important'); H.style.setProperty('background-color','#ffc2bb','important'); }],
-      ['D: body uni #ffc2bb', function(){ B.style.setProperty('background','#ffc2bb','important'); }]
+      ['E: toute la page cachee (visibility)', function(){ hideAll(); }],
+      ['F: page cachee + html uni', function(){ hideAll(); H.style.setProperty('background','#ffc2bb','important'); B.style.setProperty('background','#ffc2bb','important'); }],
+      ['G: html overflow hidden', function(){ H.style.setProperty('overflow','hidden','important'); }]
     ];
     var step = 0;
-    function reset(){ H.style.removeProperty('background'); H.style.removeProperty('background-color'); B.style.removeProperty('background'); }
+    function reset(){ restore(); H.style.removeProperty('background'); B.style.removeProperty('background'); H.style.removeProperty('overflow'); }
+    function scan(){
+      var out = [];
+      Array.prototype.forEach.call(document.querySelectorAll('body *'), function(e){
+        if(e === box || box.contains(e)) return;
+        var r = e.getBoundingClientRect();
+        if(r.width < 200 || r.height === 0) return;
+        if(Math.abs(r.top - 59) < 3 || Math.abs(r.bottom - 59) < 3){
+          var c = getComputedStyle(e);
+          out.push((e.id ? '#' + e.id : e.tagName.toLowerCase()) + ' ' + c.position + ' t=' + Math.round(r.top) + ' b=' + Math.round(r.bottom) + ' bg=' + c.backgroundColor + ' bd=' + c.borderTopWidth + '/' + c.borderBottomWidth);
+        }
+      });
+      return out.slice(0, 8).join(NL) || 'aucun element a 59';
+    }
     function render(){
       reset(); cands[step][1]();
-      var cs = getComputedStyle(H), vv = window.visualViewport;
-      var rh = H.getBoundingClientRect(), rb = B.getBoundingClientRect();
-      var t = ['DIAG toucher = essai suivant', 'ETAPE ' + step + ' : ' + cands[step][0],
-        'html top=' + Math.round(rh.top) + ' h=' + Math.round(rh.height) + ' body top=' + Math.round(rb.top),
-        'vv offTop=' + (vv ? Math.round(vv.offsetTop) + ' pageTop=' + Math.round(vv.pageTop) + ' h=' + Math.round(vv.height) : '-') + ' iH=' + innerHeight + ' sY=' + scrollY,
-        'html bg=' + cs.backgroundImage.slice(0, 160), 'size=' + cs.backgroundSize.slice(0, 60) + ' pos=' + cs.backgroundPosition.slice(0, 40)].join(String.fromCharCode(10));
-      box.textContent = t;
+      var vv = window.visualViewport, rb = B.getBoundingClientRect();
+      box.textContent = ['DIAG toucher = essai suivant', 'ETAPE ' + step + ' : ' + cands[step][0],
+        'body top=' + Math.round(rb.top) + ' vv offTop=' + (vv ? Math.round(vv.offsetTop) + ' pageTop=' + Math.round(vv.pageTop) : '-') + ' iH=' + innerHeight + ' sY=' + scrollY,
+        'bords a 59px:', scan()].join(NL);
     }
     box.addEventListener('click', function(){ step = (step + 1) % cands.length; render(); });
     render();
