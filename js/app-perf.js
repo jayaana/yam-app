@@ -100,6 +100,29 @@
         function rnd(a, b) { return a + Math.random() * (b - a); }
         function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
         function show(o, n) { o.set[o.cur].className = 'off'; o.set[n].className = ''; o.cur = n; }
+        /* salut du bras gauche : trajectoire lissée (accélère puis ralentit) jouée avec les images tous les 5 degrés */
+        function salut(done) {
+          var P = M.zones.armL.poses, av = [];
+          P.forEach(function (n) { var m = /^s(M?)(\d+)$/.exec(n); if (m) av.push([(m[1] ? -1 : 1) * +m[2], n]); });
+          [[0, 'neutral'], [-14, 'wM14'], [52, 'w52'], [76, 'w76'], [90, 'w90'], [100, 'w100']].forEach(function (c) { if (P.indexOf(c[1]) >= 0) av.push(c); }); av.sort(function (a, b) { return a[0] - b[0]; });
+          if (av.length < 10) return seq('armL', [['w90', 450], ['w100', 380], ['w0', 600]], done);
+          var K = [[0, 0], [90, 520], [76, 440], [100, 440], [76, 440], [100, 440], [52, 540], [0, 760], [-14, 600], [0, 600]], T = 1.15, fr = [], last = null, STEP = 55;
+          function near(a) { var b = av[0]; av.forEach(function (c) { if (Math.abs(c[0] - a) < Math.abs(b[0] - a)) b = c; }); return b[1]; }
+          for (var i = 1; i < K.length; i++) {
+            var n = Math.max(1, Math.round(K[i][1] * T / STEP));
+            for (var j = 1; j <= n; j++) {
+              var u = j / n, e = u * u * (3 - 2 * u), a = K[i - 1][0] + (K[i][0] - K[i - 1][0]) * e, p = near(a);
+              if (p === last) fr[fr.length - 1][1] += STEP; else { fr.push([p, STEP]); last = p; }
+            }
+          }
+          fr.push(['neutral', 0]);
+          var o = Z.armL; if (!o || o.busy || document.hidden) return false; o.busy = true;
+          var q = 0; (function next() {
+            if (q >= fr.length) { o.busy = false; if (done) done(); return; }
+            show(o, fr[q][0]); var ms = fr[q][1]; q++; if (ms) setTimeout(next, ms); else next();
+          })();
+          return true;
+        }
         function seq(z, steps, done) {   /* steps : [[pose, ms], ...] ; images intermédiaires entre les poses, retour au neutre */
           var o = Z[z]; if (!o || o.busy || document.hidden) return false; o.busy = true;
           var NT = M.nt || 0, tw = {}; (M.zones[z].tween || []).forEach(function (n) { tw[n] = 1; });
@@ -132,7 +155,7 @@
         }
         every(12000, 20000, function () { seq('face', [['brow', 1100]]); });
         every(12000, 22000, function () { seq('face', Math.random() < .5 ? [['smile1', 600]] : [['smile1', 300], ['smile2', 1400], ['smile1', 300]]); });
-        every(25000, 32000, function () { seq('armL', [['w90', 450], ['w76', 380], ['w100', 380], ['w76', 380], ['w100', 380], ['w52', 450], ['w0', 600], ['wM14', 500]]); });
+        every(25000, 32000, function () { salut(); });
         if (ENR) {
           every(7000, 13000, function () { seq('armR', [['r2', 700], ['r1', 700], ['r2', 600]]); });
           every(4000, 8000, function () { seq('leaf', [['l1', 500], ['l2', 700], ['l1', 500]]); });
