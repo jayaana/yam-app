@@ -165,50 +165,66 @@
           });
         }
         if (HUM && M.scenes) {
-          /* Humeurs en images ENTIÈRES (h-<nom>-<n>.webp). Humeur lue sur les classes du SVG caché (posées par app-mascotte.js : priorité fête > musique > triste > repos). */
+          /* Humeurs en images (h-<nom>-<n>.webp, rognées, ~25 images/s) jouées par requestAnimationFrame.
+             Humeur lue sur les classes du SVG caché (app-mascotte.js : fête > musique > triste > repos). */
           var CQ = 'blanc'; try { CQ = localStorage.getItem('yam_mascotte_casque') || 'blanc'; } catch (e) {}
-          var HF = {}, hcur = null, hok = {}, htimer = 0, hgen = 0;
+          var HF = {}, hgen = 0, plist = [], hmode = '', hsvg = null;
           function hload(nm) {
-            var n = M.scenes[nm]; if (!n || HF[nm]) return;
-            HF[nm] = n.map(function (i) { var im = mk('h-' + nm + '-' + i, null); im.className = 'hf'; var tries = 0, u = im.src; im.onerror = function () { if (tries++ < 3) setTimeout(function () { im.src = u + '?r=' + tries; }, 800 * tries); }; w.appendChild(im); return im; });
+            var o = M.scenes[nm]; if (!o || !o.rect || HF[nm]) return;
+            var arr = [];
+            for (var i = 1; i <= o.n; i++) {
+              var im = mk('h-' + nm + '-' + i, o.rect); im.className = 'hf';
+              im.style.zIndex = /^triste(Yeux)$/.test(nm) ? 3 : /^triste./.test(nm) ? 2 : 1;
+              (function (im) { var tries = 0, u = im.src; im.onerror = function () { if (tries++ < 3) setTimeout(function () { im.src = u + '?r=' + tries; }, 800 * tries); }; })(im);
+              w.appendChild(im); arr.push(im);
+            }
+            HF[nm] = arr;
           }
-          ['content', 'joie', 'triste', CQ === 'noir' ? 'ecouteN' : 'ecoute'].forEach(function (nm, i) { setTimeout(function () { hload(nm); }, 1200 + i * 700); });
+          ['content', 'joie', 'triste', 'tristeLarme', 'tristeYeux', 'tristeCoucou', CQ === 'noir' ? 'ecouteN' : 'ecoute'].forEach(function (nm, i) { setTimeout(function () { hload(nm); }, 1200 + i * 1500); });
           function hready(nm) { var a = HF[nm]; return !!a && a.every(function (im) { return im.complete && im.naturalWidth; }); }
-          function hshow(nm, i) { if (hcur) hcur.className = 'hf'; hcur = HF[nm][i]; hcur.className = 'hf on'; }
-          function hstop() { clearTimeout(htimer); htimer = 0; hgen++; if (hcur) { hcur.className = 'hf'; hcur = null; } w.classList.remove('hum'); }
-          function hplay(nm, ms, boucle) {   /* images 1..5 à la suite ; en boucle tant que l'humeur dure */
-            var g = hgen, n = HF[nm].length, i = 0; w.classList.add('hum');
-            (function next() {
-              if (g !== hgen) return;
-              hshow(nm, i % n); i++;
-              if (!boucle && i >= n) return;
-              htimer = setTimeout(next, ms);
+          /* lecteur : images 1..n au rythme de M.scenes[nm].ms ; boucle ou passage unique (reste sur la dernière) */
+          function player(nm, boucle, onend, hold) {
+            var a = HF[nm], step = M.scenes[nm].ms, t0 = performance.now(), cur = null, last = -1, raf = 0, P = { stop: stop };
+            function stop() { cancelAnimationFrame(raf); P.dead = true; if (cur) { cur.className = 'hf'; cur = null; } }
+            (function f(now) {
+              if (P.dead) return;
+              var i = Math.floor((now - t0) / step);
+              if (!boucle && i >= a.length) { if (!hold && cur) { cur.className = 'hf'; cur = null; } if (onend) onend(); return; }
+              i %= a.length;
+              if (i !== last) { if (cur) cur.className = 'hf'; cur = a[i]; cur.className = 'hf on'; last = i; }
+              raf = requestAnimationFrame(f);
+            })(t0);
+            plist.push(P); return P;
+          }
+          function hstop() { hgen++; plist.forEach(function (q) { q.stop(); }); plist = []; w.classList.remove('hum'); }
+          function htriste() {
+            var g = hgen; w.classList.add('hum');
+            HF.triste[0].className = 'hf on'; plist.push({ stop: function () { HF.triste[0].className = 'hf'; } });
+            if (hready('tristeLarme')) player('tristeLarme', true);
+            if (hready('tristeYeux')) (function yeux() {
+              var t = setTimeout(function () {
+                if (g !== hgen) return; var im = HF.tristeYeux[0]; im.className = 'hf on';
+                setTimeout(function () { im.className = 'hf'; if (g === hgen) yeux(); }, 320);
+              }, 3900);
+              plist.push({ stop: function () { clearTimeout(t); HF.tristeYeux[0].className = 'hf'; } });
+            })();
+            if (hready('tristeCoucou')) (function coucou() {
+              var t = setTimeout(function () { if (g === hgen) player('tristeCoucou', false, coucou); }, 9000 + Math.random() * 6000);
+              plist.push({ stop: function () { clearTimeout(t); } });
             })();
           }
-          function htriste() {   /* image fixe 1 ; par moments larme (2), yeux fermés (3), coucou (4-5) */
-            var g = hgen, a = HF.triste; w.classList.add('hum'); hshow('triste', 0);
-            function pl(steps, done) { var q = 0; (function nx() { if (g !== hgen) return; if (q >= steps.length) { hshow('triste', 0); done(); return; } hshow('triste', steps[q][0]); setTimeout(nx, steps[q][1]); q++; })(); }
-            (function go() {
-              htimer = setTimeout(function () {
-                if (g !== hgen) return; var r = Math.random();
-                pl(r < .35 ? [[1, 900]] : r < .7 ? [[2, 260]] : [[3, 450], [4, 450], [3, 450], [4, 450], [3, 450]], go);
-              }, rnd(2500, 5500));
-            })();
-          }
-          var hmode = '', hsvg = null;
           setInterval(function () {
             if (document.hidden) return;
             var s = hsvg && hsvg.isConnected ? hsvg : (hsvg = h.firstElementChild); if (!s || !s.classList) return;
             var c = s.classList, st = c.contains('content') ? 'content' : c.contains('ecoute') ? (c.contains('casque-noir') ? 'ecouteN' : 'ecoute') : c.contains('triste') ? 'triste' : (c.contains('repos') && c.contains('joie')) ? 'joie' : (c.contains('joieY') ? 'joieY' : '');
             if (st === hmode) return;
             var prev = hmode; hmode = st; hstop();
-            var nm = st === 'joieY' ? '' : st;
             if (st === 'joieY' && prev === 'joie') seq('face', [['smile2', 700]]);
-            if (!nm || !hready(nm)) return;
-            if (nm === 'content') hplay('content', 160, true);
-            else if (nm === 'joie') hplay('joie', 160, false);
-            else if (nm === 'triste') htriste();
-            else hplay(nm, 340, true);
+            if (!st || st === 'joieY') return;
+            if (st === 'triste') { if (hready('triste')) htriste(); return; }
+            if (!hready(st)) return;
+            w.classList.add('hum');
+            player(st, st !== 'joie', null, true);
           }, 200);
         }
       });
