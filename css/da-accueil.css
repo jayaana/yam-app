@@ -248,6 +248,6 @@ html[data-yam-tab="home"] #yamStickyHeader { display: none !important; }
 html body header::before { display: none !important; }
 
 /* Bande de zone sûre : masque le trait qu'iOS dessine à la limite de la zone sûre (clair). Même couleur que le fond de l'écran. */
-#yamSafeStrip { position: fixed; top: 0; left: 0; right: 0; height: calc(max(env(safe-area-inset-top, 0px), var(--yam-sim-safe, 0px)) + 1px); background: #ffc2bb; z-index: 2147483000; pointer-events: none; }
+#yamSafeStrip { position: fixed; top: 0; left: 0; right: 0; height: 70px; background: #f00; z-index: 2147483000; pointer-events: none; } /* DIAG rouge temporaire */
 html[data-theme="dark"] #yamSafeStrip { background: #191215; }
 html[data-yam-tab="nous"] #yamSafeStrip { display: none; }
