@@ -768,3 +768,39 @@ document.addEventListener('DOMContentLoaded', function(){
   });
 
 });
+
+/* DIAG-TRAIT (temporaire) : cadre de diagnostic du trait de zone sûre */
+(function(){
+  function go(){
+    var box = document.createElement('div');
+    box.style.cssText = 'position:fixed;left:6px;right:6px;bottom:90px;z-index:2147483647;background:#fff;color:#000;font:11px/1.25 monospace;padding:6px;border:2px solid #c00;border-radius:8px;white-space:pre-wrap;max-height:42vh;overflow:auto';
+    document.body.appendChild(box);
+    var cands = [
+      ['aucun', null],
+      ['yamStickyHeader', '#yamStickyHeader'],
+      ['pullRefreshIndicator', '#pullRefreshIndicator'],
+      ['particleCanvas', '#particleCanvas'],
+      ['yamMainHeader (visibility)', '#yamMainHeader']
+    ];
+    var step = 0;
+    function d(el){ var c = getComputedStyle(el); return (el.id ? '#'+el.id : el.tagName.toLowerCase()) + (el.className && el.className.baseVal === undefined && el.className ? '.'+String(el.className).trim().split(/\s+/).join('.') : '') + ' bb=' + c.borderBottomWidth + '/' + c.borderTopWidth + ' sh=' + (c.boxShadow === 'none' ? '-' : 'oui') + ' op=' + c.opacity; }
+    function render(){
+      cands.forEach(function(c, i){
+        if(!c[1]) return;
+        var e = document.querySelector(c[1]); if(!e) return;
+        if(c[1] === '#yamMainHeader') e.style.visibility = (i === step ? 'hidden' : '');
+        else e.style.display = (i === step ? 'none' : '');
+      });
+      var t = 'DIAG toucher = suspect suivant\nETAPE ' + step + ' : cache ' + cands[step][0] + '\nsafe=' + getComputedStyle(document.documentElement).getPropertyValue('--yam-safe-px') + ' iH=' + innerHeight + ' sY=' + scrollY + '\n';
+      [57, 58, 59, 60, 61].forEach(function(y){
+        t += 'y' + y + ': ' + document.elementsFromPoint(200, y).slice(0, 4).map(d).join(' | ') + '\n';
+      });
+      var s = document.getElementById('yamStickyHeader');
+      if(s){ var r = s.getBoundingClientRect(); t += 'sticky top=' + Math.round(r.top) + ' bot=' + Math.round(r.bottom) + ' disp=' + getComputedStyle(s).display + '\n'; }
+      box.textContent = t;
+    }
+    box.addEventListener('click', function(){ step = (step + 1) % cands.length; render(); });
+    render();
+  }
+  setTimeout(go, 2500);
+})();
