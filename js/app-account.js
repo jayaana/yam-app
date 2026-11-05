@@ -2198,7 +2198,7 @@ window.openAccountModal = function(){
   // Afficher la version du cache SW
   if('caches' in window) {
     caches.keys().then(function(keys) {
-      var swCache = keys.find(function(k){ return k.startsWith('yam-'); }) || '';
+      var swCache = keys.filter(function(k){ return /^yam-v\d+$/.test(k); }).sort(function(x,y){ return parseInt(y.slice(5),10)-parseInt(x.slice(5),10); })[0] || '';
       var el = document.getElementById('stgVersionLabel');
       if(el && swCache) el.textContent = swCache + ' — You And Me';
     });
