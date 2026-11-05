@@ -162,3 +162,8 @@ html body .stg-back {
 .stg-theme-pills { gap: 6px; }
 .stg-theme-pill { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 10px 4px; white-space: nowrap; }
 .stg-theme-pill svg { width: 16px; height: 16px; flex: none; }
+
+/* Menu du profil : plus d'animation (ouverture/fermeture instantanées, 5 nov) */
+html body #profilePopup .pm-sh, html body #profilePopup.yam-pm-out .pm-sh, html body #profilePopup.yam-pm-show .pm-sh,
+html body #profilePopup .pm-av, html body #profilePopup.yam-pm-out .pm-av,
+html body #profilePopup .profile-popup-btn, html body #profilePopup.yam-pm-show .profile-popup-btn { transition: none !important; }
