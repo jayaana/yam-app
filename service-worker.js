@@ -2,12 +2,12 @@
 // Cache les assets statiques pour un chargement rapide
 // Ne met PAS en cache les requêtes Supabase (données toujours fraîches)
 
-var CACHE_NAME = 'yam-v424';
+var CACHE_NAME = 'yam-v425';
 
 // Dessin de la mascotte (880 Ko) : cache A PART, conservé d'une version à l'autre (pas de retéléchargement à chaque mise à jour).
-// Si le fichier mascotte.svg change un jour : passer ce nom à yam-mascotte-2.
-var MASCOTTE_CACHE = 'yam-mascotte-1';
-var MASCOTTE_URL = '/yam-app/assets/mascotte/mascotte.svg';
+// Si le fichier mascotte.html change un jour : passer ce nom à yam-mascotte-3.
+var MASCOTTE_CACHE = 'yam-mascotte-2';
+var MASCOTTE_URL = '/yam-app/assets/mascotte/mascotte.html';
 
 // Assets à mettre en cache au premier chargement
 var STATIC_ASSETS = [
@@ -129,7 +129,7 @@ self.addEventListener('fetch', function(event) {
   }
 
   // ✅ Dessin de la mascotte : cache durable, sans revérification (nom de cache changé si le fichier change)
-  if (url.indexOf('/assets/mascotte/mascotte.svg') !== -1) {
+  if (url.indexOf('/assets/mascotte/mascotte.html') !== -1) {
     event.respondWith(
       caches.open(MASCOTTE_CACHE).then(function(mc) {
         return mc.match(MASCOTTE_URL).then(function(hit) {

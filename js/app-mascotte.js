@@ -1,6 +1,6 @@
 /* ============================================================
    app-mascotte.js — mascotte SVG (patate) de l'Accueil + page « Maison »
-   Le dessin est dans assets/mascotte/mascotte.svg (chargé une fois, mis en
+   Le dessin est dans assets/mascotte/mascotte.html (calques GPU, chargé une fois, mis en
    cache par le service worker). États : repos / content (musique lancée
    par l'utilisateur, avec casque). Habillage choisi dans la page Maison,
    mémorisé sur l'appareil (localStorage).
@@ -139,7 +139,7 @@
 
   function load() {
     if (svgText) return Promise.resolve(svgText);
-    if (!loading) loading = fetch('assets/mascotte/mascotte.svg').then(function (r) {
+    if (!loading) loading = fetch('assets/mascotte/mascotte.html').then(function (r) {
       if (!r.ok) throw new Error('mascotte');
       return r.text();
     }).then(function (t) { svgText = t; return t; }, function () { loading = null; return null; });
@@ -179,7 +179,7 @@
   function mount(host, playing, force, mood) {
     if (!host) return;
     var s = host.firstElementChild;
-    if (!s || String(s.tagName).toLowerCase() !== 'svg') {
+    if (!s || !s.classList || !s.classList.contains('m')) {
       if (!svgText) return;
       host.innerHTML = host.id === 'mzStage' ? uniq(svgText) : svgText;
       s = host.firstElementChild;
@@ -248,7 +248,7 @@
     return '<svg class="mz-ico" width="' + size + '" height="' + size + '" viewBox="' + (x0 - pad) + ' ' + (y0 - pad) + ' ' + (x1 - x0 + 2 * pad) + ' ' + (y1 - y0 + 2 * pad) + '" aria-hidden="true">' + html + '</svg>';
   }
   function cards(list, cur, attr, size) {
-    var src = document.querySelector('#mzStage svg');
+    var src = document.querySelector('#mzStage .m');
     return list.map(function (o) {
       var ic = '';
       if (src) (ICO[o.id] || []).forEach(function (sels) { ic += icon(src, sels, size); });

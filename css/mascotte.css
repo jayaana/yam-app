@@ -1,7 +1,11 @@
 /* Mascotte YAM v2 — squelette + accessoires.
    États : .m.repos | .content | .ecoute | .triste   Accessoires : .sans-moufles .sans-chaussons .avec-casque
    Animations : uniquement transform + opacity. Pause : classe .pause (onglet caché / hors écran). */
-.m{display:block;width:100%;height:auto;overflow:visible}
+.m{display:block;position:relative;width:100%;aspect-ratio:1/1;height:auto;overflow:visible}
+/* Calques (GPU) : l'ombre fixe, puis saut/balancement (div .hop > .lean) qui portent les jambes (.ml) et le corps (.ma dans .all, respiration).
+   Les mouvements globaux sont des transformations de <div> : le navigateur les déplace sans redessiner le dessin. 1 unité du dessin = var(--u) px. */
+.m .msh,.m .ml,.m .ma{position:absolute;left:0;top:0;width:100%;height:100%;display:block;overflow:visible}
+.m .hop,.m .lean,.m .all{position:absolute;left:0;top:0;width:100%;height:100%;transform-box:border-box}
 .m *{transform-box:view-box}
 .m .brow2{display:none}
 .m.content .brow2,.m.ecoute .brow2{display:inline}
@@ -20,8 +24,8 @@
 .m.sans-chaussons .slot-footL,.m.sans-chaussons .slot-footR{display:none}
 
 /* ---------- squelette : points d'articulation ---------- */
-.m .lean{transform-origin:520px 930px}
-.m .all{transform-origin:520px 845px}
+.m .lean{transform-origin:50.78125% 90.8203125%}
+.m .all{transform-origin:50.78125% 82.51953125%}
 .m .legL{transform-origin:400px 825px}
 .m .legR{transform-origin:560px 830px}
 .m .armL{transform-origin:305px 535px}
@@ -34,7 +38,7 @@
 .m .bR{transform-origin:697px 448px}
 
 /* ---------- repos : vivant ---------- */
-.m.repos .hop{transform-origin:520px 930px;animation:mHopIdle 21s ease-in-out infinite}
+.m.repos .hop{transform-origin:50.78125% 90.8203125%;animation:mHopIdle 21s ease-in-out infinite}
 .m.repos .lean{animation:mLean 21s ease-in-out infinite}
 .m.repos .all{animation:mBreath 3.2s ease-in-out infinite}
 .m.repos .legL{animation:mTap 5.2s ease-in-out infinite}
@@ -50,7 +54,7 @@
 .m.repos .m-repos{transform-origin:522px 547px;animation:mMouth 21s ease-in-out infinite}
 .m.repos .open{animation:mBlinkO 21s steps(1,end) infinite}
 .m.repos .sh-soft{display:inline;opacity:0;animation:mBlinkC 21s steps(1,end) infinite}
-@keyframes mHopIdle{0%,16%,100%{transform:none}41%{transform:translateY(0)}43%{transform:translateY(-6px)}45%{transform:translateY(0)}47%{transform:translateY(-6px)}49%{transform:translateY(0)}51%{transform:translateY(-6px)}53%{transform:translateY(0)}55%{transform:none}}
+@keyframes mHopIdle{0%,16%,100%{transform:none}41%{transform:translateY(0)}43%{transform:translateY(calc(var(--u)*-6))}45%{transform:translateY(0)}47%{transform:translateY(calc(var(--u)*-6))}49%{transform:translateY(0)}51%{transform:translateY(calc(var(--u)*-6))}53%{transform:translateY(0)}55%{transform:none}}
 @keyframes mLean{0%,20%,40%{transform:rotate(-2.4deg)}10%,30%,50%{transform:rotate(2.6deg)}62%,70%{transform:rotate(-4.5deg)}82%{transform:rotate(2.6deg)}92%,100%{transform:rotate(-2.4deg)}}
 @keyframes mBreath{50%{transform:scale(1.016,1.03)}}
 @keyframes mTap{0%,76%,100%{transform:none}82%{transform:rotate(-7deg) translateY(-6px)}88%{transform:none}91%{transform:rotate(-5deg) translateY(-4px)}95%{transform:none}}
@@ -68,7 +72,7 @@
 @keyframes mBlinkC{0%{opacity:0}21.9%{opacity:0}22.0%{opacity:1}22.9%{opacity:1}23.0%{opacity:0}41.9%{opacity:0}42.0%{opacity:1}53.3%{opacity:1}53.4%{opacity:0}62.9%{opacity:0}63.0%{opacity:1}63.8%{opacity:1}63.9%{opacity:0}83.3%{opacity:0}83.4%{opacity:1}84.3%{opacity:1}84.4%{opacity:0}96.7%{opacity:0}96.8%{opacity:1}97.6%{opacity:1}97.7%{opacity:0}100%{opacity:0}}
 
 /* ---------- content : saute, bras levés, yeux en arc ---------- */
-.m.content .hop{transform-origin:520px 930px;animation:mHop .8s ease-in-out infinite}
+.m.content .hop{transform-origin:50.78125% 90.8203125%;animation:mHop .8s ease-in-out infinite}
 .m.content .armL{animation:mWaveL .8s ease-in-out infinite}
 .m.content .armR{animation:mWaveR .8s ease-in-out infinite}
 .m.content .legL{animation:mKick .8s ease-in-out infinite}
@@ -79,7 +83,7 @@
 .m.content .leafR{animation:mLeafR .4s ease-in-out infinite}
 .m.content .face{animation:mBob .8s ease-in-out infinite}
 .m.content .brow2{transform:translateY(-4px)}
-@keyframes mHop{0%,100%{transform:translateY(0)}45%{transform:translateY(-26px)}}
+@keyframes mHop{0%,100%{transform:translateY(0)}45%{transform:translateY(calc(var(--u)*-26))}}
 @keyframes mWaveL{0%,100%{transform:rotate(40deg)}45%{transform:rotate(52deg)}}
 @keyframes mWaveR{0%,100%{transform:rotate(-40deg)}45%{transform:rotate(-52deg)}}
 @keyframes mKick{0%,100%{transform:none}45%{transform:translateY(-9px) rotate(-4deg)}}
@@ -98,7 +102,7 @@
 .m.ecoute .leafR{animation:mLeafR .85s ease-in-out infinite}
 
 @keyframes mRock{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
-@keyframes mBeat{0%,100%{transform:translateY(0) scale(1,1)}50%{transform:translateY(5px) scale(1.01,.985)}}
+@keyframes mBeat{0%,100%{transform:translateY(0) scale(1,1)}50%{transform:translateY(calc(var(--u)*5)) scale(1.01,.985)}}
 @keyframes mSwingL{0%,100%{transform:rotate(9deg)}50%{transform:rotate(-6deg)}}
 @keyframes mSwingR{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(4deg)}}
 @keyframes mTapBeat{0%,100%{transform:none}50%{transform:translateY(-5px) rotate(-4deg)}}
@@ -123,7 +127,7 @@
 .m.triste .tear{animation:mTear 3.2s ease-in infinite}
 @keyframes mDroop{0%,100%{transform:rotate(-2.2deg)}50%{transform:rotate(-3.4deg)}}
 @keyframes mSitSigh{0%,100%{transform:translateY(48px) scale(1,1)}50%{transform:translateY(51px) scale(1.018,.985)}}
-@keyframes mSigh{0%,100%{transform:scale(1,1)}50%{transform:scale(1.018,.985) translateY(3px)}}
+@keyframes mSigh{0%,100%{transform:scale(1,1)}50%{transform:scale(1.018,.985) translateY(calc(var(--u)*3))}}
 @keyframes mHangL{0%,100%{transform:rotate(-9deg)}50%{transform:rotate(-13deg)}}
 @keyframes mHangWaveL{0%,100%{transform:rotate(-9deg)}8%{transform:rotate(-13deg)}16%{transform:rotate(-9deg)}24%{transform:rotate(-13deg)}32%{transform:rotate(-9deg)}40%{transform:rotate(-13deg)}48%{transform:rotate(-9deg)}56%{transform:rotate(-13deg)}60%{transform:rotate(-4deg)}65%{transform:rotate(66deg)}69%{transform:rotate(52deg)}73%{transform:rotate(68deg)}77%{transform:rotate(52deg)}81%{transform:rotate(68deg)}85%{transform:rotate(40deg)}91%{transform:rotate(-6deg)}96%{transform:rotate(-13deg)}}
 @keyframes mHangR{0%,100%{transform:rotate(9deg)}50%{transform:rotate(13deg)}}
@@ -189,7 +193,7 @@
 .m.repos.joie .stem{animation:mJoieStem .8s linear .05s both}
 .m.repos.joie .leafL{animation:mJoieLeafL .8s linear .07s both}
 .m.repos.joie .leafR{animation:mJoieLeafR .8s linear .07s both}
-@keyframes mJoieHop{0%{transform:none;animation-timing-function:ease-in-out}10%{transform:scale(1.04,.95);animation-timing-function:cubic-bezier(.2,.8,.3,1)}25%{transform:translateY(-30px) scale(.97,1.05);animation-timing-function:ease-out}37%{transform:translateY(-36px) scale(.985,1.025);animation-timing-function:ease-in}50%{transform:translateY(0) scale(1.07,.93);animation-timing-function:ease-out}58%{transform:translateY(-3px) scale(.99,1.015);animation-timing-function:ease-out}68%{transform:translateY(-13px) scale(.99,1.015);animation-timing-function:ease-in}77%{transform:translateY(0) scale(1.035,.965);animation-timing-function:ease-out}85%{transform:scale(.99,1.015);animation-timing-function:ease-in-out}92%{transform:scale(1.02,.985);animation-timing-function:ease-in-out}100%{transform:none}}
+@keyframes mJoieHop{0%{transform:none;animation-timing-function:ease-in-out}10%{transform:scale(1.04,.95);animation-timing-function:cubic-bezier(.2,.8,.3,1)}25%{transform:translateY(calc(var(--u)*-30)) scale(.97,1.05);animation-timing-function:ease-out}37%{transform:translateY(calc(var(--u)*-36)) scale(.985,1.025);animation-timing-function:ease-in}50%{transform:translateY(0) scale(1.07,.93);animation-timing-function:ease-out}58%{transform:translateY(calc(var(--u)*-3)) scale(.99,1.015);animation-timing-function:ease-out}68%{transform:translateY(calc(var(--u)*-13)) scale(.99,1.015);animation-timing-function:ease-in}77%{transform:translateY(0) scale(1.035,.965);animation-timing-function:ease-out}85%{transform:scale(.99,1.015);animation-timing-function:ease-in-out}92%{transform:scale(1.02,.985);animation-timing-function:ease-in-out}100%{transform:none}}
 @keyframes mJoieGum{0%{transform:none;animation-timing-function:ease-in-out}10%{transform:scale(1.015,.985);animation-timing-function:ease-in-out}25%{transform:scale(.985,1.025) skewX(-1.5deg);animation-timing-function:ease-in-out}40%{transform:scale(1.015,.985) skewX(1deg);animation-timing-function:ease-in-out}52%{transform:scale(1.025,.975) skewX(-1.5deg);animation-timing-function:ease-in-out}62%{transform:scale(.99,1.02) skewX(1.2deg);animation-timing-function:ease-in-out}78%{transform:scale(1.03,.97) skewX(-1deg);animation-timing-function:ease-in-out}88%{transform:scale(.99,1.015) skewX(1.2deg);animation-timing-function:ease-in-out}100%{transform:none}}
 @keyframes mJoieFace{0%,100%{transform:none}25%{transform:translateY(-6px) rotate(-2deg)}52%{transform:translateY(5px) rotate(2deg)}68%{transform:translateY(-3px) rotate(-1deg)}80%{transform:translateY(3px)}}
 @keyframes mJoieArmL{0%{transform:rotate(8deg);animation-timing-function:ease-in-out}12%{transform:rotate(4deg);animation-timing-function:ease-out}30%{transform:rotate(30deg);animation-timing-function:ease-in-out}50%{transform:rotate(12deg);animation-timing-function:ease-out}68%{transform:rotate(22deg);animation-timing-function:ease-in-out}80%{transform:rotate(10deg)}90%{transform:rotate(14deg)}100%{transform:rotate(8deg)}}
@@ -218,8 +222,8 @@
 .m.casque-noir .slot-head.acc-casque:not(.acc-noir){display:none}
 
 /* ---------- intégration YAM : Accueil + page Maison ---------- */
-#homeMascot.gh-mascot{position:relative;display:block;width:180px;height:180px}
-#homeMascot svg.m{width:100%;height:100%}
+#homeMascot.gh-mascot{position:relative;display:block;width:180px;height:180px;--u:calc(180px/1024)}
+#homeMascot .m{width:100%;height:100%}
 .mz-page{position:fixed;inset:0;z-index:9000;padding-top:var(--mz-top,54px);display:none;flex-direction:column;color:var(--gu-text);font-family:var(--gu-font-text);overflow-y:auto;-webkit-overflow-scrolling:touch;background:linear-gradient(#ffc2bb 0,#ffeaf0 230px,#ffeaf0) no-repeat #ffeaf0}
 html[data-theme="dark"] .mz-page{background:linear-gradient(#191215 0,#372b32 230px,#372b32 40%,#1f171b) no-repeat #1f171b}
 .mz-page.active{display:flex}
@@ -230,8 +234,8 @@ html[data-yam-maison][data-theme="dark"]{background:linear-gradient(#191215,rgba
 .mz-back{width:var(--gu-tap);height:var(--gu-tap);box-sizing:border-box;border-radius:50%;background:var(--gu-card);color:var(--gu-text);border:var(--gu-sticker-width) solid var(--gu-sticker-border);display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .mz-back svg{width:20px;height:20px}
 .mz-title{font:600 20px/1.2 'Fredoka',system-ui,sans-serif;color:var(--pa-ic)}
-.mz-stage{width:150px;height:150px;margin:0 auto;flex-shrink:0}
-.mz-stage svg.m{width:100%;height:100%}
+.mz-stage{width:150px;height:150px;margin:0 auto;flex-shrink:0;--u:calc(150px/1024)}
+.mz-stage .m{width:100%;height:100%}
 .mz-body{padding:0 16px 24px}
 .mz-label{font-family:var(--gu-font-display);font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--gu-title);margin:14px 4px 8px}
 .mz-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
