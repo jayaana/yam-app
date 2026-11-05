@@ -81,7 +81,7 @@ html[data-theme="dark"] .gh-halo { box-shadow: 0 0 34px 2px rgba(255,255,255,.22
 /* Spam de cœurs */
 .home-spam-block { position: absolute; left: 50%; top: 182px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; }
 #homeSpamHeart { position: relative; width: 54px; height: 54px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ff9db2, #e8457a); border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; -webkit-tap-highlight-color: transparent; }
-#homeSpamHeart svg { width: 30px; height: 30px; overflow: visible; animation: ghBeat 1.5s ease-in-out infinite; }
+#homeSpamHeart svg.home-spam-heart-emoji { width: calc(30px * var(--hs, 1)); height: calc(30px * var(--hs, 1)); overflow: visible; transition: width .35s, height .35s; animation: ghBeat 1.5s ease-in-out infinite; }
 @keyframes ghBeat { 0%,100% { transform: scale(1); } 14% { transform: scale(1.13); } 28% { transform: scale(1); } 42% { transform: scale(1.13); } 70% { transform: scale(1); } }
 #homeSpamHeart:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 .home-spam-label, .home-spam-bar-wrap { display: none; }
@@ -246,3 +246,22 @@ html[data-yam-tab="home"] #yamStickyHeader { display: none !important; }
 
 /* Thème sombre : plus de halo rose pulsant en haut à droite des en-têtes (déjà absent en clair) : sa limite basse formait une ligne sous la zone sûre */
 html body header::before { display: none !important; }
+
+/* Bague d'humeur autour du cœur (jauge) : 4 niveaux, maquette accueil-game-ui-FINAL-CLAIR */
+#homeSpamHeart { --hs: 1; --g1: #ff7aa6; --g2: #e8346f; }
+#homeSpamHeart .home-spam-ring { position: absolute; left: 50%; top: 50%; width: 123px; height: 123px; margin: -61.5px 0 0 -61.5px; pointer-events: none; overflow: visible; animation: none; }
+#homeSpamHeart .seg { stroke: rgba(120, 25, 70, .26); transition: stroke .3s; }
+#homeSpamHeart.lv1 .s3 { stroke: #f2545b; animation: ghRp 2.8s ease-in-out infinite; }
+#homeSpamHeart.lv2 .s3, #homeSpamHeart.lv2 .s4 { stroke: #fff; }
+#homeSpamHeart.lv3 .s3, #homeSpamHeart.lv3 .s4, #homeSpamHeart.lv3 .s1 { stroke: #ff3d8b; }
+#homeSpamHeart.lv4 .seg { stroke: #ffd21a; filter: drop-shadow(0 1.5px 0 rgba(150, 30, 80, .5)); }
+#homeSpamHeart .spk { display: none; fill: #ffd21a; stroke: #fff; stroke-width: .7; stroke-linejoin: round; transform-box: fill-box; transform-origin: center; animation: ghTw 1.8s ease-in-out infinite; }
+#homeSpamHeart.lv4 .spk { display: block; }
+@keyframes ghRp { 0%, 100% { stroke-opacity: .5; } 50% { stroke-opacity: 1; } }
+@keyframes ghTw { 0%, 100% { transform: scale(.55); opacity: .55; } 50% { transform: scale(1.05); opacity: 1; } }
+#homeSpamHeart.lv1 { --hs: .62; --g1: #ffb3c2; --g2: #f27a98; }
+#homeSpamHeart.lv2 { --hs: .82; --g1: #ffa9bd; --g2: #f06a8d; }
+#homeSpamHeart.lv4 { --hs: 1.18; --g1: #ff6a9a; --g2: #e0225f; }
+#homeSpamHeart.lv1 svg.home-spam-heart-emoji, #homeSpamHeart.lv2 svg.home-spam-heart-emoji { animation: none; }
+#homeSpamHeart.lv4 svg.home-spam-heart-emoji { animation-duration: 1.2s; }
+@media (prefers-reduced-motion: reduce) { #homeSpamHeart.lv1 .s3, #homeSpamHeart .spk, #homeSpamHeart svg.home-spam-heart-emoji { animation: none; } }

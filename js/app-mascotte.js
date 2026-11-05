@@ -37,9 +37,18 @@
     if (!cid || typeof sb2Fetch !== 'function') return;
     if (!force && Date.now() - lastFetch < 30000) return;
     lastFetch = Date.now();
-    sb2Fetch('patate', 'couple_id=eq.' + encodeURIComponent(cid) + '&select=tenue,casque').then(function (rows) {
+    var q = 'couple_id=eq.' + encodeURIComponent(cid) + '&select=tenue,casque';
+    sb2Fetch('patate', q + ',jauge,jauge_maj').then(function (rows) {
+      /* colonnes de la jauge absentes (SQL pas encore lancé) : on relit sans elles */
+      return Array.isArray(rows) ? rows : sb2Fetch('patate', q);
+    }).then(function (rows) {
       var r = Array.isArray(rows) && rows[0];
       if (!r) return;
+      if (typeof r.jauge === 'number' && r.jauge_maj) {
+        var t = Date.parse(r.jauge_maj);
+        /* on garde la valeur locale si elle est plus récente (clic pas encore envoyé) */
+        if (t && (!shared.jmaj || t > shared.jmaj)) { shared.jauge = r.jauge; shared.jmaj = t; saveJauge(); }
+      }
       shared.tenue = r.tenue; shared.casque = r.casque;
       try { if (ok(r.tenue, TENUES)) localStorage.setItem(KEY_TENUE, r.tenue); if (ok(r.casque, CASQUES)) localStorage.setItem(KEY_CASQUE, r.casque); } catch (e) {}
       sync(); if (pageOpen()) renderPage();
@@ -50,6 +59,67 @@
     if (!cid || typeof sb2Upsert !== 'function') return;
     sb2Upsert('patate', { couple_id: cid, tenue: tenue(), casque: casque(), updated_at: new Date().toISOString() });
   }
+  /* ---- JAUGE DE CŒURS (commune au couple : colonnes jauge / jauge_maj de la table patate) ----
+     Niveau en % au moment jauge_maj ; il se vide de 100 → 0 en 24 h. Chaque cœur ajoute 5 %.
+     Humeur : fête 5 s (max atteint, ou palier du compteur jauge pleine) > musique (casque) > triste (< 15 %) > repos. */
+  var KEY_JAUGE = 'yam_mascotte_jauge';
+  var DUREE = 24 * 3600 * 1000, SEUIL_TRISTE = 15, PAS = 5, FETE_MS = 5000;
+  var rappelUntil = 0, rappelNext = 0;   /* zone Rayonnante : petit « content » de 3 s de temps en temps, sans cœurs */
+  var pushT = null, feteUntil = 0, feteTimer = null, armed = true;
+  shared.jauge = null; shared.jmaj = null;
+  try { var lj = JSON.parse(localStorage.getItem(KEY_JAUGE) || 'null'); if (lj && typeof lj.v === 'number' && lj.t) { shared.jauge = lj.v; shared.jmaj = lj.t; } } catch (e) {}
+  function saveJauge() { try { localStorage.setItem(KEY_JAUGE, JSON.stringify({ v: shared.jauge, t: shared.jmaj })); } catch (e) {} }
+  function niveau() {
+    if (shared.jauge === null) return 50;
+    return Math.max(0, Math.min(100, shared.jauge - (Date.now() - shared.jmaj) / DUREE * 100));
+  }
+  function pushJauge() {
+    var cid = coupleId();
+    if (!cid || typeof sb2Upsert !== 'function') return;
+    sb2Upsert('patate', { couple_id: cid, jauge: Math.round(shared.jauge * 10) / 10, jauge_maj: new Date(shared.jmaj).toISOString() });
+  }
+  function fete() {
+    if (!homeVisible()) return;
+    armed = false;
+    feteUntil = Date.now() + FETE_MS;
+    sync();
+    var btn = document.getElementById('homeMascot'), n = 0;
+    clearInterval(feteTimer);
+    feteTimer = setInterval(function () {
+      /* pluie de cœurs : on réutilise les cœurs flottants du bouton (.like-heart-btn) */
+      if (btn && btn.isConnected) {
+        var r = btn.getBoundingClientRect(), h = document.createElement('div');
+        h.className = 'like-heart-btn'; h.textContent = '🩷';
+        h.style.setProperty('--dx', ((Math.random() - 0.5) * 120) + 'px');
+        h.style.left = (r.left + r.width * (0.2 + Math.random() * 0.6)) + 'px';
+        h.style.top = (r.top + r.height * (0.3 + Math.random() * 0.4)) + 'px';
+        document.body.appendChild(h);
+        setTimeout(function () { h.remove(); }, 900);
+      }
+      if (++n >= 14) clearInterval(feteTimer);
+    }, 350);
+    setTimeout(sync, FETE_MS + 50);
+  }
+  /* Bague d'humeur autour du cœur (maquette validée) : 1 Triste < 15 % · 2 Calme · 3 Contente ≥ 50 % · 4 Rayonnante ≥ 85 % */
+  function paintRing() {
+    var b = document.getElementById('homeSpamHeart');
+    if (!b) return;
+    var n = niveau(), l = n < SEUIL_TRISTE ? 1 : n < 50 ? 2 : n < 85 ? 3 : 4, c = 'lv' + l;
+    if (window._ghSpamArc) window._ghSpamArc(n);   /* l'arc jaune du halo = le même niveau que la bague */
+    if (!b.classList.contains(c)) { b.classList.remove('lv1', 'lv2', 'lv3', 'lv4'); b.classList.add(c); }
+  }
+  /* Appelée à chaque cœur envoyé (spawnHeart, app-nous.js) ; daily = compteur du jour après ce cœur */
+  window.mascotteJaugeTap = function (daily) {
+    var lvl = niveau(), nv = Math.min(100, lvl + PAS);
+    if (lvl < 80) armed = true;
+    shared.jauge = nv; shared.jmaj = Date.now(); saveJauge();
+    clearTimeout(pushT); pushT = setTimeout(function () { pushT = null; pushJauge(); }, 1500);
+    var ms = (typeof _heartMilestones !== 'undefined') ? _heartMilestones : [], palier = false;
+    for (var i = 0; i < ms.length; i++) if (daily - 1 < ms[i] && daily >= ms[i]) palier = true;
+    paintRing();
+    if (nv >= 100 && (armed || palier)) fete(); else sync();
+  };
+
   var rtDone = false;
   function listen() {
     var cid = coupleId();
@@ -83,8 +153,14 @@
   }
 
   var showCasque = false;   /* aperçu du casque dans la Maison après avoir touché un casque */
-  function classesFor(playing, force) {
-    var c = 'm nu ' + (playing ? 'ecoute' : 'repos' + (force ? ' avec-casque' : ''));
+  /* Humeur de l'Accueil : fête > musique > triste > repos (la Maison ne passe pas par là : mood absent) */
+  function moodNow() {
+    if (Date.now() < feteUntil || Date.now() < rappelUntil) return 'content';
+    if (isPlaying()) return 'ecoute';
+    return niveau() < SEUIL_TRISTE ? 'triste' : null;
+  }
+  function classesFor(playing, force, mood) {
+    var c = 'm nu ' + (mood === 'content' ? 'content' : mood === 'triste' ? 'triste' : (playing ? 'ecoute' : 'repos' + (force ? ' avec-casque' : '')));
     var t = tenue();
     if (t !== 'nu') {
       var suf = t === 'vert' ? '' : (t === 'rouge' ? 'Rouge' : 'Jaune');
@@ -100,7 +176,7 @@
   }
 
   /* Pose le SVG dans un conteneur (une seule fois) puis règle les classes */
-  function mount(host, playing, force) {
+  function mount(host, playing, force, mood) {
     if (!host) return;
     var s = host.firstElementChild;
     if (!s || String(s.tagName).toLowerCase() !== 'svg') {
@@ -109,7 +185,7 @@
       s = host.firstElementChild;
     }
     if (!s) return;
-    var cls = classesFor(playing, force) + (s.classList.contains('pause') ? ' pause' : '') + (s.classList.contains('joie') ? ' joie' : '') + (s.classList.contains('joieY') ? ' joieY' : '');
+    var cls = classesFor(playing, force, mood) + (s.classList.contains('pause') ? ' pause' : '') + (s.classList.contains('joie') ? ' joie' : '') + (s.classList.contains('joieY') ? ' joieY' : '');
     if (s.getAttribute('class') !== cls) s.setAttribute('class', cls);
   }
 
@@ -121,8 +197,14 @@
     var m = document.getElementById('mzStage');
     if (!vis && !pageOpen()) return;
     var playing = isPlaying();
-    if (vis) { listen(); pull(false); }
-    if (h && (vis || !s0)) load().then(function () { mount(h, playing); var s1 = h.firstElementChild; if (s1 && s1.classList) s1.classList.toggle('pause', !homeVisible()); });
+    if (vis) {
+      var now = Date.now();
+      if (niveau() < 85) rappelNext = 0;
+      else if (!rappelNext) rappelNext = now + 15000;
+      else if (now >= rappelNext && !playing && now >= feteUntil) { rappelUntil = now + 3000; rappelNext = now + 20000 + Math.random() * 20000; }
+    }
+    if (vis) { listen(); pull(false); paintRing(); }
+    if (h && (vis || !s0)) load().then(function () { mount(h, playing, false, moodNow()); var s1 = h.firstElementChild; if (s1 && s1.classList) s1.classList.toggle('pause', !homeVisible()); });
     if (m && pageOpen()) load().then(function () { mount(m, playing, showCasque); });
   }
   window.mascotteSync = sync;
