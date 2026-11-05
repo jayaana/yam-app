@@ -89,6 +89,21 @@
       fetch('assets/mascotte/img/index.json').then(function (r) { return r.json(); }).catch(function () { return null; }).then(function (I) {
         IDX = I && I.tenues && I.casques ? I : null;
         if (!tenueOk(TEN)) { TEN = 'rouge'; DIR = 'assets/mascotte/img/rouge/'; }
+        /* telechargement d'avance, discret : les autres tenues entrent dans le cache durable du service worker (changement de tenue instantane, hors connexion) */
+        setTimeout(function () {
+          try {
+            if (!IDX || !IDX.fichiers || !navigator.onLine || (navigator.connection && navigator.connection.saveData)) return;
+            var q = [];
+            Object.keys(IDX.fichiers).sort(function (a, b) { return (b === TEN) - (a === TEN); }).forEach(function (t) { IDX.fichiers[t].forEach(function (f) { q.push('assets/mascotte/img/' + t + '/' + f); }); });
+            var stop = false;
+            function un() {
+              if (stop) return;
+              var u = q.shift(); if (!u) return;
+              fetch(u).then(function (r) { return r.ok ? r.arrayBuffer() : (stop = true); }).then(un, function () { stop = true; });
+            }
+            un(); un(); un();
+          } catch (e) {}
+        }, 20000);
         return fetch(DIR + 'manifest.json');
       }).then(function (r) { return r.json(); }).then(function (M) {
         var k = 180 / M.size, w = document.createElement('div'); w.id = 'yamPhoto';

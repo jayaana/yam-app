@@ -312,7 +312,14 @@
   function valider() {
     if (validation) return; validation = true;
     var b = document.getElementById('mzValider'); if (b) b.disabled = true;
-    var go = function () { try { location.reload(); } catch (e) { validation = false; } };
+    /* plus de rechargement (il coupait la musique) : la tenue change à chaud, comme chez le/la partenaire ; rechargement seulement en secours si le mode photos n'est pas prêt */
+    var go = function () {
+      try {
+        if (document.getElementById('yamPhoto') && !(window.yamPhotoReady && window.yamPhotoSwap)) { location.reload(); return; }
+        if (window.yamPhotoSwap && document.getElementById('yamPhoto')) window.yamPhotoSwap(tenue());
+        sync(); closeMaison(); validation = false;
+      } catch (e) { validation = false; }
+    };
     var fin = setTimeout(go, 2500);   /* sécurité : on recharge même si le serveur tarde */
     Promise.resolve().then(push).then(function () { clearTimeout(fin); go(); }, function () { clearTimeout(fin); go(); });
   }

@@ -2,11 +2,14 @@
 // Cache les assets statiques pour un chargement rapide
 // Ne met PAS en cache les requêtes Supabase (données toujours fraîches)
 
-var CACHE_NAME = 'yam-v448';
+var CACHE_NAME = 'yam-v449';
 
 // Dessin de la mascotte (880 Ko) : cache A PART, conservé d'une version à l'autre (pas de retéléchargement à chaque mise à jour).
 // Si le fichier mascotte.html change un jour : passer ce nom à yam-mascotte-3.
 var MASCOTTE_CACHE = 'yam-mascotte-2';
+// Images de la patate (assets/mascotte/img/ : toutes les tenues, ~47 Mo) : cache durable, telechargees UNE fois.
+// Si l'outil photos regenere des images : passer ce nom a yam-mascotte-img-2 (l'ancien est supprime a l'activation).
+var IMG_CACHE = 'yam-mascotte-img-1';
 var MASCOTTE_URL = '/yam-app/assets/mascotte/mascotte.html';
 
 // Assets à mettre en cache au premier chargement
@@ -98,7 +101,7 @@ self.addEventListener('activate', function(event) {
     caches.keys().then(function(keys) {
       return Promise.all(
         keys.filter(function(key) {
-          return key !== CACHE_NAME && key !== MASCOTTE_CACHE;
+          return key !== CACHE_NAME && key !== MASCOTTE_CACHE && key !== IMG_CACHE;
         }).map(function(key) {
           console.log('[SW] Suppression ancien cache :', key);
           return caches.delete(key);
@@ -137,6 +140,23 @@ self.addEventListener('fetch', function(event) {
           if (hit) return hit;
           return fetch(event.request).then(function(response) {
             if (response && response.status === 200) mc.put(MASCOTTE_URL, response.clone());
+            return response;
+          });
+        });
+      })
+    );
+    return;
+  }
+
+  // ✅ Images de la patate : cache durable, cache d'abord, reseau seulement si absente
+  if (url.indexOf('/assets/mascotte/img/') !== -1) {
+    event.respondWith(
+      caches.open(IMG_CACHE).then(function(ic) {
+        var key = url.split('?')[0];
+        return ic.match(key).then(function(hit) {
+          if (hit) return hit;
+          return fetch(event.request).then(function(response) {
+            if (response && response.status === 200) ic.put(key, response.clone());
             return response;
           });
         });
