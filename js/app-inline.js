@@ -775,28 +775,24 @@ document.addEventListener('DOMContentLoaded', function(){
     var box = document.createElement('div');
     box.style.cssText = 'position:fixed;left:6px;right:6px;bottom:90px;z-index:2147483647;background:#fff;color:#000;font:11px/1.25 monospace;padding:6px;border:2px solid #c00;border-radius:8px;white-space:pre-wrap;max-height:42vh;overflow:auto';
     document.body.appendChild(box);
+    var H = document.documentElement, B = document.body;
     var cands = [
-      ['aucun', null],
-      ['yamStickyHeader', '#yamStickyHeader'],
-      ['pullRefreshIndicator', '#pullRefreshIndicator'],
-      ['particleCanvas', '#particleCanvas'],
-      ['yamMainHeader (visibility)', '#yamMainHeader']
+      ['aucun', function(){}],
+      ['A: html tout uni #ffc2bb', function(){ H.style.setProperty('background','#ffc2bb','important'); }],
+      ['B: html radial seul (sans dégradé haut)', function(){ H.style.setProperty('background','var(--gu-bg-page)','important'); H.style.setProperty('background-color','#ffc2bb','important'); }],
+      ['C: html dégradé haut seul jusqu a 119px', function(){ H.style.setProperty('background','linear-gradient(#ffc2bb 119px, rgba(255,194,187,0)) 0 0 / 100% 160px no-repeat','important'); H.style.setProperty('background-color','#ffc2bb','important'); }],
+      ['D: body uni #ffc2bb', function(){ B.style.setProperty('background','#ffc2bb','important'); }]
     ];
     var step = 0;
-    function d(el){ var c = getComputedStyle(el); return (el.id ? '#'+el.id : el.tagName.toLowerCase()) + (el.className && el.className.baseVal === undefined && el.className ? '.'+String(el.className).trim().split(/\s+/).join('.') : '') + ' bb=' + c.borderBottomWidth + '/' + c.borderTopWidth + ' sh=' + (c.boxShadow === 'none' ? '-' : 'oui') + ' op=' + c.opacity; }
+    function reset(){ H.style.removeProperty('background'); H.style.removeProperty('background-color'); B.style.removeProperty('background'); }
     function render(){
-      cands.forEach(function(c, i){
-        if(!c[1]) return;
-        var e = document.querySelector(c[1]); if(!e) return;
-        if(c[1] === '#yamMainHeader') e.style.visibility = (i === step ? 'hidden' : '');
-        else e.style.display = (i === step ? 'none' : '');
-      });
-      var t = 'DIAG toucher = suspect suivant\nETAPE ' + step + ' : cache ' + cands[step][0] + '\nsafe=' + getComputedStyle(document.documentElement).getPropertyValue('--yam-safe-px') + ' iH=' + innerHeight + ' sY=' + scrollY + '\n';
-      [57, 58, 59, 60, 61].forEach(function(y){
-        t += 'y' + y + ': ' + document.elementsFromPoint(200, y).slice(0, 4).map(d).join(' | ') + '\n';
-      });
-      var s = document.getElementById('yamStickyHeader');
-      if(s){ var r = s.getBoundingClientRect(); t += 'sticky top=' + Math.round(r.top) + ' bot=' + Math.round(r.bottom) + ' disp=' + getComputedStyle(s).display + '\n'; }
+      reset(); cands[step][1]();
+      var cs = getComputedStyle(H), vv = window.visualViewport;
+      var rh = H.getBoundingClientRect(), rb = B.getBoundingClientRect();
+      var t = ['DIAG toucher = essai suivant', 'ETAPE ' + step + ' : ' + cands[step][0],
+        'html top=' + Math.round(rh.top) + ' h=' + Math.round(rh.height) + ' body top=' + Math.round(rb.top),
+        'vv offTop=' + (vv ? Math.round(vv.offsetTop) + ' pageTop=' + Math.round(vv.pageTop) + ' h=' + Math.round(vv.height) : '-') + ' iH=' + innerHeight + ' sY=' + scrollY,
+        'html bg=' + cs.backgroundImage.slice(0, 160), 'size=' + cs.backgroundSize.slice(0, 60) + ' pos=' + cs.backgroundPosition.slice(0, 40)].join(String.fromCharCode(10));
       box.textContent = t;
     }
     box.addEventListener('click', function(){ step = (step + 1) % cands.length; render(); });
