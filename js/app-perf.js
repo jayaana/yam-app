@@ -18,7 +18,7 @@
      ?ab=4 tout figé (patate + décor), ?ab=0 normal. Mémorisé ; rechargement automatique au changement. */
   var AB = '0';
   try {
-    var q = /[?&]ab=([0-6])/.exec(location.search);
+    var q = /[?&]ab=([0-7])/.exec(location.search);
     if (q) localStorage.setItem('yam_ab', q[1]);
     AB = localStorage.getItem('yam_ab') || '0';
   } catch (e) {}
@@ -41,7 +41,7 @@
       if (document.getElementById('yamAbMenu')) return;
       var m = document.createElement('div'); m.id = 'yamAbMenu';
       m.style.cssText = 'position:fixed;left:10px;top:70px;z-index:2147483600;background:#222;color:#fff;padding:10px;border-radius:12px;font:600 14px system-ui;display:flex;flex-direction:column;gap:8px';
-      var L = [['0','Normal'],['1','Patate figée'],['2','Patate retirée'],['3','Décor coupé'],['4','Tout figé'],['5','Corps fixe + détails'],['6','Corps seul']];
+      var L = [['0','Normal'],['1','Patate figée'],['2','Patate retirée'],['3','Décor coupé'],['4','Tout figé'],['5','Corps fixe + détails'],['6','Corps seul'],['7','Photos (test)']];
       L.forEach(function (o) {
         var b = document.createElement('button'); b.textContent = (AB === o[0] ? '✓ ' : '') + o[1];
         b.style.cssText = 'padding:10px 14px;border-radius:8px;border:0;font:600 14px system-ui';
@@ -65,6 +65,24 @@
         if (freeze && a.playState === 'running') { try { a.pause(); a.currentTime = 0; } catch (e) {} }
       });
     }, 300);
+  }
+
+  /* Mode 7 : prototype "photos" — image fixe de la patate + clignement en petite image, SVG caché. */
+  if (AB === '7') {
+    var st7 = document.createElement('style');
+    st7.textContent = '#homeMascot{display:none!important}#yamPhoto{position:relative;width:180px;height:180px;display:block}#yamPhoto img{position:absolute;display:block;pointer-events:none}';
+    document.head.appendChild(st7);
+    document.addEventListener('DOMContentLoaded', function () {
+      var h = document.getElementById('homeMascot'); if (!h) return;
+      var w = document.createElement('div'); w.id = 'yamPhoto';
+      var a = new Image(); a.src = 'assets/mascotte/img/repos.webp'; a.style.cssText = 'left:0;top:0;width:180px;height:180px';
+      var b = new Image(); b.src = 'assets/mascotte/img/clin.webp';
+      b.style.cssText = 'left:' + (191 / 3) + 'px;top:' + (188 / 3) + 'px;width:' + (201 / 3) + 'px;height:' + (148 / 3) + 'px;opacity:0';
+      w.appendChild(a); w.appendChild(b);
+      h.parentNode.insertBefore(w, h);
+      function blink() { b.style.opacity = 1; setTimeout(function () { b.style.opacity = 0; }, 160); setTimeout(blink, 2500 + Math.random() * 3500); }
+      setTimeout(blink, 2000);
+    });
   }
   if (!on) return;
 
