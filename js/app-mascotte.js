@@ -44,7 +44,7 @@
 
   var showCasque = false;   /* aperçu du casque dans la Maison après avoir touché un casque */
   function classesFor(playing, force) {
-    var c = 'm nu ' + (playing ? 'content avec-casque' : 'repos' + (force ? ' avec-casque' : ''));
+    var c = 'm nu ' + (playing ? 'ecoute' : 'repos' + (force ? ' avec-casque' : ''));
     var t = tenue();
     if (t !== 'nu') {
       var suf = t === 'vert' ? '' : (t === 'rouge' ? 'Rouge' : 'Jaune');
