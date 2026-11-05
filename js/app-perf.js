@@ -169,6 +169,11 @@
              Humeur lue sur les classes du SVG caché (app-mascotte.js : fête > musique > triste > repos). */
           var CQ = 'blanc'; try { CQ = localStorage.getItem('yam_mascotte_casque') || 'blanc'; } catch (e) {}
           var HF = {}, hgen = 0, plist = [], hmode = '', hsvg = null;
+          /* voile de démarrage : patate floue/transparente tant que la bonne humeur n'est pas prête (évite d'entrevoir le repos avant le triste) */
+          var revealed = false;
+          w.style.cssText += ';opacity:0;filter:blur(10px);transition:opacity .35s,filter .35s';
+          function reveal() { if (revealed) return; revealed = true; w.style.opacity = '1'; w.style.filter = 'blur(0px)'; setTimeout(function () { w.style.filter = 'none'; w.style.transition = 'none'; }, 500); }
+          setTimeout(reveal, 5000);
           function hload(nm) {
             var o = M.scenes[nm]; if (!o || !o.rect || HF[nm]) return;
             var arr = [];
@@ -242,7 +247,8 @@
               jt = s._joieT; hstop(); w.classList.add('hum'); player('joie', false, null, true); return;
             }
             if (st === 'joie') jt = s._joieT;
-            if (st === hmode) return;
+            if (!revealed && !(w.firstChild && w.firstChild.complete && w.firstChild.naturalWidth)) return;
+            if (st === hmode) { reveal(); return; }
             if (st && st !== 'joieY') {   /* charge tout de suite les images de cette humeur ; on ne change d'état que quand elles sont prêtes (sinon on réessaie au prochain passage) */
               (NEED[st] || [st]).forEach(hload);
               if (!hready(st === 'triste' ? 'triste' : st)) return;
@@ -250,6 +256,7 @@
             var prev = hmode; hmode = st; hstop();
             if (st === 'joie') yeuxOuverts();
             if (prev === 'joie' && (st === 'joieY' || !st)) yeuxFermes(1000);
+            reveal();
             if (!st || st === 'joieY') return;
             if (st === 'triste') { htriste(); return; }
             w.classList.add('hum');
