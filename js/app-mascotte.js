@@ -184,7 +184,7 @@
     var d = document.createElement('div');
     d.id = 'mzPage'; d.className = 'mz-page';
     d.innerHTML =
-      '<div class="mz-top"><div class="mz-back" id="mzBack" role="button" tabindex="0" aria-label="Retour">‹</div><div class="mz-title">Maison</div></div>' +
+      '<div class="mz-top"><div class="mz-back" id="mzBack" role="button" tabindex="0" aria-label="Retour"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></div><div class="mz-title">Maison</div></div>' +
       '<div class="mz-stage" id="mzStage"></div>' +
       '<div class="mz-body">' +
         '<div class="mz-label">Tenue</div><div class="mz-grid" id="mzTenues"></div>' +
@@ -196,6 +196,7 @@
     buildPage();
     var hd = document.getElementById('yamMainHeader'), pg = document.getElementById('mzPage');
     if (hd) pg.style.setProperty('--mz-top', Math.round(hd.getBoundingClientRect().bottom) + 'px');
+    document.documentElement.setAttribute('data-yam-maison', '1');
     showCasque = false;
     pg.classList.add('active');
     renderPage();
@@ -205,6 +206,7 @@
   function closeMaison() {
     var p = document.getElementById('mzPage');
     if (p) p.classList.remove('active');
+    document.documentElement.removeAttribute('data-yam-maison');
     ['mzStage', 'mzTenues', 'mzCasques'].forEach(function (i) { var e = document.getElementById(i); if (e) e.innerHTML = ''; });
   }
 
