@@ -1,0 +1,44 @@
+{
+ "tenues": [
+  {
+   "id": "rouge",
+   "nom": "Rouge Noël",
+   "col": "#d63a3a",
+   "classes": "porte-moufleRougeG porte-moufleRougeD porte-pantoufleRougeG porte-pantoufleRougeD"
+  },
+  {
+   "id": "jaune",
+   "nom": "Jaune",
+   "col": "#f5c542",
+   "classes": "porte-moufleJauneG porte-moufleJauneD porte-pantoufleJauneG porte-pantoufleJauneD"
+  },
+  {
+   "id": "vert",
+   "nom": "Crème",
+   "col": "#cbb691",
+   "classes": "porte-moufleG porte-moufleD porte-pantoufleG porte-pantoufleD"
+  },
+  {
+   "id": "nu",
+   "nom": "Aucun",
+   "col": "#e8c9a0",
+   "classes": ""
+  }
+ ],
+ "casques": [
+  {
+   "id": "blanc",
+   "nom": "Casque blanc",
+   "col": "#ffffff",
+   "classes": "",
+   "scene": "ecoute"
+  },
+  {
+   "id": "noir",
+   "nom": "Casque noir",
+   "col": "#222222",
+   "classes": "casque-noir",
+   "scene": "ecouteN"
+  }
+ ]
+}

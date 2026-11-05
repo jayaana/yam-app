@@ -19,6 +19,15 @@
     { id: 'noir',  name: 'Casque noir', col: '#222222' }
   ];
   var svgText = null, loading = null;
+  /* Listes de tenues et de casques = fichier assets/mascotte/img/index.json écrit par l'outil photos (ajouter une tenue = relancer l'outil, aucun code).
+     Les listes ci-dessus restent seulement le secours si le fichier est absent. */
+  function lire(l) { for (var i = 0; i < l.length; i++) if (l[i].id === this) return l[i]; return null; }
+  fetch('assets/mascotte/img/index.json').then(function (r) { return r.json(); }).then(function (I) {
+    if (!I || !I.tenues || !I.casques) return;
+    function maj(dst, src) { dst.length = 0; src.forEach(function (o) { dst.push({ id: o.id, name: o.nom, col: o.col, classes: o.classes }); }); }
+    maj(TENUES, I.tenues); maj(CASQUES, I.casques);
+    try { if (typeof sync === 'function') sync(); if (pageOpen()) renderPage(); } catch (e) {}
+  }).catch(function () {});
 
   function get(k, def, list) {
     try { var v = localStorage.getItem(k); for (var i = 0; i < list.length; i++) if (list[i].id === v) return v; } catch (e) {}
@@ -170,12 +179,14 @@
   }
   function classesFor(playing, force, mood) {
     var c = 'm nu ' + (mood === 'content' ? 'content' : mood === 'triste' ? 'triste' : (playing ? 'ecoute' : 'repos' + (force ? ' avec-casque' : '')));
-    var t = tenue();
-    if (t !== 'nu') {
+    var t = tenue(), T = lire.call(t, TENUES), K = lire.call(casque(), CASQUES);
+    if (T && typeof T.classes === 'string') c += ' ' + T.classes;
+    else if (t !== 'nu') {
       var suf = t === 'vert' ? '' : (t === 'rouge' ? 'Rouge' : 'Jaune');
       ['moufle', 'pantoufle'].forEach(function (a) { c += ' porte-' + a + suf + 'G porte-' + a + suf + 'D'; });
     }
-    if (casque() === 'noir') c += ' casque-noir';
+    if (K && typeof K.classes === 'string') c += ' ' + K.classes;
+    else if (casque() === 'noir') c += ' casque-noir';
     return c;
   }
 

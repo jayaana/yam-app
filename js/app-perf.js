@@ -76,9 +76,21 @@
     document.head.appendChild(st7);
     document.addEventListener('DOMContentLoaded', function () {
       var h = document.getElementById('homeMascot'); if (!h) return;
-      var TEN = 'rouge'; try { TEN = localStorage.getItem('yam_mascotte_tenue') || 'rouge'; } catch (e) {} if (!/^(rouge|jaune|vert|nu)$/.test(TEN)) TEN = 'rouge';
-      var DIR = 'assets/mascotte/img/' + TEN + '/';
-      fetch(DIR + 'manifest.json').then(function (r) { return r.json(); }).then(function (M) {
+      var TEN = 'rouge'; try { TEN = localStorage.getItem('yam_mascotte_tenue') || 'rouge'; } catch (e) {} if (!/^[a-z0-9_-]+$/i.test(TEN)) TEN = 'rouge';
+      var DIR = 'assets/mascotte/img/' + TEN + '/', IDX = null;
+      /* liste des tenues et casques = fichier index.json écrit par l'outil photos (plus aucune liste en dur) */
+      function tenueOk(t) { return /^[a-z0-9_-]+$/i.test(t) && (!IDX || IDX.tenues.some(function (o) { return o.id === t; })); }
+      function scenePour(cl) {   /* scène de danse du casque porté (classes du SVG caché) ; à défaut le casque sans classe */
+        var best = null, bn = -1;
+        if (IDX) IDX.casques.forEach(function (c) { var ks = c.classes ? c.classes.split(/\s+/) : []; if (ks.every(function (k) { return cl.contains(k); }) && ks.length > bn) { best = c.scene; bn = ks.length; } });
+        return best || 'ecoute';
+      }
+      function sceneDuCasque(id) { var r = 'ecoute'; if (IDX) IDX.casques.forEach(function (c) { if (c.id === id) r = c.scene; }); return r; }
+      fetch('assets/mascotte/img/index.json').then(function (r) { return r.json(); }).catch(function () { return null; }).then(function (I) {
+        IDX = I && I.tenues && I.casques ? I : null;
+        if (!tenueOk(TEN)) { TEN = 'rouge'; DIR = 'assets/mascotte/img/rouge/'; }
+        return fetch(DIR + 'manifest.json');
+      }).then(function (r) { return r.json(); }).then(function (M) {
         var k = 180 / M.size, w = document.createElement('div'); w.id = 'yamPhoto';
         function boxOf(im) { var r = im._ref; return !r ? null : r[0] === 'z' ? M.zones[r[1]].rect : M.scenes[r[1]].rect; }
         function place(im) {   /* position/taille d'une image d'après le manifeste courant */
@@ -194,7 +206,7 @@
             }
             HF[nm] = arr;
           }
-          ['content', 'joie', 'triste', 'tristeLarme', 'tristeYeux', 'tristeCoucou', CQ === 'noir' ? 'ecouteN' : 'ecoute'].forEach(function (nm, i) { setTimeout(function () { hload(nm); }, 1200 + i * 1500); });
+          ['content', 'joie', 'triste', 'tristeLarme', 'tristeYeux', 'tristeCoucou', sceneDuCasque(CQ)].forEach(function (nm, i) { setTimeout(function () { hload(nm); }, 1200 + i * 1500); });
           function hready(nm) { var a = HF[nm]; return !!a && a.every(function (im) { return im.complete && im.naturalWidth; }); }
           /* lecteur : images 1..n au rythme de M.scenes[nm].ms ; boucle ou passage unique (reste sur la dernière) */
           function player(nm, boucle, onend, hold) {
@@ -251,7 +263,7 @@
           function tick() {
             if (document.hidden) return;
             var s = hsvg && hsvg.isConnected ? hsvg : (hsvg = h.firstElementChild); if (!s || !s.classList) return;
-            var c = s.classList, st = (c.contains('joie') && (c.contains('repos') || c.contains('content'))) ? 'joie' : c.contains('content') ? 'content' : c.contains('ecoute') ? (c.contains('casque-noir') ? 'ecouteN' : 'ecoute') : c.contains('triste') ? 'triste' : (c.contains('repos') && c.contains('joie')) ? 'joie' : (c.contains('joieY') ? 'joieY' : '');
+            var c = s.classList, st = (c.contains('joie') && (c.contains('repos') || c.contains('content'))) ? 'joie' : c.contains('content') ? 'content' : c.contains('ecoute') ? scenePour(c) : c.contains('triste') ? 'triste' : (c.contains('repos') && c.contains('joie')) ? 'joie' : (c.contains('joieY') ? 'joieY' : '');
             if (st === 'joie' && hmode === 'joie' && s._joieT !== jt && hready('joie')) {   /* nouveau clic sur le cœur : la joie repart du début */
               jt = s._joieT; hstop(); w.classList.add('hum'); player('joie', false, null, true); return;
             }
@@ -276,7 +288,7 @@
           /* changement de tenue à chaud (le/la partenaire change de tenue) : même structure d'images pour toutes les tenues, on repointe chaque image vers la nouvelle tenue, patate floue le temps du chargement */
           var swapping = false;
           window.yamPhotoSwap = function (ten) {
-            if (!/^(rouge|jaune|vert|nu)$/.test(ten) || ten === TEN || swapping) return;
+            if (!tenueOk(ten) || ten === TEN || swapping) return;
             swapping = true;
             fetch('assets/mascotte/img/' + ten + '/manifest.json').then(function (r) { return r.json(); }).then(function (NM) {
               TEN = ten; DIR = 'assets/mascotte/img/' + ten + '/'; M = NM; k = 180 / M.size;
