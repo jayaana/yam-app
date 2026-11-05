@@ -769,47 +769,68 @@ document.addEventListener('DOMContentLoaded', function(){
 
 });
 
-/* DIAG-TRAIT (temporaire) : cadre de diagnostic du trait de zone sûre */
+/* DIAG-TRAIT (temporaire) : releves d'etat de la page, compares entre eux */
 (function(){
-  function go(){
-    var box = document.createElement('div');
-    box.id = 'diagTrait';
-    box.style.cssText = 'position:fixed;left:6px;right:6px;bottom:90px;z-index:2147483647;background:#fff;color:#000;font:11px/1.25 monospace;padding:6px;border:2px solid #c00;border-radius:8px;white-space:pre-wrap;max-height:42vh;overflow:auto';
-    document.body.appendChild(box);
-    var H = document.documentElement, B = document.body, NL = String.fromCharCode(10);
-    var hid = [];
-    function hideAll(){ Array.prototype.forEach.call(B.children, function(e){ if(e !== box){ hid.push([e, e.style.visibility]); e.style.visibility = 'hidden'; } }); }
-    function restore(){ hid.forEach(function(a){ a[0].style.visibility = a[1]; }); hid = []; }
-    var cands = [
-      ['aucun', function(){}],
-      ['E: toute la page cachee (visibility)', function(){ hideAll(); }],
-      ['F: page cachee + html uni', function(){ hideAll(); H.style.setProperty('background','#ffc2bb','important'); B.style.setProperty('background','#ffc2bb','important'); }],
-      ['G: html overflow hidden', function(){ H.style.setProperty('overflow','hidden','important'); }]
-    ];
-    var step = 0;
-    function reset(){ restore(); H.style.removeProperty('background'); B.style.removeProperty('background'); H.style.removeProperty('overflow'); }
-    function scan(){
-      var out = [];
-      Array.prototype.forEach.call(document.querySelectorAll('body *'), function(e){
-        if(e === box || box.contains(e)) return;
-        var r = e.getBoundingClientRect();
-        if(r.width < 200 || r.height === 0) return;
-        if(Math.abs(r.top - 59) < 3 || Math.abs(r.bottom - 59) < 3){
-          var c = getComputedStyle(e);
-          out.push((e.id ? '#' + e.id : e.tagName.toLowerCase()) + ' ' + c.position + ' t=' + Math.round(r.top) + ' b=' + Math.round(r.bottom) + ' bg=' + c.backgroundColor + ' bd=' + c.borderTopWidth + '/' + c.borderBottomWidth);
-        }
-      });
-      return out.slice(0, 8).join(NL) || 'aucun element a 59';
-    }
-    function render(){
-      reset(); cands[step][1]();
-      var vv = window.visualViewport, rb = B.getBoundingClientRect();
-      box.textContent = ['DIAG toucher = essai suivant', 'ETAPE ' + step + ' : ' + cands[step][0],
-        'body top=' + Math.round(rb.top) + ' vv offTop=' + (vv ? Math.round(vv.offsetTop) + ' pageTop=' + Math.round(vv.pageTop) : '-') + ' iH=' + innerHeight + ' sY=' + scrollY,
-        'bords a 59px:', scan()].join(NL);
-    }
-    box.addEventListener('click', function(){ step = (step + 1) % cands.length; render(); });
+  var NL = String.fromCharCode(10), snaps = [], view = 0, box;
+  function r(n){ return Math.round(n); }
+  function cs(e, props){ var c = getComputedStyle(e); return props.map(function(k){ return c[k]; }).join('|'); }
+  function snap(label){
+    var H = document.documentElement, B = document.body, o = {}, vv = window.visualViewport;
+    o['html.attrs'] = Array.prototype.map.call(H.attributes, function(a){ return a.name + '=' + String(a.value).slice(0, 60); }).join(' ');
+    o['body.class'] = B.className; o['body.style'] = B.getAttribute('style') || '';
+    o['html.css'] = cs(H, ['overflowY', 'position', 'transform', 'height', 'scrollBehavior', 'backgroundColor']);
+    o['body.css'] = cs(B, ['overflowY', 'position', 'transform', 'height', 'top', 'paddingTop', 'marginTop']);
+    o['win'] = 'iH=' + innerHeight + ' oH=' + outerHeight + ' sY=' + r(scrollY) + ' html.sT=' + r(H.scrollTop) + ' body.sT=' + r(B.scrollTop) + ' html.sH/cH=' + H.scrollHeight + '/' + H.clientHeight + ' body.sH=' + B.scrollHeight;
+    o['vv'] = vv ? 'offT=' + r(vv.offsetTop) + ' pageT=' + r(vv.pageTop) + ' h=' + r(vv.height) + ' sc=' + vv.scale : '-';
+    o['tab'] = String(window._currentTab) + ' panels=' + Array.prototype.map.call(document.querySelectorAll('.yam-tab-panel.active'), function(e){ return e.id + '(sT' + r(e.scrollTop) + ')'; }).join(',');
+    var seen = {};
+    Array.prototype.forEach.call(B.children, function(e, idx){
+      if(e === box) return;
+      var k = 'el ' + (e.id || (e.tagName.toLowerCase() + '.' + String(e.className).slice(0, 18))), c = getComputedStyle(e), rc = e.getBoundingClientRect();
+      seen[k] = (seen[k] || 0) + 1; if(seen[k] > 1) k += seen[k];
+      o[k] = c.display + '|' + c.position + '|' + c.visibility + '|op' + c.opacity + '|tf' + (c.transform === 'none' ? '-' : c.transform.slice(0, 30)) + '|t' + r(rc.top) + 'h' + r(rc.height) + '|wc' + c.willChange;
+    });
+    ['yamMainHeader', 'yamStickyHeader', 'yamHomeTab'].forEach(function(id){
+      var e = document.getElementById(id); if(!e) return;
+      var c = getComputedStyle(e), rc = e.getBoundingClientRect();
+      o['id ' + id] = c.display + '|' + c.position + '|op' + c.opacity + '|tf' + (c.transform === 'none' ? '-' : c.transform.slice(0, 30)) + '|t' + r(rc.top) + 'h' + r(rc.height) + '|style=' + (e.getAttribute('style') || '').slice(0, 80) + '|cls=' + e.className;
+    });
+    snaps.push({ label: label, o: o });
     render();
+  }
+  function diff(a, b){
+    var out = [], keys = {};
+    Object.keys(a.o).concat(Object.keys(b.o)).forEach(function(k){ keys[k] = 1; });
+    Object.keys(keys).forEach(function(k){ if(a.o[k] !== b.o[k]) out.push(k + ': ' + (a.o[k] === undefined ? '(absent)' : a.o[k]) + '  =>  ' + (b.o[k] === undefined ? '(absent)' : b.o[k])); });
+    return out;
+  }
+  function render(){
+    if(!box) return;
+    var n = snaps.length; if(!n) return;
+    var head = 'DIAG ' + n + ' releves : ' + snaps.map(function(s, i){ return i + '=' + s.label; }).join(' ; ') + NL + 'toucher = changer la comparaison' + NL;
+    var body;
+    if(n < 2) body = 'un seul releve';
+    else {
+      var pairs = []; for(var i = 1; i < n; i++) pairs.push([i - 1, i]);
+      pairs.push([0, n - 1]);
+      var pr = pairs[view % pairs.length];
+      var d = diff(snaps[pr[0]], snaps[pr[1]]);
+      body = 'DIFF ' + pr[0] + ' -> ' + pr[1] + ' (' + d.length + ')' + NL + (d.join(NL) || 'aucune difference');
+    }
+    box.textContent = head + body;
+  }
+  function go(){
+    box = document.createElement('div');
+    box.style.cssText = 'position:fixed;left:6px;right:6px;bottom:90px;z-index:2147483647;background:#fff;color:#000;font:10px/1.2 monospace;padding:5px;border:2px solid #c00;border-radius:8px;white-space:pre-wrap;max-height:40vh;overflow:auto';
+    document.body.appendChild(box);
+    box.addEventListener('click', function(){ view++; render(); });
+    snap('chargement ' + window._currentTab);
+    var last = document.documentElement.getAttribute('data-yam-tab'), t;
+    new MutationObserver(function(){
+      var cur = document.documentElement.getAttribute('data-yam-tab');
+      if(cur === last) return; last = cur;
+      clearTimeout(t); t = setTimeout(function(){ view = snaps.length - 1 > 0 ? snaps.length - 2 : 0; snap('onglet ' + cur); }, 900);
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-yam-tab'] });
   }
   setTimeout(go, 2500);
 })();
