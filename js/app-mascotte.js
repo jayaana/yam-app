@@ -31,7 +31,7 @@
   function tenue() { return ok(shared.tenue, TENUES) || get(KEY_TENUE, 'rouge', TENUES); }
   function casque() { return ok(shared.casque, CASQUES) || get(KEY_CASQUE, 'blanc', CASQUES); }
   function coupleId() { var u = (typeof yamGetUser === 'function') ? yamGetUser() : null; return u ? u.couple_id : null; }
-  var lastFetch = 0, firstPull = false;
+  var lastFetch = 0;
   function pull(force) {
     var cid = coupleId();
     if (!cid || typeof sb2Fetch !== 'function') return;
@@ -56,15 +56,8 @@
         if (t && (!shared.jmaj || t > shared.jmaj)) { shared.jauge = r.jauge; shared.jmaj = t; saveJauge(); }
       }
       shared.tenue = r.tenue; shared.casque = r.casque;
-      /* mode photos : les images de la tenue sont lues au chargement ; au 1er relevé, si la tenue du serveur diffère (autre compte sur l'appareil), on recharge une seule fois */
-      if (!firstPull) {
-        firstPull = true;
-        try {
-          if (window.yamPhotoTenue && ok(r.tenue, TENUES) && window.yamPhotoTenue !== r.tenue && sessionStorage.getItem('yam_tenue_reload') !== r.tenue) {
-            sessionStorage.setItem('yam_tenue_reload', r.tenue); localStorage.setItem(KEY_TENUE, r.tenue); location.reload(); return;
-          }
-        } catch (e) {}
-      }
+      /* mode photos : la tenue de l'autre/du serveur est appliquée à chaud (images repointées, patate floue le temps du chargement) */
+      if (ok(r.tenue, TENUES)) { window.yamPhotoWant = r.tenue; if (window.yamPhotoSwap) window.yamPhotoSwap(r.tenue); }
       try { if (ok(r.tenue, TENUES)) localStorage.setItem(KEY_TENUE, r.tenue); if (ok(r.casque, CASQUES)) localStorage.setItem(KEY_CASQUE, r.casque); } catch (e) {}
       sync(); if (pageOpen()) renderPage();
     });

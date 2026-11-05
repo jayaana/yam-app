@@ -77,12 +77,16 @@
     document.addEventListener('DOMContentLoaded', function () {
       var h = document.getElementById('homeMascot'); if (!h) return;
       var TEN = 'rouge'; try { TEN = localStorage.getItem('yam_mascotte_tenue') || 'rouge'; } catch (e) {} if (!/^(rouge|jaune|vert|nu)$/.test(TEN)) TEN = 'rouge';
-      window.yamPhotoTenue = TEN;   /* lu par app-mascotte.js : si la tenue du serveur diffère au démarrage (autre compte), la page se recharge une fois */
       var DIR = 'assets/mascotte/img/' + TEN + '/';
       fetch(DIR + 'manifest.json').then(function (r) { return r.json(); }).then(function (M) {
         var k = 180 / M.size, w = document.createElement('div'); w.id = 'yamPhoto';
+        function boxOf(im) { var r = im._ref; return !r ? null : r[0] === 'z' ? M.zones[r[1]].rect : M.scenes[r[1]].rect; }
+        function place(im) {   /* position/taille d'une image d'après le manifeste courant */
+          var b = boxOf(im), l = b ? b[0] : 0, t = b ? b[1] : 0, r = b ? b[2] : M.size, bt = b ? b[3] : M.size;
+          im.style.cssText = im.style.cssText.replace(/(left|top|width|height):[^;]*;?/g, '') + ';left:' + l * k + 'px;top:' + t * k + 'px;width:' + (r - l) * k + 'px;height:' + (bt - t) * k + 'px';
+        }
         function mk(src, box) {
-          var im = new Image(); im.src = DIR + src + '.webp';
+          var im = new Image(); im._k = src; im.src = DIR + src + '.webp';
           var l = box ? box[0] : 0, t = box ? box[1] : 0, r = box ? box[2] : M.size, b = box ? box[3] : M.size;
           im.style.cssText = 'left:' + l * k + 'px;top:' + t * k + 'px;width:' + (r - l) * k + 'px;height:' + (b - t) * k + 'px';
           return im;
@@ -92,7 +96,7 @@
         Object.keys(M.zones).forEach(function (z) {
           var o = { set: {}, cur: 'neutral', busy: false };
           M.zones[z].poses.forEach(function (n) {
-            var im = mk(z + '-' + n, M.zones[z].rect); if (n !== 'neutral') im.className = 'off';
+            var im = mk(z + '-' + n, M.zones[z].rect); im._ref = ['z', z]; if (n !== 'neutral') im.className = 'off';
             o.set[n] = im; w.appendChild(im);
           });
           Z[z] = o;
@@ -172,6 +176,10 @@
           var HF = {}, hgen = 0, plist = [], hmode = '', hsvg = null;
           /* voile de démarrage : patate floue/transparente tant que la bonne humeur n'est pas prête (évite d'entrevoir le repos avant le triste) */
           var revealed = false;
+          function baseReady() {
+            if (!(w.firstChild && w.firstChild.complete && w.firstChild.naturalWidth)) return false;
+            return Object.keys(Z).every(function (z) { var im = Z[z].set.neutral; return im.complete && im.naturalWidth; });
+          }
           w.style.cssText += ';opacity:0;filter:blur(10px);transition:opacity .35s,filter .35s';
           function reveal() { if (revealed) return; revealed = true; w.style.opacity = '1'; w.style.filter = 'blur(0px)'; setTimeout(function () { w.style.filter = 'none'; w.style.transition = 'none'; }, 500); }
           setTimeout(reveal, 5000);
@@ -179,7 +187,7 @@
             var o = M.scenes[nm]; if (!o || !o.rect || HF[nm]) return;
             var arr = [];
             for (var i = 1; i <= o.n; i++) {
-              var im = mk('h-' + nm + '-' + i, o.rect); im.className = 'hf';
+              var im = mk('h-' + nm + '-' + i, o.rect); im._ref = ['s', nm]; im.className = 'hf';
               im.style.zIndex = /^triste(Yeux)$/.test(nm) ? 3 : /^triste./.test(nm) ? 2 : 1;
               (function (im) { var tries = 0, u = im.src; im.onerror = function () { if (tries++ < 3) setTimeout(function () { im.src = u + '?r=' + tries; }, 800 * tries); }; })(im);
               w.appendChild(im); arr.push(im);
@@ -248,7 +256,7 @@
               jt = s._joieT; hstop(); w.classList.add('hum'); player('joie', false, null, true); return;
             }
             if (st === 'joie') jt = s._joieT;
-            if (!revealed && !(w.firstChild && w.firstChild.complete && w.firstChild.naturalWidth)) return;
+            if (!revealed && !baseReady()) return;
             if (st === hmode) { reveal(); return; }
             if (st && st !== 'joieY') {   /* charge tout de suite les images de cette humeur ; on ne change d'état que quand elles sont prêtes (sinon on réessaie au prochain passage) */
               (NEED[st] || [st]).forEach(hload);
@@ -265,6 +273,22 @@
           }
           setInterval(tick, 200);
           document.addEventListener('click', function (e) { if (e.target && e.target.closest && e.target.closest('#homeSpamHeart')) setTimeout(tick, 40); }, true);
+          /* changement de tenue à chaud (le/la partenaire change de tenue) : même structure d'images pour toutes les tenues, on repointe chaque image vers la nouvelle tenue, patate floue le temps du chargement */
+          var swapping = false;
+          window.yamPhotoSwap = function (ten) {
+            if (!/^(rouge|jaune|vert|nu)$/.test(ten) || ten === TEN || swapping) return;
+            swapping = true;
+            fetch('assets/mascotte/img/' + ten + '/manifest.json').then(function (r) { return r.json(); }).then(function (NM) {
+              TEN = ten; DIR = 'assets/mascotte/img/' + ten + '/'; M = NM; k = 180 / M.size;
+              hstop(); hmode = ''; revealed = false;
+              w.style.transition = 'opacity .35s, filter .35s'; w.style.opacity = '0'; w.style.filter = 'blur(10px)';
+              [].forEach.call(w.querySelectorAll('img'), function (im) { place(im); im.src = DIR + im._k + '.webp'; });
+              setTimeout(reveal, 8000);
+              swapping = false;
+            }, function () { swapping = false; });
+          };
+          window.yamPhotoReady = true;
+          if (window.yamPhotoWant && window.yamPhotoWant !== TEN) window.yamPhotoSwap(window.yamPhotoWant);
         }
       });
     });
