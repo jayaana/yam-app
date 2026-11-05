@@ -24,8 +24,48 @@
     try { var v = localStorage.getItem(k); for (var i = 0; i < list.length; i++) if (list[i].id === v) return v; } catch (e) {}
     return def;
   }
-  function tenue() { return get(KEY_TENUE, 'rouge', TENUES); }
-  function casque() { return get(KEY_CASQUE, 'blanc', CASQUES); }
+  /* Habillage COMMUN au couple : table Supabase « mascotte » (une ligne par couple), mise à jour en direct.
+     Copie locale (localStorage) = affichage immédiat et secours si la table est absente. */
+  var shared = { tenue: null, casque: null };
+  function ok(v, list) { for (var i = 0; i < list.length; i++) if (list[i].id === v) return v; return null; }
+  function tenue() { return ok(shared.tenue, TENUES) || get(KEY_TENUE, 'rouge', TENUES); }
+  function casque() { return ok(shared.casque, CASQUES) || get(KEY_CASQUE, 'blanc', CASQUES); }
+  function coupleId() { var u = (typeof yamGetUser === 'function') ? yamGetUser() : null; return u ? u.couple_id : null; }
+  var lastFetch = 0;
+  function pull(force) {
+    var cid = coupleId();
+    if (!cid || typeof sb2Fetch !== 'function') return;
+    if (!force && Date.now() - lastFetch < 30000) return;
+    lastFetch = Date.now();
+    sb2Fetch('patate', 'couple_id=eq.' + encodeURIComponent(cid) + '&select=tenue,casque').then(function (rows) {
+      var r = Array.isArray(rows) && rows[0];
+      if (!r) return;
+      shared.tenue = r.tenue; shared.casque = r.casque;
+      try { if (ok(r.tenue, TENUES)) localStorage.setItem(KEY_TENUE, r.tenue); if (ok(r.casque, CASQUES)) localStorage.setItem(KEY_CASQUE, r.casque); } catch (e) {}
+      sync(); if (pageOpen()) renderPage();
+    });
+  }
+  function push() {
+    var cid = coupleId();
+    if (!cid || typeof sb2Upsert !== 'function') return;
+    sb2Upsert('patate', { couple_id: cid, tenue: tenue(), casque: casque(), updated_at: new Date().toISOString() });
+  }
+  var rtDone = false;
+  function listen() {
+    var cid = coupleId();
+    if (rtDone || !cid || !window._yamRT) return;
+    rtDone = true;
+    try {
+      window._yamRT.channel('patate_' + cid)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'patate', filter: 'couple_id=eq.' + cid }, function () { pull(true); })
+        .subscribe();
+    } catch (e) { rtDone = false; }
+  }
+  function pageOpen() { var p = document.getElementById('mzPage'); return !!(p && p.classList.contains('active')); }
+  /* L'Accueil est-il réellement visible ? (sinon aucune animation, aucun travail) */
+  function homeVisible() {
+    return document.documentElement.getAttribute('data-yam-tab') === 'home' && !pageOpen() && !document.hidden;
+  }
 
   function load() {
     if (svgText) return Promise.resolve(svgText);
@@ -67,11 +107,6 @@
       if (!svgText) return;
       host.innerHTML = host.id === 'mzStage' ? uniq(svgText) : svgText;
       s = host.firstElementChild;
-      if (s && window.IntersectionObserver) {
-        new IntersectionObserver(function (es) {
-          es.forEach(function (e) { s.classList.toggle('pause', !e.isIntersecting || document.hidden); });
-        }).observe(s);
-      }
     }
     if (!s) return;
     var cls = classesFor(playing, force) + (s.classList.contains('pause') ? ' pause' : '') + (s.classList.contains('joie') ? ' joie' : '') + (s.classList.contains('joieY') ? ' joieY' : '');
@@ -79,12 +114,16 @@
   }
 
   function sync() {
-    var playing = isPlaying();
     var h = document.getElementById('homeMascot');
-    if (h) load().then(function () { mount(h, playing); });
-    var p = document.getElementById('mzPage');
+    var vis = homeVisible();
+    var s0 = h && h.firstElementChild;
+    if (s0 && s0.classList) s0.classList.toggle('pause', !vis);
     var m = document.getElementById('mzStage');
-    if (m && p && p.classList.contains('active')) load().then(function () { mount(m, playing, showCasque); });
+    if (!vis && !pageOpen()) return;
+    var playing = isPlaying();
+    if (vis) { listen(); pull(false); }
+    if (h && (vis || !s0)) load().then(function () { mount(h, playing); var s1 = h.firstElementChild; if (s1 && s1.classList) s1.classList.toggle('pause', !homeVisible()); });
+    if (m && pageOpen()) load().then(function () { mount(m, playing, showCasque); });
   }
   window.mascotteSync = sync;
 
@@ -100,10 +139,7 @@
     svg._joieYT = setTimeout(function () { svg.classList.remove('joieY'); }, 1500);
   }
 
-  document.addEventListener('visibilitychange', function () {
-    var all = document.querySelectorAll('svg.m');
-    for (var i = 0; i < all.length; i++) all[i].classList.toggle('pause', document.hidden);
-  });
+  document.addEventListener('visibilitychange', function () { sync(); });
 
   /* ---- page Maison (simple : changer la tenue) ---- */
   /* Petites icônes : copies des vrais accessoires du dessin (gant, pantoufle, casque) */
@@ -184,6 +220,7 @@
       if (c.getAttribute('data-tenue')) localStorage.setItem(KEY_TENUE, c.getAttribute('data-tenue'));
       if (c.getAttribute('data-casque')) { localStorage.setItem(KEY_CASQUE, c.getAttribute('data-casque')); showCasque = true; }
     } catch (x) {}
+    push();
     renderPage();
     sync();
   });

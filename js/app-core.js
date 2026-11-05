@@ -238,6 +238,7 @@ function sb2Upsert(table, body, prefer) {
     'photo_descs':       'couple_id,category,slot',
     'song_plays':        'couple_id,song_file',
     'new_badges':        'couple_id,section',
+    'patate':            'couple_id',
   };
   var onConflict = conflictMap[table];
   var url = SB_URL + '/rest/v1/' + table + (onConflict ? '?on_conflict=' + onConflict : '');
