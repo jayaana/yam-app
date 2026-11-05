@@ -52,6 +52,7 @@ var STATIC_ASSETS = [
   '/yam-app/js/app-calin.js',
   '/yam-app/js/app-decor.js',
   '/yam-app/js/app-mascotte.js',
+  '/yam-app/js/app-perf.js',
   '/yam-app/decor/noel-jour.svg',
   '/yam-app/decor/noel-nuit.svg',
   '/yam-app/js/app-profile-menu.js',
