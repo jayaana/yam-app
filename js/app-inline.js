@@ -790,6 +790,7 @@ document.addEventListener('DOMContentLoaded', function(){
       seen[k] = (seen[k] || 0) + 1; if(seen[k] > 1) k += seen[k];
       o[k] = c.display + '|' + c.position + '|' + c.visibility + '|op' + c.opacity + '|tf' + (c.transform === 'none' ? '-' : c.transform.slice(0, 30)) + '|t' + r(rc.top) + 'h' + r(rc.height) + '|wc' + c.willChange;
     });
+    o['inflow'] = Array.prototype.filter.call(B.children, function(e){ if(e === box) return false; var c = getComputedStyle(e); return c.display !== 'none' && c.position !== 'fixed' && c.position !== 'absolute' && e.getBoundingClientRect().height > 0; }).map(function(e){ return (e.id || e.tagName.toLowerCase()) + ':' + r(e.getBoundingClientRect().height); }).join(' ') + ' | body.minH=' + getComputedStyle(B).minHeight + ' html.minH=' + getComputedStyle(H).minHeight;
     ['yamMainHeader', 'yamStickyHeader', 'yamHomeTab'].forEach(function(id){
       var e = document.getElementById(id); if(!e) return;
       var c = getComputedStyle(e), rc = e.getBoundingClientRect();
@@ -823,6 +824,19 @@ document.addEventListener('DOMContentLoaded', function(){
     box = document.createElement('div');
     box.style.cssText = 'position:fixed;left:6px;right:6px;bottom:90px;z-index:2147483647;background:#fff;color:#000;font:10px/1.2 monospace;padding:5px;border:2px solid #c00;border-radius:8px;white-space:pre-wrap;max-height:40vh;overflow:auto';
     document.body.appendChild(box);
+    var btn = document.createElement('div'), tn = 0;
+    btn.style.cssText = 'position:fixed;right:6px;bottom:calc(90px + 40vh);z-index:2147483647;background:#c00;color:#fff;font:bold 13px sans-serif;padding:10px 14px;border-radius:8px';
+    btn.textContent = 'ESSAI 0';
+    document.body.appendChild(btn);
+    btn.addEventListener('click', function(){
+      var Hh = document.documentElement, Bb = document.body, h = innerHeight + 'px';
+      ['height', 'min-height', 'max-height', 'overflow'].forEach(function(k){ Hh.style.removeProperty(k); Bb.style.removeProperty(k); });
+      tn = (tn + 1) % 4;
+      if(tn === 1){ Hh.style.setProperty('height', h, 'important'); Hh.style.setProperty('overflow', 'hidden', 'important'); Bb.style.setProperty('height', h, 'important'); Bb.style.setProperty('overflow', 'hidden', 'important'); }
+      if(tn === 2){ Hh.style.setProperty('max-height', h, 'important'); Hh.style.setProperty('overflow', 'hidden', 'important'); }
+      if(tn === 3){ Bb.style.setProperty('max-height', h, 'important'); Bb.style.setProperty('overflow', 'hidden', 'important'); }
+      btn.textContent = 'ESSAI ' + tn + ' (h=' + h + ' sH=' + Hh.scrollHeight + ')';
+    });
     box.addEventListener('click', function(){ view++; render(); });
     snap('chargement ' + window._currentTab);
     var last = document.documentElement.getAttribute('data-yam-tab'), t;
