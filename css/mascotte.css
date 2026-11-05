@@ -246,6 +246,7 @@ html[data-yam-maison][data-theme="dark"]{background:linear-gradient(#191215,rgba
 .mz-icos{display:flex;align-items:center;justify-content:center;gap:2px;height:40px;margin-bottom:4px}
 .mz-ico{display:block;overflow:hidden;flex:0 0 auto}
 .mz-nm{display:block}
+.mz-valider{display:flex;width:100%;margin-top:18px}
 .mz-grid.c2{grid-template-columns:repeat(2,1fr)}
 .mz-none{display:block;width:26px;height:26px;border-radius:50%;border:2px dashed currentColor;opacity:.35;position:relative}
 .mz-none::after{content:'';position:absolute;left:50%;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:currentColor;transform:rotate(45deg)}
