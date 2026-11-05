@@ -18,7 +18,7 @@
      ?ab=4 tout figé (patate + décor), ?ab=0 normal. Mémorisé ; rechargement automatique au changement. */
   var AB = '0';
   try {
-    var q = /[?&]ab=([0-4])/.exec(location.search);
+    var q = /[?&]ab=([0-6])/.exec(location.search);
     if (q) localStorage.setItem('yam_ab', q[1]);
     AB = localStorage.getItem('yam_ab') || '0';
   } catch (e) {}
@@ -41,7 +41,7 @@
       if (document.getElementById('yamAbMenu')) return;
       var m = document.createElement('div'); m.id = 'yamAbMenu';
       m.style.cssText = 'position:fixed;left:10px;top:70px;z-index:2147483600;background:#222;color:#fff;padding:10px;border-radius:12px;font:600 14px system-ui;display:flex;flex-direction:column;gap:8px';
-      var L = [['0','Normal'],['1','Patate figée'],['2','Patate retirée'],['3','Décor coupé'],['4','Tout figé']];
+      var L = [['0','Normal'],['1','Patate figée'],['2','Patate retirée'],['3','Décor coupé'],['4','Tout figé'],['5','Corps fixe + détails'],['6','Corps seul']];
       L.forEach(function (o) {
         var b = document.createElement('button'); b.textContent = (AB === o[0] ? '✓ ' : '') + o[1];
         b.style.cssText = 'padding:10px 14px;border-radius:8px;border:0;font:600 14px system-ui';
@@ -53,6 +53,19 @@
       document.body.appendChild(m);
     }, { passive: true });
   });
+
+  /* Modes 5 et 6 : on fige seulement une partie des animations de la patate, par leur nom. */
+  if (AB === '5' || AB === '6') {
+    var BODY = /^(mHopIdle|mLean|mBreath|mBob|mRock|mBeat|mHop|mJoieHop|mDroop|mSitSigh|mSigh)$/;
+    setInterval(function () {
+      var h = document.getElementById('homeMascot'); if (!h || !h.getAnimations) return;
+      h.getAnimations({ subtree: true }).forEach(function (a) {
+        var n = a.animationName; if (!n) return;
+        var freeze = (AB === '5') ? (BODY.test(n) || /^(mStem|mLeafL|mLeafR|mJoieStem|mJoieLeafL|mJoieLeafR)$/.test(n)) : !BODY.test(n);
+        if (freeze && a.playState === 'running') { try { a.pause(); a.currentTime = 0; } catch (e) {} }
+      });
+    }, 300);
+  }
   if (!on) return;
 
   var box = document.createElement('div');
