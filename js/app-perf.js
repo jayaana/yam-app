@@ -76,10 +76,12 @@
     document.head.appendChild(st7);
     document.addEventListener('DOMContentLoaded', function () {
       var h = document.getElementById('homeMascot'); if (!h) return;
-      fetch('assets/mascotte/img/manifest.json').then(function (r) { return r.json(); }).then(function (M) {
+      var TEN = 'rouge'; try { TEN = localStorage.getItem('yam_mascotte_tenue') || 'rouge'; } catch (e) {} if (!/^(rouge|jaune|vert|nu)$/.test(TEN)) TEN = 'rouge';
+      var DIR = 'assets/mascotte/img/' + TEN + '/';
+      fetch(DIR + 'manifest.json').then(function (r) { return r.json(); }).then(function (M) {
         var k = 180 / M.size, w = document.createElement('div'); w.id = 'yamPhoto';
         function mk(src, box) {
-          var im = new Image(); im.src = 'assets/mascotte/img/' + src + '.webp';
+          var im = new Image(); im.src = DIR + src + '.webp';
           var l = box ? box[0] : 0, t = box ? box[1] : 0, r = box ? box[2] : M.size, b = box ? box[3] : M.size;
           im.style.cssText = 'left:' + l * k + 'px;top:' + t * k + 'px;width:' + (r - l) * k + 'px;height:' + (b - t) * k + 'px';
           return im;
@@ -98,11 +100,21 @@
         function rnd(a, b) { return a + Math.random() * (b - a); }
         function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
         function show(o, n) { o.set[o.cur].className = 'off'; o.set[n].className = ''; o.cur = n; }
-        function seq(z, steps, done) {   /* steps : [[pose, ms], ...] puis retour au neutre */
-          var o = Z[z]; if (!o || o.busy || document.hidden) return false; o.busy = true; var i = 0;
+        function seq(z, steps, done) {   /* steps : [[pose, ms], ...] ; images intermédiaires entre les poses, retour au neutre */
+          var o = Z[z]; if (!o || o.busy || document.hidden) return false; o.busy = true;
+          var NT = M.nt || 0, tw = {}; (M.zones[z].tween || []).forEach(function (n) { tw[n] = 1; });
+          var fr = [], prev = null;
+          function away(p) { if (p && tw[p]) for (var q = NT; q >= 1; q--) fr.push([p + '.' + q, 45]); }
+          steps.forEach(function (st) {
+            away(prev);
+            if (tw[st[0]]) for (var q = 1; q <= NT; q++) fr.push([st[0] + '.' + q, 45]);
+            fr.push([st[0], st[1]]); prev = st[0];
+          });
+          away(prev); fr.push(['neutral', 0]);
+          var i = 0;
           (function next() {
-            if (i >= steps.length) { show(o, 'neutral'); o.busy = false; if (done) done(); return; }
-            show(o, steps[i][0]); var ms = steps[i][1]; i++; setTimeout(next, ms);
+            if (i >= fr.length) { o.busy = false; if (done) done(); return; }
+            show(o, fr[i][0]); var ms = fr[i][1]; i++; if (ms) setTimeout(next, ms); else next();
           })();
           return true;
         }
