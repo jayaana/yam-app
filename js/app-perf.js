@@ -18,7 +18,7 @@
      ?ab=4 tout figé (patate + décor), ?ab=0 normal. Mémorisé ; rechargement automatique au changement. */
   var AB = '0';
   try {
-    var q = /[?&]ab=([0-7])/.exec(location.search);
+    var q = /[?&]ab=([0-8])/.exec(location.search);
     if (q) localStorage.setItem('yam_ab', q[1]);
     AB = localStorage.getItem('yam_ab') || '0';
   } catch (e) {}
@@ -41,7 +41,7 @@
       if (document.getElementById('yamAbMenu')) return;
       var m = document.createElement('div'); m.id = 'yamAbMenu';
       m.style.cssText = 'position:fixed;left:10px;top:70px;z-index:2147483600;background:#222;color:#fff;padding:10px;border-radius:12px;font:600 14px system-ui;display:flex;flex-direction:column;gap:8px';
-      var L = [['0','Normal'],['1','Patate figée'],['2','Patate retirée'],['3','Décor coupé'],['4','Tout figé'],['5','Corps fixe + détails'],['6','Corps seul'],['7','Photos (test)']];
+      var L = [['0','Normal'],['1','Patate figée'],['2','Patate retirée'],['3','Décor coupé'],['4','Tout figé'],['5','Corps fixe + détails'],['6','Corps seul'],['7','Photos (test)'],['8','Repos enrichi (test)']];
       L.forEach(function (o) {
         var b = document.createElement('button'); b.textContent = (AB === o[0] ? '✓ ' : '') + o[1];
         b.style.cssText = 'padding:10px 14px;border-radius:8px;border:0;font:600 14px system-ui';
@@ -67,8 +67,10 @@
     }, 300);
   }
 
-  /* Mode 7 : prototype "photos" — base fixe + petites images (visage, bras) échangées par moments, SVG caché. */
-  if (AB === '7') {
+  /* Modes 7 et 8 : "photos" — base fixe + petites images par zone (visage, bras, feuilles, pieds) échangées par moments.
+     7 = repos de base ; 8 = repos enrichi (regard varié, bras droit, feuilles, pieds). SVG caché. */
+  if (AB === '7' || AB === '8') {
+    var ENR = (AB === '8');
     var st7 = document.createElement('style');
     st7.textContent = '#homeMascot{display:none!important}#yamPhoto{position:relative;width:180px;height:180px;display:block}#yamPhoto img{position:absolute;display:block;pointer-events:none}#yamPhoto img.off{visibility:hidden}';
     document.head.appendChild(st7);
@@ -83,29 +85,50 @@
           return im;
         }
         w.appendChild(mk('base', null));
-        var F = {}, A = {};
-        M.faces.forEach(function (n) { F[n] = mk('face-' + n, M.face); if (n !== 'neutral') F[n].className = 'off'; w.appendChild(F[n]); });
-        M.arms.forEach(function (n) { A[n] = mk('arm-' + n, M.arm); if (n !== 'neutral') A[n].className = 'off'; w.appendChild(A[n]); });
+        var Z = {};
+        Object.keys(M.zones).forEach(function (z) {
+          var o = { set: {}, cur: 'neutral', busy: false };
+          M.zones[z].poses.forEach(function (n) {
+            var im = mk(z + '-' + n, M.zones[z].rect); if (n !== 'neutral') im.className = 'off';
+            o.set[n] = im; w.appendChild(im);
+          });
+          Z[z] = o;
+        });
         h.parentNode.insertBefore(w, h);
-        function show(set, cur, n) { set[cur.v].className = 'off'; set[n].className = ''; cur.v = n; }
-        var fc = { v: 'neutral' }, ac = { v: 'neutral' }, busy = false;
-        function seq(set, cur, steps, done) {   /* steps : [[pose, ms], ...] puis retour au neutre */
-          var i = 0;
-          (function next() {
-            if (i >= steps.length) { show(set, cur, 'neutral'); if (done) done(); return; }
-            show(set, cur, steps[i][0]); var ms = steps[i][1]; i++; setTimeout(next, ms);
-          })();
-        }
         function rnd(a, b) { return a + Math.random() * (b - a); }
-        function face(steps) { if (busy) return; busy = true; seq(F, fc, steps, function () { busy = false; }); }
-        (function blink() { face([['blink', 160]]); setTimeout(blink, rnd(2500, 6000)); })();
-        (function gaze() { var o = Math.random(); face(o < .4 ? [['gazeR', 1500]] : o < .8 ? [['gazeL', 1500]] : [['gazeD', 1200]]); setTimeout(gaze, rnd(5000, 9000)); })();
-        (function brow() { face([['brow', 1100]]); setTimeout(brow, rnd(12000, 20000)); })();
-        (function smile() { face(Math.random() < .5 ? [['smile1', 600]] : [['smile1', 300], ['smile2', 1400], ['smile1', 300]]); setTimeout(smile, rnd(12000, 22000)); })();
-        (function wave() {
-          seq(A, ac, [['wave90', 450], ['wave76', 380], ['wave100', 380], ['wave76', 380], ['wave100', 380], ['wave52', 450], ['wave0', 600], ['waveM14', 500]]);
-          setTimeout(wave, rnd(25000, 32000));
-        })();
+        function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+        function show(o, n) { o.set[o.cur].className = 'off'; o.set[n].className = ''; o.cur = n; }
+        function seq(z, steps, done) {   /* steps : [[pose, ms], ...] puis retour au neutre */
+          var o = Z[z]; if (!o || o.busy || document.hidden) return false; o.busy = true; var i = 0;
+          (function next() {
+            if (i >= steps.length) { show(o, 'neutral'); o.busy = false; if (done) done(); return; }
+            show(o, steps[i][0]); var ms = steps[i][1]; i++; setTimeout(next, ms);
+          })();
+          return true;
+        }
+        function every(a, b, fn) { (function go() { fn(); setTimeout(go, rnd(a, b)); })(); }
+        every(2500, 6000, function () { seq('face', [['blink', 160]]); });
+        if (!ENR) {
+          every(5000, 9000, function () { var o = Math.random(); seq('face', o < .4 ? [['gazeR', 1500]] : o < .8 ? [['gazeL', 1500]] : [['gazeD', 1200]]); });
+        } else {
+          var G = ['gazeR', 'gazeL', 'gazeD', 'gazeU', 'gazeUR', 'gazeUL', 'gazeDR', 'gazeDL', 'gazeR2', 'gazeL2'];
+          every(2500, 5500, function () {   /* le regard se promène : 1 à 4 positions à la suite */
+            var n = 1 + Math.floor(Math.random() * 4), st = [];
+            for (var q = 0; q < n; q++) st.push([pick(G), rnd(500, 1500)]);
+            seq('face', st);
+          });
+        }
+        every(12000, 20000, function () { seq('face', [['brow', 1100]]); });
+        every(12000, 22000, function () { seq('face', Math.random() < .5 ? [['smile1', 600]] : [['smile1', 300], ['smile2', 1400], ['smile1', 300]]); });
+        every(25000, 32000, function () { seq('armL', [['w90', 450], ['w76', 380], ['w100', 380], ['w76', 380], ['w100', 380], ['w52', 450], ['w0', 600], ['wM14', 500]]); });
+        if (ENR) {
+          every(7000, 13000, function () { seq('armR', [['r2', 700], ['r1', 700], ['r2', 600]]); });
+          every(4000, 8000, function () { seq('leaf', [['l1', 500], ['l2', 700], ['l1', 500]]); });
+          every(9000, 16000, function () {
+            var L = Math.random() < .5, a = L ? 'tapL1' : 'tapR1', b = L ? 'tapL2' : 'tapR2';
+            seq('legs', [[a, 160], [b, 130], [a, 160], [b, 130], [a, 160]]);
+          });
+        }
       });
     });
   }
