@@ -67,21 +67,46 @@
     }, 300);
   }
 
-  /* Mode 7 : prototype "photos" — image fixe de la patate + clignement en petite image, SVG caché. */
+  /* Mode 7 : prototype "photos" — base fixe + petites images (visage, bras) échangées par moments, SVG caché. */
   if (AB === '7') {
     var st7 = document.createElement('style');
-    st7.textContent = '#homeMascot{display:none!important}#yamPhoto{position:relative;width:180px;height:180px;display:block}#yamPhoto img{position:absolute;display:block;pointer-events:none}';
+    st7.textContent = '#homeMascot{display:none!important}#yamPhoto{position:relative;width:180px;height:180px;display:block}#yamPhoto img{position:absolute;display:block;pointer-events:none}#yamPhoto img.off{visibility:hidden}';
     document.head.appendChild(st7);
     document.addEventListener('DOMContentLoaded', function () {
       var h = document.getElementById('homeMascot'); if (!h) return;
-      var w = document.createElement('div'); w.id = 'yamPhoto';
-      var a = new Image(); a.src = 'assets/mascotte/img/repos.webp'; a.style.cssText = 'left:0;top:0;width:180px;height:180px';
-      var b = new Image(); b.src = 'assets/mascotte/img/clin.webp';
-      b.style.cssText = 'left:' + (191 / 3) + 'px;top:' + (188 / 3) + 'px;width:' + (201 / 3) + 'px;height:' + (148 / 3) + 'px;opacity:0';
-      w.appendChild(a); w.appendChild(b);
-      h.parentNode.insertBefore(w, h);
-      function blink() { b.style.opacity = 1; setTimeout(function () { b.style.opacity = 0; }, 160); setTimeout(blink, 2500 + Math.random() * 3500); }
-      setTimeout(blink, 2000);
+      fetch('assets/mascotte/img/manifest.json').then(function (r) { return r.json(); }).then(function (M) {
+        var k = 180 / M.size, w = document.createElement('div'); w.id = 'yamPhoto';
+        function mk(src, box) {
+          var im = new Image(); im.src = 'assets/mascotte/img/' + src + '.webp';
+          var l = box ? box[0] : 0, t = box ? box[1] : 0, r = box ? box[2] : M.size, b = box ? box[3] : M.size;
+          im.style.cssText = 'left:' + l * k + 'px;top:' + t * k + 'px;width:' + (r - l) * k + 'px;height:' + (b - t) * k + 'px';
+          return im;
+        }
+        w.appendChild(mk('base', null));
+        var F = {}, A = {};
+        M.faces.forEach(function (n) { F[n] = mk('face-' + n, M.face); if (n !== 'neutral') F[n].className = 'off'; w.appendChild(F[n]); });
+        M.arms.forEach(function (n) { A[n] = mk('arm-' + n, M.arm); if (n !== 'neutral') A[n].className = 'off'; w.appendChild(A[n]); });
+        h.parentNode.insertBefore(w, h);
+        function show(set, cur, n) { set[cur.v].className = 'off'; set[n].className = ''; cur.v = n; }
+        var fc = { v: 'neutral' }, ac = { v: 'neutral' }, busy = false;
+        function seq(set, cur, steps, done) {   /* steps : [[pose, ms], ...] puis retour au neutre */
+          var i = 0;
+          (function next() {
+            if (i >= steps.length) { show(set, cur, 'neutral'); if (done) done(); return; }
+            show(set, cur, steps[i][0]); var ms = steps[i][1]; i++; setTimeout(next, ms);
+          })();
+        }
+        function rnd(a, b) { return a + Math.random() * (b - a); }
+        function face(steps) { if (busy) return; busy = true; seq(F, fc, steps, function () { busy = false; }); }
+        (function blink() { face([['blink', 160]]); setTimeout(blink, rnd(2500, 6000)); })();
+        (function gaze() { var o = Math.random(); face(o < .4 ? [['gazeR', 1500]] : o < .8 ? [['gazeL', 1500]] : [['gazeD', 1200]]); setTimeout(gaze, rnd(5000, 9000)); })();
+        (function brow() { face([['brow', 1100]]); setTimeout(brow, rnd(12000, 20000)); })();
+        (function smile() { face(Math.random() < .5 ? [['smile1', 600]] : [['smile1', 300], ['smile2', 1400], ['smile1', 300]]); setTimeout(smile, rnd(12000, 22000)); })();
+        (function wave() {
+          seq(A, ac, [['wave90', 450], ['wave76', 380], ['wave100', 380], ['wave76', 380], ['wave100', 380], ['wave52', 450], ['wave0', 600], ['waveM14', 500]]);
+          setTimeout(wave, rnd(25000, 32000));
+        })();
+      });
     });
   }
   if (!on) return;
