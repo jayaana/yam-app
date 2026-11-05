@@ -236,6 +236,8 @@ html[data-yam-maison][data-theme="dark"]{background:linear-gradient(#191215,rgba
 .mz-title{font:600 20px/1.2 'Fredoka',system-ui,sans-serif;color:var(--pa-ic)}
 .mz-stage{width:150px;height:150px;margin:0 auto;flex-shrink:0;--u:calc(150px/1024)}
 .mz-stage .m{width:100%;height:100%}
+/* Maison : la patate est FIGÉE (simple choix de vêtements) = aucune animation, aucun calcul */
+.mz-stage .m *{animation-play-state:paused!important}
 .mz-body{padding:0 16px 24px}
 .mz-label{font-family:var(--gu-font-display);font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--gu-title);margin:14px 4px 8px}
 .mz-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}

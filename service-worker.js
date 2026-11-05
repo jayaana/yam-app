@@ -2,7 +2,7 @@
 // Cache les assets statiques pour un chargement rapide
 // Ne met PAS en cache les requêtes Supabase (données toujours fraîches)
 
-var CACHE_NAME = 'yam-v425';
+var CACHE_NAME = 'yam-v426';
 
 // Dessin de la mascotte (880 Ko) : cache A PART, conservé d'une version à l'autre (pas de retéléchargement à chaque mise à jour).
 // Si le fichier mascotte.html change un jour : passer ce nom à yam-mascotte-3.
