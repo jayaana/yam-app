@@ -134,7 +134,7 @@
   function pageOpen() { var p = document.getElementById('mzPage'); return !!(p && p.classList.contains('active')); }
   /* L'Accueil est-il réellement visible ? (sinon aucune animation, aucun travail) */
   function homeVisible() {
-    return document.documentElement.getAttribute('data-yam-tab') === 'home' && !pageOpen() && !document.hidden;
+    return document.documentElement.getAttribute('data-yam-tab') === 'home' && !document.documentElement.hasAttribute('data-yam-settings') && !pageOpen() && !document.hidden;
   }
 
   function load() {
