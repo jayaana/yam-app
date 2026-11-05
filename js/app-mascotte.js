@@ -212,7 +212,7 @@
   /* Joie au clic sur le cœur : saut + chewing-gum + yeux souriants (pose repos seulement) */
   function joie() {
     var h = document.getElementById('homeMascot'), svg = h && h.firstElementChild;
-    if (!svg || !svg.classList.contains('repos')) return;
+    if (!svg || !(svg.classList.contains('repos') || svg.classList.contains('content'))) return;   /* saut en repos ou content, pas en triste/musique */
     svg.classList.remove('joie');
     void svg.getBoundingClientRect();
     svg.classList.add('joie', 'joieY');

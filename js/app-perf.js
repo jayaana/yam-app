@@ -237,7 +237,7 @@
           function tick() {
             if (document.hidden) return;
             var s = hsvg && hsvg.isConnected ? hsvg : (hsvg = h.firstElementChild); if (!s || !s.classList) return;
-            var c = s.classList, st = c.contains('content') ? 'content' : c.contains('ecoute') ? (c.contains('casque-noir') ? 'ecouteN' : 'ecoute') : c.contains('triste') ? 'triste' : (c.contains('repos') && c.contains('joie')) ? 'joie' : (c.contains('joieY') ? 'joieY' : '');
+            var c = s.classList, st = (c.contains('joie') && (c.contains('repos') || c.contains('content'))) ? 'joie' : c.contains('content') ? 'content' : c.contains('ecoute') ? (c.contains('casque-noir') ? 'ecouteN' : 'ecoute') : c.contains('triste') ? 'triste' : (c.contains('repos') && c.contains('joie')) ? 'joie' : (c.contains('joieY') ? 'joieY' : '');
             if (st === 'joie' && hmode === 'joie' && s._joieT !== jt && hready('joie')) {   /* nouveau clic sur le cœur : la joie repart du début */
               jt = s._joieT; hstop(); w.classList.add('hum'); player('joie', false, null, true); return;
             }
