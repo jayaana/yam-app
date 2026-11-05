@@ -768,24 +768,3 @@ document.addEventListener('DOMContentLoaded', function(){
   });
 
 });
-
-/* DIAG-TRAIT (temporaire) : boutons 1 2 3 4 0, chaque bouton recharge l'appli */
-(function(){
-  var NL = String.fromCharCode(10);
-  function go(){
-    var cur = ''; try { cur = localStorage.getItem('dtVar') || '0'; } catch (e) {}
-    var box = document.createElement('div');
-    box.style.cssText = 'position:fixed;left:6px;right:6px;bottom:90px;z-index:2147483647;background:#fff;color:#000;font:11px/1.25 monospace;padding:6px;border:2px solid #c00;border-radius:8px;max-height:46vh;overflow:auto';
-    var bar = document.createElement('div'); bar.style.cssText = 'display:flex;gap:6px;margin-bottom:6px';
-    var out = document.createElement('div'); out.style.whiteSpace = 'pre-wrap';
-    out.textContent = 'DIAG v413 variante actuelle : ' + cur + NL + '1 = bande + 3 caches' + NL + '2 = notif blanche cachee' + NL + '3 = bande seule' + NL + '4 = 3 caches sans bande' + NL + '0 = rien' + NL + 'Toucher = recharge, puis FERMER/ROUVRIR l appli' + NL + 'strip=' + (document.getElementById('dtStrip') ? 'oui' : 'non') + ' html.class=' + document.documentElement.className;
-    ['1','2','3','4','0'].forEach(function(n){
-      var b = document.createElement('button'); b.textContent = n;
-      b.style.cssText = 'flex:1;font:bold 16px sans-serif;padding:8px 0;border:1px solid #c00;border-radius:6px;background:' + (n === cur ? '#fcc' : '#fee');
-      b.addEventListener('click', function(){ try { if (n === '0') localStorage.removeItem('dtVar'); else localStorage.setItem('dtVar', n); } catch (e) {} location.reload(); });
-      bar.appendChild(b);
-    });
-    box.appendChild(bar); box.appendChild(out); document.body.appendChild(box);
-  }
-  setTimeout(go, 2500);
-})();
