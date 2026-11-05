@@ -188,7 +188,7 @@
             function stop() { cancelAnimationFrame(raf); P.dead = true; if (cur) { cur.className = 'hf'; cur = null; } }
             (function f(now) {
               if (P.dead) return;
-              var i = Math.floor((now - t0) / step);
+              var i = Math.max(0, Math.floor((now - t0) / step));
               if (!boucle && i >= a.length) { if (!hold && cur) { cur.className = 'hf'; cur = null; } if (onend) onend(); return; }
               i %= a.length;
               if (i !== last) { if (cur) cur.className = 'hf'; cur = a[i]; cur.className = 'hf on'; last = i; }
@@ -200,15 +200,20 @@
           function htriste() {
             var g = hgen; w.classList.add('hum');
             HF.triste[0].className = 'hf on'; plist.push({ stop: function () { HF.triste[0].className = 'hf'; } });
-            if (hready('tristeLarme')) player('tristeLarme', true);
-            if (hready('tristeYeux')) (function yeux() {
+            function quand(nm, fn) {   /* lance fn dès que les images de nm sont chargées */
+              if (hready(nm)) return fn();
+              var iv = setInterval(function () { if (g !== hgen) clearInterval(iv); else if (hready(nm)) { clearInterval(iv); fn(); } }, 300);
+              plist.push({ stop: function () { clearInterval(iv); } });
+            }
+            quand('tristeLarme', function () { if (g === hgen) player('tristeLarme', true); });
+            quand('tristeYeux', function () { (function yeux() {
               var t = setTimeout(function () {
                 if (g !== hgen) return; var im = HF.tristeYeux[0]; im.className = 'hf on';
                 setTimeout(function () { im.className = 'hf'; if (g === hgen) yeux(); }, 320);
               }, 3900);
               plist.push({ stop: function () { clearTimeout(t); HF.tristeYeux[0].className = 'hf'; } });
-            })();
-            if (hready('tristeCoucou')) (function coucou() {
+            })(); });
+            quand('tristeCoucou', function () { (function coucou() {
               /* pendant le coucou, on retire de l'image fixe le rectangle du bras (sinon sa main fixe se voit sous la main qui salue = main dédoublée) */
               function trou(on) {
                 var im = HF.triste[0], T = M.scenes.triste.rect, C = M.scenes.tristeCoucou.rect;
@@ -218,8 +223,16 @@
               }
               var t = setTimeout(function () { if (g === hgen) { trou(true); player('tristeCoucou', false, function () { trou(false); coucou(); }); } }, 9000 + Math.random() * 6000);
               plist.push({ stop: function () { clearTimeout(t); trou(false); } });
-            })();
+            })(); });
           }
+          var eyeT = 0;
+          function yeuxFermes(ms) {   /* après le saut : yeux fermés un moment (pose smile2) avant de rouvrir ceux du repos */
+            var o = Z.face; if (!o) return; clearTimeout(eyeT);
+            show(o, 'smile2'); o.busy = true;
+            eyeT = setTimeout(function () { show(o, 'neutral'); o.busy = false; }, ms);
+          }
+          function yeuxOuverts() { var o = Z.face; if (!o || !eyeT) return; clearTimeout(eyeT); eyeT = 0; show(o, 'neutral'); o.busy = false; }
+          var NEED = { triste: ['triste', 'tristeLarme', 'tristeYeux', 'tristeCoucou'] };
           var jt = null;
           function tick() {
             if (document.hidden) return;
@@ -230,11 +243,15 @@
             }
             if (st === 'joie') jt = s._joieT;
             if (st === hmode) return;
+            if (st && st !== 'joieY') {   /* charge tout de suite les images de cette humeur ; on ne change d'état que quand elles sont prêtes (sinon on réessaie au prochain passage) */
+              (NEED[st] || [st]).forEach(hload);
+              if (!hready(st === 'triste' ? 'triste' : st)) return;
+            }
             var prev = hmode; hmode = st; hstop();
-            if (st === 'joieY' && prev === 'joie') seq('face', [['smile2', 700]]);
+            if (st === 'joie') yeuxOuverts();
+            if (prev === 'joie' && (st === 'joieY' || !st)) yeuxFermes(1000);
             if (!st || st === 'joieY') return;
-            if (st === 'triste') { if (hready('triste')) htriste(); return; }
-            if (!hready(st)) return;
+            if (st === 'triste') { htriste(); return; }
             w.classList.add('hum');
             player(st, st !== 'joie', null, true);
           }
