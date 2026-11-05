@@ -35,6 +35,12 @@
   function pull(force) {
     var cid = coupleId();
     if (!cid || typeof sb2Fetch !== 'function') return;
+    /* copie locale rangée par couple : si un autre couple se connecte sur le même appareil, on oublie la tenue/casque/jauge de l'ancien */
+    try {
+      var lc = localStorage.getItem('yam_mascotte_couple');
+      if (lc && lc !== cid) { localStorage.removeItem(KEY_TENUE); localStorage.removeItem(KEY_CASQUE); localStorage.removeItem(KEY_JAUGE); shared.tenue = null; shared.casque = null; shared.jauge = null; shared.jmaj = 0; lastFetch = 0; force = true; }
+      if (lc !== cid) localStorage.setItem('yam_mascotte_couple', cid);
+    } catch (e) {}
     if (!force && Date.now() - lastFetch < 30000) return;
     lastFetch = Date.now();
     var q = 'couple_id=eq.' + encodeURIComponent(cid) + '&select=tenue,casque';
