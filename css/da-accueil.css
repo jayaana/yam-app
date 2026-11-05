@@ -74,6 +74,8 @@ html[data-theme="dark"] .gh-halo { box-shadow: 0 0 34px 2px rgba(255,255,255,.22
 .gh-side--r1 { right: 22px; top: 28px; } .gh-side--r2 { right: 22px; top: 114px; }
 .gh-side .gu-badge-new { position: absolute; top: -8px; right: -14px; font-family: var(--gu-font-display); font-size: 12px; background: #ff3b4e; color: #fff; border: 2px solid #fff; border-radius: 10px; padding: 1px 6px; font-weight: 400; }
 #yamHomeTab .gh-side.home-soon { opacity: 1; filter: none; }
+#yamHomeTab .gh-side.home-soon img { opacity: .6; filter: grayscale(.75); }
+.gh-side .gu-badge-wip { position: absolute; top: -8px; right: -10px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 15px; line-height: 1; background: var(--gu-action); border: 2px solid var(--gu-sticker-border); border-radius: 50%; pointer-events: none; }
 .gh-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Spam de cœurs */
