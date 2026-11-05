@@ -209,14 +209,26 @@
               plist.push({ stop: function () { clearTimeout(t); HF.tristeYeux[0].className = 'hf'; } });
             })();
             if (hready('tristeCoucou')) (function coucou() {
-              var t = setTimeout(function () { if (g === hgen) player('tristeCoucou', false, coucou); }, 9000 + Math.random() * 6000);
-              plist.push({ stop: function () { clearTimeout(t); } });
+              /* pendant le coucou, on retire de l'image fixe le rectangle du bras (sinon sa main fixe se voit sous la main qui salue = main dédoublée) */
+              function trou(on) {
+                var im = HF.triste[0], T = M.scenes.triste.rect, C = M.scenes.tristeCoucou.rect;
+                if (!on) { im.style.clipPath = ''; return; }
+                var W = (T[2] - T[0]) * k, H = (T[3] - T[1]) * k, x0 = (C[0] - T[0]) * k + 1.5, y0 = (C[1] - T[1]) * k + 1.5, x1 = (C[2] - T[0]) * k - 1.5, y1 = (C[3] - T[1]) * k - 1.5;
+                im.style.clipPath = "path(evenodd,'M0 0H" + W + "V" + H + "H0Z M" + x0 + " " + y0 + "H" + x1 + "V" + y1 + "H" + x0 + "Z')";
+              }
+              var t = setTimeout(function () { if (g === hgen) { trou(true); player('tristeCoucou', false, function () { trou(false); coucou(); }); } }, 9000 + Math.random() * 6000);
+              plist.push({ stop: function () { clearTimeout(t); trou(false); } });
             })();
           }
-          setInterval(function () {
+          var jt = null;
+          function tick() {
             if (document.hidden) return;
             var s = hsvg && hsvg.isConnected ? hsvg : (hsvg = h.firstElementChild); if (!s || !s.classList) return;
             var c = s.classList, st = c.contains('content') ? 'content' : c.contains('ecoute') ? (c.contains('casque-noir') ? 'ecouteN' : 'ecoute') : c.contains('triste') ? 'triste' : (c.contains('repos') && c.contains('joie')) ? 'joie' : (c.contains('joieY') ? 'joieY' : '');
+            if (st === 'joie' && hmode === 'joie' && s._joieT !== jt && hready('joie')) {   /* nouveau clic sur le cœur : la joie repart du début */
+              jt = s._joieT; hstop(); w.classList.add('hum'); player('joie', false, null, true); return;
+            }
+            if (st === 'joie') jt = s._joieT;
             if (st === hmode) return;
             var prev = hmode; hmode = st; hstop();
             if (st === 'joieY' && prev === 'joie') seq('face', [['smile2', 700]]);
@@ -225,7 +237,9 @@
             if (!hready(st)) return;
             w.classList.add('hum');
             player(st, st !== 'joie', null, true);
-          }, 200);
+          }
+          setInterval(tick, 200);
+          document.addEventListener('click', function (e) { if (e.target && e.target.closest && e.target.closest('#homeSpamHeart')) setTimeout(tick, 40); }, true);
         }
       });
     });
