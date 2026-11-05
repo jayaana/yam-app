@@ -64,7 +64,7 @@ html body #settingsView .stg-btn-danger .ys { stroke: currentColor; --st-ac: cur
 /* Zone sûre : MÊME principe que les onglets (da-accueil.css / da-jeux.css) : dégradé 160 px + couleur de fond sur <html>,
    marque data-yam-settings posée par openAccountModal. Les Paramètres gardent leur fond OPAQUE (sinon l'Accueil apparaît derrière). */
 html[data-yam-settings][data-yam-tab][data-theme], html[data-yam-settings][data-theme] {
-  background: linear-gradient(rgb(var(--pa-top)), rgba(var(--pa-top),0)) 0 0 / 100% 160px no-repeat, linear-gradient(var(--pa-page), var(--pa-page)) !important;
+  background: linear-gradient(rgb(var(--pa-top)) calc(var(--yam-safe-px, 0px) + 60px), rgba(var(--pa-top),0)) 0 0 / 100% 160px no-repeat, linear-gradient(var(--pa-page), var(--pa-page)) !important;
   background-repeat: no-repeat !important; background-color: rgb(var(--pa-top)) !important;   /* comme les onglets : la COULEUR de fond est celle de la zone sûre */
 }
 html[data-yam-settings] body, html[data-yam-settings] body.light { background: transparent !important; background-image: none !important; }
