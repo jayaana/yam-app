@@ -30,6 +30,29 @@
     var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
     if (AB === '3' || AB === '4') window.addEventListener('load', function () { window._animPStopped = true; });
   }
+
+  /* Menu de test dans l'appli installée : 5 touches rapides dans le coin haut-gauche. */
+  document.addEventListener('DOMContentLoaded', function () {
+    var taps = [];
+    document.addEventListener('touchstart', function (e) {
+      var t = e.touches[0]; if (!t || t.clientX > 60 || t.clientY > 60) return;
+      var now = Date.now(); taps = taps.filter(function (x) { return now - x < 2500; }); taps.push(now);
+      if (taps.length < 5) return; taps = [];
+      if (document.getElementById('yamAbMenu')) return;
+      var m = document.createElement('div'); m.id = 'yamAbMenu';
+      m.style.cssText = 'position:fixed;left:10px;top:70px;z-index:2147483600;background:#222;color:#fff;padding:10px;border-radius:12px;font:600 14px system-ui;display:flex;flex-direction:column;gap:8px';
+      var L = [['0','Normal'],['1','Patate figée'],['2','Patate retirée'],['3','Décor coupé'],['4','Tout figé']];
+      L.forEach(function (o) {
+        var b = document.createElement('button'); b.textContent = (AB === o[0] ? '✓ ' : '') + o[1];
+        b.style.cssText = 'padding:10px 14px;border-radius:8px;border:0;font:600 14px system-ui';
+        b.addEventListener('click', function () { try { localStorage.setItem('yam_ab', o[0]); localStorage.setItem(KEY, '1'); } catch (x) {} location.reload(); });
+        m.appendChild(b);
+      });
+      var f = document.createElement('button'); f.textContent = 'Fermer'; f.style.cssText = 'padding:10px;border:0;border-radius:8px';
+      f.addEventListener('click', function () { m.remove(); }); m.appendChild(f);
+      document.body.appendChild(m);
+    }, { passive: true });
+  });
   if (!on) return;
 
   var box = document.createElement('div');
