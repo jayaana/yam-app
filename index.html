@@ -98,6 +98,7 @@
 <link rel="stylesheet" href="css/theme-tokens.css">
 <link rel="stylesheet" href="css/game-ui.css">
 <link rel="stylesheet" href="css/da-accueil.css">
+<link rel="stylesheet" href="css/mascotte.css">
 <link rel="stylesheet" href="css/da-jeux.css">
 <link rel="stylesheet" href="css/da-musique.css">
 <link rel="stylesheet" href="css/da-messages.css">
@@ -1700,11 +1701,11 @@ body.light .streak-tick::before { background: rgba(160,120,90,0.25); }
     <div class="gh-stage">
       <div class="gh-halo">
         <svg class="gh-arc" viewBox="0 0 216 216" aria-hidden="true"><defs><linearGradient id="ghArcG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3bd"/><stop offset="1" stop-color="#ffc83d"/></linearGradient><radialGradient id="ghDotG"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="#fff0a8"/><stop offset=".7" stop-color="#ffd24a" stop-opacity=".55"/><stop offset="1" stop-color="#ffc83d" stop-opacity="0"/></radialGradient></defs><circle id="ghArcGlow" cx="108" cy="108" r="106.5" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="10" stroke-linecap="round" transform="rotate(90 108 108)" style="filter:blur(4px)" stroke-dasharray="0 669"/><circle id="ghArc" cx="108" cy="108" r="106.5" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round" transform="rotate(90 108 108)" stroke-dasharray="0 669"/><circle id="ghArcDot" r="10" fill="url(#ghDotG)" style="display:none"/></svg>
-        <img id="homeMascotImg" class="gh-mascot" src="https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_start.gif" alt="YAM, la patate mascotte" />
+        <div id="homeMascot" class="gh-mascot" role="img" aria-label="YAM, la patate mascotte"></div>
       </div>
 
       <button class="gh-side gh-side--l1 home-soon" type="button" aria-label="Boutique (bientôt disponible)"><img alt="" src="assets/images/game-ui/boutique.png"><span class="gu-badge-new">NEW</span></button>
-      <button class="gh-side gh-side--l2 home-soon" type="button" aria-label="Maison de la patate (bientôt disponible)"><img alt="" src="assets/images/game-ui/maison.png"></button>
+      <button id="homeMaisonBtn" class="gh-side gh-side--l2" type="button" aria-label="Maison de la patate"><img alt="" src="assets/images/game-ui/maison.png"></button>
       <button class="gh-side gh-side--r1 home-soon" type="button" aria-label="Surprises : idées cadeaux, dates et capsules (bientôt disponible)"><img alt="" src="assets/images/game-ui/surprises.png"></button>
       <button class="gh-side gh-side--r2 home-feat-btn" type="button" aria-label="Events"><img alt="" src="assets/images/game-ui/events.png"><span class="gh-sr">Events</span></button>
 
@@ -5312,6 +5313,7 @@ svg.yi{display:block;width:100%;height:100%;fill:none;stroke:var(--yi-ol);stroke
 <script src="js/app-diary.js"></script>
 <script src="js/app-calin.js"></script>
 <script src="js/app-decor.js"></script>
+<script src="js/app-mascotte.js"></script>
 <script src="js/app-profile-menu.js"></script>
 <script src="js/app-inline.js"></script>
 

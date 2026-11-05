@@ -258,12 +258,7 @@
       }
     }
     // Nouvelle mascotte home v2
-    var homeMascotImg = document.getElementById('homeMascotImg');
-    if(homeMascotImg && tab === 'home'){
-      homeMascotImg.src = musicPlaying
-        ? 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_dance.gif'
-        : 'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_start.gif';
-    }
+    if(tab === 'home' && window.mascotteSync) window.mascotteSync();
     // Sync humeurs home au retour sur l'accueil
     if(tab === 'home'){
       if(window._homeSyncMood) setTimeout(window._homeSyncMood, 100);

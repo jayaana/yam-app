@@ -77,13 +77,13 @@ html[data-theme="dark"] .gh-halo { box-shadow: 0 0 34px 2px rgba(255,255,255,.22
 .gh-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Spam de cœurs */
-.home-spam-block { position: absolute; left: 50%; top: 152px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; }
-#homeSpamHeart { position: relative; width: 70px; height: 70px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ff9db2, #e8457a); border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; -webkit-tap-highlight-color: transparent; }
-#homeSpamHeart svg { width: 38px; height: 38px; overflow: visible; animation: ghBeat 1.5s ease-in-out infinite; }
+.home-spam-block { position: absolute; left: 50%; top: 182px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; }
+#homeSpamHeart { position: relative; width: 54px; height: 54px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ff9db2, #e8457a); border: var(--gu-sticker-width) solid var(--gu-sticker-border); box-shadow: var(--gu-sticker-shadow); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; -webkit-tap-highlight-color: transparent; }
+#homeSpamHeart svg { width: 30px; height: 30px; overflow: visible; animation: ghBeat 1.5s ease-in-out infinite; }
 @keyframes ghBeat { 0%,100% { transform: scale(1); } 14% { transform: scale(1.13); } 28% { transform: scale(1); } 42% { transform: scale(1.13); } 70% { transform: scale(1); } }
 #homeSpamHeart:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 .home-spam-label, .home-spam-bar-wrap { display: none; }
-.home-spam-count { font-family: var(--gu-font-display); font-size: 15px; color: #fff; -webkit-text-stroke: 0; text-shadow: -1px 0 0 #8a1f55, 1px 0 0 #8a1f55, 0 -1px 0 #8a1f55, 0 1px 0 #8a1f55, -1px -1px 0 #8a1f55, 1px 1px 0 #8a1f55, -1px 1px 0 #8a1f55, 1px -1px 0 #8a1f55; letter-spacing: .3px; margin-top: 8px; }
+.home-spam-count { font-family: var(--gu-font-display); font-size: 15px; color: #fff; -webkit-text-stroke: 0; text-shadow: -1px 0 0 #8a1f55, 1px 0 0 #8a1f55, 0 -1px 0 #8a1f55, 0 1px 0 #8a1f55, -1px -1px 0 #8a1f55, 1px 1px 0 #8a1f55, -1px 1px 0 #8a1f55, 1px -1px 0 #8a1f55; letter-spacing: .3px; margin-top: 2px; line-height: 1; }
 
 /* ── Feuille ────────────────────────────────────────────────────── */
 .gh-sheet { position: relative; z-index: 2; flex: 1 1 auto; margin-top: -1px; padding: 12px 0 calc(64px + max(env(safe-area-inset-bottom, 0px), 32px) + 16px); background: var(--gu-sheet); border-radius: var(--gu-r-sheet) var(--gu-r-sheet) 0 0; box-shadow: var(--gu-sheet-shadow); }

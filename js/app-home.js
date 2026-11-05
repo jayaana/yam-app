@@ -622,12 +622,7 @@
     }
   }
 
-  function homeSyncMascot(){
-    var img=document.getElementById('homeMascotImg'); if(!img) return;
-    var navMus=document.getElementById('navMusique'), isPlaying=(navMus&&navMus.classList.contains('music-playing'))||(window._yamCurrentAudio&&!window._yamCurrentAudio.paused);
-    var newSrc=isPlaying?'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_dance.gif':'https://raw.githubusercontent.com/jayaana/yam-app/main/assets/images/yam_start.gif';
-    if(img.src!==newSrc) img.src=newSrc;
-  }
+  function homeSyncMascot(){ if(window.mascotteSync) window.mascotteSync(); }
 
   document.addEventListener('DOMContentLoaded',function(){
     setTimeout(homeSyncMood,500); setTimeout(homeSyncSpam,800);
