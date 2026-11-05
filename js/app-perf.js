@@ -13,6 +13,23 @@
     if (m) localStorage.setItem(KEY, m[1]);
     on = localStorage.getItem(KEY) === '1';
   } catch (e) { on = !!/[?&]perf=1/.test(location.search); }
+
+  /* A/B de surchauffe : ?ab=1 patate figée, ?ab=2 patate retirée, ?ab=3 décor (nuages, particules, décor Jeux) coupé,
+     ?ab=4 tout figé (patate + décor), ?ab=0 normal. Mémorisé ; rechargement automatique au changement. */
+  var AB = '0';
+  try {
+    var q = /[?&]ab=([0-4])/.exec(location.search);
+    if (q) localStorage.setItem('yam_ab', q[1]);
+    AB = localStorage.getItem('yam_ab') || '0';
+  } catch (e) {}
+  if (AB !== '0') {
+    var css = '';
+    if (AB === '1' || AB === '4') css += '#homeMascot,#homeMascot *{animation:none!important;transition:none!important}';
+    if (AB === '2') css += '#homeMascot{display:none!important}';
+    if (AB === '3' || AB === '4') css += '.gh-cloud,#particleCanvas,#jxDecor,#jxDecor *{animation:none!important;display:none!important}';
+    var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+    if (AB === '3' || AB === '4') window.addEventListener('load', function () { window._animPStopped = true; });
+  }
   if (!on) return;
 
   var box = document.createElement('div');
