@@ -74,3 +74,4 @@ html[data-theme="dark"] .mzl-sw{border-color:#372b32}
 /* Nue : on retire chaussures et moufles */
 .mzl-nue #f23P,.mzl-nue #f24P,.mzl-nue #f25P,.mzl-nue #f26P,.mzl-nue #f27P,.mzl-nue #f28P{display:none}
 #mzlAnim{display:inline-flex;align-items:center;gap:6px}
+.mzl-nodet .dtP{opacity:0}
