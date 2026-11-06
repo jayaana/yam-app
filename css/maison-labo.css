@@ -69,3 +69,8 @@ html[data-theme="dark"] .mzl-sw{border-color:#372b32}
 /* larme : petites ondulations (échelle/inclinaison, pas de morphing) */
 @keyframes larP{0%,100%{transform:scale(1,1) skewX(0)}25%{transform:scale(1.07,.94) skewX(2deg)}50%{transform:scale(.94,1.08) skewX(-2deg)}75%{transform:scale(1.05,.96) skewX(1deg)}}.larmeP{transform-box:fill-box;transform-origin:50% 15%}
 .mzl-anim .larmeP{animation:larP 2.4s infinite ease-in-out}
+@keyframes regTG{0%,14%{transform:translate(0,0)}20%,36%{transform:translate(-7px,-4px)}43%,54%{transform:translate(6px,3px)}60%,100%{transform:translate(0,0)}}@keyframes regTD{0%,14%{transform:translate(0,0)}20%,36%{transform:translate(6.86px,2.95px)}43%,54%{transform:translate(-5.56px,-2.77px)}60%,100%{transform:translate(0,0)}}
+.mzl-anim .pgTG{animation:regTG 5s infinite ease-in-out}.mzl-anim .pgTD{animation:regTD 5s infinite ease-in-out}
+/* Nue : on retire chaussures et moufles */
+.mzl-nue #f23P,.mzl-nue #f24P,.mzl-nue #f25P,.mzl-nue #f26P,.mzl-nue #f27P,.mzl-nue #f28P{display:none}
+#mzlAnim{display:inline-flex;align-items:center;gap:6px}
