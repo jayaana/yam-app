@@ -225,6 +225,7 @@
         '<div class="mz-label">Tenue</div><div class="mz-grid" id="mzTenues"></div>' +
         '<div class="mz-label">Casque</div><div class="mz-grid c2" id="mzCasques"></div>' +
       '</div>';
+    d.addEventListener('touchmove', function (e) { e.preventDefault(); }, { passive: false });   /* page Maison non défilable */
     document.body.appendChild(d);
   }
   function openMaison() {
