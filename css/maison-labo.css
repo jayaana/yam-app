@@ -58,8 +58,9 @@ html[data-theme="dark"] .mzl-sw{border-color:#372b32}
 .mzl-anim .fermP{animation:ferA 5s infinite steps(1,end)}
 .mzl-anim .pgP{animation:regP 5s infinite ease-in-out}
 /* Triste : on cache le visage normal, on montre yeux et bouche tristes */
-.mzl-patwrap:not(.mzl-tr) .trP{display:none}
-.mzl-tr .nP,.mzl-tr .ouvP{display:none}
+/* opacité (pas display:none) : toutes les animations restent synchronisées, sinon les yeux ouverts et fermés se chevauchent au clignement */
+.mzl-patwrap:not(.mzl-tr) .trP{opacity:0}
+.mzl-tr .nP,.mzl-tr .ouvP{opacity:0}
 /* triste : les yeux tristes clignent comme les normaux (bascule avec les yeux fermés) */
 .mzl-anim .ouvTP{animation:ouvA 5s infinite steps(1,end)}
 /* Ailes : les deux bras battent ensemble (-10 deg a 50 deg, 1 s) */
