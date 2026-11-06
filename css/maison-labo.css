@@ -1,6 +1,7 @@
 /* Labo Maison de la patate (caché derrière le mode perf) */
 .mzl-page{position:fixed;inset:0;z-index:9500;padding-top:var(--mzl-top,54px);display:none;flex-direction:column;background:#ffeaf0;color:#5a2a35;font-family:'Fredoka',system-ui,sans-serif;--ca:#e8c93a;--cf:#f3e3bc;--mzl-rug:#ffe7c9}
 .mzl-page.active{display:flex}
+.mzl-page{overflow:hidden;touch-action:none;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .mzl-top{display:flex;align-items:center;gap:12px;flex:none;padding:4px 18px 8px}
 .mzl-back{width:44px;height:44px;box-sizing:border-box;border-radius:50%;background:#fff;color:#5a2a35;border:2px solid #f3b6bd;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .mzl-back svg{width:20px;height:20px}

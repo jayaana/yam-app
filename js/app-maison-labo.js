@@ -35,6 +35,7 @@
         page.style.setProperty('--ca', el.getAttribute('data-ca')); page.style.setProperty('--cf', el.getAttribute('data-cf'));
       }
     });
+    page.addEventListener('touchmove', function (e) { e.preventDefault(); }, { passive: false });   /* pages du Labo non défilables */
     window.addEventListener('resize', fit);
     document.addEventListener('visibilitychange', applyAnim);   /* onglet ou appli en arrière-plan : animations coupées */
   }
