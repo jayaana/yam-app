@@ -1,0 +1,69 @@
+/* Labo Maison de la patate (caché derrière le mode perf) */
+.mzl-page{position:fixed;inset:0;z-index:9500;padding-top:var(--mzl-top,54px);display:none;flex-direction:column;background:#ffeaf0;color:#5a2a35;font-family:'Fredoka',system-ui,sans-serif;--ca:#e8c93a;--cf:#f3e3bc;--mzl-rug:#ffe7c9}
+.mzl-page.active{display:flex}
+.mzl-top{display:flex;align-items:center;gap:12px;flex:none;padding:4px 18px 8px}
+.mzl-back{width:44px;height:44px;box-sizing:border-box;border-radius:50%;background:#fff;color:#5a2a35;border:2px solid #f3b6bd;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mzl-back svg{width:20px;height:20px}
+.mzl-tabs{display:flex;gap:8px}
+.mzl-tab{padding:9px 18px;border-radius:22px;background:#fff;border:2px solid #f3b6bd;font-weight:600;font-size:15px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mzl-tab.on{background:#ffb6c8;border-color:#ff8fb0}
+.mzl-view{position:relative;flex:1;min-height:0;overflow:hidden}
+.mzl-scene{position:absolute;left:0;top:0;width:393px;height:793px;transform-origin:0 0;overflow:hidden}
+.mzl-wall{position:absolute;left:0;right:0;top:0;height:372px;background:#ffd3d0}
+.mzl-floor{position:absolute;left:0;right:0;top:372px;bottom:0;background:#f5a9a3}
+.mzl-floor::before{content:'';position:absolute;left:0;right:0;top:0;height:10px;background:rgba(0,0,0,.07)}
+.mzl-f{position:absolute;display:block}
+.mzl-scene .mzl-slot{position:absolute;left:50%;top:410px;width:170px;height:194px;margin-left:-85px}
+.mzl-patwrap,.mzl-pat{display:block;width:100%;height:100%}
+.mzl-apercu{display:none;flex-direction:column;align-items:center;height:100%;background:#fbd0d0}
+.mzl-ctl{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;padding:12px 14px}
+.mzl-btn{padding:9px 16px;border-radius:12px;background:#fff;border:2px solid #f3b6bd;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mzl-btn.on{background:#ffb6c8}
+.mzl-lbl{font-size:14px;margin-left:6px}
+.mzl-sw{width:32px;height:32px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px #c9808c;cursor:pointer}
+.mzl-sw.on{box-shadow:0 0 0 3px #ff6f8f}
+.mzl-apercu .mzl-slot{flex:1;min-height:0;width:100%;max-width:420px;padding:0 10px 16px}
+#f23P,#f26P{fill:var(--ca)}#f24P,#f25P,#f27P,#f28P{fill:var(--cf)}
+.mzl-wall,.mzl-floor,.mzl-apercu{transition:none}
+html[data-theme="dark"] .mzl-page{background:#1f171b;color:#f3dde2;--mzl-rug:#5a3a44}
+html[data-theme="dark"] .mzl-back,html[data-theme="dark"] .mzl-tab,html[data-theme="dark"] .mzl-btn{background:#372b32;color:#f3dde2;border-color:#5a3a44}
+html[data-theme="dark"] .mzl-tab.on,html[data-theme="dark"] .mzl-btn.on{background:#7a3a50;border-color:#a8506c}
+html[data-theme="dark"] .mzl-wall{background:#4a2f38}
+html[data-theme="dark"] .mzl-floor{background:#3a2229}
+html[data-theme="dark"] .mzl-apercu{background:#2c1f25}
+html[data-theme="dark"] .mzl-sw{border-color:#372b32}
+/* Bouton caché de la page Maison */
+.mz-lab{margin-left:auto;padding:8px 14px;border-radius:20px;background:var(--gu-card);border:var(--gu-sticker-width) solid var(--gu-sticker-border);font:600 14px/1 'Fredoka',system-ui,sans-serif;color:var(--gu-text);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mz-lab[hidden]{display:none}
+@property --a{syntax:'<number>';inherits:false;initial-value:0}
+.mbP{transform:translate(var(--px),var(--py)) rotate(calc(var(--a)*1deg)) translate(calc(var(--px)*-1),calc(var(--py)*-1))}
+.bgP{--px:312px;--py:449px}
+.bdP{--px:266px;--py:468px}
+.jgP{--px:387px;--py:709px}
+.jdP{--px:388px;--py:709px}
+.fermP{visibility:hidden}
+@keyframes balP{0%{--a:-3}12%{--a:8}25%{--a:-3}37%{--a:8}48%{--a:-3}56%{--a:55}60%{--a:100}64%{--a:55}68%{--a:100}72%{--a:55}76%{--a:100}80%{--a:55}88%{--a:-3}100%{--a:-3}}
+@keyframes baP2{0%,100%{--a:6}50%{--a:-2}}
+@keyframes marP{0%,100%{--a:-3}50%{--a:3}}
+@keyframes marP2{0%,100%{--a:3}50%{--a:-3}}
+@keyframes ouvA{0%{visibility:visible}60%{visibility:hidden}64%{visibility:visible}67%{visibility:hidden}71%{visibility:visible}}
+@keyframes ferA{0%{visibility:hidden}60%{visibility:visible}64%{visibility:hidden}67%{visibility:visible}71%{visibility:hidden}}
+@keyframes regP{0%,14%{transform:translate(0,0)}20%,36%{transform:translate(-7px,-4px)}43%,54%{transform:translate(6px,3px)}60%,100%{transform:translate(0,0)}}
+.mzl-anim .bgP{animation:balP 10s infinite ease-in-out}
+.mzl-anim .bdP{animation:baP2 3.8s infinite ease-in-out}
+.mzl-anim .jgP{animation:marP 2.6s infinite ease-in-out}
+.mzl-anim .jdP{animation:marP2 2.6s infinite ease-in-out}
+.mzl-anim .ouvP{animation:ouvA 5s infinite steps(1,end)}
+.mzl-anim .fermP{animation:ferA 5s infinite steps(1,end)}
+.mzl-anim .pgP{animation:regP 5s infinite ease-in-out}
+/* Triste : on cache le visage normal, on montre yeux et bouche tristes */
+.mzl-patwrap:not(.mzl-tr) .trP{display:none}
+.mzl-tr .nP,.mzl-tr .ouvP{display:none}
+/* triste : les yeux tristes clignent comme les normaux (bascule avec les yeux fermés) */
+.mzl-anim .ouvTP{animation:ouvA 5s infinite steps(1,end)}
+/* Ailes : les deux bras battent ensemble (-10 deg a 50 deg, 1 s) */
+@keyframes ailP{0%,100%{--a:-10}50%{--a:50}}
+.mzl-anim.mzl-ail .bgP,.mzl-anim.mzl-ail .bdP{animation:ailP 1s infinite ease-in-out}
+/* larme : petites ondulations (échelle/inclinaison, pas de morphing) */
+@keyframes larP{0%,100%{transform:scale(1,1) skewX(0)}25%{transform:scale(1.07,.94) skewX(2deg)}50%{transform:scale(.94,1.08) skewX(-2deg)}75%{transform:scale(1.05,.96) skewX(1deg)}}.larmeP{transform-box:fill-box;transform-origin:50% 15%}
+.mzl-anim .larmeP{animation:larP 2.4s infinite ease-in-out}

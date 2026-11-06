@@ -219,7 +219,7 @@
     var d = document.createElement('div');
     d.id = 'mzPage'; d.className = 'mz-page';
     d.innerHTML =
-      '<div class="mz-top"><div class="mz-back" id="mzBack" role="button" tabindex="0" aria-label="Retour"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></div><div class="mz-title">Maison</div></div>' +
+      '<div class="mz-top"><div class="mz-back" id="mzBack" role="button" tabindex="0" aria-label="Retour"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></div><div class="mz-title">Maison</div><div class="mz-lab" id="mzLabBtn" role="button" tabindex="0" hidden>Labo</div></div>' +
       '<div class="mz-stage" id="mzStage"></div>' +
       '<div class="mz-body">' +
         '<div class="mz-label">Tenue</div><div class="mz-grid" id="mzTenues"></div>' +
@@ -235,6 +235,8 @@
     showCasque = false;
     pg.classList.add('active');
     renderPage();
+    var lb = document.getElementById('mzLabBtn');
+    if (lb) lb.hidden = !(window.yamMaisonLabo && window.yamMaisonLabo.actif());   /* Labo : visible seulement en mode perf */
     if (stage) stage.detruire();
     stage = window.yamPatate ? window.yamPatate(document.getElementById('mzStage'), { size: 150, still: true, tenue: tenue, casque: casque }) : null;
     sync();
@@ -242,6 +244,7 @@
   function closeMaison() {
     var p = document.getElementById('mzPage');
     if (p) p.classList.remove('active');
+    if (window.yamMaisonLabo) window.yamMaisonLabo.fermer();
     document.documentElement.removeAttribute('data-yam-maison');
     if (stage) { stage.detruire(); stage = null; }
     ['mzStage', 'mzTenues', 'mzCasques'].forEach(function (i) { var e = document.getElementById(i); if (e) e.innerHTML = ''; });
@@ -259,6 +262,7 @@
     if (t.closest('#homeSpamHeart')) { joie(); return; }
     if (t.closest('#homeMaisonBtn')) { openMaison(); return; }
     if (t.closest('#mzBack')) { closeMaison(); return; }
+    if (t.closest('#mzLabBtn')) { if (window.yamMaisonLabo) window.yamMaisonLabo.ouvrir(); return; }
     var c = t.closest('#mzPage .mz-card');
     if (!c) return;
     try {
