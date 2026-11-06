@@ -74,10 +74,10 @@
     return sb2Upsert('patate', { couple_id: cid, tenue: tenue(), casque: casque(), updated_at: new Date().toISOString() });
   }
   /* ---- JAUGE DE CŒURS (commune au couple : colonnes jauge / jauge_maj de la table patate) ----
-     Niveau en % au moment jauge_maj ; il se vide de 100 → 0 en 24 h. Chaque cœur ajoute 5 %.
+     Niveau en % au moment jauge_maj ; il se vide de 100 → 0 en 12 h. Chaque cœur ajoute 5 %.
      Humeur : fête 5 s (max atteint, ou palier du compteur jauge pleine) > musique (casque) > triste (< 15 %) > repos. */
   var KEY_JAUGE = 'yam_mascotte_jauge';
-  var DUREE = 24 * 3600 * 1000, SEUIL_TRISTE = 15, PAS = 5, FETE_MS = 5000;
+  var DUREE = 12 * 3600 * 1000, SEUIL_TRISTE = 15, PAS = 5, FETE_MS = 5000;
   var rappelUntil = 0, rappelNext = 0;   /* zone Rayonnante : petit « content » de 3 s de temps en temps, sans cœurs */
   var pushT = null, feteUntil = 0, feteTimer = null, armed = true;
   shared.jauge = null; shared.jmaj = null;
@@ -87,6 +87,7 @@
     if (shared.jauge === null) return 50;
     return Math.max(0, Math.min(100, shared.jauge - (Date.now() - shared.jmaj) / DUREE * 100));
   }
+  window.mascotteNiveau = niveau;   /* lu par la fenêtre FPS (js/app-fps.js) */
   function pushJauge() {
     var cid = coupleId();
     if (!cid || typeof sb2Upsert !== 'function') return;

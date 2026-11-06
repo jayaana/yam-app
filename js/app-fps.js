@@ -30,6 +30,7 @@
         box.textContent = 'FPS ' + fps + '   moy ' + (n ? Math.round(sum / n) : '-') + '   min ' + (n ? min : '-') +
           '\nsaccades ' + jank + '   animations ' + anims +
           '\néléments ' + document.getElementsByTagName('*').length + '   images patate ' + (p ? p.getElementsByTagName('img').length : 0) +
+          (window.mascotteNiveau ? '\nbonheur ' + window.mascotteNiveau().toFixed(2) + ' %' : '') +
           (performance.memory ? '\nmémoire ' + Math.round(performance.memory.usedJSHeapSize / 1048576) + ' Mo' : '');
       }
       raf = requestAnimationFrame(loop);
