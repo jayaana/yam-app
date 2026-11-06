@@ -2,7 +2,7 @@
 // Cache les assets statiques pour un chargement rapide
 // Ne met PAS en cache les requêtes Supabase (données toujours fraîches)
 
-var CACHE_NAME = 'yam-v450';
+var CACHE_NAME = 'yam-v451';
 
 // Images de la patate (assets/mascotte/img/ : toutes les tenues, ~47 Mo) : cache durable, telechargees UNE fois.
 // Si l'outil photos regenere des images : passer ce nom a yam-mascotte-img-2 (l'ancien est supprime a l'activation).
@@ -51,6 +51,7 @@ var STATIC_ASSETS = [
   '/yam-app/js/app-calin.js',
   '/yam-app/js/app-decor.js',
   '/yam-app/js/app-photos.js',
+  '/yam-app/js/app-fps.js',
   '/yam-app/js/app-mascotte.js',
   '/yam-app/assets/mascotte/img/icones/ico-vert-1.webp',
   '/yam-app/assets/mascotte/img/icones/ico-vert-2.webp',

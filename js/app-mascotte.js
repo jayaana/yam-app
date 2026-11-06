@@ -223,7 +223,6 @@
       '<div class="mz-body">' +
         '<div class="mz-label">Tenue</div><div class="mz-grid" id="mzTenues"></div>' +
         '<div class="mz-label">Casque</div><div class="mz-grid c2" id="mzCasques"></div>' +
-        '<button type="button" class="gu-btn gu-btn--ok mz-valider" id="mzValider">Valider</button>' +
       '</div>';
     document.body.appendChild(d);
   }
@@ -238,18 +237,6 @@
     if (stage) stage.detruire();
     stage = window.yamPatate ? window.yamPatate(document.getElementById('mzStage'), { size: 150, still: true, tenue: tenue, casque: casque }) : null;
     sync();
-  }
-  /* Valider : enregistre la tenue/casque, l'Accueil change à chaud (sans rechargement : la musique continue) et on revient à l'Accueil */
-  var validation = false;
-  function valider() {
-    if (validation) return; validation = true;
-    var b = document.getElementById('mzValider'); if (b) b.disabled = true;
-    var go = function () {
-      try { if (home) home.tenue(tenue()); sync(); closeMaison(); } catch (e) {}
-      validation = false;
-    };
-    var fin = setTimeout(go, 2500);   /* sécurité : on continue même si le serveur tarde */
-    Promise.resolve().then(push).then(function () { clearTimeout(fin); go(); }, function () { clearTimeout(fin); go(); });
   }
   function closeMaison() {
     var p = document.getElementById('mzPage');
@@ -271,11 +258,10 @@
     if (t.closest('#homeSpamHeart')) { joie(); return; }
     if (t.closest('#homeMaisonBtn')) { openMaison(); return; }
     if (t.closest('#mzBack')) { closeMaison(); return; }
-    if (t.closest('#mzValider')) { valider(); return; }
     var c = t.closest('#mzPage .mz-card');
     if (!c) return;
     try {
-      if (c.getAttribute('data-tenue')) { shared.tenue = c.getAttribute('data-tenue'); localStorage.setItem(KEY_TENUE, shared.tenue); if (stage) stage.tenue(shared.tenue); }
+      if (c.getAttribute('data-tenue')) { shared.tenue = c.getAttribute('data-tenue'); localStorage.setItem(KEY_TENUE, shared.tenue); if (stage) stage.tenue(shared.tenue); if (home) home.tenue(shared.tenue); }
       if (c.getAttribute('data-casque')) { shared.casque = c.getAttribute('data-casque'); localStorage.setItem(KEY_CASQUE, shared.casque); showCasque = true; if (stage) stage.casque(); }
     } catch (x) {}
     push();
