@@ -1,9 +1,8 @@
 /* ============================================================
-   app-mascotte.js — mascotte SVG (patate) de l'Accueil + page « Maison »
-   Le dessin est dans assets/mascotte/mascotte.html (calques GPU, chargé une fois, mis en
-   cache par le service worker). États : repos / content (musique lancée
-   par l'utilisateur, avec casque). Habillage choisi dans la page Maison,
-   mémorisé sur l'appareil (localStorage).
+   app-mascotte.js — mascotte (patate) de l'Accueil + page « Maison »
+   Rendu = images (js/app-photos.js), plus de SVG animé. Ce fichier décide de l'humeur
+   (fête / musique avec casque / triste / repos), de la tenue et du casque (communs au couple),
+   de la jauge de cœurs et de la page Maison.
    ============================================================ */
 (function () {
   'use strict';
@@ -18,13 +17,11 @@
     { id: 'blanc', name: 'Casque blanc', col: '#ffffff' },
     { id: 'noir',  name: 'Casque noir', col: '#222222' }
   ];
-  var svgText = null, loading = null;
   /* Listes de tenues et de casques = fichier assets/mascotte/img/index.json écrit par l'outil photos (ajouter une tenue = relancer l'outil, aucun code).
      Les listes ci-dessus restent seulement le secours si le fichier est absent. */
-  function lire(l) { for (var i = 0; i < l.length; i++) if (l[i].id === this) return l[i]; return null; }
   fetch('assets/mascotte/img/index.json').then(function (r) { return r.json(); }).then(function (I) {
     if (!I || !I.tenues || !I.casques) return;
-    function maj(dst, src) { dst.length = 0; src.forEach(function (o) { dst.push({ id: o.id, name: o.nom, col: o.col, classes: o.classes }); }); }
+    function maj(dst, src) { dst.length = 0; src.forEach(function (o) { dst.push({ id: o.id, name: o.nom, col: o.col }); }); }
     maj(TENUES, I.tenues); maj(CASQUES, I.casques);
     try { if (typeof sync === 'function') sync(); if (pageOpen()) renderPage(); } catch (e) {}
   }).catch(function () {});
@@ -66,7 +63,7 @@
       }
       shared.tenue = r.tenue; shared.casque = r.casque;
       /* mode photos : la tenue de l'autre/du serveur est appliquée à chaud (images repointées, patate floue le temps du chargement) */
-      if (ok(r.tenue, TENUES)) { window.yamPhotoWant = r.tenue; if (window.yamPhotoSwap) window.yamPhotoSwap(r.tenue); }
+      if (ok(r.tenue, TENUES) && home) home.tenue(r.tenue);
       try { if (ok(r.tenue, TENUES)) localStorage.setItem(KEY_TENUE, r.tenue); if (ok(r.casque, CASQUES)) localStorage.setItem(KEY_CASQUE, r.casque); } catch (e) {}
       sync(); if (pageOpen()) renderPage();
     });
@@ -99,7 +96,7 @@
     if (!homeVisible()) return;
     armed = false;
     feteUntil = Date.now() + FETE_MS;
-    var sv = document.getElementById('homeMascot'); sv = sv && sv.firstElementChild; if (sv && sv.classList) sv.classList.remove('joie', 'joieY');   /* la fête prend la place d'un saut en cours */
+    if (home) home.calme();   /* la fête prend la place d'un saut en cours */
     sync();
     var btn = document.getElementById('homeMascot'), n = 0;
     clearInterval(feteTimer);
@@ -155,15 +152,6 @@
     return document.documentElement.getAttribute('data-yam-tab') === 'home' && !document.documentElement.hasAttribute('data-yam-settings') && !pageOpen() && !document.hidden;
   }
 
-  function load() {
-    if (svgText) return Promise.resolve(svgText);
-    if (!loading) loading = fetch('assets/mascotte/mascotte.html').then(function (r) {
-      if (!r.ok) throw new Error('mascotte');
-      return r.text();
-    }).then(function (t) { svgText = t; return t; }, function () { loading = null; return null; });
-    return loading;
-  }
-
   /* Musique lancée par l'utilisateur lui-même (son propre lecteur) */
   function isPlaying() {
     var n = document.getElementById('navMusique');
@@ -171,50 +159,19 @@
   }
 
   var showCasque = false;   /* aperçu du casque dans la Maison après avoir touché un casque */
-  /* Humeur de l'Accueil : fête > musique > triste > repos (la Maison ne passe pas par là : mood absent) */
+  var home = null, stage = null;   /* moteurs d'images (js/app-photos.js) : Accueil et aperçu de la Maison */
+  /* Humeur de l'Accueil : fête > musique > triste > repos */
   function moodNow() {
     if (Date.now() < feteUntil || Date.now() < rappelUntil) return 'content';
     if (isPlaying()) return 'ecoute';
-    return niveau() < SEUIL_TRISTE ? 'triste' : null;
-  }
-  function classesFor(playing, force, mood) {
-    var c = 'm nu ' + (mood === 'content' ? 'content' : mood === 'triste' ? 'triste' : (playing ? 'ecoute' : 'repos' + (force ? ' avec-casque' : '')));
-    var t = tenue(), T = lire.call(t, TENUES), K = lire.call(casque(), CASQUES);
-    if (T && typeof T.classes === 'string') c += ' ' + T.classes;
-    else if (t !== 'nu') {
-      var suf = t === 'vert' ? '' : (t === 'rouge' ? 'Rouge' : 'Jaune');
-      ['moufle', 'pantoufle'].forEach(function (a) { c += ' porte-' + a + suf + 'G porte-' + a + suf + 'D'; });
-    }
-    if (K && typeof K.classes === 'string') c += ' ' + K.classes;
-    else if (casque() === 'noir') c += ' casque-noir';
-    return c;
-  }
-
-  /* La copie de la Maison reçoit des identifiants à elle (sinon doublons avec l'Accueil = contours parasites) */
-  function uniq(t) {
-    return t.replace(/id="([^"]+)"/g, 'id="$1-mz"').replace(/url\(#([^)]+)\)/g, 'url(#$1-mz)').replace(/href="#([^"]+)"/g, 'href="#$1-mz"');
-  }
-
-  /* Pose le SVG dans un conteneur (une seule fois) puis règle les classes */
-  function mount(host, playing, force, mood) {
-    if (!host) return;
-    var s = host.firstElementChild;
-    if (!s || !s.classList || !s.classList.contains('m')) {
-      if (!svgText) return;
-      host.innerHTML = host.id === 'mzStage' ? uniq(svgText) : svgText;
-      s = host.firstElementChild;
-    }
-    if (!s) return;
-    var cls = classesFor(playing, force, mood) + (s.classList.contains('pause') ? ' pause' : '') + (s.classList.contains('joie') ? ' joie' : '') + (s.classList.contains('joieY') ? ' joieY' : '');
-    if (s.getAttribute('class') !== cls) s.setAttribute('class', cls);
+    return niveau() < SEUIL_TRISTE ? 'triste' : 'repos';
   }
 
   function sync() {
     var h = document.getElementById('homeMascot');
     var vis = homeVisible();
-    var s0 = h && h.firstElementChild;
-    if (s0 && s0.classList) s0.classList.toggle('pause', !vis);
-    var m = document.getElementById('mzStage');
+    if (home && !h.isConnected) { home.detruire(); home = null; }
+    if (home) home.pause(!vis);
     if (!vis && !pageOpen()) return;
     var playing = isPlaying();
     if (vis) {
@@ -224,57 +181,31 @@
       else if (now >= rappelNext && !playing && now >= feteUntil) { rappelUntil = now + 3000; rappelNext = now + 20000 + Math.random() * 20000; }
     }
     if (vis) { listen(); pull(false); paintRing(); }
-    if (h && (vis || !s0)) load().then(function () { mount(h, playing, false, moodNow()); var s1 = h.firstElementChild; if (s1 && s1.classList) s1.classList.toggle('pause', !homeVisible()); });
-    if (m && pageOpen()) load().then(function () { mount(m, playing, showCasque); });
+    if (h && !home && window.yamPatate) home = window.yamPatate(h, { size: 180, precharge: true, tenue: tenue, casque: casque });
+    if (home) home.humeur(moodNow());
+    if (stage && pageOpen()) stage.humeur(showCasque ? 'ecoute' : 'repos');
   }
   window.mascotteSync = sync;
 
   /* Joie au clic sur le cœur : saut + chewing-gum + yeux souriants (pose repos seulement) */
   function joie() {
-    var h = document.getElementById('homeMascot'), svg = h && h.firstElementChild;
-    if (Date.now() < feteUntil) return;   /* pendant la fête : pas de saut, on laisse voir l'animation */
-    if (!svg || !(svg.classList.contains('repos') || svg.classList.contains('content'))) return;   /* saut en repos ou content, pas en triste/musique */
-    svg.classList.remove('joie');
-    void svg.getBoundingClientRect();
-    svg.classList.add('joie', 'joieY');
-    clearTimeout(svg._joieT); clearTimeout(svg._joieYT);
-    svg._joieT = setTimeout(function () { svg.classList.remove('joie'); }, 1000);
-    svg._joieYT = setTimeout(function () { svg.classList.remove('joieY'); }, 1500);
+    if (!home || Date.now() < feteUntil) return;   /* pendant la fête : pas de saut, on laisse voir l'animation */
+    var m = moodNow();
+    if (m !== 'repos' && m !== 'content') return;   /* saut en repos ou content, pas en triste/musique */
+    home.joie();
   }
 
   document.addEventListener('visibilitychange', function () { sync(); });
 
   /* ---- page Maison (simple : changer la tenue) ---- */
-  /* Petites icônes : copies des vrais accessoires du dessin (gant, pantoufle, casque) */
-  var ICO = {
-    vert:  [['[data-acc="moufle-G"]'], ['[data-acc="pantoufle-G"]']],
-    rouge: [['[data-acc="moufle-rouge-G"]'], ['[data-acc="pantoufle-rouge-G"]']],
-    jaune: [['[data-acc="moufle-jaune-G"]'], ['[data-acc="pantoufle-jaune-G"]']],
-    blanc: [['.slot-head:not(.acc-noir)']],
-    noir:  [['.slot-head.acc-noir']]
-  };
-  function icon(src, sels, size) {
-    var els = [], k;
-    sels.forEach(function (q) { var n = src.querySelectorAll(q); for (k = 0; k < n.length; k++) els.push(n[k]); });
-    if (!els.length) return '';
-    var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, html = '';
-    els.forEach(function (e) {
-      var d = e.style.display; e.style.display = 'inline';
-      try { var b = e.getBBox(); x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); x1 = Math.max(x1, b.x + b.width); y1 = Math.max(y1, b.y + b.height); } catch (x) {}
-      e.style.display = d;
-      html += e.outerHTML;
-    });
-    if (x1 <= x0) return '';
-    var pad = 6;
-    return '<svg class="mz-ico" width="' + size + '" height="' + size + '" viewBox="' + (x0 - pad) + ' ' + (y0 - pad) + ' ' + (x1 - x0 + 2 * pad) + ' ' + (y1 - y0 + 2 * pad) + '" aria-hidden="true">' + html + '</svg>';
-  }
+  /* Petites icônes : petites images des vrais accessoires (assets/mascotte/img/icones/, faites par photos-outil/icones.py) ; « Aucun » = cercle barré */
+  var ICO = { vert: 2, rouge: 2, jaune: 2, blanc: 1, noir: 1 };
   function cards(list, cur, attr, size) {
-    var src = document.querySelector('#mzStage .m');
     return list.map(function (o) {
       var ic = '';
-      if (src) (ICO[o.id] || []).forEach(function (sels) { ic += icon(src, sels, size); });
+      for (var i = 1; i <= (ICO[o.id] || 0); i++) ic += '<img class="mz-ico" src="assets/mascotte/img/icones/ico-' + o.id + '-' + i + '.webp" width="' + size + '" height="' + size + '" alt="" draggable="false">';
       return '<div class="mz-card' + (o.id === cur ? ' on' : '') + '" data-' + attr + '="' + o.id + '" role="button" tabindex="0">' +
-        '<span class="mz-icos">' + (ic || '<span class="mz-none"></span>') + '</span><span class="mz-nm">' + o.name + '</span></div>';
+        '<span class="mz-icos">' + (ic || '<span class="mz-none"></span>') + '</span><span class="mz-nm">' + escHtml(o.name) + '</span></div>';
     }).join('');
   }
   function renderPage() {
@@ -304,29 +235,27 @@
     showCasque = false;
     pg.classList.add('active');
     renderPage();
-    load().then(function () { mount(document.getElementById('mzStage'), isPlaying(), showCasque); renderPage(); });
+    if (stage) stage.detruire();
+    stage = window.yamPatate ? window.yamPatate(document.getElementById('mzStage'), { size: 150, still: true, tenue: tenue, casque: casque }) : null;
     sync();
   }
-  /* Valider : enregistre la tenue/casque, recharge l'appli (les images de la tenue sont lues au chargement) et revient à l'Accueil */
+  /* Valider : enregistre la tenue/casque, l'Accueil change à chaud (sans rechargement : la musique continue) et on revient à l'Accueil */
   var validation = false;
   function valider() {
     if (validation) return; validation = true;
     var b = document.getElementById('mzValider'); if (b) b.disabled = true;
-    /* plus de rechargement (il coupait la musique) : la tenue change à chaud, comme chez le/la partenaire ; rechargement seulement en secours si le mode photos n'est pas prêt */
     var go = function () {
-      try {
-        if (document.getElementById('yamPhoto') && !(window.yamPhotoReady && window.yamPhotoSwap)) { location.reload(); return; }
-        if (window.yamPhotoSwap && document.getElementById('yamPhoto')) window.yamPhotoSwap(tenue());
-        sync(); closeMaison(); validation = false;
-      } catch (e) { validation = false; }
+      try { if (home) home.tenue(tenue()); sync(); closeMaison(); } catch (e) {}
+      validation = false;
     };
-    var fin = setTimeout(go, 2500);   /* sécurité : on recharge même si le serveur tarde */
+    var fin = setTimeout(go, 2500);   /* sécurité : on continue même si le serveur tarde */
     Promise.resolve().then(push).then(function () { clearTimeout(fin); go(); }, function () { clearTimeout(fin); go(); });
   }
   function closeMaison() {
     var p = document.getElementById('mzPage');
     if (p) p.classList.remove('active');
     document.documentElement.removeAttribute('data-yam-maison');
+    if (stage) { stage.detruire(); stage = null; }
     ['mzStage', 'mzTenues', 'mzCasques'].forEach(function (i) { var e = document.getElementById(i); if (e) e.innerHTML = ''; });
   }
 
@@ -346,8 +275,8 @@
     var c = t.closest('#mzPage .mz-card');
     if (!c) return;
     try {
-      if (c.getAttribute('data-tenue')) { shared.tenue = c.getAttribute('data-tenue'); localStorage.setItem(KEY_TENUE, shared.tenue); }
-      if (c.getAttribute('data-casque')) { shared.casque = c.getAttribute('data-casque'); localStorage.setItem(KEY_CASQUE, shared.casque); showCasque = true; }
+      if (c.getAttribute('data-tenue')) { shared.tenue = c.getAttribute('data-tenue'); localStorage.setItem(KEY_TENUE, shared.tenue); if (stage) stage.tenue(shared.tenue); }
+      if (c.getAttribute('data-casque')) { shared.casque = c.getAttribute('data-casque'); localStorage.setItem(KEY_CASQUE, shared.casque); showCasque = true; if (stage) stage.casque(); }
     } catch (x) {}
     push();
     renderPage();

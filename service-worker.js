@@ -2,15 +2,11 @@
 // Cache les assets statiques pour un chargement rapide
 // Ne met PAS en cache les requêtes Supabase (données toujours fraîches)
 
-var CACHE_NAME = 'yam-v449';
+var CACHE_NAME = 'yam-v450';
 
-// Dessin de la mascotte (880 Ko) : cache A PART, conservé d'une version à l'autre (pas de retéléchargement à chaque mise à jour).
-// Si le fichier mascotte.html change un jour : passer ce nom à yam-mascotte-3.
-var MASCOTTE_CACHE = 'yam-mascotte-2';
 // Images de la patate (assets/mascotte/img/ : toutes les tenues, ~47 Mo) : cache durable, telechargees UNE fois.
 // Si l'outil photos regenere des images : passer ce nom a yam-mascotte-img-2 (l'ancien est supprime a l'activation).
 var IMG_CACHE = 'yam-mascotte-img-1';
-var MASCOTTE_URL = '/yam-app/assets/mascotte/mascotte.html';
 
 // Assets à mettre en cache au premier chargement
 var STATIC_ASSETS = [
@@ -54,8 +50,16 @@ var STATIC_ASSETS = [
   '/yam-app/js/app-diary.js',
   '/yam-app/js/app-calin.js',
   '/yam-app/js/app-decor.js',
+  '/yam-app/js/app-photos.js',
   '/yam-app/js/app-mascotte.js',
-  '/yam-app/js/app-perf.js',
+  '/yam-app/assets/mascotte/img/icones/ico-vert-1.webp',
+  '/yam-app/assets/mascotte/img/icones/ico-vert-2.webp',
+  '/yam-app/assets/mascotte/img/icones/ico-rouge-1.webp',
+  '/yam-app/assets/mascotte/img/icones/ico-rouge-2.webp',
+  '/yam-app/assets/mascotte/img/icones/ico-jaune-1.webp',
+  '/yam-app/assets/mascotte/img/icones/ico-jaune-2.webp',
+  '/yam-app/assets/mascotte/img/icones/ico-blanc-1.webp',
+  '/yam-app/assets/mascotte/img/icones/ico-noir-1.webp',,
   '/yam-app/decor/noel-jour.svg',
   '/yam-app/decor/noel-nuit.svg',
   '/yam-app/js/app-profile-menu.js',
@@ -83,10 +87,6 @@ self.addEventListener('install', function(event) {
           console.warn('[SW] Impossible de cacher :', url, e);
         });
       });
-      // Mascotte : téléchargée seulement si absente de son cache durable
-      jobs.push(caches.open(MASCOTTE_CACHE).then(function(mc) {
-        return mc.match(MASCOTTE_URL).then(function(hit) { return hit || mc.add(MASCOTTE_URL); });
-      }).catch(function(e) { console.warn('[SW] Mascotte non mise en cache :', e); }));
       return Promise.allSettled(jobs);
     }).then(function() {
       // Prend le contrôle immédiatement sans attendre le rechargement
@@ -101,7 +101,7 @@ self.addEventListener('activate', function(event) {
     caches.keys().then(function(keys) {
       return Promise.all(
         keys.filter(function(key) {
-          return key !== CACHE_NAME && key !== MASCOTTE_CACHE && key !== IMG_CACHE;
+          return key !== CACHE_NAME && key !== IMG_CACHE;
         }).map(function(key) {
           console.log('[SW] Suppression ancien cache :', key);
           return caches.delete(key);
@@ -129,22 +129,6 @@ self.addEventListener('fetch', function(event) {
 
   // ❌ Ne jamais cacher : GitHub raw (mascotte externe)
   if (url.includes('raw.githubusercontent.com')) {
-    return;
-  }
-
-  // ✅ Dessin de la mascotte : cache durable, sans revérification (nom de cache changé si le fichier change)
-  if (url.indexOf('/assets/mascotte/mascotte.html') !== -1) {
-    event.respondWith(
-      caches.open(MASCOTTE_CACHE).then(function(mc) {
-        return mc.match(MASCOTTE_URL).then(function(hit) {
-          if (hit) return hit;
-          return fetch(event.request).then(function(response) {
-            if (response && response.status === 200) mc.put(MASCOTTE_URL, response.clone());
-            return response;
-          });
-        });
-      })
-    );
     return;
   }
 
