@@ -119,3 +119,7 @@ html body #yamNotif .yn-t, html body .pn-title { color: var(--gu-pill-text); }
 html body #yamNotif .yn-m, html body .pn-body { color: var(--gu-pill-text-2); }
 html body .pn-app { color: var(--gu-pill-app); }
 html body .pn-time { color: var(--gu-pill-text-2); }
+
+/* Logo YAM de l'Accueil : effet d'appui (accès Labo / FPS) */
+#yamLogoHome { transition: transform .12s ease, filter .12s ease; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+#yamLogoHome:active { transform: scale(.88); filter: brightness(.92); }

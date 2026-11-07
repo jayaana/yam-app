@@ -1,7 +1,7 @@
 /* ============================================================
    app-maison-labo.js — « Labo » de la Maison de la patate (essai, caché)
    Salon + Aperçu animé de la patate simplifiée (SVG). Le bouton « Labo » de la page Maison
-   n'apparaît que si le mode perf est actif (5 touches sur le logo YAM, voir app-fps.js).
+   n'apparaît que si le mode perf est actif (1 appui sur le logo YAM, voir app-fps.js).
    Rien n'est construit tant qu'on n'ouvre pas le Labo.
    ============================================================ */
 (function () {

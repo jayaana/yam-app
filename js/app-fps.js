@@ -1,6 +1,6 @@
 /* ============================================================
    app-fps.js — mini fenêtre de mesure des images par seconde (FPS)
-   Activation / désactivation : 5 touches rapides sur le logo YAM de l'Accueil (mémorisé sur l'appareil).
+   Activation / désactivation : 1 appui sur le logo YAM de l'Accueil (mémorisé sur l'appareil).
    Une fois active, la fenêtre reste affichée sur n'importe quelle page. iOS ne donne pas la température :
    on mesure les FPS, qui chutent (60 → 30) quand le téléphone chauffe et se bride.
    ============================================================ */
@@ -42,12 +42,9 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     if (stored()) set(true);
-    var taps = [];
     document.addEventListener('click', function (e) {
       if (!e.target || !e.target.closest || !e.target.closest('#yamLogoHome')) return;
-      var now = Date.now(); taps = taps.filter(function (x) { return now - x < 2500; }); taps.push(now);
-      if (taps.length < 5) return; taps = [];
-      set(!on);
+      set(!on);   /* un seul appui sur le logo */
     });
   });
 })();
