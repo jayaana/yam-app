@@ -1,5 +1,5 @@
 /* Labo Maison de la patate (caché derrière le mode perf) */
-.mzl-page{position:fixed;inset:0;z-index:9500;padding-top:var(--mzl-top,54px);display:none;flex-direction:column;background:#ffeaf0;color:#5a2a35;font-family:'Fredoka',system-ui,sans-serif;--ca:#e8c93a;--cf:#f3e3bc;--mzl-rug:#ffe7c9}
+.mzl-page{position:fixed;inset:0;z-index:9500;padding-top:var(--mzl-top,54px);display:none;flex-direction:column;background:#ffeaf0;color:#5a2a35;font-family:'Fredoka',system-ui,sans-serif;--ca:#e8c93a;--cf:#f3e3bc;--cs:#7a4b2a;--km:#dfc232;--kd:#caab37;--kl:#ebd26b;--kv:#d1ac50;--kt:#946c20;--ke:#d4ac55;--kel:#e8cc6d;--kh:#6b4a1e;--mzl-rug:#ffe7c9}
 .mzl-page.active{display:flex}
 .mzl-page{overflow:hidden;touch-action:none;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .mzl-top{display:flex;align-items:center;gap:12px;flex:none;padding:4px 18px 8px}
@@ -17,12 +17,19 @@
 .mzl-scene .mzl-slot{position:absolute;left:50%;top:410px;width:170px;height:194px;margin-left:-85px}
 .mzl-patwrap,.mzl-pat{display:block;width:100%;height:100%}
 .mzl-apercu{display:none;flex-direction:column;align-items:center;height:100%;background:#fbd0d0}
-.mzl-ctl{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;padding:12px 14px}
+.mzl-ctl{display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 12px 6px;width:100%;box-sizing:border-box}
+.mzl-row{display:flex;justify-content:center;gap:8px;width:100%}
+.mzl-row .mzl-btn{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 4px;font-size:14px;text-align:center;white-space:nowrap}
+.mzl-col{display:none;width:100%;flex-direction:column;gap:8px;padding:8px 10px;box-sizing:border-box;background:rgba(255,255,255,.55);border-radius:14px}
+.mzl-col.open{display:flex}
+.mzl-cl{display:flex;align-items:center;gap:8px}
+.mzl-cl .mzl-lbl{margin:0;min-width:84px}
+#mzlColB.on svg{transform:rotate(180deg)}
 .mzl-btn{padding:9px 16px;border-radius:12px;background:#fff;border:2px solid #f3b6bd;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .mzl-btn.on{background:#ffb6c8}
 .mzl-lbl{font-size:14px;margin-left:6px}
-.mzl-sw{width:32px;height:32px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px #c9808c;cursor:pointer}
-.mzl-sw.on{box-shadow:0 0 0 3px #ff6f8f}
+.mzl-sw,.mzl-sk{width:32px;height:32px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px #c9808c;cursor:pointer}
+.mzl-sw.on,.mzl-sk.on{box-shadow:0 0 0 3px #ff6f8f}
 .mzl-apercu .mzl-slot{flex:1;min-height:0;width:100%;max-width:420px;padding:0 10px 16px}
 #f23P,#f26P{fill:var(--ca)}#f24P,#f25P,#f27P,#f28P{fill:var(--cf)}
 .mzl-wall,.mzl-floor,.mzl-apercu{transition:none}
@@ -32,7 +39,7 @@ html[data-theme="dark"] .mzl-tab.on,html[data-theme="dark"] .mzl-btn.on{backgrou
 html[data-theme="dark"] .mzl-wall{background:#4a2f38}
 html[data-theme="dark"] .mzl-floor{background:#3a2229}
 html[data-theme="dark"] .mzl-apercu{background:#2c1f25}
-html[data-theme="dark"] .mzl-sw{border-color:#372b32}
+html[data-theme="dark"] .mzl-sw,html[data-theme="dark"] .mzl-sk{border-color:#372b32}
 /* Bouton caché de la page Maison */
 .mz-lab{margin-left:auto;padding:8px 14px;border-radius:20px;background:var(--gu-card);border:var(--gu-sticker-width) solid var(--gu-sticker-border);font:600 14px/1 'Fredoka',system-ui,sans-serif;color:var(--gu-text);cursor:pointer;-webkit-tap-highlight-color:transparent}
 .mz-lab[hidden]{display:none}
@@ -72,6 +79,9 @@ html[data-theme="dark"] .mzl-sw{border-color:#372b32}
 @keyframes regTG{0%,14%{transform:translate(0,0)}20%,36%{transform:translate(-7px,-4px)}43%,54%{transform:translate(6px,3px)}60%,100%{transform:translate(0,0)}}@keyframes regTD{0%,14%{transform:translate(0,0)}20%,36%{transform:translate(6.86px,2.95px)}43%,54%{transform:translate(-5.56px,-2.77px)}60%,100%{transform:translate(0,0)}}
 .mzl-anim .pgTG{animation:regTG 5s infinite ease-in-out}.mzl-anim .pgTD{animation:regTD 5s infinite ease-in-out}
 /* Nue : on retire chaussures et moufles */
-.mzl-nue #f23P,.mzl-nue #f24P,.mzl-nue #f25P,.mzl-nue #f26P,.mzl-nue #f27P,.mzl-nue #f28P{display:none}
+.mzl-nogan .gnP{opacity:0}.mzl-noch .chP{opacity:0}.mzl-nocas .casP{opacity:0}
+.mzl-pat path.gnP,.mzl-pat path.chP{stroke:var(--cs)}
 #mzlAnim{display:inline-flex;align-items:center;gap:6px}
 .mzl-nodet .dtP{opacity:0}
+
+html[data-theme="dark"] .mzl-col{background:rgba(255,255,255,.08)}
