@@ -1003,6 +1003,11 @@
   var _replyMsg = null;
 
   window.dmCancelReply = function(){
+    if(_editState){
+      _endEditUI();
+      var _ei = $('dmInput');
+      if(_ei){ _ei.value = ''; _dmAutoGrow(_ei); updateSendBtn(); }
+    }
     _replyMsg = null;
     var bar = $('dmReplyBar');
     if(bar) bar.classList.remove('show');
@@ -1011,6 +1016,7 @@
   };
 
   function startReply(msg){
+    if(_editState){ _endEditUI(); var _ri = $('dmInput'); if(_ri){ _ri.value = ''; _dmAutoGrow(_ri); updateSendBtn(); } }
     _replyMsg = msg;
     var bar  = $('dmReplyBar');
     var txt  = $('dmReplyBarText');
@@ -1025,54 +1031,43 @@
   }
 
   /* ══ ÉDITION MESSAGE ══ */
+  // Style Instagram : le texte passe dans la zone de saisie, bandeau « Modifier le message » au-dessus.
+  var _editState = null;
+
+  function _endEditUI(){
+    _editState = null;
+    var bar = $('dmReplyBar');
+    if(bar){ bar.classList.remove('show'); bar.classList.remove('editing'); }
+    var ic = bar ? bar.querySelector('.reply-bar-icon') : null;
+    if(ic) ic.textContent = '↩️';
+  }
+
   function startEdit(msg, wrap){
-    var bbl = wrap.querySelector('.dm-bubble');
-    var txt = wrap.querySelector('.dm-bubble-text');
-    if(!bbl || !txt) return;
+    var inp = $('dmInput'), bar = $('dmReplyBar'), txt = $('dmReplyBarText');
+    if(!inp || !bar || !txt) return;
+    _replyMsg = null;
+    _editState = { msg: msg, wrap: wrap };
+    var ic = bar.querySelector('.reply-bar-icon');
+    if(ic) ic.textContent = '';
+    txt.textContent = 'Modification du message';
+    bar.classList.add('editing');
+    bar.classList.add('show');
+    inp.value = msg.text || '';
+    _dmAutoGrow(inp);
+    updateSendBtn();
+    inp.focus();
+    try { var n = inp.value.length; inp.setSelectionRange(n, n); } catch(e){}
+  }
 
+  function confirmEdit(newText){
+    var st = _editState;
+    _endEditUI();
+    var msg = st.msg, wrap = st.wrap;
     var oldText = msg.text || '';
-    txt.style.display = 'none';
-    var meta = wrap.querySelector('.dm-bubble-meta');
-    if(meta) meta.style.display = 'none';
-
-    var editInput = document.createElement('input');
-    editInput.type = 'text';
-    editInput.className = 'dm-edit-input';
-    editInput.value = oldText;
-    editInput.maxLength = 1000;
-
-    var actions = document.createElement('div');
-    actions.className = 'dm-edit-actions';
-
-    var cancelBtn = document.createElement('button');
-    cancelBtn.className = 'dm-edit-btn dm-edit-cancel-btn';
-    cancelBtn.textContent = 'Annuler';
-
-    var confirmBtn = document.createElement('button');
-    confirmBtn.className = 'dm-edit-btn dm-edit-confirm';
-    confirmBtn.textContent = 'Modifier ✓';
-
-    actions.appendChild(cancelBtn);
-    actions.appendChild(confirmBtn);
-    bbl.appendChild(editInput);
-    bbl.appendChild(actions);
-    editInput.focus();
-    editInput.select();
-
-    function cancelEdit(){
-      editInput.remove(); actions.remove();
-      txt.style.display = ''; if(meta) meta.style.display = '';
-    }
-
-    function confirmEdit(){
-      var newText = editInput.value.trim();
-      if(!newText || newText === oldText){ cancelEdit(); return; }
-      editInput.remove(); actions.remove();
-      txt.style.display = '';
+    if(!newText || newText === oldText) return;
+    var txt = wrap.querySelector('.dm-bubble-text');
+    if(txt){
       txt.textContent = newText;
-      msg.text = newText;
-      msg.edited = true;
-      // Ajouter label "(modifié)"
       var edited = wrap.querySelector('.dm-edited-label');
       if(!edited){
         edited = document.createElement('span');
@@ -1080,28 +1075,21 @@
         edited.textContent = '(modifié)';
         txt.after(edited);
       }
-      if(meta) meta.style.display = '';
-      if(String(msg.id).indexOf('tmp_') === 0) return;
-      var _editSession = yamGetUser ? yamGetUser() : null;
-      var _editCoupleId = _editSession ? _editSession.couple_id : null;
-      var _editFilter = 'id=eq.' + msg.id + (_editCoupleId ? '&couple_id=eq.' + _editCoupleId : '');
-      fetch(SB_URL + '/rest/v1/' + TABLE + '?' + _editFilter, {
-        method: 'PATCH',
-        headers: sb2Headers({'Prefer':'return=minimal'}),
-        body: JSON.stringify({ text: newText, edited: true })
-      }).then(function(r){
-        if(!r.ok) r.text().then(function(t){ console.error('[DM] edit err:', r.status, t); });
-      }).catch(function(err){ console.error('[DM] edit err:', err); });
     }
-
-    cancelBtn.addEventListener('click', cancelEdit);
-    confirmBtn.addEventListener('click', confirmEdit);
-    editInput.addEventListener('keydown', function(e){
-      if(e.key === 'Enter'){ e.preventDefault(); confirmEdit(); }
-      if(e.key === 'Escape'){ cancelEdit(); }
-    });
+    msg.text = newText;
+    msg.edited = true;
+    if(String(msg.id).indexOf('tmp_') === 0) return;
+    var _editSession = yamGetUser ? yamGetUser() : null;
+    var _editCoupleId = _editSession ? _editSession.couple_id : null;
+    var _editFilter = 'id=eq.' + msg.id + (_editCoupleId ? '&couple_id=eq.' + _editCoupleId : '');
+    fetch(SB_URL + '/rest/v1/' + TABLE + '?' + _editFilter, {
+      method: 'PATCH',
+      headers: sb2Headers({'Prefer':'return=minimal'}),
+      body: JSON.stringify({ text: newText, edited: true })
+    }).then(function(r){
+      if(!r.ok) r.text().then(function(t){ console.error('[DM] edit err:', r.status, t); });
+    }).catch(function(err){ console.error('[DM] edit err:', err); });
   }
-
 
   /* ══ LABEL "VU" INSTAGRAM ══ */
   function updateSeenLabel(){
@@ -2421,6 +2409,14 @@
       if(typeof showToast === 'function') showToast('Message trop long (1000 caractères max)', 'error', 3000);
       return;
     }
+    if(_editState){
+      confirmEdit(text);
+      input.value = '';
+      _dmAutoGrow(input);
+      setTimeout(function(){ input.blur(); }, 0);
+      updateSendBtn();
+      return;
+    }
     input.value = '';
     _dmAutoGrow(input);
     // ✅ FIX iOS — setTimeout(0) obligatoire pour fermer le clavier sur iPhone/iPad
@@ -3095,7 +3091,7 @@
     var el = $('dmMessages');
     if(!el) return;
     var nearBottom = (el.scrollHeight - el.scrollTop - el.clientHeight) < 250;
-    if(!force && (!nearBottom || el.querySelector('.dm-edit-input'))) return;
+    if(!force && (!nearBottom || _editState)) return;
     setTimeout(function(){ el.scrollTop = el.scrollHeight; }, 60);
   }
 

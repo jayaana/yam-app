@@ -168,7 +168,7 @@
         });
         var msgs = document.getElementById('dmMessages');
         // Seulement si c'est la zone de saisie (pas le champ d'édition d'un message plus haut)
-        if (msgs && _inp && _inp.id === 'dmInput') {
+        if (msgs && _inp && _inp.id === 'dmInput' && !document.querySelector('#dmReplyBar.editing')) {
           setTimeout(function () { msgs.scrollTop = msgs.scrollHeight; }, 80);
           setTimeout(function () { msgs.scrollTop = msgs.scrollHeight; }, 350);
         }
