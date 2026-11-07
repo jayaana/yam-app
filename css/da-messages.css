@@ -167,7 +167,7 @@ html body #hiddenPage .dm-input-bar {
   padding-left: 12px; padding-right: 12px; padding-top: 8px;
 }
 html body #hiddenPage .dm-input-wrap {
-  flex: 1; min-width: 0; height: 52px; box-sizing: border-box; padding: 0 4px; gap: 0;
+  flex: 1; min-width: 0; height: auto; min-height: 52px; box-sizing: border-box; padding: 6px 4px; gap: 0;
   background: var(--gu-bubble-other); border: 0; border-radius: 26px; box-shadow: none;
 }
 html body #hiddenPage .dm-input-wrap:focus-within { border: 0; box-shadow: 0 0 0 3px var(--gu-chip-on); }

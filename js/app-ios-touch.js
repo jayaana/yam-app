@@ -167,7 +167,8 @@
           }, d);
         });
         var msgs = document.getElementById('dmMessages');
-        if (msgs) {
+        // Seulement si c'est la zone de saisie (pas le champ d'édition d'un message plus haut)
+        if (msgs && _inp && _inp.id === 'dmInput') {
           setTimeout(function () { msgs.scrollTop = msgs.scrollHeight; }, 80);
           setTimeout(function () { msgs.scrollTop = msgs.scrollHeight; }, 350);
         }

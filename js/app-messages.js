@@ -592,7 +592,7 @@
     };
     cache.push(tmpMsg);
     appendBubble(tmpMsg, cache.length - 1, cache);
-    scrollBottom();
+    scrollBottom(true);
 
     // Upload Storage
     fetch(storageUrl, {
@@ -799,7 +799,7 @@
     };
     cache.push(tmpMsg);
     appendBubble(tmpMsg, cache.length - 1, cache);
-    scrollBottom();
+    scrollBottom(true);
 
     var videoContentType = 'video/mp4';
 
@@ -1333,6 +1333,10 @@
   function renderAll(){
     var el = $('dmMessages');
     if(!el) return;
+    // Lecture/édition plus haut : garder la position au re-rendu (sauf 1er rendu ou déjà en bas)
+    var _hadBubbles = !!el.querySelector('.dm-msg-wrap');
+    var _keepTop = el.scrollTop;
+    var _wasNear = (el.scrollHeight - el.scrollTop - el.clientHeight) < 250;
     el.innerHTML = '';
 
     if(!cache.length){
@@ -1365,7 +1369,7 @@
       }
       appendBubble(msg, i, cache);
     });
-    scrollBottom();
+    if(!_hadBubbles || _wasNear) scrollBottom(true); else el.scrollTop = _keepTop;
     // Marquer comme lu si le chat est visible (dmChatScreen affiché)
     // On ne vérifie plus hiddenPage.classList.contains('active') car ce flag
     // peut ne pas encore être posé au moment où renderAll() s'exécute (timing race).
@@ -2370,7 +2374,10 @@
       var tapT = null;
       var moved = false;
       var pressActive = false;
+      // En édition : le geste dans le champ ne doit jamais armer l'appui long
+      function inEdit(e){ return !!(wrap.querySelector('.dm-edit-input') && (!e || !e.target || !e.target.closest || e.target.closest('.dm-edit-input,.dm-edit-actions'))); }
       wrap.addEventListener('touchstart', function(e){ 
+        if(inEdit(e)){ pressActive = false; clearTimeout(tapT); return; }
         moved = false; pressActive = true;
         tapT = setTimeout(function(){ 
           if(!moved && pressActive) openCtxMenu({clientX: window.innerWidth/2, clientY: window.innerHeight/2}, msg, wrap, bbl); 
@@ -2378,10 +2385,11 @@
       }, {passive:true});
       wrap.addEventListener('touchmove',  function(){ moved = true; clearTimeout(tapT); }, {passive:true});
       wrap.addEventListener('touchend',   function(e){ pressActive = false; clearTimeout(tapT); }, {passive:true});
-      wrap.addEventListener('contextmenu', function(e){ e.preventDefault(); openCtxMenu(e, msg, wrap, bbl); });
+      wrap.addEventListener('contextmenu', function(e){ if(inEdit(e)) return; e.preventDefault(); openCtxMenu(e, msg, wrap, bbl); });
 
       // Souris (desktop) — clic maintenu ~500ms, même logique que le tactile
       wrap.addEventListener('mousedown', function(e){
+        if(inEdit(e)) return;
         moved = false; pressActive = true;
         var mx = e.clientX, my = e.clientY;
         tapT = setTimeout(function(){
@@ -2440,7 +2448,7 @@
                    reply_to_id: replyId, reply_to_text: replyText, reply_to_sender: replySender };
     cache.push(tmpMsg);
     appendBubble(tmpMsg, cache.length - 1, cache);
-    scrollBottom();
+    scrollBottom(true);
 
     var body = { couple_id: coupleId, sender_role: identity, sender_id: yamGetUser ? yamGetUser().id : null, text: text };
     if(replyId){
@@ -2828,7 +2836,7 @@
         };
         cache.push(tmpMsg);
         appendBubble(tmpMsg, cache.length-1, cache);
-        scrollBottom();
+        scrollBottom(true);
 
         fetch(SB_URL + '/rest/v1/' + TABLE, {
           method: 'POST',
@@ -3081,9 +3089,14 @@
     if(btn) btn.classList.toggle('ready', v.length > 0);
   }
 
-  function scrollBottom(){
+  // force = true : message envoyé par moi / ouverture. Sinon on ne descend que si on est déjà en bas
+  // (sinon on perd sa lecture ou sa correction en cours quand le partenaire écrit).
+  function scrollBottom(force){
     var el = $('dmMessages');
-    if(el) setTimeout(function(){ el.scrollTop = el.scrollHeight; }, 60);
+    if(!el) return;
+    var nearBottom = (el.scrollHeight - el.scrollTop - el.clientHeight) < 250;
+    if(!force && (!nearBottom || el.querySelector('.dm-edit-input'))) return;
+    setTimeout(function(){ el.scrollTop = el.scrollHeight; }, 60);
   }
 
   /* ══ PREVIEW ACCUEIL ══ */
