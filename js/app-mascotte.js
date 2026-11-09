@@ -261,7 +261,20 @@
     var t = e.target;
     if (!t || !t.closest) return;
     if (t.closest('#homeSpamHeart')) { joie(); return; }
-    if (t.closest('#homeMaisonBtn')) { openMaison(); return; }
+    if (t.closest('#homeMaisonBtn')) {
+      /* Session fraîche iOS : même parade que Jeux/Messages/Musique (app-nav.js), 2 allers-retours internes sous voile, puis on ouvre la Maison.
+         Inutile si un autre onglet l'a déjà faite depuis le démarrage. */
+      var w = window;
+      if (!w._yamHomeBounced && !w._yamJeuxBounced && !w._yamMsgBounced && !w._yamMusBounced && !w._yamBouncing && w.yamSwitchTab) {
+        w._yamHomeBounced = true;
+        w.yamSwitchTab('home');
+        var attendre = function () { if (w._yamBouncing) { setTimeout(attendre, 50); return; } openMaison(); };
+        attendre();
+        return;
+      }
+      w._yamHomeBounced = true;
+      openMaison(); return;
+    }
     if (t.closest('#mzBack')) { closeMaison(); return; }
     if (t.closest('#mzLabBtn')) { if (window.yamMaisonLabo) window.yamMaisonLabo.ouvrir(); return; }
     var c = t.closest('#mzPage .mz-card');
