@@ -1,12 +1,12 @@
 /* ============================================================
    app-patate3d.js — TEST de la patate en 3D sur l'Accueil (branche feat/patate3d-accueil)
    Rien ne change tant que le bouton « 3D » n'est pas activé (choix mémorisé dans localStorage).
-   Charge three.js et le modèle (assets/patate3d/patate-v1.glb.gz) seulement à l'activation.
+   Charge three.js et le modèle (assets/patate3d/patate-v2.glb.gz) seulement à l'activation.
    Routine reprise de l'Accueil photos : clignement, regard, sourire, salut. Panneau : un bouton par clip + mesures.
    ============================================================ */
 (function () {
   'use strict';
-  var KEY = 'yam_patate3d', GLB = 'assets/patate3d/patate-v1.glb.gz';
+  var KEY = 'yam_patate3d', GLB = 'assets/patate3d/patate-v2.glb.gz';
   var host = null, T = null, S = null, on = false, loading = false, panelOpen = false;
   var M = { gz: 0, raw: 0, tFetch: 0, tUnzip: 0, tParse: 0, tFirst: 0, fps: 0, worst: 0, frames: 0, heap: 0 };
   var btn, panel, stats, canvas, clipBox;
@@ -18,10 +18,11 @@
   function css() {
     var s = document.createElement('style');
     s.textContent =
+      'body.p3d-on #homeMascot{display:none!important}' +
       '#p3dBtn{position:absolute;left:-6px;top:-6px;z-index:5;min-width:44px;height:36px;padding:0 12px;border:0;border-radius:18px;background:#ff6f61;color:#fff;font:700 15px/36px "Lilita One","Fredoka",sans-serif;letter-spacing:.5px;box-shadow:0 2px 6px rgba(0,0,0,.25)}' +
       '#p3dBtn.on{background:#c4352a}' +
       '#p3dCanvas{position:absolute;left:50%;top:50%;width:220px;height:240px;margin:-120px 0 0 -110px;pointer-events:none;z-index:2}' +
-      '#p3dPanel{position:fixed;left:8px;right:8px;top:calc(var(--safe-top,0px) + 56px);max-height:68vh;overflow:auto;-webkit-overflow-scrolling:touch;z-index:9990;background:rgba(255,248,244,.97);color:#4a2a24;border-radius:16px;padding:12px;box-shadow:0 6px 24px rgba(0,0,0,.35);font:600 13px/1.35 "Fredoka",sans-serif}' +
+      '#p3dPanel{position:fixed;left:8px;right:8px;top:380px;bottom:84px;overflow:auto;-webkit-overflow-scrolling:touch;z-index:9990;background:rgba(255,248,244,.97);color:#4a2a24;border-radius:16px;padding:12px;box-shadow:0 6px 24px rgba(0,0,0,.35);font:600 13px/1.35 "Fredoka",sans-serif}' +
       '#p3dPanel[hidden]{display:none}' +
       '#p3dPanel h4{margin:8px 0 6px;font:700 14px "Lilita One","Fredoka",sans-serif;color:#c4352a}' +
       '#p3dPanel .cl{display:flex;flex-wrap:wrap;gap:6px}' +
@@ -38,18 +39,21 @@
     btn = document.createElement('button'); btn.id = 'p3dBtn'; btn.type = 'button'; btn.textContent = '3D'; btn.setAttribute('aria-label', 'Patate en 3D (test)');
     par.appendChild(btn);
     panel = document.createElement('div'); panel.id = 'p3dPanel'; panel.hidden = true; document.body.appendChild(panel);
-    btn.addEventListener('click', function () { if (!on) activer(); else if (!panelOpen) { panelOpen = true; panel.hidden = false; renderPanel(); } else { panelOpen = false; panel.hidden = true; } });
+    btn.addEventListener('click', function () { if (!on) activer(); else if (!panelOpen) { panelOpen = true; placePanel(); panel.hidden = false; renderPanel(); } else { panelOpen = false; panel.hidden = true; } });
     btn.addEventListener('contextmenu', function (e) { e.preventDefault(); });
     return true;
   }
+  function placePanel() {   /* le panneau se pose SOUS la patate pour qu'on la voie bouger */
+    var b = canvas ? canvas.getBoundingClientRect().bottom : 380; panel.style.top = Math.round(b + 4) + 'px';
+  }
   function renderPanel() {
     var h = '<div class="cl"><button class="c" data-a="off">Revenir aux photos</button><button class="c" data-a="close">Fermer</button></div>';
-    h += '<h4>Mesures</h4><pre id="p3dStats"></pre>';
-    h += '<h4>Routine</h4><label><input type="checkbox" id="p3dRout"' + (S && S.routine ? ' checked' : '') + '> routine automatique (clignement, regard, sourire, salut)</label>';
-    h += '<label><input type="checkbox" id="p3dGrain"' + (S && S.grain ? ' checked' : '') + '> grain de feutre</label>';
     h += '<h4>Clips</h4><div class="cl" id="p3dClips">';
     if (T) T.names.forEach(function (n) { h += '<button class="c" data-clip="' + n + '">' + n.replace('expr_', '').replace('_', ' ') + '</button>'; });
     h += '</div>';
+    h += '<h4>Routine</h4><label><input type="checkbox" id="p3dRout"' + (S && S.routine ? ' checked' : '') + '> routine automatique (clignement, regard, sourire, salut)</label>';
+    h += '<label><input type="checkbox" id="p3dGrain"' + (S && S.grain ? ' checked' : '') + '> grain de feutre</label>';
+    h += '<h4>Mesures</h4><pre id="p3dStats"></pre>';
     panel.innerHTML = h; stats = document.getElementById('p3dStats'); majStats();
   }
   panel_events();
@@ -89,7 +93,7 @@
     btn.textContent = '...'; var t0 = performance.now();
     Promise.all([import('./vendor/three.module.js'), import('./vendor/GLTFLoader.js')]).then(function (mods) {
       var THREE = mods[0], GLTFLoader = mods[1].GLTFLoader;
-      return fetch(GLB).then(function (r) { if (!r.ok) throw new Error('modèle introuvable'); return r.arrayBuffer(); }).then(function (gz) {
+      return charger(GLB, 3).then(function (gz) {
         M.gz = gz.byteLength; M.tFetch = performance.now() - t0; var t1 = performance.now();
         if (typeof DecompressionStream === 'undefined') throw new Error('décompression non supportée');
         var ds = new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip')));
@@ -100,18 +104,21 @@
       }).then(function (gltf) { demarrer(THREE, gltf, t0); });
     }).catch(function (e) { loading = false; btn.textContent = '3D'; lsSet(false); alert('Patate 3D : ' + (e && e.message || e)); });
   }
+  function charger(u, n) {   /* nouvel essai si la connexion est coupée */
+    return fetch(u).then(function (r) { if (!r.ok) throw new Error('modèle introuvable'); return r.arrayBuffer(); }).catch(function (e) { if (n > 1) return new Promise(function (ok) { setTimeout(ok, 800); }).then(function () { return charger(u, n - 1); }); throw e; });
+  }
   function desactiver() {
     on = false; lsSet(false); panelOpen = false; panel.hidden = true;
     if (S) { S.timers.forEach(clearTimeout); S.dead = true; cancelAnimationFrame(S.raf); }
     if (T) { T.renderer.dispose(); if (T.renderer.forceContextLoss) T.renderer.forceContextLoss(); }
     if (canvas && canvas.parentNode) canvas.parentNode.removeChild(canvas);
-    host.style.display = ''; btn.textContent = '3D'; btn.classList.remove('on'); T = null; S = null; loading = false;
+    document.body.classList.remove('p3d-on'); btn.textContent = '3D'; btn.classList.remove('on'); T = null; S = null; loading = false;
   }
 
   /* ---------- scène ---------- */
   function demarrer(THREE, gltf, t0) {
     canvas = document.createElement('canvas'); canvas.id = 'p3dCanvas'; host.parentNode.appendChild(canvas);
-    var W = 220, H = 240, dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var W = 220, H = 240, dpr = Math.min(window.devicePixelRatio || 1, 3);
     var renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true, powerPreference: 'low-power' });
     renderer.setPixelRatio(dpr); renderer.setSize(W, H, false); renderer.outputColorSpace = THREE.SRGBColorSpace;
     var scene = new THREE.Scene();
@@ -125,17 +132,19 @@
     gltf.scene.traverse(function (o) {
       if (!o.isMesh) return; o.frustumCulled = false;
       var m = o.material; if (!m) return;
+      if (m.name && m.name.indexOf('oeil_cornee') === 0) { o.visible = false; return; }   /* verre de l'œil : exporté en noir opaque (il cachait l'iris) */
+      if (m.name && m.name.indexOf('oeil_') === 0) { m.side = THREE.FrontSide; m.polygonOffset = true; m.polygonOffsetFactor = m.name === 'oeil_reflet' ? -3 : m.name === 'oeil_pupille' ? -2 : m.name === 'oeil_iris' ? -1 : 0; m.polygonOffsetUnits = m.polygonOffsetFactor; if (m.name === 'oeil_iris' || m.name === 'oeil_blanc') m.emissive.multiplyScalar(0.35); }
       if (m.name === 'peau' || m.name === 'paupiere' || m.name === 'paupiere_joie') { m.side = THREE.FrontSide; feutre(m, noise, grainU); }
     });
     var box = new THREE.Box3().setFromObject(gltf.scene), c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3());
     var cam = new THREE.PerspectiveCamera(22, W / H, 0.1, 20);
-    var dist = (sz.y * 0.70) / Math.tan(22 * Math.PI / 360);
+    var dist = (sz.y * 0.80) / Math.tan(22 * Math.PI / 360);
     cam.position.set(c.x, c.y, c.z + dist); cam.lookAt(c.x, c.y, c.z);
     var mixer = new THREE.AnimationMixer(gltf.scene), clips = {}, names = [];
     gltf.animations.forEach(function (a) { clips[a.name] = a; if (a.name !== 'repos') names.push(a.name); });
     T = { THREE: THREE, renderer: renderer, scene: scene, cam: cam, mixer: mixer, clips: clips, names: names, root: root, baseY: 0 };
     S = { routine: true, grain: true, grainU: grainU, actifs: [], acts: {}, timers: [], dead: false, raf: 0, base: null, baseKey: '', visible: true };
-    on = true; loading = false; btn.classList.add('on'); btn.textContent = '3D'; host.style.display = 'none';
+    on = true; loading = false; btn.classList.add('on'); btn.textContent = '3D'; document.body.classList.add('p3d-on'); window.__p3d = { T: T, S: S, jouer: jouer };
     baseMaj();
     mixer.addEventListener('finished', function (e) {
       var n = e.action._nom; delete S.acts[n]; S.actifs = S.actifs.filter(function (x) { return x !== n; }); e.action.stop(); baseMaj();
@@ -145,6 +154,7 @@
     (function boucle(now) {
       if (S.dead) return; S.raf = requestAnimationFrame(boucle);
       var dt = Math.min((now - last) / 1000, 0.1); last = now;
+      if (!canvas.isConnected || !btn.isConnected) rattache();
       if (document.hidden || !S.visible) return;
       mixer.update(dt);
       root.scale.y = 1 + Math.sin(now / 1400) * 0.006; root.position.y = Math.sin(now / 1400) * 0.002;   /* respiration légère */
@@ -154,6 +164,11 @@
       acc += dt; nfr++; if (acc >= 1) { M.fps = nfr / acc; acc = 0; nfr = 0; M.worst = ms; if (panelOpen) majStats(); }
     })(performance.now());
     planning();
+  }
+  function rattache() {   /* l'Accueil peut être reconstruit (retour des Paramètres) : on remet bouton et canvas près de la mascotte */
+    var h = document.getElementById('homeMascot'); if (!h) return; host = h;
+    if (!btn.isConnected) h.parentNode.appendChild(btn);
+    if (!canvas.isConnected) h.parentNode.appendChild(canvas);
   }
   function bruit(THREE) {
     var n = 128, d = new Uint8Array(n * n * 4), i;
