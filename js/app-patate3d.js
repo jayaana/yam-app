@@ -20,7 +20,7 @@
     s.textContent =
       '#p3dBtn{position:absolute;left:-6px;top:-6px;z-index:5;min-width:44px;height:36px;padding:0 12px;border:0;border-radius:18px;background:#ff6f61;color:#fff;font:700 15px/36px "Lilita One","Fredoka",sans-serif;letter-spacing:.5px;box-shadow:0 2px 6px rgba(0,0,0,.25)}' +
       '#p3dBtn.on{background:#c4352a}' +
-      '#p3dCanvas{position:absolute;left:50%;bottom:-8px;width:250px;height:280px;margin-left:-125px;pointer-events:none;z-index:2}' +
+      '#p3dCanvas{position:absolute;left:50%;top:50%;width:220px;height:240px;margin:-120px 0 0 -110px;pointer-events:none;z-index:2}' +
       '#p3dPanel{position:fixed;left:8px;right:8px;top:calc(var(--safe-top,0px) + 56px);max-height:68vh;overflow:auto;-webkit-overflow-scrolling:touch;z-index:9990;background:rgba(255,248,244,.97);color:#4a2a24;border-radius:16px;padding:12px;box-shadow:0 6px 24px rgba(0,0,0,.35);font:600 13px/1.35 "Fredoka",sans-serif}' +
       '#p3dPanel[hidden]{display:none}' +
       '#p3dPanel h4{margin:8px 0 6px;font:700 14px "Lilita One","Fredoka",sans-serif;color:#c4352a}' +
@@ -105,19 +105,20 @@
     if (S) { S.timers.forEach(clearTimeout); S.dead = true; cancelAnimationFrame(S.raf); }
     if (T) { T.renderer.dispose(); if (T.renderer.forceContextLoss) T.renderer.forceContextLoss(); }
     if (canvas && canvas.parentNode) canvas.parentNode.removeChild(canvas);
-    host.style.visibility = ''; btn.textContent = '3D'; btn.classList.remove('on'); T = null; S = null; loading = false;
+    host.style.display = ''; btn.textContent = '3D'; btn.classList.remove('on'); T = null; S = null; loading = false;
   }
 
   /* ---------- scène ---------- */
   function demarrer(THREE, gltf, t0) {
     canvas = document.createElement('canvas'); canvas.id = 'p3dCanvas'; host.parentNode.appendChild(canvas);
-    var W = 250, H = 280, dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var W = 220, H = 240, dpr = Math.min(window.devicePixelRatio || 1, 2);
     var renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true, powerPreference: 'low-power' });
     renderer.setPixelRatio(dpr); renderer.setSize(W, H, false); renderer.outputColorSpace = THREE.SRGBColorSpace;
     var scene = new THREE.Scene();
-    scene.add(new THREE.HemisphereLight(0xfff1e6, 0xc98a6a, 1.55));
-    var key = new THREE.DirectionalLight(0xffffff, 2.1); key.position.set(-1.2, 2, 3); scene.add(key);
-    var fill = new THREE.DirectionalLight(0xffd9c4, 0.7); fill.position.set(2, 0.2, 1.5); scene.add(fill);
+    scene.add(new THREE.HemisphereLight(0xfff4ea, 0xb9785a, 1.0));
+    var key = new THREE.DirectionalLight(0xfff6ee, 2.7); key.position.set(-1.6, 2.4, 3); scene.add(key);
+    var fill = new THREE.DirectionalLight(0xffc9b0, 0.6); fill.position.set(2.2, 0.2, 1.5); scene.add(fill);
+    var rim = new THREE.DirectionalLight(0xffe2c8, 1.1); rim.position.set(1.5, 1.2, -2.5); scene.add(rim);
     var root = new THREE.Group(); root.add(gltf.scene); scene.add(root);
     var grainU = { value: 1 };
     var noise = bruit(THREE);
@@ -128,13 +129,13 @@
     });
     var box = new THREE.Box3().setFromObject(gltf.scene), c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3());
     var cam = new THREE.PerspectiveCamera(22, W / H, 0.1, 20);
-    var dist = (sz.y * 0.58) / Math.tan(22 * Math.PI / 360);
+    var dist = (sz.y * 0.70) / Math.tan(22 * Math.PI / 360);
     cam.position.set(c.x, c.y, c.z + dist); cam.lookAt(c.x, c.y, c.z);
     var mixer = new THREE.AnimationMixer(gltf.scene), clips = {}, names = [];
     gltf.animations.forEach(function (a) { clips[a.name] = a; if (a.name !== 'repos') names.push(a.name); });
     T = { THREE: THREE, renderer: renderer, scene: scene, cam: cam, mixer: mixer, clips: clips, names: names, root: root, baseY: 0 };
     S = { routine: true, grain: true, grainU: grainU, actifs: [], acts: {}, timers: [], dead: false, raf: 0, base: null, baseKey: '', visible: true };
-    on = true; loading = false; btn.classList.add('on'); btn.textContent = '3D'; host.style.visibility = 'hidden';
+    on = true; loading = false; btn.classList.add('on'); btn.textContent = '3D'; host.style.display = 'none';
     baseMaj();
     mixer.addEventListener('finished', function (e) {
       var n = e.action._nom; delete S.acts[n]; S.actifs = S.actifs.filter(function (x) { return x !== n; }); e.action.stop(); baseMaj();
