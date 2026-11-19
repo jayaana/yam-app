@@ -2,7 +2,7 @@
 // Cache les assets statiques pour un chargement rapide
 // Ne met PAS en cache les requêtes Supabase (données toujours fraîches)
 
-var CACHE_NAME = 'yam-v495';
+var CACHE_NAME = 'yam-v496';
 
 // Images de la patate (assets/mascotte/img/ : toutes les tenues, ~47 Mo) : cache durable, telechargees UNE fois.
 // Si l'outil photos regenere des images : passer ce nom a yam-mascotte-img-2 (l'ancien est supprime a l'activation).
@@ -54,6 +54,7 @@ var STATIC_ASSETS = [
   '/yam-app/js/app-photos.js',
   '/yam-app/js/app-fps.js',
   '/yam-app/js/app-mascotte.js',
+  '/yam-app/js/app-patate3d.js',
   '/yam-app/js/app-maison-labo.js',
   '/yam-app/assets/mascotte/img/icones/ico-vert-1.webp',
   '/yam-app/assets/mascotte/img/icones/ico-vert-2.webp',
@@ -136,7 +137,7 @@ self.addEventListener('fetch', function(event) {
   }
 
   // ✅ Images de la patate : cache durable, cache d'abord, reseau seulement si absente
-  if (url.indexOf('/assets/mascotte/img/') !== -1) {
+  if (url.indexOf('/assets/mascotte/img/') !== -1 || url.indexOf('/assets/patate3d/') !== -1 || url.indexOf('/js/vendor/') !== -1) {
     event.respondWith(
       caches.open(IMG_CACHE).then(function(ic) {
         var key = url.split('?')[0];
