@@ -1,12 +1,12 @@
 /* ============================================================
    app-patate3d.js — TEST de la patate en 3D sur l'Accueil (branche feat/patate3d-accueil)
    Rien ne change tant que le bouton « 3D » n'est pas activé (choix mémorisé dans localStorage).
-   Charge three.js et le modèle (assets/patate3d/patate-v2.glb.gz) seulement à l'activation.
+   Charge three.js et le modèle (assets/patate3d/patate-v3.glb.gz) seulement à l'activation.
    Routine reprise de l'Accueil photos : clignement, regard, sourire, salut. Panneau : un bouton par clip + mesures.
    ============================================================ */
 (function () {
   'use strict';
-  var KEY = 'yam_patate3d', GLB = 'assets/patate3d/patate-v2.glb.gz';
+  var KEY = 'yam_patate3d', GLB = 'assets/patate3d/patate-v3.glb.gz';
   var host = null, T = null, S = null, on = false, loading = false, panelOpen = false;
   var M = { gz: 0, raw: 0, tFetch: 0, tUnzip: 0, tParse: 0, tFirst: 0, fps: 0, worst: 0, frames: 0, heap: 0 };
   var btn, panel, stats, canvas, clipBox;
