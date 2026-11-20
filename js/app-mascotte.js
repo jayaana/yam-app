@@ -93,12 +93,13 @@
     if (!cid || typeof sb2Upsert !== 'function') return;
     sb2Upsert('patate', { couple_id: cid, jauge: Math.round(shared.jauge * 10) / 10, jauge_maj: new Date(shared.jmaj).toISOString() });
   }
-  function fete() {
-    if (!homeVisible()) return;
-    armed = false;
+  function fete(manuel) {   /* manuel : bouton « fête » du panneau 3D (ne touche pas au déclenchement par la jauge) */
+    if (!homeVisible() || Date.now() < feteUntil) return;   /* fête en cours : ni coupée ni relancée par les cœurs suivants */
+    if (!manuel) armed = false;
     feteUntil = Date.now() + FETE_MS;
     if (home) home.calme();   /* la fête prend la place d'un saut en cours */
     sync();
+    if (window.yamP3d && window.yamP3d.fete) window.yamP3d.fete();   /* patate 3D : 4 sauts, les deux bras levés */
     var btn = document.getElementById('p3dCanvas'), n = 0;   /* cœurs autour de la patate 3D */
     clearInterval(feteTimer);
     feteTimer = setInterval(function () {
@@ -186,6 +187,7 @@
     if (stage && pageOpen()) stage.humeur(showCasque ? 'ecoute' : 'repos');
   }
   window.mascotteSync = sync;
+  window.mascotteFete = function () { fete(true); };
 
   /* Joie au clic sur le cœur : saut + chewing-gum + yeux souriants (pose repos seulement) */
   function joie() {

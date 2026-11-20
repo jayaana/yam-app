@@ -49,7 +49,7 @@
     var h = '<div class="cl"><button class="c" data-a="close">Fermer</button></div>';
     h += '<h4>Clips</h4><div class="cl" id="p3dClips">';
     if (T) T.names.forEach(function (n) { h += '<button class="c" data-clip="' + n + '">' + n.replace('expr_', '').replace('_', ' ') + '</button>'; });
-    h += '<button class="c" data-a="saut">saut</button>';
+    h += '<button class="c" data-a="saut">saut</button><button class="c" data-a="fete">fête</button>';
     h += '</div>';
     h += '<h4>Routine</h4><label><input type="checkbox" id="p3dRout"' + (S && S.routine ? ' checked' : '') + '> routine automatique (clignement, regard, sourire, salut)</label>';
     h += '<label><input type="checkbox" id="p3dGrain"' + (S && S.grain ? ' checked' : '') + '> grain de feutre</label>';
@@ -62,7 +62,8 @@
       var t = e.target; if (!t || !t.closest || !panel || !panel.contains(t)) return;
       var b = t.closest('button'); if (!b) return;
       if (b.dataset.clip) jouer(b.dataset.clip, true);
-      else if (b.dataset.a === 'saut') { if (S && S.saut < 0) S.saut = 0; }   /* saut seul, quelle que soit l'humeur */
+      else if (b.dataset.a === 'saut') { if (S && !S.acts.bras_haut) { if (S.saut === -1) S.saut = 0; visageJoie(); } }   /* saut + visage de joie, quelle que soit l'humeur */
+      else if (b.dataset.a === 'fete') { if (window.mascotteFete) window.mascotteFete(); else fete(); }   /* vraie fête : cœurs, visage de joie tenu 5 s, 4 sauts bras levés */   /* saut seul, quelle que soit l'humeur */
       else if (b.dataset.a === 'close') { panelOpen = false; panel.hidden = true; }
     });
     document.addEventListener('change', function (e) {
@@ -222,8 +223,14 @@
       });
       if (tr.length) { var nm = 'regard_' + v + '_' + h; clips[nm] = new THREE.AnimationClip(nm, ch.duration, tr); names.push(nm); }
     }); });
+    /* « bras_haut » (fête) : les DEUX bras levés = pose du bras levé du salut (t = BRAS_T), recopiée en miroir (x, -y, -z, w) sur l'autre bras ; montée 0,15 s, tenue pendant les sauts, descente 0,3 s */
+    if (clips.salut) (function () {
+      var t0 = clips.salut.tracks.filter(function (x) { return /os_bras0\.quaternion$/.test(x.name); })[0], t1 = clips.salut.tracks.filter(function (x) { return /os_bras1\.quaternion$/.test(x.name); })[0]; if (!t0 || !t1) return;
+      var r0 = Array.from(t0.values.slice(0, 4)), r1 = Array.from(t1.values.slice(0, 4)), q = t0.createInterpolant().evaluate(BRAS_T), up0 = [q[0], q[1], q[2], q[3]], up1 = [q[0], -q[1], -q[2], q[3]], D = SAUTS * SAUT_FIN + (SAUTS - 1) * SAUT_PAUSE, tk = [0, 0.15, D - 0.05, D + 0.25];
+      clips.bras_haut = new THREE.AnimationClip('bras_haut', D + 0.25, [new THREE.QuaternionKeyframeTrack(t0.name, tk, [].concat(r0, up0, up0, r0)), new THREE.QuaternionKeyframeTrack(t1.name, tk, [].concat(r1, up1, up1, r1))]);
+    })();
     T = { THREE: THREE, renderer: renderer, scene: scene, cam: cam, mixer: mixer, clips: clips, names: names, root: root, baseY: 0 };
-    S = { routine: true, grain: true, grainU: grainU, actifs: [], sortants: [], acts: {}, timers: [], dead: false, raf: 0, base: null, baseKey: '', visible: true, hum: 'repos', tenir: null, saut: -1 };
+    S = { routine: true, grain: true, grainU: grainU, actifs: [], sortants: [], acts: {}, timers: [], dead: false, raf: 0, base: null, baseKey: '', visible: true, hum: 'repos', tenir: null, saut: -1, sautN: 0 };
     on = true; loading = false; btn.classList.add('on'); btn.textContent = '3D'; document.body.classList.add('p3d-on'); window.__p3d = { T: T, S: S, jouer: jouer, majPeau: majPeau, fondus: fondus, finir: function () { finir(); }, GRAIN_F: GRAIN_F };
     baseMaj(); mixer.update(0); avK = avancePaupiere(THREE, gltf.scene) || [];
     /* Fin d'un clip traitée APRÈS mixer.update : arrêter une action (et changer le repos) pendant la mise à jour réordonne la liste des actions
@@ -237,7 +244,7 @@
     }
     if ('IntersectionObserver' in window) new IntersectionObserver(function (en) { S.visible = en[0].isIntersecting; }).observe(canvas);
     var last = performance.now(), acc = 0, nfr = 0, first = true, chk = 0, ph = 0;
-    window.yamP3d = { humeur: humeur, joie: joie };   /* piloté par js/app-mascotte.js (humeur de la jauge de cœurs, tapotage du cœur) */
+    window.yamP3d = { humeur: humeur, joie: joie, fete: fete };   /* piloté par js/app-mascotte.js (humeur de la jauge de cœurs, tapotage du cœur) */
     (function boucle(now) {
       if (S.dead) return; S.raf = requestAnimationFrame(boucle);
       var dt = Math.min((now - last) / 1000, 0.1); last = now;
@@ -250,7 +257,8 @@
       mixer.update(dt); finir(); fondus(); tenir(); majPeau();
       ph += dt * mixer.timeScale;   /* respiration légère, ralentie avec le reste quand elle est triste */
       var js = 1, jy = 0;
-      if (S.saut >= 0) { var sp = sautPose(S.saut); js = sp.sy; jy = sp.y * sz.y; S.saut += dt; if (S.saut > SAUT_FIN) S.saut = -1; }
+      if (S.saut >= 0) { var sp = sautPose(S.saut); js = sp.sy; jy = sp.y * sz.y; S.saut += dt; if (S.saut > SAUT_FIN) { if (S.sautN > 0) { S.sautN--; S.saut = -SAUT_PAUSE; } else S.saut = -1; } }
+      else if (S.saut > -1) S.saut = Math.min(0, S.saut + dt);   /* pause au sol entre deux sauts de la fête */
       var jx = 1 / Math.sqrt(js);   /* volume gardé : écrasée = plus large, étirée = plus fine ; pieds fixes (box.min.y) */
       root.scale.set(jx, (1 + Math.sin(ph / 1.4) * 0.006) * js, jx); root.position.y = Math.sin(ph / 1.4) * 0.002 + jy + box.min.y * (1 - js);
       renderer.render(scene, cam);
@@ -679,12 +687,22 @@
     return { sy: a[1] + (b[1] - a[1]) * u, y: v > 0 && v < 1 ? 0.20 * 4 * v * (1 - v) : 0 };
   }
   var joieT = 0;
-  function joie() {   /* tapotage du cœur : saut (repos ou content ; un saut à la fois) + visage de joie (repos ; en fête il est déjà tenu) */
-    if (!S || S.dead || !T || (S.hum !== 'repos' && S.hum !== 'content')) return;
-    if (S.saut < 0) S.saut = 0;
-    if (S.hum !== 'repos' || joieT || S.acts.expr_joie) return;
-    if (S.acts.clignement) { joieT = setTimeout(function () { joieT = 0; joie(); }, 120); return; }
+  function visageJoie() {   /* visage de joie, pas pendant un clignement (paupières empilées) */
+    if (joieT || S.acts.expr_joie) return;
+    if (S.acts.clignement) { joieT = setTimeout(function () { joieT = 0; if (S && !S.dead) visageJoie(); }, 120); return; }
     jouer('expr_joie');
+  }
+  function joie() {   /* tapotage du cœur : saut (repos ou content ; un saut à la fois) + visage de joie (repos ; en fête il est déjà tenu). Rien pendant la fête (bras levés) */
+    if (!S || S.dead || !T || (S.hum !== 'repos' && S.hum !== 'content') || S.acts.bras_haut) return;
+    if (S.saut === -1) S.saut = 0;
+    if (S.hum === 'repos') visageJoie();
+  }
+  var SAUTS = 4, SAUT_PAUSE = 0.12, BRAS_T = 1.02;   /* fête : 4 sauts (3,1 s ; la fête dure 5 s), 0,12 s au sol entre deux ; pose des bras prise dans le salut à 1,02 s */
+  function fete() {   /* jauge au maximum (fête de js/app-mascotte.js) : 4 sauts de joie enchaînés, les deux bras levés ; le visage de joie est tenu par l'humeur « content » */
+    if (!S || S.dead || !T || S.hum === 'triste') return;
+    var a = S.acts.salut; if (a) { a.stop(); delete S.acts.salut; S.actifs = S.actifs.filter(function (x) { return x !== 'salut'; }); }   /* le salut bouge les mêmes bras */
+    if (S.acts.bras_haut) return;
+    jouer('bras_haut'); S.sautN = SAUTS - 1; S.saut = 0;
   }
   function libre(n) { return !S.acts[n]; }
   function every(a, b, fn) { (function go() { if (!S || S.dead) return; var t = setTimeout(function () { if (S && S.routine && !document.hidden && S.visible) fn(); go(); }, rnd(a, b)); S.timers.push(t); })(); }
@@ -710,7 +728,7 @@
       jouer(sacE(true));
     }
     every(6000, 7400, expression);
-    every(34000, 46000, function () { if (libre('salut')) jouer('salut'); });   /* salut : aussi pendant une expression (il ne bouge que le corps) ; triste : ralenti avec le reste */
+    every(34000, 46000, function () { if (libre('salut') && libre('bras_haut')) jouer('salut'); });   /* salut : aussi pendant une expression (il ne bouge que le corps) ; triste : ralenti avec le reste */
   }
 
   document.addEventListener('DOMContentLoaded', function () {
