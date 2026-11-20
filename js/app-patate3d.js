@@ -1,12 +1,12 @@
 /* ============================================================
    app-patate3d.js — TEST de la patate en 3D sur l'Accueil (branche feat/patate3d-accueil)
    Rien ne change tant que le bouton « 3D » n'est pas activé (choix mémorisé dans localStorage).
-   Charge three.js et le modèle (assets/patate3d/patate-v3.glb.gz) seulement à l'activation.
+   Charge three.js et le modèle (assets/patate3d/patate-v5.glb.gz) seulement à l'activation.
    Routine reprise de l'Accueil photos : clignement, regard, sourire, salut. Panneau : un bouton par clip + mesures.
    ============================================================ */
 (function () {
   'use strict';
-  var KEY = 'yam_patate3d', GLB = 'assets/patate3d/patate-v3.glb.gz';
+  var KEY = 'yam_patate3d', GLB = 'assets/patate3d/patate-v5.glb.gz';
   var host = null, T = null, S = null, on = false, loading = false, panelOpen = false;
   var M = { gz: 0, raw: 0, tFetch: 0, tUnzip: 0, tParse: 0, tFirst: 0, fps: 0, worst: 0, frames: 0, heap: 0 };
   var btn, panel, stats, canvas, clipBox;
@@ -127,36 +127,106 @@
     var fill = new THREE.DirectionalLight(0xffc9b0, 0.6); fill.position.set(2.2, 0.2, 1.5); scene.add(fill);
     var rim = new THREE.DirectionalLight(0xffe2c8, 1.1); rim.position.set(1.5, 1.2, -2.5); scene.add(rim);
     var root = new THREE.Group(); root.add(gltf.scene); scene.add(root);
-    var grainU = { value: 1 };
-    var noise = bruit(THREE);
+    var grainU = { value: 1 }, skinU = { we: { value: 0 }, wm: { value: 0 }, ws: { value: 0 }, wb: { value: 0 } }, corps = null;
+    var noise = bruit(THREE), blancs = [];
     gltf.scene.traverse(function (o) {
       if (!o.isMesh) return; o.frustumCulled = false;
+      var mn = o.geometry.morphAttributes.normal;   /* export : certaines formes (corps : bouche_neutre, bouche_ouv1..10) ont pour « écart de normale » la normale de base elle-même
+         → relief de l'œil fermé éclairé à moitié dès qu'une de ces bouches est active (effet panda à 0,25 s et 1,6 s de la joie). Écart nul à la place. */
+      if (mn) for (var ni = 0; ni < mn.length; ni++) if (mn[ni] === o.geometry.attributes.normal || mn[ni].array === o.geometry.attributes.normal.array) mn[ni] = new THREE.Float32BufferAttribute(new Float32Array(mn[ni].count * 3), 3);
       var m = o.material; if (!m) return;
-      if (m.name && m.name.indexOf('oeil_cornee') === 0) { o.visible = false; return; }   /* verre de l'œil : exporté en noir opaque (il cachait l'iris) */
-      if (m.name && m.name.indexOf('oeil_') === 0) { m.side = THREE.FrontSide; m.polygonOffset = true; m.polygonOffsetFactor = m.name === 'oeil_reflet' ? -3 : m.name === 'oeil_pupille' ? -2 : m.name === 'oeil_iris' ? -1 : 0; m.polygonOffsetUnits = m.polygonOffsetFactor; if (m.name === 'oeil_iris' || m.name === 'oeil_blanc') m.emissive.multiplyScalar(0.35); }
-      if (m.name === 'peau' || m.name === 'paupiere' || m.name === 'paupiere_joie') { m.side = THREE.FrontSide; feutre(m, noise, grainU); }
+      if (m.name && m.name.indexOf('oeil_cornee') === 0) { o.material = verre(THREE); o.renderOrder = 3; return; }   /* verre de l'œil : exporté en noir opaque, remplacé par un vrai verre transparent + voile de reflet gris chaud en haut */
+      if (m.name && m.name.indexOf('oeil_') === 0) { m.side = THREE.FrontSide; m.polygonOffset = m.name !== 'oeil_reflet'; m.polygonOffsetFactor = m.name === 'oeil_pupille' ? -2 : m.name === 'oeil_iris' ? -1 : 0; m.polygonOffsetUnits = m.polygonOffsetFactor; if (m.name === 'oeil_iris' || m.name === 'oeil_blanc') m.emissive.multiplyScalar(0.35); }   /* reflet : pas de décalage de profondeur (il passait devant la paupière fermée) */
+      if (m.name === 'oeil_blanc' && o.geometry.attributes.color) { o.material = m = m.clone(); blancs.push(blancFixe(THREE, o)); }
+      if (m.name === 'peau' && o.geometry.attributes._skin && o.morphTargetDictionary) { m = o.material = m.clone(); corps = o; }
+      if (m.name === 'paupiere_joie') normalesFormes(THREE, o, gltf.scene);
+      if (m.name === 'peau' || m.name === 'paupiere' || m.name === 'paupiere_joie') { m.side = THREE.FrontSide; feutre(m, noise, grainU, o === corps ? skinU : null); }
     });
+    var yeuxM = []; gltf.scene.traverse(function (o) { if (o.isMesh && /^oeil/.test(o.name)) yeuxM.push(o); });
+    var fermes = []; gltf.scene.traverse(function (o) { if (o.isMesh && o.morphTargetDictionary && o.morphTargetDictionary.ferme !== undefined) fermes.push([o, o.morphTargetDictionary.ferme, o.morphTargetDictionary.plisse]); });
+    var jyK = [], jpK = [], pbK = []; gltf.scene.traverse(function (o) { var d = o.isMesh && o.morphTargetDictionary; if (!d) return; if (d.jy_pre !== undefined) jyK.push([o, d.jy_pre]); if (d.jy_in !== undefined) jyK.push([o, d.jy_in]); if (/^paupiere\d$/.test(o.name) && d.joie !== undefined) jpK.push([o, d.joie]); if (/^paupiere_bas\d$/.test(o.name) && d.joie !== undefined) pbK.push([o, d.joie]); });
+    /* Joie : l'œil se fermait en 6 étapes (paupière jpaup qui descend + traits cil0/1_haut/bas) → bourrelet autour de l'œil (« cernes »).
+       Œil de joie tout-ou-rien (comme le clignement) : ces pièces sont cachées, l'arc de l'œil fermé est posé dès la mi-fermeture. */
+    var arcK = [], cilK = [];
+    gltf.scene.traverse(function (o) { if (!o.isMesh) return; if (/^(jpaup\d|cil\d_(haut|bas))$/.test(o.name)) o.visible = false; if (/^arcjoie\d$/.test(o.name) && o.morphTargetDictionary) arcK.push([o.morphTargetInfluences, o.morphTargetDictionary]); if (/^cils_ouv\d$/.test(o.name) && o.morphTargetDictionary && o.morphTargetDictionary.joie !== undefined) cilK.push([o.morphTargetInfluences, o.morphTargetDictionary.joie]); });   /* cils de l'œil ouvert : gardés jusqu'à la fermeture */
+    var dic = corps ? corps.morphTargetDictionary : null, nOuv = [];
+    if (dic) for (var q = 1; q <= 10; q++) nOuv.push(dic['bouche_ouv' + q]);
+    var mSour = gltf.scene.getObjectByName('sourcils'), mBou = gltf.scene.getObjectByName('bouche'), iNeutre = mBou && mBou.morphTargetDictionary ? mBou.morphTargetDictionary.bouche_neutre : -1;
+    if (corps) { fantomes(THREE, corps, mSour, mBou, iNeutre); points(THREE, corps, skinU); }
+    function majPeau() {   /* poids « yeux fermés » et « bouche ouverte » du corps, pour la peau propre */
+      for (var fi = 0; fi < fermes.length; fi++) { var fw = fermes[fi][0].morphTargetInfluences, fk = fermes[fi][1]; fw[fk] = fw[fk] >= 0.5 ? 1 : 0; if (fw[fk] && fermes[fi][2] !== undefined) fw[fermes[fi][2]] = 0; }   /* œil fermé : le plissé (méfiant) est retiré, sinon les deux formes s'additionnaient (paupière 585 px au lieu de 412, sous l'œil) ; clignement net : à mi-chemin, l'iris et la peau qui ferme l'œil passaient DANS le globe (formes linéaires) → œil blanc vide 2 images */
+      for (var bi = 0; bi < blancs.length; bi++) blancs[bi].u.value.setFromMatrix4(blancs[bi].m4.makeRotationFromQuaternion(blancs[bi].o.quaternion));   /* ombre du creux de l'œil : suit l'orbite, pas le globe */
+      if (!dic) return;
+      var wj = corps.morphTargetInfluences, jo = wj[dic.joie] || 0, pj = jo + (wj[dic.jy_pre] || 0), ji, tj, tp;   /* joie nette : entre ouvert et plissé (0 < p < 0,9), l'iris et la paupière (formes linéaires) passaient DANS le globe → œil blanc sans pupille ~0,1 s au début et à la fin ; tout-ou-rien à mi-chemin, comme le clignement */
+      if (pj > 0) {   /* œil fermé = exactement l'état du milieu de la joie (corps « joie » à 1, sans la forme jy_pre qui faisait un autre relief bombé à 0,25 s et 1,6 s) */
+        tp = pj < 0.5 ? 0 : 1;
+        for (ji = 0; ji < jyK.length; ji++) jyK[ji][0].morphTargetInfluences[jyK[ji][1]] = 0;
+        for (ji = 0; ji < jpK.length; ji++) jpK[ji][0].morphTargetInfluences[jpK[ji][1]] = tp;
+        if (tp) { wj[dic.joie] = 1; for (ji = 0; ji < pbK.length; ji++) pbK[ji][0].morphTargetInfluences[pbK[ji][1]] = 1; }
+      }
+      for (ji = 0; ji < arcK.length; ji++) { var aw = arcK[ji][0], ad = arcK[ji][1]; aw[ad.joie] = pj >= 0.5 ? 1 : 0; aw[ad.jy_sous] = 0; aw[ad.jy_sur] = 0; }
+      for (ji = 0; ji < cilK.length; ji++) cilK[ji][0][cilK[ji][1]] = pj >= 0.5 ? 1 : 0;
+      var w = corps.morphTargetInfluences, e =(w[dic.ferme] || 0) + (w[dic.joie] || 0) + (w[dic.jy_pre] || 0), b = w[dic.bouche_rire] || 0, i;
+      for (i = 0; i < 10; i++) if (nOuv[i] !== undefined) b += (w[nOuv[i]] || 0) * (i + 1) / 10;
+      skinU.we.value = Math.min(1, e); skinU.wm.value = Math.min(1, b);
+      var ws = 0, wb = 0, wi;   /* sourcil ou bouche qui quittent leur place de repos : la peinture de repos dessous passe en peau propre */
+      if (mSour && mSour.morphTargetInfluences) for (wi = 0; wi < mSour.morphTargetInfluences.length; wi++) ws += mSour.morphTargetInfluences[wi];
+      if (mBou && mBou.morphTargetInfluences) for (wi = 0; wi < mBou.morphTargetInfluences.length; wi++) if (wi !== iNeutre) wb += mBou.morphTargetInfluences[wi];
+      skinU.ws.value = Math.min(1, ws * 1.5); skinU.wb.value = Math.min(1, wb * 1.5);
+      var ouv = e < 0.9; for (i = 0; i < yeuxM.length; i++) if (yeuxM[i].visible !== ouv) yeuxM[i].visible = ouv;   /* yeux fermés : la paupière les couvre, on les masque (le globe traversait la paupière) */
+    }
     var box = new THREE.Box3().setFromObject(gltf.scene), c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3());
     var cam = new THREE.PerspectiveCamera(22, W / H, 0.1, 20);
     var dist = (sz.y * 0.80) / Math.tan(22 * Math.PI / 360);
     cam.position.set(c.x, c.y, c.z + dist); cam.lookAt(c.x, c.y, c.z);
     var mixer = new THREE.AnimationMixer(gltf.scene), clips = {}, names = [];
+    /* GLTFLoader applique aussi les poids de formes d'un nœud (ex. oeil0, 1 clé) à tous ses enfants (iris, reflets… 3 clés) : pistes de mauvaise taille → poids NaN, iris invisible.
+       On retire toute piste de formes dont la taille ne correspond pas au nombre de clés de la pièce. */
+    gltf.animations.forEach(function (a) {
+      a.tracks = a.tracks.filter(function (tr) {
+        var mm = /^(.*)\.morphTargetInfluences$/.exec(tr.name); if (!mm) return true;
+        var ob = gltf.scene.getObjectByName(mm[1]); return !ob || !ob.morphTargetInfluences || tr.values.length / tr.times.length === ob.morphTargetInfluences.length;
+      });
+    });
+    /* L'export écrit TOUTES les clés de forme d'une pièce dans chaque clip (un tableau par pièce), y compris celles que le clip n'anime pas.
+       Deux clips qui se chevauchent étaient alors moyennés à 50/50 (clignement pendant le sourire : paupière fermée à moitié ; joie + clignement :
+       sillon du sourire de repos à moitié sous la bouche qui rit = bouche en double). On découpe chaque piste en une piste par clé, et un clip
+       ne garde que les clés qu'il fait varier : les autres viennent du « repos » (baseMaj ne lui retire que les clés prises). */
+    gltf.animations.forEach(function (a) {
+      var out = [];
+      a.tracks.forEach(function (tr) {
+        if (!/\.morphTargetInfluences$/.test(tr.name)) { out.push(tr); return; }
+        var n = tr.times.length, vs = tr.values.length / n, it = tr.getInterpolation();
+        for (var i = 0; i < vs; i++) {
+          var v = new Float32Array(n), lo = Infinity, hi = -Infinity, k;
+          for (k = 0; k < n; k++) { v[k] = tr.values[k * vs + i]; if (v[k] < lo) lo = v[k]; if (v[k] > hi) hi = v[k]; }
+          if (a.name !== 'repos' && hi - lo < 1e-5) continue;
+          out.push(new THREE.NumberKeyframeTrack(tr.name + '[' + i + ']', tr.times, v, it));
+        }
+      });
+      a.tracks = out;
+    });
     gltf.animations.forEach(function (a) { clips[a.name] = a; if (a.name !== 'repos') names.push(a.name); });
     T = { THREE: THREE, renderer: renderer, scene: scene, cam: cam, mixer: mixer, clips: clips, names: names, root: root, baseY: 0 };
-    S = { routine: true, grain: true, grainU: grainU, actifs: [], acts: {}, timers: [], dead: false, raf: 0, base: null, baseKey: '', visible: true };
-    on = true; loading = false; btn.classList.add('on'); btn.textContent = '3D'; document.body.classList.add('p3d-on'); window.__p3d = { T: T, S: S, jouer: jouer };
+    S = { routine: true, grain: true, grainU: grainU, actifs: [], sortants: [], acts: {}, timers: [], dead: false, raf: 0, base: null, baseKey: '', visible: true };
+    on = true; loading = false; btn.classList.add('on'); btn.textContent = '3D'; document.body.classList.add('p3d-on'); window.__p3d = { T: T, S: S, jouer: jouer, majPeau: majPeau, fondus: fondus, GRAIN_F: GRAIN_F };
     baseMaj();
     mixer.addEventListener('finished', function (e) {
-      var n = e.action._nom; delete S.acts[n]; S.actifs = S.actifs.filter(function (x) { return x !== n; }); e.action.stop(); baseMaj();
+      var n = e.action._nom; if (S.acts[n] !== e.action) { e.action.stop(); return; }   /* expression remplacée (déjà retirée) */
+      delete S.acts[n]; S.actifs = S.actifs.filter(function (x) { return x !== n; }); e.action.stop(); baseMaj();
     });
     if ('IntersectionObserver' in window) new IntersectionObserver(function (en) { S.visible = en[0].isIntersecting; }).observe(canvas);
-    var last = performance.now(), acc = 0, nfr = 0, first = true;
+    var last = performance.now(), acc = 0, nfr = 0, first = true, chk = 0;
     (function boucle(now) {
       if (S.dead) return; S.raf = requestAnimationFrame(boucle);
       var dt = Math.min((now - last) / 1000, 0.1); last = now;
       if (!canvas.isConnected || !btn.isConnected) rattache();
+      if (++chk >= 30) {   /* toutes les ~0,5 s : vraie place à l'écran (l'observateur restait parfois bloqué sur « caché » après la connexion ou une reconstruction de l'Accueil → patate figée) */
+        chk = 0; var rc = canvas.getBoundingClientRect();
+        S.visible = rc.width > 0 && rc.bottom > 0 && rc.right > 0 && rc.top < window.innerHeight && rc.left < window.innerWidth;
+      }
       if (document.hidden || !S.visible) return;
-      mixer.update(dt);
+      mixer.update(dt); fondus(); majPeau();
       root.scale.y = 1 + Math.sin(now / 1400) * 0.006; root.position.y = Math.sin(now / 1400) * 0.002;   /* respiration légère */
       renderer.render(scene, cam);
       if (first) { first = false; M.tFirst = performance.now() - t0; }
@@ -170,18 +240,151 @@
     if (!btn.isConnected) h.parentNode.appendChild(btn);
     if (!canvas.isConnected) h.parentNode.appendChild(canvas);
   }
+  /* Paupières de joie (jpaup) : exportées sans normales de formes. Pliées en joie, elles gardaient l'orientation du repos face à la lumière
+     → paupières blanches. Les normales recalculées sur le pli pointaient vers le haut (triangles écrasés) : encore pâles, et le grain projeté
+     de travers faisait des rayures. La paupière recouvre le globe de l'œil : pour chaque forme, normale = du centre du globe vers le sommet
+     (comme une vraie paupière), ajoutée en écart aux normales d'origine du repos. */
+  function normalesFormes(THREE, o, scene) {
+    var g = o.geometry, mp = g.morphAttributes.position; if (!mp || !mp.length || g.morphAttributes.normal) return;
+    scene.updateMatrixWorld(true);
+    var inv = o.matrixWorld.clone().invert(), cs = [], i, k;
+    ['oeil0', 'oeil1'].forEach(function (nm) { var e = scene.getObjectByName(nm); if (e) cs.push(e.getWorldPosition(new THREE.Vector3()).applyMatrix4(inv)); });
+    if (!cs.length) return;
+    var p0 = g.attributes.position, n0 = g.attributes.normal, n = p0.count, rel = g.morphTargetsRelative, mx = 0, my = 0, mz = 0;
+    for (i = 0; i < n; i++) { mx += p0.getX(i); my += p0.getY(i); mz += p0.getZ(i); }
+    var mc = new THREE.Vector3(mx / n, my / n, mz / n), C = cs.reduce(function (a, b) { return a.distanceTo(mc) <= b.distanceTo(mc) ? a : b; });   /* globe le plus proche de cette paupière */
+    var out = [];
+    for (k = 0; k < mp.length; k++) {
+      var d = mp[k], dn = new Float32Array(n * 3);
+      for (i = 0; i < n; i++) {
+        var x = (rel ? p0.getX(i) : 0) + d.getX(i) - C.x, y = (rel ? p0.getY(i) : 0) + d.getY(i) - C.y, z = (rel ? p0.getZ(i) : 0) + d.getZ(i) - C.z, l = Math.sqrt(x * x + y * y + z * z) || 1;
+        dn[i * 3] = x / l - (rel ? n0.getX(i) : 0); dn[i * 3 + 1] = y / l - (rel ? n0.getY(i) : 0); dn[i * 3 + 2] = z / l - (rel ? n0.getZ(i) : 0);
+      }
+      out.push(new THREE.BufferAttribute(dn, 3));
+    }
+    g.morphAttributes.normal = out;
+  }
+  function verre(THREE) {   /* cornée : verre léger (presque invisible) + voile gris chaud sur le haut (reflet de la lumière, comme Blender) */
+    var m = new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.10, roughness: 0.06, metalness: 0, depthWrite: false, side: THREE.FrontSide, specularIntensity: 1.0 });
+    m.onBeforeCompile = function (sh) {
+      sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>',
+        '#include <dithering_fragment>\n{float up=smoothstep(0.10,0.80,normalize(vNormal).y*1.0+0.25*normalize(vNormal).x);vec3 vo=vec3(0.62,0.57,0.52);gl_FragColor.rgb=mix(gl_FragColor.rgb,vo,up*0.85);gl_FragColor.a=max(gl_FragColor.a,up*0.30);}');
+    };
+    return m;
+  }
+  /* Blanc de l'œil : l'ombre du creux (occlusion cuite par sommet au repos) était peinte SUR le globe ; quand l'œil tourne (regard), elle entrait
+     dans le blanc (plaque brune à bord en escalier). On la range dans une petite image indexée par la direction vue depuis l'orbite, et le shader
+     la lit avec la rotation de l'œil retirée : l'ombre reste fixe dans le creux, lissée (plus de triangles visibles). */
+  function blancFixe(THREE, o) {
+    /* Sous l'iris, la cuisson est presque noire (l'iris cachait la lumière) : c'est pourtant du blanc qui apparaît quand l'œil tourne.
+       Zone sous l'iris = couleur du blanc réellement visible au repos ; ailleurs = cuisson (ombre douce des paupières), lissée. */
+    var p = o.geometry.attributes.position, c = o.geometry.attributes.color, n = p.count, W = 128, H = 64, i, k;
+    var dx = new Float32Array(n), dy = new Float32Array(n), dz = new Float32Array(n), ax = 0, ay = 0, az = 0, rI = 0, ir = null;
+    for (i = 0; i < n; i++) { var x = p.getX(i), y = p.getY(i), z = p.getZ(i), l = Math.sqrt(x * x + y * y + z * z) || 1; dx[i] = x / l; dy[i] = y / l; dz[i] = z / l; }
+    o.traverse(function (s) { if (!ir && s.isMesh && s.material && s.material.name === 'oeil_iris') ir = s.geometry.attributes.position; });
+    if (ir) {
+      for (i = 0; i < ir.count; i++) { var ix = ir.getX(i), iy = ir.getY(i), iz = ir.getZ(i), il = Math.sqrt(ix * ix + iy * iy + iz * iz) || 1; ax += ix / il; ay += iy / il; az += iz / il; }
+      var al = Math.sqrt(ax * ax + ay * ay + az * az); ax /= al; ay /= al; az /= al;
+      for (i = 0; i < ir.count; i++) { var jl = Math.sqrt(ir.getX(i) * ir.getX(i) + ir.getY(i) * ir.getY(i) + ir.getZ(i) * ir.getZ(i)) || 1; rI = Math.max(rI, Math.acos(Math.min(1, (ir.getX(i) * ax + ir.getY(i) * ay + ir.getZ(i) * az) / jl))); }
+    } else { az = 1; }
+    var wr = 0, wg = 0, wb = 0, wn = 0, lmax = 0;   /* couleur du blanc visible : sommets les plus clairs à l'avant */
+    for (i = 0; i < n; i++) if (dx[i] * ax + dy[i] * ay + dz[i] * az > 0.7) lmax = Math.max(lmax, 0.3 * c.getX(i) + 0.59 * c.getY(i) + 0.11 * c.getZ(i));
+    for (i = 0; i < n; i++) if (dx[i] * ax + dy[i] * ay + dz[i] * az > 0.7 && 0.3 * c.getX(i) + 0.59 * c.getY(i) + 0.11 * c.getZ(i) > lmax * 0.88) { wr += c.getX(i); wg += c.getY(i); wb += c.getZ(i); wn++; }
+    wr /= wn; wg /= wn; wb /= wn;
+    var d = new Uint8Array(W * H * 4), S2 = 0.0016, cMin = Math.cos(1.2), dk = Math.PI / 180;
+    var ref = [0, 0, 0]; for (i = 0; i < n; i++) if (dx[i] * ax + dy[i] * ay + dz[i] * az < cMin) { ref[0] += c.getX(i); ref[1] += c.getY(i); ref[2] += c.getZ(i); ref[3] = (ref[3] || 0) + 1; }
+    if (ref[3]) { ref[0] /= ref[3]; ref[1] /= ref[3]; ref[2] /= ref[3]; }
+    for (k = 0; k < W * H; k++) {
+      var u = ((k % W) + 0.5) / W, v = (Math.floor(k / W) + 0.5) / H, th = (u - 0.5) * 2 * Math.PI, ph = v * Math.PI;
+      var tx = Math.sin(ph) * Math.sin(th), ty = Math.cos(ph), tz = Math.sin(ph) * Math.cos(th), sw = 0, r = ref[0], g = ref[1], b = ref[2];
+      var fa = tx * ax + ty * ay + tz * az;
+      if (fa > cMin) {
+        r = g = b = 0;
+        for (i = 0; i < n; i++) { var q = tx * dx[i] + ty * dy[i] + tz * dz[i]; if (q < 0.985) continue; var w = Math.exp((q - 1) / S2); sw += w; r += w * c.getX(i); g += w * c.getY(i); b += w * c.getZ(i); }
+        if (sw > 1e-6) { r /= sw; g /= sw; b /= sw; } else { r = ref[0]; g = ref[1]; b = ref[2]; }
+        var an = Math.acos(Math.min(1, fa)), wI = Math.min(1, Math.max(0, (rI + 2.5 * dk - an) / (4 * dk)));   /* 1 sous l'iris, fondu sur ~4° */
+        wI = wI * wI * (3 - 2 * wI); r += (Math.max(r, wr) - r) * wI; g += (Math.max(g, wg) - g) * wI; b += (Math.max(b, wb) - b) * wI;
+      }
+      d[k * 4] = Math.round(r * 255); d[k * 4 + 1] = Math.round(g * 255); d[k * 4 + 2] = Math.round(b * 255); d[k * 4 + 3] = 255;
+    }
+    var t = new THREE.DataTexture(d, W, H, THREE.RGBAFormat); t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.ClampToEdgeWrapping; t.magFilter = t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; t.needsUpdate = true;
+    var e = { o: o, m4: new THREE.Matrix4(), u: { value: new THREE.Matrix3() } };
+    o.material.onBeforeCompile = function (sh) {
+      sh.uniforms.uAO = { value: t }; sh.uniforms.uRotO = e.u;
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform mat3 uRotO;varying vec3 vDirO;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvDirO = uRotO * transformed;');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform sampler2D uAO;varying vec3 vDirO;')
+        .replace('#include <color_fragment>', '{vec3 dd=normalize(vDirO);vec2 uv=vec2(atan(dd.x,dd.z)/6.2831853+0.5,acos(clamp(dd.y,-1.0,1.0))/3.1415927);diffuseColor.rgb*=texture2D(uAO,uv).rgb;}');
+    };
+    o.material.needsUpdate = true;
+    return e;
+  }
+  /* Fantômes de sourcils et de bouche : la peau porte, peints dessous, le sourcil et le sourire de REPOS (cachés par les vrais au repos).
+     Quand le sourcil ou la bouche bougent, la peinture restait visible (sourcils en X, bouche en double). On marque les sommets de peau proches
+     du sourcil / de la bouche de repos (attribut _fant : x sourcil, y bouche, fondu doux) ; le shader y passe en peau propre (_skin) selon les clés. */
+  function fantomes(THREE, corps, mS, mB, iN) {
+    var g = corps.geometry, bp0 = g.attributes.position, n = bp0.count, f = new Float32Array(n * 2);
+    var iCN = corps.morphTargetDictionary ? corps.morphTargetDictionary.bouche_neutre : undefined, mdC = iCN !== undefined && g.morphAttributes.position ? g.morphAttributes.position[iCN] : null;
+    var bp = { getX: function (i) { return bp0.getX(i) + (mdC ? mdC.getX(i) : 0); }, getY: function (i) { return bp0.getY(i) + (mdC ? mdC.getY(i) : 0); }, getZ: function (i) { return bp0.getZ(i) + (mdC ? mdC.getZ(i) : 0); } };   /* peau dans sa forme de repos */
+    corps.updateMatrixWorld(true); var inv = corps.matrixWorld.clone().invert();
+    function pts(o, dIdx) {
+      if (!o) return [];
+      o.updateMatrixWorld(true); var p = o.geometry.attributes.position, md = (dIdx >= 0 && o.geometry.morphAttributes.position) ? o.geometry.morphAttributes.position[dIdx] : null, r = [], v = new THREE.Vector3(), mt = new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld);
+      for (var i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); if (md) { v.x += md.getX(i); v.y += md.getY(i); v.z += md.getZ(i); } v.applyMatrix4(mt); r.push(v.x, v.y, v.z); }
+      return r;
+    }
+    function marque(P, axe, R0, R1) {
+      if (!P.length) return;
+      var C = R1, cells = {}, i, k, mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
+      for (i = 0; i < P.length; i += 3) { var key = Math.floor(P[i] / C) + ',' + Math.floor(P[i + 1] / C) + ',' + Math.floor(P[i + 2] / C); (cells[key] || (cells[key] = [])).push(i); for (k = 0; k < 3; k++) { if (P[i + k] < mn[k]) mn[k] = P[i + k]; if (P[i + k] > mx[k]) mx[k] = P[i + k]; } }
+      for (i = 0; i < n; i++) {
+        var x = bp.getX(i), y = bp.getY(i), z = bp.getZ(i);
+        if (x < mn[0] - R1 || x > mx[0] + R1 || y < mn[1] - R1 || y > mx[1] + R1 || z < mn[2] - R1 || z > mx[2] + R1) continue;
+        var cx = Math.floor(x / C), cy = Math.floor(y / C), cz = Math.floor(z / C), d2 = R1 * R1, a, b, c2;
+        for (a = -1; a <= 1; a++) for (b = -1; b <= 1; b++) for (c2 = -1; c2 <= 1; c2++) { var L = cells[(cx + a) + ',' + (cy + b) + ',' + (cz + c2)]; if (!L) continue; for (k = 0; k < L.length; k++) { var j = L[k], dx = P[j] - x, dy = P[j + 1] - y, dz = P[j + 2] - z, dd = dx * dx + dy * dy + dz * dz; if (dd < d2) d2 = dd; } }
+        var d = Math.sqrt(d2); if (d >= R1) continue;
+        var t = Math.min(1, Math.max(0, (R1 - d) / (R1 - R0))); f[i * 2 + axe] = t * t * (3 - 2 * t);
+      }
+    }
+    marque(pts(mS, -1), 0, 0.010, 0.018);
+    var sil = [];   /* sourire de repos = sillon creusé dans la peau par la clé bouche_neutre du corps (peinture cuite sur ce sillon) */
+    if (mdC) for (var si = 0; si < n; si++) { var ddx = mdC.getX(si), ddy = mdC.getY(si), ddz = mdC.getZ(si); if (ddx * ddx + ddy * ddy + ddz * ddz > 4e-6) sil.push(bp0.getX(si), bp0.getY(si), bp0.getZ(si)); }
+    bp = bp0; marque(sil, 1, 0.005, 0.013);
+    g.setAttribute('_fant', new THREE.BufferAttribute(f, 2));
+  }
+  /* Points blancs des joues (ref2 : 2 à gauche, 1 à droite) : peints par sommet ils faisaient des taches à bords déchiquetés (maillage grossier
+     sur les joues) ; glb_leger.py les efface de la peinture et on les dessine ici en ronds nets, pixel par pixel, accrochés à la peau (position
+     de repos du sommet : ils suivent la joue en joie). Centre = point de la peau vu de face en (x, y). */
+  function points(THREE, corps, skU) {
+    var L = [[-0.200, -0.045, 0.0080], [0.2112, -0.045, 0.0080], [-0.1801, -0.0559, 0.0046], [0.1913, -0.0559, 0.0046]]   /* point de droite = miroir du gros point de gauche autour de l'axe du visage (x = 0,0056) */, rc = new THREE.Raycaster();
+    corps.updateMatrixWorld(true);
+    skU.pts = L.map(function (p) {
+      rc.set(new THREE.Vector3(p[0], p[1], 2).applyMatrix4(corps.matrixWorld), new THREE.Vector3(0, 0, -1));
+      var h = rc.intersectObject(corps, false)[0], q = h ? corps.worldToLocal(h.point.clone()) : new THREE.Vector3(p[0], p[1], 0.18);
+      return { value: new THREE.Vector4(q.x, q.y, q.z, p[2]) };
+    });
+  }
   function bruit(THREE) {
     var n = 128, d = new Uint8Array(n * n * 4), i;
-    for (i = 0; i < n * n; i++) { var v = 110 + Math.floor((Math.random() + Math.random() + Math.random()) / 3 * 70); d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = v; d[i * 4 + 3] = 255; }
+    for (i = 0; i < n * n; i++) { var v = 93 + Math.floor((Math.random() + Math.random() + Math.random()) / 3 * 70); d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = v; d[i * 4 + 3] = 255; }
     var t = new THREE.DataTexture(d, n, n, THREE.RGBAFormat); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearMipmapLinearFilter; t.generateMipmaps = true; t.needsUpdate = true; return t;
   }
-  function feutre(m, noise, gU) {   /* grain de feutre fin : bruit mélangé selon trois axes dans l'espace du modèle (suit le squelette) */
+  var GRAIN_F = { value: [2.2, 1.4] };   /* force du grain fin / très fin (bruit centré sur 0,5 ; l'ancien décalage qui éclaircissait la peau est gardé en facteur fixe) */
+  function feutre(m, noise, gU, skU) {   /* grain de feutre fin : bruit mélangé selon trois axes dans l'espace du modèle (suit le squelette) */
     m.roughness = 0.72; if (m.sheen !== undefined) { m.sheen = 0.6; }
     m.onBeforeCompile = function (sh) {
-      sh.uniforms.uGrain = { value: noise }; sh.uniforms.uGA = gU;
-      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vOP;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvOP = position;');
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vOP;uniform sampler2D uGrain;uniform float uGA;')
-        .replace('#include <color_fragment>', '#include <color_fragment>\n{vec3 q=vOP*46.0;float g=(texture2D(uGrain,q.yz).r+texture2D(uGrain,q.xz).r+texture2D(uGrain,q.xy).r)/3.0-0.5;diffuseColor.rgb*=1.0+g*uGA*vec3(0.55,0.75,0.9);}');
+      sh.uniforms.uGrain = { value: noise }; sh.uniforms.uGA = gU; sh.uniforms.uGF = GRAIN_F;
+      if (skU) {   /* peau propre : fond COLOR_0 vers _skin (sans creux d'orbite ni ombre de bouche) selon les clés yeux fermés / bouche ouverte */
+        sh.uniforms.uWE = skU.we; sh.uniforms.uWM = skU.wm; sh.uniforms.uWS = skU.ws; sh.uniforms.uWB = skU.wb;
+        sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 _skin;attribute vec2 _fant;uniform float uWE;uniform float uWM;uniform float uWS;uniform float uWB;')
+          .replace('#include <color_vertex>', '#include <color_vertex>\n#ifdef USE_COLOR\nvColor.rgb = mix(vColor.rgb, _skin.rgb, max(max(_skin.a < 0.5 ? 0.0 : (_skin.a < 1.5 ? uWE : uWM), _fant.x * uWS), _fant.y * uWB));\n#endif');
+      }
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vOP;varying vec3 vON;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvOP = position;vON = normal;');
+      if (m.name === 'paupiere_joie') sh.vertexShader = sh.vertexShader.replace('#include <morphtarget_vertex>', '#include <morphtarget_vertex>\nvOP = transformed;vON = objectNormal;');   /* paupière de joie : tassée au repos, dépliée par les formes → le grain pris au repos s'étirait en rayures ; il suit ici la forme */
+      if (skU && skU.pts) { sh.uniforms.uPt0 = skU.pts[0]; sh.uniforms.uPt1 = skU.pts[1]; sh.uniforms.uPt2 = skU.pts[2]; sh.uniforms.uPt3 = skU.pts[3]; sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec4 uPt0;uniform vec4 uPt1;uniform vec4 uPt2;uniform vec4 uPt3;'); }
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vOP;varying vec3 vON;uniform sampler2D uGrain;uniform float uGA;uniform vec2 uGF;')
+        .replace('#include <color_fragment>', '#include <color_fragment>\n{vec3 w=pow(abs(normalize(vON)),vec3(4.0));w/=w.x+w.y+w.z;vec3 q=vOP*8.0;float g=texture2D(uGrain,q.yz).r*w.x+texture2D(uGrain,q.xz).r*w.y+texture2D(uGrain,q.xy).r*w.z-0.5;vec3 q2=vOP*17.0;float g2=texture2D(uGrain,q2.yz+0.37).r*w.x+texture2D(uGrain,q2.xz+0.61).r*w.y+texture2D(uGrain,q2.xy+0.13).r*w.z-0.5;diffuseColor.rgb*=mix(vec3(1.0),vec3(1.162,1.198,1.234),uGA)*(1.0+(g*uGF.x+g2*uGF.y)*uGA*vec3(0.8,1.0,1.25));}' + (skU && skU.pts ?
+          '\n{float a=0.0;a=max(a,1.0-smoothstep(uPt0.w*0.8,uPt0.w,distance(vOP,uPt0.xyz)));a=max(a,1.0-smoothstep(uPt1.w*0.8,uPt1.w,distance(vOP,uPt1.xyz)));a=max(a,1.0-smoothstep(uPt2.w*0.8,uPt2.w,distance(vOP,uPt2.xyz)));a=max(a,1.0-smoothstep(uPt3.w*0.8,uPt3.w,distance(vOP,uPt3.xyz)));diffuseColor.rgb=mix(diffuseColor.rgb,vec3(1.0,0.93,0.90),a);}' : ''))
+        .replace('#include <opaque_fragment>', '{float rim=pow(1.0-clamp(dot(normalize(vViewPosition),normal),0.0,1.0),2.6);outgoingLight+=vec3(1.0,0.74,0.52)*rim*0.30*uGA;}\n#include <opaque_fragment>');
     };
     m.needsUpdate = true;
   }
@@ -189,11 +392,12 @@
   /* ---------- animations : clips NLA ---------- */
   /* « repos » pilote tous les os/formes ; pendant un clip, on joue « repos » privé des pistes que ce clip pilote (sinon moyenne des deux) */
   function baseMaj() {
-    var key = S.actifs.slice().sort().join('+'), THREE = T.THREE;
+    var noms = S.actifs.concat(S.sortants.map(function (o) { return o._nom; })).filter(function (n, i, l) { return l.indexOf(n) === i; });   /* expression qui s'efface en fondu : ses pistes restent hors du repos jusqu'à la fin */
+    var key = noms.sort().join('+'), THREE = T.THREE;
     if (key === S.baseKey) return; S.baseKey = key;
     if (S.base) S.base.stop();
     var rep = T.clips.repos; if (!rep) return;
-    var pris = {}; S.actifs.forEach(function (n) { T.clips[n].tracks.forEach(function (tr) { pris[tr.name] = 1; }); });
+    var pris = {}; noms.forEach(function (n) { T.clips[n].tracks.forEach(function (tr) { pris[tr.name] = 1; }); });
     var ck = '_base_' + key;
     if (!T.clips[ck]) T.clips[ck] = new THREE.AnimationClip(ck, rep.duration, rep.tracks.filter(function (tr) { return !pris[tr.name]; }));
     S.base = T.mixer.clipAction(T.clips[ck]); S.base.setLoop(THREE.LoopRepeat, Infinity); S.base.play();
@@ -201,10 +405,55 @@
   function jouer(nom, manuel) {
     if (!T || !T.clips[nom]) return;
     if (S.acts[nom]) return;
+    var anc = [];
+    if (/^expr_/.test(nom)) S.actifs.filter(function (n) { return n !== nom && /^expr_/.test(n); }).forEach(function (n) {   /* une expression remplace la précédente : sinon les deux s'additionnaient (colère + joie = bouche triste ET bouche qui rit) */
+      var o = S.acts[n]; delete S.acts[n]; S.actifs = S.actifs.filter(function (x) { return x !== n; }); if (o._aide) { o._aide.stop(); o._aide = null; } anc.push(o);
+    });
     var THREE = T.THREE, a = T.mixer.clipAction(T.clips[nom]); a._nom = nom;
-    a.reset(); a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = false; a.timeScale = /^regard/.test(nom) ? 1.6 : 1; a.play();
+    a.reset(); a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = false; a.timeScale = /^regard/.test(nom) ? 1.6 : 1;
+    if (anc.length) {   /* fondu direct en 0,25 s de l'ancienne vers la nouvelle, lancée à son plateau : avant, l'ancienne repartait vers le repos (bouche neutre ~10 images) puis la nouvelle rejouait son début */
+      a.time = plateau(T.clips[nom]); a.fadeIn(0.25);
+      /* bouche d'un coup : deux bouches mélangées = arc de l'ancienne + intérieur rond de la nouvelle (double bouche). L'ancienne est coupée net,
+         seul son reste (sourcils, yeux) s'efface ; la bouche de la nouvelle est jouée à fond dès le départ par une action d'appoint */
+      anc.forEach(function (o) {
+        var t0 = o.time; o.stop();
+        var pc = partie(T.clips[o._nom], false); if (!pc.tracks.length) return;
+        var s = T.mixer.clipAction(pc); s._nom = o._nom; s.reset(); s.setLoop(THREE.LoopOnce, 1); s.clampWhenFinished = false; s.timeScale = o.timeScale; s.time = t0; s.play(); s.fadeOut(0.25);
+        if (S.sortants.indexOf(s) < 0) S.sortants.push(s);
+      });
+      var pb = partie(T.clips[nom], true);
+      if (pb.tracks.length) { var h = T.mixer.clipAction(pb); h._nom = nom + '#bouche'; h.reset(); h.setLoop(THREE.LoopOnce, 1); h.clampWhenFinished = false; h.timeScale = a.timeScale; h.time = a.time; h.play(); a._aide = h; }
+    }
+    a.play();
     S.acts[nom] = a; S.actifs.push(nom); baseMaj();
     if (manuel && panel) { var b = panel.querySelector('[data-clip="' + nom + '"]'); if (b) { b.classList.add('act'); setTimeout(function () { b.classList.remove('act'); }, T.clips[nom].duration * 1000 / a.timeScale); } }
+  }
+  function plateau(c) {   /* début du plateau d'un clip : dernière clé où chaque piste atteint sa valeur du milieu (0,333 s pour les expressions) */
+    if (c._plat !== undefined) return c._plat;
+    var mx = 0, mid = c.duration / 2;
+    c.tracks.forEach(function (tr) {
+      var tt = tr.times, v = tr.values, vs = tr.getValueSize(), im = 0, k, j, eg;
+      while (im < tt.length - 1 && tt[im + 1] <= mid) im++;
+      for (k = im; k > 0; k--) { eg = true; for (j = 0; j < vs; j++) if (Math.abs(v[(k - 1) * vs + j] - v[im * vs + j]) > 1e-3) { eg = false; break; } if (!eg) break; }
+      if (tt[k] > mx) mx = tt[k];
+    });
+    return (c._plat = Math.min(mx, mid));
+  }
+  var pBouche = null;
+  function partie(c, bouche) {   /* pistes de bouche seules (true) ou tout sauf la bouche (false) : pièces bouche* + formes bouche_* du corps */
+    var k = bouche ? '_pB' : '_pR'; if (c[k]) return c[k];
+    if (!pBouche) { pBouche = {}; var pa = T.scene.getObjectByName('patate'), d = pa && pa.morphTargetDictionary; if (d) Object.keys(d).forEach(function (nm) { if (/^bouche/.test(nm)) pBouche[d[nm]] = 1; }); }
+    var est = function (tr) { var m = /^patate\.morphTargetInfluences\[(\d+)\]$/.exec(tr.name); return /^bouche/.test(tr.name) || (m && pBouche[+m[1]]); };
+    return (c[k] = new T.THREE.AnimationClip(c.name + k, c.duration, c.tracks.filter(function (tr) { return bouche ? est(tr) : !est(tr); })));
+  }
+  function fondus() {   /* fin du fondu : l'ancienne expression (poids 0) est arrêtée, ses pistes rendues au repos ; la bouche d'appoint s'arrête quand la nouvelle est à fond */
+    for (var ai = 0; ai < S.actifs.length; ai++) { var x = S.acts[S.actifs[ai]]; if (x && x._aide && x.getEffectiveWeight() >= 0.999) { x._aide.stop(); x._aide = null; } }
+    if (!S.sortants.length) return;
+    var reste = S.sortants.filter(function (o) {
+      if (o.enabled && o.isRunning()) return true;
+      o.stop(); return false;
+    });
+    if (reste.length !== S.sortants.length) { S.sortants = reste; baseMaj(); }
   }
   function libre(n) { return !S.acts[n]; }
   function every(a, b, fn) { (function go() { if (!S || S.dead) return; var t = setTimeout(function () { if (S && S.routine && !document.hidden && S.visible) fn(); go(); }, rnd(a, b)); S.timers.push(t); })(); }
