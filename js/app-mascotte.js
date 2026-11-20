@@ -1,6 +1,6 @@
 /* ============================================================
    app-mascotte.js — mascotte (patate) de l'Accueil + page « Maison »
-   Rendu = images (js/app-photos.js), plus de SVG animé. Ce fichier décide de l'humeur
+   Rendu : Accueil = patate 3D (js/app-patate3d.js) ; Maison = images (js/app-photos.js). Ce fichier décide de l'humeur
    (fête / musique avec casque / triste / repos), de la tenue et du casque (communs au couple),
    de la jauge de cœurs et de la page Maison.
    ============================================================ */
@@ -99,7 +99,7 @@
     feteUntil = Date.now() + FETE_MS;
     if (home) home.calme();   /* la fête prend la place d'un saut en cours */
     sync();
-    var btn = document.getElementById('homeMascot'), n = 0;
+    var btn = document.getElementById('p3dCanvas'), n = 0;   /* cœurs autour de la patate 3D */
     clearInterval(feteTimer);
     feteTimer = setInterval(function () {
       /* pluie de cœurs : on réutilise les cœurs flottants du bouton (.like-heart-btn) */
@@ -182,18 +182,17 @@
       else if (now >= rappelNext && !playing && now >= feteUntil) { rappelUntil = now + 3000; rappelNext = now + 20000 + Math.random() * 20000; }
     }
     if (vis) { listen(); pull(false); paintRing(); }
-    if (h && !home && window.yamPatate) home = window.yamPatate(h, { size: 180, precharge: true, tenue: tenue, casque: casque });
-    if (home) home.humeur(moodNow());
+    if (window.yamP3d) window.yamP3d.humeur(moodNow());   /* Accueil : patate 3D (js/app-patate3d.js), plus de photos */
     if (stage && pageOpen()) stage.humeur(showCasque ? 'ecoute' : 'repos');
   }
   window.mascotteSync = sync;
 
   /* Joie au clic sur le cœur : saut + chewing-gum + yeux souriants (pose repos seulement) */
   function joie() {
-    if (!home || Date.now() < feteUntil) return;   /* pendant la fête : pas de saut, on laisse voir l'animation */
+    if (!window.yamP3d || Date.now() < feteUntil) return;   /* pendant la fête : on laisse voir l'animation */
     var m = moodNow();
-    if (m !== 'repos' && m !== 'content') return;   /* saut en repos ou content, pas en triste/musique */
-    home.joie();
+    if (m !== 'repos' && m !== 'content') return;   /* en repos ou content, pas en triste/musique */
+    window.yamP3d.joie();
   }
 
   document.addEventListener('visibilitychange', function () { sync(); });

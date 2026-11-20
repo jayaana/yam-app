@@ -1,8 +1,7 @@
 /* ============================================================
-   app-patate3d.js — TEST de la patate en 3D sur l'Accueil (branche feat/patate3d-accueil)
-   Rien ne change tant que le bouton « 3D » n'est pas activé (choix mémorisé dans localStorage).
-   Charge three.js et le modèle (assets/patate3d/patate-v5.glb.gz) seulement à l'activation.
-   Routine reprise de l'Accueil photos : clignement, regard, sourire, salut. Panneau : un bouton par clip + mesures.
+   app-patate3d.js — patate en 3D de l'Accueil (seule patate de l'Accueil, les photos n'y sont plus)
+   Chargée au démarrage : three.js + modèle (assets/patate3d/patate-v5.glb.gz).
+   Humeur décidée par js/app-mascotte.js (window.yamP3d.humeur / joie). Bouton « 3D » : panneau de test (un bouton par clip + mesures).
    ============================================================ */
 (function () {
   'use strict';
@@ -18,7 +17,7 @@
   function css() {
     var s = document.createElement('style');
     s.textContent =
-      'body.p3d-on #homeMascot{display:none!important}' +
+      '#homeMascot{display:none!important}' +   /* plus de patate photos à l'Accueil */
       '#p3dBtn{position:absolute;left:-6px;top:-6px;z-index:5;min-width:44px;height:36px;padding:0 12px;border:0;border-radius:18px;background:#ff6f61;color:#fff;font:700 15px/36px "Lilita One","Fredoka",sans-serif;letter-spacing:.5px;box-shadow:0 2px 6px rgba(0,0,0,.25)}' +
       '#p3dBtn.on{background:#c4352a}' +
       '#p3dCanvas{position:absolute;left:50%;top:50%;width:220px;height:240px;margin:-120px 0 0 -110px;pointer-events:none;z-index:2}' +
@@ -47,9 +46,10 @@
     var b = canvas ? canvas.getBoundingClientRect().bottom : 380; panel.style.top = Math.round(b + 4) + 'px';
   }
   function renderPanel() {
-    var h = '<div class="cl"><button class="c" data-a="off">Revenir aux photos</button><button class="c" data-a="close">Fermer</button></div>';
+    var h = '<div class="cl"><button class="c" data-a="close">Fermer</button></div>';
     h += '<h4>Clips</h4><div class="cl" id="p3dClips">';
     if (T) T.names.forEach(function (n) { h += '<button class="c" data-clip="' + n + '">' + n.replace('expr_', '').replace('_', ' ') + '</button>'; });
+    h += '<button class="c" data-a="saut">saut</button>';
     h += '</div>';
     h += '<h4>Routine</h4><label><input type="checkbox" id="p3dRout"' + (S && S.routine ? ' checked' : '') + '> routine automatique (clignement, regard, sourire, salut)</label>';
     h += '<label><input type="checkbox" id="p3dGrain"' + (S && S.grain ? ' checked' : '') + '> grain de feutre</label>';
@@ -62,7 +62,7 @@
       var t = e.target; if (!t || !t.closest || !panel || !panel.contains(t)) return;
       var b = t.closest('button'); if (!b) return;
       if (b.dataset.clip) jouer(b.dataset.clip, true);
-      else if (b.dataset.a === 'off') desactiver();
+      else if (b.dataset.a === 'saut') { if (S && S.saut < 0) S.saut = 0; }   /* saut seul, quelle que soit l'humeur */
       else if (b.dataset.a === 'close') { panelOpen = false; panel.hidden = true; }
     });
     document.addEventListener('change', function (e) {
@@ -102,17 +102,10 @@
         var t2 = performance.now();
         return new Promise(function (ok, ko) { new GLTFLoader().parse(raw, '', function (g) { M.tParse = performance.now() - t2; ok(g); }, ko); });
       }).then(function (gltf) { demarrer(THREE, gltf, t0); });
-    }).catch(function (e) { loading = false; btn.textContent = '3D'; lsSet(false); alert('Patate 3D : ' + (e && e.message || e)); });
+    }).catch(function (e) { loading = false; btn.textContent = '3D'; console.warn('Patate 3D : ' + (e && e.message || e)); });   /* le bouton 3D relance le chargement */
   }
   function charger(u, n) {   /* nouvel essai si la connexion est coupée */
     return fetch(u).then(function (r) { if (!r.ok) throw new Error('modèle introuvable'); return r.arrayBuffer(); }).catch(function (e) { if (n > 1) return new Promise(function (ok) { setTimeout(ok, 800); }).then(function () { return charger(u, n - 1); }); throw e; });
-  }
-  function desactiver() {
-    on = false; lsSet(false); panelOpen = false; panel.hidden = true;
-    if (S) { S.timers.forEach(clearTimeout); S.dead = true; cancelAnimationFrame(S.raf); }
-    if (T) { T.renderer.dispose(); if (T.renderer.forceContextLoss) T.renderer.forceContextLoss(); }
-    if (canvas && canvas.parentNode) canvas.parentNode.removeChild(canvas);
-    document.body.classList.remove('p3d-on'); btn.textContent = '3D'; btn.classList.remove('on'); T = null; S = null; loading = false;
   }
 
   /* ---------- scène ---------- */
@@ -230,7 +223,7 @@
       if (tr.length) { var nm = 'regard_' + v + '_' + h; clips[nm] = new THREE.AnimationClip(nm, ch.duration, tr); names.push(nm); }
     }); });
     T = { THREE: THREE, renderer: renderer, scene: scene, cam: cam, mixer: mixer, clips: clips, names: names, root: root, baseY: 0 };
-    S = { routine: true, grain: true, grainU: grainU, actifs: [], sortants: [], acts: {}, timers: [], dead: false, raf: 0, base: null, baseKey: '', visible: true };
+    S = { routine: true, grain: true, grainU: grainU, actifs: [], sortants: [], acts: {}, timers: [], dead: false, raf: 0, base: null, baseKey: '', visible: true, hum: 'repos', tenir: null, saut: -1 };
     on = true; loading = false; btn.classList.add('on'); btn.textContent = '3D'; document.body.classList.add('p3d-on'); window.__p3d = { T: T, S: S, jouer: jouer, majPeau: majPeau, fondus: fondus, finir: function () { finir(); }, GRAIN_F: GRAIN_F };
     baseMaj(); mixer.update(0); avK = avancePaupiere(THREE, gltf.scene) || [];
     /* Fin d'un clip traitée APRÈS mixer.update : arrêter une action (et changer le repos) pendant la mise à jour réordonne la liste des actions
@@ -243,7 +236,8 @@
       baseMaj();
     }
     if ('IntersectionObserver' in window) new IntersectionObserver(function (en) { S.visible = en[0].isIntersecting; }).observe(canvas);
-    var last = performance.now(), acc = 0, nfr = 0, first = true, chk = 0;
+    var last = performance.now(), acc = 0, nfr = 0, first = true, chk = 0, ph = 0;
+    window.yamP3d = { humeur: humeur, joie: joie };   /* piloté par js/app-mascotte.js (humeur de la jauge de cœurs, tapotage du cœur) */
     (function boucle(now) {
       if (S.dead) return; S.raf = requestAnimationFrame(boucle);
       var dt = Math.min((now - last) / 1000, 0.1); last = now;
@@ -253,8 +247,12 @@
         S.visible = rc.width > 0 && rc.bottom > 0 && rc.right > 0 && rc.top < window.innerHeight && rc.left < window.innerWidth;
       }
       if (document.hidden || !S.visible) return;
-      mixer.update(dt); finir(); fondus(); majPeau();
-      root.scale.y = 1 + Math.sin(now / 1400) * 0.006; root.position.y = Math.sin(now / 1400) * 0.002;   /* respiration légère */
+      mixer.update(dt); finir(); fondus(); tenir(); majPeau();
+      ph += dt * mixer.timeScale;   /* respiration légère, ralentie avec le reste quand elle est triste */
+      var js = 1, jy = 0;
+      if (S.saut >= 0) { var sp = sautPose(S.saut); js = sp.sy; jy = sp.y * sz.y; S.saut += dt; if (S.saut > SAUT_FIN) S.saut = -1; }
+      var jx = 1 / Math.sqrt(js);   /* volume gardé : écrasée = plus large, étirée = plus fine ; pieds fixes (box.min.y) */
+      root.scale.set(jx, (1 + Math.sin(ph / 1.4) * 0.006) * js, jx); root.position.y = Math.sin(ph / 1.4) * 0.002 + jy + box.min.y * (1 - js);
       renderer.render(scene, cam);
       if (first) { first = false; M.tFirst = performance.now() - t0; }
       var ms = dt * 1000; if (ms > M.worst || nfr === 0) M.worst = ms;
@@ -650,6 +648,44 @@
     });
     if (reste.length !== S.sortants.length) { S.sortants = reste; baseMaj(); }
   }
+  /* ---------- humeur (décidée par js/app-mascotte.js : jauge de cœurs, fête) ----------
+     repos = routine ; triste (< 15 %) = tristesse tenue, tout ralenti ; content (fête, rappel) = joie tenue.
+     Expression tenue : jouée jusqu'à son plateau puis mise en pause ; relâchée, elle finit et revient au repos. */
+  var TENUE = { triste: 'expr_tristesse', content: 'expr_joie' };
+  function humeur(m) {
+    if (!S || S.dead || !T) return;
+    if (!TENUE[m]) m = 'repos';   /* « ecoute » (musique) : pas de casque en 3D, routine normale */
+    if (m === S.hum) return; S.hum = m;
+    T.mixer.timeScale = m === 'triste' ? 0.6 : 1;
+    S.tenir = TENUE[m] || null;
+    Object.keys(S.acts).forEach(function (n) { var a = S.acts[n]; if (a.paused && n !== S.tenir) a.paused = false; });
+  }
+  function tenir() {
+    var n = S.tenir; if (!n || !T.clips[n]) return;
+    var a = S.acts[n];
+    if (!a) {   /* une autre expression (lancée à la main depuis le panneau) joue d'abord en entier ; joie : pas pendant un clignement (paupières empilées) */
+      if (S.actifs.some(function (x) { return /^expr_/.test(x); }) || (n === 'expr_joie' && S.acts.clignement)) return;
+      jouer(n); return;
+    }
+    var p = plateau(T.clips[n]);
+    if (!a.paused && a.time >= p && a.time <= T.clips[n].duration - 0.35) a.paused = true;
+  }
+  /* Saut de joie (fait dans l'appli, sans Blender) : élan écrasé, saut étiré, retombée écrasée, rebond. Clés [temps s, étirement vertical] ; hauteur 20 % de la patate, en l'air 0,10 → 0,45 s */
+  var SAUT_K = [[0, 1], [0.07, 0.84], [0.13, 1.16], [0.26, 0.98], [0.40, 1.06], [0.46, 0.82], [0.54, 1.06], [0.62, 0.98], [0.68, 1]], SAUT_FIN = 0.68;
+  function sautPose(t) {
+    var k = SAUT_K, i = 1; while (i < k.length - 1 && t > k[i][0]) i++;
+    var a = k[i - 1], b = k[i], u = Math.min(1, Math.max(0, (t - a[0]) / (b[0] - a[0]))); u = u * u * (3 - 2 * u);
+    var v = (t - 0.10) / 0.35;   /* en l'air de 0,10 à 0,45 s */
+    return { sy: a[1] + (b[1] - a[1]) * u, y: v > 0 && v < 1 ? 0.20 * 4 * v * (1 - v) : 0 };
+  }
+  var joieT = 0;
+  function joie() {   /* tapotage du cœur : saut (repos ou content ; un saut à la fois) + visage de joie (repos ; en fête il est déjà tenu) */
+    if (!S || S.dead || !T || (S.hum !== 'repos' && S.hum !== 'content')) return;
+    if (S.saut < 0) S.saut = 0;
+    if (S.hum !== 'repos' || joieT || S.acts.expr_joie) return;
+    if (S.acts.clignement) { joieT = setTimeout(function () { joieT = 0; joie(); }, 120); return; }
+    jouer('expr_joie');
+  }
   function libre(n) { return !S.acts[n]; }
   function every(a, b, fn) { (function go() { if (!S || S.dead) return; var t = setTimeout(function () { if (S && S.routine && !document.hidden && S.visible) fn(); go(); }, rnd(a, b)); S.timers.push(t); })(); }
   var planned = false;
@@ -661,7 +697,12 @@
        Rythme demandé : chaque animation ~2 fois par minute. Expressions (6) toutes les 6–7,4 s ; regards (8) toutes les 4,3–5,7 s ; salut toutes les 34–46 s → chacune ~1,5 fois par minute (tour ~40 s ; 2 fois par minute était trop agité). */
     function sacDe(liste) { var s = [], der = ''; return function (prendre) { if (!s.length) { s = liste.slice(); for (var i = s.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = s[i]; s[i] = s[j]; s[j] = t; } if (s[0] === der) s.push(s.shift()); } return prendre ? (der = s.shift()) : s[0]; }; }   /* sac(false) = la prochaine, sac(true) = la prend */
     var sacR = sacDe(T.names.filter(function (x) { return /^regard_/.test(x); }));   /* 4 directions + 4 diagonales */
-    every(4300, 5700, function () { if (!T.names.some(function (x) { return /^regard_/.test(x) && S.acts[x]; })) jouer(sacR(true)); });
+    var sacT = sacDe(T.names.filter(function (x) { return /^regard_/.test(x) && !/haut/.test(x); }));   /* triste : jamais vers le haut */
+    every(4300, 5700, function () {
+      if (T.names.some(function (x) { return /^regard_/.test(x) && S.acts[x]; })) return;
+      if (S.hum === 'triste') { if (Math.random() < 0.5) jouer(sacT(true)); return; }   /* triste : regard deux fois moins souvent */
+      jouer(sacR(true));
+    });
     var sacE = sacDe(['expr_sourire', 'expr_rire', 'expr_joie', 'expr_malicieux', 'expr_mefiant', 'expr_surprise']);
     function expression() {   /* joie / malicieux / méfiant : pas pendant un clignement (paupières empilées) → réessai 0,4 s plus tard */
       if (!S || S.dead || !S.routine || document.hidden || !S.visible || S.actifs.some(function (n) { return /^expr_/.test(n); })) return;
@@ -669,11 +710,11 @@
       jouer(sacE(true));
     }
     every(6000, 7400, expression);
-    every(34000, 46000, function () { if (libre('salut')) jouer('salut'); });   /* salut : aussi pendant une expression (il ne bouge que le corps) */
+    every(34000, 46000, function () { if (libre('salut')) jouer('salut'); });   /* salut : aussi pendant une expression (il ne bouge que le corps) ; triste : ralenti avec le reste */
   }
 
   document.addEventListener('DOMContentLoaded', function () {
     if (!build()) return;
-    if (lsGet()) activer();
+    activer();   /* la 3D est la seule patate de l'Accueil (les photos n'y sont plus) */
   });
 })();
