@@ -136,7 +136,7 @@
       if (mn) for (var ni = 0; ni < mn.length; ni++) if (mn[ni] === o.geometry.attributes.normal || mn[ni].array === o.geometry.attributes.normal.array) mn[ni] = new THREE.Float32BufferAttribute(new Float32Array(mn[ni].count * 3), 3);
       var m = o.material; if (!m) return;
       if (m.name && m.name.indexOf('oeil_cornee') === 0) { o.material = verre(THREE); o.renderOrder = 3; return; }   /* verre de l'œil : exporté en noir opaque, remplacé par un vrai verre transparent + voile de reflet gris chaud en haut */
-      if (m.name && m.name.indexOf('oeil_') === 0) { m.side = THREE.FrontSide; m.polygonOffset = m.name !== 'oeil_reflet'; m.polygonOffsetFactor = m.name === 'oeil_pupille' ? -2 : m.name === 'oeil_iris' ? -1 : 0; m.polygonOffsetUnits = m.polygonOffsetFactor; if (m.name === 'oeil_iris' || m.name === 'oeil_blanc') m.emissive.multiplyScalar(0.35); }   /* reflet : pas de décalage de profondeur (il passait devant la paupière fermée) */
+      if (m.name && m.name.indexOf('oeil_') === 0) { m.side = THREE.FrontSide; m.polygonOffsetFactor = m.name === 'oeil_pupille' || m.name === 'oeil_reflet' ? -2 : m.name === 'oeil_iris' ? -1 : 0; m.polygonOffset = m.polygonOffsetFactor !== 0; m.polygonOffsetUnits = m.polygonOffsetFactor; if (!m.userData.lum) { m.userData.lum = 1; if (m.name === 'oeil_iris') m.emissive.multiplyScalar(0.1225); if (m.name === 'oeil_blanc') m.emissive.setRGB(0.208, 0.208, 0.208); } }   /* matériau partagé par les 2 yeux : réglé UNE fois (avant, ×0,35 appliqué par œil = blanc droit plus sombre). Iris gardé tel quel (0,35²) ; blanc éclairci au niveau Blender (gauche 242 / droite 220 à l'Accueil). Reflet avancé comme la pupille (-2) : sinon l'iris (-1) le cachait à la taille Accueil ; reculer le blanc le faisait passer derrière la peau. Vérifié : coupé par la paupière (méfiant, colère, clignement) */
       if (m.name === 'oeil_blanc' && o.geometry.attributes.color) { o.material = m = m.clone(); blancs.push(blancFixe(THREE, o)); }
       if (m.name === 'peau' && o.geometry.attributes._skin && o.morphTargetDictionary) { m = o.material = m.clone(); corps = o; }
       if (m.name === 'paupiere_joie') normalesFormes(THREE, o, gltf.scene);
@@ -264,11 +264,11 @@
     }
     g.morphAttributes.normal = out;
   }
-  function verre(THREE) {   /* cornée : verre léger (presque invisible) + voile gris chaud sur le haut (reflet de la lumière, comme Blender) */
-    var m = new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.10, roughness: 0.06, metalness: 0, depthWrite: false, side: THREE.FrontSide, specularIntensity: 1.0 });
+  function verre(THREE) {   /* cornée comme Blender : invisible de face (l'ancien blanc à 10 % délavait l'iris), léger éclat seulement vers le bord (Fresnel) */
+    var m = new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 1.0, roughness: 0.06, metalness: 0, depthWrite: false, side: THREE.FrontSide, specularIntensity: 1.0 });
     m.onBeforeCompile = function (sh) {
       sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>',
-        '#include <dithering_fragment>\n{float up=smoothstep(0.10,0.80,normalize(vNormal).y*1.0+0.25*normalize(vNormal).x);vec3 vo=vec3(0.62,0.57,0.52);gl_FragColor.rgb=mix(gl_FragColor.rgb,vo,up*0.85);gl_FragColor.a=max(gl_FragColor.a,up*0.30);}');
+        '#include <dithering_fragment>\n{float fr=1.0-clamp(abs(dot(normalize(vNormal),normalize(vViewPosition))),0.0,1.0);gl_FragColor.a=0.35*fr*fr*fr;}');
     };
     return m;
   }
