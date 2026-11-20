@@ -136,7 +136,8 @@
       if (mn) for (var ni = 0; ni < mn.length; ni++) if (mn[ni] === o.geometry.attributes.normal || mn[ni].array === o.geometry.attributes.normal.array) mn[ni] = new THREE.Float32BufferAttribute(new Float32Array(mn[ni].count * 3), 3);
       var m = o.material; if (!m) return;
       if (m.name && m.name.indexOf('oeil_cornee') === 0) { o.material = verre(THREE); o.renderOrder = 3; return; }   /* verre de l'œil : exporté en noir opaque, remplacé par un vrai verre transparent + voile de reflet gris chaud en haut */
-      if (m.name && m.name.indexOf('oeil_') === 0) { m.side = THREE.FrontSide; m.polygonOffsetFactor = m.name === 'oeil_pupille' || m.name === 'oeil_reflet' ? -2 : m.name === 'oeil_iris' ? -1 : 0; m.polygonOffset = m.polygonOffsetFactor !== 0; m.polygonOffsetUnits = m.polygonOffsetFactor; if (!m.userData.lum) { m.userData.lum = 1; if (m.name === 'oeil_iris') m.emissive.multiplyScalar(0.1225); if (m.name === 'oeil_blanc') m.emissive.setRGB(0.208, 0.208, 0.208); } }   /* matériau partagé par les 2 yeux : réglé UNE fois (avant, ×0,35 appliqué par œil = blanc droit plus sombre). Iris gardé tel quel (0,35²) ; blanc éclairci au niveau Blender (gauche 242 / droite 220 à l'Accueil). Reflet avancé comme la pupille (-2) : sinon l'iris (-1) le cachait à la taille Accueil ; reculer le blanc le faisait passer derrière la peau. Vérifié : coupé par la paupière (méfiant, colère, clignement) */
+      if (m.name && m.name.indexOf('oeil_') === 0) { m.side = THREE.FrontSide; m.polygonOffsetFactor = m.name === 'oeil_pupille' || m.name === 'oeil_reflet' ? -2 : m.name === 'oeil_iris' ? -1 : 0; m.polygonOffset = m.polygonOffsetFactor !== 0; m.polygonOffsetUnits = m.polygonOffsetFactor; if (!m.userData.lum) { m.userData.lum = 1; if (m.name === 'oeil_iris') irisMat(THREE, m); if (m.name === 'oeil_blanc') m.emissive.setRGB(0.208, 0.208, 0.208); } }   /* matériau partagé par les 2 yeux : réglé UNE fois (avant, ×0,35 appliqué par œil = blanc droit plus sombre). Iris : couleur calculée par pixel (irisMat) ; blanc éclairci au niveau Blender (gauche 242 / droite 220 à l'Accueil). Reflet avancé comme la pupille (-2) : sinon l'iris (-1) le cachait à la taille Accueil ; reculer le blanc le faisait passer derrière la peau. Vérifié : coupé par la paupière (méfiant, colère, clignement) */
+      if (m.name === 'oeil_iris') irisRep(THREE, o);   /* repères de l'iris recalculés par pixel (voir irisMat) */
       if (m.name === 'oeil_blanc' && o.geometry.attributes.color) { o.material = m = m.clone(); blancs.push(blancFixe(THREE, o)); }
       if (m.name === 'peau' && o.geometry.attributes._skin && o.morphTargetDictionary) { m = o.material = m.clone(); corps = o; }
       if (m.name === 'paupiere_joie') normalesFormes(THREE, o, gltf.scene);
@@ -271,6 +272,43 @@
         '#include <dithering_fragment>\n{float fr=1.0-clamp(abs(dot(normalize(vNormal),normalize(vViewPosition))),0.0,1.0);gl_FragColor.a=0.35*fr*fr*fr;}');
     };
     return m;
+  }
+  /* Iris : les couleurs cuites par sommet (export léger) étaient floues et une lueur grise uniforme le délavait. Couleur recalculée par pixel
+     comme le matériau Blender (patate3d.py o3_mat_iris) : dégradé haut sombre → bas clair, fibres, plus sombre près de la pupille, anneau bleu nuit ;
+     lueur = couleur de l'iris × 0,5 (mesuré : moyenne sur le masque Blender 70,99,121 / Blender 76,106,127 ; avant 0,037 gris). Repères (r, angle, hauteur) retrouvés depuis la forme : bord r = 1 centré sur l'iris, bord intérieur r = 0,66 centré sur la pupille. */
+  function irisRep(THREE, o) {
+    var pu = null; o.parent.children.forEach(function (s) { if (s.isMesh && s.material && s.material.name === 'oeil_pupille') pu = s; });
+    var p = o.geometry.attributes.position, b = new THREE.Box3().setFromBufferAttribute(p), bp = pu ? new THREE.Box3().setFromBufferAttribute(pu.geometry.attributes.position) : b;
+    var icx = (b.min.x + b.max.x) / 2, icy = (b.min.y + b.max.y) / 2, rx = (b.max.x - b.min.x) / 2, ry = (b.max.y - b.min.y) / 2;
+    var pcx = (bp.min.x + bp.max.x) / 2, pcy = (bp.min.y + bp.max.y) / 2, PUP = 0.66, a = new Float32Array(p.count * 4);
+    for (var i = 0; i < p.count; i++) {
+      var x = p.getX(i), y = p.getY(i), r = Math.hypot((x - icx) / rx, (y - icy) / ry), cx = icx, cy = icy;
+      for (var k = 0; k < 6; k++) { var t = Math.min(1, Math.max(0, (r - PUP) / (1 - PUP))); cx = pcx + t * (icx - pcx); cy = pcy + t * (icy - pcy); r = Math.hypot((x - cx) / rx, (y - cy) / ry); }
+      var u = (x - cx) / rx, v = (y - cy) / ry, n = Math.hypot(u, v) || 1;
+      a[i * 4] = r; a[i * 4 + 1] = u / n; a[i * 4 + 2] = v / n; a[i * 4 + 3] = (y - icy) / ry;
+    }
+    o.geometry.setAttribute('irisRep', new THREE.BufferAttribute(a, 4));
+  }
+  function irisMat(THREE, m) {
+    function c(r, g, b) { var q = new THREE.Color().setRGB(r / 255, g / 255, b / 255, THREE.SRGBColorSpace); return 'vec3(' + q.r.toFixed(5) + ',' + q.g.toFixed(5) + ',' + q.b.toFixed(5) + ')'; }
+    var U = m.userData.irisU = { emk: { value: 0.5 }, fib: { value: 1.0 } };
+    m.emissive.setRGB(0, 0, 0);
+    m.onBeforeCompile = function (sh) {
+      sh.uniforms.irisEmk = U.emk; sh.uniforms.irisFib = U.fib;
+      sh.vertexShader = 'attribute vec4 irisRep;\nvarying vec4 vIris;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvIris = irisRep;');
+      sh.fragmentShader = 'varying vec4 vIris;\nuniform float irisEmk, irisFib;\n' +
+        'float irH(vec3 p){p=fract(p*0.3183099+0.1);p*=17.0;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}\n' +
+        'float irN(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.0-2.0*f);return mix(mix(mix(irH(i),irH(i+vec3(1,0,0)),f.x),mix(irH(i+vec3(0,1,0)),irH(i+vec3(1,1,0)),f.x),f.y),mix(mix(irH(i+vec3(0,0,1)),irH(i+vec3(1,0,1)),f.x),mix(irH(i+vec3(0,1,1)),irH(i+vec3(1,1,1)),f.x),f.y),f.z);}\n' +
+        'float irS(float v,float a,float b){return smoothstep(0.0,1.0,clamp((v-a)/(b-a),0.0,1.0));}\n' +
+        sh.fragmentShader.replace('#include <color_fragment>',
+          '{float r=vIris.x,pz=vIris.w;vec2 cs=normalize(vIris.yz+1e-6);\n' +
+          'vec3 c=mix(' + c(46, 54, 72) + ',' + c(44, 72, 98) + ',irS(pz,0.75,0.0));c=mix(c,' + c(92, 142, 172) + ',irS(pz,0.0,-0.9));\n' +
+          'vec3 q=vec3(9.0*cs,1.4*r);float n=(irN(q)+0.6*irN(q*2.0)+0.86*0.5)/2.46;\n' +
+          'c*=mix(1.0,mix(0.82,1.18,irS(n,0.3,0.7))*0.92,irisFib);\n' +
+          'c*=mix(0.78,1.0,irS(r,0.66,0.80));c=mix(c,' + c(20, 22, 38) + ',irS(r,0.865,0.935));diffuseColor.rgb=c;}')
+          .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance=diffuseColor.rgb*irisEmk;');
+    };
+    m.needsUpdate = true;
   }
   /* Blanc de l'œil : l'ombre du creux (occlusion cuite par sommet au repos) était peinte SUR le globe ; quand l'œil tourne (regard), elle entrait
      dans le blanc (plaque brune à bord en escalier). On la range dans une petite image indexée par la direction vue depuis l'orbite, et le shader
