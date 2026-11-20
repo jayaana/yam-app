@@ -143,7 +143,10 @@
       if (m.name === 'paupiere_joie') normalesFormes(THREE, o, gltf.scene);
       if (m.name === 'peau' || m.name === 'paupiere' || m.name === 'paupiere_joie') { m.side = THREE.FrontSide; feutre(m, noise, grainU, o === corps ? skinU : null); }
     });
+    if (corps) paupieresPeau(THREE, gltf.scene, corps);
     var yeuxM = []; gltf.scene.traverse(function (o) { if (o.isMesh && /^oeil/.test(o.name)) yeuxM.push(o); });
+    var avK = [];   /* paupière haute en avance sur le cil (avancePaupiere), posée après le repos */
+    var pliK = []; gltf.scene.traverse(function (o) { var d = o.isMesh && o.morphTargetDictionary; if (d && d.plisse !== undefined && /^(paupiere|paupiere_bas|cils_ouv)\d$/.test(o.name)) pliK.push([o.morphTargetInfluences, d.plisse]); });   /* plissé (malicieux) en saut : sous la moitié = repos ; les images de passage (globe visible entre peau et cil) sont sautées, comme la joie et le clignement */
     var fermes = []; gltf.scene.traverse(function (o) { if (o.isMesh && o.morphTargetDictionary && o.morphTargetDictionary.ferme !== undefined) fermes.push([o, o.morphTargetDictionary.ferme, o.morphTargetDictionary.plisse]); });
     var jyK = [], jpK = [], pbK = []; gltf.scene.traverse(function (o) { var d = o.isMesh && o.morphTargetDictionary; if (!d) return; if (d.jy_pre !== undefined) jyK.push([o, d.jy_pre]); if (d.jy_in !== undefined) jyK.push([o, d.jy_in]); if (/^paupiere\d$/.test(o.name) && d.joie !== undefined) jpK.push([o, d.joie]); if (/^paupiere_bas\d$/.test(o.name) && d.joie !== undefined) pbK.push([o, d.joie]); });
     /* Joie : l'œil se fermait en 6 étapes (paupière jpaup qui descend + traits cil0/1_haut/bas) → bourrelet autour de l'œil (« cernes »).
@@ -155,7 +158,9 @@
     var mSour = gltf.scene.getObjectByName('sourcils'), mBou = gltf.scene.getObjectByName('bouche'), iNeutre = mBou && mBou.morphTargetDictionary ? mBou.morphTargetDictionary.bouche_neutre : -1;
     if (corps) { fantomes(THREE, corps, mSour, mBou, iNeutre); points(THREE, corps, skinU); }
     function majPeau() {   /* poids « yeux fermés » et « bouche ouverte » du corps, pour la peau propre */
-      for (var fi = 0; fi < fermes.length; fi++) { var fw = fermes[fi][0].morphTargetInfluences, fk = fermes[fi][1]; fw[fk] = fw[fk] >= 0.5 ? 1 : 0; if (fw[fk] && fermes[fi][2] !== undefined) fw[fermes[fi][2]] = 0; }   /* œil fermé : le plissé (méfiant) est retiré, sinon les deux formes s'additionnaient (paupière 585 px au lieu de 412, sous l'œil) ; clignement net : à mi-chemin, l'iris et la peau qui ferme l'œil passaient DANS le globe (formes linéaires) → œil blanc vide 2 images */
+      for (var fi = 0; fi < fermes.length; fi++) { var fw = fermes[fi][0].morphTargetInfluences, fk = fermes[fi][1]; fw[fk] = fw[fk] >= 0.5 ? 1 : 0; if (fw[fk] && fermes[fi][2] !== undefined) fw[fermes[fi][2]] = 0; }
+      for (fi = 0; fi < pliK.length; fi++) if (pliK[fi][0][pliK[fi][1]] < 0.5) pliK[fi][0][pliK[fi][1]] = 0;
+      for (fi = 0; fi < avK.length; fi++) { var aw0 = avK[fi][0], ac = aw0[avK[fi][1]], as = Math.min(1, ac / 0.1); aw0[avK[fi][2]] = as * as * (3 - 2 * as) * (1 - ac); aw0[avK[fi][3]] = 0.12 * aw0[avK[fi][2]] + 0.025 * ac; aw0[avK[fi][4]] = aw0[avK[fi][2]]; }   /* forme « avance » : rejoint le cil dès le début du plissé, nulle au repos et en fin de plissé */   /* œil fermé : le plissé (méfiant) est retiré, sinon les deux formes s'additionnaient (paupière 585 px au lieu de 412, sous l'œil) ; clignement net : à mi-chemin, l'iris et la peau qui ferme l'œil passaient DANS le globe (formes linéaires) → œil blanc vide 2 images */
       for (var bi = 0; bi < blancs.length; bi++) blancs[bi].u.value.setFromMatrix4(blancs[bi].m4.makeRotationFromQuaternion(blancs[bi].o.quaternion));   /* ombre du creux de l'œil : suit l'orbite, pas le globe */
       if (!dic) return;
       var wj = corps.morphTargetInfluences, jo = wj[dic.joie] || 0, pj = jo + (wj[dic.jy_pre] || 0), ji, tj, tp;   /* joie nette : entre ouvert et plissé (0 < p < 0,9), l'iris et la paupière (formes linéaires) passaient DANS le globe → œil blanc sans pupille ~0,1 s au début et à la fin ; tout-ou-rien à mi-chemin, comme le clignement */
@@ -211,7 +216,7 @@
     T = { THREE: THREE, renderer: renderer, scene: scene, cam: cam, mixer: mixer, clips: clips, names: names, root: root, baseY: 0 };
     S = { routine: true, grain: true, grainU: grainU, actifs: [], sortants: [], acts: {}, timers: [], dead: false, raf: 0, base: null, baseKey: '', visible: true };
     on = true; loading = false; btn.classList.add('on'); btn.textContent = '3D'; document.body.classList.add('p3d-on'); window.__p3d = { T: T, S: S, jouer: jouer, majPeau: majPeau, fondus: fondus, GRAIN_F: GRAIN_F };
-    baseMaj();
+    baseMaj(); mixer.update(0); avK = avancePaupiere(THREE, gltf.scene) || [];
     mixer.addEventListener('finished', function (e) {
       var n = e.action._nom; if (S.acts[n] !== e.action) { e.action.stop(); return; }   /* expression remplacée (déjà retirée) */
       delete S.acts[n]; S.actifs = S.actifs.filter(function (x) { return x !== n; }); e.action.stop(); baseMaj();
@@ -264,6 +269,137 @@
       out.push(new THREE.BufferAttribute(dn, 3));
     }
     g.morphAttributes.normal = out;
+  }
+  /* Paupières haute/basse : coquilles autour du globe, éclairées comme une boule (basse dans l'ombre = « poche » −20 %, haute trop claire)
+     et peintes plus jaune que la peau, sans le rose des joues (coupure nette, « œil de panda »). Une fois au chargement, pour le repos et
+     chaque forme : normale = 80 % celle de la peau la plus proche (même forme sur la peau si elle existe), couleur = peau propre (_skin) la
+     plus proche en position plissée (prise au plus près de la peau, la paupière haute fermée prenait le rose des joues). Mesuré au gros plan plissé : écart à la peau −4 % / −2 % (Blender −3 % / 0). */
+  /* Malicieux (plissé) : la paupière haute part du repos très haut (trajet ~124 px contre 74 pour le cil) → avec la même courbe, le globe se voyait entre la peau et le cil.
+     Forme « avance » par direction autour de l'œil : a = (cil repos − paupière repos) / (paupière plissée − paupière repos), en hauteur angulaire (×0,95, plafond 0,75) ;
+     poids = lissé(plissé/0,1) × (1 − plissé) (majPeau) : la paupière rejoint tout de suite le cil, puis les deux finissent ensemble. Trou 1294 → 28 px, cil jamais caché.
+     + arrondi limité : à mi-chemin la coquille rentrait dans le globe (marche sombre sous la peau) ; rayon ≥ min(repos, 0,187) (pied du cil 0,1876 : 0,188 en cachait déjà 5 %) */
+  function avancePaupiere(THREE, scene) {
+    var B = 5, MARGE = 0.95, PLAF = 0.75, RC = 0.187, v = new THREE.Vector3(), out = [];
+    scene.updateMatrixWorld(true);
+    ['0', '1'].forEach(function (n) {
+      var P = scene.getObjectByName('paupiere' + n), C = scene.getObjectByName('cils_ouv' + n);
+      if (!P || !C || !P.morphTargetDictionary || P.morphTargetDictionary.plisse === undefined || !C.morphTargetDictionary || C.morphTargetDictionary.plisse === undefined) return;
+      var inv = P.matrixWorld.clone().invert();
+      function sph(o, wt, loc, cb) { var g = o.geometry, p = g.attributes.position, mp = g.morphAttributes.position[o.morphTargetDictionary.plisse]; for (var i = 0; i < p.count; i++) { v.set(p.getX(i) + wt * mp.getX(i), p.getY(i) + wt * mp.getY(i), p.getZ(i) + wt * mp.getZ(i)); if (loc) v.applyMatrix4(o.matrixWorld).applyMatrix4(inv); var r = v.length(); cb(i, Math.atan2(v.x, v.z) * 180 / Math.PI, Math.asin(v.y / r) * 180 / Math.PI); } }
+      function minEl(o, wt, loc) { var m = {}; sph(o, wt, loc, function (i, a, e) { if (Math.abs(a) > 100) return; var b = Math.floor((a + 180) / B); if (m[b] === undefined || e < m[b]) m[b] = e; }); return m; }
+      var P0 = minEl(P, 0), P1 = minEl(P, 1), C0 = minEl(C, 0, true), pts = [];
+      Object.keys(C0).map(Number).sort(function (a, b) { return a - b; }).forEach(function (b) { if (P0[b] === undefined) return; pts.push([b * B - 180 + B / 2, Math.max(0, Math.min(PLAF, MARGE * (C0[b] - P0[b]) / (P1[b] - P0[b])))]); });
+      if (!pts.length) return;
+      function aDe(az) { if (az <= pts[0][0]) return pts[0][1]; for (var k = 1; k < pts.length; k++) if (az <= pts[k][0]) { var u = (az - pts[k - 1][0]) / (pts[k][0] - pts[k - 1][0]); return pts[k - 1][1] + u * (pts[k][1] - pts[k - 1][1]); } return pts[pts.length - 1][1]; }
+      var g = P.geometry, ip = P.morphTargetDictionary.plisse, mp = g.morphAttributes.position[ip], mn = g.morphAttributes.normal && g.morphAttributes.normal[ip], cnt = g.attributes.position.count, dp = new Float32Array(cnt * 3), dn = new Float32Array(cnt * 3);
+      sph(P, 0, false, function (i, a) { var s = aDe(a); dp[i * 3] = s * mp.getX(i); dp[i * 3 + 1] = s * mp.getY(i); dp[i * 3 + 2] = s * mp.getZ(i); if (mn) { dn[i * 3] = s * mn.getX(i); dn[i * 3 + 1] = s * mn.getY(i); dn[i * 3 + 2] = s * mn.getZ(i); } });
+      g.morphAttributes.position.push(new THREE.BufferAttribute(dp, 3)); if (g.morphAttributes.normal) g.morphAttributes.normal.push(new THREE.BufferAttribute(dn, 3));
+      P.morphTargetDictionary.avance = P.morphTargetInfluences.length; P.morphTargetInfluences.push(0); P.material.needsUpdate = true;
+      /* Coins de la paupière haute pendant le plissé (u = angle vers le nez, base de la forme) :
+         « corr » = coin intérieur : delta plissé × lissé((u − 17)/4), poids 0,12 × avance + 0,025 × plissé (trou au bout intérieur du cil 219 → 0 px) ;
+         « ext » = coin extérieur : le bord roulé (r < 0,1926) avance vers la caméra au-delà de u −22,3 (plein dès −26,5), 0,013 × avance
+         (le bourrelet de peau du corps passait devant la paupière : coin sombre entre paupière et cil 253 → 52 px, aucune bande sous le cil). */
+      var p3 = g.attributes.position, dc = new Float32Array(cnt * 3), de = new Float32Array(cnt * 3), dz = new THREE.Vector3(0, 0, 1).applyMatrix3(new THREE.Matrix3().setFromMatrix4(P.matrixWorld).invert());
+      for (var i = 0; i < cnt; i++) {
+        var x = p3.getX(i), y = p3.getY(i), z = p3.getZ(i), r = Math.hypot(x, y, z), aa = Math.atan2(x, z) * 180 / Math.PI, u = n === '1' ? -aa : aa;
+        var sc = Math.min(1, Math.max(0, (u - 17) / 4)); sc = sc * sc * (3 - 2 * sc); dc[i * 3] = sc * mp.getX(i); dc[i * 3 + 1] = sc * mp.getY(i); dc[i * 3 + 2] = sc * mp.getZ(i);
+        var se = Math.abs(aa) > 100 ? 0 : Math.min(1, Math.max(0, (-22.3 - u) / 4.2)); se = se * se * (3 - 2 * se); se *= 0.013 * Math.min(1, Math.max(0, (0.1926 - r) / (0.1926 - 0.1837)));
+        de[i * 3] = se * dz.x; de[i * 3 + 1] = se * dz.y; de[i * 3 + 2] = se * dz.z;
+      }
+      [['corr', dc], ['ext', de]].forEach(function (f) { g.morphAttributes.position.push(new THREE.BufferAttribute(f[1], 3)); if (g.morphAttributes.normal) g.morphAttributes.normal.push(new THREE.BufferAttribute(new Float32Array(cnt * 3), 3)); P.morphTargetDictionary[f[0]] = P.morphTargetInfluences.length; P.morphTargetInfluences.push(0); });
+      out.push([P.morphTargetInfluences, ip, P.morphTargetDictionary.avance, P.morphTargetDictionary.corr, P.morphTargetDictionary.ext]);
+      /* Cil dessiné par-dessus la paupière (pochoir) : la coque avant de la paupière descendait sous le haut du cil (u −14..−18, cil 30 → 13 px).
+         La paupière marque ses pixels visibles ; une copie du cil s'y dessine sans test de profondeur (seulement là où la paupière est visible). */
+      var pm = P.material; pm.stencilWrite = true; pm.stencilRef = 1; pm.stencilFunc = THREE.AlwaysStencilFunc; pm.stencilZPass = THREE.ReplaceStencilOp; pm.needsUpdate = true; P.renderOrder = 1;
+      var cm = C.material.clone(); cm.depthFunc = THREE.AlwaysDepth; cm.stencilWrite = true; cm.stencilWriteMask = 0; cm.stencilRef = 1; cm.stencilFunc = THREE.EqualStencilFunc;
+      var C2 = new THREE.Mesh(C.geometry, cm); C2.name = 'cils_dessus' + n; C2.morphTargetInfluences = C.morphTargetInfluences; C2.morphTargetDictionary = C.morphTargetDictionary; C2.renderOrder = 2; C2.frustumCulled = false; C.add(C2);
+    });
+    var p0 = scene.getObjectByName('paupiere0');
+    if (out.length && p0) {
+      var mat = p0.material, old = mat.onBeforeCompile, k0 = mat.customProgramCacheKey.bind(mat);
+      mat.onBeforeCompile = function (sh, r) { if (old) old.call(this, sh, r); sh.vertexShader = sh.vertexShader.replace('#include <morphtarget_vertex>', '#include <morphtarget_vertex>\n  transformed = normalize(transformed) * max(length(transformed), min(length(position), ' + RC.toFixed(4) + '));'); };
+      mat.customProgramCacheKey = function () { return k0() + '|r' + RC; }; mat.needsUpdate = true;
+    }
+    return out;
+  }
+  function paupieresPeau(THREE, scene, corps) {
+    scene.updateMatrixWorld(true);
+    var L = []; scene.traverse(function (o) { if (o.isMesh && /^paupiere(_bas)?\d$/.test(o.name) && o.geometry.attributes.color) L.push(o); });
+    if (!L.length) return;
+    var sg = corps.geometry, sp = sg.attributes.position, sn = sg.attributes.normal, sk = sg.attributes._skin, smp = sg.morphAttributes.position || [], smn = sg.morphAttributes.normal || [], sd = corps.morphTargetDictionary || {};
+    var sM = corps.matrixWorld, sN = new THREE.Matrix3().getNormalMatrix(sM), v = new THREE.Vector3(), w = new THREE.Vector3(), i, j, k, s;
+    function posL(P, j, ks) { v.fromBufferAttribute(P.p0, j); if (ks >= 0 && P.mp[ks]) { if (P.rel) { v.x += P.mp[ks].getX(j); v.y += P.mp[ks].getY(j); v.z += P.mp[ks].getZ(j); } else v.fromBufferAttribute(P.mp[ks], j); } return v.applyMatrix4(P.M); }
+    var etats = [null];
+    L = L.map(function (o) {
+      var g = o.geometry, dic = o.morphTargetDictionary || {}, names = [];
+      for (var nm in dic) { names[dic[nm]] = nm; if (etats.indexOf(nm) < 0) etats.push(nm); }
+      var NM = new THREE.Matrix3().getNormalMatrix(o.matrixWorld), n = g.attributes.position.count;
+      return { g: g, p0: g.attributes.position, n0: g.attributes.normal, col: g.attributes.color, mp: g.morphAttributes.position || [], rel: g.morphTargetsRelative, n: n, M: o.matrixWorld, NM: NM, inv: NM.clone().invert(), names: names, coul: names.indexOf('plisse'), cible: [], bestD: new Float32Array(n).fill(1e9), bestC: new Int32Array(n).fill(-1) };
+    });
+    /* La paupière est une grande demi-sphère (rayon du globe), surtout cachée dans la tête : seule compte la peau autour de l'œil
+       (à moins de rayon + 5 cm du centre du globe) ; les points de paupière loin de cette peau (partie cachée) sont sautés */
+    var cs0 = []; ['oeil0', 'oeil1'].forEach(function (nm) { var e = scene.getObjectByName(nm); if (e) cs0.push(e.getWorldPosition(new THREE.Vector3())); });
+    if (!cs0.length) return;
+    var R = 0; L.forEach(function (P) { var m = 0; for (j = 0; j < P.n; j++) { posL(P, j, -1); m += Math.min.apply(null, cs0.map(function (c) { return c.distanceTo(v); })); } R = Math.max(R, m / P.n); }); R += 0.05;
+    var GC = 0.04, occ = new Set(), ck = function (x, y, z) { return (Math.floor(x / GC) + 512) * 1048576 + (Math.floor(y / GC) + 512) * 1024 + (Math.floor(z / GC) + 512); };
+    var cand = [], box = new THREE.Box3(), fin = new Set();   /* un point de peau tous les 6 mm suffit (couleur et éclairage varient doucement) : calcul ÷ 5 */
+    for (i = 0; i < sp.count; i++) { if (sk.getX(i) < 0.3) continue; v.fromBufferAttribute(sp, i).applyMatrix4(sM); var pr = false; for (k = 0; k < cs0.length; k++) if (cs0[k].distanceTo(v) < R) pr = true; if (!pr) continue; var fk = (Math.floor(v.x / 0.006) + 512) * 1048576 + (Math.floor(v.y / 0.006) + 512) * 1024 + (Math.floor(v.z / 0.006) + 512); if (fin.has(fk)) continue; fin.add(fk); cand.push(i); box.expandByPoint(v); var bx = Math.floor(v.x / GC), by = Math.floor(v.y / GC), bz = Math.floor(v.z / GC); for (var a = -1; a <= 1; a++) for (var b = -1; b <= 1; b++) for (var d = -1; d <= 1; d++) occ.add((bx + a + 512) * 1048576 + (by + b + 512) * 1024 + (bz + d + 512)); }   /* R < 0,3 = points mal peints au fond des creux */
+    if (!cand.length) return;
+    box.expandByScalar(0.06);
+    var CELL = 0.02, RMAX = 3, ox = box.min.x, oy = box.min.y, oz = box.min.z, NX = Math.ceil((box.max.x - ox) / CELL) + 1, NY = Math.ceil((box.max.y - oy) / CELL) + 1, NZ = Math.ceil((box.max.z - oz) / CELL) + 1;
+    function grille(nom) {   /* peau (positions/normales monde) dans la forme « nom » (ou au repos), rangée en cases numériques */
+      var ki = nom && sd[nom] !== undefined ? sd[nom] : -1, nc = cand.length, P = new Float32Array(nc * 3), Q = new Float32Array(nc * 3), cs = new Int32Array(nc), deb = new Int32Array(NX * NY * NZ + 1), ord = new Int32Array(nc), c;
+      for (c = 0; c < nc; c++) {
+        var a = cand[c]; v.fromBufferAttribute(sp, a); w.fromBufferAttribute(sn, a);
+        if (ki >= 0) { if (smp[ki]) { v.x += smp[ki].getX(a); v.y += smp[ki].getY(a); v.z += smp[ki].getZ(a); } if (smn[ki]) { w.x += smn[ki].getX(a); w.y += smn[ki].getY(a); w.z += smn[ki].getZ(a); } }
+        v.applyMatrix4(sM); w.applyMatrix3(sN).normalize(); P[c * 3] = v.x; P[c * 3 + 1] = v.y; P[c * 3 + 2] = v.z; Q[c * 3] = w.x; Q[c * 3 + 1] = w.y; Q[c * 3 + 2] = w.z;
+        var ix = Math.floor((v.x - ox) / CELL), iy = Math.floor((v.y - oy) / CELL), iz = Math.floor((v.z - oz) / CELL);
+        cs[c] = ix < 0 || iy < 0 || iz < 0 || ix >= NX || iy >= NY || iz >= NZ ? -1 : ix + NX * (iy + NY * iz); if (cs[c] >= 0) deb[cs[c] + 1]++;
+      }
+      for (c = 1; c < deb.length; c++) deb[c] += deb[c - 1];
+      var pos = deb.slice(0, -1); for (c = 0; c < nc; c++) if (cs[c] >= 0) ord[pos[cs[c]]++] = c;
+      return { P: P, Q: Q, deb: deb, ord: ord };
+    }
+    function proche(G, x, y, z) {
+      var cx = Math.floor((x - ox) / CELL), cy = Math.floor((y - oy) / CELL), cz = Math.floor((z - oz) / CELL), best = -1, bd = 1e9, P = G.P;
+      for (var r = 0; r <= RMAX; r++) {   /* anneaux de cases de plus en plus larges ; arrêt dès qu'aucune case plus loin ne peut faire mieux */
+        for (var c3 = Math.max(0, cz - r); c3 <= Math.min(NZ - 1, cz + r); c3++) for (var c2 = Math.max(0, cy - r); c2 <= Math.min(NY - 1, cy + r); c2++) for (var c1 = Math.max(0, cx - r); c1 <= Math.min(NX - 1, cx + r); c1++) {
+          if (Math.max(Math.abs(c1 - cx), Math.abs(c2 - cy), Math.abs(c3 - cz)) !== r) continue;
+          var id = c1 + NX * (c2 + NY * c3); for (var t = G.deb[id], f = G.deb[id + 1]; t < f; t++) { var e = G.ord[t], dx = P[e * 3] - x, dy = P[e * 3 + 1] - y, dz = P[e * 3 + 2] - z, q = dx * dx + dy * dy + dz * dz; if (q < bd) { bd = q; best = e; } }
+        }
+        if (best >= 0 && bd <= r * r * CELL * CELL) break;
+      }
+      return best < 0 ? null : [best, bd];
+    }
+    var LISSE = 0.025;
+    function moyenne(G, e) {   /* normale de peau moyennée sur ~2,5 cm autour du point le plus proche : un seul point recopiait les petits creux de l'orbite (paupière « froissée ») */
+      var P = G.P, Q = G.Q, x = P[e * 3], y = P[e * 3 + 1], z = P[e * 3 + 2], cx = Math.floor((x - ox) / CELL), cy = Math.floor((y - oy) / CELL), cz = Math.floor((z - oz) / CELL), rr = Math.ceil(LISSE / CELL), sx = 0, sy = 0, sz = 0;
+      for (var c3 = Math.max(0, cz - rr); c3 <= Math.min(NZ - 1, cz + rr); c3++) for (var c2 = Math.max(0, cy - rr); c2 <= Math.min(NY - 1, cy + rr); c2++) for (var c1 = Math.max(0, cx - rr); c1 <= Math.min(NX - 1, cx + rr); c1++) {
+        var id = c1 + NX * (c2 + NY * c3); for (var t = G.deb[id], f = G.deb[id + 1]; t < f; t++) { var q = G.ord[t], dx = P[q * 3] - x, dy = P[q * 3 + 1] - y, dz = P[q * 3 + 2] - z, d = Math.sqrt(dx * dx + dy * dy + dz * dz); if (d >= LISSE) continue; var wt = 1 - d / LISSE; sx += Q[q * 3] * wt; sy += Q[q * 3 + 1] * wt; sz += Q[q * 3 + 2] * wt; }
+      }
+      var l = Math.sqrt(sx * sx + sy * sy + sz * sz) || 1; return [sx / l, sy / l, sz / l];
+    }
+    for (s = 0; s < etats.length; s++) {   /* une grille de peau à la fois, partagée par les 4 paupières */
+      var G = grille(etats[s]);
+      L.forEach(function (P) {
+        var ks = s === 0 ? -1 : P.names.indexOf(etats[s]); if (s > 0 && ks < 0) return;
+        var out = new Float32Array(P.n * 3);
+        for (j = 0; j < P.n; j++) {
+          posL(P, j, ks); w.fromBufferAttribute(P.n0, j).applyMatrix3(P.NM).normalize();
+          var r = occ.has(ck(v.x, v.y, v.z)) ? proche(G, v.x, v.y, v.z) : null;
+          if (r) { var e = r[0], nm = moyenne(G, e); w.multiplyScalar(0.2); w.x += 0.8 * nm[0]; w.y += 0.8 * nm[1]; w.z += 0.8 * nm[2]; if (ks >= 0 && (P.coul < 0 || ks === P.coul) && r[1] < P.bestD[j]) { P.bestD[j] = r[1]; P.bestC[j] = cand[e]; } }
+          w.applyMatrix3(P.inv).normalize(); out[j * 3] = w.x; out[j * 3 + 1] = w.y; out[j * 3 + 2] = w.z;
+        }
+        P.cible[ks + 1] = out;
+      });
+    }
+    L.forEach(function (P) {
+      var base = P.cible[0], n = P.n;
+      if (P.mp.length) { var mn = []; for (k = 0; k < P.mp.length; k++) { var Tk = P.cible[k + 1], dn = new Float32Array(n * 3); if (Tk) for (j = 0; j < n * 3; j++) dn[j] = Tk[j] - base[j]; mn.push(new THREE.BufferAttribute(dn, 3)); } P.g.morphAttributes.normal = mn; }   /* écarts de normale par forme (glTF : formes relatives) */
+      for (j = 0; j < n; j++) P.n0.setXYZ(j, base[j * 3], base[j * 3 + 1], base[j * 3 + 2]); P.n0.needsUpdate = true;
+      for (j = 0; j < n; j++) { var b2 = P.bestC[j]; if (b2 >= 0) P.col.setXYZ(j, Math.min(1, sk.getX(b2)), Math.min(1, sk.getY(b2)), Math.min(1, sk.getZ(b2))); }   /* _skin monte jusqu'à 1,053 : borné, sinon débordement (couleur 16 bits) = tache bleue */
+      P.col.needsUpdate = true;
+    });
   }
   function verre(THREE) {   /* cornée comme Blender : invisible de face (l'ancien blanc à 10 % délavait l'iris), léger éclat seulement vers le bord (Fresnel) */
     var m = new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 1.0, roughness: 0.06, metalness: 0, depthWrite: false, side: THREE.FrontSide, specularIntensity: 1.0 });
