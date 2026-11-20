@@ -213,14 +213,35 @@
       a.tracks = out;
     });
     gltf.animations.forEach(function (a) { clips[a.name] = a; if (a.name !== 'repos') names.push(a.name); });
+    /* Clips faits à partir des existants (routine plus variée) :
+       « expr_rire » = la joie yeux OUVERTS : seulement la bouche (formes bouche*) de la joie, avec les sourcils du sourire ;
+       regards en diagonale = rotation haut/bas puis gauche/droite composées image par image (×0,85 chacune, sinon ~14° : trop loin). */
+    function cleDe(tr) { var m = /^(.+)\.morphTargetInfluences\[(\d+)\]$/.exec(tr.name), o = m && gltf.scene.getObjectByName(m[1]), d = o && o.morphTargetDictionary; if (!d) return null; for (var k in d) if (d[k] === +m[2]) return [m[1], k]; return null; }
+    if (clips.expr_joie) { clips.expr_rire = new THREE.AnimationClip('expr_rire', clips.expr_joie.duration, clips.expr_joie.tracks.filter(function (tr) { var c = cleDe(tr); return c && /^bouche/.test(c[1]); }).concat(clips.expr_sourire ? clips.expr_sourire.tracks.filter(function (tr) { return /^sourcils\./.test(tr.name); }) : [])); names.push('expr_rire'); }
+    ['haut', 'bas'].forEach(function (v) { ['gauche', 'droite'].forEach(function (h) {
+      var cv = clips['regard_' + v], ch = clips['regard_' + h]; if (!cv || !ch) return;
+      var id = new THREE.Quaternion(), qa = new THREE.Quaternion(), qb = new THREE.Quaternion(), tr = [];
+      ch.tracks.forEach(function (th) {
+        var tv = cv.tracks.filter(function (x) { return x.name === th.name; })[0]; if (!tv || !/\.quaternion$/.test(th.name)) return;
+        var iv = tv.createInterpolant(), out = new Float32Array(th.times.length * 4);
+        for (var k = 0; k < th.times.length; k++) { qa.fromArray(th.values, k * 4); id.set(0, 0, 0, 1).slerp(qa, 0.85); qa.copy(id); qb.fromArray(iv.evaluate(th.times[k])); id.set(0, 0, 0, 1).slerp(qb, 0.85); qa.multiply(id).toArray(out, k * 4); }
+        tr.push(new THREE.QuaternionKeyframeTrack(th.name, th.times, out));
+      });
+      if (tr.length) { var nm = 'regard_' + v + '_' + h; clips[nm] = new THREE.AnimationClip(nm, ch.duration, tr); names.push(nm); }
+    }); });
     T = { THREE: THREE, renderer: renderer, scene: scene, cam: cam, mixer: mixer, clips: clips, names: names, root: root, baseY: 0 };
     S = { routine: true, grain: true, grainU: grainU, actifs: [], sortants: [], acts: {}, timers: [], dead: false, raf: 0, base: null, baseKey: '', visible: true };
-    on = true; loading = false; btn.classList.add('on'); btn.textContent = '3D'; document.body.classList.add('p3d-on'); window.__p3d = { T: T, S: S, jouer: jouer, majPeau: majPeau, fondus: fondus, GRAIN_F: GRAIN_F };
+    on = true; loading = false; btn.classList.add('on'); btn.textContent = '3D'; document.body.classList.add('p3d-on'); window.__p3d = { T: T, S: S, jouer: jouer, majPeau: majPeau, fondus: fondus, finir: function () { finir(); }, GRAIN_F: GRAIN_F };
     baseMaj(); mixer.update(0); avK = avancePaupiere(THREE, gltf.scene) || [];
-    mixer.addEventListener('finished', function (e) {
-      var n = e.action._nom; if (S.acts[n] !== e.action) { e.action.stop(); return; }   /* expression remplacée (déjà retirée) */
-      delete S.acts[n]; S.actifs = S.actifs.filter(function (x) { return x !== n; }); e.action.stop(); baseMaj();
-    });
+    /* Fin d'un clip traitée APRÈS mixer.update : arrêter une action (et changer le repos) pendant la mise à jour réordonne la liste des actions
+       en cours → une autre action (ex. la joie, quand un regard finit pendant elle) était sautée une image : yeux rouverts 1 image (« clignement parasite »). */
+    var finis = [];
+    mixer.addEventListener('finished', function (e) { finis.push(e.action); });
+    function finir() {
+      if (!finis.length) return; var l = finis; finis = [];
+      l.forEach(function (a) { var n = a._nom; a.stop(); if (S.acts[n] !== a) return; delete S.acts[n]; S.actifs = S.actifs.filter(function (x) { return x !== n; }); });   /* expression remplacée : déjà retirée */
+      baseMaj();
+    }
     if ('IntersectionObserver' in window) new IntersectionObserver(function (en) { S.visible = en[0].isIntersecting; }).observe(canvas);
     var last = performance.now(), acc = 0, nfr = 0, first = true, chk = 0;
     (function boucle(now) {
@@ -232,7 +253,7 @@
         S.visible = rc.width > 0 && rc.bottom > 0 && rc.right > 0 && rc.top < window.innerHeight && rc.left < window.innerWidth;
       }
       if (document.hidden || !S.visible) return;
-      mixer.update(dt); fondus(); majPeau();
+      mixer.update(dt); finir(); fondus(); majPeau();
       root.scale.y = 1 + Math.sin(now / 1400) * 0.006; root.position.y = Math.sin(now / 1400) * 0.002;   /* respiration légère */
       renderer.render(scene, cam);
       if (first) { first = false; M.tFirst = performance.now() - t0; }
@@ -634,11 +655,21 @@
   var planned = false;
   function planning() {
     if (planned && S.planned === S) return; S.planned = S; planned = true;
-    var dur = function () { return S.actifs.some(function (n) { return /^expr_(joie|colere|malicieux)$/.test(n); }); };
+    var dur = function () { return S.actifs.some(function (n) { return /^expr_(joie|colere|malicieux|mefiant)$/.test(n); }); };
     every(2500, 6000, function () { if (!dur() && libre('clignement')) jouer('clignement'); });
-    every(2500, 5500, function () { var k = ['regard_gauche', 'regard_droite', 'regard_haut', 'regard_bas']; var n = k[Math.floor(Math.random() * 4)]; if (!k.some(function (x) { return S.acts[x]; })) jouer(n); });
-    every(12000, 22000, function () { if (!S.actifs.some(function (n) { return /^expr_/.test(n); })) jouer('expr_sourire'); });
-    every(25000, 32000, function () { if (!S.actifs.length || S.actifs.every(function (n) { return n === 'clignement' || /^regard/.test(n); })) jouer('salut'); });
+    /* « Sacs mélangés » : chaque tour joue tout le sac une fois, ordre au hasard, jamais deux fois la même de suite (le tirage au sort laissait la joie absente plusieurs minutes).
+       Rythme demandé : chaque animation ~2 fois par minute. Expressions (6) toutes les 6–7,4 s ; regards (8) toutes les 4,3–5,7 s ; salut toutes les 34–46 s → chacune ~1,5 fois par minute (tour ~40 s ; 2 fois par minute était trop agité). */
+    function sacDe(liste) { var s = [], der = ''; return function (prendre) { if (!s.length) { s = liste.slice(); for (var i = s.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = s[i]; s[i] = s[j]; s[j] = t; } if (s[0] === der) s.push(s.shift()); } return prendre ? (der = s.shift()) : s[0]; }; }   /* sac(false) = la prochaine, sac(true) = la prend */
+    var sacR = sacDe(T.names.filter(function (x) { return /^regard_/.test(x); }));   /* 4 directions + 4 diagonales */
+    every(4300, 5700, function () { if (!T.names.some(function (x) { return /^regard_/.test(x) && S.acts[x]; })) jouer(sacR(true)); });
+    var sacE = sacDe(['expr_sourire', 'expr_rire', 'expr_joie', 'expr_malicieux', 'expr_mefiant', 'expr_surprise']);
+    function expression() {   /* joie / malicieux / méfiant : pas pendant un clignement (paupières empilées) → réessai 0,4 s plus tard */
+      if (!S || S.dead || !S.routine || document.hidden || !S.visible || S.actifs.some(function (n) { return /^expr_/.test(n); })) return;
+      if (/^expr_(joie|malicieux|mefiant)$/.test(sacE(false)) && S.acts.clignement) { S.timers.push(setTimeout(expression, 400)); return; }
+      jouer(sacE(true));
+    }
+    every(6000, 7400, expression);
+    every(34000, 46000, function () { if (libre('salut')) jouer('salut'); });   /* salut : aussi pendant une expression (il ne bouge que le corps) */
   }
 
   document.addEventListener('DOMContentLoaded', function () {
